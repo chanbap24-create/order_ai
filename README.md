@@ -4,6 +4,7 @@
 
 ## 🌐 프로젝트 URL
 - **GitHub**: https://github.com/chanbap24-create/order-ai
+- **Vercel 배포**: (아래 배포 가이드 참조)
 - **데모**: https://3000-ihrunfcj6wdldlndzi6r8-d0b9e1e2.sandbox.novita.ai
 
 ## 주요 기능
@@ -92,6 +93,51 @@ order-ai/
 - **Database**: SQLite (better-sqlite3)
 - **AI**: OpenAI API
 - **Validation**: Zod
+
+## 🚀 Vercel 배포 가이드
+
+### 방법 1: Vercel 웹사이트에서 배포 (권장)
+
+1. **Vercel 계정 생성/로그인**
+   - https://vercel.com 접속
+   - GitHub 계정으로 로그인
+
+2. **프로젝트 Import**
+   - "Add New..." → "Project" 클릭
+   - GitHub에서 `order-ai` 저장소 선택
+   - "Import" 클릭
+
+3. **환경 변수 설정**
+   - "Environment Variables" 섹션에서 다음 추가:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ENABLE_TRANSLATION=true
+   ORDER_AI_XLSX_PATH=./order-ai.xlsx
+   DB_PATH=./data.sqlite3
+   ```
+
+4. **배포 시작**
+   - "Deploy" 클릭
+   - 몇 분 후 배포 완료되면 URL 확인
+
+### 방법 2: Vercel CLI 사용
+
+```bash
+# Vercel CLI 설치
+npm install -g vercel
+
+# 배포 실행
+vercel
+
+# 프로덕션 배포
+vercel --prod
+```
+
+### 주의사항
+
+- ⚠️ SQLite 데이터베이스는 Vercel의 Serverless Functions에서 읽기 전용입니다
+- ⚠️ 데이터 쓰기가 필요한 경우 Vercel Postgres 또는 외부 DB 사용 권장
+- ✅ 현재 구조는 읽기 작업 위주이므로 정상 작동합니다
 
 ## 라이선스
 
