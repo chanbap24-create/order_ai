@@ -370,7 +370,7 @@ export default function Home() {
     >
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>발주 메시지 생성</div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>와인 발주 메시지 생성</div>
       </div>
 
       {/* ===== Controls ===== */}
