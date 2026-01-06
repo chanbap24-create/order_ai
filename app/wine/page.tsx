@@ -53,6 +53,7 @@ export default function Home() {
   const [customDeliveryDate, setCustomDeliveryDate] = useState("");
   const [requirePaymentConfirm, setRequirePaymentConfirm] = useState(false);
   const [requireInvoice, setRequireInvoice] = useState(false);
+  const [showOrderOptions, setShowOrderOptions] = useState(false); // ✅ 발주 옵션 접기/펼치기
 
   const canSave = useMemo(
     () => learnInputs.some((r) => r.alias.trim() && r.canonical.trim()),
@@ -485,8 +486,23 @@ export default function Home() {
         <div style={{ fontSize: 22, fontWeight: 800 }}>Cave De Vin</div>
       </div>
 
-      {/* ===== Controls ===== */}
-      <div style={{ display: "flex", gap: 12, marginTop: 14, alignItems: "center" }}>
+      {/* ===== Input ===== */}
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={10}
+        style={{
+          width: "100%",
+          marginTop: 12,
+          padding: 12,
+          borderRadius: 12,
+          border: "1px solid #ddd",
+          ...monoStyle,
+        }}
+      />
+
+      {/* ===== Controls (입력창 아래로 이동) ===== */}
+      <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
         <button
           onClick={run}
           disabled={loading}
@@ -522,108 +538,115 @@ export default function Home() {
         </button>
       </div>
 
-      {/* ===== Input ===== */}
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={10}
-        style={{
-          width: "100%",
-          marginTop: 12,
-          padding: 12,
-          borderRadius: 12,
-          border: "1px solid #ddd",
-          ...monoStyle,
-        }}
-      />
-
-      {/* ===== 발주 옵션 ===== */}
-      <div style={{ marginTop: 16, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>발주 옵션</div>
+      {/* ===== 발주 옵션 (접기/펼치기) ===== */}
+      <div style={{ marginTop: 16 }}>
+        <button
+          onClick={() => setShowOrderOptions(!showOrderOptions)}
+          style={{
+            width: "100%",
+            padding: 12,
+            background: "#f8f9fa",
+            border: "1px solid #ddd",
+            borderRadius: 12,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            fontSize: 14,
+            fontWeight: 700,
+          }}
+        >
+          <span>발주 옵션</span>
+          <span>{showOrderOptions ? "▲" : "▼"}</span>
+        </button>
         
-        {/* 배송일 지정 */}
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>
-            배송일 지정 (선택)
-          </label>
-          <input
-            type="text"
-            value={customDeliveryDate}
-            onChange={(e) => setCustomDeliveryDate(e.target.value)}
-            placeholder="예: 1/10(금), 내일, 1월 10일"
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              fontSize: 16,
-              marginBottom: 8,
-            }}
-          />
-          
-          {/* ✅ 날짜 빠른 선택 버튼 (1주일) */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {(() => {
-              const dates = [];
-              const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-              const today = new Date();
+        {showOrderOptions && (
+          <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+            {/* 배송일 지정 */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>
+                배송일 지정 (선택)
+              </label>
+              <input
+                type="text"
+                value={customDeliveryDate}
+                onChange={(e) => setCustomDeliveryDate(e.target.value)}
+                placeholder="예: 1/10(금), 내일, 1월 10일"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  fontSize: 16,
+                  marginBottom: 8,
+                }}
+              />
               
-              for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
-                const month = date.getMonth() + 1;
-                const day = date.getDate();
-                const weekday = weekdays[date.getDay()];
-                const label = i === 0 ? "오늘" : i === 1 ? "내일" : `${month}/${day}(${weekday})`;
-                const value = `${month}/${day}(${weekday})`;
-                
-                dates.push({ label, value });
-              }
-              
-              return dates.map((d, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCustomDeliveryDate(d.value)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 6,
-                    border: customDeliveryDate === d.value ? "2px solid #FF6B35" : "1px solid #ddd",
-                    background: customDeliveryDate === d.value ? "#FFF5F2" : "#fff",
-                    color: customDeliveryDate === d.value ? "#FF6B35" : "#666",
-                    fontSize: 12,
-                    fontWeight: customDeliveryDate === d.value ? 600 : 400,
-                    cursor: "pointer",
-                  }}
-                >
-                  {d.label}
-                </button>
-              ));
-            })()}
-          </div>
-        </div>
+              {/* ✅ 날짜 빠른 선택 버튼 (1주일) */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {(() => {
+                  const dates = [];
+                  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+                  const today = new Date();
+                  
+                  for (let i = 0; i < 7; i++) {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() + i);
+                    const month = date.getMonth() + 1;
+                    const day = date.getDate();
+                    const weekday = weekdays[date.getDay()];
+                    const label = i === 0 ? "오늘" : i === 1 ? "내일" : `${month}/${day}(${weekday})`;
+                    const value = `${month}/${day}(${weekday})`;
+                    
+                    dates.push({ label, value });
+                  }
+                  
+                  return dates.map((d, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCustomDeliveryDate(d.value)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        border: customDeliveryDate === d.value ? "2px solid #FF6B35" : "1px solid #ddd",
+                        background: customDeliveryDate === d.value ? "#FFF5F2" : "#fff",
+                        color: customDeliveryDate === d.value ? "#FF6B35" : "#666",
+                        fontSize: 12,
+                        fontWeight: customDeliveryDate === d.value ? 600 : 400,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {d.label}
+                    </button>
+                  ));
+                })()}
+              </div>
+            </div>
 
-        {/* 추가 문구 */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={requirePaymentConfirm}
-              onChange={(e) => setRequirePaymentConfirm(e.target.checked)}
-              style={{ width: 18, height: 18 }}
-            />
-            <span style={{ fontSize: 14 }}>입금확인후 출고</span>
-          </label>
-          
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={requireInvoice}
-              onChange={(e) => setRequireInvoice(e.target.checked)}
-              style={{ width: 18, height: 18 }}
-            />
-            <span style={{ fontSize: 14 }}>거래명세표 부탁드립니다</span>
-          </label>
-        </div>
+            {/* 추가 문구 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={requirePaymentConfirm}
+                  onChange={(e) => setRequirePaymentConfirm(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span style={{ fontSize: 14 }}>입금확인후 출고</span>
+              </label>
+              
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={requireInvoice}
+                  onChange={(e) => setRequireInvoice(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <span style={{ fontSize: 14 }}>거래명세표 부탁드립니다</span>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* =========================
