@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/app/lib/db";
-import { parseItemsFromMessage } from "@/app/lib/parseItems";
+import { parseGlassItemsFromMessage } from "@/app/lib/parseGlassItems";
 import { resolveGlassItemsByClient } from "@/app/lib/resolveGlassItems";
 import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
@@ -448,7 +448,7 @@ export async function POST(req: Request) {
     const trOrder = await translateOrderToKoreanIfNeeded(order0);
     const orderPre = trOrder.translated ? trOrder.text : order0;
 
-    const parsedItems = parseItemsFromMessage(orderPre);
+    const parsedItems = parseGlassItemsFromMessage(orderPre);
 
     const clientCode = client?.client_code;
     if (!clientCode) {

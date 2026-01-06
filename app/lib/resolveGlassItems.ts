@@ -44,10 +44,17 @@ function scoreItem(q: string, name: string) {
   return Math.min(0.89, common / Math.max(6, a.length));
 }
 
+/* ================= Glass 코드 추출 ================= */
+// RD 0447/07 → 0447/07
+function extractRDCode(itemName: string): string | null {
+  const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
+  return m ? m[1] : null;
+}
+
 /* ================= 메인: Glass 전용 ================= */
 export function resolveGlassItemsByClient(
   clientCode: string,
-  items: Array<{ name: string; qty: number }>,
+  items: Array<{ name: string; qty: number; code?: string }>,
   opts?: { minScore?: number; minGap?: number; topN?: number }
 ) {
   const minScore = opts?.minScore ?? 0.55;
@@ -64,6 +71,41 @@ export function resolveGlassItemsByClient(
     .all(clientCode) as Array<{ item_no: string; item_name: string }>;
 
   return items.map((it) => {
+    // ✅ 1순위: 코드가 있으면 코드로 정확히 매칭
+    if (it.code) {
+      const codeMatch = clientRows.find((r) => {
+        const rdCode = extractRDCode(r.item_name);
+        return rdCode && rdCode.toLowerCase() === it.code!.toLowerCase();
+      });
+
+      if (codeMatch) {
+        return {
+          ...it,
+          normalized_query: it.code,
+          resolved: true,
+          item_no: codeMatch.item_no,
+          item_name: codeMatch.item_name,
+          score: 1.0,
+          method: "exact_code",
+          candidates: [
+            {
+              item_no: codeMatch.item_no,
+              item_name: codeMatch.item_name,
+              score: 1.0,
+            },
+          ],
+          suggestions: [
+            {
+              item_no: codeMatch.item_no,
+              item_name: codeMatch.item_name,
+              score: 1.0,
+            },
+          ],
+        };
+      }
+    }
+
+    // ✅ 2순위: 품목명 기반 점수 매칭
     const q = norm(stripQtyAndUnit(it.name));
 
     let scored = clientRows
