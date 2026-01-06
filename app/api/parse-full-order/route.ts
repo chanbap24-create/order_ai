@@ -105,7 +105,16 @@ function extractKoreanTokens(s: string) {
 // 입력에서 "브랜드(핵심)" 토큰 1개를 뽑음: 가장 긴 토큰 우선
 function pickBrandToken(input: string) {
   const stop = new Set(["주식회사", "스시", "점", "지점", "본점"]); // 필요하면 추가
-  const toks = extractKoreanTokens(input)
+  
+  // ✅ 괄호 안의 별칭도 추출 (예: "라뜨리에드 오르조" from "에프엔비버드독 (라뜨리에드 오르조)")
+  const aliasMatch = input.match(/\(([^)]+)\)/);
+  const mainText = input.replace(/\([^)]+\)/g, "").trim();
+  const aliasText = aliasMatch ? aliasMatch[1].trim() : "";
+  
+  // 메인 텍스트와 괄호 안 텍스트 모두에서 토큰 추출
+  const allText = [mainText, aliasText].filter(Boolean).join(" ");
+  
+  const toks = extractKoreanTokens(allText)
     .map((t) => t.replace(/(지점|점|본점)$/g, ""))
     .filter((t) => t.length >= 2 && !stop.has(t));
 
@@ -133,12 +142,21 @@ function scoreName(q: any, name: any) {
   if (!a || !b) return 0;
 
   // ✅ (A) 브랜드 게이트: 입력의 핵심 토큰이 후보에 없으면 고득점 금지
-  const brand = pickBrandToken(qRaw); // 예: "스시소라"
+  const brand = pickBrandToken(qRaw); // 예: "스시소라" or "라뜨리에드"
   if (brand) {
     const brandNorm = norm(brand);
-    if (brandNorm && !b.includes(brandNorm)) {
+    
+    // ✅ 괄호 안의 별칭도 검색 대상에 포함
+    const nameAlias = nRaw.match(/\(([^)]+)\)/);
+    const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
+    const nameAliasText = nameAlias ? nameAlias[1].trim() : "";
+    
+    const nameMainNorm = norm(nameMainText);
+    const nameAliasNorm = norm(nameAliasText);
+    
+    // 브랜드가 메인 텍스트나 괄호 안 별칭 어디에도 없으면 점수 제한
+    if (brandNorm && !b.includes(brandNorm) && !nameMainNorm.includes(brandNorm) && !nameAliasNorm.includes(brandNorm)) {
       // 브랜드가 없으면 점수 상한을 낮게 캡 (지점만 맞아도 상위 못 오게)
-      // 여기 값을 0.35~0.55 사이에서 운영취향대로 조절 가능
       return 0.45;
     }
   }
@@ -317,7 +335,7 @@ const scored = rows
 
 
   const canAuto =
-    top && top.score >= 0.93 && (!second || top.score - second.score >= 0.08);
+    top && top.score >= 0.90 && (!second || top.score - second.score >= 0.08);
   if (canAuto) return { status: "resolved", ...top, method: "fuzzy_auto" };
 
   const forceOk =
