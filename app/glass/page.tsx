@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import LearnedAliasList from "@/app/components/LearnedAliasList";
+import LearnedClientList from "@/app/components/LearnedClientList";
 
 type LearnRow = { alias: string; canonical: string };
 
@@ -43,6 +44,10 @@ export default function Home() {
   const [showClientItems, setShowClientItems] = useState(false);
   const [clientItems, setClientItems] = useState<any[]>([]);
   const [loadingClientItems, setLoadingClientItems] = useState(false);
+
+  // ✅ 학습된 거래처 목록
+  const [showLearnedClients, setShowLearnedClients] = useState(false);
+  const [learnedClientVersion, setLearnedClientVersion] = useState(0);
 
   const canSave = useMemo(
     () => learnInputs.some((r) => r.alias.trim() && r.canonical.trim()),
@@ -157,10 +162,33 @@ export default function Home() {
   // ✅ 거래처 후보 클릭 → 선택한 거래처로 재파싱
   async function pickClient(c: any) {
     const clientName = String(c?.client_name ?? "").trim();
-    if (!clientName) return;
+    const clientCode = String(c?.client_code ?? "").trim();
+    if (!clientName || !clientCode) return;
 
     setLoading(true);
     try {
+      // ✅ 1. 거래처 학습 (입력된 텍스트의 첫 줄을 alias로 학습)
+      const firstLineText = (pendingPreMessage || text).split("\n")[0].trim();
+      if (firstLineText && firstLineText !== clientName) {
+        try {
+          await fetch("/api/learn-client", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              client_code: clientCode,
+              alias: firstLineText,
+              type: "glass",
+            }),
+          });
+          console.log("✅ 거래처 학습:", firstLineText, "→", clientName);
+          // ✅ 학습 후 목록 갱신
+          setLearnedClientVersion((v) => v + 1);
+        } catch (err) {
+          console.error("거래처 학습 실패:", err);
+        }
+      }
+
+      // ✅ 2. 재파싱
       const { json } = await callParse({
         message: pendingPreMessage || text,
         clientText: clientName, // ✅ 핵심: alias 그대로 보내면 exact(norm)로 resolved 가능
@@ -1031,6 +1059,43 @@ export default function Home() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* =========================
+          학습된 거래처 목록
+      ========================= */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 20,
+          paddingTop: 20,
+          borderTop: "2px solid #e5e7eb",
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>학습된 거래처</div>
+
+        <button
+          onClick={() => setShowLearnedClients((v) => !v)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          {showLearnedClients ? "닫기" : "보기"}
+        </button>
+      </div>
+
+      {showLearnedClients && (
+        <div style={{ marginTop: 10, background: "#f8f9fa", borderRadius: 12 }}>
+          <LearnedClientList type="glass" version={learnedClientVersion} />
         </div>
       )}
 
