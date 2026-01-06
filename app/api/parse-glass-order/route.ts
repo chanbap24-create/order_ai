@@ -225,7 +225,20 @@ function resolveClient({
 
   const candidate = String(clientText || "").trim() || firstLine(message);
 
-  // exact(norm)
+  // ✅ 1순위: 거래처 코드 직접 매칭 (12096 같은 숫자)
+  if (candidate && /^\d+$/.test(candidate)) {
+    const codeMatch = rows.find((r) => String(r.client_code) === candidate);
+    if (codeMatch) {
+      return {
+        status: "resolved",
+        client_code: String(codeMatch.client_code),
+        client_name: String(codeMatch.alias),
+        method: "exact_code",
+      };
+    }
+  }
+
+  // ✅ 2순위: 거래처명 exact 매칭
   if (candidate) {
     const exact = rows.find(
       (r) => norm(r.alias) && norm(r.alias) === norm(candidate)
