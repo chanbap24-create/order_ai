@@ -1,44 +1,48 @@
-import { NextResponse } from "next/server";
 import { db } from "@/app/lib/db";
+import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+// ✅ 거래처별 품목 조회 API (와인/와인잔 공통)
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { client_code, type = "wine" } = body;
+    const body = await req.json();
+    const { client_code, type } = body;
 
-    if (!client_code) {
+    if (!client_code || !type) {
       return NextResponse.json(
-        { success: false, error: "client_code is required" },
+        { success: false, message: "client_code와 type이 필요합니다" },
         { status: 400 }
       );
     }
 
-    // 와인 또는 와인잔 테이블 선택
-    const table = type === "glass" ? "glass_client_item_stats" : "client_item_stats";
+    // ✅ 와인/와인잔에 따라 다른 테이블 사용
+    const table = type === "wine" ? "client_item_stats" : "glass_client_item_stats";
 
-    // 거래처의 모든 품목 조회 (품목명 순 정렬)
+    // ✅ 거래처별 품목 조회 (최근 거래 품목)
     const items = db
       .prepare(
-        `SELECT item_no, item_name, supply_price 
+        `SELECT item_no, item_name, supply_price, updated_at 
          FROM ${table} 
          WHERE client_code = ? 
-         ORDER BY item_name`
+         ORDER BY item_no ASC`
       )
-      .all(client_code);
+      .all(client_code) as Array<{
+      item_no: string;
+      item_name: string;
+      supply_price: number;
+      updated_at: string;
+    }>;
 
     return NextResponse.json({
       success: true,
-      client_code,
-      type,
       items,
       count: items.length,
     });
   } catch (error: any) {
-    console.error("Error in /api/client-items:", error);
+    console.error("거래처 품목 조회 실패:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, message: error.message },
       { status: 500 }
     );
   }
