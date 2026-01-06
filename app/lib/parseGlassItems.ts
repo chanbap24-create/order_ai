@@ -21,6 +21,11 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
   const items: ParsedGlassItem[] = [];
 
   for (const line of lines) {
+    // ✅ 거래처 코드 제외 (숫자만 있는 라인: 12096, 30001 등)
+    if (/^\d+$/.test(line)) {
+      continue;
+    }
+
     // ✅ 패턴 1: 코드가 앞에 있는 경우
     // "0447/07(레스토랑 뉴월드 피노) : 12잔"
     // "0446/0(레스토랑 까베르네) : 12잔"
@@ -44,9 +49,13 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
     const m2 = line.match(namePattern);
     
     if (m2) {
+      const name = m2[1].trim();
+      // 너무 짧은 품목명 제외 (2글자 이하)
+      if (name.length <= 2) continue;
+      
       items.push({
         raw: line,
-        name: m2[1].trim(),
+        name,
         qty: Number(m2[2]),
       });
       continue;
@@ -67,7 +76,8 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
     }
 
     // ✅ 패턴 4: 수량이 없는 경우 (기본 1개)
-    if (line.length > 2) {
+    // 단, 한글이나 영문이 포함된 경우만 (순수 숫자 제외)
+    if (line.length > 2 && /[가-힣A-Za-z]/.test(line)) {
       items.push({
         raw: line,
         name: line.trim(),
