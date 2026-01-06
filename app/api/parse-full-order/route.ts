@@ -139,98 +139,88 @@ function scoreName(q: any, name: any) {
   const nRaw = String(name ?? "");
 
   const a = norm(qRaw);
-  const b = norm(nRaw);
-  if (!a || !b) return 0;
+  if (!a) return 0;
 
-  // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리! (오타 허용)
+  // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리!
   const nameAlias = nRaw.match(/\(([^)]+)\)/);
+  const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
+  
+  // 괄호 안 별칭이 있으면 별칭과 메인 이름 모두 비교
   if (nameAlias) {
     const aliasText = nameAlias[1].trim();
     const aliasNorm = norm(aliasText);
+    const mainNorm = norm(nameMainText);
     
-    // 완전 일치
+    // 별칭과 완전 일치
     if (a === aliasNorm) return 1.0;
     
-    // 포함 관계
-    if (aliasNorm.includes(a) || a.includes(aliasNorm)) {
-      return 0.98;
-    }
+    // 메인 이름과 완전 일치
+    if (a === mainNorm) return 1.0;
     
-    // ✅ 유사도 기반 매칭 (오타 허용)
-    // 문자 겹침 비율 계산
+    // 별칭 포함 관계 (우선순위 높음)
+    if (aliasNorm.includes(a)) return 0.98;
+    if (a.includes(aliasNorm) && aliasNorm.length >= 3) return 0.97;
+    
+    // 메인 이름 포함 관계
+    if (mainNorm.includes(a)) return 0.96;
+    if (a.includes(mainNorm) && mainNorm.length >= 3) return 0.95;
+    
+    // 별칭 유사도 매칭
     const aChars = new Set(a.split(""));
     const aliasChars = new Set(aliasNorm.split(""));
-    let common = 0;
+    let commonAlias = 0;
     for (const ch of aChars) {
-      if (aliasChars.has(ch)) common++;
+      if (aliasChars.has(ch)) commonAlias++;
     }
-    const similarity = common / Math.max(a.length, aliasNorm.length);
+    const aliasSimilarity = commonAlias / Math.max(a.length, aliasNorm.length);
     
     // 70% 이상 유사하면 괄호 안 상호명으로 간주
-    if (similarity >= 0.7) {
-      // 길이 차이 보정
+    if (aliasSimilarity >= 0.7) {
       const lenDiff = Math.abs(a.length - aliasNorm.length);
-      const lenPenalty = lenDiff * 0.02; // 길이 차이당 -0.02
-      const score = Math.max(0.85, Math.min(0.97, 0.95 - lenPenalty));
-      return score;
+      const lenPenalty = lenDiff * 0.02;
+      return Math.max(0.85, Math.min(0.94, 0.92 - lenPenalty));
+    }
+    
+    // 메인 이름 유사도 매칭
+    const mainChars = new Set(mainNorm.split(""));
+    let commonMain = 0;
+    for (const ch of aChars) {
+      if (mainChars.has(ch)) commonMain++;
+    }
+    const mainSimilarity = commonMain / Math.max(a.length, mainNorm.length);
+    
+    if (mainSimilarity >= 0.7) {
+      const lenDiff = Math.abs(a.length - mainNorm.length);
+      const lenPenalty = lenDiff * 0.02;
+      return Math.max(0.80, Math.min(0.90, 0.88 - lenPenalty));
     }
   }
-
-  // ✅ (A) 브랜드 게이트: 입력의 핵심 토큰이 후보에 없으면 고득점 금지
-  const brand = pickBrandToken(qRaw); // 예: "스시소라" or "라뜨리에드"
-  if (brand) {
-    const brandNorm = norm(brand);
-    
-    // ✅ 괄호 안의 별칭도 검색 대상에 포함
-    const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
-    const nameAliasText = nameAlias ? nameAlias[1].trim() : "";
-    
-    const nameMainNorm = norm(nameMainText);
-    const nameAliasNorm = norm(nameAliasText);
-    
-    // 브랜드가 메인 텍스트나 괄호 안 별칭 어디에도 없으면 점수 제한
-    if (brandNorm && !b.includes(brandNorm) && !nameMainNorm.includes(brandNorm) && !nameAliasNorm.includes(brandNorm)) {
-      // 브랜드가 없으면 점수 상한을 낮게 캡 (지점만 맞아도 상위 못 오게)
-      return 0.45;
-    }
-  }
-
-  // ✅ (B) 지점(청담/판교/광교...) 토큰은 "브랜드가 맞는 후보들" 안에서만 가산/감점
-  const extractBranchTokens = (s: string) =>
-    extractKoreanTokens(s)
-      .map((t) => t.replace(/(지점|점|본점)$/g, ""))
-      .filter(Boolean);
-
-  const stop2 = new Set(["주식회사", brand]); // 브랜드 토큰은 branch 토큰에서 제외
-  const qTokens = extractBranchTokens(qRaw).filter((t) => !stop2.has(t));
-  const nTokens = extractBranchTokens(nRaw).filter((t) => !stop2.has(t));
-
-  let branchAdj = 0;
-  if (qTokens.length > 0) {
-    const hasAny = qTokens.some((t) => nTokens.includes(t));
-    if (hasAny) branchAdj += 0.18;
-
-    // 입력 지점이 있는데 후보 지점이 다르면 감점 (청담 vs 광교 같은 케이스)
-    const hasMismatch = nTokens.some((t) => !qTokens.includes(t));
-    if (!hasAny && hasMismatch) branchAdj -= 0.25;
-  }
-
-  // ✅ (C) 기존 기본 점수 (포함/겹침)
+  
+  // 괄호가 없는 경우
+  const b = norm(nRaw);
+  if (!b) return 0;
+  
+  // 완전 일치
   if (a === b) return 1.0;
-
-  if (b.includes(a) || a.includes(b)) {
-    const s = Math.max(0, Math.min(0.99, 0.9 + branchAdj));
-    return s;
-  }
-
+  
+  // 포함 관계
+  if (b.includes(a)) return 0.90;
+  if (a.includes(b) && b.length >= 3) return 0.88;
+  
+  // 문자 겹침 비율
   const aset = new Set(a.split(""));
   let common = 0;
   for (const ch of aset) if (b.includes(ch)) common++;
-  const overlap = common / Math.max(6, a.length);
-  const base = Math.max(0, Math.min(0.89, overlap));
-
-  const s = Math.max(0, Math.min(0.99, base + branchAdj));
-  return s;
+  const overlap = common / Math.max(a.length, b.length);
+  
+  // 유사도 점수
+  if (overlap >= 0.7) {
+    const lenDiff = Math.abs(a.length - b.length);
+    const lenPenalty = lenDiff * 0.02;
+    return Math.max(0.60, Math.min(0.85, 0.82 - lenPenalty));
+  }
+  
+  return Math.max(0, Math.min(0.75, overlap * 0.9));
 }
 
 
