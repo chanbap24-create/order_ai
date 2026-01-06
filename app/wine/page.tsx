@@ -557,8 +557,49 @@ export default function Home() {
               borderRadius: 8,
               border: "1px solid #ddd",
               fontSize: 16,
+              marginBottom: 8,
             }}
           />
+          
+          {/* ✅ 날짜 빠른 선택 버튼 (1주일) */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(() => {
+              const dates = [];
+              const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+              const today = new Date();
+              
+              for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const weekday = weekdays[date.getDay()];
+                const label = i === 0 ? "오늘" : i === 1 ? "내일" : `${month}/${day}(${weekday})`;
+                const value = `${month}/${day}(${weekday})`;
+                
+                dates.push({ label, value });
+              }
+              
+              return dates.map((d, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCustomDeliveryDate(d.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: customDeliveryDate === d.value ? "2px solid #FF6B35" : "1px solid #ddd",
+                    background: customDeliveryDate === d.value ? "#FFF5F2" : "#fff",
+                    color: customDeliveryDate === d.value ? "#FF6B35" : "#666",
+                    fontSize: 12,
+                    fontWeight: customDeliveryDate === d.value ? 600 : 400,
+                    cursor: "pointer",
+                  }}
+                >
+                  {d.label}
+                </button>
+              ));
+            })()}
+          </div>
         </div>
 
         {/* 추가 문구 */}

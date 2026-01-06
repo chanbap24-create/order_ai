@@ -458,6 +458,15 @@ function formatStaffMessage(
     `거래처: ${client.client_name} (${cleanClientCode(client.client_code)})`
   );
   lines.push(`배송 예정일: ${deliveryLabel}`);
+  
+  // ✅ 발주 옵션 (배송일 바로 밑에 표기)
+  if (options?.requirePaymentConfirm) {
+    lines.push("입금확인후 출고");
+  }
+  if (options?.requireInvoice) {
+    lines.push("거래명세표 부탁드립니다");
+  }
+  
   lines.push("");
   lines.push("품목:");
 
@@ -470,15 +479,6 @@ function formatStaffMessage(
   }
 
   lines.push("");
-
-  // ✅ 발주 옵션 추가
-  if (options?.requirePaymentConfirm) {
-    lines.push("입금확인후 출고.");
-  }
-  if (options?.requireInvoice) {
-    lines.push("거래명세표 부탁드립니다.");
-  }
-
   lines.push("발주 요청드립니다.");
   return lines.join("\n");
 }
