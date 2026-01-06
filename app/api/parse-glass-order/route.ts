@@ -440,8 +440,9 @@ function formatStaffMessage(
     `거래처: ${client.client_name} (${cleanClientCode(client.client_code)})`
   );
   lines.push(`배송 예정일: ${deliveryLabel}`);
+  lines.push(""); // 한 칸 띄우기
   
-  // ✅ 발주 옵션 (배송일 바로 밑에 표기)
+  // ✅ 발주 옵션 (배송일 두 칸 아래에 표기)
   if (options?.requirePaymentConfirm) {
     lines.push("입금확인후 출고");
   }
