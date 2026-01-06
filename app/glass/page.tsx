@@ -384,7 +384,7 @@ export default function Home() {
   };
   const monoStyle: React.CSSProperties = {
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-    fontSize: 13,
+    fontSize: 16, // ✅ 16px 이상으로 설정해야 모바일에서 자동 줌 방지
   };
 
   // ✅ 후보는 최대 3개만 보여주기
