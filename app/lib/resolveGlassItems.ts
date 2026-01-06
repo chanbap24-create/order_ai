@@ -61,7 +61,7 @@ export function resolveGlassItemsByClient(
   const minGap = opts?.minGap ?? 0.15;
   const topN = opts?.topN ?? 5;
 
-  // ✅ Glass 거래처 이력 후보 (glass_client_item_stats 테이블 사용)
+  // ✅ Glass 거래처 이력 후보
   const clientRows = db
     .prepare(
       `SELECT item_no, item_name
@@ -70,10 +70,15 @@ export function resolveGlassItemsByClient(
     )
     .all(clientCode) as Array<{ item_no: string; item_name: string }>;
 
+  // ✅ Glass 전체 품목 마스터 (코드 매칭용)
+  const allItems = db
+    .prepare(`SELECT item_no, item_name FROM glass_items`)
+    .all() as Array<{ item_no: string; item_name: string }>;
+
   return items.map((it) => {
-    // ✅ 1순위: 코드가 있으면 코드로 정확히 매칭
+    // ✅ 1순위: 코드가 있으면 코드로 정확히 매칭 (전체 품목에서 검색)
     if (it.code) {
-      const codeMatch = clientRows.find((r) => {
+      const codeMatch = allItems.find((r) => {
         const rdCode = extractRDCode(r.item_name);
         return rdCode && rdCode.toLowerCase() === it.code!.toLowerCase();
       });
@@ -105,7 +110,7 @@ export function resolveGlassItemsByClient(
       }
     }
 
-    // ✅ 2순위: 품목명 기반 점수 매칭
+    // ✅ 2순위: 품목명 기반 점수 매칭 (거래처 이력만)
     const q = norm(stripQtyAndUnit(it.name));
 
     let scored = clientRows
