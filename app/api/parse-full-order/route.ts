@@ -4,6 +4,7 @@ import { parseItemsFromMessage } from "@/app/lib/parseItems";
 import { resolveItemsByClient } from "@/app/lib/resolveItems";
 import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
+import type { ParseFullOrderResponse } from "@/app/types/api";
 
 
 import Holidays from "date-holidays";
@@ -484,7 +485,7 @@ function formatStaffMessage(
   return lines.join("\n");
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse<ParseFullOrderResponse>> {
   // ✅ 엑셀 자동 동기화 (파일 변경 시에만 실행)
   const sync = syncFromXlsxIfNeeded();
   console.log("[XLSX SYNC]", sync);
