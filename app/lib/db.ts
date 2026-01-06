@@ -12,7 +12,7 @@ const dbPath = config.database.path
 logger.info("Database initialized", { path: dbPath });
 
 export const db = new Database(dbPath, {
-  verbose: process.env.NODE_ENV === "development" ? logger.debug.bind(logger) : undefined,
+  verbose: process.env.NODE_ENV === "development" ? ((msg: unknown) => logger.debug(String(msg))) : undefined,
 });
 
 // WAL 모드 활성화 (성능 향상)

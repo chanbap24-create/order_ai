@@ -525,7 +525,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           clientText,
           orderText,
         },
-      });
+      } as any);
     }
 
     // 2) 품목 파싱 (orderText도 한번 더 전처리)
@@ -544,7 +544,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         status: "needs_review_client",
         client,
         error: "client_code가 없어 품목 resolve를 진행할 수 없습니다.",
-      });
+      } as any);
     }
 
     // 3) 품목 resolve
@@ -599,10 +599,10 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         preprocessed_orderText: orderPre,
         translation_order: trOrder.translated ? "translated" : "no",
       },
-    });
+    } as any);
   } catch (e: any) {
     return NextResponse.json(
-      { success: false, error: String(e?.message || e) },
+      { success: false, error: String(e?.message || e) } as any,
       { status: 500 }
     );
   }

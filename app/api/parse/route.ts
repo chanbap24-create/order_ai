@@ -107,7 +107,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
     const rawBody = await safeParseBody(req);
     const { text } = validateRequest(parseSchema, rawBody) as ParseRequest;
 
-    const completion = await openai.responses.create({
+    const completion = await (openai.responses.create({
       model: config.openai.model,
       input: [
         {
@@ -131,8 +131,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
         },
         { role: "user", content: text },
       ],
-      response_format: responseFormat,
-    });
+    }) as any);
 
     const jsonText = completion.output_text;
 

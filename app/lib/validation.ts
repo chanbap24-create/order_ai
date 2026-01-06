@@ -62,7 +62,7 @@ export function validateRequest<T>(
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const messages = error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ");
+      const messages = (error as any).errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ");
       throw new BadRequestError(`Validation failed: ${messages}`, "VALIDATION_ERROR");
     }
     throw error;

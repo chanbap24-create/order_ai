@@ -42,7 +42,7 @@ export class InternalServerError extends AppError {
 }
 
 // 에러를 API 응답으로 변환
-export function handleApiError<T = any>(error: unknown): NextResponse<T> {
+export function handleApiError<T = any>(error: unknown): NextResponse<any> {
   // AppError 인스턴스인 경우
   if (error instanceof AppError) {
     logger.error(`API Error [${error.statusCode}]: ${error.message}`, {
