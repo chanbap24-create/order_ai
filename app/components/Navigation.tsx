@@ -55,14 +55,15 @@ export default function Navigation() {
               padding: 'var(--space-3) var(--space-6)',
               borderRadius: 'var(--radius-lg)',
               fontWeight: 600,
-              fontSize: 'var(--text-base)',
+              fontSize: 'var(--text-sm)',
               textDecoration: 'none',
               color: isActive('/wine') ? 'white' : 'var(--color-text-light)',
               background: isActive('/wine') ? 'var(--color-primary)' : 'transparent',
-              transition: 'all var(--transition-fast)'
+              transition: 'all var(--transition-fast)',
+              letterSpacing: '-0.011em'
             }}
           >
-            🍷 와인
+            와인
           </Link>
           
           <Link
@@ -71,14 +72,15 @@ export default function Navigation() {
               padding: 'var(--space-3) var(--space-6)',
               borderRadius: 'var(--radius-lg)',
               fontWeight: 600,
-              fontSize: 'var(--text-base)',
+              fontSize: 'var(--text-sm)',
               textDecoration: 'none',
               color: isActive('/glass') ? 'white' : 'var(--color-text-light)',
               background: isActive('/glass') ? 'var(--color-primary)' : 'transparent',
-              transition: 'all var(--transition-fast)'
+              transition: 'all var(--transition-fast)',
+              letterSpacing: '-0.011em'
             }}
           >
-            🍸 와인잔
+            와인잔
           </Link>
         </div>
       </div>

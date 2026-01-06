@@ -2,6 +2,8 @@
    Design System - Smart Home Style
    ======================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
   /* Colors */
   --color-bg: #F5F5F7;
@@ -19,8 +21,8 @@
   --color-info: #007AFF;
   
   /* Typography */
-  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
   /* Font Sizes */
   --text-xs: 0.75rem;      /* 12px */
@@ -238,31 +240,49 @@ body {
 .heading-xl {
   font-size: var(--text-5xl);
   font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
   color: var(--color-text);
 }
 
 .heading-lg {
   font-size: var(--text-4xl);
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
   color: var(--color-text);
 }
 
 .heading-md {
   font-size: var(--text-2xl);
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.019em;
   color: var(--color-text);
 }
 
 .heading-sm {
   font-size: var(--text-lg);
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.3;
+  letter-spacing: -0.014em;
   color: var(--color-text);
+}
+
+.text-regular {
+  font-weight: 400;
+}
+
+.text-medium {
+  font-weight: 500;
+}
+
+.text-semibold {
+  font-weight: 600;
+}
+
+.text-bold {
+  font-weight: 700;
 }
 
 .text-light {
