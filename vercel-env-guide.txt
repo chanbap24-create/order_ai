@@ -1,0 +1,22 @@
+Vercel 환경 변수 설정 (배포 후)
+===================================
+
+배포 후 Vercel 대시보드에서 설정:
+
+1. Vercel 대시보드 → wineorder-03 프로젝트 클릭
+2. Settings → Environment Variables
+3. 다음 변수 추가:
+
+OPENAI_API_KEY
+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
+
+ENABLE_TRANSLATION
+true
+
+ORDER_AI_XLSX_PATH
+./order-ai.xlsx
+
+DB_PATH
+./data.sqlite3
+
+4. Save 후 Redeploy
