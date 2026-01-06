@@ -108,6 +108,6 @@ export async function POST(req: Request): Promise<NextResponse<ParseOrderRespons
     return NextResponse.json(response);
   } catch (error) {
     logger.error("parse-order error", error);
-    return handleApiError(error) as any;
+    return handleApiError<ParseOrderResponse>(error);
   }
 }

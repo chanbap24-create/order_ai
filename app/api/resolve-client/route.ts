@@ -143,6 +143,6 @@ export async function POST(req: Request): Promise<NextResponse<ResolveClientResp
     return NextResponse.json(response);
   } catch (error) {
     logger.error("resolve-client error", error);
-    return handleApiError(error) as any;
+    return handleApiError<ResolveClientResponse>(error);
   }
 }

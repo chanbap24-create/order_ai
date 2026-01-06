@@ -167,6 +167,6 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
     return NextResponse.json(response);
   } catch (error) {
     logger.error("parse error", error);
-    return handleApiError(error) as any;
+    return handleApiError<ParseResponse>(error);
   }
 }
