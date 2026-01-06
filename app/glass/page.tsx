@@ -968,33 +968,29 @@ export default function Home() {
 
           {/* ---- Learn Input (toggle) ---- */}
           <div style={{ marginTop: 18 }}>
-            <div
+            <button
+              onClick={() => setShowLearnInput((v) => !v)}
               style={{
+                width: "100%",
+                padding: 12,
+                background: "#f8f9fa",
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                cursor: "pointer",
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
+                justifyContent: "space-between",
+                fontSize: 14,
+                fontWeight: 700,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 800 }}>품목 학습</div>
-
-              <button
-                onClick={() => setShowLearnInput((v) => !v)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: "1px solid #ddd",
-                  cursor: "pointer",
-                  background: "#fff",
-                  fontSize: 13,
-                }}
-              >
-                {showLearnInput ? "🔽 학습 입력 닫기" : "🔼 학습 입력 열기"}
-              </button>
-            </div>
+              <span>품목 학습</span>
+              <span>{showLearnInput ? "▲" : "▼"}</span>
+            </button>
 
             {showLearnInput && (
-              <>
-                <div style={{ color: "#777", fontSize: 12, marginTop: 4 }}>
+              <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+                <div style={{ color: "#777", fontSize: 12, marginBottom: 10 }}>
                   자연어 → 정답(표준 키워드/약어/정확한 품목명) 저장. 저장 즉시
                   resolve에 반영.
                 </div>
@@ -1079,7 +1075,7 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
@@ -1134,43 +1130,40 @@ export default function Home() {
           거래처 품목 보기 (거래처 확정 후에만)
       ========================= */}
       {data?.client?.status === "resolved" && data?.client?.client_code && (
-        <div style={{ marginTop: 20, padding: 20, background: "#f8f9fa", borderRadius: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 16, fontWeight: 800 }}>
-              거래처 품목 보기 ({data.client.client_name})
-            </div>
-            <button
-              onClick={() => {
-                if (showClientItems) {
-                  setShowClientItems(false);
+        <div style={{ marginTop: 16 }}>
+          <button
+            onClick={() => {
+              if (showClientItems) {
+                setShowClientItems(false);
+              } else {
+                if (clientItems.length === 0) {
+                  loadClientItems();
                 } else {
-                  if (clientItems.length === 0) {
-                    loadClientItems();
-                  } else {
-                    setShowClientItems(true);
-                  }
+                  setShowClientItems(true);
                 }
-              }}
-              disabled={loadingClientItems}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                border: "1px solid #ddd",
-                cursor: loadingClientItems ? "not-allowed" : "pointer",
-                background: "#fff",
-                fontSize: 13,
-              }}
-            >
-              {loadingClientItems
-                ? "로딩 중..."
-                : showClientItems
-                ? "닫기"
-                : `품목 보기 (최근 거래)`}
-            </button>
-          </div>
+              }
+            }}
+            disabled={loadingClientItems}
+            style={{
+              width: "100%",
+              padding: 12,
+              background: "#f8f9fa",
+              border: "1px solid #ddd",
+              borderRadius: 12,
+              cursor: loadingClientItems ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: 14,
+              fontWeight: 700,
+            }}
+          >
+            <span>거래처 품목 보기 ({data.client.client_name})</span>
+            <span>{loadingClientItems ? "..." : showClientItems ? "▲" : "▼"}</span>
+          </button>
 
           {showClientItems && clientItems.length > 0 && (
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
               <div
                 style={{
                   maxHeight: 400,
@@ -1216,77 +1209,67 @@ export default function Home() {
       {/* =========================
           학습된 거래처 목록
       ========================= */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginTop: 20,
-          paddingTop: 20,
-          borderTop: "2px solid #e5e7eb",
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>학습된 거래처</div>
-
+      <div style={{ marginTop: 16 }}>
         <button
           onClick={() => setShowLearnedClients((v) => !v)}
           style={{
-            padding: "8px 12px",
-            borderRadius: 8,
+            width: "100%",
+            padding: 12,
+            background: "#f8f9fa",
             border: "1px solid #ddd",
+            borderRadius: 12,
             cursor: "pointer",
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
-            gap: 8,
+            justifyContent: "space-between",
+            fontSize: 14,
+            fontWeight: 700,
           }}
         >
-          {showLearnedClients ? "닫기" : "보기"}
+          <span>학습된 거래처</span>
+          <span>{showLearnedClients ? "▲" : "▼"}</span>
         </button>
-      </div>
 
-      {showLearnedClients && (
-        <div style={{ marginTop: 10, background: "#f8f9fa", borderRadius: 12 }}>
-          <LearnedClientList type="glass" version={learnedClientVersion} />
-        </div>
-      )}
+        {showLearnedClients && (
+          <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+            <LearnedClientList type="glass" version={learnedClientVersion} />
+          </div>
+        )}
+      </div>
 
       {/* =========================
           학습목록 (UI 통일)
       ========================= */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginTop: 12,
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>학습목록</div>
-
+      <div style={{ marginTop: 16 }}>
         <button
           onClick={() => setShowLearned((v) => !v)}
           style={{
-            padding: "8px 12px",
-            borderRadius: 8,
+            width: "100%",
+            padding: 12,
+            background: "#f8f9fa",
             border: "1px solid #ddd",
+            borderRadius: 12,
             cursor: "pointer",
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
-            gap: 8,
+            justifyContent: "space-between",
+            fontSize: 14,
+            fontWeight: 700,
           }}
         >
-          {showLearned ? "학습 결과 닫기" : "학습 결과 보기"}
+          <span>학습목록</span>
+          <span>{showLearned ? "▲" : "▼"}</span>
         </button>
-      </div>
 
-      {showLearned && (
-        <div style={{ marginTop: 10 }}>
-          <LearnedAliasList
-            version={learnedVersion}
-            onChanged={() => setLearnedVersion((v) => v + 1)}
-          />
-        </div>
-      )}
+        {showLearned && (
+          <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+            <LearnedAliasList
+              version={learnedVersion}
+              onChanged={() => setLearnedVersion((v) => v + 1)}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
