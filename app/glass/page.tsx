@@ -370,10 +370,7 @@ export default function Home() {
     >
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>🥂 와인잔 발주 메시지 생성</div>
-        <div style={{ color: "#777", fontSize: 13 }}>
-          /api/parse-glass-order 결과를 직원용 메시지로 복사
-        </div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>와인잔 발주 메시지 생성</div>
       </div>
 
       {/* ===== Controls ===== */}
@@ -416,10 +413,6 @@ export default function Home() {
         >
           🧹 지우기
         </button>
-
-        <div style={{ marginLeft: "auto", color: "#888", fontSize: 12 }}>
-          팁: 문장형 주문도 이제 인식됨 (전처리 적용)
-        </div>
       </div>
 
       {/* ===== Input ===== */}
