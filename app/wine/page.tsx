@@ -39,6 +39,11 @@ export default function Home() {
   const [showItemsPanel, setShowItemsPanel] = useState(false);
   const [showLearnInput, setShowLearnInput] = useState(false);
 
+  // ✅ 거래처 품목 보기
+  const [showClientItems, setShowClientItems] = useState(false);
+  const [clientItems, setClientItems] = useState<any[]>([]);
+  const [loadingClientItems, setLoadingClientItems] = useState(false);
+
   const canSave = useMemo(
     () => learnInputs.some((r) => r.alias.trim() && r.canonical.trim()),
     [learnInputs]
@@ -112,6 +117,41 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // ✅ 거래처 품목 로드
+  async function loadClientItems() {
+    const clientCode = data?.client?.client_code;
+    if (!clientCode) return;
+
+    setLoadingClientItems(true);
+    try {
+      const res = await fetch("/api/client-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_code: clientCode, type: "wine" }),
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        setClientItems(json.items || []);
+        setShowClientItems(true);
+      }
+    } catch (error) {
+      console.error("Failed to load client items:", error);
+    } finally {
+      setLoadingClientItems(false);
+    }
+  }
+
+  // ✅ 품목 직접 추가
+  function addItemManually(item: any) {
+    const qty = prompt(`${item.item_name}\n\n수량을 입력하세요:`, "1");
+    if (!qty || isNaN(Number(qty))) return;
+
+    const newText = text + `\n${item.item_name} ${qty}`;
+    setText(newText);
+    alert(`추가되었습니다!\n\n${item.item_name} ${qty}개`);
   }
 
   // ✅ 거래처 후보 클릭 → 선택한 거래처로 재파싱
@@ -908,6 +948,89 @@ export default function Home() {
               </pre>
             )}
           </div>
+        </div>
+      )}
+
+      {/* =========================
+          거래처 품목 보기 (거래처 확정 후에만)
+      ========================= */}
+      {data?.client?.status === "resolved" && data?.client?.client_code && (
+        <div style={{ marginTop: 20, padding: 20, background: "#f8f9fa", borderRadius: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 16, fontWeight: 800 }}>
+              거래처 품목 보기 ({data.client.client_name})
+            </div>
+            <button
+              onClick={() => {
+                if (showClientItems) {
+                  setShowClientItems(false);
+                } else {
+                  if (clientItems.length === 0) {
+                    loadClientItems();
+                  } else {
+                    setShowClientItems(true);
+                  }
+                }
+              }}
+              disabled={loadingClientItems}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                cursor: loadingClientItems ? "not-allowed" : "pointer",
+                background: "#fff",
+                fontSize: 13,
+              }}
+            >
+              {loadingClientItems
+                ? "로딩 중..."
+                : showClientItems
+                ? "닫기"
+                : `품목 보기 (최근 거래)`}
+            </button>
+          </div>
+
+          {showClientItems && clientItems.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div
+                style={{
+                  maxHeight: 400,
+                  overflowY: "auto",
+                  background: "#fff",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                {clientItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => addItemManually(item)}
+                    style={{
+                      padding: "12px 16px",
+                      borderBottom: idx < clientItems.length - 1 ? "1px solid #f0f0f0" : "none",
+                      cursor: "pointer",
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{item.item_name}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                          품목코드: {item.item_no}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 20, color: "#9ca3af" }}>+</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280", textAlign: "center" }}>
+                품목을 클릭하면 발주 목록에 추가됩니다 (총 {clientItems.length}개)
+              </div>
+            </div>
+          )}
         </div>
       )}
 
