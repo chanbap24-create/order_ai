@@ -66,8 +66,7 @@ console.log('4️⃣ DB에 저장 중...');
 
 // 기존 데이터 삭제
 db.exec(`
-  DELETE FROM glass_item_alias;
-  DELETE FROM glass_client_items;
+  DELETE FROM glass_client_item_stats;
   DELETE FROM glass_client_alias;
   DELETE FROM glass_items;
   DELETE FROM glass_clients;
@@ -94,8 +93,8 @@ console.log(`✅ 거래처 ${clientCount}개 저장 완료`);
 
 // 품목 insert
 const insertItem = db.prepare(`
-  INSERT OR REPLACE INTO glass_items (item_no, item_name, unit)
-  VALUES (?, ?, 'EA')
+  INSERT OR REPLACE INTO glass_items (item_no, item_name)
+  VALUES (?, ?)
 `);
 
 let itemCount = 0;
@@ -105,9 +104,9 @@ for (const [no, name] of itemsMap) {
 }
 console.log(`✅ 품목 ${itemCount}개 저장 완료`);
 
-// 거래처별 품목 insert
+// 거래처별 품목 insert (glass_client_item_stats 테이블 사용)
 const insertClientItem = db.prepare(`
-  INSERT OR REPLACE INTO glass_client_items (client_code, item_no, item_name, supply_price)
+  INSERT OR REPLACE INTO glass_client_item_stats (client_code, item_no, item_name, supply_price)
   VALUES (?, ?, ?, ?)
 `);
 
@@ -124,7 +123,7 @@ const stats = {
   clients: db.prepare('SELECT COUNT(*) as cnt FROM glass_clients').get().cnt,
   aliases: db.prepare('SELECT COUNT(*) as cnt FROM glass_client_alias').get().cnt,
   items: db.prepare('SELECT COUNT(*) as cnt FROM glass_items').get().cnt,
-  clientItems: db.prepare('SELECT COUNT(*) as cnt FROM glass_client_items').get().cnt,
+  clientItems: db.prepare('SELECT COUNT(*) as cnt FROM glass_client_item_stats').get().cnt,
 };
 
 console.log(`- 거래처: ${stats.clients}개`);
