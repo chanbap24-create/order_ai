@@ -92,13 +92,35 @@ function scoreName(q: any, name: any) {
   const b = norm(nRaw);
   if (!a || !b) return 0;
 
+  // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리!
+  const nameAlias = nRaw.match(/\(([^)]+)\)/);
+  if (nameAlias) {
+    const aliasText = nameAlias[1].trim();
+    const aliasNorm = norm(aliasText);
+    
+    // 입력이 괄호 안 상호명과 완전히 일치하면 최고 점수
+    if (a === aliasNorm) return 1.0;
+    
+    // 입력이 괄호 안 상호명에 포함되거나 포함하면 높은 점수
+    if (aliasNorm.includes(a) || a.includes(aliasNorm)) {
+      return 0.98; // 거의 완벽한 매칭
+    }
+  }
+
   // ✅ (A) 브랜드 게이트: 입력의 핵심 토큰이 후보에 없으면 고득점 금지
   const brand = pickBrandToken(qRaw); // 예: "스시소라"
   if (brand) {
     const brandNorm = norm(brand);
-    if (brandNorm && !b.includes(brandNorm)) {
-      // 브랜드가 없으면 점수 상한을 낮게 캡 (지점만 맞아도 상위 못 오게)
-      // 여기 값을 0.35~0.55 사이에서 운영취향대로 조절 가능
+    
+    // ✅ 괄호 안의 별칭도 검색 대상에 포함
+    const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
+    const nameAliasText = nameAlias ? nameAlias[1].trim() : "";
+    
+    const nameMainNorm = norm(nameMainText);
+    const nameAliasNorm = norm(nameAliasText);
+    
+    // 브랜드가 메인 텍스트나 괄호 안 별칭 어디에도 없으면 점수 제한
+    if (brandNorm && !b.includes(brandNorm) && !nameMainNorm.includes(brandNorm) && !nameAliasNorm.includes(brandNorm)) {
       return 0.45;
     }
   }

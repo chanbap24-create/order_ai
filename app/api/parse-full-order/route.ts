@@ -141,13 +141,27 @@ function scoreName(q: any, name: any) {
   const b = norm(nRaw);
   if (!a || !b) return 0;
 
+  // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리!
+  const nameAlias = nRaw.match(/\(([^)]+)\)/);
+  if (nameAlias) {
+    const aliasText = nameAlias[1].trim();
+    const aliasNorm = norm(aliasText);
+    
+    // 입력이 괄호 안 상호명과 완전히 일치하면 최고 점수
+    if (a === aliasNorm) return 1.0;
+    
+    // 입력이 괄호 안 상호명에 포함되거나 포함하면 높은 점수
+    if (aliasNorm.includes(a) || a.includes(aliasNorm)) {
+      return 0.98; // 거의 완벽한 매칭
+    }
+  }
+
   // ✅ (A) 브랜드 게이트: 입력의 핵심 토큰이 후보에 없으면 고득점 금지
   const brand = pickBrandToken(qRaw); // 예: "스시소라" or "라뜨리에드"
   if (brand) {
     const brandNorm = norm(brand);
     
     // ✅ 괄호 안의 별칭도 검색 대상에 포함
-    const nameAlias = nRaw.match(/\(([^)]+)\)/);
     const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
     const nameAliasText = nameAlias ? nameAlias[1].trim() : "";
     
