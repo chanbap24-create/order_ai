@@ -347,6 +347,26 @@ function splitClientAndOrder(body: any) {
   return { rawMessage: msg, clientText: first, orderText: rest };
 }
 
+// ✅ Glass 품목 단위 결정 함수
+function getGlassUnit(itemName: string): string {
+  // 1. 품목명에 "레스토랑" 포함 → 잔
+  if (/레스토랑/i.test(itemName)) {
+    return "잔";
+  }
+
+  // 2. RD 코드가 0으로 시작 (0447/07, 0884/67 등) → 잔
+  const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
+  if (rdMatch) {
+    const code = rdMatch[1];
+    if (code.startsWith("0")) {
+      return "잔";
+    }
+  }
+
+  // 3. 나머지 → 개
+  return "개";
+}
+
 function formatStaffMessage(client: any, items: any[]) {
   const delivery = getDeliveryDateKST();
 
@@ -359,10 +379,12 @@ function formatStaffMessage(client: any, items: any[]) {
   lines.push("품목:");
 
   for (const it of items) {
+    const unit = getGlassUnit(it.item_name || it.name || "");
+    
     if (it.resolved) {
-      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}잔`);
+      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}${unit}`);
     } else {
-      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}잔`);
+      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}${unit}`);
     }
   }
 
