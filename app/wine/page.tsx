@@ -49,6 +49,11 @@ export default function Home() {
   const [showLearnedClients, setShowLearnedClients] = useState(false);
   const [learnedClientVersion, setLearnedClientVersion] = useState(0);
 
+  // ✅ 발주 옵션
+  const [customDeliveryDate, setCustomDeliveryDate] = useState("");
+  const [requirePaymentConfirm, setRequirePaymentConfirm] = useState(false);
+  const [requireInvoice, setRequireInvoice] = useState(false);
+
   const canSave = useMemo(
     () => learnInputs.some((r) => r.alias.trim() && r.canonical.trim()),
     [learnInputs]
@@ -278,10 +283,33 @@ export default function Home() {
   }
 
   async function copyStaffMessage() {
-    const msg = String(data?.staff_message ?? "");
+    let msg = String(data?.staff_message ?? "");
     if (!msg) {
       alert("복사할 내용이 없습니다.");
       return;
+    }
+
+    // ✅ 배송일 커스터마이징
+    if (customDeliveryDate.trim()) {
+      // 기존 배송일 라인 찾아서 교체
+      msg = msg.replace(/배송 예정일: .+/g, `배송 예정일: ${customDeliveryDate.trim()}`);
+    }
+
+    // ✅ 추가 문구 삽입 (발주 요청드립니다 앞에)
+    const additionalLines: string[] = [];
+    if (requirePaymentConfirm) {
+      additionalLines.push("입금확인후 출고.");
+    }
+    if (requireInvoice) {
+      additionalLines.push("거래명세표 부탁드립니다.");
+    }
+
+    if (additionalLines.length > 0) {
+      // "발주 요청드립니다" 앞에 추가
+      msg = msg.replace(
+        /발주 요청드립니다\./g,
+        additionalLines.join("\n") + "\n\n발주 요청드립니다."
+      );
     }
 
     try {
@@ -497,6 +525,54 @@ export default function Home() {
           ...monoStyle,
         }}
       />
+
+      {/* ===== 발주 옵션 ===== */}
+      <div style={{ marginTop: 16, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>발주 옵션</div>
+        
+        {/* 배송일 지정 */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>
+            배송일 지정 (선택)
+          </label>
+          <input
+            type="text"
+            value={customDeliveryDate}
+            onChange={(e) => setCustomDeliveryDate(e.target.value)}
+            placeholder="예: 1/10(금), 내일, 1월 10일"
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              fontSize: 16,
+            }}
+          />
+        </div>
+
+        {/* 추가 문구 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={requirePaymentConfirm}
+              onChange={(e) => setRequirePaymentConfirm(e.target.checked)}
+              style={{ width: 18, height: 18 }}
+            />
+            <span style={{ fontSize: 14 }}>입금확인후 출고</span>
+          </label>
+          
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={requireInvoice}
+              onChange={(e) => setRequireInvoice(e.target.checked)}
+              style={{ width: 18, height: 18 }}
+            />
+            <span style={{ fontSize: 14 }}>거래명세표 부탁드립니다</span>
+          </label>
+        </div>
+      </div>
 
       {/* =========================
           ✅ 거래처 선택 패널
