@@ -26,6 +26,13 @@ const cache = new Map<string, string>();
 export async function translateOrderToKoreanIfNeeded(text: string) {
   const s = String(text || "").trim();
   if (!s) return { translated: false as const, text: s };
+  
+  // ✅ 번역 비활성화 (속도 개선): 환경변수 ENABLE_TRANSLATION=false 설정 시 비활성화
+  const translationEnabled = process.env.ENABLE_TRANSLATION !== "false";
+  if (!translationEnabled) {
+    return { translated: false as const, text: s, reason: "disabled" as const };
+  }
+  
   if (!config.openai.apiKey) {
     return { translated: false as const, text: s, reason: "no_api_key" as const };
   }

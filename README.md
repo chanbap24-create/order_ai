@@ -30,6 +30,9 @@ npm install
 # 필수
 OPENAI_API_KEY=your_openai_api_key_here
 
+# ✅ 속도 개선 옵션
+ENABLE_TRANSLATION=false  # 번역 비활성화 (한국어만 사용 시 권장, 2~5초 단축)
+
 # 선택적
 # DB_PATH=data.sqlite3
 # ORDER_AI_XLSX_PATH=order-ai.xlsx
