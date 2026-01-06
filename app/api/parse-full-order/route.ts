@@ -141,18 +141,37 @@ function scoreName(q: any, name: any) {
   const b = norm(nRaw);
   if (!a || !b) return 0;
 
-  // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리!
+  // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리! (오타 허용)
   const nameAlias = nRaw.match(/\(([^)]+)\)/);
   if (nameAlias) {
     const aliasText = nameAlias[1].trim();
     const aliasNorm = norm(aliasText);
     
-    // 입력이 괄호 안 상호명과 완전히 일치하면 최고 점수
+    // 완전 일치
     if (a === aliasNorm) return 1.0;
     
-    // 입력이 괄호 안 상호명에 포함되거나 포함하면 높은 점수
+    // 포함 관계
     if (aliasNorm.includes(a) || a.includes(aliasNorm)) {
-      return 0.98; // 거의 완벽한 매칭
+      return 0.98;
+    }
+    
+    // ✅ 유사도 기반 매칭 (오타 허용)
+    // 문자 겹침 비율 계산
+    const aChars = new Set(a.split(""));
+    const aliasChars = new Set(aliasNorm.split(""));
+    let common = 0;
+    for (const ch of aChars) {
+      if (aliasChars.has(ch)) common++;
+    }
+    const similarity = common / Math.max(a.length, aliasNorm.length);
+    
+    // 70% 이상 유사하면 괄호 안 상호명으로 간주
+    if (similarity >= 0.7) {
+      // 길이 차이 보정
+      const lenDiff = Math.abs(a.length - aliasNorm.length);
+      const lenPenalty = lenDiff * 0.02; // 길이 차이당 -0.02
+      const score = Math.max(0.85, Math.min(0.97, 0.95 - lenPenalty));
+      return score;
     }
   }
 
