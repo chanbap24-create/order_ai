@@ -305,15 +305,21 @@ export default function Home() {
     }
 
     if (additionalLines.length > 0) {
-      // "발주 요청드립니다" 앞에 추가
-      msg = msg.replace(
-        /발주 요청드립니다\./g,
-        additionalLines.join("\n") + "\n\n발주 요청드립니다."
-      );
+      // "발주 요청드립니다" 또는 줄 끝에 추가
+      if (msg.includes("발주 요청드립니다")) {
+        msg = msg.replace(
+          /발주 요청드립니다\.?/g,
+          additionalLines.join("\n") + "\n\n발주 요청드립니다."
+        );
+      } else {
+        // 발주 요청드립니다가 없으면 맨 끝에 추가
+        msg = msg.trim() + "\n\n" + additionalLines.join("\n") + "\n\n발주 요청드립니다.";
+      }
     }
 
     try {
       await navigator.clipboard.writeText(msg);
+      alert("복사 완료!\n\n" + msg);
     } catch {
       // fallback
       const ta = document.createElement("textarea");
@@ -322,6 +328,7 @@ export default function Home() {
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
+      alert("복사 완료!\n\n" + msg);
     }
 
     setCopied(true);
