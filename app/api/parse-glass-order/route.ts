@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/app/lib/db";
 import { parseItemsFromMessage } from "@/app/lib/parseItems";
-import { resolveItemsByClient } from "@/app/lib/resolveItems";
+import { resolveGlassItemsByClient } from "@/app/lib/resolveGlassItems";
 import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 
@@ -461,14 +461,14 @@ export async function POST(req: Request) {
     }
 
     // 3) 품목 resolve
-    const resolvedItems = resolveItemsByClient(clientCode, parsedItems, {
+    const resolvedItems = resolveGlassItemsByClient(clientCode, parsedItems, {
       minScore: 0.55,
       minGap: 0.05,
       topN: 5,
     });
 
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
-    //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
+    //     - 새로 DB에서 찾지 말고, resolveGlassItemsByClient가 만든 candidates를 그대로 사용
     const itemsWithSuggestions = resolvedItems.map((x: any) => {
       if (x?.resolved) return x;
 
