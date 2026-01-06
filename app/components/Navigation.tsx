@@ -63,7 +63,7 @@ export default function Navigation() {
               letterSpacing: '-0.011em'
             }}
           >
-            와인
+            CV
           </Link>
           
           <Link
@@ -80,7 +80,7 @@ export default function Navigation() {
               letterSpacing: '-0.011em'
             }}
           >
-            와인잔
+            DL
           </Link>
         </div>
       </div>

@@ -49,91 +49,83 @@ export default function Home() {
           marginBottom: 'var(--space-8)'
         }}>
           {/* Wine Card */}
-          <Card hover>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-6)'
-            }}>
-              <div>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'rgba(255, 107, 53, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 'var(--space-4)'
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2">
-                    <path d="M8 2h8l1 9c0 3-2 5-5 5s-5-2-5-5l1-9z" />
-                    <path d="M12 16v6" />
-                    <path d="M8 22h8" />
-                  </svg>
+          <Link href="/wine" style={{ textDecoration: 'none' }}>
+            <Card hover>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-6)'
+              }}>
+                <div>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: 'var(--radius-lg)',
+                    background: 'rgba(255, 107, 53, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 'var(--space-4)'
+                  }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2">
+                      <path d="M8 2h8l1 9c0 3-2 5-5 5s-5-2-5-5l1-9z" />
+                      <path d="M12 16v6" />
+                      <path d="M8 22h8" />
+                    </svg>
+                  </div>
+                  <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
+                    와인 발주
+                  </h2>
+                  <p style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-light)',
+                    lineHeight: 1.6
+                  }}>
+                    거래처와 품목을 자동으로 인식하고<br />발주 메시지를 생성합니다
+                  </p>
                 </div>
-                <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
-                  와인 발주
-                </h2>
-                <p style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--color-text-light)',
-                  lineHeight: 1.6
-                }}>
-                  거래처와 품목을 자동으로 인식하고<br />발주 메시지를 생성합니다
-                </p>
               </div>
-              
-              <Link href="/wine" style={{ textDecoration: 'none' }}>
-                <Button variant="primary" style={{ width: '100%' }}>
-                  시작하기
-                </Button>
-              </Link>
-            </div>
-          </Card>
+            </Card>
+          </Link>
 
           {/* Glass Card */}
-          <Card hover>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-6)'
-            }}>
-              <div>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'rgba(255, 107, 53, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 'var(--space-4)'
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2">
-                    <path d="M6 2l6 18h4l6-18z" />
-                    <path d="M5 2h14" />
-                  </svg>
+          <Link href="/glass" style={{ textDecoration: 'none' }}>
+            <Card hover>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-6)'
+              }}>
+                <div>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: 'var(--radius-lg)',
+                    background: 'rgba(255, 107, 53, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 'var(--space-4)'
+                  }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2">
+                      <path d="M6 2l6 18h4l6-18z" />
+                      <path d="M5 2h14" />
+                    </svg>
+                  </div>
+                  <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
+                    와인잔 발주
+                  </h2>
+                  <p style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-light)',
+                    lineHeight: 1.6
+                  }}>
+                    와인잔 품목과 수량을 빠르게<br />확인하고 발주할 수 있습니다
+                  </p>
                 </div>
-                <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
-                  와인잔 발주
-                </h2>
-                <p style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--color-text-light)',
-                  lineHeight: 1.6
-                }}>
-                  와인잔 품목과 수량을 빠르게<br />확인하고 발주할 수 있습니다
-                </p>
               </div>
-              
-              <Link href="/glass" style={{ textDecoration: 'none' }}>
-                <Button variant="outline" style={{ width: '100%' }}>
-                  시작하기
-                </Button>
-              </Link>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         </div>
 
         {/* Features */}

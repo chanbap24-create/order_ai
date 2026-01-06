@@ -466,48 +466,43 @@ export default function Home() {
     >
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>와인잔 발주 메시지 생성</div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>Daeyoo Life</div>
       </div>
 
       {/* ===== Controls ===== */}
       <div style={{ display: "flex", gap: 12, marginTop: 14, alignItems: "center" }}>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            type="checkbox"
-            checked={force}
-            onChange={(e) => setForce(e.target.checked)}
-          />
-          자동확정(force_resolve)
-        </label>
-
         <button
           onClick={run}
           disabled={loading}
           style={{
-            padding: "8px 12px",
+            padding: "10px 20px",
             borderRadius: 10,
-            border: "1px solid #ddd",
+            border: "none",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : "#fff",
+            background: loading ? "#ccc" : "#FF6B35",
+            color: "white",
+            fontWeight: 600,
+            fontSize: 16,
           }}
         >
           {loading ? "생성중..." : "생성"}
         </button>
 
-        {/* ✅ 지우기 */}
         <button
           onClick={clearAll}
           disabled={loading || (!text.trim() && !data)}
           style={{
-            padding: "8px 12px",
+            padding: "10px 20px",
             borderRadius: 10,
             border: "1px solid #ddd",
             cursor: loading || (!text.trim() && !data) ? "not-allowed" : "pointer",
             background: loading || (!text.trim() && !data) ? "#f5f5f5" : "#fff",
+            fontWeight: 600,
+            fontSize: 16,
           }}
           title="입력된 내용을 지우고 결과를 초기화합니다"
         >
-          🧹 지우기
+          지우기
         </button>
       </div>
 
