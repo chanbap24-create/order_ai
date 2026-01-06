@@ -1,7 +1,7 @@
 // 환경 변수 검증 및 관리
 
 type EnvConfig = {
-  OPENAI_API_KEY: string;
+  OPENAI_API_KEY?: string;  // ✅ 선택 사항으로 변경 (번역 비활성화 시 불필요)
   DB_PATH?: string;
   DATABASE_URL?: string;
   ORDER_AI_XLSX_PATH?: string;
@@ -13,7 +13,7 @@ type EnvConfig = {
   MIN_SCORE_GAP?: string;
 };
 
-const requiredEnvVars = ["OPENAI_API_KEY"] as const;
+const requiredEnvVars = [] as const;  // ✅ OPENAI_API_KEY 필수 제거
 
 function validateEnv(): EnvConfig {
   const missing: string[] = [];
@@ -38,7 +38,7 @@ function validateEnv(): EnvConfig {
   }
 
   return {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     DB_PATH: process.env.DB_PATH,
     DATABASE_URL: process.env.DATABASE_URL,
     ORDER_AI_XLSX_PATH: process.env.ORDER_AI_XLSX_PATH,
