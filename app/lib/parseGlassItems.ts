@@ -20,9 +20,27 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
 
   const items: ParsedGlassItem[] = [];
 
+  // ✅ 제외할 표현 (인사말, 예의 표현, 발주 관련 표현)
+  const excludePatterns = [
+    /^(과장님|님|선생님|사장님|대표님)/i,
+    /안녕하세요/i,
+    /감사합니다/i,
+    /고맙습니다/i,
+    /부탁드립니다/i,
+    /부탁드리겠습니다/i,
+    /요청드립니다/i,
+    /발주\s*(요청|부탁)/i,
+    /^(감사|고마워|땡큐|thanks)/i,
+  ];
+
   for (const line of lines) {
     // ✅ 거래처 코드 제외 (숫자만 있는 라인: 12096, 30001 등)
     if (/^\d+$/.test(line)) {
+      continue;
+    }
+
+    // ✅ 인사말/예의 표현 제외
+    if (excludePatterns.some((pattern) => pattern.test(line))) {
       continue;
     }
 
@@ -77,7 +95,13 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
 
     // ✅ 패턴 4: 수량이 없는 경우 (기본 1개)
     // 단, 한글이나 영문이 포함된 경우만 (순수 숫자 제외)
-    if (line.length > 2 && /[가-힣A-Za-z]/.test(line)) {
+    // 그리고 너무 짧거나 의미 없는 문구는 제외
+    if (line.length > 3 && /[가-힣A-Za-z]/.test(line)) {
+      // 추가 필터링: 너무 일반적인 단어/짧은 단어 제외
+      if (/^(네|예|아니오|확인|ok|OK|ㅇㅋ)$/i.test(line)) {
+        continue;
+      }
+      
       items.push({
         raw: line,
         name: line.trim(),
