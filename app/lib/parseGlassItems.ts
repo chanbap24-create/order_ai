@@ -28,9 +28,12 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
     /고맙습니다/i,
     /부탁드립니다/i,
     /부탁드리겠습니다/i,
+    /드리겠습니다/i,
     /요청드립니다/i,
     /발주\s*(요청|부탁)/i,
     /^(감사|고마워|땡큐|thanks)/i,
+    /^(주세요|해주세요)$/i,
+    /^(네|예|확인)$/i,
   ];
 
   for (const line of lines) {
