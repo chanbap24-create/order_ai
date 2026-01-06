@@ -3,11 +3,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["icn1"],
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "ENABLE_TRANSLATION": "true",
-    "ORDER_AI_XLSX_PATH": "./order-ai.xlsx",
-    "DB_PATH": "./data.sqlite3"
-  }
+  "regions": ["icn1"]
 }
