@@ -33,14 +33,11 @@ export default function Navigation() {
         {/* Logo */}
         <Link href="/" style={{
           fontSize: 'var(--text-xl)',
-          fontWeight: 700,
+          fontWeight: 800,
           color: 'var(--color-text)',
           textDecoration: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)'
+          letterSpacing: '-0.02em'
         }}>
-          <span style={{ fontSize: 'var(--text-2xl)' }}>🍷</span>
           Order AI
         </Link>
         
