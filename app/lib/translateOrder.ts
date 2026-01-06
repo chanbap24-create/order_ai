@@ -42,8 +42,7 @@ export async function translateOrderToKoreanIfNeeded(text: string) {
     return { translated: true as const, text: cache.get(s)!, cached: true as const };
   }
 
-  const prompt = `
-너는 한국 와인 수입사 발주 파서의 전처리 번역기야.
+  const prompt = `너는 한국 와인 수입사 발주 파서의 전처리 번역기야.
 
 목표:
 - 입력이 영어/로마자 기반 발주 문장이면, 한국어 기반 품목 키워드로 바꿔서 "줄 단위" 주문 형태로 출력한다.
@@ -57,17 +56,22 @@ export async function translateOrderToKoreanIfNeeded(text: string) {
 - bottle(s) / bt / btl / pcs => "병"으로 통일
 
 입력:
-${s}
-`.trim();
+${s}`;
 
-  const resp = await client.responses.create({
-    model: config.openai.model,
-    input: prompt,
-  });
+  try {
+    const resp = await client.chat.completions.create({
+      model: config.openai.model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    });
 
-  const out = (resp.output_text || "").trim();
-  const finalText = out || s;
+    const out = (resp.choices[0]?.message?.content || "").trim();
+    const finalText = out || s;
 
-  cache.set(s, finalText);
-  return { translated: true as const, text: finalText };
+    cache.set(s, finalText);
+    return { translated: true as const, text: finalText };
+  } catch (error) {
+    console.error("번역 오류:", error);
+    return { translated: false as const, text: s, reason: "error" as const };
+  }
 }
