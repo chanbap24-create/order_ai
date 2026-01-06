@@ -101,7 +101,13 @@ export default function Home() {
     setPendingPreMessage("");
 
     try {
-      const { json } = await callParse({ message: text, force_resolve: force });
+      const { json } = await callParse({
+        message: text,
+        force_resolve: force,
+        customDeliveryDate: customDeliveryDate || undefined,
+        requirePaymentConfirm: requirePaymentConfirm || undefined,
+        requireInvoice: requireInvoice || undefined,
+      });
       setData(json);
 
       // 새 결과 나오면 pick 상태는 초기화 (새 주문이니까)
@@ -199,6 +205,9 @@ export default function Home() {
         clientText: clientName, // ✅ 핵심: alias 그대로 보내면 exact(norm)로 resolved 가능
         orderText: pendingOrderText || "",
         force_resolve: force,
+        customDeliveryDate: customDeliveryDate || undefined,
+        requirePaymentConfirm: requirePaymentConfirm || undefined,
+        requireInvoice: requireInvoice || undefined,
       });
 
       setData(json);

@@ -441,14 +441,23 @@ function splitClientAndOrder(body: any) {
   return { rawMessage: msg, clientText: first, orderText: rest };
 }
 
-function formatStaffMessage(client: any, items: any[]) {
+function formatStaffMessage(
+  client: any,
+  items: any[],
+  options?: {
+    customDeliveryDate?: string;
+    requirePaymentConfirm?: boolean;
+    requireInvoice?: boolean;
+  }
+) {
   const delivery = getDeliveryDateKST();
+  const deliveryLabel = options?.customDeliveryDate || delivery.label;
 
   const lines: string[] = [];
   lines.push(
     `거래처: ${client.client_name} (${cleanClientCode(client.client_code)})`
   );
-  lines.push(`배송 예정일: ${delivery.label}`);
+  lines.push(`배송 예정일: ${deliveryLabel}`);
   lines.push("");
   lines.push("품목:");
 
@@ -461,6 +470,15 @@ function formatStaffMessage(client: any, items: any[]) {
   }
 
   lines.push("");
+
+  // ✅ 발주 옵션 추가
+  if (options?.requirePaymentConfirm) {
+    lines.push("입금확인후 출고.");
+  }
+  if (options?.requireInvoice) {
+    lines.push("거래명세표 부탁드립니다.");
+  }
+
   lines.push("발주 요청드립니다.");
   return lines.join("\n");
 }
@@ -567,7 +585,11 @@ export async function POST(req: Request) {
       items: itemsWithSuggestions,
 
       // ✅ 직원 메시지는 기존과 동일하게 동작 (unresolved는 여전히 확인필요로 표기)
-      staff_message: formatStaffMessage(client, itemsWithSuggestions),
+      staff_message: formatStaffMessage(client, itemsWithSuggestions, {
+        customDeliveryDate: body?.customDeliveryDate,
+        requirePaymentConfirm: body?.requirePaymentConfirm,
+        requireInvoice: body?.requireInvoice,
+      }),
 
       debug: {
         preprocessed_message: preMessage,
