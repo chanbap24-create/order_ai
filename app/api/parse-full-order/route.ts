@@ -277,13 +277,29 @@ function resolveClient({
   message: string;
   forceResolve: boolean;
 }) {
+  const candidate = String(clientText || "").trim() || firstLine(message);
+
+  // ✅ 1) 거래처 코드 직접 입력 (숫자 5자리)
+  if (candidate && /^\d{5}$/.test(candidate)) {
+    const directClient = db
+      .prepare(`SELECT client_code, client_name FROM clients WHERE client_code = ?`)
+      .get(candidate) as any;
+    
+    if (directClient) {
+      return {
+        status: "resolved",
+        client_code: String(directClient.client_code),
+        client_name: String(directClient.client_name),
+        method: "exact_code",
+      };
+    }
+  }
+
   const rows = db
     .prepare(`SELECT client_code, alias, weight FROM client_alias`)
     .all() as Array<{ client_code: any; alias: any; weight?: any }>;
 
-  const candidate = String(clientText || "").trim() || firstLine(message);
-
-  // exact(norm)
+  // ✅ 2) exact(norm) 매칭
   if (candidate) {
     const exact = rows.find(
       (r) => norm(r.alias) && norm(r.alias) === norm(candidate)

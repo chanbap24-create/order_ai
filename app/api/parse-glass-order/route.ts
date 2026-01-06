@@ -227,6 +227,7 @@ function resolveClient({
 
   // ✅ 1순위: 거래처 코드 직접 매칭 (12096 같은 숫자)
   if (candidate && /^\d+$/.test(candidate)) {
+    // 먼저 alias 테이블에서 검색
     const codeMatch = rows.find((r) => String(r.client_code) === candidate);
     if (codeMatch) {
       return {
@@ -234,6 +235,20 @@ function resolveClient({
         client_code: String(codeMatch.client_code),
         client_name: String(codeMatch.alias),
         method: "exact_code",
+      };
+    }
+
+    // alias에 없으면 glass_clients 테이블에서 직접 검색
+    const directClient = db
+      .prepare(`SELECT client_code, client_name FROM glass_clients WHERE client_code = ?`)
+      .get(candidate) as any;
+    
+    if (directClient) {
+      return {
+        status: "resolved",
+        client_code: String(directClient.client_code),
+        client_name: String(directClient.client_name),
+        method: "exact_code_direct",
       };
     }
   }
