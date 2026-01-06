@@ -360,9 +360,9 @@ function formatStaffMessage(client: any, items: any[]) {
 
   for (const it of items) {
     if (it.resolved) {
-      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}병`);
+      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}잔`);
     } else {
-      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}병`);
+      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}잔`);
     }
   }
 
