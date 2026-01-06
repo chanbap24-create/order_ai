@@ -775,33 +775,28 @@ export default function Home() {
 
           {/* ---- Items (toggle) ---- */}
           <div style={{ marginTop: 14 }}>
-            <div
+            <button
+              onClick={() => setShowItemsPanel((v) => !v)}
               style={{
+                width: "100%",
+                padding: 12,
+                background: "#f8f9fa",
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                cursor: "pointer",
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 8,
+                justifyContent: "space-between",
+                fontSize: 14,
+                fontWeight: 700,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 800 }}>품목 결과</div>
-
-              <button
-                onClick={() => setShowItemsPanel((v) => !v)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: "1px solid #ddd",
-                  cursor: "pointer",
-                  background: "#fff",
-                  fontSize: 13,
-                }}
-              >
-                {showItemsPanel ? "🔽 품목 결과 닫기" : "🔼 품목 결과 열기"}
-              </button>
-            </div>
+              <span>품목 결과</span>
+              <span>{showItemsPanel ? "▲" : "▼"}</span>
+            </button>
 
             {showItemsPanel && (
-              <div style={{ ...cardStyle, background: "#fff" }}>
+              <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
                     const line = it?.resolved
@@ -1081,30 +1076,25 @@ export default function Home() {
 
           {/* ---- Full JSON (toggle) ---- */}
           <div style={{ marginTop: 18 }}>
-            <div
+            <button
+              onClick={() => setShowJson((v) => !v)}
               style={{
+                width: "100%",
+                padding: 12,
+                background: "#f8f9fa",
+                border: "1px solid #ddd",
+                borderRadius: 12,
+                cursor: "pointer",
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 8,
+                justifyContent: "space-between",
+                fontSize: 14,
+                fontWeight: 700,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 800 }}>JSON</div>
-
-              <button
-                onClick={() => setShowJson((v) => !v)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: "1px solid #ddd",
-                  cursor: "pointer",
-                  background: "#fff",
-                  fontSize: 13,
-                }}
-              >
-                {showJson ? "🔽 JSON 닫기" : "🔼 JSON 보기"}
-              </button>
-            </div>
+              <span>JSON</span>
+              <span>{showJson ? "▲" : "▼"}</span>
+            </button>
 
             {showJson && (
               <pre
@@ -1116,6 +1106,7 @@ export default function Home() {
                   background: "#0b1020",
                   color: "#e6e6e6",
                   overflowX: "auto",
+                  marginTop: 8,
                   ...monoStyle,
                 }}
               >
