@@ -3,6 +3,7 @@ import { db } from "@/app/lib/db";
 import { parseItemsFromMessage } from "@/app/lib/parseItems";
 import { resolveItemsByClient } from "@/app/lib/resolveItems";
 import { resolveItemsByClientWeighted } from "@/app/lib/resolveItemsWeighted";
+import { searchNewItem } from "@/app/lib/newItemResolver";
 import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 import type { ParseFullOrderResponse } from "@/app/types/api";
@@ -565,6 +566,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
+    //     - 🆕 신규 품목: 기존 매칭이 약하면 English 시트에서 검색
     const itemsWithSuggestions = resolvedItems.map((x: any) => {
       if (x?.resolved) return x;
 
@@ -572,10 +574,40 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
 
       // 혹시 정렬이 보장 안 되면 score 기준으로 정렬
-      const suggestions = candidates
+      let suggestions = candidates
         .slice()
         .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0))
         .slice(0, 3);
+
+      // 🆕 신규 품목 검색: 기존 매칭 점수가 낮으면 English 시트에서 검색
+      const bestScore = candidates.length > 0 ? candidates[0]?.score ?? 0 : 0;
+      
+      if (bestScore < 0.5) {
+        // 신규 품목 검색 시도
+        const newItemCandidates = searchNewItem(clientCode, x.item_name || '', bestScore);
+        
+        if (newItemCandidates && newItemCandidates.length > 0) {
+          // English 시트 후보를 suggestions로 사용
+          suggestions = newItemCandidates.slice(0, 5).map((c) => ({
+            item_no: c.itemNo,
+            item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
+            score: c.score,
+            source: 'master_sheet', // 🆕 출처 표시
+            _debug: c._debug,
+          }));
+
+          // 신규 품목 플래그 추가
+          return {
+            ...x,
+            suggestions,
+            is_new_item: true, // 🆕 UI에서 신규 품목으로 표시
+            new_item_info: {
+              message: '신규 품목입니다. English 시트에서 검색한 결과입니다.',
+              source: 'order-ai.xlsx (English)',
+            },
+          };
+        }
+      }
 
       return {
         ...x,
