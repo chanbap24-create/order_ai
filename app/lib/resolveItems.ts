@@ -1,6 +1,7 @@
 import { db } from "@/app/lib/db";
 import { applyItemSynonym } from "@/app/lib/itemsynonyms";
 import { getSearchLearningBonuses } from "@/app/lib/searchLearning";
+import { calculateWeightedScore, type WeightedScore } from "@/app/lib/weightedScoring";
 
 /* ================= 공통 정규화 ================= */
 function normLocal(s: string) {

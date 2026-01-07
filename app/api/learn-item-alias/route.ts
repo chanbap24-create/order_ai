@@ -22,9 +22,24 @@ function ensureItemAliasTable() {
     CREATE TABLE IF NOT EXISTS item_alias (
       alias TEXT PRIMARY KEY,
       canonical TEXT NOT NULL,
+      count INTEGER DEFAULT 1,
+      last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+
+  // 기존 테이블에 count 컬럼 추가 (마이그레이션)
+  try {
+    db.prepare(`ALTER TABLE item_alias ADD COLUMN count INTEGER DEFAULT 1`).run();
+  } catch {
+    // 컬럼이 이미 존재하면 무시
+  }
+
+  try {
+    db.prepare(`ALTER TABLE item_alias ADD COLUMN last_used_at TEXT DEFAULT CURRENT_TIMESTAMP`).run();
+  } catch {
+    // 컬럼이 이미 존재하면 무시
+  }
 }
 
 export async function POST(req: Request) {
@@ -53,18 +68,35 @@ export async function POST(req: Request) {
 
     ensureItemAliasTable();
 
-    // ✅ 규칙 학습은 단순 & 강하게 upsert
-    db.prepare(`
-      INSERT INTO item_alias (alias, canonical, created_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(alias) DO UPDATE SET
-        canonical = excluded.canonical,
-        created_at = CURRENT_TIMESTAMP
-    `).run(alias, canonical);
+    // ✅ 규칙 학습 with 누적 카운트
+    // - 같은 alias에 같은 canonical을 선택하면 count++
+    // - 다른 canonical을 선택하면 count=1로 초기화 (새로운 학습)
+    const existing = db.prepare(
+      `SELECT canonical, count FROM item_alias WHERE alias = ?`
+    ).get(alias) as { canonical: string; count: number } | undefined;
+
+    if (existing && existing.canonical === canonical) {
+      // 같은 매핑: count 증가
+      db.prepare(`
+        UPDATE item_alias
+        SET count = count + 1, last_used_at = CURRENT_TIMESTAMP
+        WHERE alias = ?
+      `).run(alias);
+    } else {
+      // 새로운 매핑 또는 다른 매핑: 덮어쓰기
+      db.prepare(`
+        INSERT INTO item_alias (alias, canonical, count, last_used_at, created_at)
+        VALUES (?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(alias) DO UPDATE SET
+          canonical = excluded.canonical,
+          count = 1,
+          last_used_at = CURRENT_TIMESTAMP
+      `).run(alias, canonical);
+    }
 
     // ✅ 프론트 안정용: 실제 저장된 값 반환
     const row = db.prepare(
-      `SELECT alias, canonical, created_at FROM item_alias WHERE alias = ?`
+      `SELECT alias, canonical, count, last_used_at, created_at FROM item_alias WHERE alias = ?`
     ).get(alias);
 
     return NextResponse.json({

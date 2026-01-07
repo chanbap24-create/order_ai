@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/app/lib/db";
 import { parseItemsFromMessage } from "@/app/lib/parseItems";
 import { resolveItemsByClient } from "@/app/lib/resolveItems";
+import { resolveItemsByClientWeighted } from "@/app/lib/resolveItemsWeighted";
 import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 import type { ParseFullOrderResponse } from "@/app/types/api";
@@ -260,17 +261,34 @@ function isHolidayKST(d: Date) {
 }
 
 function getDeliveryDateKST(now = new Date()) {
-  const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-
-  const day = kst.getDay(); // 0=일, 5=금
-  const hour = kst.getHours();
-  const minute = kst.getMinutes();
+  // ✅ 정확한 KST 시간 추출
+  const kstString = now.toLocaleString("en-US", { 
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  
+  // "01/07/2025, 16:31" → 파싱
+  const [datePart, timePart] = kstString.split(", ");
+  const [month, day, year] = datePart.split("/");
+  const [hour, minute] = timePart.split(":");
+  
+  const kst = new Date(`${year}-${month}-${day}T${hour}:${minute}:00+09:00`);
+  
+  const dayOfWeek = kst.getDay(); // 0=일, 5=금
+  const hourNum = parseInt(hour);
+  const minuteNum = parseInt(minute);
 
   let addDays = 1;
-  const afterCutoff = hour > 16 || (hour === 16 && minute >= 31);
+  // ✅ 4시 30분 초과를 마감으로 (4시 30분까지는 당일 마감)
+  const afterCutoff = hourNum > 16 || (hourNum === 16 && minuteNum > 30);
 
   if (afterCutoff) addDays = 2;
-  if (day === 5 && afterCutoff) addDays = 4; // 금요일 16:31 이후 → 화요일
+  if (dayOfWeek === 5 && afterCutoff) addDays = 4; // 금요일 16:31 이후 → 화요일
 
   const delivery = new Date(kst);
   delivery.setDate(kst.getDate() + addDays);
@@ -538,7 +556,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     }
 
     // 3) 품목 resolve
-    const resolvedItems = resolveItemsByClient(clientCode, parsedItems, {
+    // 🎯 조합 가중치 시스템으로 품목 매칭!
+    const resolvedItems = resolveItemsByClientWeighted(clientCode, parsedItems, {
       minScore: 0.55,
       minGap: 0.05,
       topN: 5,
