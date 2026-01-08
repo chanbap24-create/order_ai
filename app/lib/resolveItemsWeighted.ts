@@ -10,6 +10,7 @@
 import { db } from "@/app/lib/db";
 import { applyItemSynonym } from "@/app/lib/itemsynonyms";
 import { calculateWeightedScore } from "@/app/lib/weightedScoring";
+import { searchMasterSheet } from "@/app/lib/masterMatcher";
 
 /* ================= 정규화 함수 ================= */
 
@@ -205,6 +206,23 @@ function fetchFromMasterByTail(rawName: string, limit = 80) {
     return db.prepare(sql).all(...params) as Array<{ item_no: string; item_name: string }>;
   } catch {
     return [] as Array<{ item_no: string; item_name: string }>;
+  }
+}
+
+/* ================= 신규 품목 검색 (English 시트) ================= */
+
+function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_name: string; score: number; is_new_item?: boolean }> {
+  try {
+    const candidates = searchMasterSheet(query, 5);
+    return candidates.map((c) => ({
+      item_no: c.itemNo,
+      item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
+      score: Number(c.score.toFixed(3)),
+      is_new_item: true,
+    }));
+  } catch (err) {
+    console.error('신규 품목 검색 실패:', err);
+    return [];
   }
 }
 
@@ -486,9 +504,9 @@ export function resolveItemsByClientWeighted(
           resolved = false;
         }
       } 
-      // learned가 없는 경우 (신규 품목): 더 높은 기준 적용
+      // learned가 없는 경우: 0.70 이상이면 자동 확정
       else if (!learned) {
-        const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.90 && gap >= 0.50);
+        const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.70 && gap >= 0.30);
         if (!allowAuto) {
           resolved = false;
         }
@@ -518,6 +536,28 @@ export function resolveItemsByClientWeighted(
       };
     }
 
+    // ✅ 0.70 미만: 기존품목 1위 + 신규품목 상위 3개 표시
+    const suggestions = top && top.score < 0.70 
+      ? (() => {
+          // 기존품목 1위
+          const existingTop = scored.slice(0, 1).map((c) => ({
+            item_no: c.item_no,
+            item_name: c.item_name,
+            score: Number(c.score.toFixed(3)),
+          }));
+
+          // 신규품목 검색 (English 시트)
+          const newItems = searchNewItemFromMaster(q);
+          
+          // 기존 1위 + 신규 상위 3개 = 총 4개
+          return [...existingTop, ...newItems.slice(0, 3)];
+        })()
+      : scored.slice(0, Math.max(3, topN)).map((c) => ({
+          item_no: c.item_no,
+          item_name: c.item_name,
+          score: Number(c.score.toFixed(3)),
+        }));
+
     return {
       ...it,
       normalized_query: q,
@@ -528,11 +568,7 @@ export function resolveItemsByClientWeighted(
         score: Number(c.score.toFixed(3)),
         _debug: c._debug,
       })),
-      suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
-        item_no: c.item_no,
-        item_name: c.item_name,
-        score: Number(c.score.toFixed(3)),
-      })),
+      suggestions,
     };
   });
 }
