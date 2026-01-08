@@ -450,12 +450,57 @@ export function resolveItemsByClient(
     // ✅ 마스터 후보(뒤 토큰으로 추가 조회)
     const masterRows = fetchFromMasterByTail(it.name, 80);
 
-    // ✅ 후보 풀 = 거래처이력 + 마스터 (중복 제거)
+    // ✅ 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
+    // 입력값에서 영어 단어가 있으면 영문명 테이블에서도 검색
+    const englishRows: Array<{ item_no: string; item_name: string }> = [];
+    const hasEnglish = /[A-Za-z]{3,}/.test(it.name);
+    if (hasEnglish) {
+      try {
+        // 입력값을 단어 단위로 분리하여 각 단어로 검색
+        const words = it.name.match(/[A-Za-z]{3,}/g) || [];
+        const searchPatterns: string[] = [];
+        
+        // 각 영어 단어를 소문자로 변환하여 검색 패턴 생성
+        for (const word of words) {
+          searchPatterns.push(`%${word.toLowerCase()}%`);
+        }
+        
+        // 각 패턴으로 검색
+        const allCandidates = new Map<string, { item_no: string; item_name: string }>();
+        for (const pattern of searchPatterns.slice(0, 5)) { // 최대 5개 단어만 검색
+          const rows = db.prepare(`
+            SELECT ie.item_no, cis.item_name, ie.name_en
+            FROM item_english ie
+            LEFT JOIN client_item_stats cis ON ie.item_no = cis.item_no AND cis.client_code = ?
+            WHERE LOWER(ie.name_en) LIKE ?
+            LIMIT 20
+          `).all(clientCode, pattern) as any[];
+          
+          for (const r of rows) {
+            if (r.item_no && r.item_name) {
+              allCandidates.set(String(r.item_no), { 
+                item_no: String(r.item_no), 
+                item_name: String(r.item_name) 
+              });
+            }
+          }
+        }
+        
+        englishRows.push(...Array.from(allCandidates.values()));
+      } catch (e) {
+        console.error('[resolveItems] English search failed:', e);
+      }
+    }
+
+    // ✅ 후보 풀 = 거래처이력 + 마스터 + 영문명 (중복 제거)
     const poolMap = new Map<string, { item_no: string; item_name: string }>();
     for (const r of clientRows) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     for (const r of masterRows) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    for (const r of englishRows) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     const pool = Array.from(poolMap.values());
@@ -640,7 +685,7 @@ export function resolveItemsByClient(
     // ✅ 단, topScore>=0.88 AND (top-second)>=0.30 이면 예외적으로 자동확정 허용
     if (learned?.kind === "contains_weak" && tokenCount >= 3) {
       const gap = second ? top.score - second.score : 1.0;
-      const allowAuto = top.score >= 0.88 && gap >= 0.30;
+      const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.88 && gap >= 0.30);
       if (!allowAuto) {
         resolved = false;
       }

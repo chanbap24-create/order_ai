@@ -74,7 +74,21 @@ function normalize(str: string): string {
     .replace(/마르고/g, '마고')
     .replace(/샤르도네이/g, '샤르도네')
     .replace(/샤도네이/g, '샤르도네')
-    .replace(/샤도네/g, '샤르도네');
+    .replace(/샤도네/g, '샤르도네')
+    // 루이미쉘 관련
+    .replace(/루이미쉘/g, '루이미셸')
+    .replace(/루이미셸/g, '루이미셸')
+    .replace(/louismichel/g, 'louismichel')
+    // 샤블리 관련 (몬테 드 토네르)
+    .replace(/monteedetonnerre/g, '몬테드토네흐')
+    .replace(/몬테드토네르/g, '몬테드토네흐')
+    .replace(/몬테드토네흐/g, '몬테드토네흐')
+    .replace(/monteedetonnerre/g, '몬테드토네흐')
+    // 르메닐쉬르오제 (크리스토프 피뚜아)
+    .replace(/lemesnilsuroger/g, '르메닐쉬르오제')
+    .replace(/르메닐쉬르오제/g, '르메닐쉬르오제')
+    .replace(/mesnil/g, '메닐')
+    .replace(/메스닐/g, '메닐');
 
   return normalized;
 }
