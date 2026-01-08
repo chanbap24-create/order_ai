@@ -352,7 +352,7 @@ export default function Home() {
   }
 
   // ✅ 선택 즉시 화면 반영(직원메시지 + items)
-  function applySuggestionToResult(itemIndex: number, s: any) {
+  function applySuggestionToResult(itemIndex: number, s: any, supplyPrice?: string) {
     setData((prev: any) => {
       if (!prev) return prev;
 
@@ -362,6 +362,7 @@ export default function Home() {
       if (!target) return prev;
 
       const qty = target.qty;
+      const isNewItem = !!target.is_new_item;
 
       // 1) items 확정 처리(override 가능)
       items[itemIndex] = {
@@ -375,12 +376,19 @@ export default function Home() {
 
       // 2) 직원메시지 라인 치환
       const staff = String(next.staff_message ?? "");
+      
+      // 한글명만 추출 (/ 앞부분)
+      const koreanName = s.item_name?.split(' / ')[0] || s.item_name;
+      
       const oldLineUnresolved = `- 확인필요 / "${target.name}" / ${qty}병`;
       const oldLineResolved = target?.item_no
         ? `- ${target.item_no} / ${target.item_name} / ${qty}병`
         : "";
 
-      const newLine = `- ${s.item_no} / ${s.item_name} / ${qty}병`;
+      // 신규 품목일 때 가격 포함
+      const newLine = isNewItem && supplyPrice
+        ? `- ${s.item_no} / ${koreanName} / ${qty}병 / ${parseInt(supplyPrice, 10).toLocaleString()}원`
+        : `- ${s.item_no} / ${koreanName} / ${qty}병`;
 
       if (staff.includes(oldLineUnresolved)) {
         next.staff_message = staff.replace(oldLineUnresolved, newLine);
@@ -929,6 +937,32 @@ export default function Home() {
                               반영됩니다
                             </div>
 
+                            {/* 신규 품목 가격 입력 - 맨 위로 이동 */}
+                            {!!it.is_new_item && (
+                              <div style={{ marginTop: 12, marginBottom: 12, padding: "12px", background: "#fff8f0", borderRadius: 8, border: "1px solid #ffd699" }}>
+                                <div style={{ fontSize: 13, color: "#ff6b35", marginBottom: 8, fontWeight: 600 }}>
+                                  ⚠️ 신규 품목입니다. 공급가를 입력해주세요
+                                </div>
+                                <input
+                                  type="number"
+                                  placeholder="공급가 입력 (예: 15000)"
+                                  value={newItemPrices[idx] || ''}
+                                  onChange={(e) => setNewItemPrices(prev => ({
+                                    ...prev,
+                                    [idx]: e.target.value
+                                  }))}
+                                  style={{
+                                    width: "100%",
+                                    padding: "8px 12px",
+                                    border: "1px solid #ddd",
+                                    borderRadius: 6,
+                                    fontSize: 14,
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            )}
+
                             {top3.map((s: any, sidx: number) => {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
@@ -960,8 +994,9 @@ export default function Home() {
                                         alert('신규 품목은 가격을 입력해주세요.');
                                         return;
                                       }
-                                      applySuggestionToResult(idx, s);
-                                      await learnSelectedAlias(idx, s, isNewItem ? newItemPrices[idx] : undefined);
+                                      const price = isNewItem ? newItemPrices[idx] : undefined;
+                                      applySuggestionToResult(idx, s, price);
+                                      await learnSelectedAlias(idx, s, price);
                                     }}
                                   >
                                     <div
@@ -979,7 +1014,7 @@ export default function Home() {
                                           whiteSpace: "nowrap",
                                         }}
                                       >
-                                        <b>{s.item_no}</b> / {s.item_name}
+                                        <b>{s.item_no}</b> / {s.item_name?.split(' / ')[0] || s.item_name}
                                         {isNewItem && (
                                           <span style={{ 
                                             marginLeft: 8, 
@@ -1022,32 +1057,6 @@ export default function Home() {
                                       </div>
                                     </div>
                                   </button>
-                                  
-                                  {/* 신규 품목 가격 입력 */}
-                                  {isNewItem && sidx === 0 && (
-                                    <div style={{ marginTop: 8, padding: "8px 10px", background: "#fff8f0", borderRadius: 8, border: "1px solid #ffd699" }}>
-                                      <div style={{ fontSize: 12, color: "#ff6b35", marginBottom: 6, fontWeight: 600 }}>
-                                        ⚠️ 신규 품목입니다. 공급가를 입력해주세요 (English 시트에서 검색됨)
-                                      </div>
-                                      <input
-                                        type="number"
-                                        placeholder="공급가 입력 (예: 15000)"
-                                        value={newItemPrices[idx] || ''}
-                                        onChange={(e) => setNewItemPrices(prev => ({
-                                          ...prev,
-                                          [idx]: e.target.value
-                                        }))}
-                                        style={{
-                                          width: "100%",
-                                          padding: "6px 10px",
-                                          border: "1px solid #ddd",
-                                          borderRadius: 6,
-                                          fontSize: 13,
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                  )}
                                 </div>
                               );
                             })}
