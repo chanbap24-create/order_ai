@@ -12,6 +12,7 @@ import { applyItemSynonym } from "@/app/lib/itemsynonyms";
 import { calculateWeightedScore } from "@/app/lib/weightedScoring";
 import { searchMasterSheet } from "@/app/lib/masterMatcher";
 import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
+import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
 
 /* ================= 정규화 함수 ================= */
 
@@ -361,12 +362,19 @@ export function resolveItemsByClientWeighted(
   const englishMap = loadEnglishMap();
 
   return items.map((it) => {
+    // ✨ 검색어 확장 (토큰 매핑 학습 활용)
+    const expansion = expandQuery(it.name, 0.5);
+    logQueryExpansion(expansion);
+    
     const learned = getLearnedMatch(it.name);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
-    // 마스터 후보
-    const masterRows = fetchFromMasterByTail(it.name, 80);
+    // 마스터 후보 (원본 + 확장된 검색어)
+    const masterRows1 = fetchFromMasterByTail(it.name, 40);
+    const masterRows2 = expansion.hasExpansion 
+      ? fetchFromMasterByTail(expansion.expanded, 40)
+      : [];
 
     // ✅ 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
     const englishRows: Array<{ item_no: string; item_name: string }> = [];
@@ -401,12 +409,15 @@ export function resolveItemsByClientWeighted(
       }
     }
 
-    // 후보 풀 = 거래처이력 + 마스터 + 영문명 (중복 제거)
+    // 후보 풀 = 거래처이력 + 마스터(원본) + 마스터(확장) + 영문명 (중복 제거)
     const poolMap = new Map<string, { item_no: string; item_name: string }>();
     for (const r of clientRows) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
-    for (const r of masterRows) {
+    for (const r of masterRows1) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    for (const r of masterRows2) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     for (const r of englishRows) {
@@ -453,13 +464,22 @@ export function resolveItemsByClientWeighted(
     // 3) 🎯 조합 가중치 시스템으로 점수 계산
     const synonymApplied = applyItemSynonym(it.name);
     const q = normalizeItemName(synonymApplied);
+    const qExpanded = expansion.hasExpansion ? normalizeItemName(expansion.expanded) : q;
 
     const scored = pool
       .map((r) => {
-        const ko = scoreItem(q, r.item_name);
+        // 원본 쿼리 점수
+        const ko1 = scoreItem(q, r.item_name);
+        
+        // 확장된 쿼리 점수 (학습 효과)
+        const ko2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name) : 0;
+        
+        // 영문명 점수
         const enName = englishMap.get(String(r.item_no)) || "";
         const en = enName ? scoreItem(q, enName) : 0;
-        const baseScore = Math.max(ko, en);
+        
+        // 최고 점수 선택 (확장 검색은 20% 부스트)
+        const baseScore = Math.max(ko1, ko2 * 1.2, en);
 
         // 🎯 가중치 시스템으로 최종 점수 계산
         const weighted = calculateWeightedScore(
