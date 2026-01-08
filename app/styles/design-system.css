@@ -6,7 +6,8 @@
 
 :root {
   /* Colors */
-  --color-bg: #F5F5F7;
+  --color-background: #FAFAFA;
+  --color-bg: #FAFAFA;
   --color-card: #FFFFFF;
   --color-primary: #FF6B35;
   --color-primary-dark: #E85A2B;
@@ -46,6 +47,7 @@
   --space-8: 2rem;         /* 32px */
   --space-10: 2.5rem;      /* 40px */
   --space-12: 3rem;        /* 48px */
+  --space-16: 4rem;        /* 64px */
   
   /* Border Radius */
   --radius-sm: 8px;
@@ -55,11 +57,12 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
   
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  /* Shadows - 부드러운 그림자 */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px 0 rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 12px 32px 0 rgba(0, 0, 0, 0.08);
   
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -72,7 +75,7 @@
    ======================================== */
 
 body {
-  background-color: var(--color-bg);
+  background-color: var(--color-background);
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: var(--text-base);
@@ -89,13 +92,14 @@ body {
   background: var(--color-card);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
-  box-shadow: var(--shadow-md);
+  border: none;
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .card-sm {
