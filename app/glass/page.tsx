@@ -570,13 +570,20 @@ export default function Home() {
                   run();
                 }
               }}
+              onKeyPress={(e) => {
+                // 모바일 폴백
+                if (e.key === 'Enter' && !loading) {
+                  e.preventDefault();
+                  run();
+                }
+              }}
               placeholder="거래처를 입력하세요"
               style={{
                 width: "100%",
                 padding: 12,
                 borderRadius: 12,
                 border: "1px solid #ddd",
-                fontSize: 14,
+                fontSize: 16, // iOS 확대 방지
               }}
             />
           </div>
@@ -609,7 +616,7 @@ export default function Home() {
                 padding: 12,
                 borderRadius: 12,
                 border: "1px solid #ddd",
-                fontSize: 14,
+                fontSize: 16, // iOS 확대 방지
                 ...monoStyle,
               }}
             />
@@ -668,16 +675,17 @@ export default function Home() {
           style={{
             padding: "10px 20px",
             borderRadius: 10,
-            border: hasClipboard ? "2px solid #FF6B35" : "1px solid #ddd",
+            border: hasClipboard ? "3px solid #FF6B35" : "1px solid #ddd",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : hasClipboard ? "#FFF5F0" : "#fff",
-            fontWeight: 600,
+            background: loading ? "#f5f5f5" : hasClipboard ? "#FFE5D9" : "#fff",
+            color: hasClipboard ? "#FF6B35" : "#000",
+            fontWeight: hasClipboard ? 700 : 600,
             fontSize: 16,
             marginLeft: "auto",
-            boxShadow: hasClipboard ? "0 0 0 3px rgba(255, 107, 53, 0.1)" : "none",
+            boxShadow: hasClipboard ? "0 0 0 4px rgba(255, 107, 53, 0.2), 0 4px 12px rgba(255, 107, 53, 0.3)" : "none",
             transition: "all 0.2s ease",
+            transform: hasClipboard ? "scale(1.05)" : "scale(1)",
           }}
-          title="클립보드에서 붙여넣기"
         >
           붙여넣기
         </button>
