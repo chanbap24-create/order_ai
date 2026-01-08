@@ -43,13 +43,14 @@ export default function Home() {
 
         {/* Cards */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          display: 'flex',
+          justifyContent: 'center',
           gap: 'var(--space-6)',
-          marginBottom: 'var(--space-8)'
+          marginBottom: 'var(--space-8)',
+          flexWrap: 'wrap'
         }}>
           {/* Wine Card */}
-          <Link href="/wine" style={{ textDecoration: 'none' }}>
+          <Link href="/wine" style={{ textDecoration: 'none', width: '280px' }}>
             <Card hover>
               <div style={{
                 display: 'flex',
@@ -67,10 +68,12 @@ export default function Home() {
                     justifyContent: 'center',
                     marginBottom: 'var(--space-4)'
                   }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2">
-                      <path d="M8 2h8l1 9c0 3-2 5-5 5s-5-2-5-5l1-9z" />
-                      <path d="M12 16v6" />
-                      <path d="M8 22h8" />
+                    {/* 와인병 아이콘 */}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 2h8" />
+                      <path d="M12 2v4" />
+                      <path d="M9 6h6" />
+                      <path d="M9 6v4.5c0 .8-.3 1.6-.9 2.1L6 15v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6l-2.1-2.4c-.6-.5-.9-1.3-.9-2.1V6" />
                     </svg>
                   </div>
                   <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
@@ -89,7 +92,7 @@ export default function Home() {
           </Link>
 
           {/* Glass Card */}
-          <Link href="/glass" style={{ textDecoration: 'none' }}>
+          <Link href="/glass" style={{ textDecoration: 'none', width: '280px' }}>
             <Card hover>
               <div style={{
                 display: 'flex',
@@ -107,9 +110,11 @@ export default function Home() {
                     justifyContent: 'center',
                     marginBottom: 'var(--space-4)'
                   }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2">
-                      <path d="M6 2l6 18h4l6-18z" />
-                      <path d="M5 2h14" />
+                    {/* 와인잔 아이콘 */}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 2h8l1 9c0 3-2 5-5 5s-5-2-5-5l1-9z" />
+                      <path d="M12 16v6" />
+                      <path d="M8 22h8" />
                     </svg>
                   </div>
                   <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
