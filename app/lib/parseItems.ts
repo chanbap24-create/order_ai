@@ -22,7 +22,26 @@ export function parseItemsFromMessage(message: string) {
   // ✅ 쉼표 처리: 영문 생산자명 패턴이 있으면 쉼표를 무시
   // 예: "Christophe Pitois, Grand Cru..." → 쉼표로 분리 안 함
   // 예: "샤또마르고, 루이로드레" → 쉼표로 분리함
-  const lines = text2.split(/\n/);
+  let lines = text2.split(/\n/);
+  
+  // ✅ 줄바꿈 병합: 숫자로 시작하는 다음 줄을 이전 줄에 병합
+  // 예: "레이크 찰리스 에스테이트\n24병" → "레이크 찰리스 에스테이트 24병"
+  const mergedLines: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const currentLine = lines[i].trim();
+    const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : "";
+    
+    // 다음 줄이 숫자로 시작하거나 "병", "개" 등의 단위로만 구성되어 있으면 병합
+    if (nextLine && (/^\d+\s*(?:병|개|본|ea|EA|pcs|PCS|박스|box|BOX|케이스|보틀|바틀|case|CASE|bt|btl|cs|CS)?$/.test(nextLine))) {
+      mergedLines.push(`${currentLine} ${nextLine}`.trim());
+      i++; // 다음 줄 건너뛰기
+      console.log(`[DEBUG-MERGE] Merged: "${currentLine}" + "${nextLine}" → "${currentLine} ${nextLine}"`);
+    } else {
+      mergedLines.push(currentLine);
+    }
+  }
+  
+  lines = mergedLines;
   const parts0: string[] = [];
   
   for (const line of lines) {
