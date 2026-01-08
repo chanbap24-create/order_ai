@@ -39,13 +39,16 @@ export interface MasterMatchCandidate {
   koreanName: string;
   vintage?: string;
   score: number;
-  matchedBy: 'english' | 'korean' | 'both';
+  matchedBy: 'english' | 'korean' | 'both' | 'pytorch_ml';
   _debug?: {
-    englishScore: number;
-    koreanScore: number;
-    inputNorm: string;
-    targetEnglishNorm: string;
-    targetKoreanNorm: string;
+    englishScore?: number;
+    koreanScore?: number;
+    inputNorm?: string;
+    targetEnglishNorm?: string;
+    targetKoreanNorm?: string;
+    method?: string;
+    korean_name?: string;
+    english_name?: string;
   };
 }
 
