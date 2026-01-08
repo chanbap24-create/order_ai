@@ -564,6 +564,12 @@ export default function Home() {
               type="text"
               value={clientInput}
               onChange={(e) => setClientInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !loading) {
+                  e.preventDefault();
+                  run();
+                }
+              }}
               placeholder="거래처를 입력하세요"
               style={{
                 width: "100%",
@@ -589,6 +595,13 @@ export default function Home() {
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                // Ctrl+Enter 또는 Cmd+Enter로 생성
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !loading) {
+                  e.preventDefault();
+                  run();
+                }
+              }}
               rows={10}
               placeholder="품목과 수량을 입력하세요"
               style={{
