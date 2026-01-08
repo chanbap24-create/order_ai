@@ -643,7 +643,7 @@ export default function Home() {
           }}
           title="클립보드에서 붙여넣기"
         >
-          📋 붙여넣기
+          붙여넣기
         </button>
       </div>
 
