@@ -609,14 +609,16 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           if (newItemCandidates && newItemCandidates.length > 0) {
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
             
-            // ✅ 기존품목 1위 + 신규품목 상위 3개 = 총 4개
+            // ✅ 기존품목 1위 (신규품목 플래그 없음)
             const existingTop = suggestions.length > 0 ? [suggestions[0]] : [];
+            
+            // ✅ 신규품목 상위 3개 (신규품목 플래그 있음)
             const newItemSuggestions = newItemCandidates.slice(0, 3).map((c) => ({
               item_no: c.itemNo,
               item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
               score: c.score,
               source: 'master_sheet', // 🆕 출처 표시
-              is_new_item: true, // 🆕 신규품목 플래그
+              is_new_item: true, // 🆕 신규품목 플래그 (개별 항목에 설정)
               _debug: c._debug,
             }));
             
@@ -624,14 +626,19 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             suggestions = [...existingTop, ...newItemSuggestions];
             
             console.log(`[신규품목] 최종 후보: 기존 ${existingTop.length}개 + 신규 ${newItemSuggestions.length}개 = 총 ${suggestions.length}개`);
+            console.log(`[신규품목] 후보 목록:`, suggestions.map(s => ({ 
+              no: s.item_no, 
+              score: s.score, 
+              isNew: s.is_new_item || false 
+            })));
 
-            // 신규 품목 플래그 추가
+            // ❌ 전체 항목에 is_new_item 플래그 제거 (개별 후보에만 설정)
             return {
               ...x,
               suggestions,
-              is_new_item: true, // 🆕 UI에서 신규 품목으로 표시
+              has_new_items: true, // 신규품목 포함 여부만 표시
               new_item_info: {
-                message: '신규 품목입니다. English 시트에서 검색한 결과입니다.',
+                message: '신규 품목이 포함되어 있습니다.',
                 source: 'order-ai.xlsx (English)',
               },
             };

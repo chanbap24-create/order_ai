@@ -1052,11 +1052,11 @@ export default function Home() {
                               반영됩니다
                             </div>
 
-                            {/* 신규 품목 가격 입력 - 맨 위로 이동 */}
-                            {!!it.is_new_item && (
+                            {/* 신규 품목 가격 입력 - 신규품목이 있을 때만 표시 */}
+                            {top3.some((s: any) => s.is_new_item) && (
                               <div style={{ marginTop: 12, marginBottom: 12, padding: "12px", background: "#fff8f0", borderRadius: 8, border: "1px solid #ffd699" }}>
                                 <div style={{ fontSize: 13, color: "#ff6b35", marginBottom: 8, fontWeight: 600 }}>
-                                  ⚠️ 신규 품목입니다. 공급가를 입력해주세요
+                                  ⚠️ 신규 품목이 포함되어 있습니다. 선택 시 공급가를 입력해주세요
                                 </div>
                                 <input
                                   type="number"
@@ -1081,7 +1081,7 @@ export default function Home() {
                             {top3.map((s: any, sidx: number) => {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
-                              const isNewItem = !!it.is_new_item;
+                              const isNewItem = !!s.is_new_item; // ✅ 개별 후보의 플래그 확인
 
                               return (
                                 <div key={sidx}>
