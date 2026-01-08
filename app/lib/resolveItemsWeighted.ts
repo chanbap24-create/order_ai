@@ -326,12 +326,46 @@ export function resolveItemsByClientWeighted(
     // 마스터 후보
     const masterRows = fetchFromMasterByTail(it.name, 80);
 
-    // 후보 풀 = 거래처이력 + 마스터 (중복 제거)
+    // ✅ 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
+    const englishRows: Array<{ item_no: string; item_name: string }> = [];
+    const hasEnglish = /[A-Za-z]{3,}/.test(it.name);
+    if (hasEnglish) {
+      try {
+        const words = it.name.match(/[A-Za-z]{3,}/g) || [];
+        const searchPatterns: string[] = [];
+        for (const word of words) {
+          searchPatterns.push(`%${word.toLowerCase()}%`);
+        }
+        const allCandidates = new Map<string, { item_no: string; item_name: string }>();
+        for (const pattern of searchPatterns.slice(0, 5)) {
+          const rows = db.prepare(`
+            SELECT ie.item_no, cis.item_name, ie.name_en
+            FROM item_english ie
+            LEFT JOIN client_item_stats cis ON ie.item_no = cis.item_no AND cis.client_code = ?
+            WHERE LOWER(ie.name_en) LIKE ?
+            LIMIT 20
+          `).all(clientCode, pattern) as any[];
+          for (const r of rows) {
+            if (r.item_no && r.item_name) {
+              allCandidates.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+            }
+          }
+        }
+        englishRows.push(...Array.from(allCandidates.values()));
+      } catch (e) {
+        console.error('[resolveItemsWeighted] English search failed:', e);
+      }
+    }
+
+    // 후보 풀 = 거래처이력 + 마스터 + 영문명 (중복 제거)
     const poolMap = new Map<string, { item_no: string; item_name: string }>();
     for (const r of clientRows) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     for (const r of masterRows) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    for (const r of englishRows) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     const pool = Array.from(poolMap.values());
@@ -415,13 +449,24 @@ export function resolveItemsByClientWeighted(
     let resolved =
       !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
 
-    // contains_weak + 토큰 3개 이상은 보수적으로
+    // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
-    if (learned?.kind === "contains_weak" && tokenCount >= 3) {
+    if (tokenCount >= 3) {
       const gap = second ? top.score - second.score : 999;
-      const allowAuto = top.score >= 0.88 && gap >= 0.30;
-      if (!allowAuto) {
-        resolved = false;
+      
+      // learned가 있는 경우 (기존 로직 유지)
+      if (learned?.kind === "contains_weak") {
+        const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.88 && gap >= 0.30);
+        if (!allowAuto) {
+          resolved = false;
+        }
+      } 
+      // learned가 없는 경우 (신규 품목): 더 높은 기준 적용
+      else if (!learned) {
+        const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.90 && gap >= 0.50);
+        if (!allowAuto) {
+          resolved = false;
+        }
       }
     }
 
