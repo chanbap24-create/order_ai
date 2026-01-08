@@ -8,6 +8,7 @@ type LearnRow = { alias: string; canonical: string };
 
 export default function Home() {
   const [text, setText] = useState("");
+  const [clientInput, setClientInput] = useState(""); // ✅ 거래처 입력칸
   const [force, setForce] = useState(true);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -105,8 +106,13 @@ export default function Home() {
     setPendingPreMessage("");
 
     try {
+      // ✅ 거래처칸이 비어있으면 첫줄을 거래처로, 있으면 거래처칸 + 발주내용 합침
+      const finalMessage = clientInput.trim() 
+        ? `${clientInput.trim()}\n${text}` 
+        : text;
+
       const { json } = await callParse({
-        message: text,
+        message: finalMessage,
         force_resolve: force,
         customDeliveryDate: customDeliveryDate || undefined,
         requirePaymentConfirm: requirePaymentConfirm || undefined,
@@ -524,20 +530,57 @@ export default function Home() {
       {/* ===== 발주 입력 탭 ===== */}
       {activeTab === "order" && (
         <>
-          {/* ===== Input ===== */}
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={10}
-            style={{
-              width: "100%",
-              marginTop: 12,
-              padding: 12,
-              borderRadius: 12,
-              border: "1px solid #ddd",
-              ...monoStyle,
-            }}
-          />
+          {/* ===== 거래처 입력칸 (선택 사항) ===== */}
+          <div style={{ marginTop: 12 }}>
+            <label style={{ 
+              display: "block", 
+              marginBottom: 6, 
+              fontSize: 14, 
+              fontWeight: 600,
+              color: "#666"
+            }}>
+              거래처 (선택사항 - 비워두면 첫줄을 거래처로 인식)
+            </label>
+            <input
+              type="text"
+              value={clientInput}
+              onChange={(e) => setClientInput(e.target.value)}
+              placeholder="예: 리델"
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid #ddd",
+                fontSize: 14,
+              }}
+            />
+          </div>
+
+          {/* ===== 발주 입력칸 ===== */}
+          <div style={{ marginTop: 12 }}>
+            <label style={{ 
+              display: "block", 
+              marginBottom: 6, 
+              fontSize: 14, 
+              fontWeight: 600,
+              color: "#666"
+            }}>
+              발주 내용
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={10}
+              placeholder="품목과 수량을 입력하세요"
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid #ddd",
+                ...monoStyle,
+              }}
+            />
+          </div>
 
       {/* ===== Controls (입력창 아래로 이동) ===== */}
       <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
@@ -573,6 +616,34 @@ export default function Home() {
           title="입력된 내용을 지우고 결과를 초기화합니다"
         >
           지우기
+        </button>
+
+        {/* ===== 클립보드 붙여넣기 버튼 ===== */}
+        <button
+          onClick={async () => {
+            try {
+              const clipText = await navigator.clipboard.readText();
+              if (clipText) {
+                setText(clipText);
+              }
+            } catch (err) {
+              alert("클립보드 접근 권한이 필요합니다.");
+            }
+          }}
+          disabled={loading}
+          style={{
+            padding: "10px 20px",
+            borderRadius: 10,
+            border: "1px solid #ddd",
+            cursor: loading ? "not-allowed" : "pointer",
+            background: loading ? "#f5f5f5" : "#fff",
+            fontWeight: 600,
+            fontSize: 16,
+            marginLeft: "auto",
+          }}
+          title="클립보드에서 붙여넣기"
+        >
+          📋 붙여넣기
         </button>
       </div>
 
