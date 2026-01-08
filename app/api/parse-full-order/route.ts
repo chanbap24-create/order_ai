@@ -599,11 +599,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         const bestScore = candidates.length > 0 ? candidates[0]?.score ?? 0 : 0;
         const inputName = x.name || '';
         
-        if (bestScore < 0.5 && inputName) {
+        // 신규 품목 검색 조건: bestScore < 0.7 (부분 품목명 대응)
+        if (bestScore < 0.7 && inputName) {
           console.log(`[신규품목] 검색 시도: "${inputName}", bestScore=${bestScore.toFixed(3)}`);
           
-          // 신규 품목 검색 시도
-          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore);
+          // 신규 품목 검색 시도 (threshold = 0.7)
+          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore, 0.7);
           
           if (newItemCandidates && newItemCandidates.length > 0) {
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
