@@ -15,7 +15,8 @@
   --color-text: #1A1A1A;
   --color-text-light: #8E8E93;
   --color-text-lighter: #C7C7CC;
-  --color-border: #E5E5EA;
+  --color-border: #E5E7EB;
+  --color-border-light: #F3F4F6;
   --color-success: #34C759;
   --color-warning: #FF9500;
   --color-error: #FF3B30;
@@ -57,12 +58,12 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
   
-  /* Shadows - 부드러운 그림자 */
+  /* Shadows - 보조 역할 */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
   --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 8px 24px 0 rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 12px 32px 0 rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 8px 0 rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 6px 12px 0 rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 8px 16px 0 rgba(0, 0, 0, 0.06);
   
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -92,12 +93,13 @@ body {
   background: var(--color-card);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
-  border: none;
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
 }
 
 .card:hover {
+  border-color: var(--color-border);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
