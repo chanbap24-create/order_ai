@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Order AI - 발주 관리 시스템",
+  title: "Sales Desk - Internal Sales Automation Tool",
   description: "와인 & 와인잔 발주 자동 생성 시스템",
   viewport: {
     width: "device-width",

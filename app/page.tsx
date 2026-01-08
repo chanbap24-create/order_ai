@@ -29,7 +29,7 @@ export default function Home() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
           }}>
-            Order AI
+            Sales Desk
           </h1>
           <p style={{
             fontSize: 'var(--text-xl)',
@@ -37,7 +37,7 @@ export default function Home() {
             fontWeight: 400,
             letterSpacing: '-0.014em'
           }}>
-            와인 & 와인잔 발주를 쉽고 빠르게
+            Internal Sales Automation Tool
           </p>
         </div>
 

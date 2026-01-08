@@ -38,7 +38,7 @@ export default function Navigation() {
           textDecoration: 'none',
           letterSpacing: '-0.02em'
         }}>
-          Order AI
+          Sales Desk
         </Link>
         
         {/* Navigation Links */}
