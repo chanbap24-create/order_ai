@@ -570,8 +570,8 @@ export default function Home() {
                   run();
                 }
               }}
-              onKeyPress={(e) => {
-                // 모바일 폴백
+              onKeyUp={(e) => {
+                // 모바일 완료 버튼 폴백
                 if (e.key === 'Enter' && !loading) {
                   e.preventDefault();
                   run();
@@ -675,16 +675,16 @@ export default function Home() {
           style={{
             padding: "10px 20px",
             borderRadius: 10,
-            border: hasClipboard ? "3px solid #FF6B35" : "1px solid #ddd",
+            border: hasClipboard ? "4px solid #FF6B35" : "2px solid #ddd",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : hasClipboard ? "#FFE5D9" : "#fff",
-            color: hasClipboard ? "#FF6B35" : "#000",
+            background: loading ? "#f5f5f5" : hasClipboard ? "#FF6B35" : "#fff",
+            color: hasClipboard ? "#fff" : "#000",
             fontWeight: hasClipboard ? 700 : 600,
             fontSize: 16,
             marginLeft: "auto",
-            boxShadow: hasClipboard ? "0 0 0 4px rgba(255, 107, 53, 0.2), 0 4px 12px rgba(255, 107, 53, 0.3)" : "none",
-            transition: "all 0.2s ease",
-            transform: hasClipboard ? "scale(1.05)" : "scale(1)",
+            boxShadow: hasClipboard ? "0 0 20px rgba(255, 107, 53, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2)" : "none",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            transform: hasClipboard ? "scale(1.1)" : "scale(1)",
           }}
         >
           붙여넣기
