@@ -33,6 +33,25 @@ export default function Home() {
   // ✅ 복사 상태(버튼 텍스트)
   const [copied, setCopied] = useState(false);
 
+  // ✅ 클립보드 내용 있는지 체크
+  const [hasClipboard, setHasClipboard] = useState(false);
+
+  // ✅ 클립보드 체크
+  useEffect(() => {
+    const checkClipboard = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        setHasClipboard(!!text && text.length > 0);
+      } catch {
+        setHasClipboard(false);
+      }
+    };
+    checkClipboard();
+    // 3초마다 체크
+    const interval = setInterval(checkClipboard, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   // ✅ 전체 JSON 토글
   const [showJson, setShowJson] = useState(false);
 
@@ -341,7 +360,7 @@ export default function Home() {
 
     try {
       await navigator.clipboard.writeText(msg);
-      alert("복사 완료!\n\n" + msg);
+      // alert 제거 - 초록불만으로 충분
     } catch {
       // fallback
       const ta = document.createElement("textarea");
@@ -350,7 +369,7 @@ export default function Home() {
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      alert("복사 완료!\n\n" + msg);
+      // alert 제거
     }
 
     setCopied(true);
@@ -666,6 +685,7 @@ export default function Home() {
               const clipText = await navigator.clipboard.readText();
               if (clipText) {
                 setText(clipText);
+                setHasClipboard(false); // 붙여넣기 후 이펙트 제거
               }
             } catch (err) {
               alert("클립보드 접근 권한이 필요합니다.");
@@ -675,12 +695,14 @@ export default function Home() {
           style={{
             padding: "10px 20px",
             borderRadius: 10,
-            border: "1px solid #ddd",
+            border: hasClipboard ? "2px solid #FF6B35" : "1px solid #ddd",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : "#fff",
+            background: loading ? "#f5f5f5" : hasClipboard ? "#FFF5F0" : "#fff",
             fontWeight: 600,
             fontSize: 16,
             marginLeft: "auto",
+            boxShadow: hasClipboard ? "0 0 0 3px rgba(255, 107, 53, 0.1)" : "none",
+            transition: "all 0.2s ease",
           }}
           title="클립보드에서 붙여넣기"
         >
