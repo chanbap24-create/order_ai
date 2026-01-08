@@ -539,13 +539,13 @@ export default function Home() {
               fontWeight: 600,
               color: "#666"
             }}>
-              거래처 (선택사항 - 비워두면 첫줄을 거래처로 인식)
+              거래처
             </label>
             <input
               type="text"
               value={clientInput}
               onChange={(e) => setClientInput(e.target.value)}
-              placeholder="예: 리델"
+              placeholder="거래처를 입력하세요"
               style={{
                 width: "100%",
                 padding: 12,
