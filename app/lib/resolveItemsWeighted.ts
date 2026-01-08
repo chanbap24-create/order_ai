@@ -11,6 +11,7 @@ import { db } from "@/app/lib/db";
 import { applyItemSynonym } from "@/app/lib/itemsynonyms";
 import { calculateWeightedScore } from "@/app/lib/weightedScoring";
 import { searchMasterSheet } from "@/app/lib/masterMatcher";
+import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 
 /* ================= 정규화 함수 ================= */
 
@@ -489,7 +490,6 @@ export function resolveItemsByClientWeighted(
     const second = scored[1];
 
     // ✅ 중앙 설정에서 임계값 가져오기
-    const { ITEM_MATCH_CONFIG } = await import('./itemMatchConfig');
     const config = ITEM_MATCH_CONFIG.autoResolve;
 
     // 자동확정 조건
