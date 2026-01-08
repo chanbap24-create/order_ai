@@ -36,7 +36,9 @@ export function loadMasterSheet(): MasterItem[] {
   }
 
   try {
-    const wb = XLSX.readFile(xlsxPath);
+    // 파일을 buffer로 읽기
+    const buffer = fs.readFileSync(xlsxPath);
+    const wb = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = wb.SheetNames.find(
       (name) => name.toLowerCase() === 'english'
     );
