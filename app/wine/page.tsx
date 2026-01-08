@@ -12,6 +12,9 @@ export default function Home() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  // ✅ 탭 상태
+  const [activeTab, setActiveTab] = useState<"order" | "learning">("order");
+
   // ✅ 거래처 선택(동점/애매) UI용
   const [clientCandidates, setClientCandidates] = useState<any[] | null>(null);
   const [pendingOrderText, setPendingOrderText] = useState<string>("");
@@ -514,24 +517,59 @@ export default function Home() {
       }}
     >
       {/* ===== Header ===== */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div style={{ fontSize: 22, fontWeight: 800 }}>Cave De Vin</div>
+        
+        {/* ===== 탭 메뉴 ===== */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setActiveTab("order")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              backgroundColor: activeTab === "order" ? "#FF6B35" : "transparent",
+              color: activeTab === "order" ? "#fff" : "#666",
+              fontWeight: activeTab === "order" ? 600 : 400,
+              cursor: "pointer",
+            }}
+          >
+            발주 입력
+          </button>
+          <button
+            onClick={() => setActiveTab("learning")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              backgroundColor: activeTab === "learning" ? "#FF6B35" : "transparent",
+              color: activeTab === "learning" ? "#fff" : "#666",
+              fontWeight: activeTab === "learning" ? 600 : 400,
+              cursor: "pointer",
+            }}
+          >
+            학습 관리
+          </button>
+        </div>
       </div>
 
-      {/* ===== Input ===== */}
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={10}
-        style={{
-          width: "100%",
-          marginTop: 12,
-          padding: 12,
-          borderRadius: 12,
-          border: "1px solid #ddd",
-          ...monoStyle,
-        }}
-      />
+      {/* ===== 발주 입력 탭 ===== */}
+      {activeTab === "order" && (
+        <>
+          {/* ===== Input ===== */}
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={10}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 12,
+              border: "1px solid #ddd",
+              ...monoStyle,
+            }}
+          />
 
       {/* ===== Controls (입력창 아래로 이동) ===== */}
       <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
@@ -1275,9 +1313,20 @@ export default function Home() {
         </div>
       )}
 
-      {/* =========================
-          학습된 거래처 목록
-      ========================= */}
+        </>
+      )}
+
+      {/* ===== 학습 관리 탭 ===== */}
+      {activeTab === "learning" && (
+        <>
+          {/* =========================
+              품목 학습
+          ========================= */}
+          {/* 품목 학습 입력은 발주 입력 탭에서만 표시되므로 여기서는 제외 */}
+
+          {/* =========================
+              학습된 거래처 목록
+          ========================= */}
       <div style={{ marginTop: 16 }}>
         <button
           onClick={() => setShowLearnedClients((v) => !v)}
@@ -1339,6 +1388,8 @@ export default function Home() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
