@@ -502,6 +502,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
   try {
     const body = await req.json().catch(() => ({}));
     const forceResolve = Boolean(body?.force_resolve);
+    const pageType = body?.type || "wine"; // 기본값 wine
 
     // ✅ 0) 전체 메시지 전처리 먼저
     const pre0 = preprocessMessage(body?.message ?? "");
@@ -579,33 +580,42 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0))
         .slice(0, 3);
 
-      // 🆕 신규 품목 검색: 기존 매칭 점수가 낮으면 English 시트에서 검색
-      const bestScore = candidates.length > 0 ? candidates[0]?.score ?? 0 : 0;
-      
-      if (bestScore < 0.5) {
-        // 신규 품목 검색 시도
-        const newItemCandidates = searchNewItem(clientCode, x.item_name || '', bestScore);
+      // 🆕 신규 품목 검색: Wine 페이지에서만 English 시트 검색
+      if (pageType === "wine") {
+        const bestScore = candidates.length > 0 ? candidates[0]?.score ?? 0 : 0;
+        const inputName = x.name || '';
         
-        if (newItemCandidates && newItemCandidates.length > 0) {
-          // English 시트 후보를 suggestions로 사용
-          suggestions = newItemCandidates.slice(0, 5).map((c) => ({
-            item_no: c.itemNo,
-            item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
-            score: c.score,
-            source: 'master_sheet', // 🆕 출처 표시
-            _debug: c._debug,
-          }));
+        if (bestScore < 0.5 && inputName) {
+          console.log(`[신규품목] 검색 시도: "${inputName}", bestScore=${bestScore.toFixed(3)}`);
+          
+          // 신규 품목 검색 시도
+          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore);
+          
+          if (newItemCandidates && newItemCandidates.length > 0) {
+            console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
+            
+            // English 시트 후보를 suggestions로 사용
+            suggestions = newItemCandidates.slice(0, 5).map((c) => ({
+              item_no: c.itemNo,
+              item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
+              score: c.score,
+              source: 'master_sheet', // 🆕 출처 표시
+              _debug: c._debug,
+            }));
 
-          // 신규 품목 플래그 추가
-          return {
-            ...x,
-            suggestions,
-            is_new_item: true, // 🆕 UI에서 신규 품목으로 표시
-            new_item_info: {
-              message: '신규 품목입니다. English 시트에서 검색한 결과입니다.',
-              source: 'order-ai.xlsx (English)',
-            },
-          };
+            // 신규 품목 플래그 추가
+            return {
+              ...x,
+              suggestions,
+              is_new_item: true, // 🆕 UI에서 신규 품목으로 표시
+              new_item_info: {
+                message: '신규 품목입니다. English 시트에서 검색한 결과입니다.',
+                source: 'order-ai.xlsx (English)',
+              },
+            };
+          } else {
+            console.log(`[신규품목] English 시트 결과 없음`);
+          }
         }
       }
 

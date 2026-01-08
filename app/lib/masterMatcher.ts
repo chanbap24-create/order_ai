@@ -149,8 +149,8 @@ export function searchMasterSheet(
     // 최종 점수: 영문/한글 중 높은 점수 사용
     const score = Math.max(englishScore, koreanScore);
 
-    // 최소 점수 0.25 이상만 후보로 간주 (낮춤)
-    if (score < 0.25) {
+    // 최소 점수 0.15 이상만 후보로 간주 (더 낮춤 - 신규 품목 검색용)
+    if (score < 0.15) {
       continue;
     }
 
