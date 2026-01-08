@@ -585,18 +585,18 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const itemsWithSuggestions = resolvedItems.map((x: any) => {
       if (x?.resolved) return x;
 
-      // candidates가 있으면 상위 3개를 suggestions로 노출
+      // candidates가 있으면 정렬 (아직 개수 제한 안 함)
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
-
-      // 혹시 정렬이 보장 안 되면 score 기준으로 정렬
-      let suggestions = candidates
+      const sortedCandidates = candidates
         .slice()
-        .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0))
-        .slice(0, 3);
+        .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0));
+
+      // 기본 suggestions 초기화
+      let suggestions = sortedCandidates.slice(0, 4); // ✅ 기본 4개로 변경
 
       // 🆕 신규 품목 검색: Wine 페이지에서만 English 시트 검색
       if (pageType === "wine") {
-        const bestScore = candidates.length > 0 ? candidates[0]?.score ?? 0 : 0;
+        const bestScore = sortedCandidates.length > 0 ? sortedCandidates[0]?.score ?? 0 : 0;
         const inputName = x.name || '';
         
         // 신규 품목 검색 조건: bestScore < 0.7 (부분 품목명 대응)
@@ -610,40 +610,48 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
             
             // ✅ 기존품목 1위 (신규품목 플래그 없음)
-            const existingTop = suggestions.length > 0 ? [suggestions[0]] : [];
+            const existingTop = sortedCandidates.length > 0 ? [sortedCandidates[0]] : [];
             
             // ✅ 신규품목 상위 3개 (신규품목 플래그 있음)
             const newItemSuggestions = newItemCandidates.slice(0, 3).map((c) => ({
               item_no: c.itemNo,
               item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
               score: c.score,
-              source: 'master_sheet', // 🆕 출처 표시
-              is_new_item: true, // 🆕 신규품목 플래그 (개별 항목에 설정)
+              source: 'master_sheet',
+              is_new_item: true,
               _debug: c._debug,
             }));
             
-            // 기존 1위 + 신규 3개 합치기
-            suggestions = [...existingTop, ...newItemSuggestions];
+            // ✅ 기존 1위 + 신규 3개 합치기
+            let combined = [...existingTop, ...newItemSuggestions];
             
-            console.log(`[신규품목] 최종 후보: 기존 ${existingTop.length}개 + 신규 ${newItemSuggestions.length}개 = 총 ${suggestions.length}개`);
+            // ✅ 신규품목이 3개 미만이면 기존품목으로 채우기 (총 4개 보장)
+            if (combined.length < 4) {
+              const remaining = sortedCandidates.slice(1, 4 - newItemSuggestions.length + 1);
+              combined = [...existingTop, ...newItemSuggestions, ...remaining];
+            }
+            
+            // 최종적으로 4개로 제한
+            suggestions = combined.slice(0, 4);
+            
+            console.log(`[신규품목] 최종 후보: 기존 ${existingTop.length}개 + 신규 ${newItemSuggestions.length}개 + 추가 기존 ${suggestions.length - existingTop.length - newItemSuggestions.length}개 = 총 ${suggestions.length}개`);
             console.log(`[신규품목] 후보 목록:`, suggestions.map(s => ({ 
               no: s.item_no, 
               score: s.score, 
               isNew: s.is_new_item || false 
             })));
 
-            // ❌ 전체 항목에 is_new_item 플래그 제거 (개별 후보에만 설정)
             return {
               ...x,
               suggestions,
-              has_new_items: true, // 신규품목 포함 여부만 표시
+              has_new_items: true,
               new_item_info: {
                 message: '신규 품목이 포함되어 있습니다.',
                 source: 'order-ai.xlsx (English)',
               },
             };
           } else {
-            console.log(`[신규품목] English 시트 결과 없음`);
+            console.log(`[신규품목] English 시트 결과 없음 - 기존품목 4개 표시`);
           }
         }
       }

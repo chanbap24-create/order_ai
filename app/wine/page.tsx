@@ -529,13 +529,13 @@ export default function Home() {
   };
 
   // ✅ 후보는 최대 3개만 보여주기
-  function getTop3Suggestions(it: any) {
+  function getTop4Suggestions(it: any) {
     const arr = Array.isArray(it?.suggestions)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    return arr.slice(0, 3);
+    return arr.slice(0, 4);
   }
 
   const needsClientPick = data?.status === "needs_review_client";
@@ -996,7 +996,7 @@ export default function Home() {
                       ? `${it.item_no} / ${it.item_name} / ${it.qty}병`
                       : `확인필요 / "${it.name}" / ${it.qty}병`;
 
-                    const top3 = getTop3Suggestions(it);
+                    const top4 = getTop4Suggestions(it);
 
                     return (
                       <div
@@ -1038,7 +1038,7 @@ export default function Home() {
                         </div>
 
                         {/* 후보 3개 선택 버튼 */}
-                        {top3.length > 0 && (
+                        {top4.length > 0 && (
                           <div
                             style={{
                               marginLeft: 80,
@@ -1053,7 +1053,7 @@ export default function Home() {
                             </div>
 
                             {/* 신규 품목 가격 입력 - 신규품목이 있을 때만 표시 */}
-                            {top3.some((s: any) => s.is_new_item) && (
+                            {top4.some((s: any) => s.is_new_item) && (
                               <div style={{ marginTop: 12, marginBottom: 12, padding: "12px", background: "#fff8f0", borderRadius: 8, border: "1px solid #ffd699" }}>
                                 <div style={{ fontSize: 13, color: "#ff6b35", marginBottom: 8, fontWeight: 600 }}>
                                   ⚠️ 신규 품목이 포함되어 있습니다. 선택 시 공급가를 입력해주세요
@@ -1078,7 +1078,7 @@ export default function Home() {
                               </div>
                             )}
 
-                            {top3.map((s: any, sidx: number) => {
+                            {top4.map((s: any, sidx: number) => {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
                               const isNewItem = !!s.is_new_item; // ✅ 개별 후보의 플래그 확인
@@ -1178,7 +1178,7 @@ export default function Home() {
                           </div>
                         )}
 
-                        {top3.length === 0 && (
+                        {top4.length === 0 && (
                           <div
                             style={{
                               marginLeft: 80,
