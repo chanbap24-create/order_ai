@@ -95,9 +95,9 @@ export default function Home() {
                   <h2 className="heading-lg" style={{ 
                     marginBottom: 'var(--space-3)',
                     fontWeight: 700,
-                    fontSize: '1.5rem'
+                    fontSize: '1.75rem'
                   }}>
-                    와인 발주
+                    Wine Order
                   </h2>
                   <p style={{
                     fontSize: 'var(--text-base)',
@@ -150,9 +150,9 @@ export default function Home() {
                   <h2 className="heading-lg" style={{ 
                     marginBottom: 'var(--space-3)',
                     fontWeight: 700,
-                    fontSize: '1.5rem'
+                    fontSize: '1.75rem'
                   }}>
-                    와인잔 발주
+                    Glass Order
                   </h2>
                   <p style={{
                     fontSize: 'var(--text-base)',
@@ -185,8 +185,8 @@ export default function Home() {
               alignItems: 'center'
             }}>
               <div style={{
-                fontSize: '2.5rem',
-                fontWeight: 700,
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
                 color: 'var(--color-primary)',
                 marginBottom: 'var(--space-3)'
               }}>
@@ -210,8 +210,8 @@ export default function Home() {
               alignItems: 'center'
             }}>
               <div style={{
-                fontSize: '2.5rem',
-                fontWeight: 700,
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
                 color: 'var(--color-primary)',
                 marginBottom: 'var(--space-3)'
               }}>
@@ -235,8 +235,8 @@ export default function Home() {
               alignItems: 'center'
             }}>
               <div style={{
-                fontSize: '2.5rem',
-                fontWeight: 700,
+                fontSize: 'var(--text-lg)',
+                fontWeight: 600,
                 color: 'var(--color-primary)',
                 marginBottom: 'var(--space-3)'
               }}>
