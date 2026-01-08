@@ -488,6 +488,10 @@ export function resolveItemsByClientWeighted(
     const top = scored[0];
     const second = scored[1];
 
+    // ✅ 중앙 설정에서 임계값 가져오기
+    const { ITEM_MATCH_CONFIG } = await import('./itemMatchConfig');
+    const config = ITEM_MATCH_CONFIG.autoResolve;
+
     // 자동확정 조건
     let resolved =
       !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
@@ -499,14 +503,16 @@ export function resolveItemsByClientWeighted(
       
       // learned가 있는 경우 (기존 로직 유지)
       if (learned?.kind === "contains_weak") {
-        const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.88 && gap >= 0.30);
+        const allowAuto = (top.score >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
+                          (top.score >= 0.88 && gap >= 0.30);
         if (!allowAuto) {
           resolved = false;
         }
       } 
-      // learned가 없는 경우: 0.70 이상이면 자동 확정
+      // learned가 없는 경우: 중앙 설정 사용
       else if (!learned) {
-        const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.70 && gap >= 0.30);
+        const allowAuto = (top.score >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
+                          (top.score >= config.minScore && gap >= config.minGap);
         if (!allowAuto) {
           resolved = false;
         }

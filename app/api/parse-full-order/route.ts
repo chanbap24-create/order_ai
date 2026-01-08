@@ -591,29 +591,35 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         .slice()
         .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0));
 
+      // ✅ 중앙 설정 가져오기
+      const { ITEM_MATCH_CONFIG, decideSuggestionComposition } = require('@/app/lib/itemMatchConfig');
+      const config = ITEM_MATCH_CONFIG;
+
       // 기본 suggestions 초기화
-      let suggestions = sortedCandidates.slice(0, 4); // ✅ 기본 4개로 변경
+      let suggestions = sortedCandidates.slice(0, config.suggestions.total);
 
       // 🆕 신규 품목 검색: Wine 페이지에서만 English 시트 검색
       if (pageType === "wine") {
         const bestScore = sortedCandidates.length > 0 ? sortedCandidates[0]?.score ?? 0 : 0;
         const inputName = x.name || '';
         
-        // 신규 품목 검색 조건: bestScore < 0.7 (부분 품목명 대응)
-        if (bestScore < 0.7 && inputName) {
+        // ✅ 중앙 설정에서 임계값 가져오기
+        if (bestScore < config.newItemSearch.threshold && inputName) {
           console.log(`[신규품목] 검색 시도: "${inputName}", bestScore=${bestScore.toFixed(3)}`);
           
-          // 신규 품목 검색 시도 (threshold = 0.7)
-          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore, 0.7);
+          // 신규 품목 검색 시도
+          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore, config.newItemSearch.threshold);
           
           if (newItemCandidates && newItemCandidates.length > 0) {
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
             
-            // ✅ 기존품목 1위 (신규품목 플래그 없음)
-            const existingTop = sortedCandidates.length > 0 ? [sortedCandidates[0]] : [];
+            // ✅ GAP 기반 후보 조합 결정
+            const composition = decideSuggestionComposition(sortedCandidates, newItemCandidates);
             
-            // ✅ 신규품목 상위 3개 (신규품목 플래그 있음)
-            const newItemSuggestions = newItemCandidates.slice(0, 3).map((c) => ({
+            console.log(`[후보조합] ${composition.type}: 기존 ${composition.existing}개 + 신규 ${composition.newItems}개 (${composition.reason})`);
+            
+            // 신규품목 매핑 (신규품목 플래그 포함)
+            const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => ({
               item_no: c.itemNo,
               item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
               score: c.score,
@@ -622,43 +628,36 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               _debug: c._debug,
             }));
             
-            // ✅ 기존 1위 + 신규 3개 합치기
-            let combined = [...existingTop, ...newItemSuggestions];
+            // 조합에 따라 후보 구성
+            suggestions = [
+              ...sortedCandidates.slice(0, composition.existing),
+              ...newItemSuggestions
+            ].slice(0, config.suggestions.total);
             
-            // ✅ 신규품목이 3개 미만이면 기존품목으로 채우기 (총 4개 보장)
-            if (combined.length < 4) {
-              const remaining = sortedCandidates.slice(1, 4 - newItemSuggestions.length + 1);
-              combined = [...existingTop, ...newItemSuggestions, ...remaining];
-            }
-            
-            // 최종적으로 4개로 제한
-            suggestions = combined.slice(0, 4);
-            
-            console.log(`[신규품목] 최종 후보: 기존 ${existingTop.length}개 + 신규 ${newItemSuggestions.length}개 + 추가 기존 ${suggestions.length - existingTop.length - newItemSuggestions.length}개 = 총 ${suggestions.length}개`);
-            console.log(`[신규품목] 후보 목록:`, suggestions.map(s => ({ 
+            console.log(`[신규품목] 최종 후보:`, suggestions.map(s => ({ 
               no: s.item_no, 
-              score: s.score, 
+              score: s.score?.toFixed(3), 
               isNew: s.is_new_item || false 
             })));
 
             return {
               ...x,
               suggestions,
-              has_new_items: true,
-              new_item_info: {
+              has_new_items: composition.newItems > 0,
+              new_item_info: composition.newItems > 0 ? {
                 message: '신규 품목이 포함되어 있습니다.',
                 source: 'order-ai.xlsx (English)',
-              },
+              } : undefined,
             };
           } else {
-            console.log(`[신규품목] English 시트 결과 없음 - 기존품목 4개 표시`);
+            console.log(`[신규품목] English 시트 결과 없음 - 기존품목 ${config.suggestions.total}개 표시`);
           }
         }
       }
 
       return {
         ...x,
-        suggestions, // ✅ UI는 이걸로 3개 선택 띄우면 됨
+        suggestions,
       };
     });
 
