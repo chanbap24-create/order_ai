@@ -36,7 +36,21 @@ function preprocessMessage(text: string) {
 
   // ✅ 슬래시/구분자: 한 줄 여러 품목을 줄로 쪼개기
   s = s.replace(/\s*\/\s*/g, "\n");
-  s = s.replace(/\s*,\s*/g, "\n"); // 콤마도 혹시 몰라 처리
+  // ✅ 쉼표 처리: 영문명이 포함된 경우 쉼표를 유지
+  // 예: "Christophe Pitois, Grand Cru" → 쉼표 유지
+  // 예: "샤또마르고, 루이로드레" → 쉼표를 줄바꿈으로 변경
+  const lines = s.split('\n');
+  s = lines.map(line => {
+    // 영문명이 포함된 경우 쉼표를 유지 (3글자 이상 영어 단어 2개 이상 + 쉼표)
+    const hasEnglishWords = (line.match(/[A-Za-z]{3,}/g) || []).length >= 2;
+    const hasComma = line.includes(',');
+    
+    if (hasEnglishWords && hasComma) {
+      return line; // 영문명이 있으면 쉼표 유지
+    } else {
+      return line.replace(/\s*,\s*/g, "\n"); // 쉼표를 줄바꿈으로
+    }
+  }).join('\n');
 
   // ✅ 주문 가능 문구/요청문 제거 (숫자 뒤에 붙어서 수량 인식 방해)
   s = s.replace(

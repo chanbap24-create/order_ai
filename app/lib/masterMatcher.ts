@@ -114,6 +114,64 @@ function characterSimilarity(str1: string, str2: string): number {
 }
 
 /**
+ * 핵심 단어 추출 (3글자 이상의 의미 있는 단어만)
+ */
+function extractKeywords(str: string): Set<string> {
+  const words = new Set<string>();
+  
+  // 영문 단어 추출 (3글자 이상) - 하이픈으로 연결된 단어도 분리
+  const cleanStr = str.toLowerCase().replace(/-/g, ' '); // 하이픈을 공백으로 변환
+  const englishWords = cleanStr.match(/[a-z]{3,}/g) || [];
+  englishWords.forEach(w => words.add(w));
+  
+  // 한글 단어 추출 (2글자 이상)
+  const normalized = normalize(str);
+  const koreanWords = normalized.match(/[가-힣]{2,}/g) || [];
+  koreanWords.forEach(w => words.add(w));
+  
+  return words;
+}
+
+/**
+ * 핵심 단어 매칭 점수 (부분 품목명 대응)
+ * 예: "Grand Cru Le Mesnil" -> ["grand", "cru", "mesnil"]
+ * 목표 품목에 이 단어들이 모두 있으면 높은 점수
+ */
+function keywordMatchScore(inputStr: string, targetStr: string): number {
+  const inputKeywords = extractKeywords(inputStr);
+  const targetKeywords = extractKeywords(targetStr);
+  
+  if (inputKeywords.size === 0) return 0;
+  
+  let matchCount = 0;
+  for (const kw of inputKeywords) {
+    // 정확 매칭
+    if (targetKeywords.has(kw)) {
+      matchCount++;
+      continue;
+    }
+    
+    // 부분 매칭 (하나의 단어가 다른 단어에 포함)
+    for (const targetKw of targetKeywords) {
+      if (targetKw.includes(kw) || kw.includes(targetKw)) {
+        matchCount += 0.8; // 부분 매칭은 0.8점 (이전 0.7)
+        break;
+      }
+    }
+  }
+  
+  // 점수를 0-1 범위로 정규화하되, 매칭 비율에 따라 보너스 부여
+  const ratio = matchCount / inputKeywords.size;
+  
+  // 3개 이상 키워드 매칭 시 보너스
+  if (matchCount >= 3) {
+    return Math.min(1.0, ratio * 1.3); // 30% 보너스
+  }
+  
+  return ratio;
+}
+
+/**
  * English 시트에서 입력 품목명과 유사한 품목 검색
  * @param inputName - 사용자가 입력한 품목명 (예: "샤또마르고")
  * @param topN - 반환할 상위 후보 개수 (기본 5개)
@@ -154,11 +212,16 @@ export function searchMasterSheet(
     const englishContains = koreanNorm.includes(inputNorm) || inputNorm.includes(koreanNorm) ? 0.3 : 0;
     const koreanContains = englishNorm.includes(inputNorm) || inputNorm.includes(englishNorm) ? 0.3 : 0;
 
-    // 영문명 최종 점수: bigram(60%) + character(30%) + contains(10%)
-    const englishScore = englishBigram * 0.6 + englishChar * 0.3 + englishContains * 0.1;
+    // 4) 핵심 단어 매칭 (부분 품목명 대응)
+    const englishKeywords = keywordMatchScore(inputName, item.englishName);
+    const koreanKeywords = keywordMatchScore(inputName, item.koreanName);
+    const maxKeywords = Math.max(englishKeywords, koreanKeywords);
+
+    // 영문명 최종 점수: bigram(35%) + character(20%) + keywords(40%) + contains(5%)
+    const englishScore = englishBigram * 0.35 + englishChar * 0.20 + englishKeywords * 0.40 + englishContains * 0.05;
     
-    // 한글명 최종 점수: bigram(60%) + character(30%) + contains(10%)
-    const koreanScore = koreanBigram * 0.6 + koreanChar * 0.3 + koreanContains * 0.1;
+    // 한글명 최종 점수: bigram(35%) + character(20%) + keywords(40%) + contains(5%)
+    const koreanScore = koreanBigram * 0.35 + koreanChar * 0.20 + koreanKeywords * 0.40 + koreanContains * 0.05;
 
     // 최종 점수: 영문/한글 중 높은 점수 사용
     const score = Math.max(englishScore, koreanScore);

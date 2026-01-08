@@ -19,10 +19,33 @@ export function parseItemsFromMessage(message: string) {
     .replace(/(19\d{2}|20\d{2})(?=[가-힣A-Za-z])/g, "$1 ");
 
   // 1) 기본 분해
-  const parts0 = text2
-    .split(/\n|\/|,|；|;/g)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // ✅ 쉼표 처리: 영문 생산자명 패턴이 있으면 쉼표를 무시
+  // 예: "Christophe Pitois, Grand Cru..." → 쉼표로 분리 안 함
+  // 예: "샤또마르고, 루이로드레" → 쉼표로 분리함
+  const lines = text2.split(/\n/);
+  const parts0: string[] = [];
+  
+  for (const line of lines) {
+    // 영문 생산자명 패턴 감지: "단어, 대문자로 시작하는 단어" 또는 "단어 단어, 대문자"
+    // 예: "Christophe Pitois, Grand Cru" → 쉼표 유지
+    // 예: "샤또마르고, 루이로드레" → 쉼표로 분리
+    const hasProducerPattern = /[A-Z][a-z]+\s+[A-Z][a-z]+,\s+[A-Z]/.test(line) || 
+                               /[A-Z][a-z]+,\s+[A-Z]/.test(line);
+    
+    console.log(`[DEBUG-PARSE] Line: "${line}" | hasProducerPattern: ${hasProducerPattern}`);
+    
+    if (hasProducerPattern) {
+      // 영문 생산자명이 있으면 쉼표 무시하고 슬래시/세미콜론만 분리
+      const subParts = line.split(/\/|；|;/).map(s => s.trim()).filter(Boolean);
+      console.log(`[DEBUG-PARSE] Keeping comma, subParts:`, subParts);
+      parts0.push(...subParts);
+    } else {
+      // 일반 케이스: 쉼표도 분리
+      const subParts = line.split(/\/|,|；|;/).map(s => s.trim()).filter(Boolean);
+      console.log(`[DEBUG-PARSE] Splitting comma, subParts:`, subParts);
+      parts0.push(...subParts);
+    }
+  }
 
   // 2) ✅ 연도 토큰이 전처리로 찢어진 케이스 병합
   // - "2024" + "팝콘 소비뇽블랑 8병" -> "2024 팝콘 소비뇽블랑 8병"

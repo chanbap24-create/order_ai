@@ -88,6 +88,29 @@ export function hasVintageHint(text: string): boolean {
 /* ================= 점수 계산 ================= */
 
 function scoreItem(q: string, name: string) {
+  // 영문 단어 매칭 우선 (3글자 이상 영어 단어가 있으면)
+  const qEnglishWords = (q.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
+  const nameEnglishWords = (name.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
+  
+  if (qEnglishWords.length >= 2 && nameEnglishWords.length >= 2) {
+    const qSet = new Set(qEnglishWords);
+    const nameSet = new Set(nameEnglishWords);
+    const intersection = [...qSet].filter(w => nameSet.has(w));
+    
+    // 3개 이상 매칭되면 높은 점수
+    if (intersection.length >= 3) {
+      const recall = intersection.length / qSet.size; // 입력 단어 중 매칭 비율
+      const precision = intersection.length / nameSet.size; // 대상 단어 중 매칭 비율
+      return Math.min(0.95, (recall + precision) / 2 + 0.2);
+    }
+    // 2개 이상 매칭
+    if (intersection.length >= 2) {
+      const recall = intersection.length / qSet.size;
+      return Math.min(0.85, recall + 0.3);
+    }
+  }
+  
+  // 기존 한글 정규화 로직
   const a = norm(q);
   const b = norm(name);
   if (!a || !b) return 0;
@@ -346,8 +369,10 @@ export function resolveItemsByClientWeighted(
             LIMIT 20
           `).all(clientCode, pattern) as any[];
           for (const r of rows) {
-            if (r.item_no && r.item_name) {
-              allCandidates.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+            if (r.item_no) {
+              // 거래처 이력이 있으면 그 한글명 사용, 없으면 영문명 사용
+              const displayName = r.item_name || r.name_en;
+              allCandidates.set(String(r.item_no), { item_no: String(r.item_no), item_name: displayName });
             }
           }
         }
