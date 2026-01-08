@@ -609,14 +609,21 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           if (newItemCandidates && newItemCandidates.length > 0) {
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
             
-            // English 시트 후보를 suggestions로 사용
-            suggestions = newItemCandidates.slice(0, 5).map((c) => ({
+            // ✅ 기존품목 1위 + 신규품목 상위 3개 = 총 4개
+            const existingTop = suggestions.length > 0 ? [suggestions[0]] : [];
+            const newItemSuggestions = newItemCandidates.slice(0, 3).map((c) => ({
               item_no: c.itemNo,
               item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
               score: c.score,
               source: 'master_sheet', // 🆕 출처 표시
+              is_new_item: true, // 🆕 신규품목 플래그
               _debug: c._debug,
             }));
+            
+            // 기존 1위 + 신규 3개 합치기
+            suggestions = [...existingTop, ...newItemSuggestions];
+            
+            console.log(`[신규품목] 최종 후보: 기존 ${existingTop.length}개 + 신규 ${newItemSuggestions.length}개 = 총 ${suggestions.length}개`);
 
             // 신규 품목 플래그 추가
             return {

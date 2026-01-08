@@ -539,18 +539,27 @@ export function resolveItemsByClientWeighted(
     // ✅ 0.70 미만: 기존품목 1위 + 신규품목 상위 3개 표시
     const suggestions = top && top.score < 0.70 
       ? (() => {
-          // 기존품목 1위
-          const existingTop = scored.slice(0, 1).map((c) => ({
-            item_no: c.item_no,
-            item_name: c.item_name,
-            score: Number(c.score.toFixed(3)),
-          }));
+          // 기존품목 1위 (반드시 포함)
+          const existingTop = top ? [{
+            item_no: top.item_no,
+            item_name: top.item_name,
+            score: Number(top.score.toFixed(3)),
+          }] : [];
 
           // 신규품목 검색 (English 시트)
           const newItems = searchNewItemFromMaster(q);
           
           // 기존 1위 + 신규 상위 3개 = 총 4개
-          return [...existingTop, ...newItems.slice(0, 3)];
+          const combined = [...existingTop, ...newItems.slice(0, 3)];
+          
+          console.log('[DEBUG] 0.70 미만 후보:', {
+            existingTop: existingTop.length,
+            newItems: newItems.length,
+            combined: combined.length,
+            items: combined.map(c => ({ no: c.item_no, score: c.score }))
+          });
+          
+          return combined;
         })()
       : scored.slice(0, Math.max(3, topN)).map((c) => ({
           item_no: c.item_no,
