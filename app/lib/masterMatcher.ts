@@ -50,14 +50,53 @@ export interface MasterMatchCandidate {
 }
 
 /**
- * 문자열 정규화 (소문자, 공백 제거, 특수문자 제거)
+ * 문자열 정규화 (소문자, 공백 완전 제거, 특수문자 제거)
+ * 띄어쓰기 차이를 무시하기 위해 공백을 완전히 제거합니다.
  */
 function normalize(str: string): string {
-  return str
+  let normalized = str
     .toLowerCase()
-    .replace(/[^\w\s가-힣]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[^\w가-힣]/g, '') // 공백 포함 모든 특수문자 제거
     .trim();
+
+  // 와인 관련 발음 변형 통일
+  normalized = normalized
+    .replace(/샤또/g, '샤토')
+    .replace(/쌔또/g, '샤토')
+    .replace(/샤도/g, '샤토')
+    .replace(/샤또/g, '샤토')
+    .replace(/샤뜨/g, '샤토')
+    .replace(/쁘띠/g, '프티')
+    .replace(/빠비용/g, '파비용')
+    .replace(/쌩떼밀리옹/g, '생테밀리옹')
+    .replace(/메독/g, '메도')
+    .replace(/뽀이약/g, '포이약')
+    .replace(/마르고/g, '마고')
+    .replace(/샤르도네이/g, '샤르도네')
+    .replace(/샤도네이/g, '샤르도네')
+    .replace(/샤도네/g, '샤르도네');
+
+  return normalized;
+}
+
+/**
+ * Character-level 유사도 계산 (공통 문자 비율)
+ * 띄어쓰기 차이에 강건한 추가 매칭 방식
+ */
+function characterSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1.0;
+  if (!str1 || !str2) return 0;
+
+  const chars1 = new Set(str1.split(''));
+  const chars2 = new Set(str2.split(''));
+  
+  let common = 0;
+  for (const ch of chars1) {
+    if (chars2.has(ch)) common++;
+  }
+  
+  const maxLen = Math.max(chars1.size, chars2.size);
+  return maxLen > 0 ? common / maxLen : 0;
 }
 
 /**
@@ -89,17 +128,29 @@ export function searchMasterSheet(
     const englishNorm = normalize(item.englishName);
     const koreanNorm = normalize(item.koreanName);
 
-    // 영문명 유사도
-    const englishScore = compareTwoStrings(inputNorm, englishNorm);
+    // 1) Bigram 유사도 (원래 알고리즘)
+    const englishBigram = compareTwoStrings(inputNorm, englishNorm);
+    const koreanBigram = compareTwoStrings(inputNorm, koreanNorm);
+
+    // 2) Character 유사도 (띄어쓰기에 강건)
+    const englishChar = characterSimilarity(inputNorm, englishNorm);
+    const koreanChar = characterSimilarity(inputNorm, koreanNorm);
+
+    // 3) Contains 체크 (부분 문자열)
+    const englishContains = koreanNorm.includes(inputNorm) || inputNorm.includes(koreanNorm) ? 0.3 : 0;
+    const koreanContains = englishNorm.includes(inputNorm) || inputNorm.includes(englishNorm) ? 0.3 : 0;
+
+    // 영문명 최종 점수: bigram(60%) + character(30%) + contains(10%)
+    const englishScore = englishBigram * 0.6 + englishChar * 0.3 + englishContains * 0.1;
     
-    // 한글명 유사도
-    const koreanScore = compareTwoStrings(inputNorm, koreanNorm);
+    // 한글명 최종 점수: bigram(60%) + character(30%) + contains(10%)
+    const koreanScore = koreanBigram * 0.6 + koreanChar * 0.3 + koreanContains * 0.1;
 
     // 최종 점수: 영문/한글 중 높은 점수 사용
     const score = Math.max(englishScore, koreanScore);
 
-    // 최소 점수 0.3 이상만 후보로 간주
-    if (score < 0.3) {
+    // 최소 점수 0.25 이상만 후보로 간주 (낮춤)
+    if (score < 0.25) {
       continue;
     }
 

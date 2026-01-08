@@ -35,6 +35,9 @@ export default function Home() {
   // ✅ 후보 선택 학습 저장 상태 (itemIndex별)
   const [savingPick, setSavingPick] = useState<Record<number, boolean>>({});
   const [savedPick, setSavedPick] = useState<Record<number, boolean>>({});
+  
+  // ✅ 신규 품목 가격 입력 (itemIndex별)
+  const [newItemPrices, setNewItemPrices] = useState<Record<number, string>>({});
 
   // ✅ 품목 결과/학습 입력 접기
   const [showItemsPanel, setShowItemsPanel] = useState(false);
@@ -408,13 +411,20 @@ export default function Home() {
   }
 
   // ✅ 선택 결과를 학습 테이블에 저장
-  async function learnSelectedAlias(itemIndex: number, s: any) {
+  async function learnSelectedAlias(itemIndex: number, s: any, supplyPrice?: string) {
     const it = (Array.isArray(data?.items) ? data.items : [])[itemIndex];
     const alias = String(it?.name || it?.raw || "").trim();
     const canonical = String(s?.item_no || "").trim(); // ✅ 품목코드로 저장
+    const isNewItem = !!it?.is_new_item;
 
     if (!alias || !canonical) {
       alert("학습에 필요한 값이 비어있습니다.");
+      return false;
+    }
+
+    // 신규 품목인 경우 가격 필수
+    if (isNewItem && !supplyPrice) {
+      alert("신규 품목은 공급가를 입력해주세요.");
       return false;
     }
 
@@ -422,21 +432,43 @@ export default function Home() {
     setSavedPick((p) => ({ ...p, [itemIndex]: false }));
 
     try {
-      const res = await fetch("/api/learn-item-alias", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alias, canonical }),
-      });
+      if (isNewItem && supplyPrice) {
+        // 신규 품목 저장
+        const res = await fetch("/api/learn-new-item", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientCode: data?.client?.client_code,
+            selectedItemNo: canonical,
+            selectedName: s?.item_name || "",
+            supplyPrice: parseInt(supplyPrice, 10),
+          }),
+        });
 
-      const json = await res.json().catch(() => null);
+        const json = await res.json().catch(() => null);
 
-      if (
-        !res.ok ||
-        json?.success === false ||
-        (typeof json?.saved === "number" && json.saved < 1)
-      ) {
-        alert(`학습 저장 실패:\n${alias} → ${canonical}\n${json?.error ?? ""}`);
-        return false;
+        if (!res.ok || json?.success === false) {
+          alert(`신규 품목 저장 실패:\n${alias} → ${canonical}\n${json?.error ?? ""}`);
+          return false;
+        }
+      } else {
+        // 기존 품목 별칭 학습
+        const res = await fetch("/api/learn-item-alias", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ alias, canonical }),
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (
+          !res.ok ||
+          json?.success === false ||
+          (typeof json?.saved === "number" && json.saved < 1)
+        ) {
+          alert(`학습 저장 실패:\n${alias} → ${canonical}\n${json?.error ?? ""}`);
+          return false;
+        }
       }
 
       // ✅ 학습 목록 갱신 + 열기
@@ -862,77 +894,123 @@ export default function Home() {
                             {top3.map((s: any, sidx: number) => {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
+                              const isNewItem = !!it.is_new_item;
 
                               return (
-                                <button
-                                  key={sidx}
-                                  disabled={saving}
-                                  style={{
-                                    textAlign: "left",
-                                    padding: "8px 10px",
-                                    borderRadius: 8,
-                                    border: "1px solid #ddd",
-                                    background: saving
-                                      ? "#f5f5f5"
-                                      : saved
-                                        ? "#e8fff1"
-                                        : "#fafafa",
-                                    cursor: saving
-                                      ? "not-allowed"
-                                      : "pointer",
-                                    fontSize: 13,
-                                    opacity: saving ? 0.7 : 1,
-                                  }}
-                                  onClick={async () => {
-                                    applySuggestionToResult(idx, s);
-                                    await learnSelectedAlias(idx, s);
-                                  }}
-                                >
-                                  <div
+                                <div key={sidx}>
+                                  <button
+                                    disabled={saving}
                                     style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "space-between",
-                                      gap: 10,
+                                      width: "100%",
+                                      textAlign: "left",
+                                      padding: "8px 10px",
+                                      borderRadius: 8,
+                                      border: "1px solid #ddd",
+                                      background: saving
+                                        ? "#f5f5f5"
+                                        : saved
+                                          ? "#e8fff1"
+                                          : "#fafafa",
+                                      cursor: saving
+                                        ? "not-allowed"
+                                        : "pointer",
+                                      fontSize: 13,
+                                      opacity: saving ? 0.7 : 1,
+                                    }}
+                                    onClick={async () => {
+                                      if (isNewItem && !newItemPrices[idx]) {
+                                        alert('신규 품목은 가격을 입력해주세요.');
+                                        return;
+                                      }
+                                      applySuggestionToResult(idx, s);
+                                      await learnSelectedAlias(idx, s, isNewItem ? newItemPrices[idx] : undefined);
                                     }}
                                   >
                                     <div
                                       style={{
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      <b>{s.item_no}</b> / {s.item_name}
-                                    </div>
-
-                                    <div
-                                      style={{
                                         display: "flex",
                                         alignItems: "center",
+                                        justifyContent: "space-between",
                                         gap: 10,
-                                        flexShrink: 0,
-                                        fontVariantNumeric:
-                                          "tabular-nums" as any,
                                       }}
                                     >
-                                      <span
+                                      <div
                                         style={{
-                                          color: saved ? "#0a7" : "#999",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis",
+                                          whiteSpace: "nowrap",
                                         }}
                                       >
-                                        {saving
-                                          ? "저장중..."
-                                          : saved
-                                            ? "저장됨 ✅"
-                                            : ""}
-                                      </span>
-                                      <span style={{ color: "#888" }}>
-                                        {Number(s.score || 0).toFixed(3)}
-                                      </span>
+                                        <b>{s.item_no}</b> / {s.item_name}
+                                        {isNewItem && (
+                                          <span style={{ 
+                                            marginLeft: 8, 
+                                            padding: "2px 6px",
+                                            background: "#ff6b35",
+                                            color: "white",
+                                            fontSize: 11,
+                                            borderRadius: 4,
+                                            fontWeight: 600
+                                          }}>
+                                            신규품목
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 10,
+                                          flexShrink: 0,
+                                          fontVariantNumeric:
+                                            "tabular-nums" as any,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            color: saved ? "#0a7" : "#999",
+                                          }}
+                                        >
+                                          {saving
+                                            ? "저장중..."
+                                            : saved
+                                              ? "저장됨 ✅"
+                                              : ""}
+                                        </span>
+                                        <span style={{ color: "#888" }}>
+                                          {Number(s.score || 0).toFixed(3)}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
-                                </button>
+                                  </button>
+                                  
+                                  {/* 신규 품목 가격 입력 */}
+                                  {isNewItem && sidx === 0 && (
+                                    <div style={{ marginTop: 8, padding: "8px 10px", background: "#fff8f0", borderRadius: 8, border: "1px solid #ffd699" }}>
+                                      <div style={{ fontSize: 12, color: "#ff6b35", marginBottom: 6, fontWeight: 600 }}>
+                                        ⚠️ 신규 품목입니다. 공급가를 입력해주세요 (English 시트에서 검색됨)
+                                      </div>
+                                      <input
+                                        type="number"
+                                        placeholder="공급가 입력 (예: 15000)"
+                                        value={newItemPrices[idx] || ''}
+                                        onChange={(e) => setNewItemPrices(prev => ({
+                                          ...prev,
+                                          [idx]: e.target.value
+                                        }))}
+                                        style={{
+                                          width: "100%",
+                                          padding: "6px 10px",
+                                          border: "1px solid #ddd",
+                                          borderRadius: 6,
+                                          fontSize: 13,
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
