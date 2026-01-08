@@ -11,23 +11,26 @@ export default function Home() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 'var(--space-6)'
+      padding: 'var(--space-6)',
+      background: 'var(--color-background)'
     }}>
       <div style={{
-        maxWidth: '900px',
+        maxWidth: '1100px',
         width: '100%'
       }}>
         {/* Hero Section */}
         <div style={{
           textAlign: 'center',
-          marginBottom: 'var(--space-12)'
+          marginBottom: 'var(--space-16)'
         }}>
           <h1 className="heading-xl" style={{
             marginBottom: 'var(--space-4)',
             background: 'linear-gradient(135deg, #1A1A1A 0%, #FF6B35 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
+            backgroundClip: 'text',
+            fontSize: '3rem',
+            fontWeight: 800
           }}>
             Sales Desk
           </h1>
@@ -41,48 +44,67 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Cards */}
+        {/* Main Action Cards */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 'var(--space-6)',
-          marginBottom: 'var(--space-8)',
+          gap: 'var(--space-8)',
+          marginBottom: 'var(--space-16)',
           flexWrap: 'wrap'
         }}>
           {/* Wine Card */}
-          <Link href="/wine" style={{ textDecoration: 'none', width: '280px' }}>
+          <Link href="/wine" style={{ textDecoration: 'none', width: '380px' }}>
             <Card hover>
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: 'var(--space-8)',
                 gap: 'var(--space-6)'
               }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: 'var(--radius-xl)',
+                  background: 'rgba(255, 107, 53, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* 와인병 아이콘 - 실제 병 형태 */}
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {/* 병 입구 */}
+                    <line x1="10" y1="2" x2="14" y2="2" />
+                    {/* 병 목 */}
+                    <line x1="10" y1="2" x2="10" y2="8" />
+                    <line x1="14" y1="2" x2="14" y2="8" />
+                    {/* 병 어깨 */}
+                    <path d="M10 8 L8 10" />
+                    <path d="M14 8 L16 10" />
+                    {/* 병 몸통 */}
+                    <line x1="8" y1="10" x2="8" y2="20" />
+                    <line x1="16" y1="10" x2="16" y2="20" />
+                    {/* 병 바닥 */}
+                    <path d="M8 20 L8 21 L16 21 L16 20" />
+                    {/* 병 내부 액체 표시 */}
+                    <path d="M9 14 L15 14" opacity="0.5" />
+                  </svg>
+                </div>
                 <div>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: 'var(--radius-lg)',
-                    background: 'rgba(255, 107, 53, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 'var(--space-4)'
+                  <h2 className="heading-lg" style={{ 
+                    marginBottom: 'var(--space-3)',
+                    fontWeight: 700,
+                    fontSize: '1.5rem'
                   }}>
-                    {/* 와인병 아이콘 */}
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 2h8" />
-                      <path d="M12 2v4" />
-                      <path d="M9 6h6" />
-                      <path d="M9 6v4.5c0 .8-.3 1.6-.9 2.1L6 15v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6l-2.1-2.4c-.6-.5-.9-1.3-.9-2.1V6" />
-                    </svg>
-                  </div>
-                  <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
                     와인 발주
                   </h2>
                   <p style={{
-                    fontSize: 'var(--text-sm)',
+                    fontSize: 'var(--text-base)',
                     color: 'var(--color-text-light)',
-                    lineHeight: 1.6
+                    lineHeight: 1.6,
+                    maxWidth: '280px',
+                    margin: '0 auto'
                   }}>
                     거래처와 품목을 자동으로 인식하고<br />발주 메시지를 생성합니다
                   </p>
@@ -92,38 +114,52 @@ export default function Home() {
           </Link>
 
           {/* Glass Card */}
-          <Link href="/glass" style={{ textDecoration: 'none', width: '280px' }}>
+          <Link href="/glass" style={{ textDecoration: 'none', width: '380px' }}>
             <Card hover>
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: 'var(--space-8)',
                 gap: 'var(--space-6)'
               }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: 'var(--radius-xl)',
+                  background: 'rgba(255, 107, 53, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* 와인잔 아이콘 - 명확한 보울+스템+베이스 */}
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {/* 잔 테두리 */}
+                    <line x1="6" y1="3" x2="18" y2="3" />
+                    {/* 잔 보울 (볼) */}
+                    <path d="M7 3 L7 8 C7 10 8.5 12 12 12 C15.5 12 17 10 17 8 L17 3" />
+                    {/* 스템 (줄기) */}
+                    <line x1="12" y1="12" x2="12" y2="19" />
+                    {/* 베이스 (받침) */}
+                    <line x1="9" y1="19" x2="15" y2="19" />
+                    <path d="M9 19 L9 20 L15 20 L15 19" />
+                  </svg>
+                </div>
                 <div>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: 'var(--radius-lg)',
-                    background: 'rgba(255, 107, 53, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 'var(--space-4)'
+                  <h2 className="heading-lg" style={{ 
+                    marginBottom: 'var(--space-3)',
+                    fontWeight: 700,
+                    fontSize: '1.5rem'
                   }}>
-                    {/* 와인잔 아이콘 */}
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 2h8l1 9c0 3-2 5-5 5s-5-2-5-5l1-9z" />
-                      <path d="M12 16v6" />
-                      <path d="M8 22h8" />
-                    </svg>
-                  </div>
-                  <h2 className="heading-sm" style={{ marginBottom: 'var(--space-2)' }}>
                     와인잔 발주
                   </h2>
                   <p style={{
-                    fontSize: 'var(--text-sm)',
+                    fontSize: 'var(--text-base)',
                     color: 'var(--color-text-light)',
-                    lineHeight: 1.6
+                    lineHeight: 1.6,
+                    maxWidth: '280px',
+                    margin: '0 auto'
                   }}>
                     와인잔 품목과 수량을 빠르게<br />확인하고 발주할 수 있습니다
                   </p>
@@ -133,62 +169,84 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Features */}
+        {/* Features Section */}
         <Card>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 'var(--space-6)'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: 'var(--space-8)',
+            padding: 'var(--space-4)'
           }}>
-            <div>
+            {/* 자동 인식 */}
+            <div style={{
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
               <div style={{
-                fontSize: 'var(--text-2xl)',
+                fontSize: '2.5rem',
                 fontWeight: 700,
                 color: 'var(--color-primary)',
-                marginBottom: 'var(--space-2)'
+                marginBottom: 'var(--space-3)'
               }}>
                 자동 인식
               </div>
               <p style={{
                 fontSize: 'var(--text-sm)',
                 color: 'var(--color-text-light)',
-                lineHeight: 1.6
+                lineHeight: 1.6,
+                maxWidth: '200px'
               }}>
                 거래처명 자동 인식<br />오타 허용 (70% 유사도)
               </p>
             </div>
 
-            <div>
+            {/* 품목 선택 */}
+            <div style={{
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
               <div style={{
-                fontSize: 'var(--text-2xl)',
+                fontSize: '2.5rem',
                 fontWeight: 700,
                 color: 'var(--color-primary)',
-                marginBottom: 'var(--space-2)'
+                marginBottom: 'var(--space-3)'
               }}>
                 품목 선택
               </div>
               <p style={{
                 fontSize: 'var(--text-sm)',
                 color: 'var(--color-text-light)',
-                lineHeight: 1.6
+                lineHeight: 1.6,
+                maxWidth: '200px'
               }}>
                 최근 거래 품목<br />빠른 선택 가능
               </p>
             </div>
 
-            <div>
+            {/* 학습 기능 */}
+            <div style={{
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
               <div style={{
-                fontSize: 'var(--text-2xl)',
+                fontSize: '2.5rem',
                 fontWeight: 700,
                 color: 'var(--color-primary)',
-                marginBottom: 'var(--space-2)'
+                marginBottom: 'var(--space-3)'
               }}>
                 학습 기능
               </div>
               <p style={{
                 fontSize: 'var(--text-sm)',
                 color: 'var(--color-text-light)',
-                lineHeight: 1.6
+                lineHeight: 1.6,
+                maxWidth: '200px'
               }}>
                 자주 사용하는 거래처<br />자동 학습 및 확정
               </p>
