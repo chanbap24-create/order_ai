@@ -617,6 +617,7 @@ export default function Home() {
                 padding: 12,
                 borderRadius: 12,
                 border: "1px solid #ddd",
+                fontSize: 14,
                 ...monoStyle,
               }}
             />
