@@ -108,12 +108,20 @@ export default function Home() {
   }, [data?.status]);
 
   async function callParse(payload: any) {
+    console.log("[DEBUG] Calling parse-full-order API with payload:", payload);
     const res = await fetch("/api/parse-full-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    console.log("[DEBUG] Response status:", res.status, res.statusText);
+    if (!res.ok) {
+      console.error("[DEBUG] Response not OK:", res.status, res.statusText);
+      const text = await res.text();
+      console.error("[DEBUG] Response body:", text);
+    }
     const json = await res.json();
+    console.log("[DEBUG] Response JSON:", json);
     return { res, json };
   }
 
