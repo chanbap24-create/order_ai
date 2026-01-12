@@ -9159,27 +9159,28 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
  [32m[1m✓[22m[39m Compiled in 949ms (269 modules)
  [32m[1m✓[22m[39m Compiled in 262ms (269 modules)
-10:37.000Z] [DEBUG] PRAGMA table_info(client_sales)
-[2026-01-12T14:10:37.000Z] [DEBUG] PRAGMA table_info(client_item_history)
-[2026-01-12T14:10:37.000Z] [DEBUG] PRAGMA table_info(client_item_rows)
-[2026-01-12T14:10:37.000Z] [DEBUG] PRAGMA table_info(sales_client)
-[2026-01-12T14:10:37.000Z] [DEBUG] PRAGMA table_info(sales)
-[2026-01-12T14:10:37.000Z] [DEBUG] 
-      SELECT alias, canonical, count 
-      FROM item_alias 
-      WHERE canonical = '3021064'
-    
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(Client)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_rows)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_history)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_shipments)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_sales)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_item_history)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_item_rows)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(sales_client)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(sales)
-[2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(Client)
+[Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 2.7s (269 modules)
+ [32m[1m✓[22m[39m Compiled in 115ms (269 modules)
+026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(Client)
 [2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client)
 [2026-01-12T14:10:37.001Z] [DEBUG] PRAGMA table_info(client_rows)
 [2026-01-12T14:10:37.002Z] [DEBUG] PRAGMA table_info(client_history)
@@ -9885,3 +9886,24 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
  [32m[1m✓[22m[39m Compiled in 963ms (450 modules)
  [32m[1m✓[22m[39m Compiled in 394ms (450 modules)
+[Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 2.7s (450 modules)
+ [32m[1m✓[22m[39m Compiled in 159ms (450 modules)
