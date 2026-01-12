@@ -26180,3 +26180,22 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  GET /glass [32m200[39m in 119ms
  [32m[1m✓[22m[39m Compiled /favicon.ico in 201ms (538 modules)
  GET /favicon.ico [32m200[39m in 345ms
+Killed
+ [32m[1m✓[22m[39m Compiled in 1864ms (527 modules)
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET /glass [32m200[39m in 146ms
+ [32m[1m✓[22m[39m Compiled /favicon.ico in 102ms (306 modules)
+ GET /favicon.ico [32m200[39m in 189ms
+ [32m[1m✓[22m[39m Compiled in 984ms (558 modules)
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET /glass [32m200[39m in 152ms
+ [37m[1m○[22m[39m Compiling /_not-found ...
+ [32m[1m✓[22m[39m Compiled /_not-found in 776ms (561 modules)

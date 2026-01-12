@@ -447,10 +447,18 @@ export default function Home() {
         ? `- ${s.code || s.item_no} / ${koreanName} / ${qty}병 / ${parseInt(price, 10).toLocaleString()}원`
         : `- ${s.code || s.item_no} / ${koreanName} / ${qty}병`;
 
+      console.log(`[Glass applySuggestionToResult] oldLineUnresolved="${oldLineUnresolved}"`);
+      console.log(`[Glass applySuggestionToResult] oldLineResolved="${oldLineResolved}"`);
+      console.log(`[Glass applySuggestionToResult] newLine="${newLine}"`);
+      console.log(`[Glass applySuggestionToResult] staff includes unresolved: ${staff.includes(oldLineUnresolved)}`);
+      console.log(`[Glass applySuggestionToResult] staff includes resolved: ${staff.includes(oldLineResolved)}`);
+
       if (staff.includes(oldLineUnresolved)) {
         next.staff_message = staff.replace(oldLineUnresolved, newLine);
+        console.log(`[Glass] Replaced unresolved line`);
       } else if (oldLineResolved && staff.includes(oldLineResolved)) {
         next.staff_message = staff.replace(oldLineResolved, newLine);
+        console.log(`[Glass] Replaced resolved line`);
       } else {
         // fallback
         next.staff_message = staff
@@ -1208,7 +1216,7 @@ export default function Home() {
                                     opacity: saving ? 0.7 : 1,
                                   }}
                                   onClick={async () => {
-                                    console.log(`[Glass onClick] isNewItem=${isNewItem}, newItemPrices[${itemKey}]=${newItemPrices[itemKey]}`);
+                                    console.log(`[Glass onClick] isNewItem=${isNewItem}, newItemPrices[${itemKey}]=${newItemPrices[itemKey]}, discount=${newItemDiscounts[itemKey]}`);
                                     if (isNewItem && !newItemPrices[itemKey]) {
                                       alert('신규 품목은 가격을 입력해주세요.');
                                       return;
@@ -1219,8 +1227,10 @@ export default function Home() {
                                       const basePrice = Number(newItemPrices[itemKey]);
                                       const discount = newItemDiscounts[itemKey];
                                       finalPrice = String(Math.round(basePrice * (1 - discount / 100)));
+                                      console.log(`[Glass] Calculated finalPrice: ${basePrice} * (1 - ${discount}/100) = ${finalPrice}`);
                                     }
                                     const price = isNewItem ? finalPrice : undefined;
+                                    console.log(`[Glass] Calling applySuggestionToResult with price=${price}`);
                                     applySuggestionToResult(idx, s, price);
                                     await learnSelectedAlias(idx, s, price);
                                   }}
