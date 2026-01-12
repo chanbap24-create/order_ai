@@ -1,0 +1,34 @@
+2026-01-12 02:37:28 +00:00: INFO:     Started server process [47480]
+2026-01-12 02:37:28 +00:00: INFO:     Waiting for application startup.
+2026-01-12 02:37:41 +00:00: /home/user/webapp/ml-server/start-ml.sh: line 3: 47480 Killed                  uvicorn main:app --host 0.0.0.0 --port 8000
+2026-01-12 02:39:37 +00:00: INFO:     Started server process [47583]
+2026-01-12 02:39:37 +00:00: INFO:     Waiting for application startup.
+2026-01-12 02:41:09 +00:00: /home/user/webapp/ml-server/start-ml.sh: line 3: 47583 Killed                  uvicorn main:app --host 0.0.0.0 --port 8000
+2026-01-12 02:41:20 +00:00: INFO:     Started server process [47786]
+2026-01-12 02:41:20 +00:00: INFO:     Waiting for application startup.
+2026-01-12 02:41:31 +00:00: /home/user/webapp/ml-server/start-ml.sh: line 3: 47786 Killed                  uvicorn main:app --host 0.0.0.0 --port 8000
+2026-01-12 02:41:41 +00:00: INFO:     Started server process [47845]
+2026-01-12 02:41:41 +00:00: INFO:     Waiting for application startup.
+2026-01-12 02:41:48 +00:00: /home/user/webapp/ml-server/start-ml.sh: line 3: 47845 Killed                  uvicorn main:app --host 0.0.0.0 --port 8000
+2026-01-12 02:42:44 +00:00: INFO:     Started server process [47879]
+2026-01-12 02:42:44 +00:00: INFO:     Waiting for application startup.
+2026-01-12 02:45:00 +00:00: /home/user/webapp/ml-server/start-ml.sh: line 3: 47879 Killed                  uvicorn main:app --host 0.0.0.0 --port 8000
+2026-01-12 02:45:01 +00:00: Traceback (most recent call last):
+2026-01-12 02:45:01 +00:00:   File "/home/user/webapp/ml-server/venv/bin/uvicorn", line 3, in <module>
+2026-01-12 02:45:01 +00:00:     from uvicorn.main import main
+2026-01-12 02:45:01 +00:00:   File "/home/user/webapp/ml-server/venv/lib/python3.12/site-packages/uvicorn/__init__.py", line 2, in <module>
+2026-01-12 02:45:01 +00:00:     from uvicorn.main import Server, main, run
+2026-01-12 02:45:01 +00:00:   File "/home/user/webapp/ml-server/venv/lib/python3.12/site-packages/uvicorn/main.py", line 31, in <module>
+2026-01-12 02:45:01 +00:00:     from uvicorn.server import Server
+2026-01-12 02:45:01 +00:00:   File "/home/user/webapp/ml-server/venv/lib/python3.12/site-packages/uvicorn/server.py", line 14, in <module>
+2026-01-12 02:45:01 +00:00:     from email.utils import formatdate
+2026-01-12 02:45:01 +00:00:   File "/usr/local/lib/python3.12/email/utils.py", line 33, in <module>
+2026-01-12 02:45:01 +00:00:     from email._parseaddr import quote
+2026-01-12 02:45:01 +00:00:   File "/usr/local/lib/python3.12/email/_parseaddr.py", line 16, in <module>
+2026-01-12 02:45:01 +00:00:     import time, calendar
+2026-01-12 02:45:01 +00:00:   File "/usr/local/lib/python3.12/calendar.py", line 61, in <module>
+2026-01-12 02:45:01 +00:00:     class Month(IntEnum):
+2026-01-12 02:45:01 +00:00:   File "/usr/local/lib/python3.12/enum.py", line 595, in __new__
+2026-01-12 02:45:01 +00:00:     enum_class = super().__new__(metacls, cls, bases, classdict, **kwds)
+2026-01-12 02:45:01 +00:00:                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-01-12 02:45:01 +00:00: KeyboardInterrupt

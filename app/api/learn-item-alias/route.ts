@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/app/lib/db";
+import { learnFromSelection } from "@/app/lib/autoLearn";
 
 export const runtime = "nodejs";
 
@@ -99,11 +100,76 @@ export async function POST(req: Request) {
       `SELECT alias, canonical, count, last_used_at, created_at FROM item_alias WHERE alias = ?`
     ).get(alias);
 
-    return NextResponse.json({
-      success: true,
-      saved: 1,
-      row,
-    });
+    // 🎓 자동 학습 시스템 연동: 토큰 매핑도 자동으로 학습
+    try {
+      // canonical이 품목번호인 경우 품목명 조회
+      let itemName = canonical;
+      let itemNo = canonical;
+      
+      // canonical이 숫자면 품목번호로 간주하고 품목명 조회
+      if (/^\d+$/.test(canonical) || /^[A-Z0-9]+$/.test(canonical)) {
+        // items 테이블에서 조회 시도
+        const tables = ['items', 'item_master', 'Downloads_items'];
+        for (const table of tables) {
+          try {
+            const item = db.prepare(`
+              SELECT item_no, item_name FROM ${table} WHERE item_no = ?
+              LIMIT 1
+            `).get(canonical) as { item_no: string; item_name: string } | undefined;
+            
+            if (item) {
+              itemNo = item.item_no;
+              itemName = item.item_name;
+              break;
+            }
+          } catch {
+            continue;
+          }
+        }
+      }
+      
+      // 자동 학습 실행 (토큰 매핑 + ML 데이터)
+      const learnResult = learnFromSelection({
+        query: rawAlias,
+        selectedItem: {
+          item_no: itemNo,
+          item_name: itemName
+        },
+        rejectedItems: [],
+        clientCode: body?.client_code || 'manual_learning',
+        features: {
+          manual_input: true,
+          source: 'learn_item_alias_api'
+        }
+      });
+      
+      console.log(`[learn-item-alias] ✅ 자동 학습 완료:`, learnResult);
+      
+      return NextResponse.json({
+        success: true,
+        saved: 1,
+        row,
+        autoLearn: {
+          enabled: true,
+          mappings: learnResult.mappings,
+          mlDataId: learnResult.mlDataId,
+          message: `토큰 매핑 ${learnResult.mappings.length}개 학습됨`
+        }
+      });
+    } catch (autoLearnError) {
+      console.error('[learn-item-alias] ⚠️ 자동 학습 실패 (계속 진행):', autoLearnError);
+      
+      // 자동 학습 실패해도 item_alias는 저장되었으므로 성공 반환
+      return NextResponse.json({
+        success: true,
+        saved: 1,
+        row,
+        autoLearn: {
+          enabled: false,
+          error: String(autoLearnError)
+        }
+      });
+    }
   } catch (e: any) {
     return NextResponse.json(
       { success: false, error: String(e?.message ?? e) },

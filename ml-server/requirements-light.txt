@@ -1,19 +1,17 @@
-# PyTorch and Sentence Transformers
+# Lightweight ML Server (CPU-only, 빠른 설치)
+
+# 가벼운 PyTorch CPU 버전
+--index-url https://download.pytorch.org/whl/cpu
 torch>=2.2.0
+
+# Sentence Transformers (핵심)
 sentence-transformers>=2.2.2
-transformers>=4.35.0
 
 # Web Framework
 fastapi>=0.104.1
 uvicorn>=0.24.0
 pydantic>=2.5.0
 
-# Database (sqlite3 is built-in)
-
 # Utilities
-numpy>=1.24.3
-pandas>=2.0.3
 python-dotenv>=1.0.0
-
-# CORS
 python-multipart>=0.0.6

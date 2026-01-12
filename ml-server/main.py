@@ -109,12 +109,11 @@ async def preload_items():
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
-        # English 시트에서 품목 로드
-        # Note: 실제 테이블 구조에 맞게 수정 필요
+        # client_item_stats에서 고유 품목 로드
         cursor.execute("""
-            SELECT item_no, item_name 
-            FROM items 
-            WHERE item_no IS NOT NULL 
+            SELECT DISTINCT item_no, item_name 
+            FROM client_item_stats 
+            WHERE item_no IS NOT NULL AND item_name IS NOT NULL
             LIMIT 1000
         """)
         
