@@ -12,10 +12,10 @@
     "@types/string-similarity": "^4.0.2",
     "better-sqlite3": "^12.5.0",
     "date-holidays": "^3.26.5",
-    "next": "^15.1.0",
+    "next": "14.2.18",
     "openai": "^6.15.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18",
+    "react-dom": "^18",
     "string-similarity": "^4.0.4",
     "xlsx": "^0.18.5",
     "zod": "^4.3.5"
@@ -26,8 +26,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.10",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
