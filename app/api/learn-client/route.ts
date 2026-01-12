@@ -2,8 +2,9 @@ import { db } from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// ✅ 거래처 alias 학습 API
+// ✅ 거래처 alias 학습 API (Vercel 호환: 읽기 전용)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -16,38 +17,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 와인/와인잔에 따라 다른 테이블 사용
-    const table = type === "wine" ? "client_alias" : "glass_client_alias";
-
-    // ✅ 기존 alias가 있는지 확인
-    const existing = db
-      .prepare(`SELECT * FROM ${table} WHERE client_code = ? AND alias = ?`)
-      .get(client_code, alias) as any;
-
-    if (existing) {
-      // 이미 있으면 가중치만 증가
-      db.prepare(`UPDATE ${table} SET weight = weight + 5 WHERE client_code = ? AND alias = ?`)
-        .run(client_code, alias);
-    } else {
-      // 없으면 새로 추가 (높은 가중치)
-      db.prepare(`INSERT INTO ${table} (client_code, alias, weight) VALUES (?, ?, ?)`)
-        .run(client_code, alias, 15);
-    }
-
+    // ⚠️ Vercel Serverless에서는 SQLite Write 불가
+    // 클라이언트에서 localStorage로 관리
+    // 서버는 검증만 수행
+    
     return NextResponse.json({
       success: true,
-      message: "거래처 학습 완료",
+      message: "거래처 학습 완료 (클라이언트 저장)",
+      client_code,
+      alias,
+      type,
     });
   } catch (error: any) {
-    console.error("거래처 학습 실패:", error);
+    console.error("[learn-client POST] error:", error);
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
   }
 }
 
-// ✅ 학습된 거래처 alias 목록 조회
+// ✅ 학습된 거래처 alias 목록 조회 (읽기 전용: Vercel 호환)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -57,6 +47,7 @@ export async function GET(req: NextRequest) {
     const clientTable = type === "wine" ? "clients" : "glass_clients";
 
     // ✅ 가중치 10 이상인 alias만 (사용자가 학습한 것들)
+    // 읽기 작업은 Vercel에서도 가능
     const items = db
       .prepare(
         `SELECT a.client_code, a.alias, a.weight, c.client_name
@@ -78,15 +69,15 @@ export async function GET(req: NextRequest) {
       count: items.length,
     });
   } catch (error: any) {
-    console.error("학습된 거래처 조회 실패:", error);
+    console.error("[learn-client GET] error:", error);
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
   }
 }
 
-// ✅ 학습된 거래처 alias 삭제
+// ✅ 학습된 거래처 alias 삭제 (Vercel 호환: 읽기 전용)
 export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json();
@@ -99,19 +90,17 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const table = type === "wine" ? "client_alias" : "glass_client_alias";
-
-    db.prepare(`DELETE FROM ${table} WHERE client_code = ? AND alias = ?`)
-      .run(client_code, alias);
-
+    // ⚠️ Vercel Serverless에서는 SQLite Write 불가
+    // 클라이언트에서 localStorage로 관리
+    
     return NextResponse.json({
       success: true,
-      message: "거래처 학습 삭제 완료",
+      message: "거래처 학습 삭제 완료 (클라이언트 저장)",
     });
   } catch (error: any) {
-    console.error("거래처 학습 삭제 실패:", error);
+    console.error("[learn-client DELETE] error:", error);
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
   }
