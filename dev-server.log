@@ -9128,22 +9128,17 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 2.9s (535 modules)
  [32m[1m✓[22m[39m Compiled in 1034ms (535 modules)
  [32m[1m✓[22m[39m Compiled in 1362ms (535 modules)
-t_sales)
-[2026-01-12T14:10:36.997Z] [DEBUG] PRAGMA table_info(client_item_history)
-[2026-01-12T14:10:36.997Z] [DEBUG] PRAGMA table_info(client_item_rows)
-[2026-01-12T14:10:36.997Z] [DEBUG] PRAGMA table_info(sales_client)
-[2026-01-12T14:10:36.997Z] [DEBUG] PRAGMA table_info(sales)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(Client)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client_rows)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client_history)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client_shipments)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client_sales)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client_item_history)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(client_item_rows)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(sales_client)
-[2026-01-12T14:10:36.998Z] [DEBUG] PRAGMA table_info(sales)
-[2026-01-12T14:10:36.998Z] [DEBUG] 
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 696ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 207ms (269 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 880ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 308ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 282ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 257ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 209ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 204ms (269 modules)
+0:36.998Z] [DEBUG] 
       SELECT alias, canonical, count 
       FROM item_alias 
       WHERE canonical = '00NV801'
@@ -9857,3 +9852,14 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 2.9s (764 modules)
  [32m[1m✓[22m[39m Compiled in 1175ms (750 modules)
  [32m[1m✓[22m[39m Compiled in 1339ms (750 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/server-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/server-development/0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 878ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 192ms (450 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 938ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 256ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 254ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 252ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 246ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 211ms (450 modules)

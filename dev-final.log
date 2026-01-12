@@ -19860,3 +19860,79 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 2.9s (533 modules)
  [32m[1m✓[22m[39m Compiled in 906ms (547 modules)
  [32m[1m✓[22m[39m Compiled in 825ms (547 modules)
+ [31m[1m⨯[22m[39m ./app/glass/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/home/user/webapp/app/glass/page.tsx[0m:549:1]
+ [2m549[0m |   const needsClientPick = data?.status === "needs_review_client";
+ [2m550[0m | 
+ [2m551[0m |   return (
+ [2m552[0m |     <div
+     : [31;1m     ^^^[0m
+ [2m553[0m |       style={{
+ [2m554[0m |         maxWidth: 960,
+ [2m555[0m |         margin: "40px auto",
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/glass/page.tsx
+ [31m[1m⨯[22m[39m ./app/glass/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/home/user/webapp/app/glass/page.tsx[0m:549:1]
+ [2m549[0m |   const needsClientPick = data?.status === "needs_review_client";
+ [2m550[0m | 
+ [2m551[0m |   return (
+ [2m552[0m |     <div
+     : [31;1m     ^^^[0m
+ [2m553[0m |       style={{
+ [2m554[0m |         maxWidth: 960,
+ [2m555[0m |         margin: "40px auto",
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/glass/page.tsx
+ [31m[1m⨯[22m[39m ./app/glass/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/home/user/webapp/app/glass/page.tsx[0m:549:1]
+ [2m549[0m |   const needsClientPick = data?.status === "needs_review_client";
+ [2m550[0m | 
+ [2m551[0m |   return (
+ [2m552[0m |     <div
+     : [31;1m     ^^^[0m
+ [2m553[0m |       style={{
+ [2m554[0m |         maxWidth: 960,
+ [2m555[0m |         margin: "40px auto",
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/glass/page.tsx
+ [31m[1m⨯[22m[39m ./app/glass/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/home/user/webapp/app/glass/page.tsx[0m:550:1]
+ [2m550[0m |   const needsClientPick = data?.status === "needs_review_client";
+ [2m551[0m | 
+ [2m552[0m |   return (
+ [2m553[0m |     <div
+     : [31;1m     ^^^[0m
+ [2m554[0m |       style={{
+ [2m555[0m |         maxWidth: 960,
+ [2m556[0m |         margin: "40px auto",
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/glass/page.tsx
