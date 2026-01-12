@@ -2,7 +2,18 @@
 import OpenAI from "openai";
 import { config } from "./config";
 
-const client = new OpenAI({ apiKey: config.openai.apiKey });
+// ✅ Lazy Initialization: 실제 사용 시점에만 OpenAI 클라이언트 생성
+let client: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!client) {
+    if (!config.openai.apiKey) {
+      throw new Error("OPENAI_API_KEY is not configured. Translation is disabled.");
+    }
+    client = new OpenAI({ apiKey: config.openai.apiKey });
+  }
+  return client;
+}
 
 function shouldTranslateToKorean(text: string) {
   const s = String(text || "");
@@ -59,7 +70,8 @@ export async function translateOrderToKoreanIfNeeded(text: string) {
 ${s}`;
 
   try {
-    const resp = await client.chat.completions.create({
+    const openaiClient = getOpenAIClient();
+    const resp = await openaiClient.chat.completions.create({
       model: config.openai.model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,

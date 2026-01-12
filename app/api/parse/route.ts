@@ -9,9 +9,23 @@ import type { ParseRequest, ParseResponse, ParsedItem } from "@/app/types/api";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({
-  apiKey: config.openai.apiKey,
-});
+// ✅ Lazy Initialization: 실제 사용 시점에만 OpenAI 클라이언트 생성
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    if (!config.openai.apiKey) {
+      throw new InternalServerError(
+        "OPENAI_API_KEY is not configured",
+        "MISSING_API_KEY"
+      );
+    }
+    openai = new OpenAI({
+      apiKey: config.openai.apiKey,
+    });
+  }
+  return openai;
+}
 
 const MAX_ITEMS = config.parsing.maxItems;
 
@@ -107,7 +121,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
     const rawBody = await safeParseBody(req);
     const { text } = validateRequest(parseSchema, rawBody) as ParseRequest;
 
-    const completion = await (openai.responses.create({
+    const openaiClient = getOpenAIClient();
+    const completion = await (openaiClient.responses.create({
       model: config.openai.model,
       input: [
         {
