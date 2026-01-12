@@ -131,13 +131,18 @@ interface RecentPurchaseSignal {
   lastPurchaseDaysAgo: number | null;
 }
 
-export function getRecentPurchaseSignal(clientCode: string, itemNo: string): RecentPurchaseSignal {
+export function getRecentPurchaseSignal(clientCode: string, itemNo: string, dataType: 'wine' | 'glass' = 'wine'): RecentPurchaseSignal {
   try {
-    // Client 테이블에서 최근 출고일 조회
-    const candidates = [
-      "Client", "client", "client_rows", "client_history", "client_shipments",
-      "client_sales", "client_item_history", "client_item_rows", "sales_client", "sales"
-    ];
+    // 데이터 타입에 따라 다른 테이블 우선순위
+    const candidates = dataType === 'glass'
+      ? [
+          "Glass_Client", "glass_client", "glass_client_rows", "glass_client_history",
+          "Client", "client", "client_rows", "client_history"
+        ]
+      : [
+          "Client", "client", "client_rows", "client_history", "client_shipments",
+          "client_sales", "client_item_history", "client_item_rows", "sales_client", "sales"
+        ];
 
     for (const table of candidates) {
       try {
@@ -193,12 +198,17 @@ interface FrequencySignal {
   purchaseCount: number;
 }
 
-export function getPurchaseFrequencySignal(clientCode: string, itemNo: string): FrequencySignal {
+export function getPurchaseFrequencySignal(clientCode: string, itemNo: string, dataType: 'wine' | 'glass' = 'wine'): FrequencySignal {
   try {
-    const candidates = [
-      "Client", "client", "client_rows", "client_history", "client_shipments",
-      "client_sales", "client_item_history", "client_item_rows", "sales_client", "sales"
-    ];
+    const candidates = dataType === 'glass'
+      ? [
+          "Glass_Client", "glass_client", "glass_client_rows", "glass_client_history",
+          "Client", "client", "client_rows", "client_history"
+        ]
+      : [
+          "Client", "client", "client_rows", "client_history", "client_shipments",
+          "client_sales", "client_item_history", "client_item_rows", "sales_client", "sales"
+        ];
 
     for (const table of candidates) {
       try {
@@ -326,13 +336,14 @@ export function calculateWeightedScore(
   rawInput: string,
   clientCode: string,
   itemNo: string,
-  baseScore: number
+  baseScore: number,
+  dataType: 'wine' | 'glass' = 'wine'
 ): WeightedScore {
   // 각 신호 계산
   const userLearning = getUserLearningSignal(rawInput, itemNo);
-  const recentPurchase = getRecentPurchaseSignal(clientCode, itemNo);
-  const purchaseFrequency = getPurchaseFrequencySignal(clientCode, itemNo);
-  const vintage = getVintageSignal(rawInput, itemNo);
+  const recentPurchase = getRecentPurchaseSignal(clientCode, itemNo, dataType);
+  const purchaseFrequency = getPurchaseFrequencySignal(clientCode, itemNo, dataType);
+  const vintage = dataType === 'wine' ? getVintageSignal(rawInput, itemNo) : { score: 0, latestVintage: null };
 
   // 가중치 적용
   const weights = {

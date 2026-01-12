@@ -1,4 +1,6 @@
 import { db } from "@/app/lib/db";
+import { calculateWeightedScore } from "@/app/lib/weightedScoring";
+import { expandQuery, logQueryExpansion } from "@/app/lib/queryExpander";
 
 /* ================= 공통 정규화 ================= */
 function normLocal(s: string) {
@@ -49,6 +51,186 @@ function scoreItem(q: string, name: string) {
 function extractRDCode(itemName: string): string | null {
   const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
   return m ? m[1] : null;
+}
+
+/* ================= 멀티 토큰 검색 (Wine과 동일) ================= */
+
+function getAllTokens(rawName: string): string[] {
+  const base = stripQtyAndUnit(rawName);
+  const tokens = base.split(" ").filter(Boolean);
+  const clean = tokens
+    .map((t) => t.replace(/["'`]/g, "").trim())
+    .filter((t) => t && t.length >= 2 && !/^\d+$/.test(t));
+  
+  return clean;
+}
+
+function fetchFromGlassMasterByTokens(rawName: string, limit = 80): Array<{ item_no: string; item_name: string }> {
+  const tokens = getAllTokens(rawName);
+  if (tokens.length === 0) return [];
+
+  try {
+    const results = new Map<string, { item_no: string; item_name: string; priority: number }>();
+    
+    // 전략 1: AND 검색 (모든 토큰 포함) - 최고 우선순위
+    if (tokens.length >= 2) {
+      try {
+        const andWhere = tokens.map(() => `item_name LIKE ?`).join(" AND ");
+        const andParams = tokens.map((t) => `%${t}%`);
+        const andSql = `
+          SELECT item_no, item_name
+          FROM glass_items
+          WHERE ${andWhere}
+          LIMIT 30
+        `;
+        const andResults = db.prepare(andSql).all(...andParams) as Array<{ item_no: string; item_name: string }>;
+        
+        for (const r of andResults) {
+          if (!results.has(r.item_no)) {
+            results.set(r.item_no, { ...r, priority: 3 });
+          }
+        }
+        
+        console.log(`[Glass MultiToken] AND 검색: "${tokens.join('" AND "')}" → ${andResults.length}개`);
+      } catch (e) {
+        console.error('[Glass MultiToken] AND 검색 실패:', e);
+      }
+    }
+    
+    // 전략 2: Half 검색 (절반 이상 토큰 포함) - 중간 우선순위
+    if (tokens.length >= 3) {
+      try {
+        const halfCount = Math.ceil(tokens.length / 2);
+        const halfTokens = tokens.slice(0, halfCount);
+        const halfWhere = halfTokens.map(() => `item_name LIKE ?`).join(" AND ");
+        const halfParams = halfTokens.map((t) => `%${t}%`);
+        const halfSql = `
+          SELECT item_no, item_name
+          FROM glass_items
+          WHERE ${halfWhere}
+          LIMIT 40
+        `;
+        const halfResults = db.prepare(halfSql).all(...halfParams) as Array<{ item_no: string; item_name: string }>;
+        
+        for (const r of halfResults) {
+          if (!results.has(r.item_no)) {
+            results.set(r.item_no, { ...r, priority: 2 });
+          }
+        }
+        
+        console.log(`[Glass MultiToken] Half 검색: "${halfTokens.join('" AND "')}" → ${halfResults.length}개`);
+      } catch (e) {
+        console.error('[Glass MultiToken] Half 검색 실패:', e);
+      }
+    }
+    
+    // 전략 3: OR 검색 (하나라도 포함) - 낮은 우선순위
+    try {
+      const orWhere = tokens.map(() => `item_name LIKE ?`).join(" OR ");
+      const orParams = tokens.map((t) => `%${t}%`);
+      const orSql = `
+        SELECT item_no, item_name
+        FROM glass_items
+        WHERE ${orWhere}
+        LIMIT 30
+      `;
+      const orResults = db.prepare(orSql).all(...orParams) as Array<{ item_no: string; item_name: string }>;
+      
+      for (const r of orResults) {
+        if (!results.has(r.item_no)) {
+          results.set(r.item_no, { ...r, priority: 1 });
+        }
+      }
+      
+      console.log(`[Glass MultiToken] OR 검색: "${tokens.join('" OR "')}" → ${orResults.length}개`);
+    } catch (e) {
+      console.error('[Glass MultiToken] OR 검색 실패:', e);
+    }
+    
+    // 우선순위 순으로 정렬하고 limit 적용
+    const sorted = Array.from(results.values())
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, limit)
+      .map(({ item_no, item_name }) => ({ item_no, item_name }));
+    
+    console.log(`[Glass MultiToken] 총 후보: ${sorted.length}개 (중복 제거 후)`);
+    
+    return sorted;
+  } catch (e) {
+    console.error('[Glass MultiToken] 전체 검색 실패:', e);
+    return [];
+  }
+}
+
+/* ================= 약어 학습 시스템 (Wine과 동일) ================= */
+
+type AliasRow = { alias: string; canonical: string };
+
+function isSpecificAlias(alias: string) {
+  const a = stripQtyAndUnit(alias);
+  const tokens = a.split(" ").filter(Boolean);
+  const tightLen = normTight(a).length;
+  return tokens.length >= 3 || tightLen >= 12;
+}
+
+type LearnedMatch =
+  | { kind: "exact"; alias: string; canonical: string }
+  | { kind: "contains_specific"; alias: string; canonical: string }
+  | { kind: "contains_weak"; alias: string; canonical: string }
+  | null;
+
+function getLearnedMatch(rawInput: string): LearnedMatch {
+  try {
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS item_alias (
+        alias TEXT PRIMARY KEY,
+        canonical TEXT NOT NULL,
+        count INTEGER DEFAULT 1,
+        last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+  } catch {
+    // 테이블 이미 존재
+  }
+
+  const inputItem = stripQtyAndUnit(rawInput);
+  const nInputItem = normTight(inputItem);
+
+  const rows = db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[];
+  if (!rows?.length) return null;
+
+  const pairs = rows
+    .map((r) => {
+      const aliasItem = stripQtyAndUnit(r.alias);
+      return {
+        aliasItem,
+        nAliasItem: normTight(aliasItem),
+        canonical: String(r.canonical || "").trim(),
+      };
+    })
+    .filter((x) => x.nAliasItem && x.canonical)
+    .sort((a, b) => b.nAliasItem.length - a.nAliasItem.length);
+
+  // 1) Exact 우선
+  for (const p of pairs) {
+    if (p.nAliasItem === nInputItem) {
+      return { kind: "exact", alias: p.aliasItem, canonical: p.canonical };
+    }
+  }
+
+  // 2) Contains
+  for (const p of pairs) {
+    if (nInputItem.includes(p.nAliasItem)) {
+      if (isSpecificAlias(p.aliasItem)) {
+        return { kind: "contains_specific", alias: p.aliasItem, canonical: p.canonical };
+      } else {
+        return { kind: "contains_weak", alias: p.aliasItem, canonical: p.canonical };
+      }
+    }
+  }
+
+  return null;
 }
 
 /* ================= 메인: Glass 전용 ================= */
@@ -110,21 +292,138 @@ export function resolveGlassItemsByClient(
       }
     }
 
-    // ✅ 2순위: 품목명 기반 점수 매칭 (거래처 이력만)
-    const q = norm(stripQtyAndUnit(it.name));
+    // ✅ 2순위: 검색어 확장 (토큰 매핑 학습 활용)
+    const expansion = expandQuery(it.name, 0.5);
+    logQueryExpansion(expansion);
+    
+    const learned = getLearnedMatch(it.name);
+    const learnedItemNo =
+      learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
-    let scored = clientRows
+    // 마스터 후보 (원본 + 확장된 검색어) - 멀티 토큰 검색
+    const masterRows1 = fetchFromGlassMasterByTokens(it.name, 40);
+    const masterRows2 = expansion.hasExpansion 
+      ? fetchFromGlassMasterByTokens(expansion.expanded, 40)
+      : [];
+
+    // 후보 풀 = 거래처이력 + 마스터(원본) + 마스터(확장) (중복 제거)
+    const poolMap = new Map<string, { item_no: string; item_name: string }>();
+    for (const r of clientRows) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    for (const r of masterRows1) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    for (const r of masterRows2) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    const pool = Array.from(poolMap.values());
+
+    // 1) Exact 학습이면 하드 확정
+    if (learned && learned.kind === "exact" && learnedItemNo) {
+      const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      if (hit) {
+        return {
+          ...it,
+          normalized_query: norm(it.name),
+          resolved: true,
+          item_no: hit.item_no,
+          item_name: hit.item_name,
+          score: 1.0,
+          method: "alias_exact_item_no",
+          candidates: [],
+          suggestions: [],
+        };
+      }
+    }
+
+    // 2) contains_specific 학습이면 하드 확정
+    if (learned && learned.kind === "contains_specific" && learnedItemNo) {
+      const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      if (hit) {
+        return {
+          ...it,
+          normalized_query: norm(it.name),
+          resolved: true,
+          item_no: hit.item_no,
+          item_name: hit.item_name,
+          score: 0.99,
+          method: "alias_contains_specific_item_no",
+          candidates: [],
+          suggestions: [],
+        };
+      }
+    }
+
+    // 3) 🎯 조합 가중치 시스템으로 점수 계산
+    const q = norm(stripQtyAndUnit(it.name));
+    const qExpanded = expansion.hasExpansion ? norm(expansion.expanded) : q;
+
+    let scored = pool
       .map((r) => {
-        const score = scoreItem(q, r.item_name);
-        return { item_no: r.item_no, item_name: r.item_name, score };
+        // 원본 쿼리 점수
+        const score1 = scoreItem(q, r.item_name);
+        
+        // 확장된 쿼리 점수 (학습 효과)
+        const score2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name) : 0;
+        
+        // 최고 점수 선택 (확장 검색은 20% 부스트)
+        const baseScore = Math.max(score1, score2 * 1.2);
+
+        // 🎯 가중치 시스템으로 최종 점수 계산
+        const weighted = calculateWeightedScore(
+          it.name,
+          clientCode,
+          String(r.item_no),
+          baseScore,
+          'glass' // Glass 전용 테이블 지정
+        );
+
+        return {
+          item_no: r.item_no,
+          item_name: r.item_name,
+          score: weighted.finalScore,
+          _debug: {
+            baseScore: weighted.signals.baseScore,
+            userLearning: weighted.signals.userLearning,
+            recentPurchase: weighted.signals.recentPurchase,
+            purchaseFrequency: weighted.signals.purchaseFrequency,
+            weights: weighted.weights,
+            rawTotal: weighted.rawTotal,
+          },
+        };
       })
       .sort((a, b) => b.score - a.score);
 
     let top = scored[0];
     let second = scored[1];
 
+    // 자동확정 조건
     let resolved =
       !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
+
+    // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
+    const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
+    if (tokenCount >= 3) {
+      const gap = second ? top.score - second.score : 999;
+      
+      // learned가 있는 경우
+      if (learned?.kind === "contains_weak") {
+        const allowAuto = (top.score >= 0.92 && gap >= 0.20) || 
+                          (top.score >= 0.88 && gap >= 0.30);
+        if (!allowAuto) {
+          resolved = false;
+        }
+      } 
+      // learned가 없는 경우
+      else if (!learned) {
+        const allowAuto = (top.score >= 0.90 && gap >= 0.20) || 
+                          (top.score >= 0.85 && gap >= 0.25);
+        if (!allowAuto) {
+          resolved = false;
+        }
+      }
+    }
 
     if (resolved) {
       return {
@@ -134,11 +433,12 @@ export function resolveGlassItemsByClient(
         item_no: top.item_no,
         item_name: top.item_name,
         score: Number(top.score.toFixed(3)),
-        method: "match",
+        method: learned?.kind ? `weighted+${learned.kind}` : "weighted",
         candidates: scored.slice(0, topN).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
+          _debug: (c as any)._debug,
         })),
         suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
           item_no: c.item_no,
@@ -156,6 +456,7 @@ export function resolveGlassItemsByClient(
         item_no: c.item_no,
         item_name: c.item_name,
         score: Number(c.score.toFixed(3)),
+        _debug: (c as any)._debug,
       })),
       suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
         item_no: c.item_no,
