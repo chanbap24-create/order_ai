@@ -13,6 +13,14 @@ import Holidays from "date-holidays";
 
 export const runtime = "nodejs";
 
+// GET 메소드 추가 (API 상태 확인용)
+export async function GET() {
+  return NextResponse.json({
+    success: true,
+    message: "parse-full-order API is running. Use POST method to parse orders."
+  });
+}
+
 function cleanClientCode(code: any) {
   return String(code || "").replace(/\.0$/, "");
 }
