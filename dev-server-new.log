@@ -10478,3 +10478,8 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 3.3s (527 modules)
  [32m[1m✓[22m[39m Compiled in 275ms (266 modules)
  [32m[1m✓[22m[39m Compiled in 268ms (266 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/server-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/server-development/0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 2.5s (527 modules)
+ [32m[1m✓[22m[39m Compiled in 1089ms (527 modules)
+ [32m[1m✓[22m[39m Compiled in 1304ms (541 modules)
