@@ -18145,3 +18145,4 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 2.4s (998 modules)
  [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
 Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[?25h

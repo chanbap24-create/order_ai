@@ -9183,7 +9183,8 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 6.8s (549 modules)
  [32m[1m✓[22m[39m Compiled in 1012ms (269 modules)
  [32m[1m✓[22m[39m Compiled in 318ms (269 modules)
-info(client_rows)
+[?25h
+ient_rows)
 [2026-01-12T14:10:37.002Z] [DEBUG] PRAGMA table_info(client_history)
 [2026-01-12T14:10:37.002Z] [DEBUG] PRAGMA table_info(client_shipments)
 [2026-01-12T14:10:37.002Z] [DEBUG] PRAGMA table_info(client_sales)
@@ -9912,3 +9913,5 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 6.9s (764 modules)
  [32m[1m✓[22m[39m Compiled in 1143ms (450 modules)
  [32m[1m✓[22m[39m Compiled in 458ms (450 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+[?25h

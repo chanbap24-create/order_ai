@@ -459,11 +459,26 @@ export function resolveGlassItemsByClient(
           score: Number(c.score.toFixed(3)),
           _debug: (c as any)._debug,
         })),
-        suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
-          item_no: c.item_no,
-          item_name: c.item_name,
-          score: Number(c.score.toFixed(3)),
-        })),
+        suggestions: (() => {
+          // 자동확정이어도 신규품목 함께 표시
+          const existingTop = scored.slice(0, 2).map((c) => ({
+            item_no: c.item_no,
+            item_name: c.item_name,
+            score: Number(c.score.toFixed(3)),
+          }));
+          
+          const newItems = searchNewGlassFromRiedel(q).map(item => ({
+            item_no: item.code,
+            item_name: item.item_name,
+            score: Number(item.score.toFixed(3)),
+            is_new_item: true,
+            price: item.price,
+          }));
+          
+          const combined = [...existingTop, ...newItems.slice(0, 3)];
+          console.log('[DEBUG Glass] Auto-resolved suggestions:', { existing: existingTop.length, new: newItems.length });
+          return combined;
+        })(),
       };
     }
 
