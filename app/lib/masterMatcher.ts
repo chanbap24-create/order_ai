@@ -282,3 +282,109 @@ export function searchMasterSheetBatch(
 
   return results;
 }
+
+/* ==================== Riedel 시트 검색 (Glass용) ==================== */
+
+import { loadRiedelSheet, type RiedelItem } from './masterSheet';
+
+export interface RiedelMatchCandidate {
+  itemNo: string;
+  englishName: string;
+  koreanName: string;
+  supplyPrice?: number;
+  score: number;
+  matchedBy: 'english' | 'korean' | 'both';
+  _debug?: {
+    englishScore?: number;
+    koreanScore?: number;
+    inputNorm?: string;
+    targetEnglishNorm?: string;
+    targetKoreanNorm?: string;
+    method?: string;
+  };
+}
+
+/**
+ * Riedel 시트에서 신규 품목 검색 (Glass용)
+ * English 시트와 동일한 매칭 알고리즘 사용
+ */
+export function searchRiedelSheet(
+  inputName: string,
+  topN: number = 5
+): RiedelMatchCandidate[] {
+  const riedelItems = loadRiedelSheet();
+  
+  if (riedelItems.length === 0) {
+    console.warn('[searchRiedelSheet] No Riedel items loaded');
+    return [];
+  }
+
+  const inputNorm = normalize(inputName);
+  const inputKeywords = extractKeywords(inputName);
+
+  const candidates: RiedelMatchCandidate[] = [];
+
+  for (const item of riedelItems) {
+    const englishNorm = normalize(item.englishName);
+    const koreanNorm = normalize(item.koreanName);
+
+    // 1) Bigram 유사도
+    const englishBigram = compareTwoStrings(inputNorm, englishNorm);
+    const koreanBigram = compareTwoStrings(inputNorm, koreanNorm);
+
+    // 2) Character 유사도
+    const englishChar = characterSimilarity(inputNorm, englishNorm);
+    const koreanChar = characterSimilarity(inputNorm, koreanNorm);
+
+    // 3) Contains 체크
+    const englishContains = koreanNorm.includes(inputNorm) || inputNorm.includes(koreanNorm) ? 0.3 : 0;
+    const koreanContains = englishNorm.includes(inputNorm) || inputNorm.includes(englishNorm) ? 0.3 : 0;
+
+    // 4) 핵심 단어 매칭
+    const englishKeywords = keywordMatchScore(inputName, item.englishName);
+    const koreanKeywords = keywordMatchScore(inputName, item.koreanName);
+
+    // 영문명 최종 점수
+    const englishScore = englishBigram * 0.35 + englishChar * 0.20 + englishKeywords * 0.40 + englishContains * 0.05;
+    
+    // 한글명 최종 점수
+    const koreanScore = koreanBigram * 0.35 + koreanChar * 0.20 + koreanKeywords * 0.40 + koreanContains * 0.05;
+
+    // 최종 점수
+    const score = Math.max(englishScore, koreanScore);
+
+    // 최소 점수 0.15 이상만 후보로 간주
+    if (score < 0.15) {
+      continue;
+    }
+
+    let matchedBy: 'english' | 'korean' | 'both' = 'both';
+    if (englishScore > koreanScore + 0.1) {
+      matchedBy = 'english';
+    } else if (koreanScore > englishScore + 0.1) {
+      matchedBy = 'korean';
+    }
+
+    candidates.push({
+      itemNo: item.itemNo,
+      englishName: item.englishName,
+      koreanName: item.koreanName,
+      supplyPrice: item.supplyPrice,
+      score,
+      matchedBy,
+      _debug: {
+        englishScore,
+        koreanScore,
+        inputNorm,
+        targetEnglishNorm: englishNorm,
+        targetKoreanNorm: koreanNorm,
+      },
+    });
+  }
+
+  // 점수 높은 순으로 정렬
+  candidates.sort((a, b) => b.score - a.score);
+
+  // 상위 topN개만 반환
+  return candidates.slice(0, topN);
+}
