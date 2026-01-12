@@ -1,12 +1,5 @@
-# Vercel ignore file
 node_modules
-.next
 .git
 *.log
 .env*
 .DS_Store
-uploaded_files
-scripts/__pycache__
-*.pyc
-.tmp-*
-PROJECT_REVIEW.md
