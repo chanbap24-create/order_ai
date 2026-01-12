@@ -58,6 +58,9 @@ export default function Home() {
   // ✅ 후보 선택 학습 저장 상태 (itemIndex별)
   const [savingPick, setSavingPick] = useState<Record<number, boolean>>({});
   const [savedPick, setSavedPick] = useState<Record<number, boolean>>({});
+  
+  // ✅ 신규 품목 가격 입력
+  const [newItemPrices, setNewItemPrices] = useState<Record<number, string>>({});
 
   // ✅ 품목 결과/학습 입력 접기
   const [showItemsPanel, setShowItemsPanel] = useState(false);
@@ -374,7 +377,7 @@ export default function Home() {
   }
 
   // ✅ 선택 즉시 화면 반영(직원메시지 + items)
-  function applySuggestionToResult(itemIndex: number, s: any) {
+  function applySuggestionToResult(itemIndex: number, s: any, price?: string) {
     setData((prev: any) => {
       if (!prev) return prev;
 
@@ -436,7 +439,7 @@ export default function Home() {
   }
 
   // ✅ 선택 결과를 학습 테이블에 저장
-  async function learnSelectedAlias(itemIndex: number, s: any) {
+  async function learnSelectedAlias(itemIndex: number, s: any, price?: string) {
     const it = (Array.isArray(data?.items) ? data.items : [])[itemIndex];
     const alias = String(it?.name || it?.raw || "").trim();
     const canonical = String(s?.item_no || "").trim(); // ✅ 품목코드로 저장
@@ -450,10 +453,16 @@ export default function Home() {
     setSavedPick((p) => ({ ...p, [itemIndex]: false }));
 
     try {
+      const isNewItem = !!s.is_new_item;
       const res = await fetch("/api/learn-item-alias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alias, canonical }),
+        body: JSON.stringify({ 
+          alias, 
+          canonical,
+          dataType: 'glass',
+          ...(isNewItem && price ? { price: Number(price) } : {})
+        }),
       });
 
       const json = await res.json().catch(() => null);
@@ -1012,9 +1021,36 @@ export default function Home() {
                               반영됩니다
                             </div>
 
+                            {/* ✅ 신규 품목 가격 입력 */}
+                            {top3.some((s: any) => s.is_new_item) && (
+                              <div style={{ marginTop: 12, marginBottom: 12, padding: "12px", background: "#fff8f0", borderRadius: 8, border: "1px solid #ffd699" }}>
+                                <div style={{ fontSize: 13, color: "#ff6b35", marginBottom: 8, fontWeight: 600 }}>
+                                  ⚠️ 신규 품목이 포함되어 있습니다. 선택 시 공급가를 입력해주세요
+                                </div>
+                                <input
+                                  type="number"
+                                  placeholder="공급가 입력 (예: 15000)"
+                                  value={newItemPrices[idx] || ''}
+                                  onChange={(e) => setNewItemPrices(prev => ({
+                                    ...prev,
+                                    [idx]: e.target.value
+                                  }))}
+                                  style={{
+                                    width: "100%",
+                                    padding: "8px 12px",
+                                    border: "1px solid #ddd",
+                                    borderRadius: 6,
+                                    fontSize: 14,
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            )}
+
                             {top3.map((s: any, sidx: number) => {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
+                              const isNewItem = !!s.is_new_item; // ✅ 개별 후보의 플래그 확인
 
                               return (
                                 <button
@@ -1037,8 +1073,13 @@ export default function Home() {
                                     opacity: saving ? 0.7 : 1,
                                   }}
                                   onClick={async () => {
-                                    applySuggestionToResult(idx, s);
-                                    await learnSelectedAlias(idx, s);
+                                    if (isNewItem && !newItemPrices[idx]) {
+                                      alert('신규 품목은 가격을 입력해주세요.');
+                                      return;
+                                    }
+                                    const price = isNewItem ? newItemPrices[idx] : undefined;
+                                    applySuggestionToResult(idx, s, price);
+                                    await learnSelectedAlias(idx, s, price);
                                   }}
                                 >
                                   <div
@@ -1056,7 +1097,20 @@ export default function Home() {
                                         whiteSpace: "nowrap",
                                       }}
                                     >
-                                      <b>{s.item_no}</b> / {s.item_name}
+                                      <b>{s.item_no}</b> / {s.item_name?.split(' / ')[0] || s.item_name}
+                                      {isNewItem && (
+                                        <span style={{ 
+                                          marginLeft: 8, 
+                                          padding: "2px 6px",
+                                          background: "#ff6b35",
+                                          color: "white",
+                                          fontSize: 11,
+                                          borderRadius: 4,
+                                          fontWeight: 600
+                                        }}>
+                                          신규품목
+                                        </span>
+                                      )}
                                     </div>
 
                                     <div

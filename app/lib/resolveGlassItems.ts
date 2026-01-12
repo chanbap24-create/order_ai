@@ -1,6 +1,7 @@
 import { db } from "@/app/lib/db";
 import { calculateWeightedScore } from "@/app/lib/weightedScoring";
 import { expandQuery, logQueryExpansion } from "@/app/lib/queryExpander";
+import { searchRiedelSheet } from "@/app/lib/riedelMatcher";
 
 /* ================= 공통 정규화 ================= */
 function normLocal(s: string) {
@@ -51,6 +52,24 @@ function scoreItem(q: string, name: string) {
 function extractRDCode(itemName: string): string | null {
   const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
   return m ? m[1] : null;
+}
+
+/* ================= 신규 품목 검색 (Riedel 시트) ================= */
+
+function searchNewGlassFromRiedel(query: string): Array<{ code: string; item_name: string; score: number; is_new_item?: boolean; price?: number }> {
+  try {
+    const candidates = searchRiedelSheet(query, 3);
+    return candidates.map((c) => ({
+      code: c.code,
+      item_name: `${c.koreanName} / ${c.englishName}`,
+      score: Number(c.score.toFixed(3)),
+      is_new_item: true,
+      price: c.price,
+    }));
+  } catch (err) {
+    console.error('신규 Glass 품목 검색 실패:', err);
+    return [];
+  }
 }
 
 /* ================= 멀티 토큰 검색 (Wine과 동일) ================= */
@@ -448,6 +467,43 @@ export function resolveGlassItemsByClient(
       };
     }
 
+    // ✅ 0.70 미만: 기존품목 1위 + 신규품목 상위 3개 표시
+    const suggestions = top && top.score < 0.70 
+      ? (() => {
+          // 기존품목 1위 (반드시 포함)
+          const existingTop = top ? [{
+            item_no: top.item_no,
+            item_name: top.item_name,
+            score: Number(top.score.toFixed(3)),
+          }] : [];
+
+          // 신규품목 검색 (Riedel 시트)
+          const newItems = searchNewGlassFromRiedel(q).map(item => ({
+            item_no: item.code,
+            item_name: item.item_name,
+            score: Number(item.score.toFixed(3)),
+            is_new_item: true,
+            price: item.price,
+          }));
+          
+          // 기존 1위 + 신규 상위 3개 = 총 4개
+          const combined = [...existingTop, ...newItems.slice(0, 3)];
+          
+          console.log('[DEBUG Glass] 0.70 미만 후보:', {
+            existingTop: existingTop.length,
+            newItems: newItems.length,
+            combined: combined.length,
+            items: combined.map(c => ({ code: c.item_no, score: c.score, isNew: (c as any).is_new_item }))
+          });
+          
+          return combined;
+        })()
+      : scored.slice(0, Math.max(3, topN)).map((c) => ({
+          item_no: c.item_no,
+          item_name: c.item_name,
+          score: Number(c.score.toFixed(3)),
+        }));
+
     return {
       ...it,
       normalized_query: q,
@@ -458,11 +514,7 @@ export function resolveGlassItemsByClient(
         score: Number(c.score.toFixed(3)),
         _debug: (c as any)._debug,
       })),
-      suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
-        item_no: c.item_no,
-        item_name: c.item_name,
-        score: Number(c.score.toFixed(3)),
-      })),
+      suggestions,
     };
   });
 }
