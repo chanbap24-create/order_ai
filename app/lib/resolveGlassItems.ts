@@ -417,8 +417,15 @@ export function resolveGlassItemsByClient(
     let top = scored[0];
     let second = scored[1];
 
-    // ✅ 신규 품목 여부 확인 (Riedel 시트에만 있는 품목)
-    const isNewItem = top && !allItems.some(r => r.item_no === top.item_no);
+    // ✅ 신규 품목 여부 확인
+    // 1. 거래처 구매 이력에 없으면 신규 품목 (가장 중요!)
+    const hasClientHistory = top && clientRows.some(r => r.item_no === top.item_no);
+    // 2. DB에 아예 없으면 신규 품목
+    const isInDb = top && allItems.some(r => r.item_no === top.item_no);
+    
+    const isNewItem = top && (!hasClientHistory || !isInDb);
+    
+    console.log(`[DEBUG Glass] Auto-resolve check: item=${top?.item_no}, hasClientHistory=${hasClientHistory}, isInDb=${isInDb}, isNewItem=${isNewItem}`);
 
     // 자동확정 조건
     let resolved =

@@ -9830,3 +9830,25 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 1495ms (541 modules)
  [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
 Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Killed
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 439ms (266 modules)
+ [32m[1m✓[22m[39m Compiled in 373ms (266 modules)
+ [37m[1m○[22m[39m Compiling /_not-found ...
+ [32m[1m✓[22m[39m Compiled /_not-found in 614ms (530 modules)
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /glass. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET /glass [33m404[39m in 157ms
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /_next/static/css/app/layout.css. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /_next/static/chunks/main-app.js. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ [33m[1m⚠[22m[39m Unsupported metadata viewport is configured in metadata export in /_next/static/chunks/app-pages-internals.js. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ GET /_next/static/css/app/layout.css?v=1768232918787 [33m404[39m in 125ms
+ GET /_next/static/chunks/main-app.js?v=1768232918787 [33m404[39m in 113ms
+ GET /_next/static/chunks/app-pages-internals.js [33m404[39m in 109ms
