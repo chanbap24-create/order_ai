@@ -423,6 +423,8 @@ export default function Home() {
 
   // ✅ 선택 즉시 화면 반영(직원메시지 + items)
   function applySuggestionToResult(itemIndex: number, s: any, supplyPrice?: string) {
+    console.log(`[applySuggestionToResult] itemIndex=${itemIndex}, s.item_no=${s.item_no}, supplyPrice=${supplyPrice}, s.is_new_item=${s.is_new_item}`);
+    
     setData((prev: any) => {
       if (!prev) return prev;
 
@@ -432,7 +434,9 @@ export default function Home() {
       if (!target) return prev;
 
       const qty = target.qty;
-      const isNewItem = !!target.is_new_item;
+      const isNewItem = !!s.is_new_item; // ✅ s에서 직접 가져오기
+      
+      console.log(`[applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, supplyPrice=${supplyPrice}`);
 
       // 1) items 확정 처리(override 가능)
       items[itemIndex] = {

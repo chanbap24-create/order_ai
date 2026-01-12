@@ -408,6 +408,8 @@ export default function Home() {
 
   // ✅ 선택 즉시 화면 반영(직원메시지 + items)
   function applySuggestionToResult(itemIndex: number, s: any, price?: string) {
+    console.log(`[Glass applySuggestionToResult] itemIndex=${itemIndex}, s.code=${s.code}, price=${price}, s.is_new_item=${s.is_new_item}`);
+    
     setData((prev: any) => {
       if (!prev) return prev;
 
@@ -417,6 +419,9 @@ export default function Home() {
       if (!target) return prev;
 
       const qty = target.qty;
+      const isNewItem = !!s.is_new_item; // ✅ s에서 직접 가져오기
+      
+      console.log(`[Glass applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, price=${price}`);
 
       // 1) items 확정 처리(override 가능)
       items[itemIndex] = {
@@ -435,7 +440,11 @@ export default function Home() {
         ? `- ${target.item_no} / ${target.item_name} / ${qty}병`
         : "";
 
-      const newLine = `- ${s.item_no} / ${s.item_name} / ${qty}병`;
+      // ✅ 신규 품목일 때 가격 포함
+      const koreanName = s.item_name?.split(' / ')[0] || s.item_name;
+      const newLine = isNewItem && price
+        ? `- ${s.code || s.item_no} / ${koreanName} / ${qty}병 / ${parseInt(price, 10).toLocaleString()}원`
+        : `- ${s.code || s.item_no} / ${koreanName} / ${qty}병`;
 
       if (staff.includes(oldLineUnresolved)) {
         next.staff_message = staff.replace(oldLineUnresolved, newLine);
