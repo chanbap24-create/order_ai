@@ -140,7 +140,7 @@ export async function POST(req: Request) {
         features: {
           manual_input: true,
           source: 'learn_item_alias_api'
-        }
+        } as any
       });
       
       console.log(`[learn-item-alias] ✅ 자동 학습 완료:`, learnResult);
