@@ -634,7 +634,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               ...newItemSuggestions
             ].slice(0, config.suggestions.total);
             
-            console.log(`[신규품목] 최종 후보:`, suggestions.map(s => ({ 
+            console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
               no: s.item_no, 
               score: s.score?.toFixed(3), 
               isNew: s.is_new_item || false 

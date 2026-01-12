@@ -170,21 +170,25 @@ function detectColumns(table: string): { itemNo: string; itemName: string } | nu
 
 /* ================= 마스터에서 후보 확장 ================= */
 
-function getTailTokens(rawName: string) {
+/**
+ * 모든 유효한 토큰 추출 (기존: 꼬리 2개만 → 개선: 모든 토큰)
+ */
+function getAllTokens(rawName: string): string[] {
   const base = stripQtyAndUnit(rawName);
   const tokens = base.split(" ").filter(Boolean);
   const clean = tokens
     .map((t) => t.replace(/["'`]/g, "").trim())
     .filter((t) => t && t.length >= 2 && !/^\d+$/.test(t));
-
-  const tail1 = clean[clean.length - 1];
-  const tail2 = clean[clean.length - 2];
-  const out: string[] = [];
-  if (tail1) out.push(tail1);
-  if (tail2) out.push(tail2);
-  return out;
+  
+  return clean;
 }
 
+/**
+ * 멀티 토큰 검색: AND + Half + OR 전략
+ * 1. AND 검색: 모든 토큰 포함 (가장 정확)
+ * 2. Half 검색: 절반 이상 토큰 포함 (중간 정확도)
+ * 3. OR 검색: 하나라도 포함 (넓은 범위)
+ */
 function fetchFromMasterByTail(rawName: string, limit = 80) {
   const table = pickMasterTable();
   if (!table) return [] as Array<{ item_no: string; item_name: string }>;
@@ -192,21 +196,98 @@ function fetchFromMasterByTail(rawName: string, limit = 80) {
   const cols = detectColumns(table);
   if (!cols) return [] as Array<{ item_no: string; item_name: string }>;
 
-  const tails = getTailTokens(rawName);
-  if (tails.length === 0) return [] as Array<{ item_no: string; item_name: string }>;
-
-  const where = tails.map(() => `${cols.itemName} LIKE ?`).join(" OR ");
-  const params = tails.map((t) => `%${t}%`);
+  const tokens = getAllTokens(rawName);
+  if (tokens.length === 0) return [] as Array<{ item_no: string; item_name: string }>;
 
   try {
-    const sql = `
-      SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
-      FROM ${table}
-      WHERE ${where}
-      LIMIT ${limit}
-    `;
-    return db.prepare(sql).all(...params) as Array<{ item_no: string; item_name: string }>;
-  } catch {
+    const results = new Map<string, { item_no: string; item_name: string; priority: number }>();
+    
+    // 전략 1: AND 검색 (모든 토큰 포함) - 최고 우선순위
+    if (tokens.length >= 2) {
+      try {
+        const andWhere = tokens.map(() => `${cols.itemName} LIKE ?`).join(" AND ");
+        const andParams = tokens.map((t) => `%${t}%`);
+        const andSql = `
+          SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
+          FROM ${table}
+          WHERE ${andWhere}
+          LIMIT 30
+        `;
+        const andResults = db.prepare(andSql).all(...andParams) as Array<{ item_no: string; item_name: string }>;
+        
+        for (const r of andResults) {
+          if (!results.has(r.item_no)) {
+            results.set(r.item_no, { ...r, priority: 3 });
+          }
+        }
+        
+        console.log(`[MultiToken] AND 검색: "${tokens.join('" AND "')}" → ${andResults.length}개`);
+      } catch (e) {
+        console.error('[MultiToken] AND 검색 실패:', e);
+      }
+    }
+    
+    // 전략 2: Half 검색 (절반 이상 토큰 포함) - 중간 우선순위
+    if (tokens.length >= 3) {
+      try {
+        const halfCount = Math.ceil(tokens.length / 2);
+        const halfTokens = tokens.slice(0, halfCount);
+        const halfWhere = halfTokens.map(() => `${cols.itemName} LIKE ?`).join(" AND ");
+        const halfParams = halfTokens.map((t) => `%${t}%`);
+        const halfSql = `
+          SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
+          FROM ${table}
+          WHERE ${halfWhere}
+          LIMIT 40
+        `;
+        const halfResults = db.prepare(halfSql).all(...halfParams) as Array<{ item_no: string; item_name: string }>;
+        
+        for (const r of halfResults) {
+          if (!results.has(r.item_no)) {
+            results.set(r.item_no, { ...r, priority: 2 });
+          }
+        }
+        
+        console.log(`[MultiToken] Half 검색: "${halfTokens.join('" AND "')}" → ${halfResults.length}개`);
+      } catch (e) {
+        console.error('[MultiToken] Half 검색 실패:', e);
+      }
+    }
+    
+    // 전략 3: OR 검색 (하나라도 포함) - 낮은 우선순위
+    try {
+      const orWhere = tokens.map(() => `${cols.itemName} LIKE ?`).join(" OR ");
+      const orParams = tokens.map((t) => `%${t}%`);
+      const orSql = `
+        SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
+        FROM ${table}
+        WHERE ${orWhere}
+        LIMIT 30
+      `;
+      const orResults = db.prepare(orSql).all(...orParams) as Array<{ item_no: string; item_name: string }>;
+      
+      for (const r of orResults) {
+        if (!results.has(r.item_no)) {
+          results.set(r.item_no, { ...r, priority: 1 });
+        }
+      }
+      
+      console.log(`[MultiToken] OR 검색: "${tokens.join('" OR "')}" → ${orResults.length}개`);
+    } catch (e) {
+      console.error('[MultiToken] OR 검색 실패:', e);
+    }
+    
+    // 우선순위 순으로 정렬하고 limit 적용
+    const sorted = Array.from(results.values())
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, limit)
+      .map(({ item_no, item_name }) => ({ item_no, item_name }));
+    
+    console.log(`[MultiToken] 총 후보: ${sorted.length}개 (중복 제거 후)`);
+    
+    return sorted;
+  } catch (e) {
+    console.error('[MultiToken] 전체 검색 실패:', e);
     return [] as Array<{ item_no: string; item_name: string }>;
   }
 }
