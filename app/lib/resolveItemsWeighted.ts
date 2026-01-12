@@ -88,9 +88,56 @@ export function hasVintageHint(text: string): boolean {
   return /\b(19|20)\d{2}\b/.test(text) || /\b\d{2}\b/.test(text);
 }
 
+/* ================= 생산자 감지 ================= */
+
+const WINE_PRODUCERS = [
+  // 한글
+  '릿지', '샤토', '도멘', '메종', '부샤', '루이', '조르주', '페르낭', '니콜라',
+  '몬테', '마르께', '안토니', '카사', '보데가', '펜폴즈', '야콥스',
+  
+  // 영문
+  'ridge', 'chateau', 'domaine', 'maison', 'bouchard', 'louis', 'georges',
+  'fernand', 'nicolas', 'monte', 'marchesi', 'antinori', 'casa', 'bodega',
+  'penfolds', 'jacobs', 'kendall', 'beringer', 'mondavi', 'gallo',
+  
+  // 약어
+  'ch', 'dom', 'mt', 'casa', 'rg'
+];
+
+function detectProducer(rawName: string): { hasProducer: boolean; producer: string } {
+  const tokens = rawName.trim().split(/\s+/);
+  if (tokens.length === 0) return { hasProducer: false, producer: '' };
+  
+  const firstToken = tokens[0].toLowerCase();
+  const matched = WINE_PRODUCERS.find(p => 
+    firstToken.includes(p.toLowerCase()) || p.toLowerCase().includes(firstToken)
+  );
+  
+  if (matched) {
+    console.log(`[Wine] 🏭 생산자 감지: "${tokens[0]}" (패턴: ${matched})`);
+    return { hasProducer: true, producer: tokens[0] };
+  }
+  
+  return { hasProducer: false, producer: '' };
+}
+
 /* ================= 점수 계산 ================= */
 
-function scoreItem(q: string, name: string) {
+function scoreItem(q: string, name: string, options?: { producer?: string }) {
+  // 생산자 필터링 (생산자가 명시된 경우)
+  if (options?.producer) {
+    const producerNorm = normTight(options.producer);
+    const nameNorm = normTight(name);
+    
+    // 생산자가 품목명에 없으면 0점 처리
+    if (!nameNorm.includes(producerNorm)) {
+      console.log(`[Wine] ❌ 생산자 불일치: "${options.producer}" not in "${name}"`);
+      return 0;
+    }
+    
+    console.log(`[Wine] ✅ 생산자 일치: "${options.producer}" in "${name}"`);
+  }
+  
   // 영문 단어 매칭 우선 (3글자 이상 영어 단어가 있으면)
   const qEnglishWords = (q.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
   const nameEnglishWords = (name.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
@@ -447,6 +494,9 @@ export function resolveItemsByClientWeighted(
     const expansion = expandQuery(it.name, 0.5);
     logQueryExpansion(expansion);
     
+    // 🏭 생산자 감지
+    const { hasProducer, producer } = detectProducer(it.name);
+    
     const learned = getLearnedMatch(it.name);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
@@ -549,15 +599,18 @@ export function resolveItemsByClientWeighted(
 
     const scored = pool
       .map((r) => {
+        // 생산자 옵션 (생산자가 감지된 경우)
+        const scoreOptions = hasProducer ? { producer } : undefined;
+        
         // 원본 쿼리 점수
-        const ko1 = scoreItem(q, r.item_name);
+        const ko1 = scoreItem(q, r.item_name, scoreOptions);
         
         // 확장된 쿼리 점수 (학습 효과)
-        const ko2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name) : 0;
+        const ko2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name, scoreOptions) : 0;
         
         // 영문명 점수
         const enName = englishMap.get(String(r.item_no)) || "";
-        const en = enName ? scoreItem(q, enName) : 0;
+        const en = enName ? scoreItem(q, enName, scoreOptions) : 0;
         
         // 최고 점수 선택 (확장 검색은 20% 부스트)
         const baseScore = Math.max(ko1, ko2 * 1.2, en);
@@ -596,6 +649,22 @@ export function resolveItemsByClientWeighted(
     // 자동확정 조건
     let resolved =
       !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
+
+    // 🏭 생산자가 명시된 경우 더 엄격한 조건 적용
+    if (hasProducer && resolved) {
+      const gap = second ? top.score - second.score : 999;
+      // 생산자 명시 시: 점수 0.85 이상, gap 0.25 이상 필요
+      const allowAuto = top.score >= 0.85 && gap >= 0.25;
+      if (!allowAuto) {
+        resolved = false;
+        console.log(`[Wine] 생산자 명시 → 자동 확정 조건 강화:`, {
+          producer: producer,
+          score: top.score,
+          gap: gap,
+          allowAuto: allowAuto
+        });
+      }
+    }
 
     // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
@@ -643,8 +712,10 @@ export function resolveItemsByClientWeighted(
       };
     }
 
-    // ✅ 0.70 미만: 기존품목 1위 + 신규품목 상위 3개 표시
-    const suggestions = top && top.score < 0.70 
+    // ✅ 0.70 미만 또는 생산자 명시 시: 기존품목 1위 + 신규품목 상위 3개 표시
+    const shouldSearchNew = (top && top.score < 0.70) || (hasProducer && top && top.score < 0.85);
+    
+    const suggestions = shouldSearchNew
       ? (() => {
           // 기존품목 1위 (반드시 포함)
           const existingTop = top ? [{
@@ -654,12 +725,28 @@ export function resolveItemsByClientWeighted(
           }] : [];
 
           // 신규품목 검색 (English 시트)
-          const newItems = searchNewItemFromMaster(q);
+          let newItems = searchNewItemFromMaster(q);
+          
+          // 🏭 생산자 필터링 (생산자가 명시된 경우)
+          if (hasProducer && newItems.length > 0) {
+            const producerNorm = normTight(producer);
+            newItems = newItems.filter(ni => {
+              const nameNorm = normTight(ni.item_name);
+              const match = nameNorm.includes(producerNorm);
+              if (!match) {
+                console.log(`[Wine] ❌ 신규 품목 생산자 불일치: "${producer}" not in "${ni.item_name}"`);
+              }
+              return match;
+            });
+            console.log(`[Wine] 생산자 필터 후 신규 품목: ${newItems.length}개`);
+          }
           
           // 기존 1위 + 신규 상위 3개 = 총 4개
           const combined = [...existingTop, ...newItems.slice(0, 3)];
           
           console.log('[DEBUG] 0.70 미만 후보:', {
+            hasProducer: hasProducer,
+            producer: producer,
             existingTop: existingTop.length,
             newItems: newItems.length,
             combined: combined.length,
