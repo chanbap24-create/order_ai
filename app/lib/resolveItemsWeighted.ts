@@ -709,6 +709,8 @@ export function resolveItemsByClientWeighted(
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
+          is_new_item: c.is_new_item,
+          supply_price: c.supply_price,
         })),
       };
     }
@@ -723,6 +725,8 @@ export function resolveItemsByClientWeighted(
             item_no: top.item_no,
             item_name: top.item_name,
             score: Number(top.score.toFixed(3)),
+            is_new_item: top.is_new_item,
+            supply_price: top.supply_price,
           }] : [];
 
           // 신규품목 검색 (English 시트)
@@ -760,6 +764,8 @@ export function resolveItemsByClientWeighted(
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
+          is_new_item: c.is_new_item,
+          supply_price: c.supply_price,
         }));
 
     return {
