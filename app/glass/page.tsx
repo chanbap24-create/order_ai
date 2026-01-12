@@ -112,10 +112,10 @@ export default function Home() {
 
   // ✅ 신규품목의 공급가를 자동으로 입력란에 채우기
   useEffect(() => {
-    if (!data?.parsed_items) return;
+    if (!data?.items) return;
     
     const newPrices: Record<string, string> = {}; // ✅ itemKey 기반
-    data.parsed_items.forEach((item: any, idx: number) => {
+    data.items.forEach((item: any, idx: number) => {
       if (item.suggestions && Array.isArray(item.suggestions)) {
         item.suggestions.forEach((s: any) => {
           const itemKey = `${idx}-${s.code || s.item_no}`; // ✅ 고유 키 생성
@@ -135,7 +135,7 @@ export default function Home() {
       setNewItemPrices(prev => ({ ...prev, ...newPrices }));
       console.log('[Glass] 신규품목 공급가 자동 설정:', newPrices);
     }
-  }, [data?.parsed_items]);
+  }, [data?.items]);
 
   async function callParse(payload: any) {
     const res = await fetch("/api/parse-glass-order", {
@@ -537,14 +537,14 @@ export default function Home() {
     fontSize: 16, // ✅ 16px 이상으로 설정해야 모바일에서 자동 줌 방지
   };
 
-  // ✅ 후보는 최대 3개만 보여주기
+  // ✅ 후보는 최대 5개까지 보여주기 (기존 2개 + 신규 3개)
   function getTop3Suggestions(it: any) {
     const arr = Array.isArray(it?.suggestions)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    return arr.slice(0, 3);
+    return arr.slice(0, 5); // ✅ 3개 → 5개로 변경
   }
 
   const needsClientPick = data?.status === "needs_review_client";
