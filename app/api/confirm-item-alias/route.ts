@@ -1,5 +1,6 @@
 // app/api/confirm-item-alias/route.ts
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 
 export const runtime = "nodejs";
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
 
     const alias = normAlias(aliasRaw);
     if (!alias || !item_no) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "alias, item_no는 필수입니다." },
         { status: 400 }
       );
@@ -50,9 +51,9 @@ export async function POST(req: Request) {
       `
     ).run(alias, item_no, item_name, client_code);
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(e?.message || e) },
       { status: 500 }
     );

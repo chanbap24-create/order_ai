@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 
 export const runtime = "nodejs";
@@ -20,9 +21,9 @@ export async function GET() {
       .prepare(`SELECT alias, canonical, created_at FROM item_alias ORDER BY created_at DESC`)
       .all();
 
-    return NextResponse.json({ success: true, rows });
+    return jsonResponse({ success: true, rows });
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(e?.message || e) },
       { status: 500 }
     );

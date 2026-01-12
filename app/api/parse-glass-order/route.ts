@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 import { parseGlassItemsFromMessage } from "@/app/lib/parseGlassItems";
 import { resolveGlassItemsByClient } from "@/app/lib/resolveGlassItems";
@@ -498,7 +499,7 @@ export async function POST(req: Request) {
     });
 
     if (client.status !== "resolved") {
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
         status: "needs_review_client",
         client,
@@ -522,7 +523,7 @@ export async function POST(req: Request) {
 
     const clientCode = client?.client_code;
     if (!clientCode) {
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
         status: "needs_review_client",
         client,
@@ -560,7 +561,7 @@ export async function POST(req: Request) {
     // 4) 상태 결정
     const hasUnresolved = itemsWithSuggestions.some((x: any) => !x.resolved);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       status: hasUnresolved ? "needs_review_items" : "resolved",
       client,
@@ -584,7 +585,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(e?.message || e) },
       { status: 500 }
     );

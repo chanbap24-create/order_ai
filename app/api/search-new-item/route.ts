@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { searchMasterSheet } from '@/app/lib/masterMatcher';
+import { jsonResponse } from '@/app/lib/api-response';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     const { inputName, topN = 5 } = body;
 
     if (!inputName) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: 'Missing required field: inputName' },
         { status: 400 }
       );
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const candidates = searchMasterSheet(inputName, topN);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       inputName,
       candidates,
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[search-new-item] Error:', error);
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: error.message },
       { status: 500 }
     );

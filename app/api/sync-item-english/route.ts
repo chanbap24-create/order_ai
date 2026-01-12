@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 import * as XLSX from "xlsx";
 
@@ -22,7 +23,7 @@ export async function POST() {
   try {
     const filePath = process.env.ORDER_AI_XLSX_PATH;
     if (!filePath) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "ORDER_AI_XLSX_PATH is not set" },
         { status: 400 }
       );
@@ -35,7 +36,7 @@ export async function POST() {
     const wb = XLSX.readFile(filePath, { cellDates: true });
     const ws = wb.Sheets["English"];
     if (!ws) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: `Sheet "English" not found` },
         { status: 400 }
       );
@@ -77,14 +78,14 @@ export async function POST() {
 
     tx();
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       filePath,
       scanned,
       saved,
     });
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(e?.message ?? e) },
       { status: 500 }
     );

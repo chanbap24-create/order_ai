@@ -17,6 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from '@/app/lib/db';
 
 export const runtime = 'nodejs';
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // 필수 필드 검증
     if (!clientCode || !selectedItemNo || !selectedName) {
-      return NextResponse.json(
+      return jsonResponse(
         { 
           success: false, 
           error: 'Missing required fields: clientCode, selectedItemNo, selectedName' 
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
       WHERE client_code = ? AND item_no = ?
     `).get(clientCode, selectedItemNo);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: '신규 품목이 거래처 입고 이력에 추가되었습니다. 다음 검색부터 자동 매칭됩니다.',
       saved: statsResult.changes,
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[learn-new-item] Error:', error);
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: error.message },
       { status: 500 }
     );

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 import { parseItemsFromMessage } from "@/app/lib/parseItems";
 import { resolveItemsByClient } from "@/app/lib/resolveItems";
@@ -15,7 +16,7 @@ export const runtime = "nodejs";
 
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
-  return NextResponse.json({
+  return jsonResponse({
     success: true,
     message: "parse-full-order API is running. Use POST method to parse orders."
   });
@@ -547,7 +548,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     });
 
     if (client.status !== "resolved") {
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
         status: "needs_review_client",
         client,
@@ -571,7 +572,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
     const clientCode = client?.client_code;
     if (!clientCode) {
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
         status: "needs_review_client",
         client,
@@ -672,7 +673,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // 4) 상태 결정
     const hasUnresolved = itemsWithSuggestions.some((x: any) => !x.resolved);
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       status: hasUnresolved ? "needs_review_items" : "resolved",
       client,
@@ -696,7 +697,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       },
     } as any);
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(e?.message || e) } as any,
       { status: 500 }
     );

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 import { learnFromSelection } from "@/app/lib/autoLearn";
 
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
     const canonical = String(body?.canonical ?? "").trim();
 
     if (!rawAlias || !canonical) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "alias/canonical required" },
         { status: 400 }
       );
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
     const alias = normalizeAlias(rawAlias);
 
     if (!alias) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, error: "alias empty after normalize" },
         { status: 400 }
       );
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
       
       console.log(`[learn-item-alias] ✅ 자동 학습 완료:`, learnResult);
       
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
         saved: 1,
         row,
@@ -160,7 +161,7 @@ export async function POST(req: Request) {
       console.error('[learn-item-alias] ⚠️ 자동 학습 실패 (계속 진행):', autoLearnError);
       
       // 자동 학습 실패해도 item_alias는 저장되었으므로 성공 반환
-      return NextResponse.json({
+      return jsonResponse({
         success: true,
         saved: 1,
         row,
@@ -171,7 +172,7 @@ export async function POST(req: Request) {
       });
     }
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(e?.message ?? e) },
       { status: 500 }
     );

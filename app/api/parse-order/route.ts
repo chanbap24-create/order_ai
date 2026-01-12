@@ -3,6 +3,7 @@ import { db } from "@/app/lib/db";
 import { handleApiError } from "@/app/lib/errors";
 import { validateRequest, safeParseBody, parseOrderSchema } from "@/app/lib/validation";
 import { logger } from "@/app/lib/logger";
+import { jsonResponse } from "@/app/lib/api-response";
 import type { ParseOrderRequest, ParseOrderResponse, ParseOrderLineResult } from "@/app/types/api";
 import type { ClientItemStatsRow } from "@/app/types/db";
 
@@ -105,7 +106,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseOrderRespons
       lines: results,
     };
 
-    return NextResponse.json(response);
+    return jsonResponse(response);
   } catch (error) {
     logger.error("parse-order error", error);
     return handleApiError<ParseOrderResponse>(error);

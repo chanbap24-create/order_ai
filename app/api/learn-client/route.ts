@@ -1,5 +1,6 @@
 import { db } from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { jsonResponse } from "@/app/lib/api-response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     const { client_code, alias, type = "wine" } = body;
 
     if (!client_code || !alias) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, message: "client_code와 alias가 필요합니다" },
         { status: 400 }
       );
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     // 클라이언트에서 localStorage로 관리
     // 서버는 검증만 수행
     
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: "거래처 학습 완료 (클라이언트 저장)",
       client_code,
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("[learn-client POST] error:", error);
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
@@ -63,14 +64,14 @@ export async function GET(req: NextRequest) {
       client_name: string;
     }>;
 
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       items,
       count: items.length,
     });
   } catch (error: any) {
     console.error("[learn-client GET] error:", error);
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
@@ -84,7 +85,7 @@ export async function DELETE(req: NextRequest) {
     const { client_code, alias, type = "wine" } = body;
 
     if (!client_code || !alias) {
-      return NextResponse.json(
+      return jsonResponse(
         { success: false, message: "client_code와 alias가 필요합니다" },
         { status: 400 }
       );
@@ -93,13 +94,13 @@ export async function DELETE(req: NextRequest) {
     // ⚠️ Vercel Serverless에서는 SQLite Write 불가
     // 클라이언트에서 localStorage로 관리
     
-    return NextResponse.json({
+    return jsonResponse({
       success: true,
       message: "거래처 학습 삭제 완료 (클라이언트 저장)",
     });
   } catch (error: any) {
     console.error("[learn-client DELETE] error:", error);
-    return NextResponse.json(
+    return jsonResponse(
       { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
