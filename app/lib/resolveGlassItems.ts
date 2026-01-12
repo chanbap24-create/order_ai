@@ -417,9 +417,15 @@ export function resolveGlassItemsByClient(
     let top = scored[0];
     let second = scored[1];
 
+    // ✅ 신규 품목 여부 확인 (Riedel 시트에만 있는 품목)
+    const isNewItem = top && !allItems.some(r => r.item_no === top.item_no);
+
     // 자동확정 조건
     let resolved =
-      !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
+      !!top && 
+      !isNewItem && // ✅ 신규 품목은 절대 자동확정 안 함
+      top.score >= minScore && 
+      (!second || top.score - second.score >= minGap);
 
     // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
