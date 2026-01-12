@@ -343,7 +343,7 @@ export function calculateWeightedScore(
   const userLearning = getUserLearningSignal(rawInput, itemNo);
   const recentPurchase = getRecentPurchaseSignal(clientCode, itemNo, dataType);
   const purchaseFrequency = getPurchaseFrequencySignal(clientCode, itemNo, dataType);
-  const vintage = dataType === 'wine' ? getVintageSignal(rawInput, itemNo) : { score: 0, latestVintage: null };
+  const vintage = dataType === 'wine' ? getVintageSignal(rawInput, itemNo) : { score: 0, itemVintage: null };
 
   // 가중치 적용
   const weights = {
