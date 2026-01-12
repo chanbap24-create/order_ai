@@ -634,6 +634,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               score: c.score,
               source: 'master_sheet',
               is_new_item: true,
+              supply_price: c.supplyPrice, // ✅ 공급가 추가
               _debug: c._debug,
             }));
             
