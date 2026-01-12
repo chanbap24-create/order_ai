@@ -19978,3 +19978,6 @@ Import trace for requested module:
  [32m[1m✓[22m[39m Compiled in 2.9s (268 modules)
  [32m[1m✓[22m[39m Compiled in 96ms (268 modules)
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 6.7s (547 modules)
+ [32m[1m✓[22m[39m Compiled in 1376ms (268 modules)
+ [32m[1m✓[22m[39m Compiled in 285ms (268 modules)

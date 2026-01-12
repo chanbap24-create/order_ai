@@ -189,3 +189,6 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
 <w>  at resolve commonjs /home/user/webapp/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
  [32m[1m✓[22m[39m Compiled in 2.8s (453 modules)
  [32m[1m✓[22m[39m Compiled in 127ms (453 modules)
+ [32m[1m✓[22m[39m Compiled in 5.4s (772 modules)
+ [32m[1m✓[22m[39m Compiled in 1484ms (453 modules)
+ [32m[1m✓[22m[39m Compiled in 276ms (453 modules)
