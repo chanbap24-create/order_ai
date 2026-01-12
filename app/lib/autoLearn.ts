@@ -260,6 +260,9 @@ export interface LearnFromSelectionInput {
     recent_purchase?: number;
     frequency?: number;
     vintage?: number;
+    manual_input?: boolean;
+    source?: string;
+    [key: string]: any;
   };
 }
 
