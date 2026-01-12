@@ -115,12 +115,23 @@ export default function Home() {
       body: JSON.stringify(payload),
     });
     console.log("[DEBUG] Response status:", res.status, res.statusText);
-    if (!res.ok) {
-      console.error("[DEBUG] Response not OK:", res.status, res.statusText);
-      const text = await res.text();
-      console.error("[DEBUG] Response body:", text);
+    
+    // body를 한 번만 읽기
+    const text = await res.text();
+    console.log("[DEBUG] Response body:", text);
+    
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      console.error("[DEBUG] Failed to parse JSON:", e);
+      json = { success: false, error: "Invalid JSON response: " + text };
     }
-    const json = await res.json();
+    
+    if (!res.ok) {
+      console.error("[DEBUG] Response not OK:", res.status, res.statusText, json);
+    }
+    
     console.log("[DEBUG] Response JSON:", json);
     return { res, json };
   }
