@@ -312,7 +312,7 @@ export default function Home() {
         json?.success === false ||
         (typeof json?.saved === "number" && json.saved < 1)
       ) {
-        alert(`학습 저장 실패: ${r.alias}\n${json?.error ?? ""}`);
+        alert(`학습 실패: ${r.alias}\n${json?.error ?? ""}`);
         return;
       }
     }
@@ -320,7 +320,7 @@ export default function Home() {
     resetLearnInputs();
     setLearnedVersion((v) => v + 1); // ✅ 목록 새로고침 트리거
     setShowLearned(true);
-    alert("학습 저장 완료");
+    alert("학습 완료");
   }
 
   async function copyStaffMessage() {
@@ -502,7 +502,7 @@ export default function Home() {
           json?.success === false ||
           (typeof json?.saved === "number" && json.saved < 1)
         ) {
-          alert(`학습 저장 실패:\n${alias} → ${canonical}\n${json?.error ?? ""}`);
+          alert(`학습 실패:\n${alias} → ${canonical}\n${json?.error ?? ""}`);
           return false;
         }
       }
