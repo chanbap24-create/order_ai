@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# SQLite database files
+*.sqlite3-shm
+*.sqlite3-wal
