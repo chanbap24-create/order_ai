@@ -44,3 +44,6 @@ next-env.d.ts
 # SQLite database files
 *.sqlite3-shm
 *.sqlite3-wal
+
+# Vercel Build Output
+.vercel
