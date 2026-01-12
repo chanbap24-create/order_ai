@@ -341,7 +341,7 @@ function fetchFromMasterByTail(rawName: string, limit = 80) {
 
 /* ================= 신규 품목 검색 (English 시트) ================= */
 
-function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_name: string; score: number; is_new_item?: boolean }> {
+function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_name: string; score: number; is_new_item?: boolean; supply_price?: number }> {
   try {
     const candidates = searchMasterSheet(query, 5);
     return candidates.map((c) => ({
@@ -349,6 +349,7 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
       item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
       score: Number(c.score.toFixed(3)),
       is_new_item: true,
+      supply_price: c.supplyPrice, // ✅ 공급가 추가
     }));
   } catch (err) {
     console.error('신규 품목 검색 실패:', err);

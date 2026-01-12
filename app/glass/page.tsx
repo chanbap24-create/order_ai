@@ -1136,6 +1136,9 @@ export default function Home() {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
                               const isNewItem = !!s.is_new_item; // ✅ 개별 후보의 플래그 확인
+                              
+                              // 디버깅: 신규품목 플래그와 공급가 확인
+                              console.log(`[Glass] Item ${s.item_no}: isNewItem=${isNewItem}, supply_price=${s.supply_price}`);
 
                               return (
                                 <button
@@ -1158,6 +1161,7 @@ export default function Home() {
                                     opacity: saving ? 0.7 : 1,
                                   }}
                                   onClick={async () => {
+                                    console.log(`[Glass onClick] isNewItem=${isNewItem}, newItemPrices[${idx}]=${newItemPrices[idx]}`);
                                     if (isNewItem && !newItemPrices[idx]) {
                                       alert('신규 품목은 가격을 입력해주세요.');
                                       return;
