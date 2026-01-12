@@ -110,6 +110,32 @@ export default function Home() {
     }
   }, [data?.status]);
 
+  // ✅ 신규품목의 공급가를 자동으로 입력란에 채우기
+  useEffect(() => {
+    if (!data?.parsed_items) return;
+    
+    const newPrices: Record<number, string> = {};
+    data.parsed_items.forEach((item: any, idx: number) => {
+      if (item.suggestions && Array.isArray(item.suggestions)) {
+        item.suggestions.forEach((s: any) => {
+          // Glass는 price 필드 사용
+          if (s.is_new_item && s.price) {
+            newPrices[idx] = String(s.price);
+          }
+          // 혹시 supply_price도 확인
+          if (s.is_new_item && s.supply_price && !newPrices[idx]) {
+            newPrices[idx] = String(s.supply_price);
+          }
+        });
+      }
+    });
+    
+    if (Object.keys(newPrices).length > 0) {
+      setNewItemPrices(prev => ({ ...prev, ...newPrices }));
+      console.log('[Glass] 신규품목 공급가 자동 설정:', newPrices);
+    }
+  }, [data?.parsed_items]);
+
   async function callParse(payload: any) {
     const res = await fetch("/api/parse-glass-order", {
       method: "POST",

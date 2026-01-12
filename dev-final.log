@@ -19853,3 +19853,5 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  GET /_next/static/css/app/layout.css?v=1768228093567 [33m404[39m in 122ms
  GET /_next/static/chunks/app-pages-internals.js [33m404[39m in 111ms
  GET /_next/static/chunks/main-app.js?v=1768228093567 [33m404[39m in 108ms
+ [32m[1m✓[22m[39m Compiled in 3.9s (547 modules)
+ [32m[1m✓[22m[39m Compiled in 991ms (533 modules)

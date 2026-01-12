@@ -110,6 +110,28 @@ export default function Home() {
     }
   }, [data?.status]);
 
+  // ✅ 신규품목의 공급가를 자동으로 입력란에 채우기
+  useEffect(() => {
+    if (!data?.parsed_items) return;
+    
+    const newPrices: Record<number, string> = {};
+    data.parsed_items.forEach((item: any, idx: number) => {
+      if (item.suggestions && Array.isArray(item.suggestions)) {
+        item.suggestions.forEach((s: any) => {
+          if (s.is_new_item && s.supply_price) {
+            // 신규품목의 공급가를 자동으로 설정
+            newPrices[idx] = String(s.supply_price);
+          }
+        });
+      }
+    });
+    
+    if (Object.keys(newPrices).length > 0) {
+      setNewItemPrices(prev => ({ ...prev, ...newPrices }));
+      console.log('[Wine] 신규품목 공급가 자동 설정:', newPrices);
+    }
+  }, [data?.parsed_items]);
+
   async function callParse(payload: any) {
     console.log("[DEBUG] Calling parse-full-order API with payload:", payload);
     const res = await fetch("/api/parse-full-order", {

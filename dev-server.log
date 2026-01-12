@@ -9118,9 +9118,10 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 240ms (269 modules)
  [32m[1m✓[22m[39m Compiled in 326ms (269 modules)
  [32m[1m✓[22m[39m Compiled in 264ms (269 modules)
-] PRAGMA table_info(client_item_history)
-[2026-01-12T14:10:36.996Z] [DEBUG] PRAGMA table_info(client_item_rows)
-[2026-01-12T14:10:36.996Z] [DEBUG] PRAGMA table_info(sales_client)
+ [32m[1m✓[22m[39m Compiled in 2.5s (549 modules)
+ [32m[1m✓[22m[39m Compiled in 372ms (269 modules)
+ [32m[1m✓[22m[39m Compiled in 227ms (269 modules)
+les_client)
 [2026-01-12T14:10:36.996Z] [DEBUG] PRAGMA table_info(sales)
 [2026-01-12T14:10:36.996Z] [DEBUG] 
       SELECT alias, canonical, count 
@@ -9838,3 +9839,19 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  GET /_next/static/css/app/layout.css?v=1768228093684 [33m404[39m in 98ms
  GET /_next/static/chunks/main-app.js?v=1768228093684 [33m404[39m in 91ms
  GET /_next/static/chunks/app-pages-internals.js [33m404[39m in 83ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz_' -> '/home/user/webapp/.next/cache/webpack/client-development/0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/home/user/webapp/.next/server/app/favicon.ico'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/favicon.ico/route' in /home/user/webapp/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/home/user/webapp/.next/server/app/favicon.ico/route.js', but to 'Error: Can't resolve '../../../../.next/server/app/favicon.ico/route' in '/home/user/webapp/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/favicon.ico/route (expected /home/user/webapp/.next/server/app/favicon.ico/route.js)
+<w>  at file dependencies /home/user/webapp/node_modules/next/dist/server/require.js
+<w>  at file /home/user/webapp/node_modules/next/dist/server/require.js
+<w>  at file dependencies /home/user/webapp/node_modules/next/dist/server/load-components.js
+<w>  at file /home/user/webapp/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /home/user/webapp/node_modules/next/dist/build/utils.js
+<w>  at file /home/user/webapp/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /home/user/webapp/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at file /home/user/webapp/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at resolve commonjs /home/user/webapp/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+ [32m[1m✓[22m[39m Compiled in 4s (764 modules)
+ [32m[1m✓[22m[39m Compiled in 288ms (450 modules)
+ [32m[1m✓[22m[39m Compiled in 278ms (450 modules)
