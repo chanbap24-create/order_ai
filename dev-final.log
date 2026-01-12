@@ -19936,3 +19936,23 @@ Caused by:
 
 Import trace for requested module:
 ./app/glass/page.tsx
+[Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 2.5s (547 modules)

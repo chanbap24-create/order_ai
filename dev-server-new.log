@@ -10491,3 +10491,24 @@ Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
  [32m[1m✓[22m[39m Compiled in 246ms (266 modules)
  [32m[1m✓[22m[39m Compiled in 220ms (266 modules)
  [32m[1m✓[22m[39m Compiled in 144ms (266 modules)
+[Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+ [31m[1m⨯[22m[39m unhandledRejection: [Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/home/user/webapp/.next/cache/webpack/client-development/1.pack.gz'
+ [32m[1m✓[22m[39m Compiled in 726ms (266 modules)
+ [32m[1m✓[22m[39m Compiled in 394ms (266 modules)
