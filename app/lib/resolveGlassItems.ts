@@ -468,6 +468,7 @@ export function resolveGlassItemsByClient(
     }
 
     // ✅ 항상 기존품목 + 신규품목 함께 표시 (Glass는 신규품목 확인이 중요)
+    console.log('[DEBUG Glass] Building suggestions for:', q);
     const suggestions = (() => {
       // 기존품목 상위 2개
       const existingTop = scored.slice(0, 2).map((c) => ({
@@ -476,6 +477,7 @@ export function resolveGlassItemsByClient(
         score: Number(c.score.toFixed(3)),
       }));
 
+      console.log('[DEBUG Glass] Searching Riedel for:', q);
       // 신규품목 검색 (Riedel 시트)
       const newItems = searchNewGlassFromRiedel(q).map(item => ({
         item_no: item.code,
