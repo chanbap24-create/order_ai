@@ -61,6 +61,9 @@ export default function Home() {
   
   // ✅ 신규 품목 가격 입력
   const [newItemPrices, setNewItemPrices] = useState<Record<number, string>>({});
+  
+  // ✅ 신규 품목 할인율 입력 (itemIndex별)
+  const [newItemDiscounts, setNewItemDiscounts] = useState<Record<number, number>>({});
 
   // ✅ 품목 결과/학습 입력 접기
   const [showItemsPanel, setShowItemsPanel] = useState(false);
@@ -261,6 +264,7 @@ export default function Home() {
   // ✅ 입력/결과 전체 초기화 버튼
   function clearAll() {
     setText("");
+    setClientInput(""); // ✅ 거래처 입력도 초기화
     setData(null);
     setCopied(false);
     setShowJson(false);
@@ -1027,14 +1031,77 @@ export default function Home() {
                                 <div style={{ fontSize: 13, color: "#ff6b35", marginBottom: 8, fontWeight: 600 }}>
                                   ⚠️ 신규 품목이 포함되어 있습니다. 선택 시 공급가를 입력해주세요
                                 </div>
+                                
+                                {/* 할인율 버튼 */}
+                                <div style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>할인율 선택:</div>
+                                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    {[10, 15, 20, 25, 30].map((discount) => (
+                                      <button
+                                        key={discount}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setNewItemDiscounts(prev => ({
+                                            ...prev,
+                                            [idx]: discount
+                                          }));
+                                        }}
+                                        style={{
+                                          padding: "6px 12px",
+                                          border: `2px solid ${newItemDiscounts[idx] === discount ? '#ff6b35' : '#ddd'}`,
+                                          borderRadius: 6,
+                                          background: newItemDiscounts[idx] === discount ? '#fff8f0' : 'white',
+                                          cursor: "pointer",
+                                          fontSize: 13,
+                                          fontWeight: newItemDiscounts[idx] === discount ? 600 : 400,
+                                          color: newItemDiscounts[idx] === discount ? '#ff6b35' : '#666',
+                                        }}
+                                      >
+                                        {discount}%
+                                      </button>
+                                    ))}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const custom = prompt("할인율을 입력하세요 (%):", "0");
+                                        if (custom && !isNaN(Number(custom))) {
+                                          setNewItemDiscounts(prev => ({
+                                            ...prev,
+                                            [idx]: Number(custom)
+                                          }));
+                                        }
+                                      }}
+                                      style={{
+                                        padding: "6px 12px",
+                                        border: "2px solid #ddd",
+                                        borderRadius: 6,
+                                        background: "white",
+                                        cursor: "pointer",
+                                        fontSize: 13,
+                                        color: "#666",
+                                      }}
+                                    >
+                                      직접입력%
+                                    </button>
+                                  </div>
+                                  {newItemDiscounts[idx] > 0 && (
+                                    <div style={{ fontSize: 12, color: "#ff6b35", marginTop: 6 }}>
+                                      선택된 할인율: <b>{newItemDiscounts[idx]}%</b>
+                                    </div>
+                                  )}
+                                </div>
+
                                 <input
                                   type="number"
                                   placeholder="공급가 입력 (예: 15000)"
                                   value={newItemPrices[idx] || ''}
-                                  onChange={(e) => setNewItemPrices(prev => ({
-                                    ...prev,
-                                    [idx]: e.target.value
-                                  }))}
+                                  onChange={(e) => {
+                                    const basePrice = e.target.value;
+                                    setNewItemPrices(prev => ({
+                                      ...prev,
+                                      [idx]: basePrice
+                                    }));
+                                  }}
                                   style={{
                                     width: "100%",
                                     padding: "8px 12px",
@@ -1044,6 +1111,24 @@ export default function Home() {
                                   }}
                                   onClick={(e) => e.stopPropagation()}
                                 />
+                                
+                                {/* 계산된 공급가 표시 */}
+                                {newItemPrices[idx] && newItemDiscounts[idx] > 0 && (
+                                  <div style={{ 
+                                    marginTop: 8, 
+                                    padding: "8px 12px", 
+                                    background: "#e8fff1", 
+                                    borderRadius: 6,
+                                    fontSize: 13,
+                                    color: "#0a7",
+                                    fontWeight: 600
+                                  }}>
+                                    계산된 공급가: {Math.round(Number(newItemPrices[idx]) * (1 - newItemDiscounts[idx] / 100)).toLocaleString()}원
+                                    <span style={{ color: "#666", fontWeight: 400, marginLeft: 8 }}>
+                                      (원가: {Number(newItemPrices[idx]).toLocaleString()}원 - {newItemDiscounts[idx]}%)
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
 
@@ -1077,7 +1162,14 @@ export default function Home() {
                                       alert('신규 품목은 가격을 입력해주세요.');
                                       return;
                                     }
-                                    const price = isNewItem ? newItemPrices[idx] : undefined;
+                                    // 할인율 적용한 최종 공급가 계산
+                                    let finalPrice = newItemPrices[idx];
+                                    if (isNewItem && newItemPrices[idx] && newItemDiscounts[idx] > 0) {
+                                      const basePrice = Number(newItemPrices[idx]);
+                                      const discount = newItemDiscounts[idx];
+                                      finalPrice = String(Math.round(basePrice * (1 - discount / 100)));
+                                    }
+                                    const price = isNewItem ? finalPrice : undefined;
                                     applySuggestionToResult(idx, s, price);
                                     await learnSelectedAlias(idx, s, price);
                                   }}
@@ -1098,6 +1190,17 @@ export default function Home() {
                                       }}
                                     >
                                       <b>{s.item_no}</b> / {s.item_name?.split(' / ')[0] || s.item_name}
+                                      {/* 공급가 표시 */}
+                                      {s.supply_price && (
+                                        <span style={{ 
+                                          marginLeft: 8, 
+                                          color: "#0a7",
+                                          fontSize: 12,
+                                          fontWeight: 600
+                                        }}>
+                                          {Number(s.supply_price).toLocaleString()}원
+                                        </span>
+                                      )}
                                       {isNewItem && (
                                         <span style={{ 
                                           marginLeft: 8, 

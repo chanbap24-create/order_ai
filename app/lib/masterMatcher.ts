@@ -38,6 +38,7 @@ export interface MasterMatchCandidate {
   englishName: string;
   koreanName: string;
   vintage?: string;
+  supplyPrice?: number; // ✅ 공급가 추가
   score: number;
   matchedBy: 'english' | 'korean' | 'both' | 'pytorch_ml';
   _debug?: {
@@ -246,6 +247,7 @@ export function searchMasterSheet(
       englishName: item.englishName,
       koreanName: item.koreanName,
       vintage: item.vintage,
+      supplyPrice: item.supplyPrice, // ✅ 공급가 추가
       score,
       matchedBy,
       _debug: {

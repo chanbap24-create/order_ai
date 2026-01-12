@@ -15,6 +15,7 @@ export interface MasterItem {
   country?: string;    // D열: 국가
   producer?: string;   // E열: 생산자
   region?: string;     // F열: 지역
+  supplyPrice?: number; // L열: 공급가
 }
 
 let cachedMasterItems: MasterItem[] | null = null;
@@ -69,6 +70,16 @@ export function loadMasterSheet(): MasterItem[] {
         continue;
       }
 
+      // L열(index 11): 공급가
+      const supplyPriceRaw = row[11];
+      let supplyPrice: number | undefined = undefined;
+      if (supplyPriceRaw != null) {
+        const parsed = Number(supplyPriceRaw);
+        if (!isNaN(parsed) && parsed > 0) {
+          supplyPrice = parsed;
+        }
+      }
+
       items.push({
         itemNo,
         englishName,
@@ -77,6 +88,7 @@ export function loadMasterSheet(): MasterItem[] {
         country: row[3]?.toString().trim(),
         producer: row[4]?.toString().trim(),
         region: row[5]?.toString().trim(),
+        supplyPrice,
       });
     }
 
