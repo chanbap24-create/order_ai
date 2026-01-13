@@ -634,6 +634,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               score: c.score,
               source: 'master_sheet',
               is_new_item: true,
+              supply_price: c.supplyPrice, // ✅ 공급가 추가
               _debug: c._debug,
             }));
             
@@ -677,7 +678,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       success: true,
       status: hasUnresolved ? "needs_review_items" : "resolved",
       client,
-      parsed_items: parsedItems,
+      parsed_items: itemsWithSuggestions, // ✅ suggestions 포함된 배열 반환
 
       // ✅ 여기 핵심: suggestions가 들어간 배열을 내려줘야 UI에서 3개 옵션이 뜸
       items: itemsWithSuggestions,

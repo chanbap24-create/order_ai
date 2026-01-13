@@ -539,18 +539,16 @@ export async function POST(req: Request) {
     });
 
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
-    //     - 새로 DB에서 찾지 말고, resolveGlassItemsByClient가 만든 candidates를 그대로 사용
+    //     - resolveGlassItemsByClient가 이미 suggestions를 만들었으므로 그대로 사용
     const itemsWithSuggestions = resolvedItems.map((x: any) => {
       if (x?.resolved) return x;
 
-      // candidates가 있으면 상위 3개를 suggestions로 노출
-      const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
-
-      // 혹시 정렬이 보장 안 되면 score 기준으로 정렬
-      const suggestions = candidates
-        .slice()
-        .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0))
-        .slice(0, 3);
+      // suggestions가 이미 있으면 그대로 사용 (is_new_item, price 포함)
+      const suggestions = Array.isArray(x?.suggestions) 
+        ? x.suggestions 
+        : Array.isArray(x?.candidates)
+          ? x.candidates.slice(0, 3)
+          : [];
 
       return {
         ...x,

@@ -417,9 +417,22 @@ export function resolveGlassItemsByClient(
     let top = scored[0];
     let second = scored[1];
 
+    // ✅ 신규 품목 여부 확인
+    // 1. 거래처 구매 이력에 없으면 신규 품목 (가장 중요!)
+    const hasClientHistory = top && clientRows.some(r => r.item_no === top.item_no);
+    // 2. DB에 아예 없으면 신규 품목
+    const isInDb = top && allItems.some(r => r.item_no === top.item_no);
+    
+    const isNewItem = top && (!hasClientHistory || !isInDb);
+    
+    console.log(`[DEBUG Glass] Auto-resolve check: item=${top?.item_no}, hasClientHistory=${hasClientHistory}, isInDb=${isInDb}, isNewItem=${isNewItem}`);
+
     // 자동확정 조건
     let resolved =
-      !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
+      !!top && 
+      !isNewItem && // ✅ 신규 품목은 절대 자동확정 안 함
+      top.score >= minScore && 
+      (!second || top.score - second.score >= minGap);
 
     // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
@@ -459,25 +472,14 @@ export function resolveGlassItemsByClient(
           score: Number(c.score.toFixed(3)),
           _debug: (c as any)._debug,
         })),
-        suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
-          item_no: c.item_no,
-          item_name: c.item_name,
-          score: Number(c.score.toFixed(3)),
-        })),
-      };
-    }
-
-    // ✅ 0.70 미만: 기존품목 1위 + 신규품목 상위 3개 표시
-    const suggestions = top && top.score < 0.70 
-      ? (() => {
-          // 기존품목 1위 (반드시 포함)
-          const existingTop = top ? [{
-            item_no: top.item_no,
-            item_name: top.item_name,
-            score: Number(top.score.toFixed(3)),
-          }] : [];
-
-          // 신규품목 검색 (Riedel 시트)
+        suggestions: (() => {
+          // 자동확정이어도 신규품목 함께 표시
+          const existingTop = scored.slice(0, 2).map((c) => ({
+            item_no: c.item_no,
+            item_name: c.item_name,
+            score: Number(c.score.toFixed(3)),
+          }));
+          
           const newItems = searchNewGlassFromRiedel(q).map(item => ({
             item_no: item.code,
             item_name: item.item_name,
@@ -486,23 +488,46 @@ export function resolveGlassItemsByClient(
             price: item.price,
           }));
           
-          // 기존 1위 + 신규 상위 3개 = 총 4개
           const combined = [...existingTop, ...newItems.slice(0, 3)];
-          
-          console.log('[DEBUG Glass] 0.70 미만 후보:', {
-            existingTop: existingTop.length,
-            newItems: newItems.length,
-            combined: combined.length,
-            items: combined.map(c => ({ code: c.item_no, score: c.score, isNew: (c as any).is_new_item }))
-          });
-          
+          console.log('[DEBUG Glass] Auto-resolved suggestions:', { existing: existingTop.length, new: newItems.length });
           return combined;
-        })()
-      : scored.slice(0, Math.max(3, topN)).map((c) => ({
-          item_no: c.item_no,
-          item_name: c.item_name,
-          score: Number(c.score.toFixed(3)),
-        }));
+        })(),
+      };
+    }
+
+    // ✅ 항상 기존품목 + 신규품목 함께 표시 (Glass는 신규품목 확인이 중요)
+    console.log('[DEBUG Glass] Building suggestions for:', q);
+    const suggestions = (() => {
+      // 기존품목 상위 2개
+      const existingTop = scored.slice(0, 2).map((c) => ({
+        item_no: c.item_no,
+        item_name: c.item_name,
+        score: Number(c.score.toFixed(3)),
+      }));
+
+      console.log('[DEBUG Glass] Searching Riedel for:', q);
+      // 신규품목 검색 (Riedel 시트)
+      const newItems = searchNewGlassFromRiedel(q).map(item => ({
+        item_no: item.code,
+        item_name: item.item_name,
+        score: Number(item.score.toFixed(3)),
+        is_new_item: true,
+        price: item.price,
+      }));
+      
+      // 기존 2개 + 신규 상위 3개
+      const combined = [...existingTop, ...newItems.slice(0, 3)];
+      
+      console.log('[DEBUG Glass] 후보 조합:', {
+        existing: existingTop.length,
+        newItems: newItems.length,
+        combined: combined.length,
+        topScore: top?.score,
+        items: combined.map(c => ({ code: c.item_no, score: c.score, isNew: (c as any).is_new_item, price: (c as any).price }))
+      });
+      
+      return combined;
+    })();
 
     return {
       ...it,
