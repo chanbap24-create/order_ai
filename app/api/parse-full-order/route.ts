@@ -506,9 +506,17 @@ function formatStaffMessage(
 
   for (const it of items) {
     if (it.resolved) {
-      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}병`);
+      // 가격 정보가 있으면 포함
+      const priceInfo = it.unit_price_hint 
+        ? ` / ${it.unit_price_hint.toLocaleString()}원`
+        : '';
+      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}병${priceInfo}`);
     } else {
-      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}병`);
+      // 미확정 품목도 가격 정보가 있으면 포함
+      const priceInfo = it.unit_price_hint 
+        ? ` / ${it.unit_price_hint.toLocaleString()}원`
+        : '';
+      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}병${priceInfo}`);
     }
   }
 

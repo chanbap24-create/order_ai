@@ -446,6 +446,7 @@ export default function Home() {
         item_no: s.item_no,
         item_name: s.item_name,
         score: typeof s.score === "number" ? s.score : target.score,
+        unit_price_hint: supplyPrice ? parseInt(supplyPrice, 10) : target.unit_price_hint,
       };
       next.items = items;
 
