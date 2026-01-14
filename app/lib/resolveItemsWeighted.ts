@@ -13,6 +13,7 @@ import { calculateWeightedScore } from "@/app/lib/weightedScoring";
 import { searchMasterSheet } from "@/app/lib/masterMatcher";
 import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
+import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
 
 /* ================= 정규화 함수 ================= */
 
@@ -491,29 +492,35 @@ export function resolveItemsByClientWeighted(
   const englishMap = loadEnglishMap();
 
   return items.map((it) => {
-    // ✨ 검색어 확장 (토큰 매핑 학습 활용)
-    const expansion = expandQuery(it.name, 0.5);
+    // ✨ 1단계: 자연어 전처리 (별칭 확장, 수량/와인용어 정규화)
+    const preprocessed = preprocessNaturalLanguage(it.name);
+    const searchName = preprocessed !== it.name ? preprocessed : it.name;
+    
+    console.log(`[resolveItemsWeighted] 입력: "${it.name}" → 전처리: "${searchName}"`);
+    
+    // ✨ 2단계: 검색어 확장 (토큰 매핑 학습 활용)
+    const expansion = expandQuery(searchName, 0.5);
     logQueryExpansion(expansion);
     
     // 🏭 생산자 감지
-    const { hasProducer, producer } = detectProducer(it.name);
+    const { hasProducer, producer } = detectProducer(searchName);
     
-    const learned = getLearnedMatch(it.name);
+    const learned = getLearnedMatch(searchName);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
-    // 마스터 후보 (원본 + 확장된 검색어)
-    const masterRows1 = fetchFromMasterByTail(it.name, 40);
+    // 마스터 후보 (전처리된 검색어 + 확장된 검색어)
+    const masterRows1 = fetchFromMasterByTail(searchName, 40);
     const masterRows2 = expansion.hasExpansion 
       ? fetchFromMasterByTail(expansion.expanded, 40)
       : [];
 
     // ✅ 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
     const englishRows: Array<{ item_no: string; item_name: string }> = [];
-    const hasEnglish = /[A-Za-z]{3,}/.test(it.name);
+    const hasEnglish = /[A-Za-z]{3,}/.test(searchName);
     if (hasEnglish) {
       try {
-        const words = it.name.match(/[A-Za-z]{3,}/g) || [];
+        const words = searchName.match(/[A-Za-z]{3,}/g) || [];
         const searchPatterns: string[] = [];
         for (const word of words) {
           searchPatterns.push(`%${word.toLowerCase()}%`);

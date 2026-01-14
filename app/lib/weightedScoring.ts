@@ -20,6 +20,8 @@ import { db } from "@/app/lib/db";
 // 신호별 중요도 (multiplier)
 export const SIGNAL_WEIGHTS = {
   USER_LEARNING: 3.0,      // 사용자 학습이 가장 중요!
+  TOKEN_MATCH: 2.5,        // 토큰 매칭 (학습된 토큰)
+  ALIAS_MATCH: 2.0,        // 별칭 매칭 (학습된 별칭)
   RECENT_PURCHASE: 2.0,    // 최근 구매 이력
   PURCHASE_FREQUENCY: 1.5, // 구매 빈도
   VINTAGE: 1.0,            // 빈티지
@@ -47,6 +49,22 @@ export const FREQUENCY_BONUS = {
   HIGH: 0.10,       // 5~9회
   MEDIUM: 0.05,     // 2~4회
   LOW: 0.02,        // 1회
+};
+
+// 토큰 매칭 보너스
+export const TOKEN_MATCH_BONUS = {
+  BASE: 0.20,              // 기본 토큰 매칭
+  HIGH_FREQUENCY: 0.10,    // 학습 빈도 높음 (10회+)
+  MEDIUM_FREQUENCY: 0.05,  // 학습 빈도 중간 (5~9회)
+  LOW_FREQUENCY: 0.02,     // 학습 빈도 낮음 (1~4회)
+};
+
+// 별칭 매칭 보너스
+export const ALIAS_MATCH_BONUS = {
+  BASE: 0.15,              // 기본 별칭 매칭
+  HIGH_USE: 0.10,          // 사용 빈도 높음 (10회+)
+  MEDIUM_USE: 0.05,        // 사용 빈도 중간 (5~9회)
+  LOW_USE: 0.02,           // 사용 빈도 낮음 (1~4회)
 };
 
 /* ==================== 유틸리티 함수 ==================== */
@@ -253,7 +271,114 @@ export function getPurchaseFrequencySignal(clientCode: string, itemNo: string, d
   }
 }
 
-/* ==================== 신호 4: 빈티지 ==================== */
+/* ==================== 신호 4: 토큰 매칭 ==================== */
+
+interface TokenMatchSignal {
+  score: number;
+  matchedTokens: string[];
+  learnedCount: number;
+}
+
+function getTokenMatchSignal(rawInput: string, itemNo: string): TokenMatchSignal {
+  try {
+    // token_mapping에서 해당 품목 검색
+    const tokens = db.prepare(`
+      SELECT token, learned_count
+      FROM token_mapping
+      WHERE mapped_text = ? COLLATE NOCASE
+    `).all(itemNo) as Array<{ token: string; learned_count: number }>;
+    
+    if (tokens.length === 0) {
+      return { score: 0, matchedTokens: [], learnedCount: 0 };
+    }
+    
+    // 입력 문자열을 소문자로 변환
+    const lowerInput = rawInput.toLowerCase();
+    
+    // 매칭된 토큰 찾기
+    const matchedTokens: string[] = [];
+    let totalLearnedCount = 0;
+    
+    for (const t of tokens) {
+      if (lowerInput.includes(t.token.toLowerCase())) {
+        matchedTokens.push(t.token);
+        totalLearnedCount += t.learned_count;
+      }
+    }
+    
+    if (matchedTokens.length === 0) {
+      return { score: 0, matchedTokens: [], learnedCount: 0 };
+    }
+    
+    // 점수 계산
+    const avgLearnedCount = totalLearnedCount / matchedTokens.length;
+    let score = TOKEN_MATCH_BONUS.BASE;
+    
+    if (avgLearnedCount >= 10) {
+      score += TOKEN_MATCH_BONUS.HIGH_FREQUENCY;
+    } else if (avgLearnedCount >= 5) {
+      score += TOKEN_MATCH_BONUS.MEDIUM_FREQUENCY;
+    } else {
+      score += TOKEN_MATCH_BONUS.LOW_FREQUENCY;
+    }
+    
+    return { score, matchedTokens, learnedCount: totalLearnedCount };
+  } catch (e) {
+    console.error('[getTokenMatchSignal] 에러:', e);
+    return { score: 0, matchedTokens: [], learnedCount: 0 };
+  }
+}
+
+/* ==================== 신호 5: 별칭 매칭 ==================== */
+
+interface AliasMatchSignal {
+  score: number;
+  matchedAlias: string | null;
+  useCount: number;
+}
+
+function getAliasMatchSignal(rawInput: string, itemNo: string): AliasMatchSignal {
+  try {
+    // item_alias에서 해당 품목 검색
+    const aliases = db.prepare(`
+      SELECT alias, count
+      FROM item_alias
+      WHERE canonical = ? COLLATE NOCASE
+    `).all(itemNo) as Array<{ alias: string; count: number }>;
+    
+    if (aliases.length === 0) {
+      return { score: 0, matchedAlias: null, useCount: 0 };
+    }
+    
+    // 입력 문자열을 소문자로 변환
+    const lowerInput = rawInput.toLowerCase();
+    
+    // 매칭된 별칭 찾기 (가장 많이 사용된 것 우선)
+    for (const a of aliases.sort((x, y) => y.count - x.count)) {
+      if (lowerInput.includes(a.alias.toLowerCase())) {
+        // 점수 계산
+        let score = ALIAS_MATCH_BONUS.BASE;
+        
+        if (a.count >= 10) {
+          score += ALIAS_MATCH_BONUS.HIGH_USE;
+        } else if (a.count >= 5) {
+          score += ALIAS_MATCH_BONUS.MEDIUM_USE;
+        } else {
+          score += ALIAS_MATCH_BONUS.LOW_USE;
+        }
+        
+        return { score, matchedAlias: a.alias, useCount: a.count };
+      }
+    }
+    
+    return { score: 0, matchedAlias: null, useCount: 0 };
+  } catch (e) {
+    console.error('[getAliasMatchSignal] 에러:', e);
+    return { score: 0, matchedAlias: null, useCount: 0 };
+  }
+}
+
+/* ==================== 신호 6: 빈티지 ==================== */
 
 interface VintageSignal {
   score: number;
@@ -343,12 +468,16 @@ export function calculateWeightedScore(
   const userLearning = getUserLearningSignal(rawInput, itemNo);
   const recentPurchase = getRecentPurchaseSignal(clientCode, itemNo, dataType);
   const purchaseFrequency = getPurchaseFrequencySignal(clientCode, itemNo, dataType);
+  const tokenMatch = getTokenMatchSignal(rawInput, itemNo);
+  const aliasMatch = getAliasMatchSignal(rawInput, itemNo);
   const vintage = dataType === 'wine' ? getVintageSignal(rawInput, itemNo) : { score: 0, itemVintage: null };
 
   // 가중치 적용
   const weights = {
     baseScore: baseScore * SIGNAL_WEIGHTS.BASE_SCORE,
     userLearning: userLearning.score * SIGNAL_WEIGHTS.USER_LEARNING,
+    tokenMatch: tokenMatch.score * SIGNAL_WEIGHTS.TOKEN_MATCH,
+    aliasMatch: aliasMatch.score * SIGNAL_WEIGHTS.ALIAS_MATCH,
     recentPurchase: recentPurchase.score * SIGNAL_WEIGHTS.RECENT_PURCHASE,
     purchaseFrequency: purchaseFrequency.score * SIGNAL_WEIGHTS.PURCHASE_FREQUENCY,
     vintage: vintage.score * SIGNAL_WEIGHTS.VINTAGE,
@@ -358,6 +487,8 @@ export function calculateWeightedScore(
   const rawTotal =
     weights.baseScore +
     weights.userLearning +
+    weights.tokenMatch +
+    weights.aliasMatch +
     weights.recentPurchase +
     weights.purchaseFrequency +
     weights.vintage;
@@ -370,6 +501,8 @@ export function calculateWeightedScore(
     signals: {
       baseScore,
       userLearning,
+      tokenMatch,
+      aliasMatch,
       recentPurchase,
       purchaseFrequency,
       vintage,
