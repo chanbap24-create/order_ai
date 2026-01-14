@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import LearnedAliasList from "@/app/components/LearnedAliasList";
 import LearnedClientList from "@/app/components/LearnedClientList";
+import LearnedNewItemsList from "@/app/components/LearnedNewItemsList";
 
 type LearnRow = { alias: string; canonical: string };
 
@@ -1673,6 +1674,7 @@ export default function Home() {
               version={learnedVersion}
               onChanged={() => setLearnedVersion((v) => v + 1)}
             />
+            <LearnedNewItemsList version={learnedVersion} />
           </div>
         )}
       </div>
