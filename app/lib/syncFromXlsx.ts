@@ -3,12 +3,15 @@ import fs from "fs";
 import path from "path";
 import * as XLSX from "xlsx";
 import { db } from "@/app/lib/db";
+import { config } from "@/app/lib/config";
 
 /**
  * order-ai.xlsx / Client 시트
  * E=거래처명, F=거래처코드, M=품목번호, N=품목명, T=공급가
  */
-const XLSX_PATH = path.join(process.cwd(), "order-ai.xlsx");
+const XLSX_PATH = config.excel.path 
+  ? (path.isAbsolute(config.excel.path) ? config.excel.path : path.join(process.cwd(), config.excel.path))
+  : path.join(process.cwd(), "order-ai.xlsx");
 
 // 파일이 바뀐 경우에만 동기화(가볍게)
 let lastMtimeMs = 0;
