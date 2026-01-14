@@ -49,7 +49,7 @@ export function expandAliases(text: string): string {
   const aliases = loadAliasCache();
   let expanded = text;
   
-  // 공백/특수문자로 분리된 단어 단위로 치환
+  // 1. 정확한 단어 매칭 (공백/특수문자로 분리된 경우)
   const words = text.split(/(\s+|[,()\/\-])/);
   const expandedWords = words.map(word => {
     const lowerWord = word.toLowerCase();
@@ -60,6 +60,27 @@ export function expandAliases(text: string): string {
   });
   
   expanded = expandedWords.join('');
+  
+  // 2. 부분 매칭 (붙어있는 경우 대응) - 성능 최적화
+  // 별칭이 긴 것부터 순서대로 치환 (긴 것이 우선)
+  // 3글자 이상이고 사용 빈도 5회 이상인 것만 처리
+  const sortedAliases = Array.from(aliases.entries())
+    .filter(([alias]) => alias.length >= 3)  // 최소 3글자
+    .sort((a, b) => b[0].length - a[0].length)  // 긴 것 우선
+    .slice(0, 50);  // 상위 50개만 (성능 최적화)
+  
+  const lowerExpanded = expanded.toLowerCase();
+  
+  for (const [alias, canonical] of sortedAliases) {
+    if (lowerExpanded.includes(alias)) {
+      // 대소문자 구분 없이 치환
+      const regex = new RegExp(alias, 'gi');
+      expanded = expanded.replace(regex, ` ${canonical} `);
+    }
+  }
+  
+  // 3. 연속된 공백 정리
+  expanded = expanded.replace(/\s+/g, ' ').trim();
   
   return expanded;
 }
