@@ -407,6 +407,22 @@ export default function Home() {
     setTimeout(() => setCopied(false), 900);
   }
 
+  // ✅ Glass 품목 단위 결정 (API와 동일한 로직)
+  function getGlassUnit(itemName: string, itemNo?: string): string {
+    // 1. 품목명에 "레스토랑" 포함 → 잔
+    if (/레스토랑/i.test(itemName)) {
+      return "잔";
+    }
+    
+    // 2. 품목번호가 0으로 시작 (예: 0447/07, 0884/67) → 잔
+    if (itemNo && /^0/.test(itemNo)) {
+      return "잔";
+    }
+    
+    // 3. 기본 → 개
+    return "개";
+  }
+
   // ✅ 선택 즉시 화면 반영(직원메시지 + items)
   function applySuggestionToResult(itemIndex: number, s: any, price?: string) {
     console.log(`[Glass applySuggestionToResult] itemIndex=${itemIndex}, s.code=${s.code}, price=${price}, s.is_new_item=${s.is_new_item}`);
@@ -422,7 +438,10 @@ export default function Home() {
       const qty = target.qty;
       const isNewItem = !!s.is_new_item; // ✅ s에서 직접 가져오기
       
-      console.log(`[Glass applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, price=${price}`);
+      // ✅ 올바른 단위 결정
+      const unit = getGlassUnit(s.item_name || "", s.item_no || s.code || "");
+      
+      console.log(`[Glass applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, price=${price}, unit=${unit}`);
 
       // 1) items 확정 처리(override 가능)
       items[itemIndex] = {
@@ -436,16 +455,44 @@ export default function Home() {
 
       // 2) 직원메시지 라인 치환
       const staff = String(next.staff_message ?? "");
-      const oldLineUnresolved = `- 확인필요 / "${target.name}" / ${qty}병`;
-      const oldLineResolved = target?.item_no
-        ? `- ${target.item_no} / ${target.item_name} / ${qty}병`
-        : "";
+      
+      // ✅ 모든 가능한 단위로 이전 라인 검색
+      const possibleUnits = ["병", "잔", "개"];
+      let oldLineUnresolved = "";
+      let oldLineResolved = "";
+      let foundUnit = "병"; // 기본값
+      
+      for (const u of possibleUnits) {
+        const testUnresolved = `- 확인필요 / "${target.name}" / ${qty}${u}`;
+        const testResolved = target?.item_no
+          ? `- ${target.item_no} / ${target.item_name} / ${qty}${u}`
+          : "";
+        
+        if (staff.includes(testUnresolved)) {
+          oldLineUnresolved = testUnresolved;
+          foundUnit = u;
+          break;
+        }
+        if (testResolved && staff.includes(testResolved)) {
+          oldLineResolved = testResolved;
+          foundUnit = u;
+          break;
+        }
+      }
+      
+      if (!oldLineUnresolved && !oldLineResolved) {
+        // 기본값으로 설정
+        oldLineUnresolved = `- 확인필요 / "${target.name}" / ${qty}병`;
+        oldLineResolved = target?.item_no
+          ? `- ${target.item_no} / ${target.item_name} / ${qty}병`
+          : "";
+      }
 
-      // ✅ 신규 품목일 때 가격 포함
+      // ✅ 신규 품목일 때 가격 포함, 올바른 단위 사용
       const koreanName = s.item_name?.split(' / ')[0] || s.item_name;
       const newLine = isNewItem && price
-        ? `- ${s.code || s.item_no} / ${koreanName} / ${qty}병 / ${parseInt(price, 10).toLocaleString()}원`
-        : `- ${s.code || s.item_no} / ${koreanName} / ${qty}병`;
+        ? `- ${s.code || s.item_no} / ${koreanName} / ${qty}${unit} / ${parseInt(price, 10).toLocaleString()}원`
+        : `- ${s.code || s.item_no} / ${koreanName} / ${qty}${unit}`;
 
       console.log(`[Glass applySuggestionToResult] oldLineUnresolved="${oldLineUnresolved}"`);
       console.log(`[Glass applySuggestionToResult] oldLineResolved="${oldLineResolved}"`);
@@ -460,12 +507,13 @@ export default function Home() {
         next.staff_message = staff.replace(oldLineResolved, newLine);
         console.log(`[Glass] Replaced resolved line`);
       } else {
-        // fallback
+        // fallback: 모든 단위 검색
         next.staff_message = staff
           .split("\n")
           .map((line) => {
-            const hasQty = line.includes(`${qty}병`);
-            if (!hasQty) return line;
+            // 모든 단위로 검색
+            const hasQtyWithAnyUnit = possibleUnits.some(u => line.includes(`${qty}${u}`));
+            if (!hasQtyWithAnyUnit) return line;
 
             const hitUnresolved =
               line.includes("확인필요") && line.includes(String(target.name ?? ""));
