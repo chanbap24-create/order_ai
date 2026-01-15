@@ -408,15 +408,19 @@ export default function Home() {
   }
 
   // ✅ Glass 품목 단위 결정 (API와 동일한 로직)
-  function getGlassUnit(itemName: string, itemNo?: string): string {
+  function getGlassUnit(itemName: string): string {
     // 1. 품목명에 "레스토랑" 포함 → 잔
     if (/레스토랑/i.test(itemName)) {
       return "잔";
     }
     
-    // 2. 품목번호가 0으로 시작 (예: 0447/07, 0884/67) → 잔
-    if (itemNo && /^0/.test(itemNo)) {
-      return "잔";
+    // 2. RD 코드가 0으로 시작 (0447/07, 0884/67 등) → 잔
+    const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
+    if (rdMatch) {
+      const code = rdMatch[1];
+      if (code.startsWith("0")) {
+        return "잔";
+      }
     }
     
     // 3. 기본 → 개
@@ -438,8 +442,8 @@ export default function Home() {
       const qty = target.qty;
       const isNewItem = !!s.is_new_item; // ✅ s에서 직접 가져오기
       
-      // ✅ 올바른 단위 결정
-      const unit = getGlassUnit(s.item_name || "", s.item_no || s.code || "");
+      // ✅ 올바른 단위 결정 (품목명에서 RD 코드 추출)
+      const unit = getGlassUnit(s.item_name || "");
       
       console.log(`[Glass applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, price=${price}, unit=${unit}`);
 
