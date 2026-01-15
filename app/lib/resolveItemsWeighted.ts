@@ -498,6 +498,119 @@ export function resolveItemsByClientWeighted(
     
     console.log(`[resolveItemsWeighted] 입력: "${it.name}" → 전처리: "${searchName}"`);
     
+    // 🔍 0단계: 품목번호 정확 매칭 (최우선)
+    // 예: "0884/33", "D701049" 같은 품목번호 직접 입력 케이스
+    const itemNoPattern = /^([A-Z]?\d{4,7}[\/-]?\d{0,3})$/i;
+    const itemNoMatch = stripQtyAndUnit(searchName).trim().match(itemNoPattern);
+    
+    if (itemNoMatch) {
+      const inputItemNo = itemNoMatch[1].toUpperCase();
+      console.log(`[ItemNo Exact] 품목번호 입력 감지: "${inputItemNo}"`);
+      
+      // 1) 거래처 이력에서 먼저 검색
+      const clientExact = db.prepare(`
+        SELECT item_no, item_name
+        FROM client_item_stats
+        WHERE client_code = ? AND (
+          UPPER(item_no) = ? OR
+          UPPER(REPLACE(item_no, '/', '')) = UPPER(REPLACE(?, '/', '')) OR
+          UPPER(REPLACE(item_no, '-', '')) = UPPER(REPLACE(?, '-', ''))
+        )
+        LIMIT 1
+      `).get(clientCode, inputItemNo, inputItemNo, inputItemNo) as any;
+      
+      if (clientExact) {
+        console.log(`[ItemNo Exact] ✅ 거래처 이력에서 발견: ${clientExact.item_no} - ${clientExact.item_name}`);
+        return {
+          ...it,
+          normalized_query: searchName,
+          resolved: true,
+          item_no: clientExact.item_no,
+          item_name: clientExact.item_name,
+          score: 1.0,
+          method: "item_no_exact_client",
+          candidates: [],
+          suggestions: [],
+        };
+      }
+      
+      // 2) 마스터 테이블에서 검색
+      const masterTable = pickMasterTable();
+      if (masterTable) {
+        const cols = detectColumns(masterTable);
+        if (cols) {
+          try {
+            const masterExact = db.prepare(`
+              SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
+              FROM ${masterTable}
+              WHERE UPPER(${cols.itemNo}) = ? OR
+                    UPPER(REPLACE(${cols.itemNo}, '/', '')) = UPPER(REPLACE(?, '/', '')) OR
+                    UPPER(REPLACE(${cols.itemNo}, '-', '')) = UPPER(REPLACE(?, '-', ''))
+              LIMIT 1
+            `).get(inputItemNo, inputItemNo, inputItemNo) as any;
+            
+            if (masterExact) {
+              console.log(`[ItemNo Exact] ✅ 마스터에서 발견: ${masterExact.item_no} - ${masterExact.item_name}`);
+              
+              // 신규 품목으로 표시
+              const supplyPrice = (masterExact as any).supply_price || (masterExact as any).price;
+              
+              return {
+                ...it,
+                normalized_query: searchName,
+                resolved: false, // 신규 품목은 미확정
+                method: "item_no_exact_master",
+                candidates: [],
+                suggestions: [{
+                  item_no: masterExact.item_no,
+                  item_name: masterExact.item_name,
+                  score: 1.0,
+                  is_new_item: true,
+                  supply_price: supplyPrice,
+                }],
+              };
+            }
+          } catch (e) {
+            console.error('[ItemNo Exact] 마스터 검색 실패:', e);
+          }
+        }
+      }
+      
+      // 3) 신규 품목(master_items)에서 검색
+      try {
+        const newItemExact = db.prepare(`
+          SELECT item_no, item_name, supply_price
+          FROM master_items
+          WHERE UPPER(item_no) = ? OR
+                UPPER(REPLACE(item_no, '/', '')) = UPPER(REPLACE(?, '/', '')) OR
+                UPPER(REPLACE(item_no, '-', '')) = UPPER(REPLACE(?, '-', ''))
+          LIMIT 1
+        `).get(inputItemNo, inputItemNo, inputItemNo) as any;
+        
+        if (newItemExact) {
+          console.log(`[ItemNo Exact] ✅ 신규 품목에서 발견: ${newItemExact.item_no} - ${newItemExact.item_name}`);
+          return {
+            ...it,
+            normalized_query: searchName,
+            resolved: false,
+            method: "item_no_exact_new",
+            candidates: [],
+            suggestions: [{
+              item_no: newItemExact.item_no,
+              item_name: newItemExact.item_name,
+              score: 1.0,
+              is_new_item: true,
+              supply_price: newItemExact.supply_price,
+            }],
+          };
+        }
+      } catch (e) {
+        console.error('[ItemNo Exact] 신규 품목 검색 실패:', e);
+      }
+      
+      console.log(`[ItemNo Exact] ❌ 품목번호를 찾을 수 없음: ${inputItemNo}`);
+    }
+    
     // ✨ 2단계: 검색어 확장 (토큰 매핑 학습 활용)
     const expansion = expandQuery(searchName, 0.5);
     logQueryExpansion(expansion);
