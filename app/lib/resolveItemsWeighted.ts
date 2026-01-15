@@ -510,7 +510,8 @@ export function resolveItemsByClientWeighted(
       // 🍷 와인잔 특별 처리: 품목명 내부의 번호 매칭 (예: "RD 0884/33 ...")
       // 와인잔은 품목명에 "RD 0884/33" 같은 패턴이 포함됨
       try {
-        const glassPattern = `%RD ${inputItemNo.replace(/\//g, '/')}%`;
+        // 공백 포함해서 패턴 생성 (RD 다음에 공백)
+        const glassPattern = `%RD ${inputItemNo}%`;
         const glassPattern2 = `%RD ${inputItemNo.replace(/\//g, '-')}%`;
         const glassPattern3 = `%RD ${inputItemNo.replace(/[\/-]/g, '')}%`;
         
