@@ -277,6 +277,79 @@ export function resolveGlassItemsByClient(
     .all() as Array<{ item_no: string; item_name: string }>;
 
   return items.map((it) => {
+    // 🔍 0단계: 품목번호 직접 입력 감지 (최우선)
+    // 예: "0884/33", "0447/07" 같은 와인잔 품목번호
+    const itemNoPattern = /^([A-Z]?\d{4}[\/-]?\d{2,3})$/i;
+    const itemNoMatch = stripQtyAndUnit(it.name).trim().match(itemNoPattern);
+    
+    if (itemNoMatch) {
+      const inputItemNo = itemNoMatch[1].toUpperCase();
+      console.log(`[Glass ItemNo Exact] 와인잔 품목번호 입력 감지: "${inputItemNo}"`);
+      
+      // 🍷 와인잔 패턴: "RD {번호}" 형식으로 품목명 내부 검색
+      try {
+        const glassPattern = `%RD ${inputItemNo}%`;
+        const glassPattern2 = `%RD ${inputItemNo.replace(/\//g, '-')}%`;
+        const glassPattern3 = `%RD ${inputItemNo.replace(/[\/-]/g, '')}%`;
+        
+        console.log(`[Glass Pattern] 와인잔 패턴 검색: "${glassPattern}"`);
+        
+        // 1) 거래처 이력에서 품목명 내부 번호로 검색
+        const clientGlass = db.prepare(`
+          SELECT item_no, item_name
+          FROM glass_client_item_stats
+          WHERE client_code = ? AND (
+            UPPER(item_name) LIKE UPPER(?) OR
+            UPPER(item_name) LIKE UPPER(?) OR
+            UPPER(item_name) LIKE UPPER(?)
+          )
+          LIMIT 1
+        `).get(clientCode, glassPattern, glassPattern2, glassPattern3) as any;
+        
+        if (clientGlass) {
+          console.log(`[Glass Pattern] ✅ 거래처 이력에서 와인잔 발견: ${clientGlass.item_no} - ${clientGlass.item_name}`);
+          return {
+            ...it,
+            normalized_query: it.name,
+            resolved: true,
+            item_no: clientGlass.item_no,
+            item_name: clientGlass.item_name,
+            score: 1.0,
+            method: "glass_pattern_client",
+            candidates: [],
+            suggestions: [],
+          };
+        }
+        
+        // 2) 전체 품목에서 품목명 내부 번호로 검색
+        const masterGlass = allItems.find((r) => {
+          const itemNameUpper = r.item_name.toUpperCase();
+          return itemNameUpper.includes(`RD ${inputItemNo}`) ||
+                 itemNameUpper.includes(`RD ${inputItemNo.replace(/\//g, '-')}`) ||
+                 itemNameUpper.includes(`RD ${inputItemNo.replace(/[\/-]/g, '')}`);
+        });
+        
+        if (masterGlass) {
+          console.log(`[Glass Pattern] ✅ 전체 품목에서 와인잔 발견: ${masterGlass.item_no} - ${masterGlass.item_name}`);
+          return {
+            ...it,
+            normalized_query: it.name,
+            resolved: true,
+            item_no: masterGlass.item_no,
+            item_name: masterGlass.item_name,
+            score: 1.0,
+            method: "glass_pattern_master",
+            candidates: [],
+            suggestions: [],
+          };
+        }
+      } catch (e) {
+        console.error('[Glass Pattern] 와인잔 패턴 검색 실패:', e);
+      }
+      
+      console.log(`[Glass ItemNo Exact] ❌ 와인잔 품목번호를 찾을 수 없음: ${inputItemNo}`);
+    }
+    
     // ✅ 1순위: 코드가 있으면 코드로 정확히 매칭 (전체 품목에서 검색)
     if (it.code) {
       const codeMatch = allItems.find((r) => {
