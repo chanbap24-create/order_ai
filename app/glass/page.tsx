@@ -82,7 +82,7 @@ export default function Home() {
   const [isNewBusiness, setIsNewBusiness] = useState(false);
   const [newBusinessName, setNewBusinessName] = useState("");
   const [newBusinessPhone, setNewBusinessPhone] = useState("");
-  const [newBusinessAddress, setNewBusinessAddress] = useState("");
+  const [newBusinessEmail, setNewBusinessEmail] = useState(""); // 주소 → 이메일
 
   // ✅ 발주 옵션
   const [customDeliveryDate, setCustomDeliveryDate] = useState("");
@@ -182,7 +182,7 @@ export default function Home() {
           newBusiness: {
             name: newBusinessName.trim(),
             phone: newBusinessPhone.trim(),
-            address: newBusinessAddress.trim() || undefined,
+            email: newBusinessEmail.trim() || undefined, // 이메일로 변경
           },
         });
         setData(json);
@@ -847,7 +847,7 @@ export default function Home() {
                 // 체크 해제 시 입력 초기화
                 setNewBusinessName("");
                 setNewBusinessPhone("");
-                setNewBusinessAddress("");
+                setNewBusinessEmail(""); // 이메일로 변경
               }
             }}
             style={{ width: 18, height: 18, cursor: "pointer" }}
@@ -897,13 +897,13 @@ export default function Home() {
             
             <div>
               <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
-                주소 (선택)
+                세금계산서 이메일 (선택)
               </label>
               <input
-                type="text"
-                value={newBusinessAddress}
-                onChange={(e) => setNewBusinessAddress(e.target.value)}
-                placeholder="예: 서울시 강남구 테헤란로 123"
+                type="email"
+                value={newBusinessEmail}
+                onChange={(e) => setNewBusinessEmail(e.target.value)}
+                placeholder="예: admin@company.com"
                 style={{
                   width: "100%",
                   padding: "10px 12px",

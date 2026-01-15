@@ -441,6 +441,15 @@ function formatStaffMessage(
     `거래처: ${client.client_name} (${cleanClientCode(client.client_code)})`
   );
   lines.push(`배송 예정일: ${deliveryLabel}`);
+  
+  // ✅ 신규 사업자 정보 (연락처, 이메일)
+  if ((client as any).phone) {
+    lines.push(`연락처: ${(client as any).phone}`);
+  }
+  if ((client as any).email) {
+    lines.push(`세금계산서: ${(client as any).email}`);
+  }
+  
   lines.push(""); // 한 칸 띄우기
   
   // ✅ 발주 옵션 (배송일 두 칸 아래에 표기)
@@ -495,7 +504,7 @@ export async function POST(req: Request) {
         client_name: newBusiness.name,
         client_code: "NEW",
         phone: newBusiness.phone,
-        address: newBusiness.address,
+        email: newBusiness.email, // 이메일 추가
       };
       
       // 신규 사업자는 이력 없음 → master만 검색
