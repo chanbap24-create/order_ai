@@ -45,35 +45,53 @@ function loadAliasCache(): Map<string, string> {
 }
 
 // 별칭 확장
-export function expandAliases(text: string): string {
+export function expandAliases(text: string, debug = false): string {
   const aliases = loadAliasCache();
   let expanded = text;
+  
+  if (debug) console.log('[별칭 확장] 입력:', text);
+  if (debug) console.log('[별칭 확장] 캐시 크기:', aliases.size);
   
   // 1. 정확한 단어 매칭 (공백/특수문자로 분리된 경우)
   const words = text.split(/(\s+|[,()\/\-])/);
   const expandedWords = words.map(word => {
     const lowerWord = word.toLowerCase();
     if (aliases.has(lowerWord)) {
+      if (debug) console.log(`[별칭 확장] 단어 매칭: "${word}" → "${aliases.get(lowerWord)!}"`);
       return aliases.get(lowerWord)!;
     }
     return word;
   });
   
   expanded = expandedWords.join('');
+  if (debug) console.log('[별칭 확장] 1단계 결과:', expanded);
   
   // 2. 부분 매칭 (붙어있는 경우 대응) - 성능 최적화
   // 별칭이 긴 것부터 순서대로 치환 (긴 것이 우선)
-  // 3글자 이상이고 사용 빈도 5회 이상인 것만 처리
+  // 3글자 이상인 것만 처리
   const sortedAliases = Array.from(aliases.entries())
     .filter(([alias]) => alias.length >= 3)  // 최소 3글자
     .sort((a, b) => b[0].length - a[0].length)  // 긴 것 우선
-    .slice(0, 50);  // 상위 50개만 (성능 최적화)
+    .slice(0, 100);  // 상위 100개로 확대 (별칭 커버리지 향상)
+  
+  if (debug) console.log('[별칭 확장] 검사할 별칭 수:', sortedAliases.length);
   
   const lowerExpanded = expanded.toLowerCase();
+  const normalizedExpanded = lowerExpanded.replace(/\s+/g, '');  // 공백 제거 버전
   
   for (const [alias, canonical] of sortedAliases) {
-    if (lowerExpanded.includes(alias)) {
-      // 대소문자 구분 없이 치환
+    const normalizedAlias = alias.replace(/\s+/g, '');  // 별칭도 공백 제거
+    
+    // 1) 공백 무시 매칭 (예: "클레멍라발레" = "클레멍 라발리")
+    if (normalizedExpanded.includes(normalizedAlias)) {
+      if (debug) console.log(`[별칭 확장] 부분 매칭 (공백무시): "${alias}" → "${canonical}"`);
+      // 대소문자 구분 없이 치환 (공백 있는 원본 별칭으로도 시도)
+      const regex = new RegExp(alias.replace(/\s+/g, '\\s*'), 'gi');
+      expanded = expanded.replace(regex, ` ${canonical} `);
+    }
+    // 2) 기존 방식 (공백 포함 정확 매칭)
+    else if (lowerExpanded.includes(alias)) {
+      if (debug) console.log(`[별칭 확장] 부분 매칭 (정확): "${alias}" → "${canonical}"`);
       const regex = new RegExp(alias, 'gi');
       expanded = expanded.replace(regex, ` ${canonical} `);
     }
@@ -81,6 +99,8 @@ export function expandAliases(text: string): string {
   
   // 3. 연속된 공백 정리
   expanded = expanded.replace(/\s+/g, ' ').trim();
+  
+  if (debug) console.log('[별칭 확장] 최종 결과:', expanded);
   
   return expanded;
 }
