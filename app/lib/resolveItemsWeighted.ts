@@ -507,7 +507,83 @@ export function resolveItemsByClientWeighted(
       const inputItemNo = itemNoMatch[1].toUpperCase();
       console.log(`[ItemNo Exact] 품목번호 입력 감지: "${inputItemNo}"`);
       
-      // 1) 거래처 이력에서 먼저 검색
+      // 🍷 와인잔 특별 처리: 품목명 내부의 번호 매칭 (예: "RD 0884/33 ...")
+      // 와인잔은 품목명에 "RD 0884/33" 같은 패턴이 포함됨
+      try {
+        const glassPattern = `%RD ${inputItemNo.replace(/\//g, '/')}%`;
+        const glassPattern2 = `%RD ${inputItemNo.replace(/\//g, '-')}%`;
+        const glassPattern3 = `%RD ${inputItemNo.replace(/[\/-]/g, '')}%`;
+        
+        console.log(`[Glass Pattern] 와인잔 패턴 검색: "${glassPattern}"`);
+        
+        // 1-1) 거래처 이력에서 품목명 내부 번호로 검색
+        const clientGlass = db.prepare(`
+          SELECT item_no, item_name
+          FROM client_item_stats
+          WHERE client_code = ? AND (
+            UPPER(item_name) LIKE UPPER(?) OR
+            UPPER(item_name) LIKE UPPER(?) OR
+            UPPER(item_name) LIKE UPPER(?)
+          )
+          LIMIT 1
+        `).get(clientCode, glassPattern, glassPattern2, glassPattern3) as any;
+        
+        if (clientGlass) {
+          console.log(`[Glass Pattern] ✅ 거래처 이력에서 와인잔 발견: ${clientGlass.item_no} - ${clientGlass.item_name}`);
+          return {
+            ...it,
+            normalized_query: searchName,
+            resolved: true,
+            item_no: clientGlass.item_no,
+            item_name: clientGlass.item_name,
+            score: 1.0,
+            method: "glass_pattern_client",
+            candidates: [],
+            suggestions: [],
+          };
+        }
+        
+        // 1-2) 마스터 테이블에서 품목명 내부 번호로 검색
+        const masterTable = pickMasterTable();
+        if (masterTable) {
+          const cols = detectColumns(masterTable);
+          if (cols) {
+            const masterGlass = db.prepare(`
+              SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
+              FROM ${masterTable}
+              WHERE UPPER(${cols.itemName}) LIKE UPPER(?) OR
+                    UPPER(${cols.itemName}) LIKE UPPER(?) OR
+                    UPPER(${cols.itemName}) LIKE UPPER(?)
+              LIMIT 1
+            `).get(glassPattern, glassPattern2, glassPattern3) as any;
+            
+            if (masterGlass) {
+              console.log(`[Glass Pattern] ✅ 마스터에서 와인잔 발견: ${masterGlass.item_no} - ${masterGlass.item_name}`);
+              
+              const supplyPrice = (masterGlass as any).supply_price || (masterGlass as any).price;
+              
+              return {
+                ...it,
+                normalized_query: searchName,
+                resolved: false,
+                method: "glass_pattern_master",
+                candidates: [],
+                suggestions: [{
+                  item_no: masterGlass.item_no,
+                  item_name: masterGlass.item_name,
+                  score: 1.0,
+                  is_new_item: true,
+                  supply_price: supplyPrice,
+                }],
+              };
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[Glass Pattern] 와인잔 패턴 검색 실패:', e);
+      }
+      
+      // 1) 거래처 이력에서 먼저 검색 (품목 코드 직접 매칭)
       const clientExact = db.prepare(`
         SELECT item_no, item_name
         FROM client_item_stats
