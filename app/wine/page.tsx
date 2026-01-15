@@ -1117,50 +1117,48 @@ export default function Home() {
                               const isNewItem = !!s.is_new_item;
 
                               return (
-                                <div key={sidx} style={{ marginBottom: 12, padding: "12px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 8, border: "1px solid #e0e0e0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-                                  {/* 품목명 + 배지 + 점수 */}
-                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                                <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 6, border: "1px solid #e0e0e0" }}>
+                                  {/* 품목명 + 배지 + 점수 (한 줄) */}
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
                                     <div style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                      <b style={{ fontSize: 14 }}>{s.item_no}</b>
-                                      <span style={{ fontSize: 13, color: "#333", marginLeft: 8 }}>
+                                      <b>{s.item_no}</b>
+                                      <span style={{ color: "#333", marginLeft: 6 }}>
                                         {s.item_name?.split(' / ')[0] || s.item_name}
                                       </span>
                                       {isNewItem && (
-                                        <span style={{ marginLeft: 8, padding: "2px 6px", background: "#ff6b35", color: "white", fontSize: 11, borderRadius: 4, fontWeight: 600 }}>
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#ff6b35", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
                                           신규
                                         </span>
                                       )}
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                                      <span style={{ fontSize: 11, color: "#888" }}>{Number(s.score || 0).toFixed(3)}</span>
-                                    </div>
+                                    <span style={{ fontSize: 10, color: "#888", marginLeft: 8 }}>{Number(s.score || 0).toFixed(3)}</span>
                                   </div>
 
-                                  {/* 신규품목이면 가격/할인 입력 */}
+                                  {/* 신규품목이면 가격/할인 입력 (컴팩트) */}
                                   {isNewItem ? (
-                                    <div style={{ marginBottom: 10 }}>
-                                      {/* 공급가 입력 */}
-                                      <div style={{ marginBottom: 8 }}>
-                                        <label style={{ fontSize: 11, color: "#666", display: "block", marginBottom: 4 }}>공급가</label>
+                                    <div style={{ marginBottom: 6 }}>
+                                      {/* 공급가 + 할인율 (한 줄) */}
+                                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
+                                        <div style={{ flex: "0 0 auto", fontSize: 10, color: "#666" }}>공급가</div>
                                         <input
                                           type="number"
-                                          placeholder="예: 35000"
+                                          placeholder="120000"
                                           value={newItemPrices[itemKey] || ''}
                                           onChange={(e) => setNewItemPrices(prev => ({ ...prev, [itemKey]: e.target.value }))}
                                           style={{
-                                            width: "100%",
-                                            padding: "8px 12px",
+                                            flex: 1,
+                                            padding: "4px 8px",
                                             border: "1px solid #ddd",
-                                            borderRadius: 6,
-                                            fontSize: 13,
+                                            borderRadius: 4,
+                                            fontSize: 12,
                                           }}
                                         />
                                       </div>
 
-                                      {/* 할인율 버튼 */}
-                                      <div style={{ marginBottom: 8 }}>
-                                        <label style={{ fontSize: 11, color: "#666", display: "block", marginBottom: 4 }}>할인율</label>
-                                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                      {/* 할인율 버튼 (한 줄) */}
+                                      <div style={{ marginBottom: 4 }}>
+                                        <div style={{ fontSize: 10, color: "#666", marginBottom: 3 }}>할인율</div>
+                                        <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                                           {[10, 15, 20, 25, 30].map((discount) => (
                                             <button
                                               key={discount}
@@ -1169,14 +1167,14 @@ export default function Home() {
                                                 setNewItemDiscounts(prev => ({ ...prev, [itemKey]: discount }));
                                               }}
                                               style={{
-                                                padding: "6px 12px",
-                                                border: `2px solid ${newItemDiscounts[itemKey] === discount ? '#ff6b35' : '#ddd'}`,
-                                                borderRadius: 6,
-                                                background: newItemDiscounts[itemKey] === discount ? '#fff8f0' : 'white',
+                                                padding: "4px 8px",
+                                                border: `1px solid ${newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#ddd'}`,
+                                                borderRadius: 4,
+                                                background: newItemDiscounts[itemKey] === discount ? '#e8f4ff' : 'white',
                                                 cursor: "pointer",
-                                                fontSize: 12,
+                                                fontSize: 11,
                                                 fontWeight: newItemDiscounts[itemKey] === discount ? 600 : 400,
-                                                color: newItemDiscounts[itemKey] === discount ? '#ff6b35' : '#666',
+                                                color: newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#666',
                                               }}
                                             >
                                               {discount}%
@@ -1191,12 +1189,12 @@ export default function Home() {
                                               }
                                             }}
                                             style={{
-                                              padding: "6px 12px",
-                                              border: "2px solid #ddd",
-                                              borderRadius: 6,
+                                              padding: "4px 8px",
+                                              border: "1px solid #ddd",
+                                              borderRadius: 4,
                                               background: "white",
                                               cursor: "pointer",
-                                              fontSize: 12,
+                                              fontSize: 11,
                                               color: "#666",
                                             }}
                                           >
@@ -1204,31 +1202,16 @@ export default function Home() {
                                           </button>
                                         </div>
                                       </div>
-
-                                      {/* 할인가 표시 */}
-                                      {newItemPrices[itemKey] && newItemDiscounts[itemKey] > 0 && (
-                                        <div style={{ 
-                                          padding: "8px 12px", 
-                                          background: "#e8fff1", 
-                                          borderRadius: 6,
-                                          fontSize: 12,
-                                          color: "#0a7",
-                                          fontWeight: 600,
-                                          marginBottom: 8
-                                        }}>
-                                          최종가: {Math.round(Number(newItemPrices[itemKey]) * (1 - newItemDiscounts[itemKey] / 100)).toLocaleString()}원
-                                        </div>
-                                      )}
                                     </div>
                                   ) : (
                                     s.supply_price && (
-                                      <div style={{ marginBottom: 10, fontSize: 13, color: "#0a7", fontWeight: 600 }}>
+                                      <div style={{ marginBottom: 6, fontSize: 11, color: "#0a7", fontWeight: 600 }}>
                                         공급가: {Number(s.supply_price).toLocaleString()}원
                                       </div>
                                     )
                                   )}
 
-                                  {/* 적용 버튼 */}
+                                  {/* 적용 버튼 (작게) */}
                                   <button
                                     disabled={saving || (isNewItem && !newItemPrices[itemKey])}
                                     onClick={async () => {
@@ -1248,13 +1231,13 @@ export default function Home() {
                                     }}
                                     style={{
                                       width: "100%",
-                                      padding: "10px 12px",
-                                      borderRadius: 6,
+                                      padding: "6px 12px",
+                                      borderRadius: 4,
                                       border: "none",
                                       background: saved ? "#0a7" : "#4a90e2",
                                       color: "white",
                                       cursor: saving || (isNewItem && !newItemPrices[itemKey]) ? "not-allowed" : "pointer",
-                                      fontSize: 13,
+                                      fontSize: 12,
                                       fontWeight: 600,
                                       opacity: saving || (isNewItem && !newItemPrices[itemKey]) ? 0.5 : 1,
                                     }}
