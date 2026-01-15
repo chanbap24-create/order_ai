@@ -1137,70 +1137,64 @@ export default function Home() {
                                   {/* 신규품목이면 가격/할인 입력 (컴팩트) */}
                                   {isNewItem ? (
                                     <div style={{ marginBottom: 6 }}>
-                                      {/* 공급가 + 할인율 (한 줄) */}
-                                      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
+                                      {/* 공급가 + 할인율 (한 줄로 통합) */}
+                                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                                         <div style={{ flex: "0 0 auto", fontSize: 10, color: "#666" }}>공급가</div>
                                         <input
                                           type="number"
-                                          placeholder="120000"
+                                          placeholder="240000"
                                           value={newItemPrices[itemKey] || ''}
                                           onChange={(e) => setNewItemPrices(prev => ({ ...prev, [itemKey]: e.target.value }))}
                                           style={{
-                                            flex: 1,
+                                            flex: "0 0 120px",
                                             padding: "4px 8px",
                                             border: "1px solid #ddd",
                                             borderRadius: 4,
                                             fontSize: 12,
                                           }}
                                         />
-                                      </div>
-
-                                      {/* 할인율 버튼 (한 줄) */}
-                                      <div style={{ marginBottom: 4 }}>
-                                        <div style={{ fontSize: 10, color: "#666", marginBottom: 3 }}>할인율</div>
-                                        <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                                          {[10, 15, 20, 25, 30].map((discount) => (
-                                            <button
-                                              key={discount}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setNewItemDiscounts(prev => ({ ...prev, [itemKey]: discount }));
-                                              }}
-                                              style={{
-                                                padding: "4px 8px",
-                                                border: `1px solid ${newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#ddd'}`,
-                                                borderRadius: 4,
-                                                background: newItemDiscounts[itemKey] === discount ? '#e8f4ff' : 'white',
-                                                cursor: "pointer",
-                                                fontSize: 11,
-                                                fontWeight: newItemDiscounts[itemKey] === discount ? 600 : 400,
-                                                color: newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#666',
-                                              }}
-                                            >
-                                              {discount}%
-                                            </button>
-                                          ))}
+                                        {/* 할인율 버튼 (같은 줄) */}
+                                        {[10, 15, 20, 25, 30].map((discount) => (
                                           <button
+                                            key={discount}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              const custom = prompt("할인율 입력 (%):", "0");
-                                              if (custom && !isNaN(Number(custom))) {
-                                                setNewItemDiscounts(prev => ({ ...prev, [itemKey]: Number(custom) }));
-                                              }
+                                              setNewItemDiscounts(prev => ({ ...prev, [itemKey]: discount }));
                                             }}
                                             style={{
                                               padding: "4px 8px",
-                                              border: "1px solid #ddd",
+                                              border: `1px solid ${newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#ddd'}`,
                                               borderRadius: 4,
-                                              background: "white",
+                                              background: newItemDiscounts[itemKey] === discount ? '#e8f4ff' : 'white',
                                               cursor: "pointer",
                                               fontSize: 11,
-                                              color: "#666",
+                                              fontWeight: newItemDiscounts[itemKey] === discount ? 600 : 400,
+                                              color: newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#666',
                                             }}
                                           >
-                                            직접
+                                            {discount}%
                                           </button>
-                                        </div>
+                                        ))}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const custom = prompt("할인율 입력 (%):", "0");
+                                            if (custom && !isNaN(Number(custom))) {
+                                              setNewItemDiscounts(prev => ({ ...prev, [itemKey]: Number(custom) }));
+                                            }
+                                          }}
+                                          style={{
+                                            padding: "4px 8px",
+                                            border: "1px solid #ddd",
+                                            borderRadius: 4,
+                                            background: "white",
+                                            cursor: "pointer",
+                                            fontSize: 11,
+                                            color: "#666",
+                                          }}
+                                        >
+                                          직접
+                                        </button>
                                       </div>
                                     </div>
                                   ) : (
