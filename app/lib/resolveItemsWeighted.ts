@@ -92,30 +92,164 @@ export function hasVintageHint(text: string): boolean {
 /* ================= 생산자 감지 ================= */
 
 const WINE_PRODUCERS = [
-  // 한글
-  '릿지', '샤토', '도멘', '메종', '부샤', '루이', '조르주', '페르낭', '니콜라',
-  '몬테', '마르께', '안토니', '카사', '보데가', '펜폴즈', '야콥스',
+  // ===== 한글 생산자 (자주 사용되는 브랜드) =====
+  // 이탈리아 생산자
+  '비온디산티', '비온디', '산티', '알테시노', '가야', '안티노리', '안토니', 
+  '티냐넬로', '마세토', '사시카이아', '오르넬라이아', '솔라이아',
+  '루피노', '프레스코발디', '폰소', '마르께시', '카사', '몬테',
+  '바롤로', '브루넬로', '키안티', '바르바레스코', '아마로네',
+  '산지오베제', '네비올로', '몬탈치노', '발폴리첼라', '수페리오레',
   
-  // 영문
-  'ridge', 'chateau', 'domaine', 'maison', 'bouchard', 'louis', 'georges',
-  'fernand', 'nicolas', 'monte', 'marchesi', 'antinori', 'casa', 'bodega',
-  'penfolds', 'jacobs', 'kendall', 'beringer', 'mondavi', 'gallo',
+  // 프랑스 생산자
+  '샤토', '도멘', '메종', '부샤', '루이', '조르주', '페르낭', '니콜라',
+  '샤토마고', '샤토라투르', '샤토무통', '샤또라피트', '샤또마르고',
+  '로만네', '콩티', '보졸레', '뽀마르', '꼬뜨드본', '샹베르땡',
   
-  // 약어
-  'ch', 'dom', 'mt', 'casa', 'rg'
+  // 미국/호주 생산자
+  '릿지', '펜폴즈', '야콥스', '켄달잭슨', '베링거', '몬다비', '갈로',
+  
+  // 스페인/남미 생산자
+  '보데가', '토레스', '베가', '시실리아',
+  
+  // ===== 영문 생산자 =====
+  // 이탈리아
+  'biondi', 'santi', 'altesino', 'gaja', 'antinori', 'marchesi',
+  'tignanello', 'masseto', 'sassicaia', 'ornellaia', 'solaia',
+  'ruffino', 'frescobaldi', 'fontodi', 'casa', 'monte',
+  'barolo', 'brunello', 'chianti', 'barbaresco', 'amarone',
+  'sangiovese', 'nebbiolo', 'montalcino', 'valpolicella', 'superiore',
+  
+  // 프랑스
+  'chateau', 'domaine', 'maison', 'bouchard', 'louis', 'georges',
+  'fernand', 'nicolas', 'romanee', 'conti', 'beaujolais', 'pommard',
+  
+  // 미국/호주
+  'ridge', 'penfolds', 'jacobs', 'kendall', 'beringer', 'mondavi', 'gallo',
+  
+  // 스페인/남미
+  'bodega', 'torres', 'vega', 'sicilia',
+  
+  // ===== 약어 =====
+  'ch', 'dom', 'mt', 'rd', 'rg', 'drc'
 ];
 
+// 생산자 캐시 (DB에서 동적 로드용 - 추후 구현)
+let producerCache: string[] | null = null;
+
+// DB에서 생산자 목록 로드 (item_alias 테이블 활용)
+function loadProducersFromDB(): string[] {
+  try {
+    // item_alias에서 생산자로 추정되는 별칭 추출
+    // 3글자 이상이고, 사용 빈도 5회 이상인 것만
+    const rows = db.prepare(`
+      SELECT DISTINCT alias, canonical, count
+      FROM item_alias
+      WHERE (
+        alias LIKE '%산티%' OR alias LIKE '%샤토%' OR alias LIKE '%도멘%' OR
+        alias LIKE '%알테%' OR alias LIKE '%가야%' OR alias LIKE '%바롤로%' OR
+        alias LIKE '%비온디%' OR alias LIKE '%메종%' OR alias LIKE '%릿지%' OR
+        canonical LIKE '%산티%' OR canonical LIKE '%샤토%' OR canonical LIKE '%도멘%' OR
+        canonical LIKE '%알테%' OR canonical LIKE '%가야%' OR canonical LIKE '%바롤로%' OR
+        canonical LIKE '%비온디%' OR canonical LIKE '%메종%' OR canonical LIKE '%릿지%'
+      )
+      AND LENGTH(alias) >= 3
+      AND count >= 5
+      ORDER BY count DESC
+      LIMIT 100
+    `).all() as Array<{ alias: string; canonical: string; count: number }>;
+    
+    const producers = new Set<string>();
+    
+    rows.forEach(row => {
+      // alias와 canonical 모두 추가
+      if (row.alias.length >= 3) {
+        producers.add(row.alias.toLowerCase());
+      }
+      if (row.canonical.length >= 3) {
+        producers.add(row.canonical.toLowerCase());
+      }
+    });
+    
+    const result = Array.from(producers);
+    console.log(`[Producer DB] 로드된 생산자 ${result.length}개:`, result.slice(0, 10));
+    return result;
+  } catch (e) {
+    console.error('[Producer DB] 로드 실패:', e);
+    return [];
+  }
+}
+
+// 통합 생산자 목록 (정적 + 동적)
+function getAllProducers(): string[] {
+  if (producerCache) {
+    return producerCache;
+  }
+  
+  // DB에서 동적 로드 + 정적 리스트 합치기
+  const dbProducers = loadProducersFromDB();
+  const allProducers = [...WINE_PRODUCERS, ...dbProducers];
+  
+  // 중복 제거
+  producerCache = Array.from(new Set(allProducers.map(p => p.toLowerCase())));
+  
+  console.log(`[Producer] 전체 생산자 목록: ${producerCache.length}개`);
+  return producerCache;
+}
+
 function detectProducer(rawName: string): { hasProducer: boolean; producer: string } {
+  const lowerName = rawName.toLowerCase().trim();
+  const producers = getAllProducers(); // 통합 생산자 목록 사용
+  
+  // 1단계: 전체 문자열에서 생산자 검색 (더 긴 매칭 우선)
+  let longestMatch = '';
+  let matchedProducer = '';
+  
+  for (const p of producers) {
+    const pLower = p.toLowerCase();
+    
+    // 전체 문자열에 생산자명 포함 여부 확인
+    if (lowerName.includes(pLower)) {
+      // 더 긴 매칭을 우선
+      if (pLower.length > longestMatch.length) {
+        longestMatch = pLower;
+        
+        // 원본 문자열에서 해당 부분 추출
+        const startIdx = lowerName.indexOf(pLower);
+        const endIdx = startIdx + pLower.length;
+        
+        // 공백으로 구분된 토큰 찾기 (생산자명 전체 추출)
+        const tokens = rawName.trim().split(/\s+/);
+        for (const token of tokens) {
+          if (token.toLowerCase().includes(pLower)) {
+            matchedProducer = token;
+            break;
+          }
+        }
+        
+        // 토큰에서 못 찾으면 직접 추출
+        if (!matchedProducer) {
+          matchedProducer = rawName.substring(startIdx, endIdx);
+        }
+      }
+    }
+  }
+  
+  if (matchedProducer) {
+    console.log(`[Wine] 🏭 생산자 감지: "${matchedProducer}" (패턴: "${longestMatch}", 원본: "${rawName}")`);
+    return { hasProducer: true, producer: matchedProducer };
+  }
+  
+  // 2단계: 첫 번째 토큰에서 생산자 검색 (기존 로직)
   const tokens = rawName.trim().split(/\s+/);
   if (tokens.length === 0) return { hasProducer: false, producer: '' };
   
   const firstToken = tokens[0].toLowerCase();
-  const matched = WINE_PRODUCERS.find(p => 
+  const matched = producers.find(p => 
     firstToken.includes(p.toLowerCase()) || p.toLowerCase().includes(firstToken)
   );
   
   if (matched) {
-    console.log(`[Wine] 🏭 생산자 감지: "${tokens[0]}" (패턴: ${matched})`);
+    console.log(`[Wine] 🏭 생산자 감지 (첫토큰): "${tokens[0]}" (패턴: ${matched})`);
     return { hasProducer: true, producer: tokens[0] };
   }
   
@@ -753,10 +887,36 @@ export function resolveItemsByClientWeighted(
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     const pool = Array.from(poolMap.values());
+    
+    // 🏭 생산자 필터링: 생산자가 감지되면 해당 생산자 품목만 남기기
+    let filteredPool = pool;
+    if (hasProducer && producer) {
+      const producerNorm = normTight(producer);
+      filteredPool = pool.filter(r => {
+        const itemNameNorm = normTight(r.item_name);
+        const matches = itemNameNorm.includes(producerNorm);
+        
+        if (!matches) {
+          console.log(`[Producer Filter] ❌ 제외: "${r.item_name}" (생산자 불일치)`);
+        }
+        
+        return matches;
+      });
+      
+      console.log(`[Producer Filter] 생산자 "${producer}" 필터 적용: ${pool.length}개 → ${filteredPool.length}개`);
+      
+      // 필터링 후 후보가 너무 적으면 경고
+      if (filteredPool.length === 0) {
+        console.warn(`[Producer Filter] ⚠️ 생산자 필터링 후 후보가 0개! 필터 무시하고 전체 검색`);
+        filteredPool = pool; // 롤백
+      } else if (filteredPool.length < 3) {
+        console.warn(`[Producer Filter] ⚠️ 생산자 필터링 후 후보가 ${filteredPool.length}개만 남음`);
+      }
+    }
 
     // 1) Exact 학습이면 하드 확정
     if (learned && learned.kind === "exact" && learnedItemNo) {
-      const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      const hit = filteredPool.find((r) => String(r.item_no) === learnedItemNo);
       if (hit) {
         return {
           ...it,
@@ -774,7 +934,7 @@ export function resolveItemsByClientWeighted(
 
     // 2) contains_specific 학습이면 하드 확정
     if (learned && learned.kind === "contains_specific" && learnedItemNo) {
-      const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      const hit = filteredPool.find((r) => String(r.item_no) === learnedItemNo);
       if (hit) {
         return {
           ...it,
@@ -795,9 +955,9 @@ export function resolveItemsByClientWeighted(
     const q = normalizeItemName(synonymApplied);
     const qExpanded = expansion.hasExpansion ? normalizeItemName(expansion.expanded) : q;
 
-    const scored = pool
+    const scored = filteredPool
       .map((r) => {
-        // 생산자 옵션 (생산자가 감지된 경우)
+        // 생산자 옵션은 이미 필터링했으므로 불필요 (하지만 점수 계산에는 유지)
         const scoreOptions = hasProducer ? { producer } : undefined;
         
         // 원본 쿼리 점수
