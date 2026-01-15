@@ -477,6 +477,68 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const forceResolve = Boolean(body?.force_resolve);
+    
+    // ✅ 신규 사업자 처리
+    const newBusiness = body?.newBusiness;
+    if (newBusiness && newBusiness.name && newBusiness.phone) {
+      console.log("[NEW BUSINESS]", newBusiness);
+      
+      // 품목만 파싱
+      const pre0 = preprocessGlassMessage(body?.message ?? "");
+      const trMsg = await translateOrderToKoreanIfNeeded(pre0);
+      const preMessage = trMsg.translated ? trMsg.text : pre0;
+      const parsedItems = parseGlassItemsFromMessage(preMessage);
+      
+      // 거래처 정보는 신규 사업자로 설정
+      const client = {
+        status: "resolved" as const,
+        client_name: newBusiness.name,
+        client_code: "NEW",
+        phone: newBusiness.phone,
+        address: newBusiness.address,
+      };
+      
+      // 신규 사업자는 이력 없음 → master만 검색
+      const resolvedItems = resolveGlassItemsByClient("NEW", parsedItems, {
+        minScore: 0.55,
+        minGap: 0.05,
+        topN: 5,
+      });
+      
+      // suggestions 추가
+      const itemsWithSuggestions = resolvedItems.map((x: any) => {
+        if (x?.resolved) return x;
+        const suggestions = Array.isArray(x?.suggestions) 
+          ? x.suggestions 
+          : Array.isArray(x?.candidates)
+            ? x.candidates.slice(0, 3)
+            : [];
+        return { ...x, suggestions };
+      });
+      
+      const hasUnresolved = itemsWithSuggestions.some((x: any) => !x.resolved);
+      
+      // 직원 메시지 생성
+      const staffMessage = formatStaffMessage(
+        client,
+        itemsWithSuggestions,
+        {
+          customDeliveryDate: body?.customDeliveryDate,
+          requirePaymentConfirm: body?.requirePaymentConfirm,
+          requireInvoice: body?.requireInvoice,
+        }
+      );
+      
+      return jsonResponse({
+        success: true,
+        status: hasUnresolved ? "needs_review_items" : "resolved",
+        client,
+        parsed_items: parsedItems,
+        items: itemsWithSuggestions,
+        staff_message: staffMessage,
+        is_new_business: true,
+      });
+    }
 
     // ✅ 0) 전체 메시지 전처리 먼저
     const pre0 = preprocessGlassMessage(body?.message ?? "");

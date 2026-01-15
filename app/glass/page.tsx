@@ -78,6 +78,12 @@ export default function Home() {
   const [showLearnedClients, setShowLearnedClients] = useState(false);
   const [learnedClientVersion, setLearnedClientVersion] = useState(0);
 
+  // ✅ 신규 사업자
+  const [isNewBusiness, setIsNewBusiness] = useState(false);
+  const [newBusinessName, setNewBusinessName] = useState("");
+  const [newBusinessPhone, setNewBusinessPhone] = useState("");
+  const [newBusinessAddress, setNewBusinessAddress] = useState("");
+
   // ✅ 발주 옵션
   const [customDeliveryDate, setCustomDeliveryDate] = useState("");
   const [requirePaymentConfirm, setRequirePaymentConfirm] = useState(false);
@@ -158,6 +164,35 @@ export default function Home() {
     setPendingPreMessage("");
 
     try {
+      // ✅ 신규 사업자 체크박스 선택 시
+      if (isNewBusiness) {
+        if (!newBusinessName.trim() || !newBusinessPhone.trim()) {
+          alert("신규 사업자의 사업자명과 연락처를 입력해주세요.");
+          setLoading(false);
+          return;
+        }
+        
+        // 신규 사업자 직접 메시지 생성
+        const { json } = await callParse({
+          message: text,
+          force_resolve: true,
+          customDeliveryDate: customDeliveryDate || undefined,
+          requirePaymentConfirm: requirePaymentConfirm || undefined,
+          requireInvoice: requireInvoice || undefined,
+          newBusiness: {
+            name: newBusinessName.trim(),
+            phone: newBusinessPhone.trim(),
+            address: newBusinessAddress.trim() || undefined,
+          },
+        });
+        setData(json);
+        setSavingPick({});
+        setSavedPick({});
+        setCopied(false);
+        setLoading(false);
+        return;
+      }
+
       // ✅ 거래처칸이 비어있으면 첫줄을 거래처로, 있으면 거래처칸 + 발주내용 합침
       const finalMessage = clientInput.trim() 
         ? `${clientInput.trim()}\n${text}` 
@@ -798,6 +833,92 @@ export default function Home() {
         >
           붙여넣기
         </button>
+      </div>
+
+      {/* ===== 신규 사업자 ===== */}
+      <div style={{ marginTop: 16 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={isNewBusiness}
+            onChange={(e) => {
+              setIsNewBusiness(e.target.checked);
+              if (!e.target.checked) {
+                // 체크 해제 시 입력 초기화
+                setNewBusinessName("");
+                setNewBusinessPhone("");
+                setNewBusinessAddress("");
+              }
+            }}
+            style={{ width: 18, height: 18, cursor: "pointer" }}
+          />
+          <span style={{ fontSize: 16, fontWeight: 700 }}>신규 사업자</span>
+        </label>
+        
+        {isNewBusiness && (
+          <div style={{ marginTop: 12, padding: 16, background: "#fff3cd", borderRadius: 12, border: "2px solid #ffc107" }}>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
+                사업자명 <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={newBusinessName}
+                onChange={(e) => setNewBusinessName(e.target.value)}
+                placeholder="예: 홍길동 레스토랑"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  fontSize: 16,
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
+                연락처 <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="text"
+                value={newBusinessPhone}
+                onChange={(e) => setNewBusinessPhone(e.target.value)}
+                placeholder="예: 010-1234-5678"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  fontSize: 16,
+                }}
+              />
+            </div>
+            
+            <div>
+              <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
+                주소 (선택)
+              </label>
+              <input
+                type="text"
+                value={newBusinessAddress}
+                onChange={(e) => setNewBusinessAddress(e.target.value)}
+                placeholder="예: 서울시 강남구 테헤란로 123"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  fontSize: 16,
+                }}
+              />
+            </div>
+            
+            <div style={{ marginTop: 12, fontSize: 13, color: "#856404", background: "#fff9e6", padding: 10, borderRadius: 8 }}>
+              💡 신규 사업자는 거래처 DB에 등록되지 않은 사업자입니다. 사업자명과 연락처를 입력하면 주문서가 생성됩니다.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== 발주 옵션 (접기/펼치기) ===== */}
