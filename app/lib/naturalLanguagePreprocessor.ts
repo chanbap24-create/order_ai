@@ -82,9 +82,10 @@ export function expandAliases(text: string, debug = false): string {
   if (debug) console.log('[별칭 확장] 1단계 결과 (정방향):', expanded);
   
   // 2. 역방향 매칭: canonical → alias (뱅상 지라르댕 → vg도 추가)
-  // 입력에 정식명칭이 있으면 약어도 함께 검색하도록
+  // ✅ 개선: 정식명칭을 약어로 **교체**한 버전도 생성
   const lowerExpanded = expanded.toLowerCase();
   const wordsToAdd: string[] = [];
+  const replacements: Array<{ from: string; to: string }> = [];
   
   for (const [canonical, aliasesList] of reverseAliases.entries()) {
     const normalizedCanonical = canonical.replace(/\s+/g, '');
@@ -97,12 +98,28 @@ export function expandAliases(text: string, debug = false): string {
       const shortestAlias = aliasesList.sort((a, b) => a.length - b.length)[0];
       if (debug) console.log(`[별칭 확장] 역방향: "${canonical}" → "+${shortestAlias}"`);
       wordsToAdd.push(shortestAlias);
+      replacements.push({ from: canonical, to: shortestAlias });
     }
   }
   
-  // 약어 추가 (공백으로 구분)
+  // ✅ 약어로 교체한 버전 생성 (거래처 이력 검색용)
+  let replaced = expanded;
+  for (const { from, to } of replacements) {
+    const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    replaced = replaced.replace(regex, to);
+  }
+  
+  // 약어 추가 (공백으로 구분) + 교체 버전도 포함
   if (wordsToAdd.length > 0) {
+    // "원본 약어1 약어2" 형태로 추가
     expanded = expanded + ' ' + wordsToAdd.join(' ');
+    
+    // ✅ 교체 버전이 다르면 함께 포함 (예: "cl 샤블리")
+    if (replaced !== expanded && replaced.length > 0) {
+      expanded = expanded + ' ' + replaced;
+      if (debug) console.log('[별칭 확장] 교체 버전 추가:', replaced);
+    }
+    
     if (debug) console.log('[별칭 확장] 역방향 추가:', wordsToAdd);
   }
   
