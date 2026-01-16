@@ -1040,10 +1040,15 @@ export function resolveItemsByClientWeighted(
           baseScore
         );
 
+        // ✅ 거래처 이력에 있는지 확인 (is_new_item 플래그 설정)
+        const isInClientHistory = clientRows.some(cr => String(cr.item_no) === String(r.item_no));
+        
         return {
           item_no: r.item_no,
           item_name: r.item_name,
           score: weighted.finalScore,
+          is_new_item: !isInClientHistory, // 거래처 이력에 없으면 신규
+          supply_price: weighted.signals.supply_price,
           _debug: {
             baseScore: weighted.signals.baseScore,
             userLearning: weighted.signals.userLearning,
@@ -1052,6 +1057,7 @@ export function resolveItemsByClientWeighted(
             vintage: weighted.signals.vintage,
             weights: weighted.weights,
             rawTotal: weighted.rawTotal,
+            isInClientHistory,
           },
         };
       })
