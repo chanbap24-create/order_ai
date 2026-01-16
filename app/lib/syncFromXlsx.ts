@@ -71,7 +71,11 @@ export function syncFromXlsxIfNeeded() {
     }
 
     const stat = fs.statSync(XLSX_PATH);
-    if (lastMtimeMs && stat.mtimeMs === lastMtimeMs) {
+    // ✅ DB에 데이터가 있는지 확인 (Vercel 서버리스 대응)
+    const itemCount = db.prepare("SELECT COUNT(*) as count FROM client_item_stats").get() as { count: number };
+    const hasData = itemCount && itemCount.count > 0;
+    
+    if (lastMtimeMs && stat.mtimeMs === lastMtimeMs && hasData) {
       return { synced: false, reason: "not_changed" as const };
     }
 
