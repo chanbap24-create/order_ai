@@ -11,16 +11,20 @@ import { db } from "@/app/lib/db";
 
 // 별칭 캐시 (성능 최적화)
 let aliasCache: Map<string, string> | null = null;
+let reverseAliasCache: Map<string, string[]> | null = null; // 역방향 별칭
 let aliasCacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1분
 
-// 별칭 캐시 로드
-function loadAliasCache(): Map<string, string> {
+// 별칭 캐시 로드 (양방향)
+function loadAliasCache(): { 
+  forward: Map<string, string>; 
+  reverse: Map<string, string[]> 
+} {
   const now = Date.now();
   
   // 캐시가 유효하면 재사용
-  if (aliasCache && (now - aliasCacheTimestamp) < CACHE_TTL) {
-    return aliasCache;
+  if (aliasCache && reverseAliasCache && (now - aliasCacheTimestamp) < CACHE_TTL) {
+    return { forward: aliasCache, reverse: reverseAliasCache };
   }
   
   // 캐시 갱신
@@ -31,61 +35,93 @@ function loadAliasCache(): Map<string, string> {
       ORDER BY count DESC
     `).all() as Array<{ alias: string; canonical: string }>;
     
+    // 정방향: alias → canonical (기존)
     aliasCache = new Map();
     aliases.forEach(a => {
       aliasCache!.set(a.alias.toLowerCase(), a.canonical);
     });
     
+    // 역방향: canonical → [alias1, alias2, ...]
+    reverseAliasCache = new Map();
+    aliases.forEach(a => {
+      const canonicalLower = a.canonical.toLowerCase();
+      if (!reverseAliasCache!.has(canonicalLower)) {
+        reverseAliasCache!.set(canonicalLower, []);
+      }
+      reverseAliasCache!.get(canonicalLower)!.push(a.alias.toLowerCase());
+    });
+    
     aliasCacheTimestamp = now;
-    return aliasCache;
+    return { forward: aliasCache, reverse: reverseAliasCache };
   } catch (e) {
     console.error('별칭 캐시 로드 실패:', e);
-    return new Map();
+    return { forward: new Map(), reverse: new Map() };
   }
 }
 
-// 별칭 확장
+// 별칭 확장 (양방향)
 export function expandAliases(text: string, debug = false): string {
-  const aliases = loadAliasCache();
+  const { forward: aliases, reverse: reverseAliases } = loadAliasCache();
   let expanded = text;
   
   if (debug) console.log('[별칭 확장] 입력:', text);
-  if (debug) console.log('[별칭 확장] 캐시 크기:', aliases.size);
+  if (debug) console.log('[별칭 확장] 정방향 캐시:', aliases.size, '역방향 캐시:', reverseAliases.size);
   
-  // 1. 정확한 단어 매칭 (공백/특수문자로 분리된 경우)
+  // 1. 정방향 매칭: alias → canonical (vg → 뱅상 지라르댕)
   const words = text.split(/(\s+|[,()\/\-])/);
   const expandedWords = words.map(word => {
     const lowerWord = word.toLowerCase();
     if (aliases.has(lowerWord)) {
-      if (debug) console.log(`[별칭 확장] 단어 매칭: "${word}" → "${aliases.get(lowerWord)!}"`);
+      if (debug) console.log(`[별칭 확장] 정방향: "${word}" → "${aliases.get(lowerWord)!}"`);
       return aliases.get(lowerWord)!;
     }
     return word;
   });
   
   expanded = expandedWords.join('');
-  if (debug) console.log('[별칭 확장] 1단계 결과:', expanded);
+  if (debug) console.log('[별칭 확장] 1단계 결과 (정방향):', expanded);
   
-  // 2. 부분 매칭 (붙어있는 경우 대응) - 성능 최적화
-  // 별칭이 긴 것부터 순서대로 치환 (긴 것이 우선)
-  // 3글자 이상인 것만 처리
+  // 2. 역방향 매칭: canonical → alias (뱅상 지라르댕 → vg도 추가)
+  // 입력에 정식명칭이 있으면 약어도 함께 검색하도록
+  const lowerExpanded = expanded.toLowerCase();
+  const wordsToAdd: string[] = [];
+  
+  for (const [canonical, aliasesList] of reverseAliases.entries()) {
+    const normalizedCanonical = canonical.replace(/\s+/g, '');
+    const normalizedExpanded = lowerExpanded.replace(/\s+/g, '');
+    
+    // 정식명칭이 포함되어 있으면 약어 추가
+    if (normalizedExpanded.includes(normalizedCanonical) || 
+        lowerExpanded.includes(canonical)) {
+      // 가장 짧은 별칭 선택 (보통 약어)
+      const shortestAlias = aliasesList.sort((a, b) => a.length - b.length)[0];
+      if (debug) console.log(`[별칭 확장] 역방향: "${canonical}" → "+${shortestAlias}"`);
+      wordsToAdd.push(shortestAlias);
+    }
+  }
+  
+  // 약어 추가 (공백으로 구분)
+  if (wordsToAdd.length > 0) {
+    expanded = expanded + ' ' + wordsToAdd.join(' ');
+    if (debug) console.log('[별칭 확장] 역방향 추가:', wordsToAdd);
+  }
+  
+  if (debug) console.log('[별칭 확장] 2단계 결과 (역방향):', expanded);
+  
+  // 3. 부분 매칭 (붙어있는 경우 대응) - 정방향만
   const sortedAliases = Array.from(aliases.entries())
     .filter(([alias]) => alias.length >= 3)  // 최소 3글자
     .sort((a, b) => b[0].length - a[0].length)  // 긴 것 우선
-    .slice(0, 100);  // 상위 100개로 확대 (별칭 커버리지 향상)
+    .slice(0, 100);  // 상위 100개
   
-  if (debug) console.log('[별칭 확장] 검사할 별칭 수:', sortedAliases.length);
-  
-  const lowerExpanded = expanded.toLowerCase();
-  const normalizedExpanded = lowerExpanded.replace(/\s+/g, '');  // 공백 제거 버전
+  const normalizedExpanded = lowerExpanded.replace(/\s+/g, '');
   
   for (const [alias, canonical] of sortedAliases) {
-    const normalizedAlias = alias.replace(/\s+/g, '');  // 별칭도 공백 제거
+    const normalizedAlias = alias.replace(/\s+/g, '');
     
     // 1) 공백 무시 매칭 (예: "클레멍라발레" = "클레멍 라발리")
     if (normalizedExpanded.includes(normalizedAlias)) {
       if (debug) console.log(`[별칭 확장] 부분 매칭 (공백무시): "${alias}" → "${canonical}"`);
-      // 대소문자 구분 없이 치환 (공백 있는 원본 별칭으로도 시도)
       const regex = new RegExp(alias.replace(/\s+/g, '\\s*'), 'gi');
       expanded = expanded.replace(regex, ` ${canonical} `);
     }
@@ -97,7 +133,7 @@ export function expandAliases(text: string, debug = false): string {
     }
   }
   
-  // 3. 연속된 공백 정리
+  // 4. 연속된 공백 정리
   expanded = expanded.replace(/\s+/g, ' ').trim();
   
   if (debug) console.log('[별칭 확장] 최종 결과:', expanded);
