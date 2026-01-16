@@ -352,6 +352,31 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     }
   }
   
+  // ✅ 토큰 기반 매칭 (별칭 확장 대응)
+  // 예: "클레멍 라발리 샤블리 cl" vs "CL 샤블리"
+  const qTokens = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+  const nameTokens = name.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+  
+  if (qTokens.length >= 2 && nameTokens.length >= 1) {
+    const qSet = new Set(qTokens);
+    const nameSet = new Set(nameTokens);
+    const intersection = [...nameSet].filter(t => qSet.has(t));
+    
+    if (intersection.length > 0) {
+      const recall = intersection.length / nameSet.size; // 대상 토큰 중 매칭 비율
+      const precision = intersection.length / qSet.size; // 입력 토큰 중 매칭 비율
+      
+      // 모든 대상 토큰이 매칭되면 높은 점수
+      if (recall >= 1.0) {
+        return Math.min(0.98, 0.85 + (precision * 0.15));
+      }
+      // 절반 이상 매칭
+      if (recall >= 0.5) {
+        return Math.min(0.85, 0.70 + (recall * 0.15));
+      }
+    }
+  }
+  
   // 기존 한글 정규화 로직
   const a = norm(q);
   const b = norm(name);
