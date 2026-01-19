@@ -612,14 +612,29 @@ function fetchFromMasterByTail(rawName: string, limit = 80) {
 
 function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_name: string; score: number; is_new_item?: boolean; supply_price?: number }> {
   try {
-    const candidates = searchMasterSheet(query, 5);
-    return candidates.map((c) => ({
-      item_no: c.itemNo,
-      item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
-      score: Number(c.score.toFixed(3)),
-      is_new_item: true,
-      supply_price: c.supplyPrice, // ✅ 공급가 추가
-    }));
+    // 🔄 scoreItem과 동일한 로직으로 점수 계산
+    const masterItems = searchMasterSheet(query, 20); // 더 많이 가져오기
+    
+    // scoreItem 함수로 재점수 계산
+    const rescored = masterItems.map(item => {
+      const koreanScore = scoreItem(query, item.koreanName);
+      const englishScore = scoreItem(query, item.englishName);
+      const maxScore = Math.max(koreanScore, englishScore);
+      
+      return {
+        item_no: item.itemNo,
+        item_name: `${item.koreanName} / ${item.englishName}${item.vintage ? ` (${item.vintage})` : ''}`,
+        score: maxScore,
+        is_new_item: true,
+        supply_price: item.supplyPrice,
+      };
+    });
+    
+    // 점수 순으로 정렬 후 상위 10개 반환
+    return rescored
+      .filter(item => item.score > 0.3) // 최소 점수 필터
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
   } catch (err) {
     console.error('신규 품목 검색 실패:', err);
     return [];
