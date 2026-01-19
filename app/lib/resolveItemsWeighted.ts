@@ -352,27 +352,79 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     }
   }
   
-  // ✅ 토큰 기반 매칭 (별칭 확장 대응)
+  // ✅ 토큰 기반 매칭 (별칭 확장 대응 + 부분 매칭)
   // 예: "클레멍 라발리 샤블리 cl" vs "CL 샤블리"
+  // 예: "산타루치아" vs "산타 루치아"
   const qTokens = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
   const nameTokens = name.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
   
   if (qTokens.length >= 2 && nameTokens.length >= 1) {
     const qSet = new Set(qTokens);
     const nameSet = new Set(nameTokens);
-    const intersection = [...nameSet].filter(t => qSet.has(t));
     
-    if (intersection.length > 0) {
-      const recall = intersection.length / nameSet.size; // 대상 토큰 중 매칭 비율
-      const precision = intersection.length / qSet.size; // 입력 토큰 중 매칭 비율
+    // 🎯 정확 매칭 + 부분 매칭
+    let matchedQTokens = 0;
+    let matchedNameTokens = 0;
+    
+    for (const qt of qTokens) {
+      let found = false;
       
-      // 모든 대상 토큰이 매칭되면 높은 점수
-      if (recall >= 1.0) {
-        return Math.min(0.98, 0.85 + (precision * 0.15));
+      // 정확 매칭 체크
+      if (nameSet.has(qt)) {
+        matchedQTokens++;
+        matchedNameTokens++;
+        found = true;
+        continue;
       }
-      // 절반 이상 매칭
+      
+      // 부분 매칭 체크: "산타루치아" vs ["산타", "루치아"]
+      // 입력 토큰이 여러 대상 토큰의 조합과 매칭되는지 확인
+      const qtNorm = normTight(qt);
+      let combined = "";
+      for (const nt of nameTokens) {
+        combined += normTight(nt);
+        if (combined === qtNorm) {
+          matchedQTokens++;
+          matchedNameTokens += combined.length / normTight(nt).length; // 부분 점수
+          found = true;
+          break;
+        }
+        if (qtNorm.includes(combined) || combined.includes(qtNorm)) {
+          matchedQTokens += 0.8; // 부분 매칭은 0.8점
+          matchedNameTokens += 0.8;
+          found = true;
+          break;
+        }
+      }
+      
+      // 반대 방향도 체크: ["산타", "루치아"] in "산타루치아"
+      if (!found) {
+        for (const nt of nameTokens) {
+          const ntNorm = normTight(nt);
+          if (qtNorm.includes(ntNorm) && ntNorm.length >= 3) {
+            matchedQTokens += 0.5;
+            matchedNameTokens += 0.5;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (matchedQTokens > 0) {
+      const recall = matchedQTokens / qTokens.length; // 입력 토큰 중 매칭 비율
+      const precision = matchedNameTokens / nameTokens.length; // 대상 토큰 중 매칭 비율
+      
+      // 입력 토큰의 80% 이상 매칭되면 높은 점수
+      if (recall >= 0.8) {
+        return Math.min(0.95, 0.80 + (recall * 0.15) + (precision * 0.05));
+      }
+      // 입력 토큰의 60% 이상 매칭
+      if (recall >= 0.6) {
+        return Math.min(0.85, 0.65 + (recall * 0.20));
+      }
+      // 입력 토큰의 50% 이상 매칭
       if (recall >= 0.5) {
-        return Math.min(0.85, 0.70 + (recall * 0.15));
+        return Math.min(0.75, 0.55 + (recall * 0.20));
       }
     }
   }
