@@ -1296,7 +1296,6 @@ export function resolveItemsByClientWeighted(
           
           return combined;
         })()
-        })()
       : scored.slice(0, Math.max(10, topN)).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
