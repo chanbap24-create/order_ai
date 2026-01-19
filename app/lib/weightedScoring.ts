@@ -19,13 +19,13 @@ import { db } from "@/app/lib/db";
 
 // 신호별 중요도 (multiplier)
 export const SIGNAL_WEIGHTS = {
-  USER_LEARNING: 3.0,      // 사용자 학습이 가장 중요!
+  BASE_SCORE: 5.0,         // 🎯 기본 문자열 유사도 (최우선!)
+  USER_LEARNING: 3.0,      // 사용자 학습이 중요
   TOKEN_MATCH: 2.5,        // 토큰 매칭 (학습된 토큰)
   ALIAS_MATCH: 2.0,        // 별칭 매칭 (학습된 별칭)
-  RECENT_PURCHASE: 2.0,    // 최근 구매 이력
-  PURCHASE_FREQUENCY: 1.5, // 구매 빈도
-  VINTAGE: 1.0,            // 빈티지
-  BASE_SCORE: 1.0,         // 기본 문자열 유사도
+  RECENT_PURCHASE: 1.5,    // 최근 구매 이력 (낮춤)
+  PURCHASE_FREQUENCY: 1.0, // 구매 빈도 (낮춤)
+  VINTAGE: 0.5,            // 빈티지 (낮춤)
 };
 
 // 사용자 학습 카운트별 보너스
