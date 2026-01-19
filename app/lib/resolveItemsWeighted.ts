@@ -1241,8 +1241,17 @@ export function resolveItemsByClientWeighted(
       };
     }
 
-    // ✅ 0.70 미만 또는 생산자 명시 시: 기존품목 + 신규품목 혼합 표시
-    const shouldSearchNew = (top && top.score < 0.70) || (hasProducer && top && top.score < 0.85);
+    // ✅ 신규 품목 검색: 항상 실행 (더 정확한 매칭을 찾기 위해)
+    // baseScore가 높아도 신규 품목 중 더 나은 매칭이 있을 수 있음
+    const topBaseScore = top?._debug?.baseScore || 0;
+    const shouldSearchNew = true; // 항상 신규 품목도 함께 검색
+    
+    console.log('[Wine] 신규 품목 검색:', {
+      topBaseScore,
+      topFinalScore: top?.score,
+      shouldSearchNew: true,
+      reason: '항상 신규 품목과 기존 품목을 혼합 표시'
+    });
     
     const suggestions = shouldSearchNew
       ? (() => {
