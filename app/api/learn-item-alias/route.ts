@@ -20,43 +20,105 @@ function normalizeAlias(raw: string) {
 }
 
 function ensureItemAliasTable() {
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS item_alias (
-      alias TEXT PRIMARY KEY,
-      canonical TEXT NOT NULL,
-      count INTEGER DEFAULT 1,
-      last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
+  // ✅ 1. 새 테이블 스키마 체크
+  const tableInfo = db.prepare(`
+    SELECT COUNT(*) as cnt 
+    FROM pragma_table_info('item_alias') 
+    WHERE name='alias' AND pk > 0
+  `).get() as { cnt: number };
 
-  // 기존 테이블에 count 컬럼 추가 (마이그레이션)
-  try {
-    db.prepare(`ALTER TABLE item_alias ADD COLUMN count INTEGER DEFAULT 1`).run();
-  } catch {
-    // 컬럼이 이미 존재하면 무시
-  }
+  // 테이블이 없거나 alias가 단독 PRIMARY KEY인 경우 마이그레이션 필요
+  const needsMigration = tableInfo.cnt === 1;
 
-  try {
-    db.prepare(`ALTER TABLE item_alias ADD COLUMN last_used_at TEXT DEFAULT CURRENT_TIMESTAMP`).run();
-  } catch {
-    // 컬럼이 이미 존재하면 무시
-  }
+  if (needsMigration) {
+    console.log('[item_alias] 🔄 거래처별 학습을 위한 스키마 마이그레이션 시작...');
+    
+    try {
+      // 기존 데이터 백업
+      const oldData = db.prepare('SELECT * FROM item_alias').all();
+      console.log(`[item_alias] 📦 백업: ${oldData.length}개 항목`);
 
-  // ✅ 거래처별 학습을 위한 client_code 컬럼 추가
-  try {
-    db.prepare(`ALTER TABLE item_alias ADD COLUMN client_code TEXT`).run();
-    console.log('[item_alias] ✅ client_code 컬럼 추가 완료');
-  } catch {
-    // 컬럼이 이미 존재하면 무시
-  }
+      // 기존 테이블 이름 변경
+      db.prepare('ALTER TABLE item_alias RENAME TO item_alias_old').run();
 
-  // ✅ 거래처별 조회 성능을 위한 인덱스 추가
-  try {
-    db.prepare(`CREATE INDEX IF NOT EXISTS idx_item_alias_client ON item_alias(canonical, client_code)`).run();
-    console.log('[item_alias] ✅ 거래처별 인덱스 추가 완료');
-  } catch (e) {
-    console.log('[item_alias] ⚠️ 인덱스 추가 실패 (이미 존재하거나 오류):', e);
+      // 새 테이블 생성 (복합 PRIMARY KEY)
+      db.prepare(`
+        CREATE TABLE item_alias (
+          alias TEXT NOT NULL,
+          canonical TEXT NOT NULL,
+          client_code TEXT NOT NULL DEFAULT '*',
+          count INTEGER DEFAULT 1,
+          last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (alias, client_code)
+        )
+      `).run();
+
+      // 데이터 마이그레이션
+      const insert = db.prepare(`
+        INSERT OR REPLACE INTO item_alias (alias, canonical, client_code, count, last_used_at, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+
+      for (const row of oldData as any[]) {
+        const clientCode = row.client_code || '*';
+        insert.run(row.alias, row.canonical, clientCode, row.count || 1, row.last_used_at, row.created_at);
+      }
+
+      // 인덱스 추가
+      db.prepare('CREATE INDEX IF NOT EXISTS idx_item_alias_canonical ON item_alias(canonical, client_code)').run();
+
+      // 백업 테이블 삭제
+      db.prepare('DROP TABLE item_alias_old').run();
+
+      console.log(`[item_alias] ✅ 마이그레이션 완료: ${oldData.length}개 항목`);
+    } catch (error) {
+      console.error('[item_alias] ❌ 마이그레이션 실패:', error);
+      throw error;
+    }
+  } else {
+    // 테이블이 이미 존재하면 추가 컬럼만 확인
+    try {
+      db.prepare(`
+        CREATE TABLE IF NOT EXISTS item_alias (
+          alias TEXT NOT NULL,
+          canonical TEXT NOT NULL,
+          client_code TEXT NOT NULL DEFAULT '*',
+          count INTEGER DEFAULT 1,
+          last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (alias, client_code)
+        )
+      `).run();
+    } catch {
+      // 테이블이 이미 존재하면 무시
+    }
+
+    // 기존 컬럼 추가 (필요 시)
+    try {
+      db.prepare(`ALTER TABLE item_alias ADD COLUMN count INTEGER DEFAULT 1`).run();
+    } catch {
+      // 컬럼이 이미 존재하면 무시
+    }
+
+    try {
+      db.prepare(`ALTER TABLE item_alias ADD COLUMN last_used_at TEXT DEFAULT CURRENT_TIMESTAMP`).run();
+    } catch {
+      // 컬럼이 이미 존재하면 무시
+    }
+
+    try {
+      db.prepare(`ALTER TABLE item_alias ADD COLUMN client_code TEXT DEFAULT '*'`).run();
+    } catch {
+      // 컬럼이 이미 존재하면 무시
+    }
+
+    // 인덱스 추가
+    try {
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_item_alias_canonical ON item_alias(canonical, client_code)`).run();
+    } catch {
+      // 인덱스가 이미 존재하면 무시
+    }
   }
 }
 

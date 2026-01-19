@@ -4,27 +4,26 @@ import { db } from "@/app/lib/db";
 
 export const runtime = "nodejs";
 
-function ensure() {
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS item_alias (
-      alias TEXT PRIMARY KEY,
-      canonical TEXT NOT NULL,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-}
-
 export async function POST(req: Request) {
   try {
-    ensure();
     const body = await req.json().catch(() => ({}));
     const alias = String(body?.alias || "").trim();
-    if (!alias) return jsonResponse({ success: false, error: "alias required" }, { status: 400 });
+    const clientCode = String(body?.client_code || "*").trim(); // ✅ 기본값 '*'
+    
+    if (!alias) {
+      return jsonResponse({ success: false, error: "alias required" }, { status: 400 });
+    }
 
-    db.prepare(`DELETE FROM item_alias WHERE alias = ?`).run(alias);
+    // ✅ (alias, client_code) 복합 키로 삭제
+    const result = db.prepare(`
+      DELETE FROM item_alias WHERE alias = ? AND client_code = ?
+    `).run(alias, clientCode);
 
-    return jsonResponse({ success: true });
+    console.log(`[delete-item-alias] 삭제: alias="${alias}", client_code="${clientCode}", changes=${result.changes}`);
+
+    return jsonResponse({ success: true, deleted: result.changes });
   } catch (e: any) {
+    console.error('[delete-item-alias] 오류:', e);
     return jsonResponse(
       { success: false, error: String(e?.message || e) },
       { status: 500 }

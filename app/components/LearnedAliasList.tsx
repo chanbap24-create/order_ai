@@ -48,13 +48,17 @@ export default function LearnedAliasList({
     );
   }, [rows, q]);
 
-  async function del(alias: string) {
-    if (!confirm(`삭제할까?\n${alias}`)) return;
+  async function del(alias: string, clientCode?: string) {
+    const clientDisplay = clientCode && clientCode !== '*' ? ` (거래처: ${clientCode})` : '';
+    if (!confirm(`삭제할까?\n${alias}${clientDisplay}`)) return;
 
     const res = await fetch("/api/delete-item-alias", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ alias }),
+      body: JSON.stringify({ 
+        alias, 
+        client_code: clientCode || '*'  // ✅ client_code 전달
+      }),
     });
 
     const json = await res.json().catch(() => null);
@@ -108,7 +112,7 @@ export default function LearnedAliasList({
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map((r) => (
             <div
-              key={r.alias}
+              key={`${r.alias}__${r.client_code || '*'}`}  // ✅ 복합 키로 고유성 보장
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -140,7 +144,7 @@ export default function LearnedAliasList({
               </div>
 
               <button
-                onClick={() => del(r.alias)}
+                onClick={() => del(r.alias, r.client_code)}
                 style={{
                   padding: "8px 12px",
                   borderRadius: 8,
