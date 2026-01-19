@@ -979,10 +979,12 @@ export function resolveItemsByClientWeighted(
     const expansion = expandQuery(searchName, 0.5);
     logQueryExpansion(expansion);
     
-    // 🏭 생산자 감지 (임시 비활성화 - 과도한 필터링 문제로 검색 결과 저하)
-    // const { hasProducer, producer } = detectProducer(searchName);
-    const hasProducer = false;
-    const producer = '';
+    // 🏭 생산자 감지 (브랜드가 명시된 경우 해당 브랜드만 검색)
+    const { hasProducer, producer } = detectProducer(searchName);
+    
+    if (hasProducer) {
+      console.log(`[Wine] 생산자 감지됨: "${producer}" - 해당 브랜드 품목만 필터링`);
+    }
     
     const learned = getLearnedMatch(searchName);
     const learnedItemNo =
