@@ -43,7 +43,7 @@ export interface WineItem {
 function normalize(s: string): string {
   let result = String(s || "")
     .toLowerCase()
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, "")  // ✅ 공백 완전 제거
     .trim()
     .replace(/[()\-_/.,'"]/g, "");
   
@@ -194,6 +194,11 @@ export function matchBrand(input: string, minScore = 0.6): BrandInfo[] {
   // 예: "클레멈라발리" ⊂ "클레멈라발리샤블리" → 0.8+ 점수
 
   for (const [key, brand] of brandMap) {
+    // 토큰 분할은 정규화 **전**에 (공백이 있을 때)
+    const brandTokensEn = brand.supplier_en.toLowerCase().split(/\s+/).filter(t => t.length >= 3);
+    const brandTokensKr = brand.supplier_kr.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+    
+    // 정규화 (공백 제거 포함)
     const normEn = normalize(brand.supplier_en);
     const normKr = normalize(brand.supplier_kr);
     
@@ -208,6 +213,22 @@ export function matchBrand(input: string, minScore = 0.6): BrandInfo[] {
     }
     if (normalizedInput.includes(normKr) || normKr.includes(normalizedInput)) {
       scoreKr = Math.max(scoreKr, 0.75);
+    }
+    
+    // ✅ 토큰 매칭 보너스 (브랜드 키워드가 입력에 포함되면)
+    // 예: "로쉬벨렌" ⊂ "배산임수로쉬벨렌사비니레본"
+    // 영문 토큰 매칭
+    const enTokenMatches = brandTokensEn.filter(token => normalizedInput.includes(normalize(token))).length;
+    if (enTokenMatches > 0 && brandTokensEn.length > 0) {
+      const tokenScore = (enTokenMatches / brandTokensEn.length) * 0.8;
+      scoreEn = Math.max(scoreEn, tokenScore);
+    }
+    
+    // 한글 토큰 매칭
+    const krTokenMatches = brandTokensKr.filter(token => normalizedInput.includes(normalize(token))).length;
+    if (krTokenMatches > 0 && brandTokensKr.length > 0) {
+      const tokenScore = (krTokenMatches / brandTokensKr.length) * 0.8;
+      scoreKr = Math.max(scoreKr, tokenScore);
     }
     
     const score = Math.max(scoreEn, scoreKr);
@@ -249,8 +270,11 @@ export function searchWineInBrand(
     return [];
   }
 
+  console.log(`[BrandMatcher] Searching ${wines.length} wines in brand: ${brandInfo.supplier_kr}`);
+
   const normalizedQuery = normalize(wineQuery);
   const queryTokens = normalizedQuery.split(/\s+/).filter(t => t.length >= 2);
+  console.log(`[BrandMatcher] Query tokens:`, queryTokens);
   const results: Array<WineItem & { score: number }> = [];
 
   for (const wine of wines) {
@@ -273,6 +297,13 @@ export function searchWineInBrand(
     }
     
     const score = Math.max(scoreEn, scoreKr);
+    
+    // Debug first wine
+    if (wines.indexOf(wine) === 0) {
+      console.log(`[BrandMatcher] First wine: "${wine.wine_kr}"`);
+      console.log(`[BrandMatcher]   normKr: "${normKr}"`);
+      console.log(`[BrandMatcher]   scoreKr: ${scoreKr.toFixed(3)}, tokenMatches: ${tokenMatchCount}/${queryTokens.length}, final: ${score.toFixed(3)}`);
+    }
 
     if (score >= minScore) {
       results.push({ ...wine, score });
