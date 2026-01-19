@@ -278,12 +278,14 @@ export default function Home() {
 
   // ✅ 품목 직접 추가
   function addItemManually(item: any) {
-    const qty = prompt(`${item.item_name}\n\n수량을 입력하세요:`, "1");
+    // ✅ 한글명만 추출
+    const koreanName = item.item_name?.split(' / ')[0] || item.item_name;
+    const qty = prompt(`${koreanName}\n\n수량을 입력하세요:`, "1");
     if (!qty || isNaN(Number(qty))) return;
 
-    const newText = text + `\n${item.item_name} ${qty}`;
+    const newText = text + `\n${koreanName} ${qty}`;
     setText(newText);
-    alert(`추가되었습니다!\n\n${item.item_name} ${qty}개`);
+    alert(`추가되었습니다!\n\n${koreanName} ${qty}개`);
   }
 
   // ✅ 거래처 후보 클릭 → 선택한 거래처로 재파싱
@@ -496,8 +498,9 @@ export default function Home() {
       const koreanName = s.item_name?.split(' / ')[0] || s.item_name;
       
       const oldLineUnresolved = `- 확인필요 / "${target.name}" / ${qty}병`;
+      const targetKoreanName = target?.item_name?.split(' / ')[0] || target?.item_name || '';
       const oldLineResolved = target?.item_no
-        ? `- ${target.item_no} / ${target.item_name} / ${qty}병`
+        ? `- ${target.item_no} / ${targetKoreanName} / ${qty}병`
         : "";
 
       // 신규 품목일 때 가격 포함
@@ -1168,8 +1171,10 @@ export default function Home() {
               <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
+                    // ✅ 한글명만 추출 (영어명 제거)
+                    const koreanName = it?.item_name?.split(' / ')[0] || it?.item_name || '';
                     const line = it?.resolved
-                      ? `${it.item_no} / ${it.item_name} / ${it.qty}병`
+                      ? `${it.item_no} / ${koreanName} / ${it.qty}병`
                       : `확인필요 / "${it.name}" / ${it.qty}병`;
 
                     const showMore = !!showMoreSuggestions[idx];
@@ -1647,7 +1652,10 @@ export default function Home() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>{item.item_name}</div>
+                        {/* ✅ 한글명만 표시 */}
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>
+                          {item.item_name?.split(' / ')[0] || item.item_name}
+                        </div>
                         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
                           품목코드: {item.item_no}
                         </div>
