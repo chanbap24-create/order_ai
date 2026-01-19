@@ -1213,11 +1213,12 @@ export function resolveItemsByClientWeighted(
             combined = [...combined, ...additionalExisting];
           }
           
-          console.log('[DEBUG] 0.70 미만 후보:', {
+          console.log('[DEBUG] 0.70 미만 후보 (10개 목표):', {
             hasProducer: hasProducer,
             producer: producer,
             existingTop: existingTop.length,
             newItems: newItems.length,
+            scored: scored.length,
             combined: combined.length,
             items: combined.map(c => ({ no: c.item_no, score: c.score }))
           });
