@@ -36,12 +36,39 @@ export interface WineItem {
 }
 
 // ========== 정규화 함수 ==========
+/**
+ * 정규화: 소문자 + 공백/특수문자 제거 + 한글 자모 정규화
+ * ✅ 한글 발음 유사 변환: ㅁ ↔ ㅇ (예: 클레멈 ↔ 클레멍)
+ */
 function normalize(s: string): string {
-  return String(s || "")
+  let result = String(s || "")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[()\-_/.,'"]/g, "");
+  
+  // ✅ 한글 발음 유사 문자 정규화
+  // "클레멈" (종성 ㅁ=16) → "클레멍" (종성 ㅇ=21) 변환
+  const HANGUL_BASE = 0xAC00;
+  const JONGSEONG_M = 16;  // ㅁ
+  const JONGSEONG_NG = 21; // ㅇ
+  
+  result = result.replace(/./g, (char) => {
+    const code = char.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      const offset = code - HANGUL_BASE;
+      const jongseong = offset % 28;
+      
+      // ㅁ → ㅇ 변환
+      if (jongseong === JONGSEONG_M) {
+        const newCode = code - JONGSEONG_M + JONGSEONG_NG;
+        return String.fromCharCode(newCode);
+      }
+    }
+    return char;
+  });
+  
+  return result;
 }
 
 // ========== English 시트 캐싱 ==========
@@ -211,7 +238,7 @@ export function matchBrand(input: string, minScore = 0.6): BrandInfo[] {
 export function searchWineInBrand(
   brandInfo: BrandInfo,
   wineQuery: string,
-  minScore = 0.5
+  minScore = 0.3  // ✅ 임계값 낮춤 (브랜드 매칭 후이므로)
 ): Array<WineItem & { score: number }> {
   const brandGroups = getItemsByBrand();
   const brandKey = normalize(brandInfo.supplier_en);
@@ -223,12 +250,28 @@ export function searchWineInBrand(
   }
 
   const normalizedQuery = normalize(wineQuery);
+  const queryTokens = normalizedQuery.split(/\s+/).filter(t => t.length >= 2);
   const results: Array<WineItem & { score: number }> = [];
 
   for (const wine of wines) {
-    // 영문/한글 와인명 비교
-    const scoreEn = stringSimilarity.compareTwoStrings(normalizedQuery, normalize(wine.wine_en));
-    const scoreKr = stringSimilarity.compareTwoStrings(normalizedQuery, normalize(wine.wine_kr));
+    const normEn = normalize(wine.wine_en);
+    const normKr = normalize(wine.wine_kr);
+    
+    // ✅ 개선: 문자열 유사도 + 토큰 매칭
+    let scoreEn = stringSimilarity.compareTwoStrings(normalizedQuery, normEn);
+    let scoreKr = stringSimilarity.compareTwoStrings(normalizedQuery, normKr);
+    
+    // 토큰 매칭 보너스 (쿼리 토큰 중 와인명에 포함된 비율)
+    const tokenMatchCount = queryTokens.filter(token => 
+      normEn.includes(token) || normKr.includes(token)
+    ).length;
+    
+    if (tokenMatchCount > 0 && queryTokens.length > 0) {
+      const tokenBonus = (tokenMatchCount / queryTokens.length) * 0.5;
+      scoreEn = Math.max(scoreEn, tokenBonus);
+      scoreKr = Math.max(scoreKr, tokenBonus);
+    }
+    
     const score = Math.max(scoreEn, scoreKr);
 
     if (score >= minScore) {
@@ -242,6 +285,14 @@ export function searchWineInBrand(
   console.log(
     `[BrandMatcher] searchWineInBrand("${wineQuery}") in ${brandInfo.supplier_kr} → ${results.length} results`
   );
+  
+  // 상위 3개 결과 로깅
+  if (results.length > 0) {
+    console.log(`[BrandMatcher] Top wines:`);
+    results.slice(0, 3).forEach((w, i) => {
+      console.log(`  ${i + 1}. ${w.wine_kr} (${w.score.toFixed(3)})`);
+    });
+  }
 
   return results;
 }
@@ -282,7 +333,41 @@ export function hierarchicalSearch(
   const results: HierarchicalSearchResult[] = [];
   for (let i = 0; i < Math.min(topBrands, brandCandidates.length); i++) {
     const brand = brandCandidates[i];
-    const wines = searchWineInBrand(brand, preprocessed, wineMinScore);
+    
+    // ✅ 브랜드명 제거 후 와인 검색
+    // 예: "배산임수 클레멈 라발리 샤블리" → "샤블리" (브랜드명 제거)
+    let wineQuery = preprocessed;
+    
+    // 영문/한글 브랜드명 모두 제거
+    const brandEn = normalize(brand.supplier_en);
+    const brandKr = normalize(brand.supplier_kr);
+    const queryNorm = normalize(wineQuery);
+    
+    // 정규화된 문자열에서 브랜드명 제거 + 잡음 제거
+    let cleanQuery = queryNorm
+      .replace(new RegExp(brandEn, 'gi'), ' ')
+      .replace(new RegExp(brandKr, 'gi'), ' ')
+      // 흔한 약어 제거 (cl, vg 등은 이미 별칭 확장됨)
+      .replace(/\b(cl|vg|rf|dd|lr|ps|ck|hp|em|ch|at|lb|bl|mr|lm|pe|ar)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // 원본 입력에서 와인 키워드 추출 (영문/한글 3글자 이상)
+    const wineKeywords = input.match(/([가-힣]{2,}|[A-Za-z]{3,})/g) || [];
+    const filteredKeywords = wineKeywords.filter(kw => {
+      const kwNorm = normalize(kw);
+      // 브랜드명에 포함되지 않은 키워드만
+      return !brandEn.includes(kwNorm) && !brandKr.includes(kwNorm);
+    }).join(' ');
+    
+    // 정제된 쿼리가 비어있으면 키워드 기반으로 검색
+    if (!cleanQuery || cleanQuery.length < 2) {
+      cleanQuery = filteredKeywords;
+    }
+    
+    console.log(`[BrandMatcher] Wine query after brand removal: "${queryNorm}" → "${cleanQuery}"`);
+    
+    const wines = searchWineInBrand(brand, cleanQuery || preprocessed, wineMinScore);
 
     if (wines.length > 0) {
       results.push({ brand, wines });
