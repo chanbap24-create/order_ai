@@ -679,7 +679,7 @@ type LearnedMatch =
   | { kind: "contains_weak"; alias: string; canonical: string }
   | null;
 
-function getLearnedMatch(rawInput: string): LearnedMatch {
+function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
   try {
     db.prepare(`
       CREATE TABLE IF NOT EXISTS item_alias (
@@ -697,7 +697,21 @@ function getLearnedMatch(rawInput: string): LearnedMatch {
   const inputItem = stripQtyAndUnit(rawInput);
   const nInputItem = normTight(inputItem);
 
-  const rows = db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[];
+  // ✅ client_code 고려하여 우선순위 조회
+  const rows = clientCode
+    ? (db.prepare(`
+        SELECT alias, canonical, client_code
+        FROM item_alias
+        ORDER BY
+          CASE
+            WHEN client_code = ? THEN 1
+            WHEN client_code = '*' THEN 2
+            ELSE 3
+          END,
+          count DESC
+      `).all(clientCode) as Array<AliasRow & { client_code: string }>)
+    : (db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[]);
+  
   if (!rows?.length) return null;
 
   const pairs = rows
@@ -986,7 +1000,7 @@ export function resolveItemsByClientWeighted(
       console.log(`[Wine] 생산자 감지됨: "${producer}" - 해당 브랜드 품목만 필터링`);
     }
     
-    const learned = getLearnedMatch(searchName);
+    const learned = getLearnedMatch(searchName, clientCode);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
