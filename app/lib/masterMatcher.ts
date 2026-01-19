@@ -33,6 +33,88 @@ function compareTwoStrings(str1: string, str2: string): number {
   return (2.0 * intersectionSize) / (str1.length + str2.length - 2);
 }
 
+/**
+ * 부분 토큰 매칭 점수 계산
+ * "산타루치아" vs "산타 루치아"처럼 띄어쓰기 차이를 인식
+ */
+function partialTokenMatch(query: string, targetName: string): number {
+  const qTokens = query.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+  const nameTokens = targetName.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+  
+  if (qTokens.length < 2 || nameTokens.length < 1) {
+    return 0;
+  }
+  
+  const qSet = new Set(qTokens);
+  const nameSet = new Set(nameTokens);
+  
+  let matchedQTokens = 0;
+  let matchedNameTokens = 0;
+  
+  for (const qt of qTokens) {
+    let found = false;
+    
+    // 정확 매칭 체크
+    if (nameSet.has(qt)) {
+      matchedQTokens++;
+      matchedNameTokens++;
+      found = true;
+      continue;
+    }
+    
+    // 부분 매칭 체크: "산타루치아" vs ["산타", "루치아"]
+    const qtNorm = normalize(qt);
+    let combined = "";
+    for (const nt of nameTokens) {
+      combined += normalize(nt);
+      if (combined === qtNorm) {
+        matchedQTokens++;
+        matchedNameTokens += combined.length / normalize(nt).length;
+        found = true;
+        break;
+      }
+      if (qtNorm.includes(combined) || combined.includes(qtNorm)) {
+        matchedQTokens += 0.8;
+        matchedNameTokens += 0.8;
+        found = true;
+        break;
+      }
+    }
+    
+    // 반대 방향도 체크: ["산타", "루치아"] in "산타루치아"
+    if (!found) {
+      for (const nt of nameTokens) {
+        const ntNorm = normalize(nt);
+        if (qtNorm.includes(ntNorm) && ntNorm.length >= 3) {
+          matchedQTokens += 0.5;
+          matchedNameTokens += 0.5;
+          break;
+        }
+      }
+    }
+  }
+  
+  if (matchedQTokens > 0) {
+    const recall = matchedQTokens / qTokens.length;
+    const precision = matchedNameTokens / nameTokens.length;
+    
+    // 입력 토큰의 80% 이상 매칭되면 높은 점수
+    if (recall >= 0.8) {
+      return Math.min(0.95, 0.80 + (recall * 0.15) + (precision * 0.05));
+    }
+    // 입력 토큰의 60% 이상 매칭
+    if (recall >= 0.6) {
+      return Math.min(0.85, 0.65 + (recall * 0.20));
+    }
+    // 입력 토큰의 50% 이상 매칭
+    if (recall >= 0.5) {
+      return Math.min(0.75, 0.55 + (recall * 0.20));
+    }
+  }
+  
+  return 0;
+}
+
 export interface MasterMatchCandidate {
   itemNo: string;
   englishName: string;
@@ -221,11 +303,16 @@ export function searchMasterSheet(
     const koreanKeywords = keywordMatchScore(inputName, item.koreanName);
     const maxKeywords = Math.max(englishKeywords, koreanKeywords);
 
-    // 영문명 최종 점수: bigram(35%) + character(20%) + keywords(40%) + contains(5%)
-    const englishScore = englishBigram * 0.35 + englishChar * 0.20 + englishKeywords * 0.40 + englishContains * 0.05;
+    // 5) 🎯 부분 토큰 매칭 (예: "산타루치아" vs "산타 루치아")
+    const englishPartial = partialTokenMatch(inputName, item.englishName);
+    const koreanPartial = partialTokenMatch(inputName, item.koreanName);
+    const maxPartial = Math.max(englishPartial, koreanPartial);
+
+    // 영문명 최종 점수: bigram(20%) + character(15%) + keywords(30%) + partial(30%) + contains(5%)
+    const englishScore = englishBigram * 0.20 + englishChar * 0.15 + englishKeywords * 0.30 + englishPartial * 0.30 + englishContains * 0.05;
     
-    // 한글명 최종 점수: bigram(35%) + character(20%) + keywords(40%) + contains(5%)
-    const koreanScore = koreanBigram * 0.35 + koreanChar * 0.20 + koreanKeywords * 0.40 + koreanContains * 0.05;
+    // 한글명 최종 점수: bigram(20%) + character(15%) + keywords(30%) + partial(30%) + contains(5%)
+    const koreanScore = koreanBigram * 0.20 + koreanChar * 0.15 + koreanKeywords * 0.30 + koreanPartial * 0.30 + koreanContains * 0.05;
 
     // 최종 점수: 영문/한글 중 높은 점수 사용
     const score = Math.max(englishScore, koreanScore);
