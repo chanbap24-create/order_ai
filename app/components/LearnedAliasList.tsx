@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 type Row = {
   alias: string;
   canonical: string;
+  count?: number;
+  last_used_at?: string;
   created_at?: string;
 };
 
@@ -118,10 +120,15 @@ export default function LearnedAliasList({
               <div>
                 <div style={{ fontWeight: 700 }}>
                   {r.alias} → {r.canonical}
+                  {r.count && r.count > 1 && (
+                    <span style={{ marginLeft: 8, fontSize: 12, color: "#FF6B35", fontWeight: 600 }}>
+                      (학습 {r.count}회)
+                    </span>
+                  )}
                 </div>
-                {r.created_at && (
+                {(r.last_used_at || r.created_at) && (
                   <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
-                    {r.created_at}
+                    {r.last_used_at ? `최근 사용: ${r.last_used_at}` : `생성: ${r.created_at}`}
                   </div>
                 )}
               </div>
