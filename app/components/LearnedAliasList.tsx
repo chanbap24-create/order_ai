@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type Row = {
   alias: string;
   canonical: string;
+  client_code?: string;
   count?: number;
   last_used_at?: string;
   created_at?: string;
@@ -120,6 +121,11 @@ export default function LearnedAliasList({
               <div>
                 <div style={{ fontWeight: 700 }}>
                   {r.alias} → {r.canonical}
+                  {r.client_code && r.client_code !== '*' && (
+                    <span style={{ marginLeft: 8, fontSize: 11, color: '#666', padding: '2px 6px', background: '#f0f0f0', borderRadius: 4 }}>
+                      거래처: {r.client_code}
+                    </span>
+                  )}
                   {r.count && r.count > 1 && (
                     <span style={{ marginLeft: 8, fontSize: 12, color: "#FF6B35", fontWeight: 600 }}>
                       (학습 {r.count}회)

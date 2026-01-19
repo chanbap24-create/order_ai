@@ -13,7 +13,7 @@ function ensure() {
     )
   `).run();
   
-  // ✅ count, last_used_at 컬럼 추가 (마이그레이션)
+  // ✅ count, last_used_at, client_code 컬럼 추가 (마이그레이션)
   try {
     db.prepare(`ALTER TABLE item_alias ADD COLUMN count INTEGER DEFAULT 1`).run();
   } catch {
@@ -25,15 +25,21 @@ function ensure() {
   } catch {
     // 컬럼이 이미 존재하면 무시
   }
+
+  try {
+    db.prepare(`ALTER TABLE item_alias ADD COLUMN client_code TEXT DEFAULT '*'`).run();
+  } catch {
+    // 컬럼이 이미 존재하면 무시
+  }
 }
 
 export async function GET() {
   try {
     ensure();
     
-    // ✅ 모든 컬럼 조회 (count, last_used_at 포함)
+    // ✅ 모든 컬럼 조회 (client_code 포함)
     const rows = db
-      .prepare(`SELECT alias, canonical, count, last_used_at, created_at FROM item_alias ORDER BY created_at DESC`)
+      .prepare(`SELECT alias, canonical, client_code, count, last_used_at, created_at FROM item_alias ORDER BY created_at DESC`)
       .all();
 
     return jsonResponse({ success: true, rows });

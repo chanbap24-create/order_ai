@@ -42,6 +42,22 @@ function ensureItemAliasTable() {
   } catch {
     // 컬럼이 이미 존재하면 무시
   }
+
+  // ✅ 거래처별 학습을 위한 client_code 컬럼 추가
+  try {
+    db.prepare(`ALTER TABLE item_alias ADD COLUMN client_code TEXT`).run();
+    console.log('[item_alias] ✅ client_code 컬럼 추가 완료');
+  } catch {
+    // 컬럼이 이미 존재하면 무시
+  }
+
+  // ✅ 거래처별 조회 성능을 위한 인덱스 추가
+  try {
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_item_alias_client ON item_alias(canonical, client_code)`).run();
+    console.log('[item_alias] ✅ 거래처별 인덱스 추가 완료');
+  } catch (e) {
+    console.log('[item_alias] ⚠️ 인덱스 추가 실패 (이미 존재하거나 오류):', e);
+  }
 }
 
 export async function POST(req: Request) {
@@ -50,6 +66,7 @@ export async function POST(req: Request) {
 
     const rawAlias = String(body?.alias ?? "").trim();
     const canonical = String(body?.canonical ?? "").trim();
+    const clientCode = String(body?.client_code ?? "*").trim(); // ✅ 거래처 코드 (기본값: '*' = 전역)
 
     if (!rawAlias || !canonical) {
       return jsonResponse(
@@ -70,36 +87,71 @@ export async function POST(req: Request) {
 
     ensureItemAliasTable();
 
-    // ✅ 규칙 학습 with 누적 카운트
-    // - 같은 alias에 같은 canonical을 선택하면 count++
+    // ✅ 거래처별 학습 with 누적 카운트
+    // - alias가 PRIMARY KEY이므로 client_code를 WHERE 조건에서만 사용
+    // - 같은 (alias, client_code)에 같은 canonical을 선택하면 count++
     // - 다른 canonical을 선택하면 count=1로 초기화 (새로운 학습)
-    const existing = db.prepare(
-      `SELECT canonical, count FROM item_alias WHERE alias = ?`
-    ).get(alias) as { canonical: string; count: number } | undefined;
+    
+    // client_code 컬럼이 있는지 확인
+    const hasClientCode = db.prepare(`
+      SELECT COUNT(*) as cnt FROM pragma_table_info('item_alias') WHERE name='client_code'
+    `).get() as { cnt: number };
 
-    if (existing && existing.canonical === canonical) {
-      // 같은 매핑: count 증가
-      db.prepare(`
-        UPDATE item_alias
-        SET count = count + 1, last_used_at = CURRENT_TIMESTAMP
-        WHERE alias = ?
-      `).run(alias);
+    if (hasClientCode.cnt > 0) {
+      // client_code 컬럼이 있으면 거래처별 학습
+      const existing = db.prepare(
+        `SELECT canonical, count, client_code FROM item_alias WHERE alias = ? AND client_code = ?`
+      ).get(alias, clientCode) as { canonical: string; count: number; client_code: string } | undefined;
+
+      if (existing && existing.canonical === canonical) {
+        // 같은 매핑: count 증가
+        db.prepare(`
+          UPDATE item_alias
+          SET count = count + 1, last_used_at = CURRENT_TIMESTAMP
+          WHERE alias = ? AND client_code = ?
+        `).run(alias, clientCode);
+      } else {
+        // 새로운 매핑: 삭제 후 삽입 (alias가 PRIMARY KEY라 UPSERT 불가)
+        db.prepare(`DELETE FROM item_alias WHERE alias = ? AND client_code = ?`).run(alias, clientCode);
+        db.prepare(`
+          INSERT INTO item_alias (alias, canonical, client_code, count, last_used_at, created_at)
+          VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).run(alias, canonical, clientCode);
+      }
     } else {
-      // 새로운 매핑 또는 다른 매핑: 덮어쓰기
-      db.prepare(`
-        INSERT INTO item_alias (alias, canonical, count, last_used_at, created_at)
-        VALUES (?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ON CONFLICT(alias) DO UPDATE SET
-          canonical = excluded.canonical,
-          count = 1,
-          last_used_at = CURRENT_TIMESTAMP
-      `).run(alias, canonical);
+      // client_code 컬럼이 없으면 기존 방식 (전역 학습만)
+      const existing = db.prepare(
+        `SELECT canonical, count FROM item_alias WHERE alias = ?`
+      ).get(alias) as { canonical: string; count: number } | undefined;
+
+      if (existing && existing.canonical === canonical) {
+        // 같은 매핑: count 증가
+        db.prepare(`
+          UPDATE item_alias
+          SET count = count + 1, last_used_at = CURRENT_TIMESTAMP
+          WHERE alias = ?
+        `).run(alias);
+      } else {
+        // 새로운 매핑 또는 다른 매핑: 덮어쓰기
+        db.prepare(`
+          INSERT INTO item_alias (alias, canonical, count, last_used_at, created_at)
+          VALUES (?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT(alias) DO UPDATE SET
+            canonical = excluded.canonical,
+            count = 1,
+            last_used_at = CURRENT_TIMESTAMP
+        `).run(alias, canonical);
+      }
     }
 
     // ✅ 프론트 안정용: 실제 저장된 값 반환
-    const row = db.prepare(
-      `SELECT alias, canonical, count, last_used_at, created_at FROM item_alias WHERE alias = ?`
-    ).get(alias);
+    const row = hasClientCode.cnt > 0 
+      ? db.prepare(
+          `SELECT alias, canonical, client_code, count, last_used_at, created_at FROM item_alias WHERE alias = ? AND client_code = ?`
+        ).get(alias, clientCode)
+      : db.prepare(
+          `SELECT alias, canonical, count, last_used_at, created_at FROM item_alias WHERE alias = ?`
+        ).get(alias);
 
     // 🎓 자동 학습 시스템 연동: 토큰 매핑도 자동으로 학습
     try {

@@ -386,11 +386,12 @@ export default function Home() {
     }
 
     // 단건 API라서 5개까지 순차 저장
+    const clientCode = data?.client?.client_code || '*'; // ✅ 거래처 코드 추가
     for (const r of rows) {
       const res = await fetch("/api/learn-item-alias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(r),
+        body: JSON.stringify({ ...r, client_code: clientCode }),
       });
 
       const json = await res.json().catch(() => null);
@@ -581,11 +582,12 @@ export default function Home() {
           return false;
         }
       } else {
-        // 기존 품목 별칭 학습
+        // 기존 품목 별칭 학습 (거래처별)
+        const clientCode = data?.client?.client_code || '*'; // ✅ 거래처 코드 추가
         const res = await fetch("/api/learn-item-alias", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ alias, canonical }),
+          body: JSON.stringify({ alias, canonical, client_code: clientCode }),
         });
 
         const json = await res.json().catch(() => null);

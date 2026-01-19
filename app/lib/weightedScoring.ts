@@ -96,19 +96,60 @@ function isSpecificAlias(alias: string) {
   const a = stripQtyAndUnit(alias);
   const tokens = a.split(" ").filter(Boolean);
   const tightLen = normTight(a).length;
-  return tokens.length >= 3 || tightLen >= 12;
+  
+  // ✅ 한글 감지: 한글이 50% 이상이면 한글 기준 적용
+  const koreanChars = (a.match(/[가-힣]/g) || []).length;
+  const totalChars = a.length;
+  const isKorean = koreanChars / totalChars > 0.5;
+  
+  if (isKorean) {
+    // 한글 기준: 2토큰 이상 OR 6글자 이상 (한글은 정보밀도 높음)
+    return tokens.length >= 2 || tightLen >= 6;
+  } else {
+    // 영문 기준: 3토큰 이상 OR 12글자 이상
+    return tokens.length >= 3 || tightLen >= 12;
+  }
 }
 
-export function getUserLearningSignal(rawInput: string, itemNo: string): LearningSignal {
+export function getUserLearningSignal(rawInput: string, itemNo: string, clientCode?: string): LearningSignal {
   try {
     const inputItem = stripQtyAndUnit(rawInput);
     const nInputItem = normTight(inputItem);
 
-    const rows = db.prepare(`
-      SELECT alias, canonical, count 
-      FROM item_alias 
-      WHERE canonical = ?
-    `).all(itemNo) as Array<{ alias: string; canonical: string; count: number }>;
+    // ✅ 거래처별 학습 우선 조회 (client_code 컬럼이 있는 경우)
+    let rows: Array<{ alias: string; canonical: string; count: number; client_code?: string }> = [];
+    
+    if (clientCode) {
+      // 1순위: 해당 거래처 전용 학습
+      try {
+        rows = db.prepare(`
+          SELECT alias, canonical, count, client_code 
+          FROM item_alias 
+          WHERE canonical = ? AND (client_code = ? OR client_code IS NULL OR client_code = '' OR client_code = '*')
+          ORDER BY 
+            CASE 
+              WHEN client_code = ? THEN 1  -- 거래처별 학습 최우선
+              WHEN client_code = '*' THEN 2  -- 전역 학습 2순위
+              ELSE 3  -- NULL/빈값 3순위
+            END,
+            count DESC
+        `).all(itemNo, clientCode, clientCode) as Array<{ alias: string; canonical: string; count: number; client_code?: string }>;
+      } catch {
+        // client_code 컬럼이 없으면 기존 방식
+        rows = db.prepare(`
+          SELECT alias, canonical, count 
+          FROM item_alias 
+          WHERE canonical = ?
+        `).all(itemNo) as Array<{ alias: string; canonical: string; count: number }>;
+      }
+    } else {
+      // clientCode 없으면 기존 방식
+      rows = db.prepare(`
+        SELECT alias, canonical, count 
+        FROM item_alias 
+        WHERE canonical = ?
+      `).all(itemNo) as Array<{ alias: string; canonical: string; count: number }>;
+    }
 
     if (!rows?.length) return { score: 0, count: 0, kind: null };
 
@@ -120,7 +161,10 @@ export function getUserLearningSignal(rawInput: string, itemNo: string): Learnin
       if (nAliasItem === nInputItem) {
         const count = r.count || 1;
         const bonus = count >= 3 ? LEARNING_BONUS[3] : count === 2 ? LEARNING_BONUS[2] : LEARNING_BONUS[1];
-        return { score: bonus, count, kind: "exact" };
+        
+        // ✅ 거래처별 학습이면 강력한 보너스 (+0.15)
+        const clientBonus = r.client_code === clientCode ? 0.15 : 0;
+        return { score: bonus + clientBonus, count, kind: "exact" };
       }
 
       // Contains 매칭
@@ -128,10 +172,13 @@ export function getUserLearningSignal(rawInput: string, itemNo: string): Learnin
         const count = r.count || 1;
         const bonus = count >= 3 ? LEARNING_BONUS[3] : count === 2 ? LEARNING_BONUS[2] : LEARNING_BONUS[1];
         
+        // ✅ 거래처별 학습이면 강력한 보너스 (+0.15)
+        const clientBonus = r.client_code === clientCode ? 0.15 : 0;
+        
         if (isSpecificAlias(aliasItem)) {
-          return { score: bonus, count, kind: "contains_specific" };
+          return { score: bonus + clientBonus, count, kind: "contains_specific" };
         } else {
-          return { score: bonus * 0.5, count, kind: "contains_weak" }; // weak는 절반만
+          return { score: (bonus * 0.7) + clientBonus, count, kind: "contains_weak" }; // ✅ weak 보너스 상향 (0.5 → 0.7)
         }
       }
     }
@@ -465,7 +512,7 @@ export function calculateWeightedScore(
   dataType: 'wine' | 'glass' = 'wine'
 ): WeightedScore {
   // 각 신호 계산
-  const userLearning = getUserLearningSignal(rawInput, itemNo);
+  const userLearning = getUserLearningSignal(rawInput, itemNo, clientCode); // ✅ clientCode 전달
   const recentPurchase = getRecentPurchaseSignal(clientCode, itemNo, dataType);
   const purchaseFrequency = getPurchaseFrequencySignal(clientCode, itemNo, dataType);
   const tokenMatch = getTokenMatchSignal(rawInput, itemNo);
