@@ -1114,7 +1114,7 @@ export function resolveItemsByClientWeighted(
       }
     }
 
-    // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
+    // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구 (완화된 조건)
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
     if (tokenCount >= 3) {
       const gap = second ? top.score - second.score : 999;
@@ -1122,15 +1122,15 @@ export function resolveItemsByClientWeighted(
       // learned가 있는 경우 (기존 로직 유지)
       if (learned?.kind === "contains_weak") {
         const allowAuto = (top.score >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
-                          (top.score >= 0.88 && gap >= 0.30);
+                          (top.score >= 0.88 && gap >= 0.20);  // ✅ 0.30 → 0.20 완화
         if (!allowAuto) {
           resolved = false;
         }
       } 
-      // learned가 없는 경우: 중앙 설정 사용
+      // learned가 없는 경우: 완화된 조건 (0.70 이상 + gap 0.15 이상)
       else if (!learned) {
         const allowAuto = (top.score >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
-                          (top.score >= config.minScore && gap >= config.minGap);
+                          (top.score >= 0.70 && gap >= 0.15);  // ✅ minScore 0.70, minGap 0.30 → 0.15 완화
         if (!allowAuto) {
           resolved = false;
         }

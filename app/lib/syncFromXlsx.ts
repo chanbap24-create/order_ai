@@ -49,6 +49,17 @@ function ensureTables() {
     `CREATE INDEX IF NOT EXISTS idx_client_item_stats_client ON client_item_stats(client_code)`
   ).run();
 }
+  
+  // u2705 item_alias ud14cuc774ube14 uc0dduc131 (ubcc4uce6d uc2dcuc2a4ud15c)
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS item_alias (
+      alias TEXT PRIMARY KEY,
+      canonical TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      count INTEGER DEFAULT 1,
+      last_used_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
 
 function normCode(x: any) {
   return String(x ?? "").trim().replace(/\.0$/, "");
