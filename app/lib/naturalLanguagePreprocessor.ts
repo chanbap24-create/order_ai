@@ -206,7 +206,7 @@ export function normalizeWineTerms(text: string): string {
     normalized = normalized.replace(regex, full);
   }
   
-  // 영문 품종 한글화
+  // 영문 품종/와인명 한글화
   const englishVarietalMap: Record<string, string> = {
     'chardonnay': '샤르도네',
     'chard': '샤르도네',
@@ -218,6 +218,10 @@ export function normalizeWineTerms(text: string): string {
     'pinot': '피노',
     'merlot': '메를로',
     'riesling': '리슬링',
+    // 와인 타입 약어
+    'bdm': '브루넬로 디 몬탈치노',
+    'brunello di montalcino': '브루넬로 디 몬탈치노',
+    'brunello': '브루넬로',
   };
   
   for (const [en, kr] of Object.entries(englishVarietalMap)) {
@@ -247,6 +251,9 @@ export function normalizeProducers(text: string): string {
     'domaine': '도멘',
     'chateau': '샤또',
     'maison': '메종',
+    // 이탈리아 생산자
+    'bs': '비온디 산티',
+    'at': '알테시노',
   };
   
   // 단어 경계에서만 치환
