@@ -170,7 +170,7 @@ const WINE_PRODUCERS = [
   // USA (20개)
   'addendum', '애덴덤',
   'alma rosa', '알마 로사',
-  'cru winery', '크뤼 와이너리',
+  'cru winery', '크루 와이너리', '크뤼 와이너리',
   'fess parker', '페스 파커',
   'fog & light', '포그 앤 라이트',
   'gallica', '갈리카',
