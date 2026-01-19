@@ -1152,7 +1152,7 @@ export function resolveItemsByClientWeighted(
           score: Number(c.score.toFixed(3)),
           _debug: c._debug,
         })),
-        suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
+        suggestions: scored.slice(0, Math.max(10, topN)).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
@@ -1193,8 +1193,8 @@ export function resolveItemsByClientWeighted(
             console.log(`[Wine] 생산자 필터 후 신규 품목: ${newItems.length}개`);
           }
           
-          // 기존 1위 + 신규 상위 3개 = 총 4개
-          const combined = [...existingTop, ...newItems.slice(0, 3)];
+          // 기존 1위 + 신규 상위 9개 = 총 10개
+          const combined = [...existingTop, ...newItems.slice(0, 9)];
           
           console.log('[DEBUG] 0.70 미만 후보:', {
             hasProducer: hasProducer,
@@ -1207,7 +1207,7 @@ export function resolveItemsByClientWeighted(
           
           return combined;
         })()
-      : scored.slice(0, Math.max(3, topN)).map((c) => ({
+      : scored.slice(0, Math.max(10, topN)).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),

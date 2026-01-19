@@ -82,6 +82,9 @@ export default function Home() {
   // ✅ 신규 사업자
   const [isNewBusiness, setIsNewBusiness] = useState(false);
   const [newBusinessName, setNewBusinessName] = useState("");
+
+  // ✅ 더보기 상태 (itemIndex별)
+  const [showMoreSuggestions, setShowMoreSuggestions] = useState<Record<number, boolean>>({});
   const [newBusinessPhone, setNewBusinessPhone] = useState("");
   const [newBusinessEmail, setNewBusinessEmail] = useState(""); // 주소 → 이메일
 
@@ -615,14 +618,14 @@ export default function Home() {
     fontSize: 16, // ✅ 16px 이상으로 설정해야 모바일에서 자동 줌 방지
   };
 
-  // ✅ 후보는 최대 3개만 보여주기
-  function getTop4Suggestions(it: any) {
+  // ✅ 후보 가져오기 (더보기 상태에 따라 4개 또는 10개)
+  function getSuggestions(it: any, showMore: boolean) {
     const arr = Array.isArray(it?.suggestions)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    return arr.slice(0, 4);
+    return showMore ? arr.slice(0, 10) : arr.slice(0, 4);
   }
 
   const needsClientPick = data?.status === "needs_review_client";
@@ -1169,7 +1172,14 @@ export default function Home() {
                       ? `${it.item_no} / ${it.item_name} / ${it.qty}병`
                       : `확인필요 / "${it.name}" / ${it.qty}병`;
 
-                    const top4 = getTop4Suggestions(it);
+                    const showMore = !!showMoreSuggestions[idx];
+                    const suggestions = getSuggestions(it, showMore);
+                    const allSuggestions = Array.isArray(it?.suggestions)
+                      ? it.suggestions
+                      : Array.isArray(it?.candidates)
+                        ? it.candidates
+                        : [];
+                    const hasMore = allSuggestions.length > 4;
 
                     return (
                       <div
@@ -1210,8 +1220,8 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* 후보 3개 선택 버튼 */}
-                        {top4.length > 0 && (
+                        {/* 후보 선택 버튼 */}
+                        {suggestions.length > 0 && (
                           <div
                             style={{
                               marginLeft: 80,
@@ -1225,13 +1235,13 @@ export default function Home() {
                             </div>
 
                             {/* 신규 품목 안내 */}
-                            {top4.some((s: any) => s.is_new_item) && (
+                            {suggestions.some((s: any) => s.is_new_item) && (
                               <div style={{ fontSize: 12, color: "#ff6b35", marginBottom: 12, padding: "8px 12px", background: "#fff8f0", borderRadius: 6, border: "1px solid #ffd699" }}>
                                 ⚠️ 신규 품목: 할인율과 공급가를 입력하세요
                               </div>
                             )}
 
-                            {top4.map((s: any, sidx: number) => {
+                            {suggestions.map((s: any, sidx: number) => {
                               const itemKey = `${idx}-${s.item_no}`;
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
@@ -1362,10 +1372,38 @@ export default function Home() {
                                 </div>
                               );
                             })}
+
+                            {/* 더보기 버튼 */}
+                            {hasMore && (
+                              <button
+                                onClick={() => {
+                                  setShowMoreSuggestions(prev => ({
+                                    ...prev,
+                                    [idx]: !prev[idx]
+                                  }));
+                                }}
+                                style={{
+                                  width: "100%",
+                                  padding: "8px 12px",
+                                  marginTop: 8,
+                                  borderRadius: 6,
+                                  border: "1px solid #ddd",
+                                  background: "white",
+                                  color: "#4a90e2",
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {showMore 
+                                  ? `▲ 접기 (${allSuggestions.length}개 중 ${suggestions.length}개)` 
+                                  : `▼ 더보기 (${allSuggestions.length}개 중 4개만 표시)`}
+                              </button>
+                            )}
                           </div>
                         )}
 
-                        {top4.length === 0 && (
+                        {suggestions.length === 0 && (
                           <div
                             style={{
                               marginLeft: 80,
