@@ -1193,8 +1193,25 @@ export function resolveItemsByClientWeighted(
             console.log(`[Wine] 생산자 필터 후 신규 품목: ${newItems.length}개`);
           }
           
-          // 기존 1위 + 신규 상위 9개 = 총 10개
-          const combined = [...existingTop, ...newItems.slice(0, 9)];
+          // 기존 1위 + 신규 상위 9개 = 총 10개 목표
+          // 하지만 신규품목이 부족하면 기존품목으로 채우기
+          let combined = [...existingTop, ...newItems.slice(0, 9)];
+          
+          // 10개 미만이면 기존품목(scored)으로 채우기
+          if (combined.length < 10) {
+            const existingItemNos = new Set(combined.map(c => c.item_no));
+            const additionalExisting = scored
+              .filter(c => !existingItemNos.has(c.item_no))
+              .slice(0, 10 - combined.length)
+              .map((c) => ({
+                item_no: c.item_no,
+                item_name: c.item_name,
+                score: Number(c.score.toFixed(3)),
+                is_new_item: c.is_new_item,
+                supply_price: c.supply_price,
+              }));
+            combined = [...combined, ...additionalExisting];
+          }
           
           console.log('[DEBUG] 0.70 미만 후보:', {
             hasProducer: hasProducer,
