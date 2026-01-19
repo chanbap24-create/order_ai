@@ -1235,20 +1235,11 @@ export function resolveItemsByClientWeighted(
       };
     }
 
-    // ✅ 0.70 미만 또는 생산자 명시 시: 기존품목 1위 + 신규품목 상위 3개 표시
+    // ✅ 0.70 미만 또는 생산자 명시 시: 기존품목 + 신규품목 혼합 표시
     const shouldSearchNew = (top && top.score < 0.70) || (hasProducer && top && top.score < 0.85);
     
     const suggestions = shouldSearchNew
       ? (() => {
-          // 기존품목 1위 (반드시 포함)
-          const existingTop = top ? [{
-            item_no: top.item_no,
-            item_name: top.item_name,
-            score: Number(top.score.toFixed(3)),
-            is_new_item: top.is_new_item,
-            supply_price: top.supply_price,
-          }] : [];
-
           // 신규품목 검색 (English 시트)
           let newItems = searchNewItemFromMaster(q);
           
@@ -1266,37 +1257,45 @@ export function resolveItemsByClientWeighted(
             console.log(`[Wine] 생산자 필터 후 신규 품목: ${newItems.length}개`);
           }
           
-          // 기존 1위 + 신규 상위 9개 = 총 10개 목표
-          // 하지만 신규품목이 부족하면 기존품목으로 채우기
-          let combined = [...existingTop, ...newItems.slice(0, 9)];
+          // 🔄 기존 품목(scored)과 신규 품목을 점수 기준으로 혼합
+          const allItems = [
+            // 기존 품목 상위 10개
+            ...scored.slice(0, 10).map((c) => ({
+              item_no: c.item_no,
+              item_name: c.item_name,
+              score: Number(c.score.toFixed(3)),
+              is_new_item: c.is_new_item,
+              supply_price: c.supply_price,
+            })),
+            // 신규 품목
+            ...newItems
+          ];
           
-          // 10개 미만이면 기존품목(scored)으로 채우기
-          if (combined.length < 10) {
-            const existingItemNos = new Set(combined.map(c => c.item_no));
-            const additionalExisting = scored
-              .filter(c => !existingItemNos.has(c.item_no))
-              .slice(0, 10 - combined.length)
-              .map((c) => ({
-                item_no: c.item_no,
-                item_name: c.item_name,
-                score: Number(c.score.toFixed(3)),
-                is_new_item: c.is_new_item,
-                supply_price: c.supply_price,
-              }));
-            combined = [...combined, ...additionalExisting];
+          // 중복 제거 (item_no 기준)
+          const itemMap = new Map<string, typeof allItems[0]>();
+          for (const item of allItems) {
+            const existing = itemMap.get(item.item_no);
+            if (!existing || item.score > existing.score) {
+              itemMap.set(item.item_no, item);
+            }
           }
           
-          console.log('[DEBUG] 0.70 미만 후보 (10개 목표):', {
+          // 점수 순으로 정렬 후 상위 10개
+          const combined = Array.from(itemMap.values())
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+          
+          console.log('[DEBUG] 기존+신규 혼합 후보 (10개 목표):', {
             hasProducer: hasProducer,
             producer: producer,
-            existingTop: existingTop.length,
-            newItems: newItems.length,
             scored: scored.length,
+            newItems: newItems.length,
             combined: combined.length,
-            items: combined.map(c => ({ no: c.item_no, score: c.score }))
+            top3: combined.slice(0, 3).map(c => ({ no: c.item_no, score: c.score, new: c.is_new_item }))
           });
           
           return combined;
+        })()
         })()
       : scored.slice(0, Math.max(10, topN)).map((c) => ({
           item_no: c.item_no,
