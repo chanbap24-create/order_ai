@@ -746,8 +746,20 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       const { ITEM_MATCH_CONFIG, decideSuggestionComposition } = require('@/app/lib/itemMatchConfig');
       const config = ITEM_MATCH_CONFIG;
 
-      // 기본 suggestions 초기화
-      let suggestions = sortedCandidates.slice(0, config.suggestions.total);
+      // ✅ 거래처 이력 조회 (is_new_item 판단용)
+      const clientHistory = db
+        .prepare(`SELECT item_no FROM client_item_stats WHERE client_code = ?`)
+        .all(clientCode) as Array<{ item_no: string }>;
+      const clientItemSet = new Set(clientHistory.map(r => String(r.item_no)));
+
+      // 기본 suggestions 초기화 (is_new_item 추가)
+      let suggestions = sortedCandidates.slice(0, config.suggestions.total).map((c: any) => {
+        const isInClientHistory = clientItemSet.has(String(c.item_no));
+        return {
+          ...c,
+          is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
+        };
+      });
 
       // 🆕 신규 품목 검색: Wine 페이지에서만 English 시트 검색
       if (pageType === "wine") {
@@ -769,20 +781,32 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             
             console.log(`[후보조합] ${composition.type}: 기존 ${composition.existing}개 + 신규 ${composition.newItems}개 (${composition.reason})`);
             
+            // ✅ 기존 후보도 is_new_item 추가
+            const existingSuggestions = sortedCandidates.slice(0, composition.existing).map((c: any) => {
+              const isInClientHistory = clientItemSet.has(String(c.item_no));
+              return {
+                ...c,
+                is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
+              };
+            });
+            
             // 신규품목 매핑 (신규품목 플래그 포함)
-            const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => ({
-              item_no: c.itemNo,
-              item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
-              score: c.score,
-              source: 'master_sheet',
-              is_new_item: true,
-              supply_price: c.supplyPrice, // ✅ 공급가 추가
-              _debug: c._debug,
-            }));
+            const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => {
+              const isInClientHistory = clientItemSet.has(String(c.itemNo));
+              return {
+                item_no: c.itemNo,
+                item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
+                score: c.score,
+                source: 'master_sheet',
+                is_new_item: !isInClientHistory, // ✅ 거래처 이력 기반 판단
+                supply_price: c.supplyPrice,
+                _debug: c._debug,
+              };
+            });
             
             // 조합에 따라 후보 구성
             suggestions = [
-              ...sortedCandidates.slice(0, composition.existing),
+              ...existingSuggestions,
               ...newItemSuggestions
             ].slice(0, config.suggestions.total);
             

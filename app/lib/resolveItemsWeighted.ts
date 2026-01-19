@@ -1231,6 +1231,8 @@ export function resolveItemsByClientWeighted(
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
+          is_new_item: c.is_new_item,
+          supply_price: c.supply_price,
           _debug: c._debug,
         })),
         suggestions: scored.slice(0, Math.max(10, topN)).map((c) => ({
