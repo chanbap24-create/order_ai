@@ -955,7 +955,8 @@ export function resolveItemsByClientWeighted(
     }
 
     // 후보 풀 = 마스터(원본) + 마스터(확장) + 영문명 + 거래처이력 (중복 제거)
-    // ✅ 거래처 이력을 마지막에 추가하여 우선순위 부여 (덮어쓰기)
+    // ✅ 점수 우선순위로 변경: 마스터 품목명을 유지하되, 거래처 이력도 풀에 포함
+    // 품목명은 마스터 우선, 점수는 가중치 시스템에서 거래처 이력 우대
     const poolMap = new Map<string, { item_no: string; item_name: string }>();
     for (const r of masterRows1) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
@@ -966,9 +967,14 @@ export function resolveItemsByClientWeighted(
     for (const r of englishRows) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
-    // 🎯 거래처 이력을 마지막에 추가하여 최우선 (기존 마스터 품목명 덮어쓰기)
+    // 🎯 거래처 이력 추가 (품목명 덮어쓰지 않음! 마스터 품목명 유지)
+    // 가중치 시스템에서 거래처 이력 품목은 점수가 높게 책정됨
     for (const r of clientRows) {
-      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+      if (!poolMap.has(String(r.item_no))) {
+        // 마스터에 없는 품목만 거래처 이력 품목명 사용
+        poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+      }
+      // 마스터에 이미 있으면 마스터 품목명 유지 (덮어쓰지 않음)
     }
     const pool = Array.from(poolMap.values());
     
