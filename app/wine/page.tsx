@@ -1179,7 +1179,8 @@ export default function Home() {
                       : Array.isArray(it?.candidates)
                         ? it.candidates
                         : [];
-                    const hasMore = allSuggestions.length > 4;
+                    // ✅ 무조건 더보기 버튼 표시 (확인 필요일 때 더 중요함!)
+                    const hasMore = true;
 
                     return (
                       <div
@@ -1396,8 +1397,10 @@ export default function Home() {
                                 }}
                               >
                                 {showMore 
-                                  ? `▲ 접기 (${allSuggestions.length}개 중 ${suggestions.length}개)` 
-                                  : `▼ 더보기 (${allSuggestions.length}개 중 4개만 표시)`}
+                                  ? `▲ 접기 (${allSuggestions.length}개 중 ${Math.min(10, allSuggestions.length)}개 표시)` 
+                                  : allSuggestions.length > 4
+                                    ? `▼ 더보기 (${allSuggestions.length}개 중 4개만 표시)`
+                                    : `▼ 더 많은 후보 보기`}
                               </button>
                             )}
                           </div>
