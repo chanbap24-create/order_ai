@@ -12,7 +12,7 @@
 
 import { db } from "@/app/lib/db";
 import stringSimilarity from "string-similarity";
-import XLSX from "xlsx";
+import * as XLSX from "xlsx";
 import path from "path";
 import fs from "fs";
 import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
@@ -58,13 +58,18 @@ function loadEnglishSheet(): WineItem[] {
   const xlsxPath =
     process.env.ORDER_AI_XLSX_PATH || path.join(process.cwd(), "order-ai.xlsx");
 
+  console.log(`[BrandMatcher] Trying to load from: ${xlsxPath}`);
+  console.log(`[BrandMatcher] File exists: ${fs.existsSync(xlsxPath)}`);
+  console.log(`[BrandMatcher] process.cwd(): ${process.cwd()}`);
+
   if (!fs.existsSync(xlsxPath)) {
     console.warn(`[BrandMatcher] order-ai.xlsx not found at ${xlsxPath}`);
     return [];
   }
 
   try {
-    const workbook = XLSX.readFile(xlsxPath);
+    const fileBuffer = fs.readFileSync(xlsxPath);
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
     const sheet = workbook.Sheets["English"];
     if (!sheet) {
       console.warn(`[BrandMatcher] 'English' sheet not found`);

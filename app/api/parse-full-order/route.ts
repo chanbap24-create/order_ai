@@ -8,6 +8,7 @@ import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 import { jsonResponse } from "@/app/lib/api-response";
 import type { ParseFullOrderResponse } from "@/app/types/api";
+import { hierarchicalSearch } from "@/app/lib/brandMatcher";
 
 
 import Holidays from "date-holidays";
@@ -658,18 +659,81 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       } as any);
     }
 
+    // ✅ 3-0) 브랜드 우선 매칭 시도 (새로운 2단계 계층적 검색)
+    // Wine 페이지에서만 활성화
+    let brandMatchedItems: any[] = [];
+    if (pageType === "wine") {
+      console.log("[BrandMatch] 브랜드 우선 매칭 시작");
+      for (const item of parsedItems) {
+        const inputName = item.name || '';
+        if (!inputName) continue;
+
+        try {
+          const brandResults = hierarchicalSearch(inputName, 0.5, 0.5, 2);
+          
+          if (brandResults.length > 0 && brandResults[0].wines.length > 0) {
+            const topBrand = brandResults[0];
+            const topWine = topBrand.wines[0];
+            
+            console.log(`[BrandMatch] ✅ "${inputName}" → ${topBrand.brand.supplier_kr} / ${topWine.wine_kr} (score: ${topWine.score.toFixed(3)})`);
+            
+            // 브랜드 매칭된 아이템 저장
+            brandMatchedItems.push({
+              raw: item.raw,
+              name: item.name,
+              qty: item.qty,
+              normalized_query: inputName,
+              resolved: topWine.score >= 0.7, // 0.7 이상이면 자동 확정
+              item_no: topWine.item_no,
+              item_name: topWine.wine_kr,
+              score: topWine.score,
+              method: 'brand_hierarchical',
+              brand_info: {
+                brand_name: topBrand.brand.supplier_kr,
+                brand_score: topBrand.brand.score,
+              },
+              candidates: topBrand.wines.slice(0, 5).map((w: any) => ({
+                item_no: w.item_no,
+                item_name: w.wine_kr,
+                score: w.score,
+                method: 'brand_hierarchical',
+              })),
+            });
+            
+            continue; // 브랜드 매칭 성공하면 기존 로직 스킵
+          }
+        } catch (err) {
+          console.error(`[BrandMatch] 오류: ${err}`);
+        }
+      }
+    }
+
     // 3) 품목 resolve
     // 🎯 조합 가중치 시스템으로 품목 매칭!
-    const resolvedItems = resolveItemsByClientWeighted(clientCode, parsedItems, {
-      minScore: 0.55,
-      minGap: 0.05,
-      topN: 5,
-    });
+    // 브랜드 매칭되지 않은 품목만 기존 방식으로 처리
+    const itemsToResolve = brandMatchedItems.length > 0
+      ? parsedItems.filter((item: any) => 
+          !brandMatchedItems.some((bm: any) => bm.name === item.name)
+        )
+      : parsedItems;
+
+    console.log(`[품목 resolve] 전체: ${parsedItems.length}개, 브랜드 매칭: ${brandMatchedItems.length}개, 기존 방식: ${itemsToResolve.length}개`);
+
+    const resolvedItems = itemsToResolve.length > 0
+      ? resolveItemsByClientWeighted(clientCode, itemsToResolve, {
+          minScore: 0.55,
+          minGap: 0.05,
+          topN: 5,
+        })
+      : [];
+
+    // 브랜드 매칭 결과와 기존 방식 결과 병합
+    const allResolvedItems = [...brandMatchedItems, ...resolvedItems];
 
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
     //     - 🆕 신규 품목: 기존 매칭이 약하면 English 시트에서 검색
-    const itemsWithSuggestions = resolvedItems.map((x: any) => {
+    const itemsWithSuggestions = allResolvedItems.map((x: any) => {
       if (x?.resolved) return x;
 
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
