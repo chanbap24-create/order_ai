@@ -888,6 +888,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // ✅ 중복 제거 후 resolved 재판단
       let resolved = x?.resolved ?? false;
       
+      // ✅ resolved인데 item_no가 없으면 무조건 false로 변경
+      if (resolved && !x?.item_no) {
+        console.log(`[AutoResolve] ${x.name}: resolved=true인데 item_no 없음 → resolved=false로 변경`);
+        resolved = false;
+      }
+      
       // 중복 제거된 suggestions로 다시 판단
       if (!resolved && suggestions.length > 0) {
         const top = suggestions[0];
