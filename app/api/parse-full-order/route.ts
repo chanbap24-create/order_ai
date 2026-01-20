@@ -76,6 +76,10 @@ function preprocessMessage(text: string) {
   s = s.replace(/([가-힣A-Za-z])(\d+)/g, "$1 $2");
   // 숫자 + (한글/영문)
   s = s.replace(/(\d+)([가-힣A-Za-z])/g, "$1 $2");
+  
+  // ✅ 한글-영문 사이 공백 추가 (알테시노bdm → 알테시노 bdm)
+  s = s.replace(/([가-힣])([a-z])/gi, "$1 $2");
+  s = s.replace(/([a-z])([가-힣])/gi, "$1 $2");
 
   // ✅ 남는 꼬리 표현 제거 (발주가능할까요 → 할까 같은 잔여 처리)
   s = s.replace(/(할까요|할까|될까요|될까|가능할까요|가능할까)\b/g, " ");
@@ -664,7 +668,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     let brandMatchedItems: any[] = [];
     if (pageType === "wine") {
       console.log("[BrandMatch] 브랜드 우선 매칭 시작");
-      for (const item of parsedItems) {
+      for (let i = 0; i < parsedItems.length; i++) {
+        const item = parsedItems[i];
         const inputName = item.name || '';
         if (!inputName) continue;
 
@@ -677,8 +682,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             
             console.log(`[BrandMatch] ✅ "${inputName}" → ${topBrand.brand.supplier_kr} / ${topWine.wine_kr} (score: ${topWine.score.toFixed(3)})`);
             
-            // 브랜드 매칭된 아이템 저장
+            // 브랜드 매칭된 아이템 저장 (원본 순서 인덱스 포함)
             brandMatchedItems.push({
+              _originalIndex: i,
               raw: item.raw,
               name: item.name,
               qty: item.qty,
@@ -712,10 +718,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // 🎯 조합 가중치 시스템으로 품목 매칭!
     // 브랜드 매칭되지 않은 품목만 기존 방식으로 처리
     const itemsToResolve = brandMatchedItems.length > 0
-      ? parsedItems.filter((item: any) => 
-          !brandMatchedItems.some((bm: any) => bm.name === item.name)
-        )
-      : parsedItems;
+      ? parsedItems.map((item: any, idx: number) => ({ ...item, _originalIndex: idx }))
+          .filter((item: any) => 
+            !brandMatchedItems.some((bm: any) => bm.name === item.name)
+          )
+      : parsedItems.map((item: any, idx: number) => ({ ...item, _originalIndex: idx }));
 
     console.log(`[품목 resolve] 전체: ${parsedItems.length}개, 브랜드 매칭: ${brandMatchedItems.length}개, 기존 방식: ${itemsToResolve.length}개`);
 
@@ -727,8 +734,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         })
       : [];
 
-    // 브랜드 매칭 결과와 기존 방식 결과 병합
-    const allResolvedItems = [...brandMatchedItems, ...resolvedItems];
+    // 브랜드 매칭 결과와 기존 방식 결과 병합 후 원본 순서로 정렬
+    const allResolvedItems = [...brandMatchedItems, ...resolvedItems]
+      .sort((a: any, b: any) => (a._originalIndex ?? 0) - (b._originalIndex ?? 0));
 
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용

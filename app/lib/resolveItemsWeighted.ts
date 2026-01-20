@@ -1099,7 +1099,7 @@ export function resolveItemsByClientWeighted(
       if (hit) {
         return {
           ...it,
-          normalized_query: normalizeItemName(applyItemSynonym(it.name)),
+          normalized_query: normalizeItemName(applyItemSynonym(searchName)),
           resolved: true,
           item_no: hit.item_no,
           item_name: hit.item_name,
@@ -1117,7 +1117,7 @@ export function resolveItemsByClientWeighted(
       if (hit) {
         return {
           ...it,
-          normalized_query: normalizeItemName(applyItemSynonym(it.name)),
+          normalized_query: normalizeItemName(applyItemSynonym(searchName)),
           resolved: true,
           item_no: hit.item_no,
           item_name: hit.item_name,
@@ -1130,7 +1130,7 @@ export function resolveItemsByClientWeighted(
     }
 
     // 3) 🎯 조합 가중치 시스템으로 점수 계산
-    const synonymApplied = applyItemSynonym(it.name);
+    const synonymApplied = applyItemSynonym(searchName);
     const q = normalizeItemName(synonymApplied);
     const qExpanded = expansion.hasExpansion ? normalizeItemName(expansion.expanded) : q;
 
