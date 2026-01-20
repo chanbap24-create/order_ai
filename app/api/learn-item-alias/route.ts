@@ -34,6 +34,14 @@ function ensureItemAliasTable() {
     console.log('[item_alias] 🔄 거래처별 학습을 위한 스키마 마이그레이션 시작...');
     
     try {
+      // ✅ 기존 백업 테이블이 있으면 먼저 삭제
+      try {
+        db.prepare('DROP TABLE IF EXISTS item_alias_old').run();
+        console.log('[item_alias] 🗑️  기존 백업 테이블 삭제됨');
+      } catch {
+        // 백업 테이블이 없으면 무시
+      }
+
       // 기존 데이터 백업
       const oldData = db.prepare('SELECT * FROM item_alias').all();
       console.log(`[item_alias] 📦 백업: ${oldData.length}개 항목`);
