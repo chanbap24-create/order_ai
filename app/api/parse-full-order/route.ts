@@ -534,11 +534,26 @@ function formatStaffMessage(
         console.log('[formatStaffMessage] resolved이지만 item_no 없음, 스킵:', JSON.stringify({name: it.name, raw: it.raw}));
         continue;
       }
+      
+      // ✅ 한글 이름만 추출 (영어 및 약어 제거)
+      let koreanName = String(it.item_name || '');
+      
+      // 1. " / " 앞부분만 (한글 부분)
+      if (koreanName.includes(' / ')) {
+        koreanName = koreanName.split(' / ')[0].trim();
+      }
+      
+      // 2. 괄호 안 영어 제거 (예: "샤블리 (Chablis)" → "샤블리")
+      koreanName = koreanName.replace(/\s*\([^)]*\)\s*/g, '').trim();
+      
+      // 3. 앞의 영문 약어 제거 (예: "AT 알테시노" → "알테시노", "CH 샤또" → "샤또")
+      koreanName = koreanName.replace(/^[A-Z]{1,3}\s+/, '');
+      
       // 가격 정보가 있으면 포함
       const priceInfo = it.unit_price_hint 
         ? ` / ${it.unit_price_hint.toLocaleString()}원`
         : '';
-      lines.push(`- ${it.item_no} / ${it.item_name} / ${it.qty}병${priceInfo}`);
+      lines.push(`- ${it.item_no} / ${koreanName} / ${it.qty}병${priceInfo}`);
     } else {
       // 미확정 품목도 가격 정보가 있으면 포함
       const priceInfo = it.unit_price_hint 
