@@ -492,9 +492,11 @@ function formatStaffMessage(
   const deliveryLabel = options?.customDeliveryDate || delivery.label;
 
   const lines: string[] = [];
-  lines.push(
-    `거래처: ${client.client_name} (${cleanClientCode(client.client_code)})`
-  );
+  
+  // ✅ 거래처 정보 안전하게 처리
+  const clientName = String(client?.client_name || "미정").trim();
+  const clientCode = client?.client_code ? cleanClientCode(client.client_code) : "미정";
+  lines.push(`거래처: ${clientName} (${clientCode})`);
   lines.push(`배송 예정일: ${deliveryLabel}`);
   
   // ✅ 신규 사업자 정보 (연락처, 이메일)
@@ -519,6 +521,13 @@ function formatStaffMessage(
   lines.push("품목:");
 
   for (const it of items) {
+    // ✅ undefined/null 품목명 스킵
+    const itemName = String(it.name || it.item_name || "").trim();
+    if (!itemName || itemName === "undefined" || itemName === "null") {
+      console.log('[formatStaffMessage] 무효 품목 스킵:', it);
+      continue;
+    }
+    
     if (it.resolved) {
       // 가격 정보가 있으면 포함
       const priceInfo = it.unit_price_hint 
@@ -664,6 +673,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // ✅ "undefined" 필터링: 프론트에서 빈 입력을 "undefined"로 보낼 때 제거
       .filter(item => {
         const name = String(item.name || "").trim().toLowerCase();
+        console.log(`[FILTER-CHECK] raw="${item.raw}", name="${name}"`);
         if (name === "undefined" || name === "null" || name === "") {
           console.log(`[FILTER] 무효 입력 제거: "${item.raw}"`);
           return false;
