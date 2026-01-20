@@ -190,7 +190,13 @@ export function normalizeQuantity(text: string): string {
 
 // 와인 용어 정규화
 export function normalizeWineTerms(text: string): string {
-  let normalized = text.toLowerCase();
+  // ✅ 0. 한글-영문 사이에 공백 추가 (소문자 변환 전에!)
+  let normalized = text;
+  normalized = normalized.replace(/([가-힣])([a-z])/gi, '$1 $2');
+  normalized = normalized.replace(/([a-z])([가-힣])/gi, '$1 $2');
+  
+  // 1. 소문자 변환
+  normalized = normalized.toLowerCase();
   
   // 품종 약어 확장
   const varietalMap: Record<string, string> = {
