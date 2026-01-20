@@ -522,9 +522,9 @@ function formatStaffMessage(
 
   for (const it of items) {
     // ✅ undefined/null 품목명 스킵
-    const itemName = String(it.name || it.item_name || "").trim();
-    if (!itemName || itemName === "undefined" || itemName === "null") {
-      console.log('[formatStaffMessage] 무효 품목 스킵:', it);
+    const itemName = String(it.name || it.item_name || "").trim().toLowerCase();
+    if (!itemName || itemName === "undefined" || itemName === "null" || it.name === undefined || it.name === null) {
+      console.log('[formatStaffMessage] 무효 품목 스킵:', JSON.stringify({name: it.name, item_name: it.item_name, raw: it.raw}));
       continue;
     }
     
@@ -539,7 +539,8 @@ function formatStaffMessage(
       const priceInfo = it.unit_price_hint 
         ? ` / ${it.unit_price_hint.toLocaleString()}원`
         : '';
-      lines.push(`- 확인필요 / "${it.name}" / ${it.qty}병${priceInfo}`);
+      const displayName = it.name !== undefined && it.name !== null ? String(it.name) : "이름없음";
+      lines.push(`- 확인필요 / "${displayName}" / ${it.qty}병${priceInfo}`);
     }
   }
 
