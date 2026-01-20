@@ -529,6 +529,11 @@ function formatStaffMessage(
     }
     
     if (it.resolved) {
+      // ✅ resolved인데 item_no가 없으면 스킵 (방어 로직)
+      if (!it.item_no) {
+        console.log('[formatStaffMessage] resolved이지만 item_no 없음, 스킵:', JSON.stringify({name: it.name, raw: it.raw}));
+        continue;
+      }
       // 가격 정보가 있으면 포함
       const priceInfo = it.unit_price_hint 
         ? ` / ${it.unit_price_hint.toLocaleString()}원`
@@ -718,7 +723,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               name: item.name,
               qty: item.qty,
               normalized_query: inputName,
-              resolved: topWine.score >= 0.7, // 0.7 이상이면 자동 확정
+              // ✅ item_no가 유효하고 점수가 0.7 이상일 때만 자동 확정
+              resolved: !!(topWine.item_no) && topWine.score >= 0.7,
               item_no: topWine.item_no,
               item_name: topWine.wine_kr,
               score: topWine.score,
