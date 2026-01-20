@@ -742,17 +742,18 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
     //     - 🆕 신규 품목: 기존 매칭이 약하면 English 시트에서 검색
     const itemsWithSuggestions = allResolvedItems.map((x: any) => {
+      // ✅ 이미 resolved된 경우 그대로 반환
       if (x?.resolved) return x;
-
+      
+      // ✅ 중앙 설정 가져오기
+      const { ITEM_MATCH_CONFIG, decideSuggestionComposition } = require('@/app/lib/itemMatchConfig');
+      const config = ITEM_MATCH_CONFIG;
+      
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
       const sortedCandidates = candidates
         .slice()
         .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0));
-
-      // ✅ 중앙 설정 가져오기
-      const { ITEM_MATCH_CONFIG, decideSuggestionComposition } = require('@/app/lib/itemMatchConfig');
-      const config = ITEM_MATCH_CONFIG;
 
       // ✅ 거래처 이력 조회 (is_new_item 판단용)
       const clientHistory = db
@@ -813,12 +814,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             });
             
             // 조합에 따라 후보 구성 후 점수 순으로 재정렬
-            suggestions = [
+            const allSuggestions = [
               ...existingSuggestions,
               ...newItemSuggestions
-            ]
-            .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
-            .slice(0, config.suggestions.total);
+            ];
+            
+            // ✅ 중복 제거 (같은 item_no가 있으면 높은 점수만 유지)
+            const deduped = new Map<string, any>();
+            for (const s of allSuggestions) {
+              const existing = deduped.get(s.item_no);
+              if (!existing || (s.score ?? 0) > (existing.score ?? 0)) {
+                deduped.set(s.item_no, s);
+              }
+            }
+            
+            suggestions = Array.from(deduped.values())
+              .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
+              .slice(0, config.suggestions.total);
             
             console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
               no: s.item_no, 
@@ -826,23 +838,38 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               isNew: s.is_new_item || false 
             })));
 
-            return {
-              ...x,
-              suggestions,
-              has_new_items: composition.newItems > 0,
-              new_item_info: composition.newItems > 0 ? {
-                message: '신규 품목이 포함되어 있습니다.',
-                source: 'order-ai.xlsx (English)',
-              } : undefined,
-            };
+            // ✅ 신규 품목 정보 저장 (resolved 재판단 후 반환)
+            x.has_new_items = composition.newItems > 0;
+            x.new_item_info = composition.newItems > 0 ? {
+              message: '신규 품목이 포함되어 있습니다.',
+              source: 'order-ai.xlsx (English)',
+            } : undefined;
           } else {
             console.log(`[신규품목] English 시트 결과 없음 - 기존품목 ${config.suggestions.total}개 표시`);
           }
         }
       }
 
+      // ✅ 중복 제거 후 resolved 재판단
+      let resolved = x?.resolved ?? false;
+      
+      // 중복 제거된 suggestions로 다시 판단
+      if (!resolved && suggestions.length > 0) {
+        const top = suggestions[0];
+        const second = suggestions[1];
+        const gap = second ? top.score - second.score : 999;
+        
+        // 자동 확정 조건: 점수 >= 0.70 && gap >= 0.30 (중앙 설정 사용)
+        const minScore = config.autoResolve?.minScore ?? 0.70;
+        const minGap = config.autoResolve?.minGap ?? 0.30;
+        resolved = top.score >= minScore && gap >= minGap;
+        
+        console.log(`[AutoResolve] ${x.name}: score=${top.score.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
+      }
+
       return {
         ...x,
+        resolved,
         suggestions,
       };
     });
