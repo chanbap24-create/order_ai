@@ -558,7 +558,16 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       const pre0 = preprocessMessage(body?.message ?? "");
       const trMsg = await translateOrderToKoreanIfNeeded(pre0);
       const preMessage = trMsg.translated ? trMsg.text : pre0;
-      const parsedItems = parseItemsFromMessage(preMessage);
+      const parsedItems = parseItemsFromMessage(preMessage)
+        // ✅ "undefined" 필터링
+        .filter(item => {
+          const name = String(item.name || "").trim().toLowerCase();
+          if (name === "undefined" || name === "null" || name === "") {
+            console.log(`[FILTER] 무효 입력 제거: "${item.raw}"`);
+            return false;
+          }
+          return true;
+        });
       
       // 거래처 정보는 신규 사업자로 설정 (client_code는 임시로 "NEW")
       const client = {
@@ -651,7 +660,16 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const trOrder = await translateOrderToKoreanIfNeeded(order0);
     const orderPre = trOrder.translated ? trOrder.text : order0;
 
-    const parsedItems = parseItemsFromMessage(orderPre);
+    const parsedItems = parseItemsFromMessage(orderPre)
+      // ✅ "undefined" 필터링: 프론트에서 빈 입력을 "undefined"로 보낼 때 제거
+      .filter(item => {
+        const name = String(item.name || "").trim().toLowerCase();
+        if (name === "undefined" || name === "null" || name === "") {
+          console.log(`[FILTER] 무효 입력 제거: "${item.raw}"`);
+          return false;
+        }
+        return true;
+      });
 
     const clientCode = client?.client_code;
     if (!clientCode) {
