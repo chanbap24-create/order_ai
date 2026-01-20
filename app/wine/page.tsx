@@ -498,7 +498,12 @@ export default function Home() {
       // 한글명만 추출 (/ 앞부분)
       const koreanName = s.item_name?.split(' / ')[0] || s.item_name;
       
-      const oldLineUnresolved = `- 확인필요 / "${target.name}" / ${qty}병`;
+      // ✅ target.name 안전 처리
+      const targetDisplayName = target.name !== undefined && target.name !== null && String(target.name).trim() !== ''
+        ? String(target.name).trim()
+        : target.raw || '이름없음';
+      
+      const oldLineUnresolved = `- 확인필요 / "${targetDisplayName}" / ${qty}병`;
       const targetKoreanName = target?.item_name?.split(' / ')[0] || target?.item_name || '';
       const oldLineResolved = target?.item_no
         ? `- ${target.item_no} / ${targetKoreanName} / ${qty}병`
@@ -522,7 +527,7 @@ export default function Home() {
             if (!hasQty) return line;
 
             const hitUnresolved =
-              line.includes("확인필요") && line.includes(String(target.name ?? ""));
+              line.includes("확인필요") && line.includes(targetDisplayName);
             const hitResolved =
               target?.item_no && line.includes(String(target.item_no));
 
@@ -1175,9 +1180,13 @@ export default function Home() {
                   (it: any, idx: number) => {
                     // ✅ 한글명만 추출 (영어명 제거)
                     const koreanName = it?.item_name?.split(' / ')[0] || it?.item_name || '';
+                    // ✅ undefined/null name 안전 처리
+                    const displayName = it?.name !== undefined && it?.name !== null && String(it.name).trim() !== '' 
+                      ? String(it.name).trim() 
+                      : it?.raw || '이름없음';
                     const line = it?.resolved
                       ? `${it.item_no} / ${koreanName} / ${it.qty}병`
-                      : `확인필요 / "${it.name}" / ${it.qty}병`;
+                      : `확인필요 / "${displayName}" / ${it.qty}병`;
 
                     const showMore = !!showMoreSuggestions[idx];
                     const suggestions = getSuggestions(it, showMore);
