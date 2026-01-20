@@ -777,6 +777,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
     //     - 🆕 신규 품목: 기존 매칭이 약하면 English 시트에서 검색
     const itemsWithSuggestions = allResolvedItems.map((x: any) => {
+      // ✅ resolved인데 item_no가 없으면 false로 변경 (최우선 검사)
+      if (x?.resolved && !x?.item_no) {
+        console.log(`[CRITICAL] ${x.name}: resolved=true인데 item_no 없음 → resolved=false로 강제 변경`);
+        x = { ...x, resolved: false };
+      }
+      
       // ✅ 이미 resolved된 경우 그대로 반환
       if (x?.resolved) return x;
       
@@ -892,6 +898,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       if (resolved && !x?.item_no) {
         console.log(`[AutoResolve] ${x.name}: resolved=true인데 item_no 없음 → resolved=false로 변경`);
         resolved = false;
+        x = { ...x, resolved: false };  // x 객체도 업데이트
       }
       
       // 중복 제거된 suggestions로 다시 판단
@@ -911,17 +918,27 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           // 기존 품목: 자동 확정 조건 (중앙 설정 사용)
           const minScore = config.autoResolve?.minScore ?? 0.60;
           const minGap = config.autoResolve?.minGap ?? 0.20;
-          resolved = top.score >= minScore && gap >= minGap;
+          // ✅ item_no가 있고, 점수와 gap 조건을 만족할 때만 자동 확정
+          resolved = top.item_no && top.score >= minScore && gap >= minGap;
           
-          console.log(`[AutoResolve] ${x.name}: score=${top.score.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
+          console.log(`[AutoResolve] ${x.name}: item_no=${top.item_no}, score=${top.score.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
         }
       }
 
-      return {
+      // ✅ resolved가 true로 변경되었고, suggestions가 있으면 top item_no로 업데이트
+      const resultItem: any = {
         ...x,
         resolved,
         suggestions,
       };
+      
+      if (resolved && suggestions.length > 0 && suggestions[0].item_no) {
+        resultItem.item_no = suggestions[0].item_no;
+        resultItem.item_name = suggestions[0].item_name;
+        resultItem.score = suggestions[0].score;
+      }
+
+      return resultItem;
     });
 
     // 4) 상태 결정
