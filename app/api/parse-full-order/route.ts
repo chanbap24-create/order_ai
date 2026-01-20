@@ -859,12 +859,21 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         const second = suggestions[1];
         const gap = second ? top.score - second.score : 999;
         
-        // 자동 확정 조건: 점수 >= 0.70 && gap >= 0.30 (중앙 설정 사용)
-        const minScore = config.autoResolve?.minScore ?? 0.70;
-        const minGap = config.autoResolve?.minGap ?? 0.30;
-        resolved = top.score >= minScore && gap >= minGap;
+        // ✅ 신규 품목은 자동 확정하지 않음
+        const isNewItem = top.is_new_item ?? false;
         
-        console.log(`[AutoResolve] ${x.name}: score=${top.score.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
+        if (isNewItem) {
+          // 신규 품목: 자동 확정 안 함
+          resolved = false;
+          console.log(`[AutoResolve] ${x.name}: 신규품목이므로 수동 확인 필요 (score=${top.score.toFixed(3)}, is_new_item=true)`);
+        } else {
+          // 기존 품목: 자동 확정 조건 (중앙 설정 사용)
+          const minScore = config.autoResolve?.minScore ?? 0.60;
+          const minGap = config.autoResolve?.minGap ?? 0.20;
+          resolved = top.score >= minScore && gap >= minGap;
+          
+          console.log(`[AutoResolve] ${x.name}: score=${top.score.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
+        }
       }
 
       return {

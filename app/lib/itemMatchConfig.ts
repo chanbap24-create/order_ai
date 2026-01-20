@@ -7,10 +7,10 @@
 export const ITEM_MATCH_CONFIG = {
   // 자동 확정 임계값
   autoResolve: {
-    minScore: 0.70,           // 최소 점수 (0.70 이상이면 자동 확정 가능)
-    minGap: 0.30,             // 최소 점수 차이 (1위와 2위 gap >= 0.30)
-    highConfidenceScore: 0.95, // 고신뢰 점수 (0.95 이상이면 gap 0.20만 있어도 확정)
-    highConfidenceGap: 0.20,   // 고신뢰 점수 차이
+    minScore: 0.60,           // 최소 점수 (0.60 이상이면 자동 확정 가능)
+    minGap: 0.20,             // 최소 점수 차이 (1위와 2위 gap >= 0.20)
+    highConfidenceScore: 0.95, // 고신뢰 점수 (0.95 이상이면 gap 0.15만 있어도 확정)
+    highConfidenceGap: 0.15,   // 고신뢰 점수 차이
   },
 
   // 신규품목 검색
