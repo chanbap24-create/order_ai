@@ -228,6 +228,16 @@ export function normalizeWineTerms(text: string): string {
     'bdm': '브루넬로 디 몬탈치노',
     'brunello di montalcino': '브루넬로 디 몬탈치노',
     'brunello': '브루넬로',
+    // 와인 지역/등급
+    'grand cru': '그랑 크뤼',
+    'premier cru': '프르미에 크뤼',
+    '1er cru': '1er 크뤼',
+    // 유명 와인명 (샤블리 등급)
+    'montee de tonnerre': '몬테 드 토네르',
+    'grenouille': '그르누이',
+    'vaudesir': '보데지르',
+    'les clos': '레 클로',
+    'cote de jouan': '코트 드 주앙',
   };
   
   for (const [en, kr] of Object.entries(englishVarietalMap)) {

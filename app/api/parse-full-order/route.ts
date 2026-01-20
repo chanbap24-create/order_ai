@@ -812,11 +812,13 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               };
             });
             
-            // 조합에 따라 후보 구성
+            // 조합에 따라 후보 구성 후 점수 순으로 재정렬
             suggestions = [
               ...existingSuggestions,
               ...newItemSuggestions
-            ].slice(0, config.suggestions.total);
+            ]
+            .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
+            .slice(0, config.suggestions.total);
             
             console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
               no: s.item_no, 

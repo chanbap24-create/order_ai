@@ -1145,9 +1145,11 @@ export function resolveItemsByClientWeighted(
         // 확장된 쿼리 점수 (학습 효과)
         const ko2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name, scoreOptions) : 0;
         
-        // 영문명 점수
+        // 영문명 점수 (정규화 전 원본 searchName 사용)
         const enName = englishMap.get(String(r.item_no)) || "";
-        const en = enName ? scoreItem(q, enName, scoreOptions) : 0;
+        const en1 = enName ? scoreItem(q, enName, scoreOptions) : 0;
+        const en2 = enName ? scoreItem(searchName.toLowerCase(), enName, scoreOptions) : 0;
+        const en = Math.max(en1, en2);
         
         // 최고 점수 선택 (확장 검색은 20% 부스트)
         const baseScore = Math.max(ko1, ko2 * 1.2, en);
