@@ -1193,18 +1193,18 @@ export function resolveItemsByClientWeighted(
 
     // 자동확정 조건
     let resolved =
-      !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
+      !!top && (top.score ?? 0) >= minScore && (!second || (top.score ?? 0) - (second.score ?? 0) >= minGap);
 
     // 🏭 생산자가 명시된 경우 더 엄격한 조건 적용
     if (hasProducer && resolved) {
-      const gap = second ? top.score - second.score : 999;
+      const gap = second ? (top.score ?? 0) - (second.score ?? 0) : 999;
       // 생산자 명시 시: 점수 0.85 이상, gap 0.25 이상 필요
-      const allowAuto = top.score >= 0.85 && gap >= 0.25;
+      const allowAuto = (top.score ?? 0) >= 0.85 && gap >= 0.25;
       if (!allowAuto) {
         resolved = false;
         console.log(`[Wine] 생산자 명시 → 자동 확정 조건 강화:`, {
           producer: producer,
-          score: top.score,
+          score: (top.score ?? 0),
           gap: gap,
           allowAuto: allowAuto
         });
@@ -1214,20 +1214,20 @@ export function resolveItemsByClientWeighted(
     // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구 (완화된 조건)
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
     if (tokenCount >= 3) {
-      const gap = second ? top.score - second.score : 999;
+      const gap = second ? (top.score ?? 0) - (second.score ?? 0) : 999;
       
       // learned가 있는 경우 (기존 로직 유지)
       if (learned?.kind === "contains_weak") {
-        const allowAuto = (top.score >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
-                          (top.score >= 0.88 && gap >= 0.20);  // ✅ 0.30 → 0.20 완화
+        const allowAuto = ((top.score ?? 0) >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
+                          ((top.score ?? 0) >= 0.88 && gap >= 0.20);  // ✅ 0.30 → 0.20 완화
         if (!allowAuto) {
           resolved = false;
         }
       } 
       // learned가 없는 경우: 완화된 조건 (0.70 이상 + gap 0.15 이상)
       else if (!learned) {
-        const allowAuto = (top.score >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
-                          (top.score >= 0.70 && gap >= 0.15);  // ✅ minScore 0.70, minGap 0.30 → 0.15 완화
+        const allowAuto = ((top.score ?? 0) >= config.highConfidenceScore && gap >= config.highConfidenceGap) || 
+                          ((top.score ?? 0) >= 0.70 && gap >= 0.15);  // ✅ minScore 0.70, minGap 0.30 → 0.15 완화
         if (!allowAuto) {
           resolved = false;
         }
@@ -1241,12 +1241,12 @@ export function resolveItemsByClientWeighted(
         resolved: true,
         item_no: top.item_no,
         item_name: top.item_name,
-        score: Number(top.score.toFixed(3)),
+        score: Number((top.score ?? 0).toFixed(3)),
         method: learned?.kind ? `weighted+${learned.kind}` : "weighted",
         candidates: scored.slice(0, topN).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
-          score: Number(c.score.toFixed(3)),
+          score: Number((c.score ?? 0).toFixed(3)),
           is_new_item: c.is_new_item,
           supply_price: c.supply_price,
           _debug: c._debug,
@@ -1254,7 +1254,7 @@ export function resolveItemsByClientWeighted(
         suggestions: scored.slice(0, Math.max(10, topN)).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
-          score: Number(c.score.toFixed(3)),
+          score: Number((c.score ?? 0).toFixed(3)),
           is_new_item: c.is_new_item,
           supply_price: c.supply_price,
         })),
@@ -1298,7 +1298,7 @@ export function resolveItemsByClientWeighted(
             ...scored.slice(0, 10).map((c) => ({
               item_no: c.item_no,
               item_name: c.item_name,
-              score: Number(c.score.toFixed(3)),
+              score: Number((c.score ?? 0).toFixed(3)),
               is_new_item: c.is_new_item,
               supply_price: c.supply_price,
             })),
@@ -1334,7 +1334,7 @@ export function resolveItemsByClientWeighted(
       : scored.slice(0, Math.max(10, topN)).map((c) => ({
           item_no: c.item_no,
           item_name: c.item_name,
-          score: Number(c.score.toFixed(3)),
+          score: Number((c.score ?? 0).toFixed(3)),
           is_new_item: c.is_new_item,
           supply_price: c.supply_price,
         }));
@@ -1346,7 +1346,7 @@ export function resolveItemsByClientWeighted(
       candidates: scored.slice(0, topN).map((c) => ({
         item_no: c.item_no,
         item_name: c.item_name,
-        score: Number(c.score.toFixed(3)),
+        score: Number((c.score ?? 0).toFixed(3)),
         _debug: c._debug,
       })),
       suggestions,

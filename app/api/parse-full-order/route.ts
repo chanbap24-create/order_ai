@@ -643,15 +643,24 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         topN: 5,
       });
       
-      // suggestions 추가
+      // suggestions 추가 (안전하게 score 처리)
       const itemsWithSuggestions = resolvedItems.map((it: any) => {
         if (!it.resolved && it.candidates?.length > 0) {
+          // candidates를 suggestions로 변환하면서 score가 없으면 0으로 설정
+          const suggestions = it.candidates.slice(0, 3).map((c: any) => ({
+            ...c,
+            score: c.score ?? 0
+          }));
+          
           return {
             ...it,
-            suggestions: it.candidates.slice(0, 3),
+            suggestions,
           };
         }
-        return it;
+        return {
+          ...it,
+          suggestions: []
+        };
       });
       
       const allResolved = itemsWithSuggestions.every((it: any) => it.resolved);
@@ -1019,7 +1028,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       if (!resolved && suggestions.length > 0) {
         const top = suggestions[0];
         const second = suggestions[1];
-        const gap = second ? top.score - second.score : 999;
+        const gap = second ? (top.score ?? 0) - (second.score ?? 0) : 999;
         
         // ✅ 신규 품목은 자동 확정하지 않음
         const isNewItem = top.is_new_item ?? false;
@@ -1027,15 +1036,15 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         if (isNewItem) {
           // 신규 품목: 자동 확정 안 함
           resolved = false;
-          console.log(`[AutoResolve] ${x.name}: 신규품목이므로 수동 확인 필요 (score=${top.score.toFixed(3)}, is_new_item=true)`);
+          console.log(`[AutoResolve] ${x.name}: 신규품목이므로 수동 확인 필요 (score=${(top.score ?? 0).toFixed(3)}, is_new_item=true)`);
         } else {
           // 기존 품목: 자동 확정 조건 (중앙 설정 사용)
           const minScore = config.autoResolve?.minScore ?? 0.60;
           const minGap = config.autoResolve?.minGap ?? 0.20;
           // ✅ item_no가 있고, 점수와 gap 조건을 만족할 때만 자동 확정
-          resolved = top.item_no && top.score >= minScore && gap >= minGap;
+          resolved = top.item_no && (top.score ?? 0) >= minScore && gap >= minGap;
           
-          console.log(`[AutoResolve] ${x.name}: item_no=${top.item_no}, score=${top.score.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
+          console.log(`[AutoResolve] ${x.name}: item_no=${top.item_no}, score=${(top.score ?? 0).toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
         }
       }
 
@@ -1082,6 +1091,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       },
     } as any);
   } catch (e: any) {
+    console.error("[parse-full-order] ERROR:", e);
+    console.error("[parse-full-order] Stack:", e?.stack);
     return jsonResponse(
       { success: false, error: String(e?.message || e) } as any,
       { status: 500 }
