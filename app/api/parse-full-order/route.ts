@@ -479,6 +479,34 @@ function splitClientAndOrder(body: any) {
   return { rawMessage: msg, clientText: first, orderText: rest };
 }
 
+/**
+ * 품목 코드에서 빈티지 추출
+ * 코드 3,4번째 자리가 빈티지 (예: 3021701 → 21 → 2021)
+ */
+function extractVintage(itemNo: string): number | null {
+  const code = String(itemNo || '');
+  if (code.length < 4) return null;
+  
+  const vintageStr = code.substring(2, 4); // 3,4번째 (index 2,3)
+  const vintage = parseInt(vintageStr, 10);
+  
+  if (isNaN(vintage)) return null;
+  
+  // 21 → 2021, 18 → 2018
+  return vintage < 50 ? 2000 + vintage : 1900 + vintage;
+}
+
+/**
+ * 품목명에서 빈티지 제거 (비교용)
+ * 예: "샤블리 (2021)" → "샤블리"
+ */
+function removeVintageFromName(name: string): string {
+  return String(name || '')
+    .replace(/\s*\(\d{4}\)\s*/g, '') // (2021) 제거
+    .replace(/\s*\d{4}\s*$/, '') // 끝의 2021 제거
+    .trim();
+}
+
 function formatStaffMessage(
   client: any,
   items: any[],
@@ -807,7 +835,42 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
-      const sortedCandidates = candidates
+      
+      // ✅ 빈티지 중복 제거 (같은 이름이면 최신 빈티지 우선)
+      const grouped = new Map<string, any[]>();
+      for (const c of candidates) {
+        const baseName = removeVintageFromName(c.item_name || '');
+        if (!grouped.has(baseName)) {
+          grouped.set(baseName, []);
+        }
+        grouped.get(baseName)!.push(c);
+      }
+      
+      const dedupedCandidates: any[] = [];
+      for (const [baseName, group] of grouped.entries()) {
+        if (group.length === 1) {
+          dedupedCandidates.push(group[0]);
+        } else {
+          // 최신 빈티지 선택
+          const withVintage = group.map(c => ({
+            ...c,
+            _vintage: extractVintage(c.item_no)
+          }));
+          
+          const sorted = withVintage.sort((a, b) => {
+            if (a._vintage && b._vintage) return b._vintage - a._vintage;
+            if (!a._vintage && !b._vintage) return (b.score ?? 0) - (a.score ?? 0);
+            return a._vintage ? -1 : 1;
+          });
+          
+          if (sorted[0]._vintage && group.length > 1) {
+            console.log(`[빈티지] ${baseName}: ${sorted[0]._vintage}년 선택 (${group.length}개 중)`);
+          }
+          dedupedCandidates.push(sorted[0]);
+        }
+      }
+      
+      const sortedCandidates = dedupedCandidates
         .slice()
         .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0));
 
@@ -875,16 +938,52 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               ...newItemSuggestions
             ];
             
-            // ✅ 중복 제거 (같은 item_no가 있으면 높은 점수만 유지)
-            const deduped = new Map<string, any>();
+            // ✅ 중복 제거 (같은 품목이면 최신 빈티지 우선)
+            // 1단계: 품목명 기준으로 그룹화
+            const groupByName = new Map<string, any[]>();
             for (const s of allSuggestions) {
-              const existing = deduped.get(s.item_no);
-              if (!existing || (s.score ?? 0) > (existing.score ?? 0)) {
-                deduped.set(s.item_no, s);
+              const baseNameWithoutVintage = removeVintageFromName(s.item_name || '');
+              if (!groupByName.has(baseNameWithoutVintage)) {
+                groupByName.set(baseNameWithoutVintage, []);
+              }
+              groupByName.get(baseNameWithoutVintage)!.push(s);
+            }
+            
+            // 2단계: 각 그룹에서 최신 빈티지 선택
+            const deduped: any[] = [];
+            for (const [baseName, group] of groupByName.entries()) {
+              if (group.length === 1) {
+                deduped.push(group[0]);
+              } else {
+                // 빈티지 정보 추가
+                const withVintage = group.map(s => ({
+                  ...s,
+                  _vintage: extractVintage(s.item_no)
+                }));
+                
+                // 최신 빈티지 선택
+                const sorted = withVintage.sort((a, b) => {
+                  // 빈티지가 있으면 최신 우선
+                  if (a._vintage && b._vintage) {
+                    return b._vintage - a._vintage;
+                  }
+                  // 빈티지가 없으면 점수 우선
+                  if (!a._vintage && !b._vintage) {
+                    return (b.score ?? 0) - (a.score ?? 0);
+                  }
+                  // 한쪽만 빈티지가 있으면 빈티지 있는 것 우선
+                  return a._vintage ? -1 : 1;
+                });
+                
+                const selected = sorted[0];
+                if (group.length > 1 && selected._vintage) {
+                  console.log(`[빈티지] ${baseName}: ${selected._vintage}년 선택 (${group.length}개 중)`);
+                }
+                deduped.push(selected);
               }
             }
             
-            suggestions = Array.from(deduped.values())
+            suggestions = deduped
               .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
               .slice(0, config.suggestions.total);
             
