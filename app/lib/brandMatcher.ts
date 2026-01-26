@@ -71,10 +71,10 @@ function normalize(s: string): string {
   return result;
 }
 
-// ========== English 시트 캐싱 ==========
+// ========== English + Downloads 시트 캐싱 ==========
 let cachedEnglishData: WineItem[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 60 * 1000; // 1분
+const CACHE_TTL = 10 * 1000; // 10초 (개발용 - 운영 시 60초로 변경)
 
 function loadEnglishSheet(): WineItem[] {
   const now = Date.now();
@@ -97,44 +97,94 @@ function loadEnglishSheet(): WineItem[] {
   try {
     const fileBuffer = fs.readFileSync(xlsxPath);
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-    const sheet = workbook.Sheets["English"];
-    if (!sheet) {
-      console.warn(`[BrandMatcher] 'English' sheet not found`);
-      return [];
-    }
-
-    // 5행부터 데이터 시작 (3행=헤더, 4행=공백)
-    const jsonData = XLSX.utils.sheet_to_json(sheet, {
-      range: 4, // 5행부터
-      header: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"],
-      defval: "",
-    });
-
+    
     const items: WineItem[] = [];
-    for (const row of jsonData as any[]) {
-      // B열(품목번호)이 없으면 스킵
-      if (!row.B) continue;
-
-      items.push({
-        item_no: String(row.B || "").trim(),
-        wine_en: String(row.H || "").trim(),
-        wine_kr: String(row.I || "").trim(),
-        supplier_en: String(row.E || "").trim(),
-        supplier_kr: String(row.M || "").trim(),
-        vintage: String(row.J || "").trim() || undefined,
-        volume: row.K ? Number(row.K) : undefined,
-        price: row.L ? Number(row.L) : undefined,
+    
+    // === English 시트 로드 ===
+    const englishSheet = workbook.Sheets["English"];
+    if (englishSheet) {
+      // 5행부터 데이터 시작 (3행=헤더, 4행=공백)
+      const jsonData = XLSX.utils.sheet_to_json(englishSheet, {
+        range: 4, // 5행부터
+        header: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"],
+        defval: "",
       });
+
+      for (const row of jsonData as any[]) {
+        // B열(품목번호)이 없으면 스킵
+        if (!row.B) continue;
+
+        items.push({
+          item_no: String(row.B || "").trim(),
+          wine_en: String(row.H || "").trim(),
+          wine_kr: String(row.I || "").trim(),
+          supplier_en: String(row.E || "").trim(),
+          supplier_kr: String(row.M || "").trim(),
+          vintage: String(row.J || "").trim() || undefined,
+          volume: row.K ? Number(row.K) : undefined,
+          price: row.L ? Number(row.L) : undefined,
+        });
+      }
+      console.log(`[BrandMatcher] Loaded ${items.length} items from English sheet`);
+    }
+    
+    // === Downloads 시트 로드 (팔콘 등 추가 품목) ===
+    const downloadsSheet = workbook.Sheets["Downloads"];
+    if (downloadsSheet) {
+      const downloadsData = XLSX.utils.sheet_to_json(downloadsSheet, {
+        header: 1, // Row array 형태로 로드
+        defval: "",
+      }) as any[][];
+      
+      // Row 0: 헤더, Row 1부터 데이터
+      const downloadsCount = items.length;
+      for (let i = 1; i < downloadsData.length; i++) {
+        const row = downloadsData[i];
+        const item_no = String(row[1] || "").trim(); // 품번
+        const wine_kr = String(row[2] || "").trim(); // 품명
+        
+        if (!item_no || !wine_kr) continue;
+        
+        // 빈티지 추출 (품번 3,4번째 자리)
+        let vintage = undefined;
+        if (item_no.length >= 4) {
+          const vintageCode = item_no.substring(2, 4);
+          const year = parseInt(vintageCode);
+          if (!isNaN(year)) {
+            vintage = year < 50 ? `20${vintageCode}` : `19${vintageCode}`;
+          }
+        }
+        
+        items.push({
+          item_no,
+          wine_en: "", // Downloads에는 영문명 없음
+          wine_kr,
+          supplier_en: "",
+          supplier_kr: "",
+          vintage,
+          volume: undefined,
+          price: undefined,
+        });
+      }
+      console.log(`[BrandMatcher] Loaded ${items.length - downloadsCount} additional items from Downloads sheet`);
     }
 
     cachedEnglishData = items;
     cacheTimestamp = now;
-    console.log(`[BrandMatcher] Loaded ${items.length} items from English sheet`);
+    console.log(`[BrandMatcher] Total loaded: ${items.length} items`);
     return items;
   } catch (err) {
-    console.error(`[BrandMatcher] Failed to load English sheet:`, err);
+    console.error(`[BrandMatcher] Failed to load sheets:`, err);
     return [];
   }
+}
+
+// ========== 캐시 관리 ==========
+export function clearBrandMatcherCache() {
+  cachedEnglishData = null;
+  cachedBrandGroups = null;
+  cacheTimestamp = 0;
+  console.log('[BrandMatcher] 캐시 초기화됨');
 }
 
 // ========== 생산자별 그룹화 캐싱 ==========

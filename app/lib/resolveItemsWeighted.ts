@@ -152,7 +152,7 @@ const WINE_PRODUCERS = [
   "tenuta dell'ornellaia", '테누타 델 오르넬라이아', '오르넬라이아',
   
   // NewZealand (1개)
-  'lake chalice', '레이크 샬리스',
+  'lake chalice', '레이크 샬리스', '레이크찰리스', '팔콘', 'falcon',
   
   // Portugal (5개)
   "blandy's madeira", '블랜디스 마데이라',
