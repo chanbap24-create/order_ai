@@ -636,7 +636,8 @@ export default function Home() {
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    return showMore ? arr.slice(0, 10) : arr.slice(0, 4);
+    // ✅ 기본 5개, 더보기 10개
+    return showMore ? arr.slice(0, 10) : arr.slice(0, 5);
   }
 
   const needsClientPick = data?.status === "needs_review_client";
