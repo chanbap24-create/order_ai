@@ -1386,6 +1386,7 @@ export function resolveItemsByClientWeighted(
         item_name: c.item_name,
         score: Number((c.score ?? 0).toFixed(3)),
         is_new_item: c.is_new_item, // ✅ 신규 품목 플래그 포함
+        supply_price: c.supply_price, // ✅ 공급가 포함
         _debug: c._debug,
       })),
       suggestions,

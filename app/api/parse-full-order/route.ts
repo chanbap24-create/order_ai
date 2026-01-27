@@ -650,10 +650,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // suggestions 추가 (안전하게 score 처리)
       const itemsWithSuggestions = resolvedItems.map((it: any) => {
         if (!it.resolved && it.candidates?.length > 0) {
-          // candidates를 suggestions로 변환하면서 score가 없으면 0으로 설정
-          const suggestions = it.candidates.slice(0, 3).map((c: any) => ({
+          // ✅ candidates를 suggestions로 변환 (5개로 증가, supply_price 포함)
+          const suggestions = it.candidates.slice(0, 5).map((c: any) => ({
             ...c,
-            score: c.score ?? 0
+            score: c.score ?? 0,
+            supply_price: c.supply_price, // ✅ 공급가 포함
           }));
           
           return {
