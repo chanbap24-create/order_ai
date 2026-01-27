@@ -637,11 +637,15 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       };
       
       // 신규 사업자는 이력 없음 → master_items에서만 검색
+      console.log("[NEW BUSINESS] Calling resolveItemsByClientWeighted with parsedItems:", parsedItems);
+      
       const resolvedItems = resolveItemsByClientWeighted("NEW", parsedItems, {
         minScore: 0.55,
         minGap: 0.05,
         topN: 5,
       });
+      
+      console.log("[NEW BUSINESS] resolvedItems:", JSON.stringify(resolvedItems, null, 2));
       
       // suggestions 추가 (안전하게 score 처리)
       const itemsWithSuggestions = resolvedItems.map((it: any) => {
@@ -663,9 +667,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         };
       });
       
+      console.log("[NEW BUSINESS] itemsWithSuggestions:", JSON.stringify(itemsWithSuggestions, null, 2));
+      
       const allResolved = itemsWithSuggestions.every((it: any) => it.resolved);
       
       // 직원 메시지 생성
+      console.log("[NEW BUSINESS] Calling formatStaffMessage...");
       const staffMessage = formatStaffMessage(
         client,
         itemsWithSuggestions,
@@ -675,6 +682,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           requireInvoice: body?.requireInvoice,
         }
       );
+      
+      console.log("[NEW BUSINESS] staffMessage generated:", staffMessage);
       
       return jsonResponse({
         success: true,

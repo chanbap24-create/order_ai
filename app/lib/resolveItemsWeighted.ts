@@ -781,18 +781,24 @@ export function resolveItemsByClientWeighted(
   const topN = opts?.topN ?? 5;
 
   // 거래처 이력 후보
-  const clientRows = db
-    .prepare(
-      `SELECT item_no, item_name
-       FROM client_item_stats
-       WHERE client_code = ?`
-    )
-    .all(clientCode) as Array<{ item_no: string; item_name: string }>;
+  // ✅ 신규 사업자(NEW)는 이력이 없으므로 빈 배열로 초기화
+  const clientRows = clientCode === "NEW" 
+    ? [] 
+    : db
+        .prepare(
+          `SELECT item_no, item_name
+           FROM client_item_stats
+           WHERE client_code = ?`
+        )
+        .all(clientCode) as Array<{ item_no: string; item_name: string }>;
+  
+  console.log(`[resolveItemsWeighted] clientCode="${clientCode}", clientRows.length=${clientRows.length}`);
 
   // 영문명 맵
   const englishMap = loadEnglishMap();
 
   return items.map((it) => {
+    try {
     // ✨ 1단계: 자연어 전처리 (별칭 확장, 수량/와인용어 정규화)
     const preprocessed = preprocessNaturalLanguage(it.name);
     const searchName = preprocessed !== it.name ? preprocessed : it.name;
@@ -1351,5 +1357,10 @@ export function resolveItemsByClientWeighted(
       })),
       suggestions,
     };
+    } catch (err: any) {
+      console.error(`[resolveItemsWeighted] ERROR for item "${it.name}":`, err);
+      console.error(`[resolveItemsWeighted] Stack:`, err.stack);
+      throw err; // Re-throw to see full stack
+    }
   });
 }
