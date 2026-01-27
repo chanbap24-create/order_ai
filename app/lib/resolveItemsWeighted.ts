@@ -18,6 +18,7 @@ import { searchMasterSheet } from "@/app/lib/masterMatcher";
 import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
 import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
+import { loadAllMasterItems } from "@/app/lib/masterSheet";
 
 /* ================= 정규화 함수 ================= */
 
@@ -779,6 +780,35 @@ export function resolveItemsByClientWeighted(
   const minScore = opts?.minScore ?? 0.55;
   const minGap = opts?.minGap ?? 0.15;
   const topN = opts?.topN ?? 5;
+
+  // ✅ 마스터 데이터 DB 동기화 (최초 1회)
+  try {
+    // 테이블 생성 (없으면)
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS items (
+        item_no TEXT PRIMARY KEY,
+        item_name TEXT NOT NULL
+      )
+    `).run();
+
+    // 데이터가 있는지 확인
+    const count = db.prepare('SELECT COUNT(*) as cnt FROM items').get() as { cnt: number };
+    
+    if (count.cnt === 0) {
+      // 데이터가 없으면 로드
+      const allItems = loadAllMasterItems();
+      const insertStmt = db.prepare('INSERT OR REPLACE INTO items (item_no, item_name) VALUES (?, ?)');
+      const insertMany = db.transaction((items: Array<{itemNo: string, koreanName: string}>) => {
+        for (const item of items) {
+          insertStmt.run(item.itemNo, item.koreanName);
+        }
+      });
+      insertMany(allItems);
+      console.log(`[resolveItemsWeighted] Master items synced: ${allItems.length} items`);
+    }
+  } catch (e) {
+    console.error('[resolveItemsWeighted] Failed to sync master items:', e);
+  }
 
   // 거래처 이력 후보
   // ✅ 신규 사업자(NEW)는 이력이 없으므로 빈 배열로 초기화
