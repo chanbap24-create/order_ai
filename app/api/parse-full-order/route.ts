@@ -690,6 +690,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         status: allResolved ? "resolved" : "needs_review_items",
         client,
         parsed_items: itemsWithSuggestions,
+        items: itemsWithSuggestions, // ✅ 프론트엔드 호환성
         staff_message: staffMessage,
         is_new_business: true,
       } as any);
