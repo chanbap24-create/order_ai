@@ -630,7 +630,8 @@ export default function Home() {
 
   // ✅ 후보 가져오기 (더보기 상태에 따라 4개 또는 10개)
   function getSuggestions(it: any, showMore: boolean) {
-    const arr = Array.isArray(it?.suggestions)
+    // ✅ suggestions가 비어있으면 candidates 사용
+    const arr = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
@@ -1190,7 +1191,7 @@ export default function Home() {
 
                     const showMore = !!showMoreSuggestions[idx];
                     const suggestions = getSuggestions(it, showMore);
-                    const allSuggestions = Array.isArray(it?.suggestions)
+                    const allSuggestions = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
                       ? it.suggestions
                       : Array.isArray(it?.candidates)
                         ? it.candidates
