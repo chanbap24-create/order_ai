@@ -1228,7 +1228,9 @@ export function resolveItemsByClientWeighted(
     const config = ITEM_MATCH_CONFIG.autoResolve;
 
     // 자동확정 조건
+    // ⚠️ 신규 사업자(NEW)는 절대 자동 확정하지 않음 (항상 수동 선택)
     let resolved =
+      clientCode !== "NEW" &&
       !!top && (top.score ?? 0) >= minScore && (!second || (top.score ?? 0) - (second.score ?? 0) >= minGap);
 
     // 🏭 생산자가 명시된 경우 더 엄격한 조건 적용
