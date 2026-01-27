@@ -642,7 +642,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       const resolvedItems = resolveItemsByClientWeighted("NEW", parsedItems, {
         minScore: 0.55,
         minGap: 0.05,
-        topN: 5,
+        topN: 10, // ✅ 10개로 증가 (루이 미셸 등 다양한 브랜드 포함)
       });
       
       console.log("[NEW BUSINESS] resolvedItems:", JSON.stringify(resolvedItems, null, 2));
@@ -650,8 +650,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // suggestions 추가 (안전하게 score 처리)
       const itemsWithSuggestions = resolvedItems.map((it: any) => {
         if (!it.resolved && it.candidates?.length > 0) {
-          // ✅ candidates를 suggestions로 변환 (5개로 증가, supply_price 포함)
-          const suggestions = it.candidates.slice(0, 5).map((c: any) => ({
+          // ✅ candidates를 suggestions로 변환 (10개로 증가, supply_price 포함)
+          const suggestions = it.candidates.slice(0, 10).map((c: any) => ({
             ...c,
             score: c.score ?? 0,
             supply_price: c.supply_price, // ✅ 공급가 포함

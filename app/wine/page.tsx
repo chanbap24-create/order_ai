@@ -636,8 +636,8 @@ export default function Home() {
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    // ✅ 기본 5개, 더보기 10개
-    return showMore ? arr.slice(0, 10) : arr.slice(0, 5);
+    // ✅ 기본 10개, 더보기 20개 (루이 미셸 등 다양한 브랜드 포함)
+    return showMore ? arr.slice(0, 20) : arr.slice(0, 10);
   }
 
   const needsClientPick = data?.status === "needs_review_client";
