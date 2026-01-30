@@ -1083,6 +1083,15 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       }
 
       // ✅ resolved가 true로 변경되었고, suggestions가 있으면 top item_no로 업데이트
+      console.log(`[ITEM DEBUG] Before resultItem:`, {
+        name: x.name,
+        resolved,
+        x_item_no: x.item_no,
+        x_resolved: x.resolved,
+        suggestions_length: suggestions.length,
+        top_item_no: suggestions[0]?.item_no
+      });
+      
       const resultItem: any = {
         ...x,
         resolved,
@@ -1090,10 +1099,18 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       };
       
       if (resolved && suggestions.length > 0 && suggestions[0].item_no) {
+        console.log(`[ITEM DEBUG] Updating item_no: ${suggestions[0].item_no}`);
         resultItem.item_no = suggestions[0].item_no;
         resultItem.item_name = suggestions[0].item_name;
         resultItem.score = suggestions[0].score;
       }
+      
+      console.log(`[ITEM DEBUG] After resultItem:`, {
+        name: resultItem.name,
+        resolved: resultItem.resolved,
+        item_no: resultItem.item_no,
+        item_name: resultItem.item_name?.substring(0, 30)
+      });
 
       return resultItem;
     });
