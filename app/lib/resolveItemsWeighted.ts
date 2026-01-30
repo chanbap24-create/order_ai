@@ -1210,6 +1210,15 @@ export function resolveItemsByClientWeighted(
           String(r.item_no),
           baseScore
         );
+        
+        // ✅ baseScore가 매우 높으면 (0.80+) 가중치를 덜 받도록 조정
+        // 이유: "아이니 샤도네이" 검색 시 "CK 샤도네이"가 "PS 루씨아"보다 우선되어야 함
+        let finalScore = weighted.finalScore;
+        if (baseScore >= 0.80 && weighted.finalScore < baseScore) {
+          // baseScore가 높은데 가중치로 인해 낮아진 경우, baseScore를 더 중시
+          finalScore = baseScore * 0.7 + weighted.finalScore * 0.3;
+          console.log(`[resolveItemsWeighted] High baseScore boost: ${r.item_no} ${r.item_name.substring(0, 30)} - base:${baseScore.toFixed(3)} → weighted:${weighted.finalScore.toFixed(3)} → final:${finalScore.toFixed(3)}`);
+        }
 
         // ✅ 거래처 이력에 있는지 확인 (is_new_item 플래그 설정)
         const isInClientHistory = clientRows.some(cr => String(cr.item_no) === String(r.item_no));
@@ -1217,7 +1226,7 @@ export function resolveItemsByClientWeighted(
         return {
           item_no: r.item_no,
           item_name: r.item_name,
-          score: weighted.finalScore,
+          score: finalScore,
           is_new_item: !isInClientHistory, // 거래처 이력에 없으면 신규
           supply_price: weighted.signals.supply_price,
           _debug: {
@@ -1294,21 +1303,45 @@ export function resolveItemsByClientWeighted(
         item_name: top.item_name,
         score: Number((top.score ?? 0).toFixed(3)),
         method: learned?.kind ? `weighted+${learned.kind}` : "weighted",
-        candidates: scored.slice(0, topN).map((c) => ({
-          item_no: c.item_no,
-          item_name: c.item_name,
-          score: Number((c.score ?? 0).toFixed(3)),
-          is_new_item: c.is_new_item,
-          supply_price: c.supply_price,
-          _debug: c._debug,
-        })),
-        suggestions: scored.slice(0, Math.max(10, topN)).map((c) => ({
-          item_no: c.item_no,
-          item_name: c.item_name,
-          score: Number((c.score ?? 0).toFixed(3)),
-          is_new_item: c.is_new_item,
-          supply_price: c.supply_price,
-        })),
+        candidates: (() => {
+          // ✅ 중복 제거 (item_no 기준)
+          const candidateMap = new Map<string, any>();
+          for (const c of scored.slice(0, topN * 2)) {
+            const existing = candidateMap.get(c.item_no);
+            if (!existing || c.score > existing.score) {
+              candidateMap.set(c.item_no, {
+                item_no: c.item_no,
+                item_name: c.item_name,
+                score: Number((c.score ?? 0).toFixed(3)),
+                is_new_item: c.is_new_item,
+                supply_price: c.supply_price,
+                _debug: c._debug,
+              });
+            }
+          }
+          return Array.from(candidateMap.values())
+            .sort((a, b) => b.score - a.score)
+            .slice(0, topN);
+        })(),
+        suggestions: (() => {
+          // ✅ suggestions도 중복 제거
+          const suggestionMap = new Map<string, any>();
+          for (const c of scored.slice(0, Math.max(10, topN) * 2)) {
+            const existing = suggestionMap.get(c.item_no);
+            if (!existing || c.score > existing.score) {
+              suggestionMap.set(c.item_no, {
+                item_no: c.item_no,
+                item_name: c.item_name,
+                score: Number((c.score ?? 0).toFixed(3)),
+                is_new_item: c.is_new_item,
+                supply_price: c.supply_price,
+              });
+            }
+          }
+          return Array.from(suggestionMap.values())
+            .sort((a, b) => b.score - a.score)
+            .slice(0, Math.max(10, topN));
+        })(),
       };
     }
 
@@ -1394,14 +1427,26 @@ export function resolveItemsByClientWeighted(
       ...it,
       normalized_query: q,
       resolved: false,
-      candidates: scored.slice(0, topN).map((c) => ({
-        item_no: c.item_no,
-        item_name: c.item_name,
-        score: Number((c.score ?? 0).toFixed(3)),
-        is_new_item: c.is_new_item, // ✅ 신규 품목 플래그 포함
-        supply_price: c.supply_price, // ✅ 공급가 포함
-        _debug: c._debug,
-      })),
+      candidates: (() => {
+        // ✅ 중복 제거 (item_no 기준으로 최고 점수만 유지)
+        const candidateMap = new Map<string, any>();
+        for (const c of scored.slice(0, topN * 2)) { // 여유있게 2배 검색
+          const existing = candidateMap.get(c.item_no);
+          if (!existing || c.score > existing.score) {
+            candidateMap.set(c.item_no, {
+              item_no: c.item_no,
+              item_name: c.item_name,
+              score: Number((c.score ?? 0).toFixed(3)),
+              is_new_item: c.is_new_item,
+              supply_price: c.supply_price,
+              _debug: c._debug,
+            });
+          }
+        }
+        return Array.from(candidateMap.values())
+          .sort((a, b) => b.score - a.score)
+          .slice(0, topN);
+      })(),
       suggestions,
     };
     } catch (err: any) {
