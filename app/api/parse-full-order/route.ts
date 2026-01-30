@@ -1000,10 +1000,44 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 ...newItemSuggestions
               ];
               
-              // ✅ 중복 제거 (같은 품목이면 최신 빈티지 우선)
-              // 1단계: 품목명 기준으로 그룹화
-              const groupByName = new Map<string, any[]>();
+              // ✅ 중복 제거 (같은 품목 코드면 기존 입고품목 우선)
+              // 1단계: item_no 기준으로 중복 제거 + 기존 입고품목 우선
+              const groupByItemNo = new Map<string, any[]>();
               for (const s of allSuggestions) {
+                const itemNo = String(s.item_no || '');
+                if (!itemNo) continue; // item_no 없으면 스킵
+                
+                if (!groupByItemNo.has(itemNo)) {
+                  groupByItemNo.set(itemNo, []);
+                }
+                groupByItemNo.get(itemNo)!.push(s);
+              }
+              
+              const dedupedByItemNo: any[] = [];
+              for (const [itemNo, group] of Array.from(groupByItemNo.entries())) {
+                if (group.length === 1) {
+                  dedupedByItemNo.push(group[0]);
+                } else {
+                  // ✅ 같은 item_no가 여러 개면: 기존 입고품목 우선 (is_new_item === false)
+                  const existingItems = group.filter(s => s.is_new_item === false);
+                  const newItems = group.filter(s => s.is_new_item === true);
+                  
+                  if (existingItems.length > 0) {
+                    // 기존 품목이 있으면 기존 품목만 표시 (점수 높은 것 우선)
+                    const best = existingItems.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+                    console.log(`[중복제거] item_no=${itemNo}: 기존 입고품목 우선 (${existingItems.length}개 중 선택) - ${best.item_name}`);
+                    dedupedByItemNo.push(best);
+                  } else {
+                    // 기존 품목이 없으면 신규 품목 중 점수 높은 것
+                    const best = newItems.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+                    dedupedByItemNo.push(best);
+                  }
+                }
+              }
+              
+              // 2단계: 품목명 기준으로 그룹화 (빈티지 중복 제거)
+              const groupByName = new Map<string, any[]>();
+              for (const s of dedupedByItemNo) {
                 const baseNameWithoutVintage = removeVintageFromName(s.item_name || '');
                 if (!groupByName.has(baseNameWithoutVintage)) {
                   groupByName.set(baseNameWithoutVintage, []);
@@ -1011,9 +1045,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 groupByName.get(baseNameWithoutVintage)!.push(s);
               }
               
-              // 2단계: 각 그룹에서 최신 빈티지 선택
+              // 3단계: 각 그룹에서 최신 빈티지 선택
               const deduped: any[] = [];
-              for (const [baseName, group] of groupByName.entries()) {
+              for (const [baseName, group] of Array.from(groupByName.entries())) {
                 if (group.length === 1) {
                   deduped.push(group[0]);
                 } else {
