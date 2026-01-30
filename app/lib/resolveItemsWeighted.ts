@@ -9,6 +9,7 @@
  * ✅ 부분 토큰 매칭 추가 (2026-01-19)
  * ✅ 신규 품목 검색 통합 (2026-01-19)
  * ✅ 생산자 필터링 비활성화 (2026-01-19)
+ * ✅ 다단계 토큰 매칭 추가 (2026-01-30) - 루이미셸 샤블리 검색 개선
  */
 
 import { db } from "@/app/lib/db";
@@ -19,6 +20,7 @@ import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
 import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
 import { loadAllMasterItems } from "@/app/lib/masterSheet";
+import { multiLevelTokenMatch } from "@/app/lib/multiLevelTokenMatcher";
 
 /* ================= 정규화 함수 ================= */
 
@@ -335,6 +337,14 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     console.log(`[Wine] ✅ 생산자 일치: "${options.producer}" in "${name}"`);
   }
   
+  // 🎯 1단계: 다단계 토큰 매칭 (2026-01-30 추가)
+  // 루이미셸, 샤블리 등 다양한 브랜드 검색 개선
+  const multiLevelScore = multiLevelTokenMatch(q, name);
+  if (multiLevelScore >= 0.65) {
+    // 높은 점수면 바로 반환 (추가 계산 불필요)
+    return multiLevelScore;
+  }
+  
   // 영문 단어 매칭 우선 (3글자 이상 영어 단어가 있으면)
   const qEnglishWords = (q.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
   const nameEnglishWords = (name.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
@@ -444,7 +454,10 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
   const aset = new Set(a.split(""));
   let common = 0;
   for (const ch of aset) if (b.includes(ch)) common++;
-  return Math.min(0.89, common / Math.max(6, a.length));
+  const charScore = Math.min(0.89, common / Math.max(6, a.length));
+  
+  // 🎯 다단계 토큰 점수와 비교해서 더 높은 점수 반환
+  return Math.max(multiLevelScore, charScore);
 }
 
 /* ================= 테이블 유틸 ================= */
