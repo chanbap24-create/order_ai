@@ -1102,18 +1102,29 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const mergedItems = (() => {
       const itemMap = new Map<string, any>();
       for (const item of itemsWithSuggestions) {
+        console.log(`[MERGE DEBUG] Processing item:`, {
+          resolved: item.resolved,
+          item_no: item.item_no,
+          item_name: item.item_name?.substring(0, 30),
+          quantity: item.quantity
+        });
+        
         if (item.resolved && item.item_no) {
           const key = String(item.item_no);
           const existing = itemMap.get(key);
           if (existing) {
             // 같은 품목이 여러 번 확정된 경우 수량 합산
+            console.log(`[MERGE DEBUG] ✅ 중복 발견! ${key} - 수량 합산: ${existing.quantity} + ${item.quantity} = ${(existing.quantity || 0) + (item.quantity || 0)}`);
             existing.quantity = (existing.quantity || 0) + (item.quantity || 0);
           } else {
+            console.log(`[MERGE DEBUG] 새 아이템 추가: ${key}`);
             itemMap.set(key, { ...item });
           }
         } else {
           // 미확정 아이템은 그대로 추가 (중복 체크 안 함)
-          itemMap.set(`unresolved_${Date.now()}_${Math.random()}`, { ...item });
+          const unresolvedKey = `unresolved_${Date.now()}_${Math.random()}`;
+          console.log(`[MERGE DEBUG] 미확정 아이템 추가: ${unresolvedKey}`);
+          itemMap.set(unresolvedKey, { ...item });
         }
       }
       return Array.from(itemMap.values());
