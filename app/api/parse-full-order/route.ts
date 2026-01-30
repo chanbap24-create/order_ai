@@ -952,96 +952,116 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             
             console.log(`[후보조합] ${composition.type}: 기존 ${composition.existing}개 + 신규 ${composition.newItems}개 (${composition.reason})`);
             
-            // ✅ 기존 후보도 is_new_item 추가
-            const existingSuggestions = sortedCandidates.slice(0, composition.existing).map((c: any) => {
-              const isInClientHistory = clientItemSet.has(String(c.item_no));
-              return {
-                ...c,
-                is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
-              };
-            });
+            // ✅ 신규품목 점수가 충분히 높을 때만 조합 적용
+            // 그렇지 않으면 기존 품목을 전부 표시 (신규품목은 무시)
+            const newItemBestScore = newItemCandidates[0]?.score ?? 0;
+            const existingBestScore = sortedCandidates[0]?.score ?? 0;
+            const shouldIncludeNewItems = newItemBestScore >= existingBestScore * 0.7; // 신규품목이 기존의 70% 이상
             
-            // 신규품목 매핑 (신규품목 플래그 포함)
-            const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => {
-              const isInClientHistory = clientItemSet.has(String(c.itemNo));
-              return {
-                item_no: c.itemNo,
-                item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
-                score: c.score,
-                source: 'master_sheet',
-                is_new_item: !isInClientHistory, // ✅ 거래처 이력 기반 판단
-                supply_price: c.supplyPrice,
-                _debug: c._debug,
-              };
-            });
+            if (!shouldIncludeNewItems) {
+              console.log(`[후보조합] 신규품목 점수 낮음 (${newItemBestScore.toFixed(3)} < ${existingBestScore.toFixed(3)} * 0.7) → 기존품목 ${config.suggestions.total}개만 표시`);
+              // 기존 품목만 표시 (composition 무시)
+              suggestions = sortedCandidates.slice(0, config.suggestions.total).map((c: any) => {
+                const isInClientHistory = clientItemSet.has(String(c.item_no));
+                return {
+                  ...c,
+                  is_new_item: c.is_new_item ?? !isInClientHistory,
+                };
+              });
+            } else {
+              console.log(`[후보조합] 신규품목 포함 (${newItemBestScore.toFixed(3)} >= ${existingBestScore.toFixed(3)} * 0.7)`);
             
-            // 조합에 따라 후보 구성 후 점수 순으로 재정렬
-            const allSuggestions = [
-              ...existingSuggestions,
-              ...newItemSuggestions
-            ];
-            
-            // ✅ 중복 제거 (같은 품목이면 최신 빈티지 우선)
-            // 1단계: 품목명 기준으로 그룹화
-            const groupByName = new Map<string, any[]>();
-            for (const s of allSuggestions) {
-              const baseNameWithoutVintage = removeVintageFromName(s.item_name || '');
-              if (!groupByName.has(baseNameWithoutVintage)) {
-                groupByName.set(baseNameWithoutVintage, []);
-              }
-              groupByName.get(baseNameWithoutVintage)!.push(s);
-            }
-            
-            // 2단계: 각 그룹에서 최신 빈티지 선택
-            const deduped: any[] = [];
-            for (const [baseName, group] of groupByName.entries()) {
-              if (group.length === 1) {
-                deduped.push(group[0]);
-              } else {
-                // 빈티지 정보 추가
-                const withVintage = group.map(s => ({
-                  ...s,
-                  _vintage: extractVintage(s.item_no)
-                }));
-                
-                // 최신 빈티지 선택
-                const sorted = withVintage.sort((a, b) => {
-                  // 빈티지가 있으면 최신 우선
-                  if (a._vintage && b._vintage) {
-                    return b._vintage - a._vintage;
-                  }
-                  // 빈티지가 없으면 점수 우선
-                  if (!a._vintage && !b._vintage) {
-                    return (b.score ?? 0) - (a.score ?? 0);
-                  }
-                  // 한쪽만 빈티지가 있으면 빈티지 있는 것 우선
-                  return a._vintage ? -1 : 1;
-                });
-                
-                const selected = sorted[0];
-                if (group.length > 1 && selected._vintage) {
-                  console.log(`[빈티지] ${baseName}: ${selected._vintage}년 선택 (${group.length}개 중)`);
+              // ✅ 기존 후보도 is_new_item 추가
+              const existingSuggestions = sortedCandidates.slice(0, composition.existing).map((c: any) => {
+                const isInClientHistory = clientItemSet.has(String(c.item_no));
+                return {
+                  ...c,
+                  is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
+                };
+              });
+              
+              // 신규품목 매핑 (신규품목 플래그 포함)
+              const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => {
+                const isInClientHistory = clientItemSet.has(String(c.itemNo));
+                return {
+                  item_no: c.itemNo,
+                  item_name: `${c.koreanName} / ${c.englishName}${c.vintage ? ` (${c.vintage})` : ''}`,
+                  score: c.score,
+                  source: 'master_sheet',
+                  is_new_item: !isInClientHistory, // ✅ 거래처 이력 기반 판단
+                  supply_price: c.supplyPrice,
+                  _debug: c._debug,
+                };
+              });
+              
+              // 조합에 따라 후보 구성 후 점수 순으로 재정렬
+              const allSuggestions = [
+                ...existingSuggestions,
+                ...newItemSuggestions
+              ];
+              
+              // ✅ 중복 제거 (같은 품목이면 최신 빈티지 우선)
+              // 1단계: 품목명 기준으로 그룹화
+              const groupByName = new Map<string, any[]>();
+              for (const s of allSuggestions) {
+                const baseNameWithoutVintage = removeVintageFromName(s.item_name || '');
+                if (!groupByName.has(baseNameWithoutVintage)) {
+                  groupByName.set(baseNameWithoutVintage, []);
                 }
-                deduped.push(selected);
+                groupByName.get(baseNameWithoutVintage)!.push(s);
               }
-            }
-            
-            suggestions = deduped
-              .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
-              .slice(0, config.suggestions.total);
-            
-            console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
-              no: s.item_no, 
-              score: s.score?.toFixed(3), 
-              isNew: s.is_new_item || false 
-            })));
+              
+              // 2단계: 각 그룹에서 최신 빈티지 선택
+              const deduped: any[] = [];
+              for (const [baseName, group] of groupByName.entries()) {
+                if (group.length === 1) {
+                  deduped.push(group[0]);
+                } else {
+                  // 빈티지 정보 추가
+                  const withVintage = group.map(s => ({
+                    ...s,
+                    _vintage: extractVintage(s.item_no)
+                  }));
+                  
+                  // 최신 빈티지 선택
+                  const sorted = withVintage.sort((a, b) => {
+                    // 빈티지가 있으면 최신 우선
+                    if (a._vintage && b._vintage) {
+                      return b._vintage - a._vintage;
+                    }
+                    // 빈티지가 없으면 점수 우선
+                    if (!a._vintage && !b._vintage) {
+                      return (b.score ?? 0) - (a.score ?? 0);
+                    }
+                    // 한쪽만 빈티지가 있으면 빈티지 있는 것 우선
+                    return a._vintage ? -1 : 1;
+                  });
+                  
+                  const selected = sorted[0];
+                  if (group.length > 1 && selected._vintage) {
+                    console.log(`[빈티지] ${baseName}: ${selected._vintage}년 선택 (${group.length}개 중)`);
+                  }
+                  deduped.push(selected);
+                }
+              }
+              
+              suggestions = deduped
+                .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
+                .slice(0, config.suggestions.total);
+              
+              console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
+                no: s.item_no, 
+                score: s.score?.toFixed(3), 
+                isNew: s.is_new_item || false 
+              })));
 
-            // ✅ 신규 품목 정보 저장 (resolved 재판단 후 반환)
-            x.has_new_items = composition.newItems > 0;
-            x.new_item_info = composition.newItems > 0 ? {
-              message: '신규 품목이 포함되어 있습니다.',
-              source: 'order-ai.xlsx (English)',
-            } : undefined;
+              // ✅ 신규 품목 정보 저장 (resolved 재판단 후 반환)
+              x.has_new_items = composition.newItems > 0;
+              x.new_item_info = composition.newItems > 0 ? {
+                message: '신규 품목이 포함되어 있습니다.',
+                source: 'order-ai.xlsx (English)',
+              } : undefined;
+            }
           } else {
             console.log(`[신규품목] English 시트 결과 없음 - 기존품목 ${config.suggestions.total}개 표시`);
           }
