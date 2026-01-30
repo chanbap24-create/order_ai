@@ -352,7 +352,7 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
   if (qEnglishWords.length >= 2 && nameEnglishWords.length >= 2) {
     const qSet = new Set(qEnglishWords);
     const nameSet = new Set(nameEnglishWords);
-    const intersection = [...qSet].filter(w => nameSet.has(w));
+    const intersection = Array.from(qSet).filter(w => nameSet.has(w));
     
     // 3개 이상 매칭되면 높은 점수
     if (intersection.length >= 3) {
@@ -453,7 +453,7 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
 
   const aset = new Set(a.split(""));
   let common = 0;
-  for (const ch of aset) if (b.includes(ch)) common++;
+  for (const ch of Array.from(aset)) if (b.includes(ch)) common++;
   const charScore = Math.min(0.89, common / Math.max(6, a.length));
   
   // 🎯 다단계 토큰 점수와 비교해서 더 높은 점수 반환
