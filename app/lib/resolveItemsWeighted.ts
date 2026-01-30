@@ -337,15 +337,15 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     console.log(`[Wine] ✅ 생산자 일치: "${options.producer}" in "${name}"`);
   }
   
-  // 🎯 1단계: 다단계 토큰 매칭 (2026-01-30 추가)
+  // 🎯 모든 매칭 점수를 계산 후 최댓값 반환
+  let bestScore = 0;
+  
+  // 1️⃣ 다단계 토큰 매칭 (2026-01-30 추가)
   // 루이미셸, 샤블리 등 다양한 브랜드 검색 개선
   const multiLevelScore = multiLevelTokenMatch(q, name);
-  if (multiLevelScore >= 0.65) {
-    // 높은 점수면 바로 반환 (추가 계산 불필요)
-    return multiLevelScore;
-  }
+  bestScore = Math.max(bestScore, multiLevelScore);
   
-  // 영문 단어 매칭 우선 (3글자 이상 영어 단어가 있으면)
+  // 2️⃣ 영문 단어 매칭 우선 (3글자 이상 영어 단어가 있으면)
   const qEnglishWords = (q.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
   const nameEnglishWords = (name.match(/[A-Za-z]{3,}/g) || []).map(w => w.toLowerCase());
   
@@ -356,20 +356,20 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     
     // 3개 이상 매칭되면 높은 점수
     if (intersection.length >= 3) {
-      const recall = intersection.length / qSet.size; // 입력 단어 중 매칭 비율
-      const precision = intersection.length / nameSet.size; // 대상 단어 중 매칭 비율
-      return Math.min(0.95, (recall + precision) / 2 + 0.2);
+      const recall = intersection.length / qSet.size;
+      const precision = intersection.length / nameSet.size;
+      const englishScore = Math.min(0.95, (recall + precision) / 2 + 0.2);
+      bestScore = Math.max(bestScore, englishScore);
     }
     // 2개 이상 매칭
-    if (intersection.length >= 2) {
+    else if (intersection.length >= 2) {
       const recall = intersection.length / qSet.size;
-      return Math.min(0.85, recall + 0.3);
+      const englishScore = Math.min(0.85, recall + 0.3);
+      bestScore = Math.max(bestScore, englishScore);
     }
   }
   
-  // ✅ 토큰 기반 매칭 (별칭 확장 대응 + 부분 매칭)
-  // 예: "클레멍 라발리 샤블리 cl" vs "CL 샤블리"
-  // 예: "산타루치아" vs "산타 루치아"
+  // 3️⃣ 토큰 기반 매칭 (별칭 확장 대응 + 부분 매칭)
   const qTokens = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
   const nameTokens = name.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
   
@@ -377,7 +377,6 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     const qSet = new Set(qTokens);
     const nameSet = new Set(nameTokens);
     
-    // 🎯 정확 매칭 + 부분 매칭
     let matchedQTokens = 0;
     let matchedNameTokens = 0;
     
@@ -392,27 +391,26 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
         continue;
       }
       
-      // 부분 매칭 체크: "산타루치아" vs ["산타", "루치아"]
-      // 입력 토큰이 여러 대상 토큰의 조합과 매칭되는지 확인
+      // 부분 매칭 체크
       const qtNorm = normTight(qt);
       let combined = "";
       for (const nt of nameTokens) {
         combined += normTight(nt);
         if (combined === qtNorm) {
           matchedQTokens++;
-          matchedNameTokens += combined.length / normTight(nt).length; // 부분 점수
+          matchedNameTokens += combined.length / normTight(nt).length;
           found = true;
           break;
         }
         if (qtNorm.includes(combined) || combined.includes(qtNorm)) {
-          matchedQTokens += 0.8; // 부분 매칭은 0.8점
+          matchedQTokens += 0.8;
           matchedNameTokens += 0.8;
           found = true;
           break;
         }
       }
       
-      // 반대 방향도 체크: ["산타", "루치아"] in "산타루치아"
+      // 반대 방향 체크
       if (!found) {
         for (const nt of nameTokens) {
           const ntNorm = normTight(nt);
@@ -426,38 +424,40 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
     }
     
     if (matchedQTokens > 0) {
-      const recall = matchedQTokens / qTokens.length; // 입력 토큰 중 매칭 비율
-      const precision = matchedNameTokens / nameTokens.length; // 대상 토큰 중 매칭 비율
+      const recall = matchedQTokens / qTokens.length;
+      const precision = matchedNameTokens / nameTokens.length;
       
-      // 입력 토큰의 80% 이상 매칭되면 높은 점수
+      let tokenScore = 0;
       if (recall >= 0.8) {
-        return Math.min(0.95, 0.80 + (recall * 0.15) + (precision * 0.05));
+        tokenScore = Math.min(0.95, 0.80 + (recall * 0.15) + (precision * 0.05));
+      } else if (recall >= 0.6) {
+        tokenScore = Math.min(0.85, 0.65 + (recall * 0.20));
+      } else if (recall >= 0.5) {
+        tokenScore = Math.min(0.75, 0.55 + (recall * 0.20));
       }
-      // 입력 토큰의 60% 이상 매칭
-      if (recall >= 0.6) {
-        return Math.min(0.85, 0.65 + (recall * 0.20));
-      }
-      // 입력 토큰의 50% 이상 매칭
-      if (recall >= 0.5) {
-        return Math.min(0.75, 0.55 + (recall * 0.20));
-      }
+      
+      bestScore = Math.max(bestScore, tokenScore);
     }
   }
   
-  // 기존 한글 정규화 로직
+  // 4️⃣ 기존 한글 정규화 로직
   const a = norm(q);
   const b = norm(name);
-  if (!a || !b) return 0;
-  if (a === b) return 1.0;
-  if (b.includes(a) || a.includes(b)) return 0.9;
-
-  const aset = new Set(a.split(""));
-  let common = 0;
-  for (const ch of Array.from(aset)) if (b.includes(ch)) common++;
-  const charScore = Math.min(0.89, common / Math.max(6, a.length));
+  if (a && b) {
+    if (a === b) {
+      bestScore = Math.max(bestScore, 1.0);
+    } else if (b.includes(a) || a.includes(b)) {
+      bestScore = Math.max(bestScore, 0.9);
+    } else {
+      const aset = new Set(a.split(""));
+      let common = 0;
+      for (const ch of Array.from(aset)) if (b.includes(ch)) common++;
+      const charScore = Math.min(0.89, common / Math.max(6, a.length));
+      bestScore = Math.max(bestScore, charScore);
+    }
+  }
   
-  // 🎯 다단계 토큰 점수와 비교해서 더 높은 점수 반환
-  return Math.max(multiLevelScore, charScore);
+  return bestScore;
 }
 
 /* ================= 테이블 유틸 ================= */
