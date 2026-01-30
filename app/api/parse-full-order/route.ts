@@ -669,14 +669,37 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       });
       
       console.log("[NEW BUSINESS] itemsWithSuggestions:", JSON.stringify(itemsWithSuggestions, null, 2));
+
+      // ✅ 같은 item_no를 가진 아이템 통합 (수량 합산)
+      const mergedItems = (() => {
+        const itemMap = new Map<string, any>();
+        for (const item of itemsWithSuggestions) {
+          if (item.resolved && item.item_no) {
+            const key = String(item.item_no);
+            const existing = itemMap.get(key);
+            if (existing) {
+              // 같은 품목이 여러 번 확정된 경우 수량 합산
+              existing.quantity = (existing.quantity || 0) + (item.quantity || 0);
+            } else {
+              itemMap.set(key, { ...item });
+            }
+          } else {
+            // 미확정 아이템은 그대로 추가 (중복 체크 안 함)
+            itemMap.set(`unresolved_${Date.now()}_${Math.random()}`, { ...item });
+          }
+        }
+        return Array.from(itemMap.values());
+      })();
+
+      console.log("[NEW BUSINESS] mergedItems:", JSON.stringify(mergedItems, null, 2));
       
-      const allResolved = itemsWithSuggestions.every((it: any) => it.resolved);
+      const allResolved = mergedItems.every((it: any) => it.resolved);
       
       // 직원 메시지 생성
       console.log("[NEW BUSINESS] Calling formatStaffMessage...");
       const staffMessage = formatStaffMessage(
         client,
-        itemsWithSuggestions,
+        mergedItems,
         {
           customDeliveryDate: body?.customDeliveryDate,
           requirePaymentConfirm: body?.requirePaymentConfirm,
@@ -690,8 +713,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         success: true,
         status: allResolved ? "resolved" : "needs_review_items",
         client,
-        parsed_items: itemsWithSuggestions,
-        items: itemsWithSuggestions, // ✅ 프론트엔드 호환성
+        parsed_items: mergedItems,
+        items: mergedItems, // ✅ 프론트엔드 호환성
         staff_message: staffMessage,
         is_new_business: true,
       } as any);
@@ -1075,20 +1098,43 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       return resultItem;
     });
 
+    // ✅ 같은 item_no를 가진 아이템 통합 (수량 합산)
+    const mergedItems = (() => {
+      const itemMap = new Map<string, any>();
+      for (const item of itemsWithSuggestions) {
+        if (item.resolved && item.item_no) {
+          const key = String(item.item_no);
+          const existing = itemMap.get(key);
+          if (existing) {
+            // 같은 품목이 여러 번 확정된 경우 수량 합산
+            existing.quantity = (existing.quantity || 0) + (item.quantity || 0);
+          } else {
+            itemMap.set(key, { ...item });
+          }
+        } else {
+          // 미확정 아이템은 그대로 추가 (중복 체크 안 함)
+          itemMap.set(`unresolved_${Date.now()}_${Math.random()}`, { ...item });
+        }
+      }
+      return Array.from(itemMap.values());
+    })();
+
+    console.log("[EXISTING CLIENT] mergedItems:", JSON.stringify(mergedItems, null, 2));
+
     // 4) 상태 결정
-    const hasUnresolved = itemsWithSuggestions.some((x: any) => !x.resolved);
+    const hasUnresolved = mergedItems.some((x: any) => !x.resolved);
 
     return jsonResponse({
       success: true,
       status: hasUnresolved ? "needs_review_items" : "resolved",
       client,
-      parsed_items: itemsWithSuggestions, // ✅ suggestions 포함된 배열 반환
+      parsed_items: mergedItems, // ✅ suggestions 포함된 배열 반환
 
       // ✅ 여기 핵심: suggestions가 들어간 배열을 내려줘야 UI에서 3개 옵션이 뜸
-      items: itemsWithSuggestions,
+      items: mergedItems,
 
       // ✅ 직원 메시지는 기존과 동일하게 동작 (unresolved는 여전히 확인필요로 표기)
-      staff_message: formatStaffMessage(client, itemsWithSuggestions, {
+      staff_message: formatStaffMessage(client, mergedItems, {
         customDeliveryDate: body?.customDeliveryDate,
         requirePaymentConfirm: body?.requirePaymentConfirm,
         requireInvoice: body?.requireInvoice,

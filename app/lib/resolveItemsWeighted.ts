@@ -1241,7 +1241,23 @@ export function resolveItemsByClientWeighted(
           },
         };
       })
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => {
+        // 1차: score 내림차순
+        if (b.score !== a.score) return b.score - a.score;
+        
+        // 2차: baseScore 내림차순 (같은 최종 점수일 때 baseScore가 높은 것 우선)
+        const aBase = a._debug?.baseScore ?? 0;
+        const bBase = b._debug?.baseScore ?? 0;
+        if (bBase !== aBase) return bBase - aBase;
+        
+        // 3차: 거래처 이력 우선 (같은 점수일 때 기존 거래처 품목 우선)
+        const aInHistory = a._debug?.isInClientHistory ?? false;
+        const bInHistory = b._debug?.isInClientHistory ?? false;
+        if (aInHistory !== bInHistory) return bInHistory ? 1 : -1;
+        
+        // 4차: item_no 오름차순 (안정적인 정렬)
+        return String(a.item_no).localeCompare(String(b.item_no));
+      });
 
     const top = scored[0];
     const second = scored[1];
