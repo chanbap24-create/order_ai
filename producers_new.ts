@@ -19,11 +19,11 @@ const WINE_PRODUCERS = [
 
   // ===== France =====
   // 영문 (27개)
-  'charles heidsieck', 'chateau favori', 'chateau grand-jauga', 'chateau maillet', 'chateau marechaux', 'chateau de la gardine', 'christophe pitois', 'clement lavallee', 'couly dutheil', 'domaine clos de la chapel', 'domaine guy yvan et dufouleur', 'domaine jean-paul picard', 'domaine leroy', 'domaine vieux college', 'domaine d'auvenay', 'dopff au moulin', 'leguillette-romelot', 'les dauphins', 'louis michel et fils', 'maison leroy', 'mas des infirmieres', 'roche de bellene', 'rodolphe demougeot', 'roger belland', 'soutiran', 'veuve ambal', 'vincent girardin',
+  'charles heidsieck', 'chateau favori', 'chateau grand-jauga', 'chateau maillet', 'chateau marechaux', 'chateau de la gardine', 'christophe pitois', 'clement lavallee', 'couly dutheil', 'domaine clos de la chapel', 'domaine guy yvan et dufouleur', 'domaine jean-paul picard', 'domaine leroy', 'domaine vieux college', 'domaine d\\'auvenay', 'dopff au moulin', 'leguillette-romelot', 'les dauphins', 'louis michel et fils', 'maison leroy', 'mas des infirmieres', 'roche de bellene', 'rodolphe demougeot', 'roger belland', 'soutiran', 'veuve ambal', 'vincent girardin',
 
   // ===== Italy =====
   // 영문 (10개)
-  'altesino', 'anselmi', 'biondi santi', 'borgo molino', 'cascina adelaide', 'castello di volpaia', 'elena fucci', 'i greppi', 'pelassa', 'tenuta dell'ornellaia',
+  'altesino', 'anselmi', 'biondi santi', 'borgo molino', 'cascina adelaide', 'castello di volpaia', 'elena fucci', 'i greppi', 'pelassa', 'tenuta dell\'ornellaia',
 
   // ===== NewZealand =====
   // 영문 (1개)
@@ -31,7 +31,7 @@ const WINE_PRODUCERS = [
 
   // ===== Portugal =====
   // 영문 (5개)
-  'blandy's madeira', 'conceito', 'graham's port', 'luis seabra xisto', 'symington family estate',
+  'blandy\'s madeira', 'conceito', 'graham\'s port', 'luis seabra xisto', 'symington family estate',
 
   // ===== Spain =====
   // 영문 (4개)
