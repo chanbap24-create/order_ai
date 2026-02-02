@@ -1060,9 +1060,15 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                     _vintage: extractVintage(s.item_no)
                   }));
                   
-                  // 최신 빈티지 선택
+                  // 최신 빈티지 선택 + 기존 품목 우선
                   const sorted = withVintage.sort((a, b) => {
-                    // 빈티지가 있으면 최신 우선
+                    // 1순위: 기존 품목 우선 (is_new_item=false)
+                    const aIsExisting = a.is_new_item === false;
+                    const bIsExisting = b.is_new_item === false;
+                    if (aIsExisting && !bIsExisting) return -1;
+                    if (!aIsExisting && bIsExisting) return 1;
+                    
+                    // 2순위: 빈티지가 있으면 최신 우선
                     if (a._vintage && b._vintage) {
                       return b._vintage - a._vintage;
                     }
@@ -1075,8 +1081,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   });
                   
                   const selected = sorted[0];
-                  if (group.length > 1 && selected._vintage) {
-                    console.log(`[빈티지] ${baseName}: ${selected._vintage}년 선택 (${group.length}개 중)`);
+                  if (group.length > 1) {
+                    const isExisting = selected.is_new_item === false;
+                    console.log(`[빈티지중복] ${baseName}: ${selected.item_no} 선택 (${isExisting ? '기존품목 우선' : '최신빈티지 ' + selected._vintage}) - ${group.length}개 중`);
                   }
                   deduped.push(selected);
                 }

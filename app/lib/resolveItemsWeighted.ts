@@ -1092,29 +1092,38 @@ export function resolveItemsByClientWeighted(
       }
     }
 
-    // 후보 풀 = 마스터(원본) + 마스터(확장) + 영문명 + 거래처이력 (중복 제거)
-    // ✅ 점수 우선순위로 변경: 마스터 품목명을 유지하되, 거래처 이력도 풀에 포함
-    // 품목명은 마스터 우선, 점수는 가중치 시스템에서 거래처 이력 우대
+    // 후보 풀 = 거래처이력(최우선) + 마스터(원본) + 마스터(확장) + 영문명 (중복 제거)
+    // ✅ 거래처 이력을 최우선으로 추가하여 한글 품목명이 영문 약자보다 먼저 매칭되도록 함
+    // 예: 3021049 "클레멍 라발리, 샤블리" (거래처 이력) > 3022049 "CL 샤블리" (마스터)
     const poolMap = new Map<string, { item_no: string; item_name: string }>();
-    for (const r of masterRows1) {
-      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
-    }
-    for (const r of masterRows2) {
-      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
-    }
-    for (const r of englishRows) {
-      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
-    }
-    // 🎯 거래처 이력 추가 (품목명 덮어쓰지 않음! 마스터 품목명 유지)
-    // 가중치 시스템에서 거래처 이력 품목은 점수가 높게 책정됨
+    
+    // 1순위: 거래처 이력 (한글 품목명 우선)
     for (const r of clientRows) {
+      poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+    }
+    
+    // 2순위: 마스터 품목 (거래처 이력에 없는 것만 추가)
+    for (const r of masterRows1) {
       if (!poolMap.has(String(r.item_no))) {
-        // 마스터에 없는 품목만 거래처 이력 품목명 사용
         poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
       }
-      // 마스터에 이미 있으면 마스터 품목명 유지 (덮어쓰지 않음)
     }
+    for (const r of masterRows2) {
+      if (!poolMap.has(String(r.item_no))) {
+        poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+      }
+    }
+    
+    // 3순위: 영문명 (거래처 이력에 없는 것만 추가)
+    for (const r of englishRows) {
+      if (!poolMap.has(String(r.item_no))) {
+        poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+      }
+    }
+    
     const pool = Array.from(poolMap.values());
+    
+    console.log(`[후보풀] 거래처이력 ${clientRows.length}개 + 마스터 ${masterRows1.length + masterRows2.length}개 + 영문 ${englishRows.length}개 = 총 ${pool.length}개`);
     
     // 🏭 생산자 필터링: 생산자가 감지되면 해당 생산자 품목만 남기기
     let filteredPool = pool;
