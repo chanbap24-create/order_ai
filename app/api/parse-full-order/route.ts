@@ -1186,6 +1186,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         ...x,
         resolved,
         suggestions,
+        candidates: suggestions, // ✅ 프론트엔드 호환성: candidates도 동일하게 설정
       };
       
       if (resolved && suggestions.length > 0 && suggestions[0].item_no) {
