@@ -25,9 +25,9 @@ export const ITEM_MATCH_CONFIG = {
     
     // GAP 기반 규칙
     dominantGap: 0.50,        // 압도적 우위 (기존 4개만 표시)
-    strongGap: 0.30,          // 강한 우위 (기존 3개 + 신규 1개)
-    moderateGap: 0.15,        // 중간 (기존 2개 + 신규 2개)
-    // weakGap: < 0.15       // 약함 (기존 1개 + 신규 3개)
+    strongGap: 0.20,          // 강한 우위 (기존 3개 + 신규 1개) ⭐ 낮춤: 0.30 → 0.20
+    moderateGap: 0.10,        // 중간 (기존 2개 + 신규 2개) ⭐ 낮춤: 0.15 → 0.10
+    // weakGap: < 0.10       // 약함 (기존 1위 + 신규 3개) - 드물게 발생
     
     // 신규품목 점수 비율
     newItemScoreRatio: {
@@ -47,7 +47,7 @@ export const ITEM_MATCH_CONFIG = {
  * 후보 조합 타입
  */
 export type SuggestionComposition = {
-  type: 'existing_only' | 'new_dominant' | 'existing_strong' | 'balanced' | 'new_preferred';
+  type: 'existing_only' | 'new_dominant' | 'existing_strong' | 'balanced' | 'existing_preferred';
   existing: number;
   newItems: number;
   reason: string;
@@ -117,12 +117,13 @@ export function decideSuggestionComposition(
     };
   }
 
-  // 케이스 5: 약함 (GAP < 0.15) - 모두 애매함
+  // 케이스 5: 기본값 (GAP < 0.10) - 기존 입고품목 우선 ⭐
   // 예: 1위 0.350, 2위 0.320 (gap 0.030)
+  // ✅ 기존 거래처는 입고 이력이 있으므로 기존 품목을 더 많이 보여줌
   return {
-    type: 'new_preferred',
-    existing: 1,
-    newItems: 3,
-    reason: `기존 품목도 불확실 (gap=${gap.toFixed(3)})`
+    type: 'existing_preferred',
+    existing: 3,
+    newItems: 1,
+    reason: `기존 입고품목 우선 (gap=${gap.toFixed(3)}, 거래처 이력 반영)`
   };
 }
