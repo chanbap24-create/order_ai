@@ -19,7 +19,13 @@ export const runtime = "nodejs";
 export async function GET() {
   return jsonResponse({
     success: true,
-    message: "parse-full-order API is running. Use POST method to parse orders."
+    message: "parse-full-order API is running. Use POST method to parse orders.",
+    version: "2.0.0",
+    features: {
+      suggestions: 8,
+      sorting: "existing_items_first",
+      lastUpdated: "2026-02-02T04:45:00Z"
+    }
   });
 }
 

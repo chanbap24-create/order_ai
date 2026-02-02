@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "echo '🚀 Building Order AI with 8-item suggestions...' && next build && echo '✅ Build complete!'",
     "start": "next start",
     "lint": "eslint"
   },
