@@ -922,10 +922,13 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         .prepare(`SELECT item_no FROM client_item_stats WHERE client_code = ?`)
         .all(clientCode) as Array<{ item_no: string }>;
       const clientItemSet = new Set(clientHistory.map(r => String(r.item_no)));
+      
+      console.log(`[거래처이력] ${clientCode}: ${clientHistory.length}개 품목, 샘플: ${Array.from(clientItemSet).slice(0, 5).join(', ')}`);
 
       // 기본 suggestions 초기화 (is_new_item 추가)
       let suggestions = sortedCandidates.slice(0, config.suggestions.total).map((c: any) => {
         const isInClientHistory = clientItemSet.has(String(c.item_no));
+        console.log(`[신구판단] ${c.item_no} ${c.item_name}: isInHistory=${isInClientHistory}, is_new_item=${!isInClientHistory}`);
         return {
           ...c,
           is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
