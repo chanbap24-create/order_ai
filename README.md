@@ -155,3 +155,63 @@ Private
 
 
 <!-- force deploy 2026-01-12T10:59:40Z -->
+
+---
+
+## 🚀 최신 배포 정보
+
+**Version:** 2.0.0  
+**Last Deploy:** 2026-02-02 04:50 UTC  
+**Commit:** 12d19d2
+
+### ✨ Version 2.0.0 주요 변경사항
+
+#### 후보 품목 표시 개선
+- **총 후보 개수**: 4개 → **8개**로 확장
+- **정렬 방식**: 기존 입고품목 우선 정렬
+  - 1순위: 기존 품목 (is_new_item=false)
+  - 2순위: 같은 그룹 내에서 점수 내림차순
+
+#### 검색 로직 개선
+- 거래처 이력 우선 검색 (한글 품목명 우선)
+- 빈티지 중복 제거 시 기존 품목 우선
+- item_no 기준 중복 제거
+
+#### 예시 결과
+**검색:** "클레멍 라발레 샤블리 2병"
+
+```
+✅ 기존 품목
+1. 3021065 - CL 샤블리 "샹트 메흘르" (0.652)
+2. 3021049 - 클레멍 라발리, 샤블리 (0.535)
+
+🆕 신규 품목
+3. 3022049 - CL 샤블리 (0.652)
+4. 3020701 - CL 샤블리 "레 자딜레" (0.652)
+5. 3021705 - CL 샤블리 1er Cru "코트 드 주앙" (0.652)
+6. 3022704 - 클레멍 라발리, 샤블리 "레 자딜레" (0.475)
+7. 3020050 - 클레멍 라발리, 샤블리 45도 (0.470)
+```
+
+### 📊 배포 확인
+
+API 버전 확인:
+```bash
+curl https://your-domain/api/parse-full-order
+```
+
+예상 응답:
+```json
+{
+  "version": "2.0.0",
+  "features": {
+    "suggestions": 8,
+    "sorting": "existing_items_first"
+  }
+}
+```
+
+---
+
+**Build Status**: [![Deploy](https://img.shields.io/badge/deploy-production-green)](https://github.com/chanbap24-create/order_ai)
+
