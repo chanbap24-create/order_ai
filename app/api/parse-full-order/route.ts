@@ -1114,6 +1114,16 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 score: s.score?.toFixed(3), 
                 isNew: s.is_new_item || false 
               })));
+              
+              // 🔍 디버깅: 첫 번째 항목이 기존 품목인지 확인
+              if (suggestions.length > 0) {
+                const first = suggestions[0];
+                console.log(`[정렬검증] 1번 항목:`, {
+                  item_no: first.item_no,
+                  is_new_item: first.is_new_item,
+                  expected: '기존 품목이어야 함'
+                });
+              }
 
               // ✅ 신규 품목 정보 저장 (resolved 재판단 후 반환)
               x.has_new_items = composition.newItems > 0;
