@@ -21,7 +21,7 @@ export const ITEM_MATCH_CONFIG = {
 
   // 후보 표시 규칙
   suggestions: {
-    total: 4,                 // 총 후보 개수
+    total: 8,                 // 총 후보 개수 ⭐ 4 → 8로 증가 (기존 + 신규 더 많이 표시)
     
     // GAP 기반 규칙
     dominantGap: 0.50,        // 압도적 우위 (기존 4개만 표시)
@@ -78,7 +78,7 @@ export function decideSuggestionComposition(
   if (gap >= config.dominantGap && newItemBestScore < bestScore * config.newItemScoreRatio.poor) {
     return {
       type: 'existing_only',
-      existing: 4,
+      existing: 8,  // ⭐ 4 → 8
       newItems: 0,
       reason: `기존 1위가 압도적 (gap=${gap.toFixed(3)}, 신규=${newItemBestScore.toFixed(3)})`
     };
@@ -89,8 +89,8 @@ export function decideSuggestionComposition(
   if (newItemBestScore > bestScore * config.newItemScoreRatio.veryGood) {
     return {
       type: 'new_dominant',
-      existing: 1,
-      newItems: 3,
+      existing: 2,  // ⭐ 1 → 2
+      newItems: 6,  // ⭐ 3 → 6
       reason: `신규품목이 더 유망함 (기존=${bestScore.toFixed(3)}, 신규=${newItemBestScore.toFixed(3)})`
     };
   }
@@ -100,8 +100,8 @@ export function decideSuggestionComposition(
   if (gap >= config.strongGap) {
     return {
       type: 'existing_strong',
-      existing: 3,
-      newItems: 1,
+      existing: 5,  // ⭐ 3 → 5
+      newItems: 3,  // ⭐ 1 → 3
       reason: `기존 1위가 우세 (gap=${gap.toFixed(3)})`
     };
   }
@@ -111,19 +111,19 @@ export function decideSuggestionComposition(
   if (gap >= config.moderateGap) {
     return {
       type: 'balanced',
-      existing: 2,
-      newItems: 2,
+      existing: 4,  // ⭐ 2 → 4
+      newItems: 4,  // ⭐ 2 → 4
       reason: `기존/신규 균형 (gap=${gap.toFixed(3)})`
     };
   }
 
-  // 케이스 5: 기본값 (GAP < 0.10) - 기존 입고품목 우선 ⭐
+  // 케이스 5: 기본값 (GAP < 0.10) - 기존 + 신규 균형 표시 ⭐
   // 예: 1위 0.350, 2위 0.320 (gap 0.030)
-  // ✅ 기존 거래처는 입고 이력이 있으므로 기존 품목을 더 많이 보여줌
+  // ✅ 총 8개: 기존 품목 많이 + 신규 품목도 충분히
   return {
     type: 'existing_preferred',
-    existing: 3,
-    newItems: 1,
+    existing: 5,  // ⭐ 3 → 5 (기존 품목 더 많이)
+    newItems: 3,  // ⭐ 1 → 3 (신규 품목도 충분히)
     reason: `기존 입고품목 우선 (gap=${gap.toFixed(3)}, 거래처 이력 반영)`
   };
 }

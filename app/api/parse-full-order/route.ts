@@ -1089,11 +1089,21 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 }
               }
               
+              // ✅ 기존 품목 우선 정렬 → 각 그룹 내에서 점수 내림차순
               suggestions = deduped
-                .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0)) // ✅ 점수 순 정렬
+                .sort((a: any, b: any) => {
+                  // 1순위: 기존 품목 (is_new_item=false)을 위로
+                  const aIsExisting = a.is_new_item === false;
+                  const bIsExisting = b.is_new_item === false;
+                  if (aIsExisting && !bIsExisting) return -1;
+                  if (!aIsExisting && bIsExisting) return 1;
+                  
+                  // 2순위: 같은 그룹(기존 or 신규) 내에서는 점수 내림차순
+                  return (b.score ?? 0) - (a.score ?? 0);
+                })
                 .slice(0, config.suggestions.total);
               
-              console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
+              console.log(`[최종정렬] 기존품목 우선 → 점수순:`, suggestions.map((s: any) => ({ 
                 no: s.item_no, 
                 score: s.score?.toFixed(3), 
                 isNew: s.is_new_item || false 
