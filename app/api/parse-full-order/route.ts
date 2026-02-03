@@ -900,8 +900,20 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         x = { ...x, resolved: false };
       }
       
-      // ✅ 이미 resolved된 경우 그대로 반환
-      if (x?.resolved) return x;
+      // ✅ 이미 resolved된 경우
+      if (x?.resolved) {
+        // ✅ resolved 품목도 suggestions 포함 (공급가 표시용)
+        const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
+        const suggestions = candidates.slice(0, 10).map((c: any) => ({
+          ...c,
+          score: c.score ?? 0,
+          supply_price: c.supply_price,
+        }));
+        return {
+          ...x,
+          suggestions,
+        };
+      }
       
       // ✅ 중앙 설정 가져오기
       const { ITEM_MATCH_CONFIG, decideSuggestionComposition } = require('@/app/lib/itemMatchConfig');
