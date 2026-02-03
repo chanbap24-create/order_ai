@@ -923,7 +923,14 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       
       const sortedCandidates = dedupedCandidates
         .slice()
-        .sort((a: any, b: any) => (b?.score ?? 0) - (a?.score ?? 0));
+        .sort((a: any, b: any) => {
+          // 1순위: 점수 내림차순
+          const scoreDiff = (b?.score ?? 0) - (a?.score ?? 0);
+          if (Math.abs(scoreDiff) > 0.0001) return scoreDiff;
+          
+          // 2순위: 동점일 때 item_no 오름차순 (2420005 < 2421005)
+          return String(a?.item_no ?? '').localeCompare(String(b?.item_no ?? ''));
+        });
 
       // ✅ 거래처 이력 조회 (is_new_item 판단용)
       const clientHistory = db
