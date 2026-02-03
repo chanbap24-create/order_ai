@@ -508,8 +508,10 @@ function extractVintage(itemNo: string): number | null {
  */
 function removeVintageFromName(name: string): string {
   return String(name || '')
+    .replace(/^[A-Z]{2}\s+/, '') // 앞의 접두어 제거 (AR, VG, MR 등)
     .replace(/\s*\(\d{4}\)\s*/g, '') // (2021) 제거
     .replace(/\s*\d{4}\s*$/, '') // 끝의 2021 제거
+    .replace(/,\s*/g, ' ') // 쉼표도 제거
     .trim();
 }
 
