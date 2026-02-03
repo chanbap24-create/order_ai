@@ -631,15 +631,28 @@ export default function Home() {
   // ✅ 후보 가져오기 (기본 10개, 더보기 20개)
   function getSuggestions(it: any, showMore: boolean) {
     // ✅ suggestions 우선, 없으면 candidates 사용
-    const arr = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
+    let arr = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
     
+    // 🔥 프론트엔드에서 강제 정렬: 기존 품목 우선!
+    arr = [...arr].sort((a: any, b: any) => {
+      // 1순위: 기존 품목 (is_new_item=false)을 위로
+      const aIsExisting = a.is_new_item === false;
+      const bIsExisting = b.is_new_item === false;
+      if (aIsExisting && !bIsExisting) return -1;
+      if (!aIsExisting && bIsExisting) return 1;
+      
+      // 2순위: 같은 그룹 내에서는 점수 내림차순
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
+    
     // Debug: Log array length for verification
     if (arr.length > 0 && typeof window !== 'undefined') {
-      console.log(`[getSuggestions] Item has ${arr.length} suggestions/candidates`);
+      console.log(`[getSuggestions] Item has ${arr.length} suggestions/candidates (sorted: existing first)`);
+      console.log(`[getSuggestions] First item: ${arr[0]?.item_no} (existing: ${!arr[0]?.is_new_item})`);
     }
     
     // ✅ 기본 10개, 더보기 20개 (최대한 많은 후보 표시)
