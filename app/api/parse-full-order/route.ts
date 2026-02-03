@@ -887,39 +887,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
       
-      // ✅ 빈티지 중복 제거 (같은 이름이면 최신 빈티지 우선)
-      const grouped = new Map<string, any[]>();
-      for (const c of candidates) {
-        const baseName = removeVintageFromName(c.item_name || '');
-        if (!grouped.has(baseName)) {
-          grouped.set(baseName, []);
-        }
-        grouped.get(baseName)!.push(c);
-      }
-      
-      const dedupedCandidates: any[] = [];
-      for (const [baseName, group] of grouped.entries()) {
-        if (group.length === 1) {
-          dedupedCandidates.push(group[0]);
-        } else {
-          // 최신 빈티지 선택
-          const withVintage = group.map(c => ({
-            ...c,
-            _vintage: extractVintage(c.item_no)
-          }));
-          
-          const sorted = withVintage.sort((a, b) => {
-            if (a._vintage && b._vintage) return b._vintage - a._vintage;
-            if (!a._vintage && !b._vintage) return (b.score ?? 0) - (a.score ?? 0);
-            return a._vintage ? -1 : 1;
-          });
-          
-          if (sorted[0]._vintage && group.length > 1) {
-            console.log(`[빈티지] ${baseName}: ${sorted[0]._vintage}년 선택 (${group.length}개 중)`);
-          }
-          dedupedCandidates.push(sorted[0]);
-        }
-      }
+      // ⚠️ 빈티지 중복 제거 제거! → 모든 후보를 유지하고, 나중에 suggestions에서 처리
+      // 이유: 기존 입고 품목과 신규 빈티지를 모두 표시해야 함
+      const dedupedCandidates = candidates.slice(); // 모든 후보 유지
       
       const sortedCandidates = dedupedCandidates
         .slice()
