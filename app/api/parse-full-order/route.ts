@@ -933,19 +933,32 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       
       console.log(`[거래처이력] ${clientCode}: ${clientHistory.length}개 품목, 샘플: ${Array.from(clientItemSet).slice(0, 5).join(', ')}`);
 
-      // 기본 suggestions 초기화 (is_new_item 추가)
-      let suggestions = sortedCandidates.slice(0, config.suggestions.total).map((c: any) => {
+      // ⭐ 1단계: 기존 입고 품목에 점수 부스트 적용 (검색 결과에 포함되도록)
+      const boostedCandidates = sortedCandidates.map((c: any) => {
         const isInClientHistory = clientItemSet.has(String(c.item_no));
-        console.log(`[신구판단] ${c.item_no} ${c.item_name}: isInHistory=${isInClientHistory}, is_new_item=${!isInClientHistory}`);
+        // 기존 입고 품목은 점수에 +0.15 부스트 (top 결과에 포함되도록)
+        const boostedScore = isInClientHistory ? (c.score ?? 0) + 0.15 : (c.score ?? 0);
+        console.log(`[점수부스트] ${c.item_no}: ${(c.score ?? 0).toFixed(3)} → ${boostedScore.toFixed(3)} (기존입고: ${isInClientHistory})`);
         return {
           ...c,
-          is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
+          score: boostedScore,
+          original_score: c.score ?? 0, // 원래 점수 보관
+          is_new_item: c.is_new_item ?? !isInClientHistory,
         };
+      });
+      
+      // 점수 기준으로 재정렬
+      boostedCandidates.sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0));
+
+      // 기본 suggestions 초기화 (부스트 적용된 후보에서)
+      let suggestions = boostedCandidates.slice(0, config.suggestions.total).map((c: any) => {
+        console.log(`[후보선택] ${c.item_no} ${c.item_name}: score=${c.score?.toFixed(3)}, is_new_item=${c.is_new_item}`);
+        return c;
       });
 
       // 🆕 신규 품목 검색: Wine 페이지에서만 English 시트 검색
       if (pageType === "wine") {
-        const bestScore = sortedCandidates.length > 0 ? sortedCandidates[0]?.score ?? 0 : 0;
+        const bestScore = boostedCandidates.length > 0 ? boostedCandidates[0]?.original_score ?? 0 : 0; // 원래 점수 사용
         const inputName = x.name || '';
         
         // ✅ 중앙 설정에서 임계값 가져오기
@@ -959,37 +972,25 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
             
             // ✅ GAP 기반 후보 조합 결정
-            const composition = decideSuggestionComposition(sortedCandidates, newItemCandidates);
+            const composition = decideSuggestionComposition(boostedCandidates, newItemCandidates);
             
             console.log(`[후보조합] ${composition.type}: 기존 ${composition.existing}개 + 신규 ${composition.newItems}개 (${composition.reason})`);
             
             // ✅ 신규품목 점수가 충분히 높을 때만 조합 적용
             // 그렇지 않으면 기존 품목을 전부 표시 (신규품목은 무시)
             const newItemBestScore = newItemCandidates[0]?.score ?? 0;
-            const existingBestScore = sortedCandidates[0]?.score ?? 0;
+            const existingBestScore = boostedCandidates[0]?.original_score ?? 0; // 원래 점수 사용
             const shouldIncludeNewItems = newItemBestScore >= existingBestScore * 0.7; // 신규품목이 기존의 70% 이상
             
             if (!shouldIncludeNewItems) {
               console.log(`[후보조합] 신규품목 점수 낮음 (${newItemBestScore.toFixed(3)} < ${existingBestScore.toFixed(3)} * 0.7) → 기존품목 ${config.suggestions.total}개만 표시`);
               // 기존 품목만 표시 (composition 무시)
-              suggestions = sortedCandidates.slice(0, config.suggestions.total).map((c: any) => {
-                const isInClientHistory = clientItemSet.has(String(c.item_no));
-                return {
-                  ...c,
-                  is_new_item: c.is_new_item ?? !isInClientHistory,
-                };
-              });
+              suggestions = boostedCandidates.slice(0, config.suggestions.total); // 이미 is_new_item 설정됨
             } else {
               console.log(`[후보조합] 신규품목 포함 (${newItemBestScore.toFixed(3)} >= ${existingBestScore.toFixed(3)} * 0.7)`);
             
               // ✅ 기존 후보도 is_new_item 추가
-              const existingSuggestions = sortedCandidates.slice(0, composition.existing).map((c: any) => {
-                const isInClientHistory = clientItemSet.has(String(c.item_no));
-                return {
-                  ...c,
-                  is_new_item: c.is_new_item ?? !isInClientHistory, // ✅ 없으면 거래처 이력 기반 판단
-                };
-              });
+              const existingSuggestions = boostedCandidates.slice(0, composition.existing); // 이미 is_new_item 설정됨
               
               // 신규품목 매핑 (신규품목 플래그 포함)
               const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => {
