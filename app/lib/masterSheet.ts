@@ -196,21 +196,22 @@ export function loadDownloadsSheet(): MasterItem[] {
 
 /**
  * English + Downloads 시트 통합 로드
+ * ✅ Downloads 시트 우선 (공급가 포함)
  */
 export function loadAllMasterItems(): MasterItem[] {
   const englishItems = loadMasterSheet();
   const downloadsItems = loadDownloadsSheet();
   
-  // 중복 제거: item_no를 기준으로 English 우선
+  // 중복 제거: item_no를 기준으로 Downloads 우선 (공급가 때문에)
   const itemMap = new Map<string, MasterItem>();
   
-  // Downloads 먼저 추가
-  for (const item of downloadsItems) {
+  // English 먼저 추가
+  for (const item of englishItems) {
     itemMap.set(item.itemNo, item);
   }
   
-  // English로 덮어쓰기 (우선순위)
-  for (const item of englishItems) {
+  // Downloads로 덮어쓰기 (공급가 우선순위)
+  for (const item of downloadsItems) {
     itemMap.set(item.itemNo, item);
   }
   
