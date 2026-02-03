@@ -1054,7 +1054,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 groupByName.get(baseNameWithoutVintage)!.push(s);
               }
               
-              // 3단계: 각 그룹에서 최신 빈티지 선택
+              // 3단계: 각 그룹에서 빈티지 선택 (기존 + 신규 빈티지 모두 표시)
               const deduped: any[] = [];
               for (const [baseName, group] of Array.from(groupByName.entries())) {
                 if (group.length === 1) {
@@ -1066,32 +1066,51 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                     _vintage: extractVintage(s.item_no)
                   }));
                   
-                  // 최신 빈티지 선택 + 기존 품목 우선
-                  const sorted = withVintage.sort((a, b) => {
-                    // 1순위: 기존 품목 우선 (is_new_item=false)
-                    const aIsExisting = a.is_new_item === false;
-                    const bIsExisting = b.is_new_item === false;
-                    if (aIsExisting && !bIsExisting) return -1;
-                    if (!aIsExisting && bIsExisting) return 1;
-                    
-                    // 2순위: 빈티지가 있으면 최신 우선
-                    if (a._vintage && b._vintage) {
-                      return b._vintage - a._vintage;
-                    }
-                    // 빈티지가 없으면 점수 우선
-                    if (!a._vintage && !b._vintage) {
-                      return (b.score ?? 0) - (a.score ?? 0);
-                    }
-                    // 한쪽만 빈티지가 있으면 빈티지 있는 것 우선
-                    return a._vintage ? -1 : 1;
-                  });
+                  // 기존 품목과 신규 품목 분리
+                  const existingItems = withVintage.filter(s => s.is_new_item === false);
+                  const newItems = withVintage.filter(s => s.is_new_item === true);
                   
-                  const selected = sorted[0];
-                  if (group.length > 1) {
-                    const isExisting = selected.is_new_item === false;
-                    console.log(`[빈티지중복] ${baseName}: ${selected.item_no} 선택 (${isExisting ? '기존품목 우선' : '최신빈티지 ' + selected._vintage}) - ${group.length}개 중`);
+                  // 🔥 수정: 기존 품목이 있고 신규 품목도 있으면 둘 다 표시!
+                  if (existingItems.length > 0 && newItems.length > 0) {
+                    // 기존 품목: 최신 빈티지 선택
+                    const existingSorted = existingItems.sort((a, b) => {
+                      if (a._vintage && b._vintage) return b._vintage - a._vintage;
+                      return (b.score ?? 0) - (a.score ?? 0);
+                    });
+                    
+                    // 신규 품목: 최신 빈티지 선택
+                    const newSorted = newItems.sort((a, b) => {
+                      if (a._vintage && b._vintage) return b._vintage - a._vintage;
+                      return (b.score ?? 0) - (a.score ?? 0);
+                    });
+                    
+                    console.log(`[빈티지중복] ${baseName}: 기존(${existingSorted[0].item_no}) + 신규(${newSorted[0].item_no}) 모두 표시`);
+                    deduped.push(existingSorted[0]); // 기존 품목 추가
+                    deduped.push(newSorted[0]);      // 신규 빈티지 추가
+                  } 
+                  // 기존 품목만 있거나 신규 품목만 있으면 최신 빈티지 선택
+                  else {
+                    const sorted = withVintage.sort((a, b) => {
+                      // 1순위: 기존 품목 우선
+                      const aIsExisting = a.is_new_item === false;
+                      const bIsExisting = b.is_new_item === false;
+                      if (aIsExisting && !bIsExisting) return -1;
+                      if (!aIsExisting && bIsExisting) return 1;
+                      
+                      // 2순위: 빈티지가 있으면 최신 우선
+                      if (a._vintage && b._vintage) {
+                        return b._vintage - a._vintage;
+                      }
+                      return (b.score ?? 0) - (a.score ?? 0);
+                    });
+                    
+                    const selected = sorted[0];
+                    if (group.length > 1) {
+                      const isExisting = selected.is_new_item === false;
+                      console.log(`[빈티지중복] ${baseName}: ${selected.item_no} 선택 (${isExisting ? '기존품목' : '신규빈티지'} ${selected._vintage || ''}) - ${group.length}개 중`);
+                    }
+                    deduped.push(selected);
                   }
-                  deduped.push(selected);
                 }
               }
               
