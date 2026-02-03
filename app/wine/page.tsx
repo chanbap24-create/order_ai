@@ -628,7 +628,7 @@ export default function Home() {
     fontSize: 16, // ✅ 16px 이상으로 설정해야 모바일에서 자동 줌 방지
   };
 
-  // ✅ 후보 가져오기 (기본 10개, 더보기 20개)
+  // ✅ 후보 가져오기 (확정 품목: 기본 2개, 미확정: 기본 10개, 더보기: 20개)
   function getSuggestions(it: any, showMore: boolean) {
     // ✅ suggestions 우선, 없으면 candidates 사용
     let arr = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
@@ -655,8 +655,15 @@ export default function Home() {
       console.log(`[getSuggestions] First item: ${arr[0]?.item_no} (existing: ${!arr[0]?.is_new_item})`);
     }
     
-    // ✅ 기본 10개, 더보기 20개 (최대한 많은 후보 표시)
-    return showMore ? arr.slice(0, 20) : arr.slice(0, 10);
+    // ✅ 확정된 품목: 기본 2개만 (스크롤 줄이기)
+    // ✅ 미확정 품목: 기본 10개 (더 많은 선택지 제공)
+    // ✅ 더보기: 모든 품목 20개
+    const isResolved = it?.resolved === true;
+    if (showMore) {
+      return arr.slice(0, 20);
+    } else {
+      return isResolved ? arr.slice(0, 2) : arr.slice(0, 10);
+    }
   }
 
   const needsClientPick = data?.status === "needs_review_client";
@@ -1435,9 +1442,13 @@ export default function Home() {
                               >
                                 {showMore 
                                   ? `▲ 접기 (${allSuggestions.length}개 중 ${Math.min(20, allSuggestions.length)}개 표시)` 
-                                  : allSuggestions.length > 10
-                                    ? `▼ 더보기 (${allSuggestions.length}개 중 ${Math.min(10, allSuggestions.length)}개 표시)`
-                                    : `총 ${allSuggestions.length}개 후보`}
+                                  : it?.resolved
+                                    ? (allSuggestions.length > 2 
+                                        ? `▼ 더보기 (${allSuggestions.length}개 중 2개 표시)`
+                                        : `총 ${allSuggestions.length}개 후보`)
+                                    : (allSuggestions.length > 10
+                                        ? `▼ 더보기 (${allSuggestions.length}개 중 ${Math.min(10, allSuggestions.length)}개 표시)`
+                                        : `총 ${allSuggestions.length}개 후보`)}
                               </button>
                             )}
                           </div>
