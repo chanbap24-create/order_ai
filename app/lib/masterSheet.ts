@@ -161,8 +161,8 @@ export function loadDownloadsSheet(): MasterItem[] {
         vintage = year < 50 ? `20${vintage}` : `19${vintage}`;
       }
 
-      // 공급가 (index 10)
-      const supplyPriceRaw = row[10];
+      // 공급가 (P열 = index 15)
+      const supplyPriceRaw = row[15];
       let supplyPrice: number | undefined = undefined;
       if (supplyPriceRaw != null) {
         // 쉼표와 공백 제거 후 숫자로 변환
