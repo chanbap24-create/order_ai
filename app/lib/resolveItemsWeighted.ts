@@ -1213,11 +1213,14 @@ export function resolveItemsByClientWeighted(
         const baseScore = Math.max(ko1, ko2 * 1.2, en);
 
         // 🎯 가중치 시스템으로 최종 점수 계산
+        // ✅ supply_price는 r 객체에 없을 수 있음 (기존 품목은 DB에 없음)
         const weighted = calculateWeightedScore(
           it.name,
           clientCode,
           String(r.item_no),
-          baseScore
+          baseScore,
+          undefined, // dataType (기본값 'wine' 사용)
+          (r as any).supply_price // ✅ 신규 품목인 경우에만 있음
         );
         
         // ✅ baseScore가 매우 높으면 (0.80+) 가중치를 덜 받도록 조정

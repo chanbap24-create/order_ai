@@ -509,7 +509,8 @@ export function calculateWeightedScore(
   clientCode: string,
   itemNo: string,
   baseScore: number,
-  dataType: 'wine' | 'glass' = 'wine'
+  dataType: 'wine' | 'glass' = 'wine',
+  supplyPrice?: number // ✅ 공급가 추가
 ): WeightedScore {
   // 각 신호 계산
   const userLearning = getUserLearningSignal(rawInput, itemNo, clientCode); // ✅ clientCode 전달
@@ -553,6 +554,7 @@ export function calculateWeightedScore(
       recentPurchase,
       purchaseFrequency,
       vintage,
+      supply_price: supplyPrice, // ✅ 공급가 추가
     },
     weights,
     rawTotal,
