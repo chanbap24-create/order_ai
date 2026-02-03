@@ -165,6 +165,9 @@ function normalize(str: string): string {
     .replace(/루이미쉘/g, '루이미셸')
     .replace(/루이미셸/g, '루이미셸')
     .replace(/louismichel/g, 'louismichel')
+    // 몬테 드 토네르/토네흐 통일
+    .replace(/토네흐/g, '토네르')
+    .replace(/토네르/g, '토네르')
     // 샤블리 관련 (몬테 드 토네르)
     .replace(/monteedetonnerre/g, '몬테드토네흐')
     .replace(/몬테드토네르/g, '몬테드토네흐')
