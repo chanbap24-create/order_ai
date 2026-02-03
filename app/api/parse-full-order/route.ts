@@ -17,6 +17,33 @@ export const runtime = "nodejs";
 
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
+  // Excel 파일 존재 확인
+  const fs = require('fs');
+  const path = require('path');
+  const xlsxPath = path.join(process.cwd(), 'order-ai.xlsx');
+  const xlsxExists = fs.existsSync(xlsxPath);
+  
+  let xlsxInfo = null;
+  if (xlsxExists) {
+    const stats = fs.statSync(xlsxPath);
+    xlsxInfo = {
+      exists: true,
+      size: stats.size,
+      modified: stats.mtime,
+    };
+    
+    // 샘플 데이터 읽기
+    try {
+      const { loadMasterSheet } = require('@/app/lib/masterSheet');
+      const items = loadMasterSheet();
+      const sample = items.find((item: any) => item.itemNo === '3022042');
+      xlsxInfo.sampleItem = sample || 'not found';
+      xlsxInfo.totalItems = items.length;
+    } catch (e: any) {
+      xlsxInfo.loadError = e.message;
+    }
+  }
+  
   return jsonResponse({
     success: true,
     message: "parse-full-order API is running. Use POST method to parse orders.",
@@ -25,7 +52,8 @@ export async function GET() {
       suggestions: 8,
       sorting: "existing_items_first",
       lastUpdated: "2026-02-02T04:45:00Z"
-    }
+    },
+    excel: xlsxInfo || { exists: false, path: xlsxPath }
   });
 }
 
