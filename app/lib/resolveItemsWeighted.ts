@@ -1325,7 +1325,7 @@ export function resolveItemsByClientWeighted(
         // 3차: 거래처 이력 우선 (같은 점수일 때 기존 거래처 품목 우선)
         const aInHistory = a._debug?.isInClientHistory ?? false;
         const bInHistory = b._debug?.isInClientHistory ?? false;
-        if (aInHistory !== bInHistory) return bInHistory ? 1 : -1;
+        if (aInHistory !== bInHistory) return aInHistory ? -1 : 1;
         
         // 4차: item_no 오름차순 (안정적인 정렬)
         return String(a.item_no).localeCompare(String(b.item_no));
