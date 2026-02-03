@@ -329,6 +329,11 @@ export function searchMasterSheet(
       matchedBy = 'korean';
     }
 
+    // ✅ 공급가 디버깅 로그
+    if (candidates.length < 3) {
+      console.log(`[masterMatcher] ${item.itemNo}: supplyPrice=${item.supplyPrice}, score=${score.toFixed(3)}`);
+    }
+    
     candidates.push({
       itemNo: item.itemNo,
       englishName: item.englishName,
