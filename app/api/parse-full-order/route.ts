@@ -887,9 +887,56 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
       
-      // ⚠️ 빈티지 중복 제거 제거! → 모든 후보를 유지하고, 나중에 suggestions에서 처리
-      // 이유: 기존 입고 품목과 신규 빈티지를 모두 표시해야 함
-      const dedupedCandidates = candidates.slice(); // 모든 후보 유지
+      // ✅ 거래처 이력 먼저 조회 (is_new_item 판단용)
+      const clientHistory = db
+        .prepare(`SELECT item_no FROM client_item_stats WHERE client_code = ?`)
+        .all(clientCode) as Array<{ item_no: string }>;
+      const clientItemSet = new Set(clientHistory.map(r => String(r.item_no)));
+      
+      console.log(`[거래처이력] ${clientCode}: ${clientHistory.length}개 품목`);
+
+      // ✅ 빈티지 중복 제거 (기존 입고 품목끼리만 적용)
+      const grouped = new Map<string, any[]>();
+      for (const c of candidates) {
+        const baseName = removeVintageFromName(c.item_name || '');
+        if (!grouped.has(baseName)) {
+          grouped.set(baseName, []);
+        }
+        grouped.get(baseName)!.push(c);
+      }
+      
+      const dedupedCandidates: any[] = [];
+      for (const [baseName, group] of grouped.entries()) {
+        if (group.length === 1) {
+          dedupedCandidates.push(group[0]);
+        } else {
+          // 기존 입고 품목과 신규 품목 분리
+          const existingItems = group.filter(c => clientItemSet.has(String(c.item_no)));
+          const newItems = group.filter(c => !clientItemSet.has(String(c.item_no)));
+          
+          // 기존 입고 품목 중에서 최신 빈티지 1개만 선택
+          if (existingItems.length > 0) {
+            const withVintage = existingItems.map(c => ({
+              ...c,
+              _vintage: extractVintage(c.item_no)
+            }));
+            
+            const sorted = withVintage.sort((a, b) => {
+              if (a._vintage && b._vintage) return b._vintage - a._vintage;
+              return (b.score ?? 0) - (a.score ?? 0);
+            });
+            
+            console.log(`[빈티지] ${baseName}: 기존 입고 ${sorted[0].item_no} (${existingItems.length}개 중 선택)`);
+            dedupedCandidates.push(sorted[0]);
+          }
+          
+          // 신규 품목은 모두 추가 (빈티지 상관없이)
+          newItems.forEach(c => {
+            console.log(`[빈티지] ${baseName}: 신규 ${c.item_no} 추가`);
+            dedupedCandidates.push(c);
+          });
+        }
+      }
       
       const sortedCandidates = dedupedCandidates
         .slice()
@@ -902,13 +949,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           return String(a?.item_no ?? '').localeCompare(String(b?.item_no ?? ''));
         });
 
-      // ✅ 거래처 이력 조회 (is_new_item 판단용)
-      const clientHistory = db
-        .prepare(`SELECT item_no FROM client_item_stats WHERE client_code = ?`)
-        .all(clientCode) as Array<{ item_no: string }>;
-      const clientItemSet = new Set(clientHistory.map(r => String(r.item_no)));
-      
-      console.log(`[거래처이력] ${clientCode}: ${clientHistory.length}개 품목, 샘플: ${Array.from(clientItemSet).slice(0, 5).join(', ')}`);
+      // 거래처 이력은 이미 위에서 조회했으므로 clientItemSet 재사용
 
       // ⭐ 1단계: 기존 입고 품목에 점수 부스트 적용 (검색 결과에 포함되도록)
       const boostedCandidates = sortedCandidates.map((c: any) => {
