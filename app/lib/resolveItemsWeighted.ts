@@ -27,6 +27,12 @@ import { multiLevelTokenMatch } from "@/app/lib/multiLevelTokenMatcher";
 function normTight(s: string) {
   return String(s || "")
     .toLowerCase()
+    // ✅ 곡선 따옴표 통일
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    // ✅ 악센트 제거
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, "")
     .replace(/[()\-_/.,]/g, "");
 }
@@ -800,9 +806,34 @@ export function resolveItemsByClientWeighted(
     db.prepare(`
       CREATE TABLE IF NOT EXISTS items (
         item_no TEXT PRIMARY KEY,
-        item_name TEXT NOT NULL
+        item_name TEXT NOT NULL,
+        supply_price REAL,
+        category TEXT,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `).run();
+    
+    // ✅ 기존 테이블에 supply_price 컬럼이 없으면 추가 (마이그레이션)
+    try {
+      db.prepare(`ALTER TABLE items ADD COLUMN supply_price REAL`).run();
+      console.log('[resolveItemsWeighted] Added supply_price column to items table');
+    } catch (e: any) {
+      if (!e.message?.includes('duplicate column')) {
+        console.warn('[resolveItemsWeighted] Failed to add supply_price column:', e.message);
+      }
+    }
+    
+    try {
+      db.prepare(`ALTER TABLE items ADD COLUMN category TEXT`).run();
+    } catch (e: any) {
+      // 이미 있으면 무시
+    }
+    
+    try {
+      db.prepare(`ALTER TABLE items ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP`).run();
+    } catch (e: any) {
+      // 이미 있으면 무시
+    }
 
     // 데이터가 있는지 확인
     const count = db.prepare('SELECT COUNT(*) as cnt FROM items').get() as { cnt: number };
@@ -810,14 +841,32 @@ export function resolveItemsByClientWeighted(
     if (count.cnt === 0) {
       // 데이터가 없으면 로드
       const allItems = loadAllMasterItems();
-      const insertStmt = db.prepare('INSERT OR REPLACE INTO items (item_no, item_name) VALUES (?, ?)');
-      const insertMany = db.transaction((items: Array<{itemNo: string, koreanName: string}>) => {
+      const insertStmt = db.prepare('INSERT OR REPLACE INTO items (item_no, item_name, supply_price, category) VALUES (?, ?, ?, ?)');
+      const insertMany = db.transaction((items: Array<{itemNo: string, koreanName: string, supplyPrice?: number}>) => {
         for (const item of items) {
-          insertStmt.run(item.itemNo, item.koreanName);
+          insertStmt.run(item.itemNo, item.koreanName, item.supplyPrice || null, 'wine');
         }
       });
       insertMany(allItems);
-      console.log(`[resolveItemsWeighted] Master items synced: ${allItems.length} items`);
+      console.log(`[resolveItemsWeighted] Master items synced: ${allItems.length} items with supply_price`);
+    } else {
+      // ✅ 데이터가 있지만 supply_price가 null인 경우 백필
+      const nullCount = db.prepare('SELECT COUNT(*) as cnt FROM items WHERE supply_price IS NULL').get() as { cnt: number };
+      
+      if (nullCount.cnt > 0) {
+        console.log(`[resolveItemsWeighted] Backfilling supply_price for ${nullCount.cnt} items`);
+        const allItems = loadAllMasterItems();
+        const updateStmt = db.prepare('UPDATE items SET supply_price = ?, updated_at = CURRENT_TIMESTAMP WHERE item_no = ? AND supply_price IS NULL');
+        const updateMany = db.transaction((items: Array<{itemNo: string, supplyPrice?: number}>) => {
+          for (const item of items) {
+            if (item.supplyPrice) {
+              updateStmt.run(item.supplyPrice, item.itemNo);
+            }
+          }
+        });
+        updateMany(allItems);
+        console.log(`[resolveItemsWeighted] Supply price backfill completed`);
+      }
     }
   } catch (e) {
     console.error('[resolveItemsWeighted] Failed to sync master items:', e);
@@ -1235,12 +1284,23 @@ export function resolveItemsByClientWeighted(
         // ✅ 거래처 이력에 있는지 확인 (is_new_item 플래그 설정)
         const isInClientHistory = clientRows.some(cr => String(cr.item_no) === String(r.item_no));
         
+        // ✅ supply_price 조회 (items 테이블에서)
+        let supplyPrice: number | undefined = (r as any).supply_price;
+        if (!supplyPrice) {
+          try {
+            const itemRow = db.prepare('SELECT supply_price FROM items WHERE item_no = ?').get(String(r.item_no)) as any;
+            supplyPrice = itemRow?.supply_price || undefined;
+          } catch (e) {
+            // 테이블이 없거나 오류 발생 시 무시
+          }
+        }
+        
         return {
           item_no: r.item_no,
           item_name: r.item_name,
           score: finalScore,
           is_new_item: !isInClientHistory, // 거래처 이력에 없으면 신규
-          supply_price: weighted.signals.supply_price,
+          supply_price: supplyPrice,
           _debug: {
             baseScore: weighted.signals.baseScore,
             userLearning: weighted.signals.userLearning,

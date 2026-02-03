@@ -138,11 +138,19 @@ export interface MasterMatchCandidate {
 /**
  * 문자열 정규화 (소문자, 공백 완전 제거, 특수문자 제거)
  * 띄어쓰기 차이를 무시하기 위해 공백을 완전히 제거합니다.
+ * ✅ 악센트 제거 + 따옴표 통일 추가
  */
 function normalize(str: string): string {
   let normalized = str
     .toLowerCase()
-    .replace(/[^\w가-힣]/g, '') // 공백 포함 모든 특수문자 제거
+    // ✅ 1) 곡선 따옴표 → 일반 따옴표
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    // ✅ 2) NFD 정규화 후 악센트 제거
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // 3) 영문자, 숫자, 한글만 남기기
+    .replace(/[^a-z0-9가-힣]/g, '')
     .trim();
 
   // 와인 관련 발음 변형 통일
