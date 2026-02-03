@@ -628,15 +628,21 @@ export default function Home() {
     fontSize: 16, // ✅ 16px 이상으로 설정해야 모바일에서 자동 줌 방지
   };
 
-  // ✅ 후보 가져오기 (더보기 상태에 따라 4개 또는 10개)
+  // ✅ 후보 가져오기 (기본 10개, 더보기 20개)
   function getSuggestions(it: any, showMore: boolean) {
-    // ✅ suggestions가 비어있으면 candidates 사용
+    // ✅ suggestions 우선, 없으면 candidates 사용
     const arr = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    // ✅ 기본 10개, 더보기 20개 (루이 미셸 등 다양한 브랜드 포함)
+    
+    // Debug: Log array length for verification
+    if (arr.length > 0 && typeof window !== 'undefined') {
+      console.log(`[getSuggestions] Item has ${arr.length} suggestions/candidates`);
+    }
+    
+    // ✅ 기본 10개, 더보기 20개 (최대한 많은 후보 표시)
     return showMore ? arr.slice(0, 20) : arr.slice(0, 10);
   }
 
@@ -1415,10 +1421,10 @@ export default function Home() {
                                 }}
                               >
                                 {showMore 
-                                  ? `▲ 접기 (${allSuggestions.length}개 중 ${Math.min(10, allSuggestions.length)}개 표시)` 
-                                  : allSuggestions.length > 4
-                                    ? `▼ 더보기 (${allSuggestions.length}개 중 4개만 표시)`
-                                    : `▼ 더 많은 후보 보기`}
+                                  ? `▲ 접기 (${allSuggestions.length}개 중 ${Math.min(20, allSuggestions.length)}개 표시)` 
+                                  : allSuggestions.length > 10
+                                    ? `▼ 더보기 (${allSuggestions.length}개 중 ${Math.min(10, allSuggestions.length)}개 표시)`
+                                    : `총 ${allSuggestions.length}개 후보`}
                               </button>
                             )}
                           </div>
