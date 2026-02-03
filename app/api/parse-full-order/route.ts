@@ -730,60 +730,18 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const trMsg = await translateOrderToKoreanIfNeeded(pre0);
     const preMessage = trMsg.translated ? trMsg.text : pre0;
 
-    // ✅ body.client_code가 있으면 직접 사용, 없으면 기존 로직 수행
-    let client: any;
-    let rawMessage = '';
-    let clientText = '';
-    let orderText = '';
-    
-    if (body?.client_code) {
-      // 거래처가 이미 선택된 경우 (프론트엔드에서 전달)
-      const clientCode = String(body.client_code).trim();
-      console.log('[CLIENT] Using provided client_code:', clientCode);
-      
-      // DB에서 거래처 정보 조회
-      const clientRow = db.prepare('SELECT client_code, client_name FROM clients WHERE client_code = ?').get(clientCode) as any;
-      
-      if (clientRow) {
-        client = {
-          status: "resolved" as const,
-          client_code: clientRow.client_code,
-          client_name: clientRow.client_name,
-          method: 'provided',
-        };
-        console.log('[CLIENT] ✅ Resolved from DB:', client.client_name);
-      } else {
-        // DB에 없으면 그대로 사용 (신규 거래처 등)
-        client = {
-          status: "resolved" as const,
-          client_code: clientCode,
-          client_name: clientCode,
-          method: 'provided',
-        };
-        console.log('[CLIENT] ⚠️ Not found in DB, using as-is');
-      }
-      
-      // orderText는 전체 message 사용
-      rawMessage = preMessage;
-      orderText = preMessage;
-      clientText = '';
-    } else {
-      // 기존 로직: message에서 거래처 추출
-      const split = splitClientAndOrder({
-        ...body,
-        message: preMessage,
-      });
-      rawMessage = split.rawMessage;
-      clientText = split.clientText;
-      orderText = split.orderText;
-      
-      // 1) 거래처 resolve
-      client = resolveClient({
-        clientText,
-        message: rawMessage,
-        forceResolve,
-      });
-    }
+    // ✅ 전처리된 message로 split 수행
+    const { rawMessage, clientText, orderText } = splitClientAndOrder({
+      ...body,
+      message: preMessage,
+    });
+
+    // 1) 거래처 resolve
+    const client = resolveClient({
+      clientText,
+      message: rawMessage,
+      forceResolve,
+    });
 
     if (client.status !== "resolved") {
       return jsonResponse({

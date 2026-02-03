@@ -50,4 +50,3 @@ next-env.d.ts
 
 # Development logs
 dev-*.log
-core
