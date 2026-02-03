@@ -74,7 +74,9 @@ export function loadMasterSheet(): MasterItem[] {
       const supplyPriceRaw = row[11];
       let supplyPrice: number | undefined = undefined;
       if (supplyPriceRaw != null) {
-        const parsed = Number(supplyPriceRaw);
+        // 쉼표와 공백 제거 후 숫자로 변환
+        const cleaned = String(supplyPriceRaw).replace(/[,\s]/g, '').trim();
+        const parsed = Number(cleaned);
         if (!isNaN(parsed) && parsed > 0) {
           supplyPrice = parsed;
         }
@@ -141,30 +143,45 @@ export function loadDownloadsSheet(): MasterItem[] {
       
       // 품번 (index 1)
       const itemNo = row[1]?.toString().trim();
-      // 품명 (index 2) - 한글명
-      const koreanName = row[2]?.toString().trim();
+      // 영문명 (index 6)
+      const englishName = row[6]?.toString().trim();
+      // 한글명 (index 7)
+      const koreanName = row[7]?.toString().trim();
 
       // 필수 필드가 없으면 스킵
       if (!itemNo || !koreanName) {
         continue;
       }
 
-      // 빈티지 (index 6) - 예: "18" → "2018"
-      let vintage = row[6]?.toString().trim();
+      // 빈티지 (index 8)
+      let vintage = row[8]?.toString().trim();
+      // 빈티지가 2자리 숫자면 연도로 변환 (예: "17" → "2017")
       if (vintage && vintage.length === 2) {
         const year = parseInt(vintage);
         vintage = year < 50 ? `20${vintage}` : `19${vintage}`;
       }
 
+      // 공급가 (index 10)
+      const supplyPriceRaw = row[10];
+      let supplyPrice: number | undefined = undefined;
+      if (supplyPriceRaw != null) {
+        // 쉼표와 공백 제거 후 숫자로 변환
+        const cleaned = String(supplyPriceRaw).replace(/[,\s]/g, '').trim();
+        const parsed = Number(cleaned);
+        if (!isNaN(parsed) && parsed > 0) {
+          supplyPrice = parsed;
+        }
+      }
+
       items.push({
         itemNo,
-        englishName: '', // Downloads 시트에는 영문명이 없음
+        englishName: englishName || '', // Downloads 시트에 영문명 추가
         koreanName,
         vintage,
-        country: row[8]?.toString().trim(), // 국가 (index 8)
-        producer: undefined,
-        region: undefined,
-        supplyPrice: undefined,
+        country: row[2]?.toString().trim(), // 국가 (index 2)
+        producer: row[3]?.toString().trim(), // 생산자 (index 3)
+        region: row[4]?.toString().trim(), // 지역 (index 4)
+        supplyPrice, // 공급가 추가
       });
     }
 
