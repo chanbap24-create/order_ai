@@ -1202,13 +1202,26 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           resolved = false;
           console.log(`[AutoResolve] ${x.name}: 신규품목이므로 수동 확인 필요 (score=${(top.score ?? 0).toFixed(3)}, is_new_item=true)`);
         } else {
-          // 기존 품목: 자동 확정 조건 (중앙 설정 사용)
-          const minScore = config.autoResolve?.minScore ?? 0.60;
-          const minGap = config.autoResolve?.minGap ?? 0.20;
-          // ✅ item_no가 있고, 점수와 gap 조건을 만족할 때만 자동 확정
-          resolved = top.item_no && (top.score ?? 0) >= minScore && gap >= minGap;
+          // 기존 품목: 자동 확정 조건
+          const minScore = config.autoResolve?.minScore ?? 0.55;
+          const minGap = config.autoResolve?.minGap ?? 0.10;
+          const topScore = top.score ?? 0;
           
-          console.log(`[AutoResolve] ${x.name}: item_no=${top.item_no}, score=${(top.score ?? 0).toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved}`);
+          // ⭐ 새 로직: 0.9점 이상이면 무조건 확정
+          if (topScore >= 0.90) {
+            resolved = true;
+            console.log(`[AutoResolve] ${x.name}: 고득점 확정 (score=${topScore.toFixed(3)} >= 0.90)`);
+          }
+          // ⭐ 새 로직: 2위가 신규 품목이면 gap 무시하고 확정
+          else if (second && (second.is_new_item ?? false)) {
+            resolved = topScore >= minScore;
+            console.log(`[AutoResolve] ${x.name}: 2위가 신규품목이므로 gap 무시 (score=${topScore.toFixed(3)}, 2nd_is_new=true, resolved=${resolved})`);
+          }
+          // 기존 로직: 2위도 기존 품목이면 gap 체크
+          else {
+            resolved = top.item_no && topScore >= minScore && gap >= minGap;
+            console.log(`[AutoResolve] ${x.name}: 기존품목 gap 체크 (score=${topScore.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved})`);
+          }
         }
       }
 
