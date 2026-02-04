@@ -734,20 +734,12 @@ function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
   const inputItem = stripQtyAndUnit(rawInput);
   const nInputItem = normTight(inputItem);
 
-  // ✅ client_code 고려하여 우선순위 조회
-  const rows = clientCode
-    ? (db.prepare(`
-        SELECT alias, canonical, client_code
-        FROM item_alias
-        ORDER BY
-          CASE
-            WHEN client_code = ? THEN 1
-            WHEN client_code = '*' THEN 2
-            ELSE 3
-          END,
-          count DESC
-      `).all(clientCode) as Array<AliasRow & { client_code: string }>)
-    : (db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[]);
+  // ✅ item_alias 조회 (count 순)
+  const rows = db.prepare(`
+    SELECT alias, canonical 
+    FROM item_alias
+    ORDER BY count DESC
+  `).all() as AliasRow[];
   
   if (!rows?.length) return null;
 
