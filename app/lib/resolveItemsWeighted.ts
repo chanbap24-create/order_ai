@@ -21,6 +21,7 @@ import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/l
 import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
 import { loadAllMasterItems } from "@/app/lib/masterSheet";
 import { multiLevelTokenMatch } from "@/app/lib/multiLevelTokenMatcher";
+import { findItemCodeFromEnglish, findMultipleFromEnglish } from "@/app/lib/englishSheetMatcher";
 
 /* ================= 정규화 함수 ================= */
 
@@ -1124,36 +1125,39 @@ export function resolveItemsByClientWeighted(
       ? fetchFromMasterByTail(expansion.expanded, 40)
       : [];
 
-    // ✅ 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
+    // ✅ 영문명으로도 검색 (English 시트 활용)
     const englishRows: Array<{ item_no: string; item_name: string }> = [];
     const hasEnglish = /[A-Za-z]{3,}/.test(searchName);
     if (hasEnglish) {
       try {
-        const words = searchName.match(/[A-Za-z]{3,}/g) || [];
-        const searchPatterns: string[] = [];
-        for (const word of words) {
-          searchPatterns.push(`%${word.toLowerCase()}%`);
+        console.log(`[English Sheet] 영어 검색 시도: "${searchName}"`);
+        const englishMatches = findMultipleFromEnglish(searchName, 10);
+        
+        for (const match of englishMatches) {
+          // 거래처 이력에 있는 한글명 사용, 없으면 영어명 사용
+          const clientRow = db.prepare(`
+            SELECT item_name
+            FROM client_item_stats
+            WHERE client_code = ? AND item_no = ?
+            LIMIT 1
+          `).get(clientCode, match.code) as { item_name: string } | undefined;
+          
+          const displayName = clientRow?.item_name || match.koreanName || match.englishName;
+          
+          englishRows.push({
+            item_no: match.code,
+            item_name: displayName
+          });
         }
-        const allCandidates = new Map<string, { item_no: string; item_name: string }>();
-        for (const pattern of searchPatterns.slice(0, 5)) {
-          const rows = db.prepare(`
-            SELECT ie.item_no, cis.item_name, ie.name_en
-            FROM item_english ie
-            LEFT JOIN client_item_stats cis ON ie.item_no = cis.item_no AND cis.client_code = ?
-            WHERE LOWER(ie.name_en) LIKE ?
-            LIMIT 20
-          `).all(clientCode, pattern) as any[];
-          for (const r of rows) {
-            if (r.item_no) {
-              // 거래처 이력이 있으면 그 한글명 사용, 없으면 영문명 사용
-              const displayName = r.item_name || r.name_en;
-              allCandidates.set(String(r.item_no), { item_no: String(r.item_no), item_name: displayName });
-            }
-          }
+        
+        if (englishRows.length > 0) {
+          console.log(`[English Sheet] ✅ ${englishRows.length}개 매칭됨`);
+          englishRows.forEach((r, idx) => {
+            console.log(`  ${idx+1}. [${r.item_no}] ${r.item_name}`);
+          });
         }
-        englishRows.push(...Array.from(allCandidates.values()));
       } catch (e) {
-        console.error('[resolveItemsWeighted] English search failed:', e);
+        console.error('[English Sheet] 검색 실패:', e);
       }
     }
 
