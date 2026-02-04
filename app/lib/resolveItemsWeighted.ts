@@ -662,12 +662,23 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
       const englishScore = scoreItem(query, item.englishName);
       const maxScore = Math.max(koreanScore, englishScore);
       
+      // 🔥 DB에서 supply_price 먼저 확인 (마스터 파일보다 우선)
+      let supplyPrice: number | undefined = item.supplyPrice;
+      try {
+        const itemRow = db.prepare('SELECT supply_price FROM items WHERE item_no = ?').get(String(item.itemNo)) as any;
+        if (itemRow?.supply_price) {
+          supplyPrice = itemRow.supply_price;
+        }
+      } catch (e) {
+        // 테이블이 없거나 오류 발생 시 마스터 파일 값 사용
+      }
+      
       return {
         item_no: item.itemNo,
         item_name: `${item.koreanName} / ${item.englishName}${item.vintage ? ` (${item.vintage})` : ''}`,
         score: maxScore,
         is_new_item: true,
-        supply_price: item.supplyPrice,
+        supply_price: supplyPrice,
       };
     });
     
