@@ -69,6 +69,9 @@ export function parseItemsFromMessage(message: string) {
   // 2) ✅ 연도 토큰이 전처리로 찢어진 케이스 병합
   // - "2024" + "팝콘 소비뇽블랑 8병" -> "2024 팝콘 소비뇽블랑 8병"
   // - "2 0 2 4 ..." -> "2024 ..."
+  // ✅ 품목명 / 수량 분리 케이스 병합
+  // - "찰스하이직" + "2병" -> "찰스하이직 2병"
+  // - "알테시노" + "1병" -> "알테시노 1병"
   const parts: string[] = [];
   for (let i = 0; i < parts0.length; i++) {
     const cur = parts0[i];
@@ -89,6 +92,14 @@ export function parseItemsFromMessage(message: string) {
         parts.push(`${y} ${spacedYear[2]}`.trim());
         continue;
       }
+    }
+
+    // ✅ (c) "찰스하이직" (수량 없음) + "2병" (수량만) 병합
+    // - cur에 숫자가 없고, next가 "숫자+단위" 패턴이면 병합
+    if (cur && next && !/\d/.test(cur) && /^\d+\s*(?:병|개|본|ea|EA|pcs|PCS|박스|box|BOX|케이스|보틀|바틀|case|CASE|bt|btl|cs|CS)?\s*$/.test(next)) {
+      parts.push(`${cur} ${next}`.trim());
+      i += 1;
+      continue;
     }
 
     parts.push(cur);
