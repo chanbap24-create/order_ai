@@ -79,6 +79,23 @@ export default function Navigation() {
           >
             DL
           </Link>
+
+          <Link
+            href="/inventory"
+            style={{
+              padding: 'var(--space-3) var(--space-6)',
+              borderRadius: 'var(--radius-lg)',
+              fontWeight: 600,
+              fontSize: 'var(--text-sm)',
+              textDecoration: 'none',
+              color: isActive('/inventory') ? 'white' : 'var(--color-text-light)',
+              background: isActive('/inventory') ? 'var(--color-primary)' : 'transparent',
+              transition: 'all var(--transition-fast)',
+              letterSpacing: '-0.011em'
+            }}
+          >
+            재고
+          </Link>
         </div>
       </div>
     </nav>
