@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "echo '🚀 Building Order AI with 8-item suggestions...' && next build && echo '✅ Build complete!'",
+    "build": "echo '🚀 Building Order AI...' && node scripts/init-supply-price.js && next build && echo '✅ Build complete!'",
     "start": "next start",
     "lint": "eslint",
     "init-supply-price": "node scripts/init-supply-price.js"
@@ -14,6 +14,7 @@
     "better-sqlite3": "^12.5.0",
     "date-holidays": "^3.26.5",
     "next": "14.2.18",
+    "node-fetch": "^2.7.0",
     "openai": "^6.17.0",
     "react": "^18",
     "react-dom": "^18",
