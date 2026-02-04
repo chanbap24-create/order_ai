@@ -3,7 +3,7 @@
  * English 시트(order-ai.xlsx)에서 신규 품목을 검색하는 매칭 엔진
  */
 
-import { loadMasterSheet, loadAllMasterItems, type MasterItem } from './masterSheet';
+import { loadMasterSheet, loadAllMasterItemsV2, type MasterItem } from './masterSheet';
 
 /**
  * Dice coefficient (문자열 유사도 계산)
@@ -296,7 +296,7 @@ export function searchMasterSheet(
   inputName: string,
   topN: number = 5
 ): MasterMatchCandidate[] {
-  const masterItems = loadAllMasterItems(); // ✅ English + Downloads 통합
+  const masterItems = loadAllMasterItemsV2(); // ✅ English + Downloads 통합 (V2)
 
   if (masterItems.length === 0) {
     console.warn('[masterMatcher] No master items loaded');

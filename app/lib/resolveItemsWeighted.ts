@@ -685,13 +685,18 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
       
       console.log(`[searchNewItemFromMaster] 🎯 최종: ${item.itemNo} = ${supplyPrice}원`);
       
-      return {
+      const resultItem = {
         item_no: item.itemNo,
         item_name: `${item.koreanName} / ${item.englishName}${item.vintage ? ` (${item.vintage})` : ''}`,
         score: maxScore,
         is_new_item: true,
         supply_price: supplyPrice,
       };
+      
+      // 🔥 반환 직전 객체 확인
+      console.log(`[searchNewItemFromMaster] 📦 반환 객체:`, JSON.stringify(resultItem, null, 2));
+      
+      return resultItem;
     });
     
     // 점수 순으로 정렬 후 상위 10개 반환
