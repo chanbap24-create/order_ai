@@ -136,6 +136,45 @@ export interface MasterMatchCandidate {
 }
 
 /**
+ * 영문 와인 용어를 한글로 변환
+ */
+function translateWineTerms(input: string): string {
+  const translations: Record<string, string> = {
+    'chablis': '샤블리',
+    'montee': '몬테',
+    'montée': '몬테',
+    'tonnerre': '토네르',
+    'grenouille': '그르누이',
+    'butteaux': '뷔토',
+    'vieilles': '비에유',
+    'vignes': '빈',
+    'premier': '프리미어',
+    'grand': '그랑',
+    'cru': '크뤼',
+    'cote': '코트',
+    'jouan': '주앙',
+    'degrese': '드그레',
+    'louis': '루이',
+    'michel': '미셸',
+    'fils': '피스',
+    'maison': '메종',
+    'roche': '로슈',
+    'bellen': '벨렝',
+    'clement': '클레멍',
+    'lavallee': '라발레'
+  };
+  
+  let result = input.toLowerCase();
+  
+  for (const [eng, kor] of Object.entries(translations)) {
+    const regex = new RegExp(eng, 'gi');
+    result = result.replace(regex, kor);
+  }
+  
+  return result;
+}
+
+/**
  * 문자열 정규화 (소문자, 공백 완전 제거, 특수문자 제거)
  * 띄어쓰기 차이를 무시하기 위해 공백을 완전히 제거합니다.
  * ✅ 악센트 제거 + 따옴표 통일 추가
@@ -291,6 +330,10 @@ export function searchMasterSheet(
     return [];
   }
 
+  // ✅ 영문 와인 용어를 한글로 번역한 버전도 생성
+  const inputTranslated = translateWineTerms(inputName);
+  const inputTranslatedNorm = normalize(inputTranslated);
+
   const candidates: MasterMatchCandidate[] = [];
 
   for (const item of masterItems) {
@@ -300,33 +343,56 @@ export function searchMasterSheet(
     // 1) Bigram 유사도 (원래 알고리즘)
     const englishBigram = compareTwoStrings(inputNorm, englishNorm);
     const koreanBigram = compareTwoStrings(inputNorm, koreanNorm);
+    
+    // ✅ 번역된 입력으로 한글 매칭
+    const koreanBigramTranslated = compareTwoStrings(inputTranslatedNorm, koreanNorm);
 
     // 2) Character 유사도 (띄어쓰기에 강건)
     const englishChar = characterSimilarity(inputNorm, englishNorm);
     const koreanChar = characterSimilarity(inputNorm, koreanNorm);
+    
+    // ✅ 번역된 입력으로 한글 character 유사도
+    const koreanCharTranslated = characterSimilarity(inputTranslatedNorm, koreanNorm);
 
     // 3) Contains 체크 (부분 문자열)
-    const englishContains = koreanNorm.includes(inputNorm) || inputNorm.includes(koreanNorm) ? 0.3 : 0;
-    const koreanContains = englishNorm.includes(inputNorm) || inputNorm.includes(englishNorm) ? 0.3 : 0;
+    const englishContains = englishNorm.includes(inputNorm) || inputNorm.includes(englishNorm) ? 0.3 : 0;
+    const koreanContains = koreanNorm.includes(inputNorm) || inputNorm.includes(koreanNorm) ? 0.3 : 0;
+    
+    // ✅ 번역된 입력으로 한글 contains 체크
+    const koreanContainsTranslated = koreanNorm.includes(inputTranslatedNorm) || inputTranslatedNorm.includes(koreanNorm) ? 0.4 : 0;
 
     // 4) 핵심 단어 매칭 (부분 품목명 대응)
     const englishKeywords = keywordMatchScore(inputName, item.englishName);
     const koreanKeywords = keywordMatchScore(inputName, item.koreanName);
-    const maxKeywords = Math.max(englishKeywords, koreanKeywords);
+    
+    // ✅ 번역된 입력으로 한글 키워드 매칭
+    const koreanKeywordsTranslated = keywordMatchScore(inputTranslated, item.koreanName);
+    const maxKeywords = Math.max(englishKeywords, koreanKeywords, koreanKeywordsTranslated);
 
     // 5) 🎯 부분 토큰 매칭 (예: "산타루치아" vs "산타 루치아")
     const englishPartial = partialTokenMatch(inputName, item.englishName);
     const koreanPartial = partialTokenMatch(inputName, item.koreanName);
-    const maxPartial = Math.max(englishPartial, koreanPartial);
+    
+    // ✅ 번역된 입력으로 한글 부분 토큰 매칭
+    const koreanPartialTranslated = partialTokenMatch(inputTranslated, item.koreanName);
+    const maxPartial = Math.max(englishPartial, koreanPartial, koreanPartialTranslated);
 
     // 영문명 최종 점수: bigram(20%) + character(15%) + keywords(30%) + partial(30%) + contains(5%)
     const englishScore = englishBigram * 0.20 + englishChar * 0.15 + englishKeywords * 0.30 + englishPartial * 0.30 + englishContains * 0.05;
     
     // 한글명 최종 점수: bigram(20%) + character(15%) + keywords(30%) + partial(30%) + contains(5%)
     const koreanScore = koreanBigram * 0.20 + koreanChar * 0.15 + koreanKeywords * 0.30 + koreanPartial * 0.30 + koreanContains * 0.05;
+    
+    // ✅ 번역된 입력으로 한글 점수 (contains에 보너스)
+    const koreanScoreTranslated = 
+      Math.max(koreanBigramTranslated, koreanBigram) * 0.20 + 
+      Math.max(koreanCharTranslated, koreanChar) * 0.15 + 
+      koreanKeywordsTranslated * 0.30 + 
+      koreanPartialTranslated * 0.30 + 
+      koreanContainsTranslated * 0.05;
 
-    // 최종 점수: 영문/한글 중 높은 점수 사용
-    const score = Math.max(englishScore, koreanScore);
+    // 최종 점수: 영문/한글/번역한글 중 highest
+    const score = Math.max(englishScore, koreanScore, koreanScoreTranslated);
 
     // 최소 점수 0.15 이상만 후보로 간주 (더 낮춤 - 신규 품목 검색용)
     if (score < 0.15) {
