@@ -201,6 +201,7 @@ let cachedDownloadsPriceMap: Map<string, number> | null = null;
 
 export function getDownloadsPriceMap(): Map<string, number> {
   if (cachedDownloadsPriceMap) {
+    console.log(`[masterSheet] Using cached Downloads price map: ${cachedDownloadsPriceMap.size} items`);
     return cachedDownloadsPriceMap;
   }
   
@@ -214,7 +215,15 @@ export function getDownloadsPriceMap(): Map<string, number> {
   }
   
   cachedDownloadsPriceMap = priceMap;
-  console.log(`[masterSheet] Downloads price map: ${priceMap.size} items with supply_price`);
+  console.log(`[masterSheet] Downloads price map created: ${priceMap.size} items with supply_price`);
+  
+  // 찰스 하이직 확인
+  const charles = ['00NV801', '00NV805', '00NV806'];
+  charles.forEach(itemNo => {
+    const price = priceMap.get(itemNo);
+    console.log(`[masterSheet] Price check: ${itemNo} = ${price ? price.toLocaleString() + '원' : '❌ 없음'}`);
+  });
+  
   return priceMap;
 }
 
@@ -225,6 +234,8 @@ export function getDownloadsPriceMap(): Map<string, number> {
 export function loadAllMasterItems(): MasterItem[] {
   const englishItems = loadMasterSheet();
   const downloadsPriceMap = getDownloadsPriceMap();
+  
+  console.log(`[loadAllMasterItems] English items: ${englishItems.length}, Downloads prices: ${downloadsPriceMap.size}`);
   
   // English 시트 기준으로 시작
   const itemMap = new Map<string, MasterItem>();
@@ -238,6 +249,12 @@ export function loadAllMasterItems(): MasterItem[] {
       // 공급가: Downloads 우선, 없으면 English 값 사용
       supplyPrice: downloadPrice ?? item.supplyPrice,
     });
+  }
+  
+  // 찰스 하이직 확인
+  const charles = itemMap.get('00NV801');
+  if (charles) {
+    console.log(`[loadAllMasterItems] 00NV801 최종 체크: ${charles.koreanName}, supply_price=${charles.supplyPrice}`);
   }
   
   // Downloads에만 있는 품목 추가 (English에 없는 것들)
