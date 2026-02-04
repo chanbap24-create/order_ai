@@ -765,11 +765,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     });
 
     // 1) 거래처 resolve
-    const client = resolveClient({
-      clientText,
-      message: rawMessage,
-      forceResolve,
-    });
+    // ✅ 프론트에서 이미 선택한 거래처가 있으면 바로 사용
+    let client: any;
+    if (body?.resolvedClientCode && body?.resolvedClientName) {
+      console.log("[CLIENT] Using resolved client from frontend:", body.resolvedClientCode, body.resolvedClientName);
+      client = {
+        status: "resolved" as const,
+        client_code: String(body.resolvedClientCode),
+        client_name: String(body.resolvedClientName),
+        method: "frontend_resolved",
+      };
+    } else {
+      client = resolveClient({
+        clientText,
+        message: rawMessage,
+        forceResolve,
+      });
+    }
 
     if (client.status !== "resolved") {
       return jsonResponse({
