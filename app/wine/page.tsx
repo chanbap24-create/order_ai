@@ -1321,8 +1321,15 @@ export default function Home() {
                                     <span style={{ fontSize: 10, color: "#888", marginLeft: 8 }}>{Number(s.score || 0).toFixed(3)}</span>
                                   </div>
 
+                                  {/* 🔥 공급가 항상 표시 (있으면) */}
+                                  {s.supply_price && (
+                                    <div style={{ marginBottom: 6, fontSize: 11, color: "#0a7", fontWeight: 600 }}>
+                                      공급가: {Number(s.supply_price).toLocaleString()}원
+                                    </div>
+                                  )}
+                                  
                                   {/* 신규품목이면 가격/할인 입력 (컴팩트) */}
-                                  {isNewItem ? (
+                                  {isNewItem && (
                                     <div style={{ marginBottom: 6 }}>
                                       {/* 공급가 + 할인율 (한 줄로 통합) */}
                                       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
@@ -1330,7 +1337,7 @@ export default function Home() {
                                         <input
                                           type="number"
                                           placeholder="240000"
-                                          value={newItemPrices[itemKey] || ''}
+                                          value={newItemPrices[itemKey] || s.supply_price || ''}
                                           onChange={(e) => setNewItemPrices(prev => ({ ...prev, [itemKey]: e.target.value }))}
                                           style={{
                                             flex: "0 0 120px",
@@ -1384,12 +1391,6 @@ export default function Home() {
                                         </button>
                                       </div>
                                     </div>
-                                  ) : (
-                                    s.supply_price && (
-                                      <div style={{ marginBottom: 6, fontSize: 11, color: "#0a7", fontWeight: 600 }}>
-                                        공급가: {Number(s.supply_price).toLocaleString()}원
-                                      </div>
-                                    )
                                   )}
 
                                   {/* 적용 버튼 (작게) */}
