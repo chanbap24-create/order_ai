@@ -1291,6 +1291,17 @@ export default function Home() {
                               const saving = !!savingPick[idx];
                               const saved = !!savedPick[idx];
                               const isNewItem = !!s.is_new_item;
+                              
+                              // 🔍 디버깅: supply_price 확인
+                              if (sidx === 0 && typeof window !== 'undefined') {
+                                console.log(`[Wine Render] Item ${idx}, Suggestion ${sidx}:`, {
+                                  item_no: s.item_no,
+                                  item_name: s.item_name?.substring(0, 30),
+                                  is_new_item: s.is_new_item,
+                                  supply_price: s.supply_price,
+                                  has_supply_price: !!s.supply_price
+                                });
+                              }
 
                               return (
                                 <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 6, border: "1px solid #e0e0e0" }}>
