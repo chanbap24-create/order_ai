@@ -87,6 +87,22 @@ function normalizeItemName(s: string) {
   t = t.replace(/\bwhite\b/gi, "화이트");
   t = t.replace(/\brose\b/gi, "로제");
 
+  // Chablis
+  t = t.replace(/\bchablis\b/gi, "샤블리");
+
+  // Louis Michel (생산자)
+  t = t.replace(/\blouis\s+michel\b/gi, "루이미셸");
+  t = t.replace(/\blouis\b/gi, "루이");
+  t = t.replace(/\bmichel\b/gi, "미셸");
+  t = t.replace(/미쉘/g, "미셸"); // 오타 수정: 미쉘 → 미셸
+
+  // Montee de tonnerre (프리미엄 크뤼)
+  t = t.replace(/\bmontée\s+de\s+tonnerre\b/gi, "몬테드토네흐");
+  t = t.replace(/\bmontee\s+de\s+tonnerre\b/gi, "몬테드토네흐");
+  t = t.replace(/\bmontée\b/gi, "몬테");
+  t = t.replace(/\bmontee\b/gi, "몬테");
+  t = t.replace(/\btonnerre\b/gi, "토네흐");
+
   return t;
 }
 
