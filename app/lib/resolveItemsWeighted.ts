@@ -1375,9 +1375,13 @@ export function resolveItemsByClientWeighted(
 
     // 자동확정 조건
     // ⚠️ 신규 사업자(NEW)는 절대 자동 확정하지 않음 (항상 수동 선택)
+    // ⚠️ 신규 품목(is_new_item)은 절대 자동 확정하지 않음 (항상 수동 선택)
     let resolved =
       clientCode !== "NEW" &&
-      !!top && (top.score ?? 0) >= minScore && (!second || (top.score ?? 0) - (second.score ?? 0) >= minGap);
+      !!top && 
+      top.is_new_item !== true &&  // 🔴 신규 품목은 자동 확정 금지
+      (top.score ?? 0) >= minScore && 
+      (!second || (top.score ?? 0) - (second.score ?? 0) >= minGap);
 
     // 🏭 생산자가 명시된 경우 더 엄격한 조건 적용
     if (hasProducer && resolved) {
