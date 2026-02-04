@@ -1355,7 +1355,17 @@ export function resolveItemsByClientWeighted(
         
         // 4차: item_no 오름차순 (안정적인 정렬)
         return String(a.item_no).localeCompare(String(b.item_no));
+      })
+      // 🔍 공급가가 없는 품목 필터링
+      .filter((item) => {
+        if (item.supply_price && item.supply_price > 0) {
+          return true;
+        }
+        console.log(`[Filter] ❌ 공급가 없음으로 제외 (scored): [${item.item_no}] ${item.item_name}`);
+        return false;
       });
+    
+    console.log(`[Filter] scored 필터링 완료: 공급가 있는 품목만 ${scored.length}개`);
 
     const top = scored[0];
     const second = scored[1];
@@ -1433,7 +1443,19 @@ export function resolveItemsByClientWeighted(
               });
             }
           }
-          return Array.from(candidateMap.values())
+          
+          // 🔍 공급가가 없는 품목 필터링
+          const filteredCandidates = Array.from(candidateMap.values()).filter(item => {
+            if (item.supply_price && item.supply_price > 0) {
+              return true;
+            }
+            console.log(`[Filter] ❌ 공급가 없음으로 제외 (candidates): [${item.item_no}] ${item.item_name}`);
+            return false;
+          });
+          
+          console.log(`[Filter] candidates 필터링: ${Array.from(candidateMap.values()).length}개 → ${filteredCandidates.length}개`);
+          
+          return filteredCandidates
             .sort((a, b) => b.score - a.score)
             .slice(0, topN);
         })(),
@@ -1452,7 +1474,19 @@ export function resolveItemsByClientWeighted(
               });
             }
           }
-          return Array.from(suggestionMap.values())
+          
+          // 🔍 공급가가 없는 품목 필터링
+          const filteredSuggestions = Array.from(suggestionMap.values()).filter(item => {
+            if (item.supply_price && item.supply_price > 0) {
+              return true;
+            }
+            console.log(`[Filter] ❌ 공급가 없음으로 제외: [${item.item_no}] ${item.item_name}`);
+            return false;
+          });
+          
+          console.log(`[Filter] suggestions 필터링: ${Array.from(suggestionMap.values()).length}개 → ${filteredSuggestions.length}개`);
+          
+          return filteredSuggestions
             .sort((a, b) => b.score - a.score)
             .slice(0, Math.max(10, topN));
         })(),
@@ -1513,8 +1547,22 @@ export function resolveItemsByClientWeighted(
             }
           }
           
+          // 🔍 공급가가 없는 품목 필터링
+          const filteredItems = Array.from(itemMap.values()).filter(item => {
+            // 공급가가 있으면 OK
+            if (item.supply_price && item.supply_price > 0) {
+              return true;
+            }
+            
+            // 공급가가 없으면 제외
+            console.log(`[Filter] ❌ 공급가 없음으로 제외: [${item.item_no}] ${item.item_name}`);
+            return false;
+          });
+          
+          console.log(`[Filter] 필터링 결과: ${Array.from(itemMap.values()).length}개 → ${filteredItems.length}개 (공급가 있는 품목만)`);
+          
           // 점수 순으로 정렬 후 상위 10개
-          const combined = Array.from(itemMap.values())
+          const combined = filteredItems
             .sort((a, b) => b.score - a.score)
             .slice(0, 10);
           
@@ -1529,13 +1577,27 @@ export function resolveItemsByClientWeighted(
           
           return combined;
         })()
-      : scored.slice(0, Math.max(10, topN)).map((c) => ({
-          item_no: c.item_no,
-          item_name: c.item_name,
-          score: Number((c.score ?? 0).toFixed(3)),
-          is_new_item: c.is_new_item,
-          supply_price: c.supply_price,
-        }));
+      : (() => {
+          // 🔍 공급가가 없는 품목 필터링
+          const filteredScored = scored.slice(0, Math.max(10, topN))
+            .filter((c) => {
+              if (c.supply_price && c.supply_price > 0) {
+                return true;
+              }
+              console.log(`[Filter] ❌ 공급가 없음으로 제외 (fallback): [${c.item_no}] ${c.item_name}`);
+              return false;
+            });
+          
+          console.log(`[Filter] fallback 필터링: ${scored.slice(0, Math.max(10, topN)).length}개 → ${filteredScored.length}개`);
+          
+          return filteredScored.map((c) => ({
+            item_no: c.item_no,
+            item_name: c.item_name,
+            score: Number((c.score ?? 0).toFixed(3)),
+            is_new_item: c.is_new_item,
+            supply_price: c.supply_price,
+          }));
+        })();
 
     return {
       ...it,
