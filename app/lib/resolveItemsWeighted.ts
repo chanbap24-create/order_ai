@@ -832,6 +832,15 @@ export function resolveItemsByClientWeighted(
   const minGap = opts?.minGap ?? 0.15;
   const topN = opts?.topN ?? 5;
 
+  // 🔥 Downloads price map 미리 로드 (캐시 우회)
+  console.log('[resolveItemsByClientWeighted] 🚀 Pre-loading Downloads price map...');
+  const priceMap = getDownloadsPriceMap();
+  console.log(`[resolveItemsByClientWeighted] ✅ Price map loaded: ${priceMap.size} items`);
+  
+  // 찰스 하이직 샘플 확인
+  const charlesPrice = priceMap.get('00NV801');
+  console.log(`[resolveItemsByClientWeighted] Sample check: 00NV801 = ${charlesPrice ? charlesPrice.toLocaleString() + '원' : '❌ 없음'}`);
+
   // ✅ 마스터 데이터 DB 동기화 (최초 1회)
   try {
     // 테이블 생성 (없으면)
