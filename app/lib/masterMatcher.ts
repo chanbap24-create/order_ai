@@ -344,14 +344,14 @@ export function searchMasterSheet(
     const englishContainsSeparate = inputEnglishNorm && (englishNorm.includes(inputEnglishNorm) || inputEnglishNorm.includes(englishNorm)) ? 0.4 : 0;
     const koreanContainsSeparate = inputKoreanNorm && (koreanNorm.includes(inputKoreanNorm) || inputKoreanNorm.includes(koreanNorm)) ? 0.4 : 0;
 
-    // 4) 핵심 단어 매칭
-    const englishKeywords = keywordMatchScore(inputName, item.englishName);
-    const koreanKeywords = keywordMatchScore(inputName, item.koreanName);
+    // 4) 핵심 단어 매칭 - ✅ 분리된 한글/영문으로 각각 매칭
+    const englishKeywords = inputEnglish ? keywordMatchScore(inputEnglish, item.englishName) : 0;
+    const koreanKeywords = inputKorean ? keywordMatchScore(inputKorean, item.koreanName) : 0;
     const maxKeywords = Math.max(englishKeywords, koreanKeywords);
 
-    // 5) 부분 토큰 매칭
-    const englishPartial = partialTokenMatch(inputName, item.englishName);
-    const koreanPartial = partialTokenMatch(inputName, item.koreanName);
+    // 5) 부분 토큰 매칭 - ✅ 분리된 한글/영문으로 각각 매칭
+    const englishPartial = inputEnglish ? partialTokenMatch(inputEnglish, item.englishName) : 0;
+    const koreanPartial = inputKorean ? partialTokenMatch(inputKorean, item.koreanName) : 0;
     const maxPartial = Math.max(englishPartial, koreanPartial);
 
     // 영문명 최종 점수
