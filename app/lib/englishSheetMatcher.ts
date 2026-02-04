@@ -15,6 +15,7 @@ interface EnglishMapping {
   code: string;
   englishName: string;
   koreanName?: string;
+  supplyPrice?: number;
 }
 
 let englishMappingCache: Map<string, EnglishMapping> | null = null;
@@ -46,6 +47,7 @@ function loadEnglishMapping(): Map<string, EnglishMapping> {
       const row = data[i];
       const code = row[1];        // B열
       const englishName = row[7]; // H열
+      const supplyPrice = row[11]; // L열 (공급가)
 
       if (code && englishName) {
         const codeStr = String(code).trim();
@@ -57,13 +59,15 @@ function loadEnglishMapping(): Map<string, EnglishMapping> {
           mapping.set(codeStr, {
             code: codeStr,
             englishName: String(englishName).trim(),
-            koreanName: item?.item_name
+            koreanName: item?.item_name,
+            supplyPrice: supplyPrice ? Number(supplyPrice) : undefined
           });
         } catch (err) {
           // DB 오류는 무시하고 계속
           mapping.set(codeStr, {
             code: codeStr,
-            englishName: String(englishName).trim()
+            englishName: String(englishName).trim(),
+            supplyPrice: supplyPrice ? Number(supplyPrice) : undefined
           });
         }
       }

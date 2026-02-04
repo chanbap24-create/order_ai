@@ -1126,9 +1126,8 @@ export function resolveItemsByClientWeighted(
       : [];
 
     // ✅ 영문명으로도 검색 (English 시트 활용)
-    // ⚠️ 임시 비활성화: XLSX 로딩으로 인한 블로킹 이슈
-    const englishRows: Array<{ item_no: string; item_name: string }> = [];
-    const hasEnglish = false; // /[A-Za-z]{3,}/.test(searchName);
+    const englishRows: Array<{ item_no: string; item_name: string; supply_price?: number }> = [];
+    const hasEnglish = /[A-Za-z]{3,}/.test(searchName);
     if (hasEnglish) {
       try {
         console.log(`[English Sheet] 영어 검색 시도: "${searchName}"`);
@@ -1137,24 +1136,26 @@ export function resolveItemsByClientWeighted(
         for (const match of englishMatches) {
           // 거래처 이력에 있는 한글명 사용, 없으면 영어명 사용
           const clientRow = db.prepare(`
-            SELECT item_name
+            SELECT item_name, supply_price
             FROM client_item_stats
             WHERE client_code = ? AND item_no = ?
             LIMIT 1
-          `).get(clientCode, match.code) as { item_name: string } | undefined;
+          `).get(clientCode, match.code) as { item_name: string; supply_price?: number } | undefined;
           
           const displayName = clientRow?.item_name || match.koreanName || match.englishName;
+          const supplyPrice = clientRow?.supply_price || match.supplyPrice;
           
           englishRows.push({
             item_no: match.code,
-            item_name: displayName
+            item_name: displayName,
+            supply_price: supplyPrice
           });
         }
         
         if (englishRows.length > 0) {
           console.log(`[English Sheet] ✅ ${englishRows.length}개 매칭됨`);
           englishRows.forEach((r, idx) => {
-            console.log(`  ${idx+1}. [${r.item_no}] ${r.item_name}`);
+            console.log(`  ${idx+1}. [${r.item_no}] ${r.item_name} (공급가: ${r.supply_price?.toLocaleString() || 'N/A'}원)`);
           });
         }
       } catch (e) {
@@ -1165,7 +1166,7 @@ export function resolveItemsByClientWeighted(
     // 후보 풀 = 거래처이력(최우선) + 마스터(원본) + 마스터(확장) + 영문명 (중복 제거)
     // ✅ 거래처 이력을 최우선으로 추가하여 한글 품목명이 영문 약자보다 먼저 매칭되도록 함
     // 예: 3021049 "클레멍 라발리, 샤블리" (거래처 이력) > 3022049 "CL 샤블리" (마스터)
-    const poolMap = new Map<string, { item_no: string; item_name: string }>();
+    const poolMap = new Map<string, { item_no: string; item_name: string; supply_price?: number }>();
     
     // 1순위: 거래처 이력 (한글 품목명 우선)
     for (const r of clientRows) {
@@ -1184,10 +1185,14 @@ export function resolveItemsByClientWeighted(
       }
     }
     
-    // 3순위: 영문명 (거래처 이력에 없는 것만 추가)
+    // 3순위: 영문명 (거래처 이력에 없는 것만 추가, 공급가 포함)
     for (const r of englishRows) {
       if (!poolMap.has(String(r.item_no))) {
-        poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
+        poolMap.set(String(r.item_no), { 
+          item_no: String(r.item_no), 
+          item_name: String(r.item_name),
+          supply_price: r.supply_price
+        });
       }
     }
     
