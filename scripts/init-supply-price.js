@@ -1,85 +1,137 @@
 /**
  * 공급가 데이터 초기화 스크립트
- * - items 테이블에 supply_price 컬럼 추가
+ * - items 테이블 생성 및 마스터 데이터 로드
  * - English 시트에서 공급가 로드
  */
 
 const Database = require('better-sqlite3');
 const XLSX = require('xlsx');
 const path = require('path');
+const fs = require('fs');
 
 function initSupplyPrice() {
   console.log('📊 공급가 데이터 초기화 시작\n');
   
-  const db = new Database(path.join(__dirname, 'data.sqlite3'));
+  // 프로젝트 루트 경로
+  const rootDir = path.join(__dirname, '..');
+  const dbPath = path.join(rootDir, 'data.sqlite3');
+  const xlsxPath = path.join(rootDir, 'order-ai.xlsx');
   
-  // 1. supply_price 컬럼 추가
-  console.log('1. items 테이블에 supply_price 컬럼 추가...');
-  try {
-    db.prepare('ALTER TABLE items ADD COLUMN supply_price REAL').run();
-    console.log('  ✅ supply_price 컬럼 추가 완료');
-  } catch (e) {
-    if (e.message.includes('duplicate column')) {
-      console.log('  ℹ️  supply_price 컬럼이 이미 존재합니다');
-    } else {
-      console.error('  ❌ 에러:', e.message);
-    }
+  // Excel 파일 확인
+  if (!fs.existsSync(xlsxPath)) {
+    console.log('  ❌ order-ai.xlsx 파일을 찾을 수 없습니다');
+    console.log(`     경로: ${xlsxPath}`);
+    return;
   }
   
+  const db = new Database(dbPath);
+  
+  // 1. items 테이블 생성
+  console.log('1. items 테이블 생성...');
   try {
-    db.prepare('ALTER TABLE items ADD COLUMN category TEXT').run();
-    console.log('  ✅ category 컬럼 추가 완료');
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS items (
+        item_no TEXT PRIMARY KEY,
+        item_name TEXT NOT NULL,
+        supply_price REAL,
+        category TEXT DEFAULT 'wine',
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+    console.log('  ✅ items 테이블 생성 완료');
   } catch (e) {
-    if (e.message.includes('duplicate column')) {
-      console.log('  ℹ️  category 컬럼이 이미 존재합니다');
-    }
-  }
-  
-  // 2. English 시트에서 공급가 로드
-  console.log('\n2. English 시트에서 공급가 로드...');
-  
-  const xlsxPath = path.join(__dirname, 'order-ai.xlsx');
-  const workbook = XLSX.readFile(xlsxPath);
-  
-  if (!workbook.SheetNames.includes('English')) {
-    console.log('  ❌ English 시트를 찾을 수 없습니다');
+    console.error('  ❌ 테이블 생성 실패:', e.message);
     db.close();
     return;
   }
   
-  const sheet = workbook.Sheets['English'];
-  const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  // 2. Downloads 시트에서 마스터 데이터 로드
+  console.log('\n2. Downloads 시트에서 마스터 데이터 로드...');
+  
+  const workbook = XLSX.readFile(xlsxPath);
+  
+  if (!workbook.SheetNames.includes('Downloads')) {
+    console.log('  ❌ Downloads 시트를 찾을 수 없습니다');
+    db.close();
+    return;
+  }
+  
+  const downloadsSheet = workbook.Sheets['Downloads'];
+  const downloadsData = XLSX.utils.sheet_to_json(downloadsSheet, { header: 1 });
+  
+  let insertedCount = 0;
+  const insertStmt = db.prepare(`
+    INSERT OR REPLACE INTO items (item_no, item_name, supply_price, category) 
+    VALUES (?, ?, ?, 'wine')
+  `);
+  
+  const insertMany = db.transaction(() => {
+    for (let i = 1; i < downloadsData.length; i++) {
+      const row = downloadsData[i];
+      const itemNo = row[1];      // B열: 품번
+      const itemName = row[2];    // C열: 품명
+      const supplyPrice = row[15]; // P열: 공급가
+      
+      if (itemNo && itemName) {
+        const price = supplyPrice && !isNaN(Number(supplyPrice)) ? Number(supplyPrice) : null;
+        insertStmt.run(String(itemNo).trim(), String(itemName).trim(), price);
+        insertedCount++;
+      }
+    }
+  });
+  
+  insertMany();
+  console.log(`  ✅ ${insertedCount}개 품목 로드 완료`);
+  
+  // 3. English 시트에서 공급가 업데이트
+  console.log('\n3. English 시트에서 공급가 업데이트...');
+  
+  if (!workbook.SheetNames.includes('English')) {
+    console.log('  ℹ️  English 시트를 찾을 수 없습니다 (선택사항)');
+    db.close();
+    return;
+  }
+  
+  const englishSheet = workbook.Sheets['English'];
+  const englishData = XLSX.utils.sheet_to_json(englishSheet, { header: 1 });
   
   let updatedCount = 0;
-  let notFoundCount = 0;
+  const updateStmt = db.prepare('UPDATE items SET supply_price = ? WHERE item_no = ? AND (supply_price IS NULL OR supply_price = 0)');
   
-  const updateStmt = db.prepare('UPDATE items SET supply_price = ? WHERE item_no = ?');
   const updateMany = db.transaction(() => {
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
+    for (let i = 1; i < englishData.length; i++) {
+      const row = englishData[i];
       const code = row[1];        // B열
       const supplyPrice = row[11]; // L열
       
-      if (code && supplyPrice && !isNaN(Number(supplyPrice))) {
+      if (code && supplyPrice && !isNaN(Number(supplyPrice)) && Number(supplyPrice) > 0) {
         const result = updateStmt.run(Number(supplyPrice), String(code).trim());
-        
         if (result.changes > 0) {
           updatedCount++;
-        } else {
-          notFoundCount++;
         }
       }
     }
   });
   
   updateMany();
+  console.log(`  ✅ ${updatedCount}개 품목 공급가 업데이트`);
   
-  console.log(`  ✅ 공급가 업데이트 완료:`);
-  console.log(`     - 업데이트됨: ${updatedCount}개`);
-  console.log(`     - 찾을 수 없음: ${notFoundCount}개`);
+  // 4. 통계
+  console.log('\n4. 데이터 통계...');
+  const stats = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      COUNT(supply_price) as with_price,
+      COUNT(*) - COUNT(supply_price) as without_price
+    FROM items
+  `).get();
   
-  // 3. 확인
-  console.log('\n3. 샘플 데이터 확인...');
+  console.log(`  전체 품목: ${stats.total}개`);
+  console.log(`  공급가 있음: ${stats.with_price}개`);
+  console.log(`  공급가 없음: ${stats.without_price}개`);
+  
+  // 5. 샘플 데이터
+  console.log('\n5. 샘플 데이터...');
   const samples = db.prepare(`
     SELECT item_no, item_name, supply_price 
     FROM items 
@@ -88,7 +140,8 @@ function initSupplyPrice() {
   `).all();
   
   samples.forEach(s => {
-    console.log(`  [${s.item_no}] ${s.item_name.substring(0, 30)}...`);
+    const name = s.item_name.length > 30 ? s.item_name.substring(0, 30) + '...' : s.item_name;
+    console.log(`  [${s.item_no}] ${name}`);
     console.log(`    공급가: ${s.supply_price?.toLocaleString()}원`);
   });
   
@@ -98,7 +151,12 @@ function initSupplyPrice() {
 
 // 직접 실행 시
 if (require.main === module) {
-  initSupplyPrice();
+  try {
+    initSupplyPrice();
+  } catch (error) {
+    console.error('\n❌ 초기화 실패:', error.message);
+    process.exit(1);
+  }
 }
 
 module.exports = { initSupplyPrice };
