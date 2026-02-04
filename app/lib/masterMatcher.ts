@@ -139,11 +139,16 @@ export interface MasterMatchCandidate {
  * 입력 문자열에서 한글 부분과 영문 부분을 분리
  */
 function separateKoreanEnglish(input: string): { korean: string; english: string } {
+  // ✅ 먼저 곡선 따옴표와 특수문자 제거
+  const cleaned = input
+    .replace(/[""'']/g, '')  // 곡선 따옴표 제거
+    .replace(/[^\w가-힣\s]/g, ' ');  // 특수문자를 공백으로 변환
+  
   // 한글만 추출
-  const korean = input.match(/[가-힣\s]+/g)?.join(' ').trim() || '';
+  const korean = cleaned.match(/[가-힣\s]+/g)?.join(' ').trim() || '';
   
   // 영문+숫자만 추출
-  const english = input.match(/[a-zA-Z0-9\s]+/g)?.join(' ').trim() || '';
+  const english = cleaned.match(/[a-zA-Z0-9\s]+/g)?.join(' ').trim() || '';
   
   return { korean, english };
 }
@@ -368,8 +373,19 @@ export function searchMasterSheet(
     const mixedScore = (inputKoreanNorm && inputEnglishNorm) ? 
       (koreanSeparateScore * 0.5 + englishSeparateScore * 0.5) : 0;
 
-    // 최종 점수: 전체 매칭, 영문 매칭, 한글 매칭, 혼합 매칭 중 최고값
-    const score = Math.max(englishScore, koreanScore, mixedScore);
+    // 최종 점수: 여러 방식 중 최고값
+    // - 전체 입력으로 영문 매칭
+    // - 전체 입력으로 한글 매칭  
+    // - 분리된 영문만으로 영문 매칭 (영문 입력일 때 더 정확)
+    // - 분리된 한글만으로 한글 매칭 (한글 입력일 때 더 정확)
+    // - 혼합 점수 (한글+영문 혼합 입력일 때)
+    const score = Math.max(
+      englishScore, 
+      koreanScore, 
+      englishSeparateScore,  // ✅ 추가
+      koreanSeparateScore,   // ✅ 추가
+      mixedScore
+    );
 
     // 최소 점수 0.15 이상만 후보로 간주 (더 낮춤 - 신규 품목 검색용)
     if (score < 0.15) {

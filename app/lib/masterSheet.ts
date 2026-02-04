@@ -143,18 +143,18 @@ export function loadDownloadsSheet(): MasterItem[] {
       
       // 품번 (index 1)
       const itemNo = row[1]?.toString().trim();
-      // 영문명 (index 6)
-      const englishName = row[6]?.toString().trim();
-      // 한글명 (index 7)
-      const koreanName = row[7]?.toString().trim();
+      // 품명/한글명 (index 2)
+      const koreanName = row[2]?.toString().trim();
+      // Downloads 시트에는 영문명 없음
+      const englishName = '';
 
       // 필수 필드가 없으면 스킵
       if (!itemNo || !koreanName) {
         continue;
       }
 
-      // 빈티지 (index 8)
-      let vintage = row[8]?.toString().trim();
+      // 빈티지 (index 6)
+      let vintage = row[6]?.toString().trim();
       // 빈티지가 2자리 숫자면 연도로 변환 (예: "17" → "2017")
       if (vintage && vintage.length === 2) {
         const year = parseInt(vintage);
@@ -175,13 +175,13 @@ export function loadDownloadsSheet(): MasterItem[] {
 
       items.push({
         itemNo,
-        englishName: englishName || '', // Downloads 시트에 영문명 추가
+        englishName, // Downloads 시트에는 영문명 없음 (빈 문자열)
         koreanName,
         vintage,
-        country: row[2]?.toString().trim(), // 국가 (index 2)
-        producer: row[3]?.toString().trim(), // 생산자 (index 3)
-        region: row[4]?.toString().trim(), // 지역 (index 4)
-        supplyPrice, // 공급가 추가
+        country: row[8]?.toString().trim(), // 국가 (index 8)
+        producer: '', // Downloads 시트에는 생산자 정보 없음
+        region: '', // Downloads 시트에는 지역 정보 없음
+        supplyPrice,
       });
     }
 
