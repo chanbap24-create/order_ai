@@ -319,11 +319,11 @@ export default function Home() {
         }
       }
 
-      // ✅ 2. 재파싱
+      // ✅ 2. 재파싱 (resolvedClientCode 사용)
       const { json } = await callParse({
         message: pendingPreMessage || text,
-        clientText: clientName, // ✅ 핵심: alias 그대로 보내면 exact(norm)로 resolved 가능
-        orderText: pendingOrderText || "",
+        resolvedClientCode: clientCode,
+        resolvedClientName: clientName,
         force_resolve: force,
         customDeliveryDate: customDeliveryDate || undefined,
         requirePaymentConfirm: requirePaymentConfirm || undefined,
