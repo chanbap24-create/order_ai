@@ -19,7 +19,7 @@ import { searchMasterSheet } from "@/app/lib/masterMatcher";
 import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
 import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
-import { loadAllMasterItems } from "@/app/lib/masterSheet";
+import { loadAllMasterItems, getDownloadsPriceMap } from "@/app/lib/masterSheet";
 import { multiLevelTokenMatch } from "@/app/lib/multiLevelTokenMatcher";
 import { findItemCodeFromEnglish, findMultipleFromEnglish } from "@/app/lib/englishSheetMatcher";
 
@@ -656,30 +656,34 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
     // 🔄 scoreItem과 동일한 로직으로 점수 계산
     const masterItems = searchMasterSheet(query, 20); // 더 많이 가져오기
     
+    // 🔥 Downloads price map 미리 로드
+    const downloadsPriceMap = getDownloadsPriceMap();
+    console.log(`[searchNewItemFromMaster] Downloads price map loaded: ${downloadsPriceMap.size} items`);
+    
     // scoreItem 함수로 재점수 계산
     const rescored = masterItems.map(item => {
       const koreanScore = scoreItem(query, item.koreanName);
       const englishScore = scoreItem(query, item.englishName);
       const maxScore = Math.max(koreanScore, englishScore);
       
-      // 🔥 DB에서 supply_price 먼저 확인 (마스터 파일보다 우선)
-      let supplyPrice: number | undefined = item.supplyPrice;
-      console.log(`[searchNewItemFromMaster] 🔍 초기 supplyPrice: ${item.itemNo} = ${item.supplyPrice} (from master)`);
+      // 🔥 공급가 우선순위: 1) Downloads map, 2) master item, 3) DB
+      let supplyPrice: number | undefined = downloadsPriceMap.get(item.itemNo) ?? item.supplyPrice;
+      console.log(`[searchNewItemFromMaster] 🔍 ${item.itemNo}: Downloads=${downloadsPriceMap.get(item.itemNo)}, master=${item.supplyPrice}, 선택=${supplyPrice}`);
       
-      try {
-        const itemRow = db.prepare('SELECT supply_price FROM items WHERE item_no = ?').get(String(item.itemNo)) as any;
-        if (itemRow?.supply_price) {
-          supplyPrice = itemRow.supply_price;
-          console.log(`[searchNewItemFromMaster] ✅ DB에서 공급가 조회 성공: ${item.itemNo} = ${supplyPrice}원`);
-        } else {
-          console.log(`[searchNewItemFromMaster] ⚠️ DB에 공급가 없음: ${item.itemNo}, 마스터: ${item.supplyPrice}`);
+      // DB에서도 확인 (fallback)
+      if (!supplyPrice) {
+        try {
+          const itemRow = db.prepare('SELECT supply_price FROM items WHERE item_no = ?').get(String(item.itemNo)) as any;
+          if (itemRow?.supply_price) {
+            supplyPrice = itemRow.supply_price;
+            console.log(`[searchNewItemFromMaster] ✅ DB에서 공급가 조회: ${item.itemNo} = ${supplyPrice}원`);
+          }
+        } catch (e) {
+          console.error(`[searchNewItemFromMaster] ❌ DB 조회 실패: ${item.itemNo}`, e);
         }
-      } catch (e) {
-        console.error(`[searchNewItemFromMaster] ❌ DB 조회 실패: ${item.itemNo}`, e);
-        // 테이블이 없거나 오류 발생 시 마스터 파일 값 사용
       }
       
-      console.log(`[searchNewItemFromMaster] 🎯 최종 supplyPrice: ${item.itemNo} = ${supplyPrice}`);
+      console.log(`[searchNewItemFromMaster] 🎯 최종: ${item.itemNo} = ${supplyPrice}원`);
       
       return {
         item_no: item.itemNo,
