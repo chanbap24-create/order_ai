@@ -1,5 +1,3 @@
-node_modules
-.git
-*.log
-.env*
-.DS_Store
+# Force rebuild
+.vercel
+.next
