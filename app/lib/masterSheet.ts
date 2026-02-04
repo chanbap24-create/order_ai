@@ -264,12 +264,22 @@ export function loadAllMasterItemsV2(): MasterItem[] {
   
   // Downloads에만 있는 품목 추가 (English에 없는 것들)
   const downloadsItems = loadDownloadsSheet();
+  console.log(`[loadAllMasterItemsV2] 🔍 Downloads items total: ${downloadsItems.length}`);
+  
+  let downloadsOnlyCount = 0;
   for (const dlItem of downloadsItems) {
     if (!itemMap.has(dlItem.itemNo)) {
       // English에 없는 품목은 Downloads 데이터 그대로 추가
       itemMap.set(dlItem.itemNo, dlItem);
+      downloadsOnlyCount++;
+      
+      // 00NV로 시작하는 품목 로그
+      if (dlItem.itemNo.startsWith('00NV')) {
+        console.log(`[loadAllMasterItemsV2] ✅ Downloads only item added: ${dlItem.itemNo} (${dlItem.koreanName}), supply_price=${dlItem.supplyPrice}`);
+      }
     }
   }
+  console.log(`[loadAllMasterItemsV2] 📦 Downloads-only items added: ${downloadsOnlyCount}`);
   
   const allItems = Array.from(itemMap.values());
   console.log(`[masterSheet] Total items: ${allItems.length} (English: ${englishItems.length}, Downloads only: ${downloadsItems.length - englishItems.length})`);
