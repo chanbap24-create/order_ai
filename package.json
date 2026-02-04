@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "echo '🚀 Building Order AI...' && node scripts/init-supply-price.js && next build && echo '✅ Build complete!'",
+    "build": "echo '🚀 Building Order AI...' && next build && echo '✅ Build complete!'",
     "start": "next start",
     "lint": "eslint",
     "init-supply-price": "node scripts/init-supply-price.js"
