@@ -7,7 +7,7 @@
  * 영어 검색어를 한글 품목 코드로 매칭
  */
 
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import { db } from "@/app/lib/db";
 import path from 'path';
 
