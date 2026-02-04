@@ -220,8 +220,8 @@ export function loadAllMasterItems(): MasterItem[] {
         itemNo: dlItem.itemNo,
         // 영문명: English 우선 (Downloads에는 영문명 없음)
         englishName: existing.englishName || dlItem.englishName,
-        // 한글명: Downloads 우선 (더 상세할 수 있음)
-        koreanName: dlItem.koreanName || existing.koreanName,
+        // 한글명: English 우선 (약어 없는 깔끔한 이름)
+        koreanName: existing.koreanName || dlItem.koreanName,
         // 공급가: Downloads 우선 (더 최신)
         supplyPrice: dlItem.supplyPrice ?? existing.supplyPrice,
         // 기타 필드: 있는 것 우선
