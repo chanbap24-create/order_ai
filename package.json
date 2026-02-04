@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "echo '🚀 Building Order AI with 8-item suggestions...' && next build && echo '✅ Build complete!'",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "init-supply-price": "node scripts/init-supply-price.js"
   },
   "dependencies": {
     "@types/string-similarity": "^4.0.2",

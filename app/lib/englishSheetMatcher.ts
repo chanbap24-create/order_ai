@@ -104,15 +104,31 @@ export function searchEnglishSheet(query: string): EnglishMapping[] {
     return [];
   }
 
-  const normalizedQuery = normalize(query);
+  // 정규화 전에 단어 추출 (공백으로 분리)
+  const queryWords = query
+    .toLowerCase()
+    .replace(/['"'"",]/g, '') // 따옴표, 쉼표 제거
+    .replace(/é/g, 'e')
+    .split(/\s+/)
+    .filter(w => w.length >= 3); // 3글자 이상만
+  
   const matches: Array<EnglishMapping & { score: number }> = [];
 
   for (const [code, item] of mapping.entries()) {
-    const normalizedName = normalize(item.englishName);
+    // 품목명도 단어로 분리
+    const nameWords = item.englishName
+      .toLowerCase()
+      .replace(/['"'"",]/g, '')
+      .replace(/é/g, 'e')
+      .split(/\s+/)
+      .filter(w => w.length >= 2);
     
     let score = 0;
 
     // 1) 완전 일치
+    const normalizedQuery = normalize(query);
+    const normalizedName = normalize(item.englishName);
+    
     if (normalizedName === normalizedQuery) {
       score = 1.0;
     }
@@ -123,24 +139,22 @@ export function searchEnglishSheet(query: string): EnglishMapping[] {
     else if (normalizedQuery.includes(normalizedName)) {
       score = 0.85;
     }
-    // 3) 키워드 매칭
+    // 3) 키워드 매칭 (단어 단위)
     else {
-      const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 2);
-      const nameWords = normalizedName.split(/\s+/);
+      const matchedWords = queryWords.filter(qw =>
+        nameWords.some(nw => {
+          // 정확히 일치하거나 포함 관계
+          return nw === qw || nw.includes(qw) || qw.includes(nw);
+        })
+      );
 
-      if (queryWords.length > 0) {
-        const matchedWords = queryWords.filter(qw =>
-          nameWords.some(nw => nw.includes(qw) || qw.includes(nw))
-        );
-
-        if (matchedWords.length > 0) {
-          score = (matchedWords.length / queryWords.length) * 0.8;
-        }
+      if (matchedWords.length > 0) {
+        score = (matchedWords.length / queryWords.length) * 0.8;
       }
     }
 
-    // 점수가 0.5 이상이면 후보로 추가
-    if (score >= 0.5) {
+    // 점수가 0.4 이상이면 후보로 추가 (임계값 낮춤)
+    if (score >= 0.4) {
       matches.push({ ...item, score });
     }
   }
