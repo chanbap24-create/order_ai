@@ -140,3 +140,20 @@ order-ai/
 Last updated: 2026-02-04
 
 -TEST 6
+
+## 🚀 Latest Deployment
+
+**Last Updated**: 2026-02-04
+**Version**: v1.2.0
+**Commit**: 9f4aa97 - Supply price filter
+**Features**:
+- ✅ Supply price display for all items
+- ✅ Filter out items without supply_price
+- ✅ English sheet integration
+- ✅ Improved matching accuracy
+
+**Deployment Status**: 
+- GitHub: ✅ Up to date
+- Vercel: Check https://vercel.com/dashboard
+
+---
