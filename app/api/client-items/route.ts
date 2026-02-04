@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // ✅ 거래처별 품목 조회 (최근 거래 품목)
     const items = db
       .prepare(
-        `SELECT item_no, item_name, supply_price, updated_at 
+        `SELECT item_no, item_name, avg_price as supply_price, last_ship_date 
          FROM ${table} 
          WHERE client_code = ? 
          ORDER BY item_no ASC`
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       item_no: string;
       item_name: string;
       supply_price: number;
-      updated_at: string;
+      last_ship_date: string;
     }>;
 
     return NextResponse.json({

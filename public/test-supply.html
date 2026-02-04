@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Supply Price Test</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    .supply-price { color: #0a7; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>공급가 표시 테스트</h1>
+  <button onclick="testAPI()">API 테스트 실행</button>
+  <div id="result"></div>
+
+  <script>
+    async function testAPI() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>Loading...</p>';
+      
+      try {
+        const response = await fetch('/api/parse-full-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: '배산임수\n루이미쉘 Chablis Montee de tonnerre 1er Cru 2021 2병',
+            client_code: '30694'
+          })
+        });
+        
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        let html = '<h2>API 응답</h2>';
+        html += `<p>상태: ${data.status}</p>`;
+        
+        if (data.parsed_items && data.parsed_items.length > 0) {
+          const item = data.parsed_items[0];
+          html += `<h3>첫 번째 품목: ${item.name}</h3>`;
+          
+          const suggestions = item.suggestions || item.candidates || [];
+          html += `<p>후보 수: ${suggestions.length}</p>`;
+          
+          suggestions.forEach((s, i) => {
+            html += `
+              <div class="item">
+                <h4>후보 ${i+1}</h4>
+                <p><b>품목번호:</b> ${s.item_no}</p>
+                <p><b>품목명:</b> ${s.item_name}</p>
+                <p><b>is_new_item:</b> ${s.is_new_item}</p>
+                <p class="supply-price"><b>supply_price:</b> ${s.supply_price || 'null'}</p>
+                ${s.supply_price ? 
+                  `<p class="supply-price">✅ 공급가: ${Number(s.supply_price).toLocaleString()}원</p>` : 
+                  `<p style="color: red;">❌ 공급가 없음</p>`
+                }
+              </div>
+            `;
+          });
+        }
+        
+        resultDiv.innerHTML = html;
+      } catch (error) {
+        resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        console.error('Error:', error);
+      }
+    }
+  </script>
+</body>
+</html>
