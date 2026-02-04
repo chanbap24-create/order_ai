@@ -668,8 +668,12 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
         const itemRow = db.prepare('SELECT supply_price FROM items WHERE item_no = ?').get(String(item.itemNo)) as any;
         if (itemRow?.supply_price) {
           supplyPrice = itemRow.supply_price;
+          console.log(`[searchNewItemFromMaster] ✅ DB에서 공급가 조회 성공: ${item.itemNo} = ${supplyPrice}원`);
+        } else {
+          console.log(`[searchNewItemFromMaster] ⚠️ DB에 공급가 없음: ${item.itemNo}, 마스터: ${item.supplyPrice}`);
         }
       } catch (e) {
+        console.error(`[searchNewItemFromMaster] ❌ DB 조회 실패: ${item.itemNo}`, e);
         // 테이블이 없거나 오류 발생 시 마스터 파일 값 사용
       }
       
