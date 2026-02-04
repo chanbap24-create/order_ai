@@ -798,7 +798,10 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     }
 
     // 2) 품목 파싱 (orderText도 한번 더 전처리)
-    const order0 = preprocessMessage(orderText || rawMessage);
+    // ✅ resolvedClientCode가 있으면 원본 message 전체를 파싱 (거래처가 이미 분리되었으므로)
+    const order0 = preprocessMessage(
+      body?.resolvedClientCode ? rawMessage : (orderText || rawMessage)
+    );
 
     // ✅ 2-1) 번역(영어 비중 높을 때만)
     const trOrder = await translateOrderToKoreanIfNeeded(order0);
