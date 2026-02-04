@@ -68,6 +68,17 @@ ENABLE_TRANSLATION=false  # 번역 비활성화 (한국어만 사용 시 권장,
 python scripts/import_client_excel.py
 ```
 
+**중요:** 공급가 데이터 초기화 (신규 설치 또는 업데이트 후 필수):
+
+```bash
+npm run init-supply-price
+```
+
+이 명령은 다음을 수행합니다:
+- `items` 테이블에 `supply_price` 컬럼 추가
+- `order-ai.xlsx`의 English 시트 L열에서 공급가 데이터 로드
+- 약 313개 품목의 공급가 자동 업데이트
+
 ### 4. 개발 서버 실행
 
 ```bash
