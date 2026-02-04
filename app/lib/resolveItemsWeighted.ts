@@ -664,6 +664,8 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
       
       // 🔥 DB에서 supply_price 먼저 확인 (마스터 파일보다 우선)
       let supplyPrice: number | undefined = item.supplyPrice;
+      console.log(`[searchNewItemFromMaster] 🔍 초기 supplyPrice: ${item.itemNo} = ${item.supplyPrice} (from master)`);
+      
       try {
         const itemRow = db.prepare('SELECT supply_price FROM items WHERE item_no = ?').get(String(item.itemNo)) as any;
         if (itemRow?.supply_price) {
@@ -676,6 +678,8 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
         console.error(`[searchNewItemFromMaster] ❌ DB 조회 실패: ${item.itemNo}`, e);
         // 테이블이 없거나 오류 발생 시 마스터 파일 값 사용
       }
+      
+      console.log(`[searchNewItemFromMaster] 🎯 최종 supplyPrice: ${item.itemNo} = ${supplyPrice}`);
       
       return {
         item_no: item.itemNo,

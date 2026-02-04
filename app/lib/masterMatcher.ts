@@ -399,9 +399,9 @@ export function searchMasterSheet(
       matchedBy = 'korean';
     }
 
-    // ✅ 공급가 디버깅 로그
-    if (candidates.length < 3) {
-      console.log(`[masterMatcher] ${item.itemNo}: supplyPrice=${item.supplyPrice}, score=${score.toFixed(3)}`);
+    // ✅ 공급가 디버깅 로그 (찰스 하이직 관련은 모두 로그)
+    if (candidates.length < 3 || item.itemNo.startsWith('00NV8') || item.koreanName.includes('찰스')) {
+      console.log(`[masterMatcher] ${item.itemNo}: ${item.koreanName}, supplyPrice=${item.supplyPrice}, score=${score.toFixed(3)}`);
     }
     
     candidates.push({
