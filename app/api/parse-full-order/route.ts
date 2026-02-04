@@ -469,6 +469,8 @@ const scored = rows
 
   return {
     status: "needs_review_client",
+    client_name: top?.client_name ?? "",
+    client_code: top?.client_code ?? "",
     score: top?.score ?? 0,
     candidates: scored,
     hint_used: candidate,
