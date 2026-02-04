@@ -228,14 +228,15 @@ export function getDownloadsPriceMap(): Map<string, number> {
 }
 
 /**
- * English + Downloads 시트 통합 로드
+ * English + Downloads 시트 통합 로드 V2
  * ✅ 새 로직: English 시트 기준으로 검색, Downloads에서 공급가만 가져오기
+ * ✅ V2: 함수 이름 변경으로 캐시 무효화
  */
-export function loadAllMasterItems(): MasterItem[] {
+export function loadAllMasterItemsV2(): MasterItem[] {
   const englishItems = loadMasterSheet();
   const downloadsPriceMap = getDownloadsPriceMap();
   
-  console.log(`[loadAllMasterItems] English items: ${englishItems.length}, Downloads prices: ${downloadsPriceMap.size}`);
+  console.log(`[loadAllMasterItemsV2] English items: ${englishItems.length}, Downloads prices: ${downloadsPriceMap.size}`);
   
   // English 시트 기준으로 시작
   const itemMap = new Map<string, MasterItem>();
@@ -254,7 +255,11 @@ export function loadAllMasterItems(): MasterItem[] {
   // 찰스 하이직 확인
   const charles = itemMap.get('00NV801');
   if (charles) {
-    console.log(`[loadAllMasterItems] 00NV801 최종 체크: ${charles.koreanName}, supply_price=${charles.supplyPrice}`);
+    console.log(`[loadAllMasterItemsV2] 00NV801 최종 체크: ${charles.koreanName}, supply_price=${charles.supplyPrice}`);
+  }
+  const charles805 = itemMap.get('00NV805');
+  if (charles805) {
+    console.log(`[loadAllMasterItemsV2] 00NV805 최종 체크: ${charles805.koreanName}, supply_price=${charles805.supplyPrice}`);
   }
   
   // Downloads에만 있는 품목 추가 (English에 없는 것들)
@@ -270,6 +275,9 @@ export function loadAllMasterItems(): MasterItem[] {
   console.log(`[masterSheet] Total items: ${allItems.length} (English: ${englishItems.length}, Downloads only: ${downloadsItems.length - englishItems.length})`);
   return allItems;
 }
+
+// 하위 호환성을 위한 별칭
+export const loadAllMasterItems = loadAllMasterItemsV2;
 
 /**
  * 캐시 초기화 (테스트용)
