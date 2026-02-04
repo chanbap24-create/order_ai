@@ -196,13 +196,13 @@ export function loadDownloadsSheet(): MasterItem[] {
 
 /**
  * English + Downloads 시트 통합 로드
- * ✅ Downloads 시트 우선 (공급가 포함)
+ * ✅ 필드별 병합: English의 영문명 우선, Downloads의 공급가 우선
  */
 export function loadAllMasterItems(): MasterItem[] {
   const englishItems = loadMasterSheet();
   const downloadsItems = loadDownloadsSheet();
   
-  // 중복 제거: item_no를 기준으로 Downloads 우선 (공급가 때문에)
+  // 중복 제거: item_no를 기준으로 필드별 병합
   const itemMap = new Map<string, MasterItem>();
   
   // English 먼저 추가
@@ -210,9 +210,30 @@ export function loadAllMasterItems(): MasterItem[] {
     itemMap.set(item.itemNo, item);
   }
   
-  // Downloads로 덮어쓰기 (공급가 우선순위)
-  for (const item of downloadsItems) {
-    itemMap.set(item.itemNo, item);
+  // Downloads와 병합 (필드별로 우선순위 적용)
+  for (const dlItem of downloadsItems) {
+    const existing = itemMap.get(dlItem.itemNo);
+    
+    if (existing) {
+      // ✅ 기존 항목이 있으면 필드별로 병합
+      itemMap.set(dlItem.itemNo, {
+        itemNo: dlItem.itemNo,
+        // 영문명: English 우선 (Downloads에는 영문명 없음)
+        englishName: existing.englishName || dlItem.englishName,
+        // 한글명: Downloads 우선 (더 상세할 수 있음)
+        koreanName: dlItem.koreanName || existing.koreanName,
+        // 공급가: Downloads 우선 (더 최신)
+        supplyPrice: dlItem.supplyPrice ?? existing.supplyPrice,
+        // 기타 필드: 있는 것 우선
+        vintage: dlItem.vintage || existing.vintage,
+        country: dlItem.country || existing.country,
+        producer: existing.producer || dlItem.producer,
+        region: existing.region || dlItem.region,
+      });
+    } else {
+      // 새 항목이면 그대로 추가
+      itemMap.set(dlItem.itemNo, dlItem);
+    }
   }
   
   const allItems = Array.from(itemMap.values());
