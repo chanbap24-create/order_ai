@@ -673,8 +673,8 @@ function searchNewItemFromMaster(query: string): Array<{ item_no: string; item_n
     
     // 점수 순으로 정렬 후 상위 10개 반환
     return rescored
-      .filter(item => item.score > 0.3) // 최소 점수 필터
-      .sort((a, b) => b.score - a.score)
+      .filter(item => (item.score ?? 0) > 0.3) // 최소 점수 필터 (undefined 방어)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0)) // undefined 방어
       .slice(0, 10);
   } catch (err) {
     console.error('신규 품목 검색 실패:', err);
@@ -1332,8 +1332,10 @@ export function resolveItemsByClientWeighted(
         };
       })
       .sort((a, b) => {
-        // 1차: score 내림차순
-        if (b.score !== a.score) return b.score - a.score;
+        // 1차: score 내림차순 (undefined 방어)
+        const scoreA = a.score ?? 0;
+        const scoreB = b.score ?? 0;
+        if (scoreB !== scoreA) return scoreB - scoreA;
         
         // 2차: baseScore 내림차순 (같은 최종 점수일 때 baseScore가 높은 것 우선)
         const aBase = a._debug?.baseScore ?? 0;
@@ -1452,7 +1454,7 @@ export function resolveItemsByClientWeighted(
           console.log(`[Filter] candidates 필터링: ${Array.from(candidateMap.values()).length}개 → ${filteredCandidates.length}개`);
           
           return filteredCandidates
-            .sort((a, b) => b.score - a.score)
+            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0)) // undefined 방어
             .slice(0, topN);
         })(),
         suggestions: (() => {
@@ -1483,7 +1485,7 @@ export function resolveItemsByClientWeighted(
           console.log(`[Filter] suggestions 필터링: ${Array.from(suggestionMap.values()).length}개 → ${filteredSuggestions.length}개`);
           
           return filteredSuggestions
-            .sort((a, b) => b.score - a.score)
+            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0)) // undefined 방어
             .slice(0, Math.max(10, topN));
         })(),
       };
