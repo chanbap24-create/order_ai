@@ -126,8 +126,10 @@ export default function Home() {
     
     const newPrices: Record<string, string> = {};
     data.parsed_items.forEach((item: any, idx: number) => {
-      if (item.suggestions && Array.isArray(item.suggestions)) {
-        item.suggestions.forEach((s: any) => {
+      // suggestions 또는 candidates 사용
+      const suggestionsList = item.suggestions || item.candidates || [];
+      if (Array.isArray(suggestionsList)) {
+        suggestionsList.forEach((s: any) => {
           if (s.is_new_item && s.supply_price) {
             // 고유 키 생성: idx-item_no
             const itemKey = `${idx}-${s.item_no}`;
