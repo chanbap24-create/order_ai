@@ -1220,6 +1220,15 @@ export default function Home() {
 
                     const showMore = !!showMoreSuggestions[idx];
                     const suggestions = getSuggestions(it, showMore);
+                    
+                    // 🔍 디버깅: suggestions의 supply_price 확인
+                    if (suggestions.length > 0 && typeof window !== 'undefined') {
+                      console.log(`[Wine Suggestions] Item ${idx}: ${it.name}`);
+                      suggestions.slice(0, 3).forEach((s, i) => {
+                        console.log(`  [${i+1}] ${s.item_no}: supply_price =`, s.supply_price);
+                      });
+                    }
+                    
                     const allSuggestions = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
                       ? it.suggestions
                       : Array.isArray(it?.candidates)
