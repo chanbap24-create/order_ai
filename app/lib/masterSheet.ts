@@ -195,49 +195,62 @@ export function loadDownloadsSheet(): MasterItem[] {
 }
 
 /**
+ * Downloads 시트를 item_no -> supply_price Map으로 로드 (빠른 조회용)
+ */
+let cachedDownloadsPriceMap: Map<string, number> | null = null;
+
+export function getDownloadsPriceMap(): Map<string, number> {
+  if (cachedDownloadsPriceMap) {
+    return cachedDownloadsPriceMap;
+  }
+  
+  const downloadsItems = loadDownloadsSheet();
+  const priceMap = new Map<string, number>();
+  
+  for (const item of downloadsItems) {
+    if (item.supplyPrice && item.supplyPrice > 0) {
+      priceMap.set(item.itemNo, item.supplyPrice);
+    }
+  }
+  
+  cachedDownloadsPriceMap = priceMap;
+  console.log(`[masterSheet] Downloads price map: ${priceMap.size} items with supply_price`);
+  return priceMap;
+}
+
+/**
  * English + Downloads 시트 통합 로드
- * ✅ 필드별 병합: English의 영문명 우선, Downloads의 공급가 우선
+ * ✅ 새 로직: English 시트 기준으로 검색, Downloads에서 공급가만 가져오기
  */
 export function loadAllMasterItems(): MasterItem[] {
   const englishItems = loadMasterSheet();
-  const downloadsItems = loadDownloadsSheet();
+  const downloadsPriceMap = getDownloadsPriceMap();
   
-  // 중복 제거: item_no를 기준으로 필드별 병합
+  // English 시트 기준으로 시작
   const itemMap = new Map<string, MasterItem>();
   
-  // English 먼저 추가
   for (const item of englishItems) {
-    itemMap.set(item.itemNo, item);
+    // Downloads에서 공급가 조회
+    const downloadPrice = downloadsPriceMap.get(item.itemNo);
+    
+    itemMap.set(item.itemNo, {
+      ...item,
+      // 공급가: Downloads 우선, 없으면 English 값 사용
+      supplyPrice: downloadPrice ?? item.supplyPrice,
+    });
   }
   
-  // Downloads와 병합 (필드별로 우선순위 적용)
+  // Downloads에만 있는 품목 추가 (English에 없는 것들)
+  const downloadsItems = loadDownloadsSheet();
   for (const dlItem of downloadsItems) {
-    const existing = itemMap.get(dlItem.itemNo);
-    
-    if (existing) {
-      // ✅ 기존 항목이 있으면 필드별로 병합
-      itemMap.set(dlItem.itemNo, {
-        itemNo: dlItem.itemNo,
-        // 영문명: English 우선 (Downloads에는 영문명 없음)
-        englishName: existing.englishName || dlItem.englishName,
-        // 한글명: English 우선 (약어 없는 깔끔한 이름)
-        koreanName: existing.koreanName || dlItem.koreanName,
-        // 공급가: Downloads 우선 (더 최신)
-        supplyPrice: dlItem.supplyPrice ?? existing.supplyPrice,
-        // 기타 필드: 있는 것 우선
-        vintage: dlItem.vintage || existing.vintage,
-        country: dlItem.country || existing.country,
-        producer: existing.producer || dlItem.producer,
-        region: existing.region || dlItem.region,
-      });
-    } else {
-      // 새 항목이면 그대로 추가
+    if (!itemMap.has(dlItem.itemNo)) {
+      // English에 없는 품목은 Downloads 데이터 그대로 추가
       itemMap.set(dlItem.itemNo, dlItem);
     }
   }
   
   const allItems = Array.from(itemMap.values());
-  console.log(`[masterSheet] Total items: ${allItems.length} (English: ${englishItems.length}, Downloads: ${downloadsItems.length})`);
+  console.log(`[masterSheet] Total items: ${allItems.length} (English: ${englishItems.length}, Downloads only: ${downloadsItems.length - englishItems.length})`);
   return allItems;
 }
 
@@ -247,6 +260,7 @@ export function loadAllMasterItems(): MasterItem[] {
 export function clearMasterSheetCache() {
   cachedMasterItems = null;
   cachedDownloadsItems = null;
+  cachedDownloadsPriceMap = null;
   cachedRiedelItems = null;
 }
 
