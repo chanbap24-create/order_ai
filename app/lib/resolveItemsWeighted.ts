@@ -1126,8 +1126,9 @@ export function resolveItemsByClientWeighted(
       : [];
 
     // ✅ 영문명으로도 검색 (English 시트 활용)
+    // ⚠️ 임시 비활성화: XLSX 로딩으로 인한 블로킹 이슈
     const englishRows: Array<{ item_no: string; item_name: string }> = [];
-    const hasEnglish = /[A-Za-z]{3,}/.test(searchName);
+    const hasEnglish = false; // /[A-Za-z]{3,}/.test(searchName);
     if (hasEnglish) {
       try {
         console.log(`[English Sheet] 영어 검색 시도: "${searchName}"`);
