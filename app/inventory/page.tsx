@@ -9,18 +9,22 @@ interface InventoryItem {
   item_name: string;
   supply_price: number;
   available_stock: number;
-  bonded_warehouse: number;
+  bonded_warehouse?: number; // CDV only
+  anseong_warehouse?: number; // DL only
   sales_30days: number;
 }
 
+type WarehouseTab = 'CDV' | 'DL';
+
 export default function InventoryPage() {
+  const [activeTab, setActiveTab] = useState<WarehouseTab>('CDV');
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<InventoryItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState('');
-  const [hideNoSupplyPrice, setHideNoSupplyPrice] = useState(false);
-  const [hideNoStock, setHideNoStock] = useState(false);
+  const [hideNoSupplyPrice, setHideNoSupplyPrice] = useState(true);
+  const [hideNoStock, setHideNoStock] = useState(true);
   const [showOnlyBondedStock, setShowOnlyBondedStock] = useState(false);
 
   const handleSearch = async () => {
@@ -34,7 +38,11 @@ export default function InventoryPage() {
     setHasSearched(true);
 
     try {
-      const response = await fetch(`/api/inventory/search?q=${encodeURIComponent(searchQuery)}`);
+      const endpoint = activeTab === 'CDV' 
+        ? `/api/inventory/search?q=${encodeURIComponent(searchQuery)}`
+        : `/api/inventory/dl/search?q=${encodeURIComponent(searchQuery)}`;
+      
+      const response = await fetch(endpoint);
       const data = await response.json();
 
       if (!response.ok) {
@@ -67,14 +75,14 @@ export default function InventoryPage() {
       return false;
     }
     
-    // 보세재고만 있는 품목 보기 (가용재고 없지만 보세창고 있음)
-    if (showOnlyBondedStock) {
+    // CDV 탭: 보세재고만 있는 품목 보기
+    if (activeTab === 'CDV' && showOnlyBondedStock) {
       const hasNoAvailableStock = !item.available_stock || item.available_stock <= 0;
       const hasBondedStock = item.bonded_warehouse && item.bonded_warehouse > 0;
       return hasNoAvailableStock && hasBondedStock;
     }
     
-    // 가용재고 없는 품목 숨기기
+    // 가용재고/재고 없는 품목 숨기기
     if (hideNoStock && (!item.available_stock || item.available_stock <= 0)) {
       return false;
     }
@@ -107,13 +115,59 @@ export default function InventoryPage() {
           }}>
             재고 확인
           </h1>
-          <p style={{
-            fontSize: 'var(--text-lg)',
-            color: 'var(--color-text-light)'
-          }}>
-            품목명으로 재고를 검색하세요
-          </p>
         </div>
+
+        {/* Warehouse Tabs */}
+        <Card style={{ marginBottom: 'var(--space-6)' }}>
+          <div style={{
+            display: 'flex',
+            gap: 'var(--space-2)',
+            justifyContent: 'flex-end'
+          }}>
+            <button
+              onClick={() => {
+                setActiveTab('CDV');
+                setResults([]);
+                setHasSearched(false);
+                setSearchQuery('');
+              }}
+              style={{
+                padding: 'var(--space-3) var(--space-6)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+                background: activeTab === 'CDV' ? 'var(--color-primary)' : 'transparent',
+                color: activeTab === 'CDV' ? 'white' : 'var(--color-text-light)'
+              }}
+            >
+              CDV (와인)
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('DL');
+                setResults([]);
+                setHasSearched(false);
+                setSearchQuery('');
+              }}
+              style={{
+                padding: 'var(--space-3) var(--space-6)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+                background: activeTab === 'DL' ? 'var(--color-primary)' : 'transparent',
+                color: activeTab === 'DL' ? 'white' : 'var(--color-text-light)'
+              }}
+            >
+              DL (글라스)
+            </button>
+          </div>
+        </Card>
 
         {/* Search Section */}
         <Card style={{ marginBottom: 'var(--space-6)' }}>
@@ -237,31 +291,33 @@ export default function InventoryPage() {
                 가용재고 없는 품목 숨기기
               </label>
 
-              {/* 보세재고만 있는 품목 보기 */}
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: 'pointer',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text)',
-                opacity: hideNoStock ? 0.5 : 1,
-                pointerEvents: hideNoStock ? 'none' : 'auto'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={showOnlyBondedStock}
-                  onChange={(e) => setShowOnlyBondedStock(e.target.checked)}
-                  disabled={hideNoStock}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: hideNoStock ? 'not-allowed' : 'pointer',
-                    accentColor: 'var(--color-primary)'
-                  }}
-                />
-                보세재고만 있는 품목 보기
-              </label>
+              {/* 보세재고만 있는 품목 보기 (CDV only) */}
+              {activeTab === 'CDV' && (
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  cursor: 'pointer',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--color-text)',
+                  opacity: hideNoStock ? 0.5 : 1,
+                  pointerEvents: hideNoStock ? 'none' : 'auto'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={showOnlyBondedStock}
+                    onChange={(e) => setShowOnlyBondedStock(e.target.checked)}
+                    disabled={hideNoStock}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: hideNoStock ? 'not-allowed' : 'pointer',
+                      accentColor: 'var(--color-primary)'
+                    }}
+                  />
+                  보세재고만 있는 품목 보기
+                </label>
+              )}
             </div>
           </Card>
         )}
@@ -362,14 +418,14 @@ export default function InventoryPage() {
                             </div>
                           </div>
 
-                          {/* 가용재고 */}
+                          {/* 가용재고/재고 */}
                           <div>
                             <div style={{
                               fontSize: 'var(--text-xs)',
                               color: 'var(--color-text-light)',
                               marginBottom: 'var(--space-1)'
                             }}>
-                              가용재고
+                              {activeTab === 'CDV' ? '가용재고' : '재고'}
                             </div>
                             <div style={{
                               fontSize: 'var(--text-sm)',
@@ -380,21 +436,25 @@ export default function InventoryPage() {
                             </div>
                           </div>
 
-                          {/* 보세창고 */}
+                          {/* 보세창고(CDV) / 안성창고(DL) */}
                           <div>
                             <div style={{
                               fontSize: 'var(--text-xs)',
                               color: 'var(--color-text-light)',
                               marginBottom: 'var(--space-1)'
                             }}>
-                              보세창고
+                              {activeTab === 'CDV' ? '보세창고' : '안성창고'}
                             </div>
                             <div style={{
                               fontSize: 'var(--text-sm)',
                               fontWeight: 600,
                               color: 'var(--color-text)'
                             }}>
-                              {formatNumber(item.bonded_warehouse)}
+                              {formatNumber(
+                                activeTab === 'CDV' 
+                                  ? (item.bonded_warehouse || 0)
+                                  : (item.anseong_warehouse || 0)
+                              )}
                             </div>
                           </div>
 
