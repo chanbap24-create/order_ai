@@ -80,6 +80,13 @@ export default function InventoryPage() {
   const [showOnlyBondedStock, setShowOnlyBondedStock] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   
+  // 테이스팅 노트 모달
+  const [showTastingNote, setShowTastingNote] = useState(false);
+  const [tastingNoteUrl, setTastingNoteUrl] = useState('');
+  const [tastingNoteLoading, setTastingNoteLoading] = useState(false);
+  const [selectedItemNo, setSelectedItemNo] = useState('');
+  const [selectedWineName, setSelectedWineName] = useState('');
+  
   // 컬럼 설정 (localStorage)
   const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<ColumnKey[]>(DEFAULT_COLUMNS_CDV);
   const [visibleColumnsDL, setVisibleColumnsDL] = useState<ColumnKey[]>(DEFAULT_COLUMNS_DL);
@@ -154,6 +161,32 @@ export default function InventoryPage() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
+    }
+  };
+
+  const handleTastingNoteClick = async (itemNo: string, itemName: string) => {
+    setSelectedItemNo(itemNo);
+    setSelectedWineName(itemName);
+    setTastingNoteLoading(true);
+    setShowTastingNote(true);
+
+    try {
+      const response = await fetch(`/api/tasting-notes?item_no=${itemNo}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setTastingNoteUrl(data.pdf_url);
+      } else {
+        setTastingNoteUrl('');
+        alert(data.error || '테이스팅 노트를 찾을 수 없습니다.');
+        setShowTastingNote(false);
+      }
+    } catch (error) {
+      console.error('테이스팅 노트 조회 오류:', error);
+      alert('테이스팅 노트를 불러오는 중 오류가 발생했습니다.');
+      setShowTastingNote(false);
+    } finally {
+      setTastingNoteLoading(false);
     }
   };
 
@@ -572,7 +605,7 @@ export default function InventoryPage() {
                           borderBottom: '1px solid var(--color-border)',
                           flexWrap: 'wrap'
                         }}>
-                          {/* 품목번호 */}
+                          {/* 품목번호 + 테이스팅 노트 버튼 */}
                           <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                             <span style={{
                               fontSize: '11px',
@@ -588,6 +621,30 @@ export default function InventoryPage() {
                             }}>
                               {item.item_no}
                             </span>
+                            {/* 테이스팅 노트 버튼 (CDV 탭에서만) */}
+                            {activeTab === 'CDV' && (
+                              <button
+                                onClick={() => handleTastingNoteClick(item.item_no, item.item_name)}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '10px',
+                                  fontWeight: 600,
+                                  background: '#8B1538',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#6B0F2B'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#8B1538'}
+                              >
+                                📄 노트
+                              </button>
+                            )}
                           </div>
 
                           {/* 품목명 */}
@@ -705,6 +762,157 @@ export default function InventoryPage() {
               </div>
             </div>
           </Card>
+        )}
+
+        {/* 테이스팅 노트 모달 */}
+        {showTastingNote && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 'var(--space-4)'
+          }}
+          onClick={() => setShowTastingNote(false)}
+          >
+            <div style={{
+              background: 'white',
+              borderRadius: 'var(--radius-lg)',
+              width: '100%',
+              maxWidth: '900px',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            >
+              {/* 모달 헤더 */}
+              <div style={{
+                padding: 'var(--space-4)',
+                borderBottom: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: '#8B1538',
+                color: 'white'
+              }}>
+                <div>
+                  <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
+                    🍷 테이스팅 노트
+                  </div>
+                  <div style={{ fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)', opacity: 0.9 }}>
+                    {selectedItemNo} - {selectedWineName}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTastingNote(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: '24px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* 모달 컨텐츠 */}
+              <div style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: 'var(--space-4)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {tastingNoteLoading ? (
+                  <div style={{ textAlign: 'center', color: 'var(--color-text-light)' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>⏳</div>
+                    <div>테이스팅 노트를 불러오는 중...</div>
+                  </div>
+                ) : tastingNoteUrl ? (
+                  <div style={{ width: '100%', textAlign: 'center' }}>
+                    <div style={{
+                      marginBottom: 'var(--space-4)',
+                      padding: 'var(--space-4)',
+                      background: '#f5f5f5',
+                      borderRadius: 'var(--radius-md)'
+                    }}>
+                      <p style={{ marginBottom: 'var(--space-2)', color: 'var(--color-text)' }}>
+                        📄 PDF 파일을 다운로드하거나 새 탭에서 열어보세요.
+                      </p>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <a
+                          href={tastingNoteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: 'var(--space-3) var(--space-6)',
+                            background: '#8B1538',
+                            color: 'white',
+                            borderRadius: 'var(--radius-md)',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                            display: 'inline-block'
+                          }}
+                        >
+                          🔗 새 탭에서 열기
+                        </a>
+                        <a
+                          href={tastingNoteUrl}
+                          download
+                          style={{
+                            padding: 'var(--space-3) var(--space-6)',
+                            background: '#FF6B35',
+                            color: 'white',
+                            borderRadius: 'var(--radius-md)',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                            display: 'inline-block'
+                          }}
+                        >
+                          💾 다운로드
+                        </a>
+                      </div>
+                    </div>
+                    
+                    {/* PDF 미리보기 (iframe) */}
+                    <iframe
+                      src={`${tastingNoteUrl}#toolbar=0`}
+                      style={{
+                        width: '100%',
+                        height: '600px',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)'
+                      }}
+                      title="테이스팅 노트"
+                    />
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', color: 'var(--color-text-light)' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>❌</div>
+                    <div>테이스팅 노트를 찾을 수 없습니다.</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
