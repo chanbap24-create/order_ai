@@ -860,8 +860,10 @@ export default function InventoryPage() {
                     <div style={{
                       marginBottom: 'var(--space-3)',
                       display: 'flex',
-                      justifyContent: 'flex-end'
+                      justifyContent: 'flex-end',
+                      gap: 'var(--space-2)'
                     }}>
+                        {/* PDF 다운로드 */}
                         <a
                           href={originalPdfUrl} 
                           download
@@ -878,7 +880,26 @@ export default function InventoryPage() {
                             gap: 'var(--space-2)'
                           }}
                         >
-                          💾 다운로드
+                          📄 PDF
+                        </a>
+                        {/* PPTX 다운로드 */}
+                        <a
+                          href={originalPdfUrl.replace('.pdf', '.pptx')} 
+                          download
+                          style={{
+                            padding: 'var(--space-2) var(--space-4)',
+                            background: '#FF6B35',
+                            color: 'white',
+                            borderRadius: 'var(--radius-md)',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                            fontSize: 'var(--text-sm)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-2)'
+                          }}
+                        >
+                          📊 PPTX
                         </a>
                       </div>
                     
