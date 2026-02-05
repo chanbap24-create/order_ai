@@ -7,8 +7,13 @@ interface InventoryItem {
   item_no: string;
   item_name: string;
   supply_price: number;
+  discount_price: number;
+  wholesale_price: number;
+  retail_price: number;
+  min_price: number;
   available_stock: number;
   bonded_warehouse: number;
+  incoming_stock: number;
   sales_30days: number;
 }
 
@@ -33,8 +38,13 @@ export async function GET(request: NextRequest) {
         item_no,
         item_name,
         supply_price,
+        discount_price,
+        wholesale_price,
+        retail_price,
+        min_price,
         available_stock,
         bonded_warehouse,
+        incoming_stock,
         sales_30days
       FROM inventory_cdv
       WHERE LOWER(item_name) LIKE ?

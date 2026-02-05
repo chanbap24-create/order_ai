@@ -45,8 +45,12 @@ export async function POST() {
     
     // Insert CDV data
     const insertCDV = db.prepare(`
-      INSERT OR REPLACE INTO inventory_cdv (item_no, item_name, supply_price, available_stock, bonded_warehouse, sales_30days)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO inventory_cdv (
+        item_no, item_name, supply_price, discount_price, wholesale_price, 
+        retail_price, min_price, available_stock, bonded_warehouse, 
+        incoming_stock, sales_30days
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     let cdvCount = 0;
@@ -59,8 +63,13 @@ export async function POST() {
         itemNo,
         String(row[2] || ''),         // C: 품명
         Number(row[15]) || 0,          // P: 공급가
+        Number(row[16]) || 0,          // Q: 할인공급가
+        Number(row[17]) || 0,          // R: 도매가
+        Number(row[18]) || 0,          // S: 판매가
+        Number(row[19]) || 0,          // T: 최저판매가
         Number(row[11]) || 0,          // L: 가용재고
         Number(row[21]) || 0,          // V: 보세창고
+        Number(row[20]) || 0,          // U: 미착품
         Number(row[12]) || 0           // M: 30일출고
       );
       cdvCount++;

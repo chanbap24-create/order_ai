@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 
@@ -8,56 +8,13 @@ interface InventoryItem {
   item_no: string;
   item_name: string;
   supply_price: number;
-  discount_price: number;
-  wholesale_price: number;
-  retail_price: number;
-  min_price: number;
   available_stock: number;
-  bonded_warehouse?: number;
-  anseong_warehouse?: number;
-  incoming_stock: number;
+  bonded_warehouse?: number; // CDV only
+  anseong_warehouse?: number; // DL only
   sales_30days: number;
 }
 
 type WarehouseTab = 'CDV' | 'DL';
-
-type ColumnKey = 
-  | 'item_no' 
-  | 'item_name' 
-  | 'supply_price' 
-  | 'discount_price' 
-  | 'wholesale_price' 
-  | 'retail_price' 
-  | 'min_price' 
-  | 'available_stock' 
-  | 'bonded_warehouse' 
-  | 'incoming_stock' 
-  | 'sales_30days';
-
-interface ColumnConfig {
-  key: ColumnKey;
-  label: string;
-  cdvOnly?: boolean;
-  dlOnly?: boolean;
-}
-
-const COLUMNS: ColumnConfig[] = [
-  { key: 'item_no', label: '품목번호' },
-  { key: 'item_name', label: '품목명' },
-  { key: 'supply_price', label: '공급가' },
-  { key: 'discount_price', label: '할인공급가' },
-  { key: 'wholesale_price', label: '도매가' },
-  { key: 'retail_price', label: '판매가' },
-  { key: 'min_price', label: '최저판매가' },
-  { key: 'available_stock', label: '가용재고', cdvOnly: true },
-  { key: 'available_stock', label: '재고', dlOnly: true },
-  { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
-  { key: 'incoming_stock', label: '미착품' },
-  { key: 'sales_30days', label: '30일출고' },
-];
-
-const DEFAULT_COLUMNS_CDV: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'bonded_warehouse', 'sales_30days'];
-const DEFAULT_COLUMNS_DL: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'sales_30days'];
 
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<WarehouseTab>('CDV');
@@ -69,44 +26,6 @@ export default function InventoryPage() {
   const [hideNoSupplyPrice, setHideNoSupplyPrice] = useState(true);
   const [hideNoStock, setHideNoStock] = useState(true);
   const [showOnlyBondedStock, setShowOnlyBondedStock] = useState(false);
-  const [showColumnSettings, setShowColumnSettings] = useState(false);
-  
-  // 컬럼 설정 (localStorage)
-  const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<ColumnKey[]>(DEFAULT_COLUMNS_CDV);
-  const [visibleColumnsDL, setVisibleColumnsDL] = useState<ColumnKey[]>(DEFAULT_COLUMNS_DL);
-
-  // localStorage에서 설정 불러오기
-  useEffect(() => {
-    const savedCDV = localStorage.getItem('inventory_columns_cdv');
-    const savedDL = localStorage.getItem('inventory_columns_dl');
-    
-    if (savedCDV) {
-      try {
-        setVisibleColumnsCDV(JSON.parse(savedCDV));
-      } catch (e) {}
-    }
-    
-    if (savedDL) {
-      try {
-        setVisibleColumnsDL(JSON.parse(savedDL));
-      } catch (e) {}
-    }
-  }, []);
-
-  const visibleColumns = activeTab === 'CDV' ? visibleColumnsCDV : visibleColumnsDL;
-  const setVisibleColumns = activeTab === 'CDV' ? setVisibleColumnsCDV : setVisibleColumnsDL;
-
-  const toggleColumn = (key: ColumnKey) => {
-    const newColumns = visibleColumns.includes(key)
-      ? visibleColumns.filter(k => k !== key)
-      : [...visibleColumns, key];
-    
-    setVisibleColumns(newColumns);
-    
-    // localStorage에 저장
-    const storageKey = activeTab === 'CDV' ? 'inventory_columns_cdv' : 'inventory_columns_dl';
-    localStorage.setItem(storageKey, JSON.stringify(newColumns));
-  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -149,65 +68,27 @@ export default function InventoryPage() {
     return num.toLocaleString('ko-KR');
   };
 
-  const formatPrice = (price: number) => {
-    return price > 0 ? `₩${formatNumber(price)}` : '-';
-  };
-
+  // 필터링된 결과
   const filteredResults = results.filter(item => {
+    // 공급가 필터
     if (hideNoSupplyPrice && (!item.supply_price || item.supply_price <= 0)) {
       return false;
     }
     
+    // CDV 탭: 보세재고만 있는 품목 보기
     if (activeTab === 'CDV' && showOnlyBondedStock) {
       const hasNoAvailableStock = !item.available_stock || item.available_stock <= 0;
       const hasBondedStock = item.bonded_warehouse && item.bonded_warehouse > 0;
       return hasNoAvailableStock && hasBondedStock;
     }
     
+    // 가용재고/재고 없는 품목 숨기기
     if (hideNoStock && (!item.available_stock || item.available_stock <= 0)) {
       return false;
     }
     
     return true;
   });
-
-  const availableColumns = COLUMNS.filter(col => {
-    if (activeTab === 'CDV') return !col.dlOnly;
-    if (activeTab === 'DL') return !col.cdvOnly;
-    return true;
-  });
-
-  const renderCellValue = (item: InventoryItem, key: ColumnKey) => {
-    switch (key) {
-      case 'item_no':
-        return item.item_no;
-      case 'item_name':
-        return item.item_name;
-      case 'supply_price':
-      case 'discount_price':
-      case 'wholesale_price':
-      case 'retail_price':
-      case 'min_price':
-        return formatPrice(item[key]);
-      case 'available_stock':
-        return (
-          <span style={{ 
-            color: item.available_stock > 0 ? '#10b981' : '#ef4444',
-            fontWeight: 700
-          }}>
-            {formatNumber(item.available_stock)}
-          </span>
-        );
-      case 'bonded_warehouse':
-        return formatNumber(item.bonded_warehouse || 0);
-      case 'incoming_stock':
-        return formatNumber(item.incoming_stock);
-      case 'sales_30days':
-        return formatNumber(item.sales_30days);
-      default:
-        return '-';
-    }
-  };
 
   return (
     <div style={{
@@ -221,97 +102,20 @@ export default function InventoryPage() {
       }}>
         {/* Header */}
         <div style={{
-          marginBottom: 'var(--space-6)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)'
+          marginBottom: 'var(--space-8)'
         }}>
           <h1 className="heading-xl" style={{
+            marginBottom: 'var(--space-3)',
             background: 'linear-gradient(135deg, #1A1A1A 0%, #FF6B35 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
-            fontSize: '2rem',
+            fontSize: '2.5rem',
             fontWeight: 800
           }}>
             재고 확인
           </h1>
-          
-          <button
-            onClick={() => setShowColumnSettings(!showColumnSettings)}
-            style={{
-              padding: 'var(--space-3) var(--space-5)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 600,
-              border: '2px solid var(--color-primary)',
-              borderRadius: 'var(--radius-md)',
-              background: showColumnSettings ? 'var(--color-primary)' : 'transparent',
-              color: showColumnSettings ? 'white' : 'var(--color-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            ⚙️ 컬럼 설정
-          </button>
         </div>
-
-        {/* Column Settings */}
-        {showColumnSettings && (
-          <Card style={{ marginBottom: 'var(--space-6)' }}>
-            <h3 style={{
-              fontSize: 'var(--text-lg)',
-              fontWeight: 700,
-              marginBottom: 'var(--space-4)',
-              color: 'var(--color-text)'
-            }}>
-              📊 표시할 컬럼 선택
-            </h3>
-            
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              gap: 'var(--space-3)'
-            }}>
-              {availableColumns.map(col => (
-                <label
-                  key={`${col.key}-${col.label}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    cursor: 'pointer',
-                    padding: 'var(--space-2)',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'background 0.2s',
-                    background: visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 107, 53, 0.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'}
-                >
-                  <input
-                    type="checkbox"
-                    checked={visibleColumns.includes(col.key)}
-                    onChange={() => toggleColumn(col.key)}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      cursor: 'pointer',
-                      accentColor: 'var(--color-primary)'
-                    }}
-                  />
-                  <span style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text)'
-                  }}>
-                    {col.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </Card>
-        )}
 
         {/* Warehouse Tabs */}
         <Card style={{ marginBottom: 'var(--space-6)' }}>
@@ -378,7 +182,7 @@ export default function InventoryPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder=""
+                placeholder="품목명을 입력하세요 (예: 샤블리, 까브, 케이스)"
                 disabled={isSearching}
                 style={{
                   width: '100%',
@@ -438,6 +242,7 @@ export default function InventoryPage() {
                 필터:
               </div>
               
+              {/* 공급가 없는 품목 숨기기 */}
               <label style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -460,6 +265,7 @@ export default function InventoryPage() {
                 공급가 없는 품목 숨기기
               </label>
 
+              {/* 가용재고 없는 품목 숨기기 */}
               <label style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -482,9 +288,10 @@ export default function InventoryPage() {
                     accentColor: 'var(--color-primary)'
                   }}
                 />
-                재고 없는 품목 숨기기
+                가용재고 없는 품목 숨기기
               </label>
 
+              {/* 보세재고만 있는 품목 보기 (CDV only) */}
               {activeTab === 'CDV' && (
                 <label style={{
                   display: 'flex',
@@ -536,38 +343,139 @@ export default function InventoryPage() {
                   {filteredResults.map((item, index) => (
                     <Card key={`${item.item_no}-${index}`} hover>
                       <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: visibleColumns.length <= 4 
-                          ? `repeat(${visibleColumns.length}, 1fr)`
-                          : 'repeat(auto-fit, minmax(150px, 1fr))',
-                        gap: 'var(--space-4)',
-                        alignItems: 'start'
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'var(--space-4)'
                       }}>
-                        {visibleColumns.map(colKey => {
-                          const col = availableColumns.find(c => c.key === colKey);
-                          if (!col) return null;
-                          
-                          return (
-                            <div key={`${item.item_no}-${colKey}`}>
-                              <div style={{
-                                fontSize: 'var(--text-xs)',
-                                color: 'var(--color-text-light)',
-                                marginBottom: 'var(--space-1)'
-                              }}>
-                                {col.label}
-                              </div>
-                              <div style={{
-                                fontSize: colKey === 'item_name' ? 'var(--text-base)' : 'var(--text-sm)',
-                                fontWeight: colKey === 'item_name' || colKey === 'item_no' ? 600 : 500,
-                                color: colKey === 'item_no' ? 'var(--color-primary)' : 'var(--color-text)',
-                                fontFamily: colKey === 'item_no' ? 'monospace' : 'inherit',
-                                wordBreak: colKey === 'item_name' ? 'break-word' : 'normal'
-                              }}>
-                                {renderCellValue(item, colKey)}
-                              </div>
+                        {/* 첫 번째 줄: 품목번호 + 품목명 */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1fr',
+                          gap: 'var(--space-6)',
+                          alignItems: 'center'
+                        }}>
+                          {/* 품목번호 */}
+                          <div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--color-text-light)',
+                              marginBottom: 'var(--space-1)'
+                            }}>
+                              품목번호
                             </div>
-                          );
-                        })}
+                            <div style={{
+                              fontSize: 'var(--text-sm)',
+                              fontWeight: 600,
+                              fontFamily: 'monospace',
+                              color: 'var(--color-primary)'
+                            }}>
+                              {item.item_no}
+                            </div>
+                          </div>
+
+                          {/* 품목명 */}
+                          <div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--color-text-light)',
+                              marginBottom: 'var(--space-1)'
+                            }}>
+                              품목명
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-base)',
+                              fontWeight: 600,
+                              color: 'var(--color-text)'
+                            }}>
+                              {item.item_name}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 두 번째 줄: 나머지 4개 필드 */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4, 1fr)',
+                          gap: 'var(--space-4)',
+                          paddingTop: 'var(--space-3)',
+                          borderTop: '1px solid var(--color-border)'
+                        }}>
+                          {/* 공급가 */}
+                          <div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--color-text-light)',
+                              marginBottom: 'var(--space-1)'
+                            }}>
+                              공급가
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-sm)',
+                              fontWeight: 600,
+                              color: 'var(--color-text)'
+                            }}>
+                              {item.supply_price > 0 ? `₩${formatNumber(item.supply_price)}` : '-'}
+                            </div>
+                          </div>
+
+                          {/* 가용재고/재고 */}
+                          <div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--color-text-light)',
+                              marginBottom: 'var(--space-1)'
+                            }}>
+                              {activeTab === 'CDV' ? '가용재고' : '재고'}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-sm)',
+                              fontWeight: 700,
+                              color: item.available_stock > 0 ? '#10b981' : '#ef4444'
+                            }}>
+                              {formatNumber(item.available_stock)}
+                            </div>
+                          </div>
+
+                          {/* 보세창고(CDV) / 안성창고(DL) */}
+                          <div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--color-text-light)',
+                              marginBottom: 'var(--space-1)'
+                            }}>
+                              {activeTab === 'CDV' ? '보세창고' : '안성창고'}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-sm)',
+                              fontWeight: 600,
+                              color: 'var(--color-text)'
+                            }}>
+                              {formatNumber(
+                                activeTab === 'CDV' 
+                                  ? (item.bonded_warehouse || 0)
+                                  : (item.anseong_warehouse || 0)
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 30일 출고 */}
+                          <div>
+                            <div style={{
+                              fontSize: 'var(--text-xs)',
+                              color: 'var(--color-text-light)',
+                              marginBottom: 'var(--space-1)'
+                            }}>
+                              30일 출고
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--text-sm)',
+                              fontWeight: 600,
+                              color: 'var(--color-text-light)'
+                            }}>
+                              {formatNumber(item.sales_30days)}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -605,7 +513,7 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* Initial State */}
+        {/* Initial State - No search performed */}
         {!hasSearched && (
           <Card>
             <div style={{
@@ -627,6 +535,13 @@ export default function InventoryPage() {
                 color: 'var(--color-text)'
               }}>
                 품목명을 검색하세요
+              </div>
+              <div style={{
+                fontSize: 'var(--text-base)',
+                lineHeight: 1.6
+              }}>
+                품목명의 일부만 입력해도 검색이 가능합니다<br />
+                예: "샤블리", "까브", "케이스" 등
               </div>
             </div>
           </Card>
