@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-02-05",
+  "base_url": "https://github.com/chanbap24-create/order_ai/releases/download/note",
+  "notes": {
+    "00NV001": {
+      "exists": true,
+      "filename": "00NV001.pdf",
+      "size_kb": 333,
+      "pages": 1,
+      "wine_name": "테스트 와인"
+    }
+  }
+}

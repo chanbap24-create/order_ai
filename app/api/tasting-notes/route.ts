@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-// GitHub Release URL (나중에 실제 URL로 변경)
-const GITHUB_RELEASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/v1.0';
+// GitHub Release URL
+const GITHUB_RELEASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
 const INDEX_URL = `${GITHUB_RELEASE_URL}/tasting-notes-index.json`;
 
 // 메모리 캐시 (서버 재시작 시 초기화)
