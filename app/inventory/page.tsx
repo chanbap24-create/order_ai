@@ -48,8 +48,8 @@ interface ColumnConfig {
 }
 
 const COLUMNS: ColumnConfig[] = [
-  { key: 'item_no', label: '품목번호' },
-  { key: 'item_name', label: '품목명' },
+  { key: 'item_no', label: '품번' },
+  { key: 'item_name', label: '품명' },
   { key: 'supply_price', label: '공급가' },
   { key: 'discount_price', label: '할인공급가' },
   { key: 'wholesale_price', label: '도매가' },
@@ -114,7 +114,7 @@ export default function InventoryPage() {
   const setVisibleColumns = activeTab === 'CDV' ? setVisibleColumnsCDV : setVisibleColumnsDL;
 
   const toggleColumn = (key: ColumnKey) => {
-    // 품목번호와 품목명은 토글 불가 (항상 표시)
+    // 품번과 품명은 토글 불가 (항상 표시)
     if (key === 'item_no' || key === 'item_name') return;
     
     const newColumns = visibleColumns.includes(key)
@@ -335,7 +335,7 @@ export default function InventoryPage() {
               color: 'var(--color-text-light)',
               marginBottom: 'var(--space-4)'
             }}>
-              💡 품목번호와 품목명은 항상 표시됩니다
+              💡 품번과 품명은 항상 표시됩니다
             </p>
             
             <div style={{
@@ -607,7 +607,7 @@ export default function InventoryPage() {
                   {filteredResults.map((item, index) => {
                     return (
                       <Card key={`${item.item_no}-${index}`} hover style={{ padding: 'var(--space-4)' }}>
-                        {/* 첫 줄: 품목번호 + 품목명 (고정, 수평 배치) */}
+                        {/* 첫 줄: 품번 + 품명 (고정, 수평 배치) */}
                         <div style={{
                           display: 'flex',
                           gap: 'var(--space-4)',
@@ -616,55 +616,52 @@ export default function InventoryPage() {
                           borderBottom: '1px solid var(--color-border)',
                           flexWrap: 'wrap'
                         }}>
-                          {/* 품목번호 + 테이스팅 노트 버튼 */}
+                          {/* 품번 (클릭 가능) */}
                           <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                             <span style={{
                               fontSize: '11px',
                               color: 'var(--color-text-light)'
                             }}>
-                              품목번호
+                              품번
                             </span>
-                            <span style={{
-                              fontSize: '13px',
-                              fontWeight: 700,
-                              fontFamily: 'monospace',
-                              color: 'var(--color-primary)'
-                            }}>
-                              {item.item_no}
-                            </span>
-                            {/* 테이스팅 노트 버튼 (CDV 탭에서만) */}
-                            {activeTab === 'CDV' && (
+                            {activeTab === 'CDV' ? (
                               <button
                                 onClick={() => handleTastingNoteClick(item.item_no, item.item_name)}
                                 style={{
-                                  padding: '4px 8px',
-                                  fontSize: '10px',
-                                  fontWeight: 600,
-                                  background: '#8B1538',
-                                  color: 'white',
+                                  fontSize: '13px',
+                                  fontWeight: 700,
+                                  fontFamily: 'monospace',
+                                  color: '#8B1538',
+                                  background: 'none',
                                   border: 'none',
-                                  borderRadius: '4px',
                                   cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  transition: 'all 0.2s'
+                                  textDecoration: 'underline',
+                                  padding: 0
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#6B0F2B'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#8B1538'}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#6B0F2B'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#8B1538'}
                               >
-                                📄 노트
+                                {item.item_no}
                               </button>
+                            ) : (
+                              <span style={{
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                fontFamily: 'monospace',
+                                color: 'var(--color-primary)'
+                              }}>
+                                {item.item_no}
+                              </span>
                             )}
                           </div>
 
-                          {/* 품목명 */}
+                          {/* 품명 */}
                           <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flex: 1 }}>
                             <span style={{
                               fontSize: '11px',
                               color: 'var(--color-text-light)'
                             }}>
-                              품목명
+                              품명
                             </span>
                             <span style={{
                               fontSize: '13px',
@@ -676,7 +673,7 @@ export default function InventoryPage() {
                           </div>
                         </div>
 
-                        {/* 둘째 줄: 선택한 컬럼들 (품목번호/품목명 제외, 순차 배치) */}
+                        {/* 둘째 줄: 선택한 컬럼들 (품번/품명 제외, 순차 배치) */}
                         <div style={{
                           display: 'flex',
                           gap: 'var(--space-4)',
