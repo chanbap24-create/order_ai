@@ -795,9 +795,9 @@ export default function InventoryPage() {
             <div style={{
               background: 'white',
               borderRadius: 'var(--radius-lg)',
-              width: '100%',
-              maxWidth: '900px',
-              maxHeight: '90vh',
+              width: '95vw',
+              maxWidth: '1400px',
+              height: '95vh',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column'
@@ -816,7 +816,7 @@ export default function InventoryPage() {
               }}>
                 <div>
                   <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
-                    🍷 테이스팅 노트
+                    테이스팅 노트
                   </div>
                   <div style={{ fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)', opacity: 0.9 }}>
                     {selectedItemNo} - {selectedWineName}
@@ -859,39 +859,18 @@ export default function InventoryPage() {
                   </div>
                 ) : tastingNoteUrl ? (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    {/* 액션 버튼 */}
+                    {/* 다운로드 버튼 */}
                     <div style={{
                       marginBottom: 'var(--space-3)',
                       display: 'flex',
-                      gap: 'var(--space-2)',
-                      justifyContent: 'center',
-                      flexWrap: 'wrap'
+                      justifyContent: 'flex-end'
                     }}>
-                      <a
-                        href={tastingNoteUrl}
-                        target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            background: '#8B1538',
-                            color: 'white',
-                            borderRadius: 'var(--radius-md)',
-                            textDecoration: 'none',
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)'
-                          }}
-                        >
-                          🔗 새 탭에서 열기
-                        </a>
                         <a
                           href={originalPdfUrl} 
                           download
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
-                            background: '#FF6B35',
+                            background: '#8B1538',
                             color: 'white',
                             borderRadius: 'var(--radius-md)',
                             textDecoration: 'none',
@@ -909,7 +888,6 @@ export default function InventoryPage() {
                     {/* PDF 미리보기 (embed) */}
                     <div style={{
                       flex: 1,
-                      minHeight: '500px',
                       background: '#f5f5f5',
                       borderRadius: 'var(--radius-md)',
                       overflow: 'hidden',
@@ -920,9 +898,6 @@ export default function InventoryPage() {
                         type="application/pdf"
                         width="100%"
                         height="100%"
-                        style={{
-                          minHeight: '500px'
-                        }}
                       />
                     </div>
                   </div>
