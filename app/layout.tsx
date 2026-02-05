@@ -10,13 +10,31 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sales Desk - Internal Sales Automation Tool",
+  title: "Order AI - 주문 자동화",
   description: "와인 & 와인잔 발주 자동 생성 시스템",
   viewport: {
     width: "device-width",
     initialScale: 1,
     maximumScale: 1, // ✅ 모바일 자동 줌 방지
   },
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+    ],
+    shortcut: '/favicon.ico'
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Order AI'
+  },
+  themeColor: '#8B1538',
+  applicationName: 'Order AI',
 };
 
 export default function RootLayout({
@@ -26,6 +44,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Order AI" />
+        <meta name="theme-color" content="#8B1538" />
+      </head>
       <body
         className={`${inter.variable} antialiased`}
       >
