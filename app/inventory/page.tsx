@@ -853,29 +853,30 @@ export default function InventoryPage() {
                     <div>테이스팅 노트를 불러오는 중...</div>
                   </div>
                 ) : tastingNoteUrl ? (
-                  <div style={{ width: '100%', textAlign: 'center' }}>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    {/* 액션 버튼 */}
                     <div style={{
-                      marginBottom: 'var(--space-4)',
-                      padding: 'var(--space-4)',
-                      background: '#f5f5f5',
-                      borderRadius: 'var(--radius-md)'
+                      marginBottom: 'var(--space-3)',
+                      display: 'flex',
+                      gap: 'var(--space-2)',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap'
                     }}>
-                      <p style={{ marginBottom: 'var(--space-2)', color: 'var(--color-text)' }}>
-                        📄 PDF 파일을 다운로드하거나 새 탭에서 열어보세요.
-                      </p>
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <a
-                          href={tastingNoteUrl}
-                          target="_blank"
+                      <a
+                        href={tastingNoteUrl}
+                        target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            padding: 'var(--space-3) var(--space-6)',
+                            padding: 'var(--space-2) var(--space-4)',
                             background: '#8B1538',
                             color: 'white',
                             borderRadius: 'var(--radius-md)',
                             textDecoration: 'none',
                             fontWeight: 600,
-                            display: 'inline-block'
+                            fontSize: 'var(--text-sm)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-2)'
                           }}
                         >
                           🔗 새 탭에서 열기
@@ -884,31 +885,41 @@ export default function InventoryPage() {
                           href={tastingNoteUrl}
                           download
                           style={{
-                            padding: 'var(--space-3) var(--space-6)',
+                            padding: 'var(--space-2) var(--space-4)',
                             background: '#FF6B35',
                             color: 'white',
                             borderRadius: 'var(--radius-md)',
                             textDecoration: 'none',
                             fontWeight: 600,
-                            display: 'inline-block'
+                            fontSize: 'var(--text-sm)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-2)'
                           }}
                         >
                           💾 다운로드
                         </a>
                       </div>
-                    </div>
                     
-                    {/* PDF 미리보기 (iframe) */}
-                    <iframe
-                      src={`${tastingNoteUrl}#toolbar=0`}
-                      style={{
-                        width: '100%',
-                        height: '600px',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-md)'
-                      }}
-                      title="테이스팅 노트"
-                    />
+                    {/* PDF 미리보기 (embed) */}
+                    <div style={{
+                      flex: 1,
+                      minHeight: '500px',
+                      background: '#f5f5f5',
+                      borderRadius: 'var(--radius-md)',
+                      overflow: 'hidden',
+                      border: '1px solid var(--color-border)'
+                    }}>
+                      <embed
+                        src={`${tastingNoteUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+                        type="application/pdf"
+                        width="100%"
+                        height="100%"
+                        style={{
+                          minHeight: '500px'
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', color: 'var(--color-text-light)' }}>
