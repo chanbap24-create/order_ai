@@ -546,91 +546,88 @@ export default function InventoryPage() {
                   gap: 'var(--space-3)'
                 }}>
                   {filteredResults.map((item, index) => {
-                    // 품목번호와 품목명을 제외한 나머지 컬럼
-                    const dataColumns = visibleColumns.filter(k => k !== 'item_no' && k !== 'item_name');
-                    
                     return (
                       <Card key={`${item.item_no}-${index}`} hover style={{ padding: 'var(--space-4)' }}>
-                        {/* 첫 줄: 품목번호 + 품목명 (고정) */}
+                        {/* 첫 줄: 품목번호 + 품목명 (고정, 수평 배치) */}
                         <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'auto 1fr',
-                          gap: 'var(--space-3)',
+                          display: 'flex',
+                          gap: 'var(--space-4)',
                           marginBottom: 'var(--space-3)',
                           paddingBottom: 'var(--space-3)',
-                          borderBottom: '1px solid var(--color-border)'
+                          borderBottom: '1px solid var(--color-border)',
+                          flexWrap: 'wrap'
                         }}>
                           {/* 품목번호 */}
-                          <div>
-                            <div style={{
-                              fontSize: '10px',
-                              color: 'var(--color-text-light)',
-                              marginBottom: '2px'
+                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                            <span style={{
+                              fontSize: '11px',
+                              color: 'var(--color-text-light)'
                             }}>
                               품목번호
-                            </div>
-                            <div style={{
+                            </span>
+                            <span style={{
                               fontSize: '13px',
                               fontWeight: 700,
                               fontFamily: 'monospace',
                               color: 'var(--color-primary)'
                             }}>
                               {item.item_no}
-                            </div>
+                            </span>
                           </div>
 
                           {/* 품목명 */}
-                          <div>
-                            <div style={{
-                              fontSize: '10px',
-                              color: 'var(--color-text-light)',
-                              marginBottom: '2px'
+                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flex: 1 }}>
+                            <span style={{
+                              fontSize: '11px',
+                              color: 'var(--color-text-light)'
                             }}>
                               품목명
-                            </div>
-                            <div style={{
-                              fontSize: '14px',
+                            </span>
+                            <span style={{
+                              fontSize: '13px',
                               fontWeight: 600,
-                              color: 'var(--color-text)',
-                              lineHeight: 1.3
+                              color: 'var(--color-text)'
                             }}>
                               {item.item_name}
-                            </div>
+                            </span>
                           </div>
                         </div>
 
-                        {/* 둘째 줄: 선택한 컬럼들 */}
-                        {dataColumns.length > 0 && (
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(${Math.min(dataColumns.length, 3)}, 1fr)`,
-                            gap: 'var(--space-3)'
-                          }}>
-                            {dataColumns.map(colKey => {
+                        {/* 둘째 줄: 선택한 컬럼들 (품목번호/품목명 제외, 순차 배치) */}
+                        <div style={{
+                          display: 'flex',
+                          gap: 'var(--space-4)',
+                          flexWrap: 'wrap'
+                        }}>
+                          {visibleColumns
+                            .filter(colKey => colKey !== 'item_no' && colKey !== 'item_name')
+                            .map(colKey => {
                               const col = availableColumns.find(c => c.key === colKey);
                               if (!col) return null;
                               
                               return (
-                                <div key={`${item.item_no}-${colKey}`}>
-                                  <div style={{
-                                    fontSize: '10px',
-                                    color: 'var(--color-text-light)',
-                                    marginBottom: '2px'
+                                <div key={`${item.item_no}-${colKey}`} style={{
+                                  display: 'flex',
+                                  gap: 'var(--space-2)',
+                                  alignItems: 'center'
+                                }}>
+                                  <span style={{
+                                    fontSize: '11px',
+                                    color: 'var(--color-text-light)'
                                   }}>
                                     {col.label}
-                                  </div>
-                                  <div style={{
+                                  </span>
+                                  <span style={{
                                     fontSize: '13px',
                                     fontWeight: 600,
                                     color: 'var(--color-text)'
                                   }}>
                                     {renderCellValue(item, colKey)}
-                                  </div>
+                                  </span>
                                 </div>
                               );
                             })}
-                          </div>
-                        )}
+                        </div>
                       </Card>
                     );
                   })}
