@@ -1,6 +1,6 @@
 {
-  "name": "Order AI - 주문 자동화",
-  "short_name": "Order AI",
+  "name": "Cave De Vin - 주문 자동화",
+  "short_name": "Cave De Vin",
   "description": "와인 & 와인잔 발주 자동 생성 시스템",
   "start_url": "/",
   "display": "standalone",

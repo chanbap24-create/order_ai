@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Order AI - 주문 자동화",
+  title: "Cave De Vin - 주문 자동화",
   description: "와인 & 와인잔 발주 자동 생성 시스템",
   viewport: {
     width: "device-width",
@@ -31,10 +31,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Order AI'
+    title: 'Cave De Vin'
   },
   themeColor: '#8B1538',
-  applicationName: 'Order AI',
+  applicationName: 'Cave De Vin',
 };
 
 export default function RootLayout({
@@ -50,7 +50,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Order AI" />
+        <meta name="apple-mobile-web-app-title" content="Cave De Vin" />
         <meta name="theme-color" content="#8B1538" />
       </head>
       <body
