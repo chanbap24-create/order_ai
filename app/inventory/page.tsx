@@ -82,7 +82,8 @@ export default function InventoryPage() {
   
   // 테이스팅 노트 모달
   const [showTastingNote, setShowTastingNote] = useState(false);
-  const [tastingNoteUrl, setTastingNoteUrl] = useState('');
+  const [tastingNoteUrl, setTastingNoteUrl] = useState(''); // 프록시 URL
+  const [originalPdfUrl, setOriginalPdfUrl] = useState(''); // 원본 GitHub URL
   const [tastingNoteLoading, setTastingNoteLoading] = useState(false);
   const [selectedItemNo, setSelectedItemNo] = useState('');
   const [selectedWineName, setSelectedWineName] = useState('');
@@ -179,8 +180,12 @@ export default function InventoryPage() {
       console.log('📝 Tasting note response:', data);
 
       if (data.success) {
-        setTastingNoteUrl(data.pdf_url);
-        console.log('✅ PDF URL:', data.pdf_url);
+        // 프록시를 통해 PDF를 로드 (브라우저에서 바로 표시)
+        const proxyUrl = `/api/proxy/pdf?url=${encodeURIComponent(data.pdf_url)}`;
+        setTastingNoteUrl(proxyUrl);
+        setOriginalPdfUrl(data.pdf_url); // 원본 URL 저장 (다운로드용)
+        console.log('✅ Original PDF URL:', data.pdf_url);
+        console.log('✅ Proxy URL:', proxyUrl);
       } else {
         setTastingNoteUrl('');
         console.error('❌ Error:', data.error);
@@ -882,7 +887,7 @@ export default function InventoryPage() {
                           🔗 새 탭에서 열기
                         </a>
                         <a
-                          href={tastingNoteUrl}
+                          href={originalPdfUrl} 
                           download
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
