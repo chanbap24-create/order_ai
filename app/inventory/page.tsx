@@ -88,6 +88,9 @@ export default function InventoryPage() {
   const [selectedItemNo, setSelectedItemNo] = useState('');
   const [selectedWineName, setSelectedWineName] = useState('');
   
+  // 테이스팅 노트 존재 여부 캐시 (item_no -> boolean)
+  const [tastingNotesAvailable, setTastingNotesAvailable] = useState<Record<string, boolean>>({});
+  
   // 컬럼 설정 (localStorage)
   const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<ColumnKey[]>(DEFAULT_COLUMNS_CDV);
   const [visibleColumnsDL, setVisibleColumnsDL] = useState<ColumnKey[]>(DEFAULT_COLUMNS_DL);
@@ -150,7 +153,21 @@ export default function InventoryPage() {
         throw new Error(data.error || '검색 중 오류가 발생했습니다.');
       }
 
-      setResults(data.results || []);
+      const results = data.results || [];
+      setResults(results);
+      
+      // 검색 결과의 각 품목에 대해 테이스팅 노트 존재 여부 확인
+      results.forEach(async (item: InventoryItem) => {
+        try {
+          const response = await fetch(`/api/tasting-notes?item_no=${item.item_no}`);
+          const data = await response.json();
+          if (data.success) {
+            setTastingNotesAvailable(prev => ({ ...prev, [item.item_no]: true }));
+          }
+        } catch (err) {
+          // 에러 무시 (테이스팅 노트 없음)
+        }
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.');
       setResults([]);
@@ -631,15 +648,15 @@ export default function InventoryPage() {
                                   fontSize: '13px',
                                   fontWeight: 700,
                                   fontFamily: 'monospace',
-                                  color: '#8B1538',
+                                  color: tastingNotesAvailable[item.item_no] ? '#10B981' : '#8B1538',
                                   background: 'none',
                                   border: 'none',
                                   cursor: 'pointer',
                                   textDecoration: 'underline',
                                   padding: 0
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = '#6B0F2B'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = '#8B1538'}
+                                onMouseEnter={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#059669' : '#6B0F2B'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#10B981' : '#8B1538'}
                               >
                                 {item.item_no}
                               </button>
