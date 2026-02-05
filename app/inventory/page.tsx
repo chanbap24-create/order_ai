@@ -97,6 +97,9 @@ export default function InventoryPage() {
   const setVisibleColumns = activeTab === 'CDV' ? setVisibleColumnsCDV : setVisibleColumnsDL;
 
   const toggleColumn = (key: ColumnKey) => {
+    // 품목번호와 품목명은 토글 불가 (항상 표시)
+    if (key === 'item_no' || key === 'item_name') return;
+    
     const newColumns = visibleColumns.includes(key)
       ? visibleColumns.filter(k => k !== key)
       : [...visibleColumns, key];
@@ -263,52 +266,61 @@ export default function InventoryPage() {
             <h3 style={{
               fontSize: 'var(--text-lg)',
               fontWeight: 700,
-              marginBottom: 'var(--space-4)',
+              marginBottom: 'var(--space-2)',
               color: 'var(--color-text)'
             }}>
               📊 표시할 컬럼 선택
             </h3>
+            <p style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-light)',
+              marginBottom: 'var(--space-4)'
+            }}>
+              💡 품목번호와 품목명은 항상 표시됩니다
+            </p>
             
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
               gap: 'var(--space-3)'
             }}>
-              {availableColumns.map(col => (
-                <label
-                  key={`${col.key}-${col.label}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    cursor: 'pointer',
-                    padding: 'var(--space-2)',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'background 0.2s',
-                    background: visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 107, 53, 0.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'}
-                >
-                  <input
-                    type="checkbox"
-                    checked={visibleColumns.includes(col.key)}
-                    onChange={() => toggleColumn(col.key)}
+              {availableColumns
+                .filter(col => col.key !== 'item_no' && col.key !== 'item_name')
+                .map(col => (
+                  <label
+                    key={`${col.key}-${col.label}`}
                     style={{
-                      width: '18px',
-                      height: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
                       cursor: 'pointer',
-                      accentColor: 'var(--color-primary)'
+                      padding: 'var(--space-2)',
+                      borderRadius: 'var(--radius-sm)',
+                      transition: 'background 0.2s',
+                      background: visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'
                     }}
-                  />
-                  <span style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text)'
-                  }}>
-                    {col.label}
-                  </span>
-                </label>
-              ))}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 107, 53, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleColumns.includes(col.key)}
+                      onChange={() => toggleColumn(col.key)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer',
+                        accentColor: 'var(--color-primary)'
+                      }}
+                    />
+                    <span style={{
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text)'
+                    }}>
+                      {col.label}
+                    </span>
+                  </label>
+                ))}
             </div>
           </Card>
         )}
@@ -531,46 +543,97 @@ export default function InventoryPage() {
 
                 <div style={{
                   display: 'grid',
-                  gap: 'var(--space-4)'
+                  gap: 'var(--space-3)'
                 }}>
-                  {filteredResults.map((item, index) => (
-                    <Card key={`${item.item_no}-${index}`} hover>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: visibleColumns.length <= 4 
-                          ? `repeat(${visibleColumns.length}, 1fr)`
-                          : 'repeat(auto-fit, minmax(150px, 1fr))',
-                        gap: 'var(--space-4)',
-                        alignItems: 'start'
-                      }}>
-                        {visibleColumns.map(colKey => {
-                          const col = availableColumns.find(c => c.key === colKey);
-                          if (!col) return null;
-                          
-                          return (
-                            <div key={`${item.item_no}-${colKey}`}>
-                              <div style={{
-                                fontSize: 'var(--text-xs)',
-                                color: 'var(--color-text-light)',
-                                marginBottom: 'var(--space-1)'
-                              }}>
-                                {col.label}
-                              </div>
-                              <div style={{
-                                fontSize: colKey === 'item_name' ? 'var(--text-base)' : 'var(--text-sm)',
-                                fontWeight: colKey === 'item_name' || colKey === 'item_no' ? 600 : 500,
-                                color: colKey === 'item_no' ? 'var(--color-primary)' : 'var(--color-text)',
-                                fontFamily: colKey === 'item_no' ? 'monospace' : 'inherit',
-                                wordBreak: colKey === 'item_name' ? 'break-word' : 'normal'
-                              }}>
-                                {renderCellValue(item, colKey)}
-                              </div>
+                  {filteredResults.map((item, index) => {
+                    // 품목번호와 품목명을 제외한 나머지 컬럼
+                    const dataColumns = visibleColumns.filter(k => k !== 'item_no' && k !== 'item_name');
+                    
+                    return (
+                      <Card key={`${item.item_no}-${index}`} hover style={{ padding: 'var(--space-4)' }}>
+                        {/* 첫 줄: 품목번호 + 품목명 (고정) */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1fr',
+                          gap: 'var(--space-3)',
+                          marginBottom: 'var(--space-3)',
+                          paddingBottom: 'var(--space-3)',
+                          borderBottom: '1px solid var(--color-border)'
+                        }}>
+                          {/* 품목번호 */}
+                          <div>
+                            <div style={{
+                              fontSize: '10px',
+                              color: 'var(--color-text-light)',
+                              marginBottom: '2px'
+                            }}>
+                              품목번호
                             </div>
-                          );
-                        })}
-                      </div>
-                    </Card>
-                  ))}
+                            <div style={{
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              fontFamily: 'monospace',
+                              color: 'var(--color-primary)'
+                            }}>
+                              {item.item_no}
+                            </div>
+                          </div>
+
+                          {/* 품목명 */}
+                          <div>
+                            <div style={{
+                              fontSize: '10px',
+                              color: 'var(--color-text-light)',
+                              marginBottom: '2px'
+                            }}>
+                              품목명
+                            </div>
+                            <div style={{
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: 'var(--color-text)',
+                              lineHeight: 1.3
+                            }}>
+                              {item.item_name}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 둘째 줄: 선택한 컬럼들 */}
+                        {dataColumns.length > 0 && (
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: `repeat(${Math.min(dataColumns.length, 3)}, 1fr)`,
+                            gap: 'var(--space-3)'
+                          }}>
+                            {dataColumns.map(colKey => {
+                              const col = availableColumns.find(c => c.key === colKey);
+                              if (!col) return null;
+                              
+                              return (
+                                <div key={`${item.item_no}-${colKey}`}>
+                                  <div style={{
+                                    fontSize: '10px',
+                                    color: 'var(--color-text-light)',
+                                    marginBottom: '2px'
+                                  }}>
+                                    {col.label}
+                                  </div>
+                                  <div style={{
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    color: 'var(--color-text)'
+                                  }}>
+                                    {renderCellValue(item, colKey)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
                 </div>
               </>
             ) : (
