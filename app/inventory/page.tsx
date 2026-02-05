@@ -17,6 +17,9 @@ interface InventoryItem {
   anseong_warehouse?: number;
   incoming_stock: number;
   sales_30days: number;
+  vintage: string;
+  alcohol_content: string;
+  country: string;
 }
 
 type WarehouseTab = 'CDV' | 'DL';
@@ -32,7 +35,10 @@ type ColumnKey =
   | 'available_stock' 
   | 'bonded_warehouse' 
   | 'incoming_stock' 
-  | 'sales_30days';
+  | 'sales_30days'
+  | 'vintage'
+  | 'alcohol_content'
+  | 'country';
 
 interface ColumnConfig {
   key: ColumnKey;
@@ -49,6 +55,9 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'wholesale_price', label: '도매가' },
   { key: 'retail_price', label: '판매가' },
   { key: 'min_price', label: '최저판매가' },
+  { key: 'vintage', label: '빈티지' },
+  { key: 'alcohol_content', label: '알콜도수' },
+  { key: 'country', label: '국가' },
   { key: 'available_stock', label: '가용재고', cdvOnly: true },
   { key: 'available_stock', label: '재고', dlOnly: true },
   { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
@@ -207,6 +216,12 @@ export default function InventoryPage() {
         return formatNumber(item.incoming_stock);
       case 'sales_30days':
         return formatNumber(item.sales_30days);
+      case 'vintage':
+        return item.vintage || '-';
+      case 'alcohol_content':
+        return item.alcohol_content || '-';
+      case 'country':
+        return item.country || '-';
       default:
         return '-';
     }

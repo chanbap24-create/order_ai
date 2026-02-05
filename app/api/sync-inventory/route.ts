@@ -48,9 +48,9 @@ export async function POST() {
       INSERT OR REPLACE INTO inventory_cdv (
         item_no, item_name, supply_price, discount_price, wholesale_price, 
         retail_price, min_price, available_stock, bonded_warehouse, 
-        incoming_stock, sales_30days
+        incoming_stock, sales_30days, vintage, alcohol_content, country
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     let cdvCount = 0;
@@ -70,7 +70,10 @@ export async function POST() {
         Number(row[11]) || 0,          // L: 가용재고
         Number(row[21]) || 0,          // V: 보세창고
         Number(row[20]) || 0,          // U: 미착품
-        Number(row[12]) || 0           // M: 30일출고
+        Number(row[12]) || 0,          // M: 30일출고
+        String(row[6] || ''),          // G: 빈티지
+        String(row[7] || ''),          // H: 알콜도수
+        String(row[8] || '')           // I: 국가
       );
       cdvCount++;
     }
@@ -95,8 +98,11 @@ export async function POST() {
     
     // Insert DL data
     const insertDL = db.prepare(`
-      INSERT OR REPLACE INTO inventory_dl (item_no, item_name, supply_price, available_stock, anseong_warehouse, sales_30days)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO inventory_dl (
+        item_no, item_name, supply_price, available_stock, anseong_warehouse, 
+        sales_30days, vintage, alcohol_content, country
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     let dlCount = 0;
@@ -111,7 +117,10 @@ export async function POST() {
         Number(row[15]) || 0,          // P: 공급가
         Number(row[11]) || 0,          // L: 재고
         Number(row[23]) || 0,          // X: 안성창고
-        Number(row[12]) || 0           // M: 30일출고
+        Number(row[12]) || 0,          // M: 30일출고
+        String(row[6] || ''),          // G: 빈티지
+        String(row[7] || ''),          // H: 알콜도수
+        String(row[8] || '')           // I: 국가
       );
       dlCount++;
     }

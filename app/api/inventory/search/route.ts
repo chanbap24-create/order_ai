@@ -15,6 +15,9 @@ interface InventoryItem {
   bonded_warehouse: number;
   incoming_stock: number;
   sales_30days: number;
+  vintage: string;
+  alcohol_content: string;
+  country: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -45,7 +48,10 @@ export async function GET(request: NextRequest) {
         available_stock,
         bonded_warehouse,
         incoming_stock,
-        sales_30days
+        sales_30days,
+        vintage,
+        alcohol_content,
+        country
       FROM inventory_cdv
       WHERE LOWER(item_name) LIKE ?
       ORDER BY supply_price DESC
