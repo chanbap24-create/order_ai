@@ -171,18 +171,24 @@ export default function InventoryPage() {
     setShowTastingNote(true);
 
     try {
-      const response = await fetch(`/api/tasting-notes?item_no=${itemNo}`);
+      const response = await fetch(`/api/tasting-notes?item_no=${itemNo}`, {
+        cache: 'no-store' // 캐시 비활성화
+      });
       const data = await response.json();
+      
+      console.log('📝 Tasting note response:', data);
 
       if (data.success) {
         setTastingNoteUrl(data.pdf_url);
+        console.log('✅ PDF URL:', data.pdf_url);
       } else {
         setTastingNoteUrl('');
+        console.error('❌ Error:', data.error);
         alert(data.error || '테이스팅 노트를 찾을 수 없습니다.');
         setShowTastingNote(false);
       }
     } catch (error) {
-      console.error('테이스팅 노트 조회 오류:', error);
+      console.error('❌ 테이스팅 노트 조회 오류:', error);
       alert('테이스팅 노트를 불러오는 중 오류가 발생했습니다.');
       setShowTastingNote(false);
     } finally {

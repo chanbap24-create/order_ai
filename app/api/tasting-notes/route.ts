@@ -26,8 +26,10 @@ export async function GET(request: NextRequest) {
       console.log('📥 Loading tasting notes index from GitHub...');
       
       try {
-        const response = await fetch(INDEX_URL, {
-          next: { revalidate: 3600 } // 1시간 캐시
+        // 캐시 무효화를 위한 타임스탬프 추가
+        const cacheBuster = `?t=${Date.now()}`;
+        const response = await fetch(`${INDEX_URL}${cacheBuster}`, {
+          cache: 'no-store' // 캐시 비활성화
         });
         
         if (!response.ok) {

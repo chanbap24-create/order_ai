@@ -3,12 +3,12 @@
   "updated_at": "2026-02-05",
   "base_url": "https://github.com/chanbap24-create/order_ai/releases/download/note",
   "notes": {
-    "00NV001": {
+    "00NV801": {
       "exists": true,
-      "filename": "00NV001.pdf",
+      "filename": "00NV801.pdf",
       "size_kb": 333,
       "pages": 1,
-      "wine_name": "테스트 와인"
+      "wine_name": "CH 찰스 하이직 브륏 리저브"
     }
   }
 }
