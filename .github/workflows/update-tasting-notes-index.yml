@@ -1,0 +1,42 @@
+name: Update Tasting Notes Index
+
+on:
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    if: github.event.release.tag_name == 'note' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm install pdf-parse axios
+        
+      - name: Generate tasting notes index
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/generate-index-from-release.js
+        
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload note tasting-notes-index.json --clobber
+        
+      - name: Commit updated index to repository
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add tasting-notes-index.json
+          git diff --staged --quiet || git commit -m "chore: Auto-update tasting-notes-index.json [skip ci]"
+          git push
