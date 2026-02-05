@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
-import path from 'path';
+import { db } from '@/app/lib/db';
+
+export const runtime = 'nodejs';
 
 interface InventoryItem {
-  item_no: string;        // B열: 품목번호
-  item_name: string;      // C열: 품목명
-  supply_price: number;   // P열: 공급가
-  available_stock: number; // L열: 가용재고
-  bonded_warehouse: number; // V열: 보세창고
-  sales_30days: number;   // M열: 30일 출고
+  item_no: string;
+  item_name: string;
+  supply_price: number;
+  available_stock: number;
+  bonded_warehouse: number;
+  sales_30days: number;
 }
 
 export async function GET(request: NextRequest) {
@@ -19,49 +20,26 @@ export async function GET(request: NextRequest) {
     if (!query.trim()) {
       return NextResponse.json({ 
         results: [],
+        count: 0,
         message: '검색어를 입력해주세요.' 
       });
     }
 
-    // 엑셀 파일 읽기
-    const fs = require('fs');
-    const excelPath = path.join(process.cwd(), 'order-ai.xlsx');
-    const buffer = fs.readFileSync(excelPath);
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    // DB에서 검색 (매우 빠름!)
+    const searchQuery = `%${query.toLowerCase()}%`;
     
-    if (!workbook.SheetNames.includes('Downloads')) {
-      return NextResponse.json(
-        { error: 'Downloads 시트를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-
-    const sheet = workbook.Sheets['Downloads'];
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as any[][];
-
-    // 첫 번째 행은 헤더이므로 제외
-    const headers = data[0];
-    const rows = data.slice(1);
-
-    // 검색어를 소문자로 변환 (대소문자 구분 없이 검색)
-    const searchQuery = query.toLowerCase().trim();
-
-    // 품목 검색 (품목명에 검색어가 포함된 경우)
-    const results: InventoryItem[] = rows
-      .filter(row => {
-        const itemName = String(row[2] || '').toLowerCase(); // C열: 품목명
-        return itemName.includes(searchQuery);
-      })
-      .map(row => ({
-        item_no: String(row[1] || ''),           // B열: 품목번호
-        item_name: String(row[2] || ''),         // C열: 품목명
-        supply_price: Number(row[15]) || 0,      // P열 (index 15): 공급가
-        available_stock: Number(row[11]) || 0,   // L열 (index 11): 가용재고
-        bonded_warehouse: Number(row[21]) || 0,  // V열 (index 21): 보세창고
-        sales_30days: Number(row[12]) || 0,      // M열 (index 12): 30일 출고
-      }))
-      .filter(item => item.item_no) // 품목번호가 있는 것만
-      .sort((a, b) => b.supply_price - a.supply_price); // 공급가 높은 순으로 정렬
+    const results = db.prepare(`
+      SELECT 
+        item_no,
+        item_name,
+        supply_price,
+        available_stock,
+        bonded_warehouse,
+        sales_30days
+      FROM inventory_cdv
+      WHERE LOWER(item_name) LIKE ?
+      ORDER BY supply_price DESC
+    `).all(searchQuery) as InventoryItem[];
 
     return NextResponse.json({
       results,
