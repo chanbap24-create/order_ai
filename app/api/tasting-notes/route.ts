@@ -20,56 +20,59 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const itemNo = searchParams.get('item_no');
 
-    // 인덱스 파일 로드 (캐시 사용)
-    const now = Date.now();
-    if (!indexCache || (now - cacheTime) > CACHE_DURATION) {
-      console.log('📥 Loading tasting notes index from GitHub...');
+    // 인덱스 파일 항상 새로 로드 (캐시 문제 방지)
+    console.log('📥 Loading tasting notes index from GitHub...');
+    
+    try {
+      // 캐시 무효화를 위한 타임스탬프 추가
+      const cacheBuster = `?t=${Date.now()}`;
+      const fullUrl = `${INDEX_URL}${cacheBuster}`;
+      console.log('📥 Full URL:', fullUrl);
       
-      try {
-        // 캐시 무효화를 위한 타임스탬프 추가
-        const cacheBuster = `?t=${Date.now()}`;
-        const fullUrl = `${INDEX_URL}${cacheBuster}`;
-        console.log('📥 Loading tasting notes index from:', fullUrl);
-        
-        const response = await fetch(fullUrl, {
-          cache: 'no-store', // 캐시 비활성화
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        });
-        
-        console.log('📡 Response status:', response.status);
-        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        if (!response.ok) {
-          console.error('❌ Failed to fetch, status:', response.status);
-          throw new Error(`Failed to fetch index: ${response.status}`);
+      const response = await fetch(fullUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Accept': 'application/json'
         }
-        
-        const data = await response.json();
-        console.log('✅ Index loaded successfully, items:', Object.keys(data.notes || {}).length);
-        
-        indexCache = data;
-        cacheTime = now;
-        console.log('✅ Index loaded successfully');
-      } catch (error) {
-        console.error('❌ Failed to load tasting notes index:', error);
-        
-        // 인덱스 파일이 없으면 빈 객체 반환
-        return NextResponse.json({
-          success: false,
-          error: '테이스팅 노트 데이터를 불러올 수 없습니다.',
-          message: 'GitHub Release에 tasting-notes-index.json 파일을 업로드해주세요.'
-        }, { status: 404 });
+      });
+      
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch, status:', response.status);
+        throw new Error(`Failed to fetch index: ${response.status}`);
       }
+      
+      const data = await response.json();
+      console.log('✅ Index loaded, items:', Object.keys(data.notes || {}).length);
+      console.log('✅ Base URL:', data.base_url);
+      
+      indexCache = data;
+    } catch (error: any) {
+      console.error('❌ Failed to load tasting notes index:', error.message);
+      
+      return NextResponse.json({
+        success: false,
+        error: '테이스팅 노트 데이터를 불러올 수 없습니다.',
+        message: error.message
+      }, { status: 404 });
     }
 
     // 특정 품목번호 조회
     if (itemNo) {
-      const note = indexCache.notes?.[itemNo];
+      if (!indexCache || !indexCache.notes) {
+        return NextResponse.json({
+          success: false,
+          error: '인덱스 데이터가 로드되지 않았습니다.'
+        }, { status: 500 });
+      }
+
+      const note = indexCache.notes[itemNo];
       
       if (!note || !note.exists) {
+        console.log('❌ Item not found:', itemNo);
         return NextResponse.json({
           success: false,
           error: '해당 품목의 테이스팅 노트가 없습니다.',
@@ -77,8 +80,12 @@ export async function GET(request: NextRequest) {
         }, { status: 404 });
       }
 
-      // PDF URL 생성
-      const pdfUrl = `${GITHUB_RELEASE_URL}/${note.filename}`;
+      // PDF URL 생성 (base_url 사용)
+      const baseUrl = indexCache.base_url || GITHUB_RELEASE_URL;
+      const pdfUrl = `${baseUrl}/${note.filename}`;
+      
+      console.log('✅ Found note for:', itemNo);
+      console.log('✅ PDF URL:', pdfUrl);
 
       return NextResponse.json({
         success: true,
