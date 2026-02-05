@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export const runtime = 'nodejs';
 
@@ -29,16 +30,26 @@ export async function GET(request: NextRequest) {
 
     // Read Excel file
     const filePath = path.join(process.cwd(), 'order-ai.xlsx');
-    const workbook = XLSX.readFile(filePath);
+    
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json(
+        { error: 'Excel 파일을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+    
+    const buffer = fs.readFileSync(filePath);
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = 'DL';
-    const worksheet = workbook.Sheets[sheetName];
 
-    if (!worksheet) {
+    if (!workbook.SheetNames.includes(sheetName)) {
       return NextResponse.json(
         { error: 'DL 시트를 찾을 수 없습니다.' },
         { status: 404 }
       );
     }
+
+    const worksheet = workbook.Sheets[sheetName];
 
     // Convert to JSON
     const data: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -91,7 +102,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('DL 재고 검색 오류:', error);
     return NextResponse.json(
-      { error: error.message || '검색 중 오류가 발생했습니다.' },
+      { error: error.message || '검색 중 오류가 발생했습니다.', details: error.stack },
       { status: 500 }
     );
   }
