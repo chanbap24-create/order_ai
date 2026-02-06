@@ -343,7 +343,7 @@ export default function InventoryPage() {
             fontSize: '2rem',
             fontWeight: 800
           }}>
-            재고 확인
+            Inventory
           </h1>
           
           <button
@@ -352,15 +352,16 @@ export default function InventoryPage() {
               padding: 'var(--space-3) var(--space-5)',
               fontSize: 'var(--text-sm)',
               fontWeight: 600,
-              border: '2px solid var(--color-primary)',
+              border: '2px solid #1a1a1a',
               borderRadius: 'var(--radius-md)',
-              background: showColumnSettings ? 'var(--color-primary)' : 'transparent',
-              color: showColumnSettings ? 'white' : 'var(--color-primary)',
+              background: showColumnSettings ? '#1a1a1a' : 'transparent',
+              color: showColumnSettings ? 'white' : '#1a1a1a',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              letterSpacing: '0.03em'
             }}
           >
-            ⚙️ 컬럼 설정
+            Setting
           </button>
         </div>
 
@@ -509,21 +510,34 @@ export default function InventoryPage() {
                   transition: 'border-color var(--transition-fast)',
                   background: 'var(--color-background)'
                 }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
+                onFocus={(e) => e.target.style.borderColor = '#1a1a1a'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
               />
             </div>
-            <Button
+            <button
               onClick={handleSearch}
               disabled={isSearching}
               style={{
                 height: '48px',
-                padding: '0 var(--space-8)',
-                minWidth: '100px'
+                width: '48px',
+                minWidth: '48px',
+                padding: 0,
+                background: '#1a1a1a',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                cursor: isSearching ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                opacity: isSearching ? 0.6 : 1
               }}
             >
-              {isSearching ? '검색 중...' : '검색'}
-            </Button>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </button>
           </div>
 
           {error && (
