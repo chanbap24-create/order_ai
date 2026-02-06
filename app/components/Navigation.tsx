@@ -35,7 +35,8 @@ export default function Navigation() {
           display: 'flex',
           alignItems: 'center',
           textDecoration: 'none',
-          padding: 'var(--space-2)'
+          padding: '0',
+          marginLeft: '-8px'
         }}>
           <img 
             src="/logo.png" 
