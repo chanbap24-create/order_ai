@@ -44,57 +44,61 @@ export default function Navigation() {
         {/* Navigation Links */}
         <div style={{
           display: 'flex',
-          gap: 'var(--space-2)'
+          gap: 'var(--space-2)',
+          background: 'white',
+          padding: 'var(--space-1)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--color-border)'
         }}>
           <Link
             href="/inventory"
             style={{
               padding: 'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-lg)',
+              borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-sm)',
               textDecoration: 'none',
-              color: isActive('/inventory') ? 'white' : 'var(--color-text-light)',
-              background: isActive('/inventory') ? 'var(--color-primary)' : 'transparent',
+              color: isActive('/inventory') ? 'white' : '#1a1a1a',
+              background: isActive('/inventory') ? '#1a1a1a' : 'transparent',
               transition: 'all var(--transition-fast)',
-              letterSpacing: '-0.011em'
+              letterSpacing: '0.03em'
             }}
           >
-            재고
+            INVENTORY
           </Link>
 
           <Link
             href="/wine"
             style={{
               padding: 'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-lg)',
+              borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-sm)',
               textDecoration: 'none',
-              color: isActive('/wine') ? 'white' : 'var(--color-text-light)',
-              background: isActive('/wine') ? 'var(--color-primary)' : 'transparent',
+              color: isActive('/wine') ? 'white' : '#1a1a1a',
+              background: isActive('/wine') ? '#1a1a1a' : 'transparent',
               transition: 'all var(--transition-fast)',
-              letterSpacing: '-0.011em'
+              letterSpacing: '0.03em'
             }}
           >
-            CV
+            WINE
           </Link>
           
           <Link
             href="/glass"
             style={{
               padding: 'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-lg)',
+              borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-sm)',
               textDecoration: 'none',
-              color: isActive('/glass') ? 'white' : 'var(--color-text-light)',
-              background: isActive('/glass') ? 'var(--color-primary)' : 'transparent',
+              color: isActive('/glass') ? 'white' : '#1a1a1a',
+              background: isActive('/glass') ? '#1a1a1a' : 'transparent',
               transition: 'all var(--transition-fast)',
-              letterSpacing: '-0.011em'
+              letterSpacing: '0.03em'
             }}
           >
-            DL
+            RIEDEL
           </Link>
         </div>
       </div>

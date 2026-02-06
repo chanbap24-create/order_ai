@@ -430,7 +430,7 @@ export default function InventoryPage() {
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: 'var(--space-6)' }}>
+        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-1)' }}>
           <div style={{
             display: 'flex',
             gap: 'var(--space-2)',
@@ -445,17 +445,18 @@ export default function InventoryPage() {
               }}
               style={{
                 padding: 'var(--space-3) var(--space-6)',
-                fontSize: 'var(--text-base)',
+                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'CDV' ? 'var(--color-primary)' : 'transparent',
-                color: activeTab === 'CDV' ? 'white' : 'var(--color-text-light)'
+                background: activeTab === 'CDV' ? '#1a1a1a' : 'transparent',
+                color: activeTab === 'CDV' ? 'white' : '#1a1a1a',
+                letterSpacing: '0.03em'
               }}
             >
-              CDV (와인)
+              WINE
             </button>
             <button
               onClick={() => {
@@ -466,17 +467,18 @@ export default function InventoryPage() {
               }}
               style={{
                 padding: 'var(--space-3) var(--space-6)',
-                fontSize: 'var(--text-base)',
+                fontSize: 'var(--text-sm)',
                 fontWeight: 600,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'DL' ? 'var(--color-primary)' : 'transparent',
-                color: activeTab === 'DL' ? 'white' : 'var(--color-text-light)'
+                background: activeTab === 'DL' ? '#1a1a1a' : 'transparent',
+                color: activeTab === 'DL' ? 'white' : '#1a1a1a',
+                letterSpacing: '0.03em'
               }}
             >
-              DL (글라스)
+              RIEDEL
             </button>
           </div>
         </Card>
