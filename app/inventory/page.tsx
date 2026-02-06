@@ -455,7 +455,7 @@ export default function InventoryPage() {
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'CDV' ? '#1E40AF' : 'transparent',
+                background: activeTab === 'CDV' ? '#8B1538' : 'transparent',
                 color: activeTab === 'CDV' ? 'white' : '#6B7280',
                 letterSpacing: '0'
               }}
@@ -477,7 +477,7 @@ export default function InventoryPage() {
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'DL' ? '#1E40AF' : 'transparent',
+                background: activeTab === 'DL' ? '#8B1538' : 'transparent',
                 color: activeTab === 'DL' ? 'white' : '#6B7280',
                 letterSpacing: '0'
               }}
@@ -513,7 +513,7 @@ export default function InventoryPage() {
                   transition: 'border-color var(--transition-fast)',
                   background: 'var(--color-background)'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#1E40AF'}
+                onFocus={(e) => e.target.style.borderColor = '#8B1538'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
               />
             </div>
