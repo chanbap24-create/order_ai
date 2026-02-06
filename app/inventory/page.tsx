@@ -434,10 +434,10 @@ export default function InventoryPage() {
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-1) var(--space-2)' }}>
+        <Card style={{ marginBottom: 'var(--space-4)', padding: '3px' }}>
           <div style={{
             display: 'flex',
-            gap: 'var(--space-1)',
+            gap: 'var(--space-2)',
             justifyContent: 'flex-end'
           }}>
             <button
@@ -448,14 +448,14 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-1) var(--space-4)',
-                fontSize: 'var(--text-xs)',
+                padding: 'var(--space-2) var(--space-5)',
+                fontSize: 'var(--text-sm)',
                 fontWeight: 500,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'CDV' ? '#8B1538' : 'transparent',
+                background: activeTab === 'CDV' ? '#1E40AF' : 'transparent',
                 color: activeTab === 'CDV' ? 'white' : '#6B7280',
                 letterSpacing: '0'
               }}
@@ -470,14 +470,14 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-1) var(--space-4)',
-                fontSize: 'var(--text-xs)',
+                padding: 'var(--space-2) var(--space-5)',
+                fontSize: 'var(--text-sm)',
                 fontWeight: 500,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'DL' ? '#8B1538' : 'transparent',
+                background: activeTab === 'DL' ? '#1E40AF' : 'transparent',
                 color: activeTab === 'DL' ? 'white' : '#6B7280',
                 letterSpacing: '0'
               }}
@@ -488,10 +488,10 @@ export default function InventoryPage() {
         </Card>
 
         {/* Search Section */}
-        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-1) var(--space-2)' }}>
+        <Card style={{ marginBottom: 'var(--space-6)', padding: '3px' }}>
           <div style={{
             display: 'flex',
-            gap: 'var(--space-1)',
+            gap: 'var(--space-2)',
             alignItems: 'center'
           }}>
             <div style={{ flex: 1 }}>
@@ -504,16 +504,16 @@ export default function InventoryPage() {
                 disabled={isSearching}
                 style={{
                   width: '100%',
-                  height: '40px',
-                  padding: '0 var(--space-3)',
-                  fontSize: 'var(--text-sm)',
+                  height: '48px',
+                  padding: '0 var(--space-4)',
+                  fontSize: 'var(--text-base)',
                   border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-lg)',
                   outline: 'none',
                   transition: 'border-color var(--transition-fast)',
                   background: 'var(--color-background)'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#8B1538'}
+                onFocus={(e) => e.target.style.borderColor = '#1E40AF'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
               />
             </div>
@@ -521,9 +521,9 @@ export default function InventoryPage() {
               onClick={handleSearch}
               disabled={isSearching}
               style={{
-                height: '40px',
-                width: '40px',
-                minWidth: '40px',
+                height: '48px',
+                width: '48px',
+                minWidth: '48px',
                 padding: 0,
                 background: '#8B1538',
                 border: 'none',
