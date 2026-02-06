@@ -32,13 +32,18 @@ export default function Navigation() {
       }}>
         {/* Logo */}
         <Link href="/" style={{
-          fontSize: 'var(--text-xl)',
-          fontWeight: 800,
-          color: 'var(--color-text)',
-          textDecoration: 'none',
-          letterSpacing: '-0.02em'
+          display: 'flex',
+          alignItems: 'center',
+          textDecoration: 'none'
         }}>
-          Sales Desk
+          <img 
+            src="/logo.svg" 
+            alt="Cave De Vin Logo" 
+            style={{
+              height: '40px',
+              width: '40px'
+            }}
+          />
         </Link>
         
         {/* Navigation Links */}
