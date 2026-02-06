@@ -34,14 +34,15 @@ export default function Navigation() {
         <Link href="/" style={{
           display: 'flex',
           alignItems: 'center',
-          textDecoration: 'none'
+          textDecoration: 'none',
+          padding: 'var(--space-2)'
         }}>
           <img 
             src="/logo.png" 
             alt="Cave De Vin Logo" 
             style={{
-              height: '50px',
-              width: '50px',
+              height: '48px',
+              width: '48px',
               objectFit: 'contain'
             }}
           />
