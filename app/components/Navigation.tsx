@@ -14,7 +14,7 @@ export default function Navigation() {
       top: 0,
       left: 0,
       right: 0,
-      height: '70px',
+      height: '80px',
       background: 'var(--color-card)',
       borderBottom: '1px solid var(--color-border)',
       zIndex: 1000,
@@ -40,8 +40,8 @@ export default function Navigation() {
             src="/logo.png" 
             alt="Cave De Vin Logo" 
             style={{
-              height: '40px',
-              width: '40px',
+              height: '50px',
+              width: '50px',
               objectFit: 'contain'
             }}
           />
@@ -59,7 +59,7 @@ export default function Navigation() {
           <Link
             href="/inventory"
             style={{
-              padding: 'var(--space-3) var(--space-6)',
+              padding: 'var(--space-3) var(--space-5)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-sm)',
@@ -76,7 +76,7 @@ export default function Navigation() {
           <Link
             href="/wine"
             style={{
-              padding: 'var(--space-3) var(--space-6)',
+              padding: 'var(--space-3) var(--space-5)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-sm)',
@@ -93,7 +93,7 @@ export default function Navigation() {
           <Link
             href="/glass"
             style={{
-              padding: 'var(--space-3) var(--space-6)',
+              padding: 'var(--space-3) var(--space-5)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-sm)',
