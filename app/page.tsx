@@ -25,14 +25,12 @@ export default function Home() {
         }}>
           <h1 className="heading-xl" style={{
             marginBottom: 'var(--space-4)',
-            background: 'linear-gradient(135deg, #1A1A1A 0%, #FF6B35 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+            color: '#8B4049',
             fontSize: '3rem',
-            fontWeight: 800
+            fontWeight: 700,
+            letterSpacing: '0.05em'
           }}>
-            Sales Desk
+            CAVE DE VIN
           </h1>
           <p style={{
             fontSize: 'var(--text-xl)',
