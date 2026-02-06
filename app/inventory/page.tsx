@@ -482,11 +482,11 @@ export default function InventoryPage() {
         </Card>
 
         {/* Search Section */}
-        <Card style={{ marginBottom: 'var(--space-6)' }}>
+        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4)' }}>
           <div style={{
             display: 'flex',
-            gap: 'var(--space-4)',
-            alignItems: 'flex-start'
+            gap: 'var(--space-3)',
+            alignItems: 'center'
           }}>
             <div style={{ flex: 1 }}>
               <input
@@ -498,7 +498,8 @@ export default function InventoryPage() {
                 disabled={isSearching}
                 style={{
                   width: '100%',
-                  padding: 'var(--space-4)',
+                  height: '48px',
+                  padding: '0 var(--space-4)',
                   fontSize: 'var(--text-base)',
                   border: '2px solid var(--color-border)',
                   borderRadius: 'var(--radius-lg)',
@@ -514,8 +515,9 @@ export default function InventoryPage() {
               onClick={handleSearch}
               disabled={isSearching}
               style={{
-                padding: 'var(--space-4) var(--space-8)',
-                minWidth: '120px'
+                height: '48px',
+                padding: '0 var(--space-8)',
+                minWidth: '100px'
               }}
             >
               {isSearching ? '검색 중...' : '검색'}
