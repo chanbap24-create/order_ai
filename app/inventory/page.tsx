@@ -337,9 +337,10 @@ export default function InventoryPage() {
         }}>
           <h1 style={{
             color: '#1a1a1a',
-            fontSize: '2rem',
-            fontWeight: 700,
-            margin: 0
+            fontSize: '1.75rem',
+            fontWeight: 600,
+            margin: 0,
+            letterSpacing: '-0.01em'
           }}>
             Inventory
           </h1>
@@ -347,16 +348,16 @@ export default function InventoryPage() {
           <button
             onClick={() => setShowColumnSettings(!showColumnSettings)}
             style={{
-              padding: 'var(--space-3) var(--space-5)',
+              padding: 'var(--space-2) var(--space-4)',
               fontSize: 'var(--text-sm)',
-              fontWeight: 600,
-              border: '2px solid #1a1a1a',
+              fontWeight: 500,
+              border: '1px solid #E5E7EB',
               borderRadius: 'var(--radius-md)',
-              background: showColumnSettings ? '#1a1a1a' : 'transparent',
-              color: showColumnSettings ? 'white' : '#1a1a1a',
+              background: showColumnSettings ? '#F8F9FA' : 'white',
+              color: '#1a1a1a',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              letterSpacing: '0.03em'
+              letterSpacing: '0'
             }}
           >
             Setting
@@ -432,7 +433,7 @@ export default function InventoryPage() {
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-1)' }}>
+        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-2)' }}>
           <div style={{
             display: 'flex',
             gap: 'var(--space-2)',
@@ -446,16 +447,16 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-3) var(--space-6)',
+                padding: 'var(--space-2) var(--space-5)',
                 fontSize: 'var(--text-sm)',
-                fontWeight: 600,
+                fontWeight: 500,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
                 background: activeTab === 'CDV' ? '#1a1a1a' : 'transparent',
-                color: activeTab === 'CDV' ? 'white' : '#1a1a1a',
-                letterSpacing: '0.03em'
+                color: activeTab === 'CDV' ? 'white' : '#6B7280',
+                letterSpacing: '0'
               }}
             >
               WINE
@@ -468,16 +469,16 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-3) var(--space-6)',
+                padding: 'var(--space-2) var(--space-5)',
                 fontSize: 'var(--text-sm)',
-                fontWeight: 600,
+                fontWeight: 500,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
                 background: activeTab === 'DL' ? '#1a1a1a' : 'transparent',
-                color: activeTab === 'DL' ? 'white' : '#1a1a1a',
-                letterSpacing: '0.03em'
+                color: activeTab === 'DL' ? 'white' : '#6B7280',
+                letterSpacing: '0'
               }}
             >
               RIEDEL

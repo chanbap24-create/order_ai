@@ -15,12 +15,13 @@ export default function Navigation() {
       left: 0,
       right: 0,
       height: '80px',
-      background: 'var(--color-card)',
-      borderBottom: '1px solid var(--color-border)',
+      background: 'white',
+      borderBottom: '1px solid #E5E7EB',
       zIndex: 1000,
       display: 'flex',
       alignItems: 'center',
-      padding: '0 var(--space-6)'
+      padding: '0 var(--space-6)',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.08)'
     }}>
       <div style={{
         display: 'flex',
