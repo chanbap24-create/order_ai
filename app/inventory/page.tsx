@@ -883,6 +883,8 @@ export default function InventoryPage() {
                         {/* PDF 다운로드 */}
                         <a
                           href={`/api/proxy/pdf?url=${encodeURIComponent(originalPdfUrl)}&download=true`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           download={`${selectedItemNo}.pdf`}
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
@@ -902,6 +904,8 @@ export default function InventoryPage() {
                         {/* PPTX 다운로드 */}
                         <a
                           href={`/api/proxy/pdf?url=${encodeURIComponent(originalPdfUrl.replace('.pdf', '.pptx'))}&download=true`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           download={`${selectedItemNo}.pptx`}
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
