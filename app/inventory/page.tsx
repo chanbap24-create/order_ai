@@ -245,11 +245,6 @@ export default function InventoryPage() {
       alert('다운로드 중 오류가 발생했습니다.');
     }
   };
-      setShowTastingNote(false);
-    } finally {
-      setTastingNoteLoading(false);
-    }
-  };
 
   const formatNumber = (num: number) => {
     return num.toLocaleString('ko-KR');
