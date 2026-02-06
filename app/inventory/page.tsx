@@ -882,8 +882,8 @@ export default function InventoryPage() {
                     }}>
                         {/* PDF 다운로드 */}
                         <a
-                          href={originalPdfUrl} 
-                          download
+                          href={`/api/proxy/pdf?url=${encodeURIComponent(originalPdfUrl)}&download=true`}
+                          download={`${selectedItemNo}.pdf`}
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
                             background: '#8B1538',
@@ -901,8 +901,8 @@ export default function InventoryPage() {
                         </a>
                         {/* PPTX 다운로드 */}
                         <a
-                          href={originalPdfUrl.replace('.pdf', '.pptx')} 
-                          download
+                          href={`/api/proxy/pdf?url=${encodeURIComponent(originalPdfUrl.replace('.pdf', '.pptx'))}&download=true`}
+                          download={`${selectedItemNo}.pptx`}
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
                             background: '#FF6B35',

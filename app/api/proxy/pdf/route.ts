@@ -12,25 +12,26 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const pdfUrl = searchParams.get('url');
+    const forceDownload = searchParams.get('download') === 'true';
 
     if (!pdfUrl) {
       return NextResponse.json(
-        { error: 'PDF URL이 필요합니다.' },
+        { error: 'URL이 필요합니다.' },
         { status: 400 }
       );
     }
 
-    // GitHub Release URL 검증
-    if (!pdfUrl.includes('github.com') || !pdfUrl.endsWith('.pdf')) {
+    // GitHub Release URL 검증 (PDF 또는 PPTX)
+    if (!pdfUrl.includes('github.com') || (!pdfUrl.endsWith('.pdf') && !pdfUrl.endsWith('.pptx'))) {
       return NextResponse.json(
-        { error: '올바른 GitHub Release PDF URL이 아닙니다.' },
+        { error: '올바른 GitHub Release 파일 URL이 아닙니다.' },
         { status: 400 }
       );
     }
 
-    console.log('📥 Fetching PDF from GitHub:', pdfUrl);
+    console.log('📥 Fetching file from GitHub:', pdfUrl);
 
-    // GitHub에서 PDF 다운로드
+    // GitHub에서 파일 다운로드
     const response = await fetch(pdfUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; Order-AI/1.0)'
@@ -38,24 +39,33 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error('❌ Failed to fetch PDF:', response.status);
+      console.error('❌ Failed to fetch file:', response.status);
       return NextResponse.json(
-        { error: 'PDF를 불러올 수 없습니다.' },
+        { error: '파일을 불러올 수 없습니다.' },
         { status: response.status }
       );
     }
 
-    // PDF 데이터 가져오기
-    const pdfBuffer = await response.arrayBuffer();
+    // 파일 데이터 가져오기
+    const fileBuffer = await response.arrayBuffer();
+    
+    // 파일 확장자 확인
+    const isPdf = pdfUrl.endsWith('.pdf');
+    const contentType = isPdf ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const fileName = pdfUrl.split('/').pop() || 'file';
 
-    console.log('✅ PDF loaded successfully, size:', pdfBuffer.byteLength);
+    console.log('✅ File loaded successfully, size:', fileBuffer.byteLength);
 
-    // PDF를 inline으로 반환 (다운로드가 아닌 브라우저 표시)
-    return new NextResponse(pdfBuffer, {
+    // 다운로드 모드 또는 브라우저 표시 모드
+    const contentDisposition = forceDownload 
+      ? `attachment; filename="${fileName}"` 
+      : 'inline';
+
+    return new NextResponse(fileBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline', // 다운로드 대신 브라우저에서 표시
+        'Content-Type': contentType,
+        'Content-Disposition': contentDisposition,
         'Cache-Control': 'public, max-age=86400', // 24시간 캐시
       }
     });
