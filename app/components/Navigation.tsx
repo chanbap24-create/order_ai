@@ -68,7 +68,7 @@ export default function Navigation() {
               fontSize: 'var(--text-xs)',
               textDecoration: 'none',
               color: isActive('/inventory') ? 'white' : '#1a1a1a',
-              background: isActive('/inventory') ? '#1a1a1a' : 'transparent',
+              background: isActive('/inventory') ? '#8B1538' : 'transparent',
               transition: 'all var(--transition-fast)',
               letterSpacing: '0.03em'
             }}
@@ -85,7 +85,7 @@ export default function Navigation() {
               fontSize: 'var(--text-xs)',
               textDecoration: 'none',
               color: isActive('/wine') ? 'white' : '#1a1a1a',
-              background: isActive('/wine') ? '#1a1a1a' : 'transparent',
+              background: isActive('/wine') ? '#8B1538' : 'transparent',
               transition: 'all var(--transition-fast)',
               letterSpacing: '0.03em'
             }}
@@ -102,7 +102,7 @@ export default function Navigation() {
               fontSize: 'var(--text-xs)',
               textDecoration: 'none',
               color: isActive('/glass') ? 'white' : '#1a1a1a',
-              background: isActive('/glass') ? '#1a1a1a' : 'transparent',
+              background: isActive('/glass') ? '#8B1538' : 'transparent',
               transition: 'all var(--transition-fast)',
               letterSpacing: '0.03em'
             }}
