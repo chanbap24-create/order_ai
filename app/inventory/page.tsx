@@ -367,16 +367,19 @@ export default function InventoryPage() {
         {showColumnSettings && (
           <Card style={{ marginBottom: 'var(--space-6)' }}>
             <h3 style={{
-              fontSize: 'var(--text-lg)',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
-              marginBottom: 'var(--space-2)',
-              color: 'var(--color-text)'
+              marginBottom: 'var(--space-1)',
+              color: '#1a1a1a',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)'
             }}>
               📊 표시할 컬럼 선택
             </h3>
             <p style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-text-light)',
+              fontSize: 'var(--text-xs)',
+              color: '#8E8E93',
               marginBottom: 'var(--space-4)'
             }}>
               💡 품번과 품명은 항상 표시됩니다
@@ -384,8 +387,8 @@ export default function InventoryPage() {
             
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: 'var(--space-3)'
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: 'var(--space-2)'
             }}>
               {availableColumns
                 .filter(col => col.key !== 'item_no' && col.key !== 'item_name')
@@ -397,28 +400,28 @@ export default function InventoryPage() {
                       alignItems: 'center',
                       gap: 'var(--space-2)',
                       cursor: 'pointer',
-                      padding: 'var(--space-2)',
+                      padding: 'var(--space-2) var(--space-3)',
                       borderRadius: 'var(--radius-sm)',
-                      transition: 'background 0.2s',
-                      background: visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'
+                      transition: 'all 0.2s',
+                      background: 'transparent',
+                      border: '1px solid transparent'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 107, 53, 0.05)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = visibleColumns.includes(col.key) ? 'rgba(255, 107, 53, 0.1)' : 'transparent'}
                   >
                     <input
                       type="checkbox"
                       checked={visibleColumns.includes(col.key)}
                       onChange={() => toggleColumn(col.key)}
                       style={{
-                        width: '18px',
-                        height: '18px',
+                        width: '16px',
+                        height: '16px',
                         cursor: 'pointer',
-                        accentColor: 'var(--color-primary)'
+                        accentColor: '#1a1a1a'
                       }}
                     />
                     <span style={{
                       fontSize: 'var(--text-sm)',
-                      color: 'var(--color-text)'
+                      color: '#1a1a1a',
+                      fontWeight: 500
                     }}>
                       {col.label}
                     </span>
