@@ -434,10 +434,10 @@ export default function InventoryPage() {
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-2) var(--space-3)' }}>
+        <Card style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-1) var(--space-2)' }}>
           <div style={{
             display: 'flex',
-            gap: 'var(--space-2)',
+            gap: 'var(--space-1)',
             justifyContent: 'flex-end'
           }}>
             <button
@@ -448,8 +448,8 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-2) var(--space-5)',
-                fontSize: 'var(--text-sm)',
+                padding: 'var(--space-1) var(--space-4)',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 500,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
@@ -470,8 +470,8 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-2) var(--space-5)',
-                fontSize: 'var(--text-sm)',
+                padding: 'var(--space-1) var(--space-4)',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 500,
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
@@ -488,10 +488,10 @@ export default function InventoryPage() {
         </Card>
 
         {/* Search Section */}
-        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-2) var(--space-3)' }}>
+        <Card style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-1) var(--space-2)' }}>
           <div style={{
             display: 'flex',
-            gap: 'var(--space-2)',
+            gap: 'var(--space-1)',
             alignItems: 'center'
           }}>
             <div style={{ flex: 1 }}>
@@ -504,10 +504,10 @@ export default function InventoryPage() {
                 disabled={isSearching}
                 style={{
                   width: '100%',
-                  height: '48px',
-                  padding: '0 var(--space-4)',
-                  fontSize: 'var(--text-base)',
-                  border: '2px solid var(--color-border)',
+                  height: '40px',
+                  padding: '0 var(--space-3)',
+                  fontSize: 'var(--text-sm)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-lg)',
                   outline: 'none',
                   transition: 'border-color var(--transition-fast)',
@@ -521,9 +521,9 @@ export default function InventoryPage() {
               onClick={handleSearch}
               disabled={isSearching}
               style={{
-                height: '48px',
-                width: '48px',
-                minWidth: '48px',
+                height: '40px',
+                width: '40px',
+                minWidth: '40px',
                 padding: 0,
                 background: '#8B1538',
                 border: 'none',
