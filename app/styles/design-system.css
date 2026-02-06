@@ -5,13 +5,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Colors - Clean & Professional Business */
+  /* Colors - Wine & Burgundy Theme */
   --color-background: #F8F9FA;
   --color-bg: #F8F9FA;
   --color-card: #FFFFFF;
-  --color-primary: #1E40AF;
-  --color-primary-dark: #1E3A8A;
-  --color-primary-light: #3B82F6;
+  --color-primary: #8B1538;
+  --color-primary-dark: #6B0F2B;
+  --color-primary-light: #A91D47;
   --color-secondary: #1A1A1A;
   --color-text: #1A1A1A;
   --color-text-light: #8E8E93;
@@ -21,7 +21,7 @@
   --color-success: #34C759;
   --color-warning: #FF9500;
   --color-error: #FF3B30;
-  --color-info: #1E40AF;
+  --color-info: #8B1538;
   
   /* Typography */
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -317,8 +317,8 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #1E40AF;
-  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+  border-color: #8B1538;
+  box-shadow: 0 0 0 3px rgba(139, 21, 56, 0.1);
 }
 
 .input::placeholder {

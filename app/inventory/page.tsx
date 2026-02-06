@@ -417,7 +417,7 @@ export default function InventoryPage() {
                         width: '16px',
                         height: '16px',
                         cursor: 'pointer',
-                        accentColor: '#1E40AF'
+                        accentColor: '#8B1538'
                       }}
                     />
                     <span style={{
@@ -455,7 +455,7 @@ export default function InventoryPage() {
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'CDV' ? '#1E40AF' : 'transparent',
+                background: activeTab === 'CDV' ? '#8B1538' : 'transparent',
                 color: activeTab === 'CDV' ? 'white' : '#6B7280',
                 letterSpacing: '0'
               }}
@@ -477,7 +477,7 @@ export default function InventoryPage() {
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
-                background: activeTab === 'DL' ? '#1E40AF' : 'transparent',
+                background: activeTab === 'DL' ? '#8B1538' : 'transparent',
                 color: activeTab === 'DL' ? 'white' : '#6B7280',
                 letterSpacing: '0'
               }}
@@ -513,7 +513,7 @@ export default function InventoryPage() {
                   transition: 'border-color var(--transition-fast)',
                   background: 'var(--color-background)'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#1E40AF'}
+                onFocus={(e) => e.target.style.borderColor = '#8B1538'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
               />
             </div>
@@ -525,7 +525,7 @@ export default function InventoryPage() {
                 width: '48px',
                 minWidth: '48px',
                 padding: 0,
-                background: '#1E40AF',
+                background: '#8B1538',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 cursor: isSearching ? 'not-allowed' : 'pointer',
@@ -697,15 +697,15 @@ export default function InventoryPage() {
                                   fontSize: '13px',
                                   fontWeight: 700,
                                   fontFamily: 'monospace',
-                                  color: tastingNotesAvailable[item.item_no] ? '#10B981' : '#1E40AF',
+                                  color: tastingNotesAvailable[item.item_no] ? '#10B981' : '#8B1538',
                                   background: 'none',
                                   border: 'none',
                                   cursor: 'pointer',
                                   textDecoration: 'underline',
                                   padding: 0
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#059669' : '#1E3A8A'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#10B981' : '#1E40AF'}
+                                onMouseEnter={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#059669' : '#6B0F2B'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#10B981' : '#8B1538'}
                               >
                                 {item.item_no}
                               </button>

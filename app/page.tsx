@@ -65,7 +65,7 @@ export default function Home() {
                   width: '64px',
                   height: '64px',
                   borderRadius: 'var(--radius-xl)',
-                  background: 'rgba(255, 107, 53, 0.1)',
+                  background: 'rgba(139, 21, 56, 0.1)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -112,7 +112,7 @@ export default function Home() {
                   width: '64px',
                   height: '64px',
                   borderRadius: 'var(--radius-xl)',
-                  background: 'rgba(255, 107, 53, 0.1)',
+                  background: 'rgba(139, 21, 56, 0.1)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -165,7 +165,7 @@ export default function Home() {
                   width: '64px',
                   height: '64px',
                   borderRadius: 'var(--radius-xl)',
-                  background: 'rgba(255, 107, 53, 0.1)',
+                  background: 'rgba(139, 21, 56, 0.1)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
