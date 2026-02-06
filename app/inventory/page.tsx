@@ -340,9 +340,10 @@ export default function InventoryPage() {
             fontSize: '1.75rem',
             fontWeight: 600,
             margin: 0,
-            letterSpacing: '-0.01em'
+            marginLeft: 'var(--space-4)',
+            letterSpacing: '0.02em'
           }}>
-            Inventory
+            INVENTORY
           </h1>
           
           <button
