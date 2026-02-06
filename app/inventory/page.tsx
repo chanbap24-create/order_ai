@@ -335,13 +335,11 @@ export default function InventoryPage() {
           flexWrap: 'wrap',
           gap: 'var(--space-4)'
         }}>
-          <h1 className="heading-xl" style={{
-            background: 'linear-gradient(135deg, #1A1A1A 0%, #FF6B35 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+          <h1 style={{
+            color: '#1a1a1a',
             fontSize: '2rem',
-            fontWeight: 800
+            fontWeight: 700,
+            margin: 0
           }}>
             Inventory
           </h1>
