@@ -41,8 +41,8 @@ export default function Navigation() {
             src="/logo.png" 
             alt="Cave De Vin Logo" 
             style={{
-              height: '46px',
-              width: '46px',
+              height: '56px',
+              width: '56px',
               objectFit: 'contain'
             }}
           />
