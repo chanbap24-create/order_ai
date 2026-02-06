@@ -672,7 +672,7 @@ export default function InventoryPage() {
                 }}>
                   {filteredResults.map((item, index) => {
                     return (
-                      <Card key={`${item.item_no}-${index}`} hover style={{ padding: 'var(--space-4)' }}>
+                      <Card key={`${item.item_no}-${index}`} hover style={{ padding: 'var(--space-3)' }}>
                         {/* 첫 줄: 품번 + 품명 (고정, 수평 배치) */}
                         <div style={{
                           display: 'flex',
@@ -783,7 +783,7 @@ export default function InventoryPage() {
               <Card>
                 <div style={{
                   textAlign: 'center',
-                  padding: 'var(--space-12)',
+                  padding: 'var(--space-8)',
                   color: 'var(--color-text-light)'
                 }}>
                   <div style={{
@@ -816,7 +816,7 @@ export default function InventoryPage() {
           <Card>
             <div style={{
               textAlign: 'center',
-              padding: 'var(--space-16)',
+              padding: 'var(--space-8)',
               color: 'var(--color-text-light)'
             }}>
               <div style={{
