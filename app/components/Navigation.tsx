@@ -38,11 +38,11 @@ export default function Navigation() {
           padding: 'var(--space-2)'
         }}>
           <img 
-            src="/logo.png" 
+            src="/logo.svg" 
             alt="Cave De Vin Logo" 
             style={{
-              height: '56px',
-              width: '56px',
+              height: '64px',
+              width: '64px',
               objectFit: 'contain'
             }}
           />
@@ -60,10 +60,10 @@ export default function Navigation() {
           <Link
             href="/inventory"
             style={{
-              padding: 'var(--space-3) var(--space-5)',
+              padding: 'var(--space-2) var(--space-4)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
-              fontSize: 'var(--text-sm)',
+              fontSize: 'var(--text-xs)',
               textDecoration: 'none',
               color: isActive('/inventory') ? 'white' : '#1a1a1a',
               background: isActive('/inventory') ? '#1a1a1a' : 'transparent',
@@ -77,10 +77,10 @@ export default function Navigation() {
           <Link
             href="/wine"
             style={{
-              padding: 'var(--space-3) var(--space-5)',
+              padding: 'var(--space-2) var(--space-4)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
-              fontSize: 'var(--text-sm)',
+              fontSize: 'var(--text-xs)',
               textDecoration: 'none',
               color: isActive('/wine') ? 'white' : '#1a1a1a',
               background: isActive('/wine') ? '#1a1a1a' : 'transparent',
@@ -94,10 +94,10 @@ export default function Navigation() {
           <Link
             href="/glass"
             style={{
-              padding: 'var(--space-3) var(--space-5)',
+              padding: 'var(--space-2) var(--space-4)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
-              fontSize: 'var(--text-sm)',
+              fontSize: 'var(--text-xs)',
               textDecoration: 'none',
               color: isActive('/glass') ? 'white' : '#1a1a1a',
               background: isActive('/glass') ? '#1a1a1a' : 'transparent',
