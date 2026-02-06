@@ -36,16 +36,15 @@ export default function Navigation() {
           alignItems: 'center',
           textDecoration: 'none'
         }}>
-          <svg width="40" height="40" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 50 200 A 150 150 0 1 1 350 200" stroke="#1a1a1a" strokeWidth="40" fill="none"/>
-            <path d="M 350 200 A 150 150 0 0 1 50 200" stroke="#1a1a1a" strokeWidth="40" fill="none"/>
-            <circle cx="130" cy="115" r="30" fill="#1a1a1a"/>
-            <circle cx="220" cy="115" r="30" fill="none" stroke="#1a1a1a" strokeWidth="4"/>
-            <circle cx="310" cy="115" r="30" fill="#1a1a1a"/>
-            <circle cx="175" cy="185" r="30" fill="#1a1a1a"/>
-            <circle cx="265" cy="185" r="30" fill="#1a1a1a"/>
-            <circle cx="220" cy="255" r="30" fill="#1a1a1a"/>
-          </svg>
+          <img 
+            src="/logo.png" 
+            alt="Cave De Vin Logo" 
+            style={{
+              height: '40px',
+              width: '40px',
+              objectFit: 'contain'
+            }}
+          />
         </Link>
         
         {/* Navigation Links */}
