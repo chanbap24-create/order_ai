@@ -52,6 +52,53 @@ export default function Home() {
           maxWidth: '1200px',
           margin: '0 auto'
         }}>
+          {/* Inventory Card */}
+          <Link href="/inventory" style={{ textDecoration: 'none' }}>
+            <Card hover>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: 'var(--space-6)',
+                gap: 'var(--space-4)'
+              }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: 'var(--radius-xl)',
+                  background: 'rgba(255, 107, 53, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* 재고 박스 아이콘 */}
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="heading-lg" style={{ 
+                    marginBottom: 'var(--space-2)',
+                    fontWeight: 700,
+                    fontSize: '1.5rem'
+                  }}>
+                    Inventory
+                  </h2>
+                  <p style={{
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-light)',
+                    lineHeight: 1.5
+                  }}>
+                    재고 및 공급가 확인
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
           {/* Wine Card */}
           <Link href="/wine" style={{ textDecoration: 'none' }}>
             <Card hover>
@@ -148,53 +195,6 @@ export default function Home() {
                     lineHeight: 1.5
                   }}>
                     와인잔 품목 빠른 발주
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          {/* Inventory Card */}
-          <Link href="/inventory" style={{ textDecoration: 'none' }}>
-            <Card hover>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                padding: 'var(--space-6)',
-                gap: 'var(--space-4)'
-              }}>
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: 'var(--radius-xl)',
-                  background: 'rgba(255, 107, 53, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {/* 재고 박스 아이콘 */}
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                    <line x1="12" y1="22.08" x2="12" y2="12" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="heading-lg" style={{ 
-                    marginBottom: 'var(--space-2)',
-                    fontWeight: 700,
-                    fontSize: '1.5rem'
-                  }}>
-                    Inventory
-                  </h2>
-                  <p style={{
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text-light)',
-                    lineHeight: 1.5
-                  }}>
-                    재고 및 공급가 확인
                   </p>
                 </div>
               </div>
