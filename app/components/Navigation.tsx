@@ -38,7 +38,7 @@ export default function Navigation() {
           padding: 'var(--space-2)'
         }}>
           <img 
-            src="/logo.svg" 
+            src="/logo.png" 
             alt="Cave De Vin Logo" 
             style={{
               height: '64px',
