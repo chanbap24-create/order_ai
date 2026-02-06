@@ -218,6 +218,39 @@ export default function InventoryPage() {
     }
   };
 
+  // 다운로드 핸들러 (모바일 호환)
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const downloadUrl = `/api/proxy/pdf?url=${encodeURIComponent(url)}&download=true`;
+      
+      // fetch로 파일을 받아서 Blob으로 변환
+      const response = await fetch(downloadUrl);
+      const blob = await response.blob();
+      
+      // Blob URL 생성
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // 임시 a 태그 생성해서 다운로드
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Blob URL 해제
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('다운로드 오류:', error);
+      alert('다운로드 중 오류가 발생했습니다.');
+    }
+  };
+      setShowTastingNote(false);
+    } finally {
+      setTastingNoteLoading(false);
+    }
+  };
+
   const formatNumber = (num: number) => {
     return num.toLocaleString('ko-KR');
   };
@@ -881,11 +914,8 @@ export default function InventoryPage() {
                       gap: 'var(--space-2)'
                     }}>
                         {/* PDF 다운로드 */}
-                        <a
-                          href={`/api/proxy/pdf?url=${encodeURIComponent(originalPdfUrl)}&download=true`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={`${selectedItemNo}.pdf`}
+                        <button
+                          onClick={() => handleDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
                             background: '#8B1538',
@@ -896,17 +926,16 @@ export default function InventoryPage() {
                             fontSize: 'var(--text-sm)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 'var(--space-2)'
+                            gap: 'var(--space-2)',
+                            border: 'none',
+                            cursor: 'pointer'
                           }}
                         >
                           📄 PDF
-                        </a>
+                        </button>
                         {/* PPTX 다운로드 */}
-                        <a
-                          href={`/api/proxy/pdf?url=${encodeURIComponent(originalPdfUrl.replace('.pdf', '.pptx'))}&download=true`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={`${selectedItemNo}.pptx`}
+                        <button
+                          onClick={() => handleDownload(originalPdfUrl.replace('.pdf', '.pptx'), `${selectedItemNo}.pptx`)}
                           style={{
                             padding: 'var(--space-2) var(--space-4)',
                             background: '#FF6B35',
@@ -917,11 +946,13 @@ export default function InventoryPage() {
                             fontSize: 'var(--text-sm)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 'var(--space-2)'
+                            gap: 'var(--space-2)',
+                            border: 'none',
+                            cursor: 'pointer'
                           }}
                         >
                           📊 PPTX
-                        </a>
+                        </button>
                       </div>
                     
                     {/* PDF 미리보기 (embed) */}
