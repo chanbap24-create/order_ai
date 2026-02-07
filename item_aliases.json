@@ -1,0 +1,5042 @@
+[
+  {
+    "alias": "vg",
+    "canonical": "뱅상 지라르댕",
+    "count": 89
+  },
+  {
+    "alias": "\"vg\"",
+    "canonical": "\"뱅상 지라르댕\"",
+    "count": 89
+  },
+  {
+    "alias": "ro",
+    "canonical": "로버트 오틀리",
+    "count": 65
+  },
+  {
+    "alias": "\"ro\"",
+    "canonical": "\"로버트 오틀리\"",
+    "count": 65
+  },
+  {
+    "alias": "ml",
+    "canonical": "3003021",
+    "count": 56
+  },
+  {
+    "alias": "rdb",
+    "canonical": "3015440",
+    "count": 56
+  },
+  {
+    "alias": "\"ml\"",
+    "canonical": "\"3003021\"",
+    "count": 56
+  },
+  {
+    "alias": "\"rdb\"",
+    "canonical": "\"3015440\"",
+    "count": 56
+  },
+  {
+    "alias": "mr",
+    "canonical": "3015440",
+    "count": 48
+  },
+  {
+    "alias": "\"mr\"",
+    "canonical": "\"3015440\"",
+    "count": 48
+  },
+  {
+    "alias": "gp",
+    "canonical": "AC74001",
+    "count": 40
+  },
+  {
+    "alias": "\"gp\"",
+    "canonical": "\"AC74001\"",
+    "count": 40
+  },
+  {
+    "alias": "ch",
+    "canonical": "찰스 하이직",
+    "count": 38
+  },
+  {
+    "alias": "\"ch\"",
+    "canonical": "\"찰스 하이직\"",
+    "count": 38
+  },
+  {
+    "alias": "rb",
+    "canonical": "로저 벨랑",
+    "count": 35
+  },
+  {
+    "alias": "\"rb\"",
+    "canonical": "\"로저 벨랑\"",
+    "count": 35
+  },
+  {
+    "alias": "bm",
+    "canonical": "마데이라",
+    "count": 33
+  },
+  {
+    "alias": "\"bm\"",
+    "canonical": "\"마데이라\"",
+    "count": 33
+  },
+  {
+    "alias": "r",
+    "canonical": "1H19001",
+    "count": 30
+  },
+  {
+    "alias": "a",
+    "canonical": "3120804",
+    "count": 30
+  },
+  {
+    "alias": "\"a\"",
+    "canonical": "\"3120804\"",
+    "count": 30
+  },
+  {
+    "alias": "\"r\"",
+    "canonical": "\"1H19001\"",
+    "count": 30
+  },
+  {
+    "alias": "va",
+    "canonical": "뵈브 암발",
+    "count": 29
+  },
+  {
+    "alias": "dd",
+    "canonical": "도멘 기 이반 뒤폴레르",
+    "count": 29
+  },
+  {
+    "alias": "\"dd\"",
+    "canonical": "\"도멘 기 이반 뒤폴레르\"",
+    "count": 29
+  },
+  {
+    "alias": "\"va\"",
+    "canonical": "\"뵈브 암발\"",
+    "count": 29
+  },
+  {
+    "alias": "rd",
+    "canonical": "3021062",
+    "count": 28
+  },
+  {
+    "alias": "\"rd\"",
+    "canonical": "\"3021062\"",
+    "count": 28
+  },
+  {
+    "alias": "lc",
+    "canonical": "레이크 찰리스",
+    "count": 25
+  },
+  {
+    "alias": "\"lc\"",
+    "canonical": "\"레이크 찰리스\"",
+    "count": 25
+  },
+  {
+    "alias": "rc",
+    "canonical": "1H19001",
+    "count": 24
+  },
+  {
+    "alias": "p",
+    "canonical": "2118039",
+    "count": 24
+  },
+  {
+    "alias": "c",
+    "canonical": "2C19001",
+    "count": 24
+  },
+  {
+    "alias": "\"p\"",
+    "canonical": "\"2118039\"",
+    "count": 24
+  },
+  {
+    "alias": "\"c\"",
+    "canonical": "\"2C19001\"",
+    "count": 24
+  },
+  {
+    "alias": "\"rc\"",
+    "canonical": "\"1H19001\"",
+    "count": 24
+  },
+  {
+    "alias": "cl",
+    "canonical": "클레멍 라발리",
+    "count": 23
+  },
+  {
+    "alias": "\"cl\"",
+    "canonical": "\"클레멍 라발리\"",
+    "count": 23
+  },
+  {
+    "alias": "cd",
+    "canonical": "꿀리 뒤떼이",
+    "count": 21
+  },
+  {
+    "alias": "bs",
+    "canonical": "비온디 산티",
+    "count": 21
+  },
+  {
+    "alias": "fp",
+    "canonical": "페스 파커",
+    "count": 21
+  },
+  {
+    "alias": "lt",
+    "canonical": "랭 트윈스",
+    "count": 21
+  },
+  {
+    "alias": "\"lt\"",
+    "canonical": "\"랭 트윈스\"",
+    "count": 21
+  },
+  {
+    "alias": "\"fp\"",
+    "canonical": "\"페스 파커\"",
+    "count": 21
+  },
+  {
+    "alias": "\"bs\"",
+    "canonical": "\"비온디 산티\"",
+    "count": 21
+  },
+  {
+    "alias": "\"cd\"",
+    "canonical": "\"꿀리 뒤떼이\"",
+    "count": 21
+  },
+  {
+    "alias": "s",
+    "canonical": "00MV002",
+    "count": 20
+  },
+  {
+    "alias": "dgyed",
+    "canonical": "2019042",
+    "count": 20
+  },
+  {
+    "alias": "cdlg",
+    "canonical": "2017074",
+    "count": 20
+  },
+  {
+    "alias": "\"cdlg\"",
+    "canonical": "\"2017074\"",
+    "count": 20
+  },
+  {
+    "alias": "\"s\"",
+    "canonical": "\"00MV002\"",
+    "count": 20
+  },
+  {
+    "alias": "\"dgyed\"",
+    "canonical": "\"2019042\"",
+    "count": 20
+  },
+  {
+    "alias": "ca",
+    "canonical": "카시나",
+    "count": 19
+  },
+  {
+    "alias": "ar",
+    "canonical": "알마 로사",
+    "count": 19
+  },
+  {
+    "alias": "\"ar\"",
+    "canonical": "\"알마 로사\"",
+    "count": 19
+  },
+  {
+    "alias": "\"ca\"",
+    "canonical": "\"카시나\"",
+    "count": 19
+  },
+  {
+    "alias": "cg",
+    "canonical": "3019443",
+    "count": 18
+  },
+  {
+    "alias": "\"cg\"",
+    "canonical": "\"3019443\"",
+    "count": 18
+  },
+  {
+    "alias": "sv",
+    "canonical": "스몰 바인즈",
+    "count": 17
+  },
+  {
+    "alias": "\"sv\"",
+    "canonical": "\"스몰 바인즈\"",
+    "count": 17
+  },
+  {
+    "alias": "lp",
+    "canonical": "00MV010",
+    "count": 16
+  },
+  {
+    "alias": "dl",
+    "canonical": "2013046",
+    "count": 16
+  },
+  {
+    "alias": "dr",
+    "canonical": "3022404",
+    "count": 16
+  },
+  {
+    "alias": "td",
+    "canonical": "2120019",
+    "count": 16
+  },
+  {
+    "alias": "cw",
+    "canonical": "3420501",
+    "count": 16
+  },
+  {
+    "alias": "e",
+    "canonical": "2622030",
+    "count": 16
+  },
+  {
+    "alias": "\"cw\"",
+    "canonical": "\"3420501\"",
+    "count": 16
+  },
+  {
+    "alias": "\"e\"",
+    "canonical": "\"2622030\"",
+    "count": 16
+  },
+  {
+    "alias": "\"td\"",
+    "canonical": "\"2120019\"",
+    "count": 16
+  },
+  {
+    "alias": "\"lp\"",
+    "canonical": "\"00MV010\"",
+    "count": 16
+  },
+  {
+    "alias": "\"dl\"",
+    "canonical": "\"2013046\"",
+    "count": 16
+  },
+  {
+    "alias": "\"dr\"",
+    "canonical": "\"3022404\"",
+    "count": 16
+  },
+  {
+    "alias": "ㄱㄸㅌㄴㅊㄴㅋㅊ",
+    "canonical": "ACXX036",
+    "count": 14
+  },
+  {
+    "alias": "\"ㄱㄸㅌㄴㅊㄴㅋㅊ\"",
+    "canonical": "\"ACXX036\"",
+    "count": 14
+  },
+  {
+    "alias": "lm",
+    "canonical": "루이 미셸",
+    "count": 13
+  },
+  {
+    "alias": "ga",
+    "canonical": "라 가르딘",
+    "count": 13
+  },
+  {
+    "alias": "pf",
+    "canonical": "피터 프레너스",
+    "count": 13
+  },
+  {
+    "alias": "\"pf\"",
+    "canonical": "\"피터 프레너스\"",
+    "count": 13
+  },
+  {
+    "alias": "\"ga\"",
+    "canonical": "\"라 가르딘\"",
+    "count": 13
+  },
+  {
+    "alias": "\"lm\"",
+    "canonical": "\"루이 미셸\"",
+    "count": 13
+  },
+  {
+    "alias": "cv",
+    "canonical": "2020017",
+    "count": 12
+  },
+  {
+    "alias": "lmef",
+    "canonical": "3022406",
+    "count": 12
+  },
+  {
+    "alias": "ld",
+    "canonical": "2023077",
+    "count": 12
+  },
+  {
+    "alias": "\"lmef\"",
+    "canonical": "\"3022406\"",
+    "count": 12
+  },
+  {
+    "alias": "\"ld\"",
+    "canonical": "\"2023077\"",
+    "count": 12
+  },
+  {
+    "alias": "\"cv\"",
+    "canonical": "\"2020017\"",
+    "count": 12
+  },
+  {
+    "alias": "md",
+    "canonical": "마스 데 앙페미에르",
+    "count": 11
+  },
+  {
+    "alias": "\"md\"",
+    "canonical": "\"마스 데 앙페미에르\"",
+    "count": 11
+  },
+  {
+    "alias": "l",
+    "canonical": "0016009",
+    "count": 10
+  },
+  {
+    "alias": "cm",
+    "canonical": "2019416",
+    "count": 10
+  },
+  {
+    "alias": "mdi",
+    "canonical": "3023040",
+    "count": 10
+  },
+  {
+    "alias": "cdv",
+    "canonical": "2120404",
+    "count": 10
+  },
+  {
+    "alias": "h",
+    "canonical": "2415802",
+    "count": 10
+  },
+  {
+    "alias": "\"h\"",
+    "canonical": "\"2415802\"",
+    "count": 10
+  },
+  {
+    "alias": "\"mdi\"",
+    "canonical": "\"3023040\"",
+    "count": 10
+  },
+  {
+    "alias": "\"cdv\"",
+    "canonical": "\"2120404\"",
+    "count": 10
+  },
+  {
+    "alias": "\"l\"",
+    "canonical": "\"0016009\"",
+    "count": 10
+  },
+  {
+    "alias": "\"cm\"",
+    "canonical": "\"2019416\"",
+    "count": 10
+  },
+  {
+    "alias": "ls",
+    "canonical": "시스토",
+    "count": 9
+  },
+  {
+    "alias": "pr",
+    "canonical": "프리스트",
+    "count": 9
+  },
+  {
+    "alias": "\"pr\"",
+    "canonical": "\"프리스트\"",
+    "count": 9
+  },
+  {
+    "alias": "\"ls\"",
+    "canonical": "\"시스토\"",
+    "count": 9
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㄹㄸㅅㄹㄸㅂㄱㄸㅉㄸ",
+    "canonical": "3015440",
+    "count": 8
+  },
+  {
+    "alias": "dc",
+    "canonical": "2022079",
+    "count": 8
+  },
+  {
+    "alias": "dcdlc",
+    "canonical": "2022079",
+    "count": 8
+  },
+  {
+    "alias": "ab",
+    "canonical": "2117823",
+    "count": 8
+  },
+  {
+    "alias": "mm",
+    "canonical": "2918807",
+    "count": 8
+  },
+  {
+    "alias": "bc",
+    "canonical": "AC07402",
+    "count": 8
+  },
+  {
+    "alias": "lsx",
+    "canonical": "2C19004",
+    "count": 8
+  },
+  {
+    "alias": "ce",
+    "canonical": "2D21401",
+    "count": 8
+  },
+  {
+    "alias": "\"ce\"",
+    "canonical": "\"2D21401\"",
+    "count": 8
+  },
+  {
+    "alias": "\"bc\"",
+    "canonical": "\"AC07402\"",
+    "count": 8
+  },
+  {
+    "alias": "\"lsx\"",
+    "canonical": "\"2C19004\"",
+    "count": 8
+  },
+  {
+    "alias": "\"dc\"",
+    "canonical": "\"2022079\"",
+    "count": 8
+  },
+  {
+    "alias": "\"dcdlc\"",
+    "canonical": "\"2022079\"",
+    "count": 8
+  },
+  {
+    "alias": "\"ab\"",
+    "canonical": "\"2117823\"",
+    "count": 8
+  },
+  {
+    "alias": "\"mm\"",
+    "canonical": "\"2918807\"",
+    "count": 8
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㄹㄸㅅㄹㄸㅂㄱㄸㅉㄸ\"",
+    "canonical": "\"3015440\"",
+    "count": 8
+  },
+  {
+    "alias": "fl",
+    "canonical": "포그 라잇",
+    "count": 7
+  },
+  {
+    "alias": "cr",
+    "canonical": "크루 와이너리",
+    "count": 7
+  },
+  {
+    "alias": "gf",
+    "canonical": "갬블",
+    "count": 7
+  },
+  {
+    "alias": "ss",
+    "canonical": "실버스퍼",
+    "count": 7
+  },
+  {
+    "alias": "\"ss\"",
+    "canonical": "\"실버스퍼\"",
+    "count": 7
+  },
+  {
+    "alias": "\"gf\"",
+    "canonical": "\"갬블\"",
+    "count": 7
+  },
+  {
+    "alias": "\"cr\"",
+    "canonical": "\"크루 와이너리\"",
+    "count": 7
+  },
+  {
+    "alias": "\"fl\"",
+    "canonical": "\"포그 라잇\"",
+    "count": 7
+  },
+  {
+    "alias": "ㅈㅂㅌㅅㅆㄹㄸㄸㅆㄹ",
+    "canonical": "00NV801",
+    "count": 6
+  },
+  {
+    "alias": "bg",
+    "canonical": "2021082",
+    "count": 6
+  },
+  {
+    "alias": "gs",
+    "canonical": "AC74001",
+    "count": 6
+  },
+  {
+    "alias": "ㄱㄸㅌㄹㅊㅆㅋㅊ",
+    "canonical": "AC20001",
+    "count": 6
+  },
+  {
+    "alias": "sf",
+    "canonical": "2C18003",
+    "count": 6
+  },
+  {
+    "alias": "sfe",
+    "canonical": "2C18003",
+    "count": 6
+  },
+  {
+    "alias": "f&l",
+    "canonical": "2420607",
+    "count": 6
+  },
+  {
+    "alias": "gfv",
+    "canonical": "2418431",
+    "count": 6
+  },
+  {
+    "alias": "en",
+    "canonical": "2623802",
+    "count": 6
+  },
+  {
+    "alias": "\"gfv\"",
+    "canonical": "\"2418431\"",
+    "count": 6
+  },
+  {
+    "alias": "\"en\"",
+    "canonical": "\"2623802\"",
+    "count": 6
+  },
+  {
+    "alias": "\"sf\"",
+    "canonical": "\"2C18003\"",
+    "count": 6
+  },
+  {
+    "alias": "\"sfe\"",
+    "canonical": "\"2C18003\"",
+    "count": 6
+  },
+  {
+    "alias": "\"f&l\"",
+    "canonical": "\"2420607\"",
+    "count": 6
+  },
+  {
+    "alias": "\"bg\"",
+    "canonical": "\"2021082\"",
+    "count": 6
+  },
+  {
+    "alias": "\"gs\"",
+    "canonical": "\"AC74001\"",
+    "count": 6
+  },
+  {
+    "alias": "\"ㄱㄸㅌㄹㅊㅆㅋㅊ\"",
+    "canonical": "\"AC20001\"",
+    "count": 6
+  },
+  {
+    "alias": "\"ㅈㅂㅌㅅㅆㄹㄸㄸㅆㄹ\"",
+    "canonical": "\"00NV801\"",
+    "count": 6
+  },
+  {
+    "alias": "cp",
+    "canonical": "크리스토프 피뚜아",
+    "count": 5
+  },
+  {
+    "alias": "cc",
+    "canonical": "클로 드 라 샤펠",
+    "count": 5
+  },
+  {
+    "alias": "pe",
+    "canonical": "펠라사",
+    "count": 5
+  },
+  {
+    "alias": "as",
+    "canonical": "안셀미",
+    "count": 5
+  },
+  {
+    "alias": "ig",
+    "canonical": "이 그레피",
+    "count": 5
+  },
+  {
+    "alias": "rt",
+    "canonical": "리아타",
+    "count": 5
+  },
+  {
+    "alias": "rl",
+    "canonical": "렐릭",
+    "count": 5
+  },
+  {
+    "alias": "lb",
+    "canonical": "램본",
+    "count": 5
+  },
+  {
+    "alias": "\"lb\"",
+    "canonical": "\"램본\"",
+    "count": 5
+  },
+  {
+    "alias": "\"rl\"",
+    "canonical": "\"렐릭\"",
+    "count": 5
+  },
+  {
+    "alias": "\"rt\"",
+    "canonical": "\"리아타\"",
+    "count": 5
+  },
+  {
+    "alias": "\"ig\"",
+    "canonical": "\"이 그레피\"",
+    "count": 5
+  },
+  {
+    "alias": "\"pe\"",
+    "canonical": "\"펠라사\"",
+    "count": 5
+  },
+  {
+    "alias": "\"as\"",
+    "canonical": "\"안셀미\"",
+    "count": 5
+  },
+  {
+    "alias": "\"cc\"",
+    "canonical": "\"클로 드 라 샤펠\"",
+    "count": 5
+  },
+  {
+    "alias": "\"cp\"",
+    "canonical": "\"크리스토프 피뚜아\"",
+    "count": 5
+  },
+  {
+    "alias": "ㄸㅋㄴㅉㄸㅂㅉㄹ",
+    "canonical": "1H19001",
+    "count": 4
+  },
+  {
+    "alias": "ㄸㅋㄴㄹㄸㄴㄴㅅ",
+    "canonical": "1H19003",
+    "count": 4
+  },
+  {
+    "alias": "ㅈㅂㅌㅅㅆㄹㄸㄴㄹㄸㄹㄸ",
+    "canonical": "00NV005",
+    "count": 4
+  },
+  {
+    "alias": "sr",
+    "canonical": "00MV002",
+    "count": 4
+  },
+  {
+    "alias": "sb",
+    "canonical": "00MV004",
+    "count": 4
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄹㄸㅂㄸㅋㄸㅅㄸ",
+    "canonical": "3003021",
+    "count": 4
+  },
+  {
+    "alias": "dam",
+    "canonical": "3018044",
+    "count": 4
+  },
+  {
+    "alias": "ㄴㅋㄲㄷㄴㄸㄸㅆㄹㄸㅆ",
+    "canonical": "2023077",
+    "count": 4
+  },
+  {
+    "alias": "cf",
+    "canonical": "0021009",
+    "count": 4
+  },
+  {
+    "alias": "aa",
+    "canonical": "3121002",
+    "count": 4
+  },
+  {
+    "alias": "ㄹㅅㄴㅂㅊㄸㅆㄸㄹㅉㄸㅂ",
+    "canonical": "21NV402",
+    "count": 4
+  },
+  {
+    "alias": "ㄹㅅㄴㅂㅊㄹㄸㄴㄸㄴㄹㅊㅈㄴㄸㅆㄸㄹ",
+    "canonical": "2199424",
+    "count": 4
+  },
+  {
+    "alias": "ag",
+    "canonical": "61XX401",
+    "count": 4
+  },
+  {
+    "alias": "gg",
+    "canonical": "2120501",
+    "count": 4
+  },
+  {
+    "alias": "jc",
+    "canonical": "1916401",
+    "count": 4
+  },
+  {
+    "alias": "jyc",
+    "canonical": "1916401",
+    "count": 4
+  },
+  {
+    "alias": "sc",
+    "canonical": "3919802",
+    "count": 4
+  },
+  {
+    "alias": "ㄱㄸㅌㅂㄱㅌㄹㅂㅊㅊㄴㅋㅊ",
+    "canonical": "AC74001",
+    "count": 4
+  },
+  {
+    "alias": "gt",
+    "canonical": "AC21402",
+    "count": 4
+  },
+  {
+    "alias": "g2",
+    "canonical": "AC20001",
+    "count": 4
+  },
+  {
+    "alias": "gn",
+    "canonical": "ACXX026",
+    "count": 4
+  },
+  {
+    "alias": "gb",
+    "canonical": "ACXX028",
+    "count": 4
+  },
+  {
+    "alias": "ㄱㄸㅌㄹㄸㄴㄴㄹ",
+    "canonical": "ACXX028",
+    "count": 4
+  },
+  {
+    "alias": "ㅋㅂㅋㅉㅂㄸㄴㄴㅂㅊㄹㄹㄸㅉㅅㅊ",
+    "canonical": "3422002",
+    "count": 4
+  },
+  {
+    "alias": "ㅋㅃㄴㅅㅂㅊㅅㅊㅋㄴㄴㅅ",
+    "canonical": "2419526",
+    "count": 4
+  },
+  {
+    "alias": "go",
+    "canonical": "2418030",
+    "count": 4
+  },
+  {
+    "alias": "g",
+    "canonical": "2418030",
+    "count": 4
+  },
+  {
+    "alias": "mb",
+    "canonical": "3419018",
+    "count": 4
+  },
+  {
+    "alias": "lf",
+    "canonical": "2417528",
+    "count": 4
+  },
+  {
+    "alias": "lfv",
+    "canonical": "2417528",
+    "count": 4
+  },
+  {
+    "alias": "hh",
+    "canonical": "2419825",
+    "count": 4
+  },
+  {
+    "alias": "hc",
+    "canonical": "3418802",
+    "count": 4
+  },
+  {
+    "alias": "cn",
+    "canonical": "2D23002",
+    "count": 4
+  },
+  {
+    "alias": "ㄸㅅㅉㅈㄸㅂㄸㅊㅋㄴㄴㅅ",
+    "canonical": "2A21001",
+    "count": 4
+  },
+  {
+    "alias": "\"go\"",
+    "canonical": "\"2418030\"",
+    "count": 4
+  },
+  {
+    "alias": "\"g\"",
+    "canonical": "\"2418030\"",
+    "count": 4
+  },
+  {
+    "alias": "\"mb\"",
+    "canonical": "\"3419018\"",
+    "count": 4
+  },
+  {
+    "alias": "\"lf\"",
+    "canonical": "\"2417528\"",
+    "count": 4
+  },
+  {
+    "alias": "\"lfv\"",
+    "canonical": "\"2417528\"",
+    "count": 4
+  },
+  {
+    "alias": "\"hh\"",
+    "canonical": "\"2419825\"",
+    "count": 4
+  },
+  {
+    "alias": "\"hc\"",
+    "canonical": "\"3418802\"",
+    "count": 4
+  },
+  {
+    "alias": "\"cn\"",
+    "canonical": "\"2D23002\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄸㅅㅉㅈㄸㅂㄸㅊㅋㄴㄴㅅ\"",
+    "canonical": "\"2A21001\"",
+    "count": 4
+  },
+  {
+    "alias": "\"gn\"",
+    "canonical": "\"ACXX026\"",
+    "count": 4
+  },
+  {
+    "alias": "\"gb\"",
+    "canonical": "\"ACXX028\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄱㄸㅌㄹㄸㄴㄴㄹ\"",
+    "canonical": "\"ACXX028\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㅋㅂㅋㅉㅂㄸㄴㄴㅂㅊㄹㄹㄸㅉㅅㅊ\"",
+    "canonical": "\"3422002\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㅋㅃㄴㅅㅂㅊㅅㅊㅋㄴㄴㅅ\"",
+    "canonical": "\"2419526\"",
+    "count": 4
+  },
+  {
+    "alias": "\"dam\"",
+    "canonical": "\"3018044\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄴㅋㄲㄷㄴㄸㄸㅆㄹㄸㅆ\"",
+    "canonical": "\"2023077\"",
+    "count": 4
+  },
+  {
+    "alias": "\"cf\"",
+    "canonical": "\"0021009\"",
+    "count": 4
+  },
+  {
+    "alias": "\"aa\"",
+    "canonical": "\"3121002\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄹㅅㄴㅂㅊㄸㅆㄸㄹㅉㄸㅂ\"",
+    "canonical": "\"21NV402\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄹㅅㄴㅂㅊㄹㄸㄴㄸㄴㄹㅊㅈㄴㄸㅆㄸㄹ\"",
+    "canonical": "\"2199424\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ag\"",
+    "canonical": "\"61XX401\"",
+    "count": 4
+  },
+  {
+    "alias": "\"gg\"",
+    "canonical": "\"2120501\"",
+    "count": 4
+  },
+  {
+    "alias": "\"jc\"",
+    "canonical": "\"1916401\"",
+    "count": 4
+  },
+  {
+    "alias": "\"jyc\"",
+    "canonical": "\"1916401\"",
+    "count": 4
+  },
+  {
+    "alias": "\"sc\"",
+    "canonical": "\"3919802\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄱㄸㅌㅂㄱㅌㄹㅂㅊㅊㄴㅋㅊ\"",
+    "canonical": "\"AC74001\"",
+    "count": 4
+  },
+  {
+    "alias": "\"gt\"",
+    "canonical": "\"AC21402\"",
+    "count": 4
+  },
+  {
+    "alias": "\"g2\"",
+    "canonical": "\"AC20001\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄸㅋㄴㅉㄸㅂㅉㄹ\"",
+    "canonical": "\"1H19001\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄸㅋㄴㄹㄸㄴㄴㅅ\"",
+    "canonical": "\"1H19003\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㅈㅂㅌㅅㅆㄹㄸㄴㄹㄸㄹㄸ\"",
+    "canonical": "\"00NV005\"",
+    "count": 4
+  },
+  {
+    "alias": "\"sr\"",
+    "canonical": "\"00MV002\"",
+    "count": 4
+  },
+  {
+    "alias": "\"sb\"",
+    "canonical": "\"00MV004\"",
+    "count": 4
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄹㄸㅂㄸㅋㄸㅅㄸ\"",
+    "canonical": "\"3003021\"",
+    "count": 4
+  },
+  {
+    "alias": "da",
+    "canonical": "도브네",
+    "count": 3
+  },
+  {
+    "alias": "st",
+    "canonical": "센티르",
+    "count": 3
+  },
+  {
+    "alias": "\"st\"",
+    "canonical": "\"센티르\"",
+    "count": 3
+  },
+  {
+    "alias": "\"da\"",
+    "canonical": "\"도브네\"",
+    "count": 3
+  },
+  {
+    "alias": "ㄸㅋㄴㄹㄸㄴㄹㄸ",
+    "canonical": "1H19002",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅂㅌㅅㅆㄸㅆㄸㅆㄹ",
+    "canonical": "00NV804",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅂㅌㅅㅆㄹㄸㄹㄸㅆ",
+    "canonical": "0018801",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅂㅌㅅㅆㄹㄸㄴㄹㄸㄴㅌ",
+    "canonical": "0007804",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅂㅌㅅㅆㅂㅋㅅㅈㄸ",
+    "canonical": "00MV401",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㄸㅆㄹㄸㄱㄸㅉㄸ",
+    "canonical": "00MV002",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㄸㅆㅃㄴㅅㄹㄸㄱㄸㅉㄸ",
+    "canonical": "00MV003",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㄹㄸㄴㄹㄸㄹㄸㄱㄸㅉㄸ",
+    "canonical": "00MV004",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㅂㄱㄴㅈㄹㄸㄱㄸㅉㄸ",
+    "canonical": "00MV001",
+    "count": 2
+  },
+  {
+    "alias": "sp",
+    "canonical": "00MV005",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㅋㅌㄸㄴㅅㄹㄸㄱㄸㅉㄸ",
+    "canonical": "00MV005",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄱㅅㄷㅌㄹㄸㄲㄸㄴㄹㄴㄸㄹㄸㅂㅌㄸㅂㅌㄹㅌㄴ",
+    "canonical": "0016009",
+    "count": 2
+  },
+  {
+    "alias": "lr",
+    "canonical": "00MV007",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄱㅅㄷㅌㄹㄸㄸㅆㄹㄸㅃㅋㅆㄴㅊㄸㅋㅅ",
+    "canonical": "00MV007",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄱㅅㄷㅌㄹㄸㄹㄸㅃㅋㅆㄴㅊㄸㅋㅅ",
+    "canonical": "00MV006",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄱㅅㄷㅌㄹㄸㄹㄸㄴㄹㄸㅅㅂㅊㄸㄹㄸㅃㅋㅆㄴㅊㄸㅋㅅ",
+    "canonical": "00MV008",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄱㅅㄷㅌㄹㄸㅋㄸㄸㄴㄹㄸ",
+    "canonical": "00MV010",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㅂㅊㅋㅋㄷㅅㄸㄹㄴㅂㄸㅅㅆㄱㄸㅉㄸㄹㄸㄴㄹㄸ",
+    "canonical": "00MV014",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄱㄸㅆㄱㅂㅊㄸ",
+    "canonical": "3019443",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄷㄹㅅㅅ",
+    "canonical": "2019416",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄷㄹㅂㅊㅉㅅ",
+    "canonical": "2020017",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄷㄸㅂㄱㄸㄴ",
+    "canonical": "2020018",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄷㄸㄹㄸㅂ",
+    "canonical": "2016530",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㅅㄹㅉㄸㄹㄴㄹㄸㄱㄴㄱㄸㄲㄹㄸㅆ",
+    "canonical": "10NV003",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㅅㄹㅉㄸㄹㄴㄹㄸㄱㄴㄱㄸㄲㄹㄹㄸ",
+    "canonical": "10NV004",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄸㄸㄹㄸㄴㄹㄸㄹㄸ",
+    "canonical": "10NV009",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄸㄸㄹㄸㄴㄹㄸㄴㄹㅂ",
+    "canonical": "10nv010",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㅅㄹㄸㄸㅊㄸㅋㅌㄹㅂㄲㄸㅆ",
+    "canonical": "10NV013",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㅅㄹㅂㄸㄸㅂㅋㄸㅈㄹㄸㅉㄸㅊ",
+    "canonical": "10XX010",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㅅㄹㅂㄸㄸㅂㅋㄸㅈㅅㄴㅋㄸㅅ",
+    "canonical": "10XX012",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㅅㄹㅂㄸㄸㅂㅋㄸㅈㅅㄸㅆ",
+    "canonical": "10XX011",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄴㄹㄴㄹㄸㄱㄴㅅㄸㄱㄷ",
+    "canonical": "3018401",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄴㄹㄴㅅㅂㄴㄸㅂㄸㄲㄸ",
+    "canonical": "3011401",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㄸㅅㄹㄸㄹㄴㄸㄹㄹ",
+    "canonical": "2013046",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㄸㅅㄴㅅㅂㅆㄸㅆㅅㅆㄸ",
+    "canonical": "2014441",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㄸㅅㄹㄸㄹㄴㅅㅆㄴㄹㄸㅅㄸ",
+    "canonical": "2011074",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㄸㅅㄸㄹㄴㅂㄹㄹ",
+    "canonical": "2014447",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㅂㅂㄴㄹㄸㅂㄸㅂㄴㄹ",
+    "canonical": "3013041",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㅂㅂㄴㄹㄸㅂㄹㅆ",
+    "canonical": "3013037",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㅁㄸㄴㄹㄸㅂㄸㅋㄸㅊㅅ",
+    "canonical": "3013036",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㅂㄹㄴㄸㄹㄸㅌㄷㅂ",
+    "canonical": "2003534",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㅂㄸㄸㄹ",
+    "canonical": "2003533",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㅂㅊㄴ",
+    "canonical": "2003672",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄹㄸㅂ",
+    "canonical": "3017437",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄹㅊㄸ",
+    "canonical": "2018072",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄴㅅㅂㅆㄸㅆ",
+    "canonical": "2013072",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄹㄸㄱㄴㄹㄸㅋㄸㄸㄴㄹㄴ",
+    "canonical": "30NV007",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄹㄸㄱㄴㄹㄸ",
+    "canonical": "3018005",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㄸㅅㄹㅆㄸㄹㄸㅆㅋㄸㄹㄸ",
+    "canonical": "2025001",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㅂㄴㄹㄸㅂㄹㅅㅅㄹㄴ",
+    "canonical": "3021068",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅉㄸㅊㅂㄸㄹㄴㄱㄸㅉㄸ",
+    "canonical": "3022853",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅁㄸㄴㄹㄸㅂㄸㅋㄸㅊㅅ",
+    "canonical": "3022803",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅁㄸㄴㄹㄸㅂㄸㅂㄱ",
+    "canonical": "3022844",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅁㄸㄴㄹㄸㅂㄹㅅㅅㄹㄴ",
+    "canonical": "3021852",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㅂㅋㄸㅅ",
+    "canonical": "3018704",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅂㄴㄴㄲㄹㄸㅆㄹ",
+    "canonical": "3020041",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅂㄴㄴㄹㅅㅅㄹㄴ",
+    "canonical": "3016501",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㄹㄸㄹㅅㅅㄹㄴ",
+    "canonical": "3021701",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㄹㄸㅊㄱㄸㅉㄸ",
+    "canonical": "2019805",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㄹㄸㅊㅉㄸㄴㄹㅆㄱㄸㅉㄸ",
+    "canonical": "2015850",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄹㄸㄱㄸㅉㄸ",
+    "canonical": "2019804",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅅㅃㅆㄱㄸㅉㄸ",
+    "canonical": "2019825",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄲㄸㄴㄹㅆㄱㄸㅉㄸ",
+    "canonical": "2019866",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㄹㄴㄸㅂㅂ",
+    "canonical": "2019026",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㄹㄴ",
+    "canonical": "2017075",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅆㄹㄸㅂㄹㄸㅊ",
+    "canonical": "2020806",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄴㅅㅂㅆㄸㅆㄸㅋㄸㄸㅅ",
+    "canonical": "2020672",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄴㅂㅆㄸㅆ",
+    "canonical": "2019020",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄴㅅㅉㄸㄲㄸㄴㅂ",
+    "canonical": "2017822",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㄹㄹㅆㄴㄸㅋ",
+    "canonical": "2018865",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㅂㄹㄴㄸㄹㄹㅅㅅㄹㄴ",
+    "canonical": "2017824",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅋㄴㄴㅅㄲㄹㄸㅆㄹ",
+    "canonical": "2022024",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅋㄴㄴㅅㄹㅅㅅㄹㄴ",
+    "canonical": "2020502",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄴㅂㅆㄸㅆㅉㄸㄴㅋㄸㅅ",
+    "canonical": "2019042",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㅋㄹㄸㄸㄹㄹㄸㅅ",
+    "canonical": "2019078",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㅋㅂㅉㄸㄴㅂㅋㅊㄸ",
+    "canonical": "2019080",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄴㅂㅆㄸㅆㄸㅉㄸㅋㄸㅅ",
+    "canonical": "2019079",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄴㅅㄹ",
+    "canonical": "2019069",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄸㄴㅅㄱㄷㄸㅆ",
+    "canonical": "2020083",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄸㅆ",
+    "canonical": "2021083",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄴㄹㅅㅆㅅㄱㄷㄹㄸ",
+    "canonical": "3021064",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄹㄸ",
+    "canonical": "3021851",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄸㄱㅊㄹㄸㄹㅅㅅㄹㄴ",
+    "canonical": "3020068",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄱㄸㅉㄸ",
+    "canonical": "3022501",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄷㄸㄹㄸㅂㄱㄸㅉㄸ",
+    "canonical": "3022501",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅉㄸㅊㅂㄸㄹㄴㄱㄸㅉㄸ",
+    "canonical": "3022641",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅂㅂㄴㄹㄸㅂㄹㄸㄹㅆ",
+    "canonical": "3022452",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅂㅂㄴㄹㄸㅂㄹㅅㅅㄹㄴ",
+    "canonical": "3022550",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄹㄸㄴ",
+    "canonical": "3022439",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄸㄲㄸ",
+    "canonical": "3022047",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄸㄴㄸㄹ",
+    "canonical": "3022601",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄸㄹㅆ",
+    "canonical": "3022540",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅂㄷㄹㅅㅌㄹ",
+    "canonical": "3022441",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄸㄸㅉㄸㄱㄸㅆㄴ",
+    "canonical": "3022843",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅋㅅㅋㅂㄹㅅㅅㄹㄴ",
+    "canonical": "3021841",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㄱㄴㅂㄸㄴㄴㅉㄹㅂㄹㅂ",
+    "canonical": "3021440",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅆㄹㄸㅂㄹㄸㅊㄹㅅㅅㄹㄴ",
+    "canonical": "2021013",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅂㅂㄴㄹㄸㅂㄸㅆㄹㅆ",
+    "canonical": "2021421",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅅㄸㅂㅉㄸㅊㄹㅅㅅㄹㄴ",
+    "canonical": "2021012",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅋㄹㄸㄸㅆㅋㄴ",
+    "canonical": "2017413",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅋㄹㄸㄹㅅㅅㄹㄴ",
+    "canonical": "2021402",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄴㄸㅂㄷㄴ",
+    "canonical": "2021474",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄴㄹㅅㅅㄹㄴ",
+    "canonical": "2021501",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㅂㅊㄴㄹㅅㅅㄹㄴ",
+    "canonical": "2021412",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㅆㄸㄸㄴㄹㄸㄱㄴㅋㄴㄴㅅㅉㄹㅂㄹㅂ",
+    "canonical": "2021011",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅋㄸㄴㄹㄸㅂㄸㅂㄱ",
+    "canonical": "3022404",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅂㄴㄹㄸㅂㄹㄸㄹㅆㄲㄸㅋㄷㅅㄹㄴㅋㄹㄸ",
+    "canonical": "3022403",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄹㄸㄹㄸㄱㄸ",
+    "canonical": "3021446",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄹㄸㄲㄴㅂ",
+    "canonical": "3022402",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅂㅂㄴㄹㄸㅂㄸㅆㄹㅆㄲㄸㅋㄷㅅㄹㄴㅋㄸㅆ",
+    "canonical": "2020420",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄸㅆㄱㄸㄹㅅ",
+    "canonical": "2019426",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄸㅆㄹㄸㄱㄸ",
+    "canonical": "2019419",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄸㅆㄲ",
+    "canonical": "2019425",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㄹㄸㅂ",
+    "canonical": "3021062",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㄹㅉㄸㅂㄴㅆㄸ",
+    "canonical": "3021061",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㄹㄸㄱㄴㅂㄸㄴㄴ",
+    "canonical": "3021060",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㅋㄹㄸㅂㄸㄹㅉㄸㄴㄴ",
+    "canonical": "2021079",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㅋㄹㄸ",
+    "canonical": "2021078",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㄹㄸㄹㅋㅆ",
+    "canonical": "2021077",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅋㄴㄹㅆㄹㄸㄱㄴㅋㄴㄴㅅ",
+    "canonical": "2021076",
+    "count": 2
+  },
+  {
+    "alias": "dv",
+    "canonical": "2019044",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㄹㅉㄸㅆㅋㅂㄹㅅㅅㄹㄴ",
+    "canonical": "2019044",
+    "count": 2
+  },
+  {
+    "alias": "dvc",
+    "canonical": "2019044",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㅉㄸㄴㄸㅂㅋㄹㄴㅉㄸㄴㄸㅂㅋㄹㄴㅋ",
+    "canonical": "2022079",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㅉㄸㄴㄸㅂㅋㄹㄴㅊㅅㅅㅋㅅㄹㅅㅅㄹㄴ",
+    "canonical": "2021099",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㅉㄸㄴㄸㅂㅋㅋㄹㄸㄸㅂㄸㄹㅅㅅㄹㄴ",
+    "canonical": "2020067",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㅉㄸㄴㄸㅂㅋㄹㅂㅋㄹ",
+    "canonical": "2021066",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄱㄸㅉㄸㄱㄸㄴㅅ",
+    "canonical": "3022406",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄱㄸㅉㄸㄹㄴㅆㄸ",
+    "canonical": "3022408",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄱㄸㅉㄸㄸㄲㄸ",
+    "canonical": "3022407",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄹㅊ",
+    "canonical": "3022043",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄹㅊㄴㅊㄴㅌ",
+    "canonical": "3022042",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㄹㅂㅅㅋㅂㄹㄸ",
+    "canonical": "3023039",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㄹㄸㄹㄸㅂㄹㄸㅉㅊㄴㅆㅅ",
+    "canonical": "3022705",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㄹㄸㄹㄸㅂㄹㄸㄴ",
+    "canonical": "3020050",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㄹㄸㄹㄸㅂㄹㄸㄸㅆㄴㄸ",
+    "canonical": "3022704",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄸㅂㅊㄹㅌㄸ",
+    "canonical": "3021065",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㄹㄸㄹㄸㅂㄹㄸ",
+    "canonical": "3021049",
+    "count": 2
+  },
+  {
+    "alias": "dj",
+    "canonical": "3022044",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㄹㅆㅋㅋㅉㄸㅂㅂㄸㄹㄸㄸㅂㄹㄴㄹㄸ",
+    "canonical": "3022044",
+    "count": 2
+  },
+  {
+    "alias": "djp",
+    "canonical": "3022044",
+    "count": 2
+  },
+  {
+    "alias": "dm",
+    "canonical": "3018044",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㅋㄱㄹㄸㅈㅊㄸㄹㄴㄱㄸㅉㄸㄹㄸ",
+    "canonical": "3018044",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㅋㅅㅆㅂㅋㄴㄴㅅ",
+    "canonical": "2021401",
+    "count": 2
+  },
+  {
+    "alias": "ㄲㄸㄴㄷㅅㄸㅂㄷ",
+    "canonical": "3020443",
+    "count": 2
+  },
+  {
+    "alias": "ㄲㄸㄴㄷㅅㄸㅂㄴ",
+    "canonical": "3018042",
+    "count": 2
+  },
+  {
+    "alias": "ㄲㄸㄴㄷㅅㄸㄲㄸㄴㄸㄲㅉㄸㅂㄴ",
+    "canonical": "2016468",
+    "count": 2
+  },
+  {
+    "alias": "ㄲㄸㄴㄷㅅㄸㄲㄸㄴㄸㄲ",
+    "canonical": "2018423",
+    "count": 2
+  },
+  {
+    "alias": "ㄲㄸㄴㄷㅅㄸㄱㄸㄹㅅ",
+    "canonical": "2020022",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄷㄴㄸㄱㄸㄴㅂㄷㄴㅋㄴㅁㅋㅅㄹㄷ",
+    "canonical": "2017074",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄷㄴㄸㄱㄸㄴㅂㄷㄴㅋㄴㅁㅋㄱㅂㅊㅋㄸ",
+    "canonical": "2017425",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄴㄸㄱㄸㄴㅂㄷㄴㅋㄴㅁㅋㄸㅊㄸㄴㅂㅅ",
+    "canonical": "2021424",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㄴㄸㄱㄸㄴㅅㄸㄹㅊㅆ",
+    "canonical": "2021082",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㄴㄸㄱㄸㄴㄲㄸㄴㅂ",
+    "canonical": "2020081",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄴㄸㄱㄸㄴㅂㅆㅂ",
+    "canonical": "2023023",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄴㄸㄱㄸㄴㅉㄸㄴ",
+    "canonical": "2023004",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄴㄸㄱㄸㄴㄲㄷㄴㄸㄸㅆ",
+    "canonical": "2023003",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㄴㄸㄱㄸㄴㄲㄴㄸㅅ",
+    "canonical": "3021067",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄴㄸㄱㄸㄴㄲㄷㄴㄸㄹㄸ",
+    "canonical": "3024001",
+    "count": 2
+  },
+  {
+    "alias": "ㄴㅋㄲㄷㄴㄸㄸㅆㄹㄹㄸ",
+    "canonical": "3023802",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㅋㄹㄸㅋㄸㄹㅂㄸㅆ",
+    "canonical": "0021009",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄴㅅㅋㄹㅅㄸㅂㄹㄸㅅㄹㄸㄸㄹㄸ",
+    "canonical": "3023040",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄴㅅㅋㄹㅅㄸㅂㄸㅂㄹㄸㄸㄹㄸ",
+    "canonical": "3024003",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄴㅅㅋㄹㅅㄸㄸㄸㄹㄸ",
+    "canonical": "3024002",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄴㅅㅋㄹㅅㄸㅂㄸㅂㄸㅆㄸㄹㄸ",
+    "canonical": "2022081",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄴㅅㅋㄹㅅㄸㅆㄸㅆ",
+    "canonical": "2023078",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅂㄴㅅㄴㄸㅅㄴㄹㄸㄸㄸㅆㄸㄹㅋㄸㅅㄸ",
+    "canonical": "2115036",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅂㄴㅅㄴㄸㅅㄴㄹㄸㄸㄹㅂㅅ",
+    "canonical": "2118040",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅂㄴㅅㄴㄸㅅㄴㄹㄸㄸ",
+    "canonical": "2118042",
+    "count": 2
+  },
+  {
+    "alias": "pb",
+    "canonical": "2118039",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄸㅂㄹㄸㄸㅂㄸㄸㅆㄴㄹㄸㄴㄴ",
+    "canonical": "2118039",
+    "count": 2
+  },
+  {
+    "alias": "pt",
+    "canonical": "3123013",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄸㅂㅊㅈㄸㅅㄸㅅㄸㄴㅅㅂ",
+    "canonical": "3123013",
+    "count": 2
+  },
+  {
+    "alias": "pm",
+    "canonical": "1124001",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄸㅂㄹㅂㅉㅊㄴㅂㅊ",
+    "canonical": "1124001",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄱㄹㄸㄴㄹㅂㅉㅊ",
+    "canonical": "11NV014",
+    "count": 2
+  },
+  {
+    "alias": "ac",
+    "canonical": "3120804",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅂㄹㅅㅉㅋㅊㄸㄹㄴㅊ",
+    "canonical": "3120804",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅂㄹㄸㅅㄴㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2117008",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅂㄹㅉㅋㅊㅉㄸㅈ",
+    "canonical": "3121002",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅂㄹㅂㄹㅂㅆㄹㄴㅊ",
+    "canonical": "3124401",
+    "count": 2
+  },
+  {
+    "alias": "ef",
+    "canonical": "2119820",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅋㅅㅅㅉㅅㅊㅉㄸㅂㅉㄱㄸㅂㄸㅆㅅㄴㅉㅊㅂㄸ",
+    "canonical": "2120404",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅋㅅㅅㅉㅅㅊㅉㄸㅂㅉㄸㅆㄸㄹ",
+    "canonical": "2121403",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅋㅅㅅㅉㅅㅊㅉㄸㅂㅉ",
+    "canonical": "2121002",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅋㅅㅅㅋㄸㄸㅅㅂㄹㄸㄹㅊㄴ",
+    "canonical": "3122001",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅋㅅㅅㅈㅊ",
+    "canonical": "2123001",
+    "count": 2
+  },
+  {
+    "alias": "ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㅅㄸㄴㄸㅅㅅㄹㄱㄸ",
+    "canonical": "2120019",
+    "count": 2
+  },
+  {
+    "alias": "ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㄸㅂㄸㄴㅅㄹㄴㅅㄸㄴㄸㅅㅅ",
+    "canonical": "2120523",
+    "count": 2
+  },
+  {
+    "alias": "ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㅋㅆㅅㅅㄸㄱㅆㄴㅅㄸㄴㄸㅅㅅ",
+    "canonical": "3120012",
+    "count": 2
+  },
+  {
+    "alias": "ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㄸㄹㄷㄴㅅㄸㄴㄸㅅㅅㅊㅂㅉㄴ",
+    "canonical": "2121811",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅅㄴㅂㅊㄹㄸㄴㄸㄴㄹㅊㅈㄴ",
+    "canonical": "2118023",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅅㄴㅂㅊㄸㅃㄴㄹㅊㅈㄴ",
+    "canonical": "2121831",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄹㄸㄴㄸㄴㄹㅊㅈㄴㄸㅆㄸㄹ",
+    "canonical": "2117823",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄹㄸㄴㄸㄴㄹㅊㅈㄴㄹㅊㅂㄸ",
+    "canonical": "2118031",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄹㄸㄴㄸㄴㄹㅊㅈㄴ",
+    "canonical": "2118533",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄸㅃㄴㄹㅊㅈㄴ",
+    "canonical": "2122524",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㅅㅊㄴㅊㅂ",
+    "canonical": "2117731",
+    "count": 2
+  },
+  {
+    "alias": "ap",
+    "canonical": "2117030",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㅋㄸㅇㅅㅊㅂ",
+    "canonical": "2117030",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄸㅃㅊㅂㅉㄴ",
+    "canonical": "2119401",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄹㅅㅉㅊㅂㅉㄴ",
+    "canonical": "3122402",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄱㄸㅋㅅㅊㅈㄴ",
+    "canonical": "61XX401",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㅊㅂㄴㄱㄸㅋㅅㅊㅈㄴㄸㅆㄸㄹ",
+    "canonical": "61XX402",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄱㄸㅋㄱㄸㅋㄲㅅㅅㄹㄱㄸㅂㅋㄸㅅㄸ",
+    "canonical": "2120501",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄱㄸㅋㄱㄸㅋㄲㅊㄹㄱㄸㄸㅃ",
+    "canonical": "2120032",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄹㅊㄴㅅㅂㅅㅂㅉㄸㅉ",
+    "canonical": "2918807",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅂㄹㅊㄴㅉㄹㅋㅂㄸㄸㅂ",
+    "canonical": "2917808",
+    "count": 2
+  },
+  {
+    "alias": "ㅆㄹㅅㄲㅋㄹㄸㄴㄴㅅ",
+    "canonical": "1916401",
+    "count": 2
+  },
+  {
+    "alias": "ㅆㄹㅅㄲㅋㄹㄸㄸㅆ",
+    "canonical": "19NV101",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄸㅉㄹㄸㅅ",
+    "canonical": "2918810",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄸㅉㅊㄸ",
+    "canonical": "2916809",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄸㅉㅂㄸㄴㄴ",
+    "canonical": "3919802",
+    "count": 2
+  },
+  {
+    "alias": "sg",
+    "canonical": "49NV001",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㄱㄸㄴㅈㅊㅋㄸㄴㅅㄸㅆ",
+    "canonical": "49NV001",
+    "count": 2
+  },
+  {
+    "alias": "sa",
+    "canonical": "39NV001",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅊㄸㅅㅅㄸㅂㄹㄴㄹㄸ",
+    "canonical": "39NV001",
+    "count": 2
+  },
+  {
+    "alias": "cb",
+    "canonical": "2C19001",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅂㅅㅊㄹㅂㅊㄸㄴ",
+    "canonical": "2C19001",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅂㅅㅊㅉㅊㄸㅂㅊㄸㄴ",
+    "canonical": "2C17801",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅂㅅㅊㅉㅊㄸㅂㅊㅌㅅㅊ",
+    "canonical": "3C19801",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅌㅂㅊㅊㄸㅂㄹㅊㅆㅋㅊ",
+    "canonical": "AC21402",
+    "count": 2
+  },
+  {
+    "alias": "g1",
+    "canonical": "AC94001",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅌㅂㅂㄱㄸㅅㅋ",
+    "canonical": "ACXX027",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅌㄴㄷㄸㄸㅆㄹ",
+    "canonical": "ACXX026",
+    "count": 2
+  },
+  {
+    "alias": "gl",
+    "canonical": "AC19101",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅌㅋㅊ",
+    "canonical": "AC19101",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅌㅋㅅㄸㄹㅋㅊ",
+    "canonical": "ACXX001",
+    "count": 2
+  },
+  {
+    "alias": "ge",
+    "canonical": "ACXX014",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅌㅅㅂㅊㄸㄴㄸㅅㅌㅅㅊㅋㅊ",
+    "canonical": "ACXX014",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㅊㅋㄹㄸㅅㅂㅊㅅㅊㅅㅊㄴㄸㅆㄸㄹ",
+    "canonical": "2C18003",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㅊㅋㄹㄸㅅㅂㅊㅅㅊㅅㅊㄴㅌㅅㅊㄸㅆㄸㄹ",
+    "canonical": "3C17001",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㅊㅋㄹㄸㅅㅂㅊㅅㅊㅅㅊㄴ",
+    "canonical": "2C19002",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅌㅅㅊㄹㅆ",
+    "canonical": "AC07402",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅌㅅㅊㄹㅅ",
+    "canonical": "AC08003",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅌㅅㅊㄹㄸㄴㅌ",
+    "canonical": "AC09002",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㅌㅅㅊㅂㄸㅂㅅ",
+    "canonical": "AC09003",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㅂㄹㄴㅅㄸㅂㄱㅌㄹㅂㅊㄹㅆ",
+    "canonical": "AC16022",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㅂㄹㄴㅅㄸㅂㄸㅂㅅㄴ",
+    "canonical": "ACXX802",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㅂㄹㄴㅅㄸㄴㄸㅆㄸㄹ",
+    "canonical": "ACXX021",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㅂㄹㄴㅅㄸㄴㅉㅅㄹㅉㄸㄸㅂㄴ",
+    "canonical": "ACXX801",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄸㄴㅂㄹㄴㅅㄸㄸㅅㅅㅊ",
+    "canonical": "ACXX803",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅂㅊㅉㄸㅊㅊ",
+    "canonical": "2C19004",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅂㅊㅉㄸㄹㄸㅉ",
+    "canonical": "3C21002",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅂㅊㅅㄸㄹㅊㄴㄹㄸㅉ",
+    "canonical": "3C21001",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㅂㅊㅅㄸㄹㅊㄴㅊㅊ",
+    "canonical": "2C19003",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㅂㅋㅉㅅㅂㄸㅂㅋㄴㄴㅅㅂㅊㄸㅊㅌㅂ",
+    "canonical": "2420020",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㅂㅋㅉㅅㅂㄸㅂㅂㄸㄴㄴㅂㅊㄸㅊㅌㅂ",
+    "canonical": "3419019",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㅂㅋㅉㅋㄴㄴㅅㅂㅊㄸㅊㅌㅂ",
+    "canonical": "2421004",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅂㅅㅆㄹㄸㅂㄴㄴㅅ",
+    "canonical": "3421003",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅂㅂㅊㄸㅊㅌㅂㅋㄴㄴㅅ",
+    "canonical": "2420005",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅂㅂㅊㄸㅊㅌㅂㅂㄴㄴㅅ",
+    "canonical": "3422003",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅊㅅㅂㄹㄴㄴㅅㄸㅆㄹ",
+    "canonical": "2418504",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅊㅅㅂㅃㅊㅅㅅㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2419502",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅊㅅㅂㅅㅌㄴㄸㄴㄹㅅㄴㅁㄷㅂㄸ",
+    "canonical": "2419503",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅊㅅㅂㄹㄸㄹㅅㄴㅂㄴㄴㅅ",
+    "canonical": "3421602",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅊㅅㅂㄸㄹㄸㅈㄹㅅㄴㅅㄸㅅㄴㅉㄸㅆ",
+    "canonical": "4422601",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄱㄸㅅㅋㅂㄸㄹㄸㅂㅉㄹㄸㄴㅂㄹㄴㄹㅊㅆㄸㅆㄹ",
+    "canonical": "2420607",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄱㄸㅅㄹㅊㄸㅅㅉㄹㄸㄴㅂㄹㄴㄹㅊㅆㄸㅆㄹ",
+    "canonical": "2420606",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄱㄸㅅㅋㄴㄴㅅㄹㅊㅆㄸㅆㄹ",
+    "canonical": "2421605",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㅅㄹㅅㅋㅃㄴㄱㄸㅂㄹㅅㄴㅋㄴㄴㅅ",
+    "canonical": "2421502",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㅅㄹㅅㅂㄹㄸㄴㅂㄹㅅㄴㅋㄴㄴㅅ",
+    "canonical": "2421503",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㅅㄹㅅㅂㄹㄸㄴㅂㄹㅅㄴㅂㄴㄴㅅ",
+    "canonical": "3421502",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㅅㄹㅅㅋㅃㄴㅅㅂㅊㅅㅊㅉㄹㅋㄴㄴㅅ",
+    "canonical": "2421501",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㅅㄹㅅㅋㅃㄴㅅㅂㅊㅅㅊㅉㄹㅂㄴㄴㅅ",
+    "canonical": "3421501",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㄹㅅㅋㅃㄴㅋㅉㄹㄸㅉ",
+    "canonical": "3422502",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅃㄹㅅㅋㅃㄴㄸㅆㅅㄹㅋㄴㄴㅅ",
+    "canonical": "4422501",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅆㄸㅊㅂㅋㄸ",
+    "canonical": "2423018",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅆㄸㅊㅅㅂㅊㅅㅊㅁㄷㅂㄸ",
+    "canonical": "2422401",
+    "count": 2
+  },
+  {
+    "alias": "rp",
+    "canonical": "2423003",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅆㅋㄱㄴㄸㅈㅆㅋㄴ",
+    "canonical": "2423003",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅆㅃㄸㄹㄸㅂㅂㄴㄹㅉㅅㅊ",
+    "canonical": "2422001",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅉㄹㅌㅊㄸㅆㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2418423",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅉㅅㅂㅊㅅㅊㅋㄴㄴㅅ",
+    "canonical": "2419422",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅉㅅㅂㅊㅅㅊㅂㄴㄴㅅ",
+    "canonical": "3419402",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅉㄹㅌㅊㄸㅆㅂㄴㄴㅅ",
+    "canonical": "3419403",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄴㅉㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ",
+    "canonical": "3419404",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㅊㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ",
+    "canonical": "3422004",
+    "count": 2
+  },
+  {
+    "alias": "tc",
+    "canonical": "2421023",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㅊㅃㄸㅉㅅㅊㅋㄴㄴㅅ",
+    "canonical": "2421023",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄹㅅㅆㄹㅅㄴㅂㄴㄹㅉㅂㅊㅋㄴㄴㅅ",
+    "canonical": "2420031",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄹㅅㅆㄹㅅㄴㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ",
+    "canonical": "3420013",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄹㅅㅆㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ",
+    "canonical": "3420012",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㄹㅅㅆㅂㄴㄹㅉㅂㅊㅋㄴㄴㅅ",
+    "canonical": "2420030",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㅅㅅㄴㄸㅂㄸㄴㄴㅂㅊㄸㅈㅅㅌㅅㄸㅆㄹㅊㄸㅅ",
+    "canonical": "3420501",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㅅㅅㄴㄸㅋㄴㄴㅅㅂㅊㄸㅈㅅㅌㅅㄸㅆㄹㅊㄸㅅ",
+    "canonical": "2421505",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㅅㅅㄴㄸㅅㅅㅉㄴㅂㄸㄴㄴㅅㄸㅅㅂㅉㄹㅊㄸㅅ",
+    "canonical": "3421503",
+    "count": 2
+  },
+  {
+    "alias": "ㅉㄸㅅㅅㄴㄸㅋㄴㄴㅅㄹㅊㄸㅅ",
+    "canonical": "2418531",
+    "count": 2
+  },
+  {
+    "alias": "ra",
+    "canonical": "2418523",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄸㅅㅊㅋㅊㅉㄹㄸㄴㅂㄹㄴㄴㅋㄹㄸ",
+    "canonical": "2418523",
+    "count": 2
+  },
+  {
+    "alias": "rr",
+    "canonical": "2419022",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄸㄸㅈㅅㄸㄴㅅㅅㄴㅋㄹㄸ",
+    "canonical": "2419022",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄸㄴㅂㅅㅆㅂㄸㄴㄴㅂㄴㄹㅉㅂㅊ",
+    "canonical": "3418502",
+    "count": 2
+  },
+  {
+    "alias": "rs",
+    "canonical": "3418503",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄸㅂㅋㄹㅂㄸㄴㄴㅂㄴㄹㅉㅂㅊ",
+    "canonical": "3418503",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㅊㅋㄸㄴㅂㄹㄸㄴㄸㄹㅅㄴㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2419524",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㅊㅋㄸㄴㅂㄹㄸㄸ",
+    "canonical": "2419525",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㅊㅋㄸㄴㅂㄹㄸㄴㄸㄹㅅㄴㅆㅋㄴ",
+    "canonical": "2418530",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅉㅅㅉㄹㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2418030",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄸㅉㅅㅉㄹㅉㄹㄸㄴㅋㄸ",
+    "canonical": "2415030",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄹㅋㄹㄸㄹㅅㄴㄴㅋㄹㄸㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2418431",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄹㅋㄹㄸㄹㅅㄴㄴㅋㄹㄸㅂㄹㄴㄹㄸ",
+    "canonical": "3422401",
+    "count": 2
+  },
+  {
+    "alias": "ㄱㄹㄴㅋㄹㄸㄸㅆ",
+    "canonical": "4421501",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㅊㄹㄸㄴㅅㅊㄹㅂㄹㄴㄹㄸ",
+    "canonical": "3419018",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄴㄴㅂㅊㅅㅆㅉㅈㄹㅅㄴㅅㅊㄸㅂㅋㅉㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2418031",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄸㅂㅊㄸㅈㅉㅈㄱ",
+    "canonical": "2416003",
+    "count": 2
+  },
+  {
+    "alias": "ㅋㄸㅂㅊㄸㅈㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2422404",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅋㄹㄸㄹㅅㄴㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2417528",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅋㄹㄸㄹㅅㄴㅆㅋㄴ",
+    "canonical": "2418129",
+    "count": 2
+  },
+  {
+    "alias": "ㅂㄹㅂㅋㄴㅋㄹㄸㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2419023",
+    "count": 2
+  },
+  {
+    "alias": "ho",
+    "canonical": "2415802",
+    "count": 2
+  },
+  {
+    "alias": "ㅌㅂㅅㅉㄹㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2415802",
+    "count": 2
+  },
+  {
+    "alias": "ㅌㅋㅂㅌㅋㄸㄴㅋㄹㄸㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2419825",
+    "count": 2
+  },
+  {
+    "alias": "ㅌㅂㅂㄴㄴㅅㅆㄴㅂㄹㅅㄴ",
+    "canonical": "3418802",
+    "count": 2
+  },
+  {
+    "alias": "ㅌㅋㅂㅌㅋㄸㄴㅋㄹㄸㅂㄴㄴㅅ",
+    "canonical": "3420014",
+    "count": 2
+  },
+  {
+    "alias": "ㅌㅋㄸㅉㄸㅋㄴㅅㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2421801",
+    "count": 2
+  },
+  {
+    "alias": "ec",
+    "canonical": "2622030",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㅉㅅ",
+    "canonical": "2622030",
+    "count": 2
+  },
+  {
+    "alias": "es",
+    "canonical": "2619504",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㅅㅂㄴㅅㅂㄸ",
+    "canonical": "2619504",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㄴㄹㅂㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2623802",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㄴㄷㄸㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2621409",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㄴㄷㄸㅂㄴㄴ",
+    "canonical": "2622408",
+    "count": 2
+  },
+  {
+    "alias": "ee",
+    "canonical": "2619418",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㅅㅊㄴㅉ",
+    "canonical": "2619418",
+    "count": 2
+  },
+  {
+    "alias": "ea",
+    "canonical": "4621401",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㅅㄴㄹㄸㅆ",
+    "canonical": "4621401",
+    "count": 2
+  },
+  {
+    "alias": "et",
+    "canonical": "4620001",
+    "count": 2
+  },
+  {
+    "alias": "ㅅㄹㄸㅅㄴㅊㅅㅂㄸㅆ",
+    "canonical": "4620001",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅅㄴㄹㄹ",
+    "canonical": "2D20005",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅅㄴㅂㄸㄴㄴ",
+    "canonical": "3D21001",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅂㅊㅅㅊㅂㄸㅂㄹㄹ",
+    "canonical": "2D21401",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅂㅊㅅㅊㅂㄸㅂㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2D21001",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅂㅊㅅㅊㅊㄸㅊㅂㅋㄸㄸㄱㄴ",
+    "canonical": "4B23401",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅂㅊㅅㅊㅂㄸㅂㅊㄸㅊㅂ",
+    "canonical": "3B21001",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㄴㄴㅅㅂㅊㅅㅊㄹㄹ",
+    "canonical": "2D23002",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㄴㄴㅅㅂㅊㅅㅊㄸㅆ",
+    "canonical": "4D21001",
+    "count": 2
+  },
+  {
+    "alias": "ㅈㅉㄴㅅㅊㄸㅊㄹㄹ",
+    "canonical": "2B23002",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㄴㅊㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2716806",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㄴㅊㅂㄴㄴ",
+    "canonical": "3719701",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㄴㅂㅊㄸㅉㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2718401",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㄴㅂㅊㄸㅂㄸㅆ",
+    "canonical": "2718601",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㄴㅂㅊㄸㅂㄸㄴㄴ",
+    "canonical": "3722001",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㅅㅌㄴㅂㄸㅆ",
+    "canonical": "2723709",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2720809",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㅂㄴㄴㅅ",
+    "canonical": "3723805",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㅂㄹㄴㄹㄸ",
+    "canonical": "3721801",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㅂㄸㅆ",
+    "canonical": "2724810",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㅉㅅㅈㅂㄴㄴ",
+    "canonical": "3722801",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㅉㅅㅈㄲㄹㄸㄴㅂㄹㄴ",
+    "canonical": "2721806",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㅋㅉㅅㅈㅂㄸㅆ",
+    "canonical": "2722801",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㄹㅈㅌㅂㄴㄴㅅ",
+    "canonical": "3719802",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㄹㅈㅌㅂㄸㅆ",
+    "canonical": "2720708",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㄹㅊㅅㅊㄸㄹㅈㅌㅋㅉㄹㅂㅉㅊ",
+    "canonical": "4720801",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㅉㅈㄸㅂㄸㅊㅂㄹㄴㄹㄸ",
+    "canonical": "3A24003",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㅉㅈㄸㅂㅋㅉㅂㄹㄴㄹㄸ",
+    "canonical": "3A24001",
+    "count": 2
+  },
+  {
+    "alias": "ㄸㅅㅉㅈㄸㅂㄴㅂㅊㅂㄹㄴㄹㄸ",
+    "canonical": "3A24403",
+    "count": 2
+  },
+  {
+    "alias": "me",
+    "canonical": "3A24401",
+    "count": 2
+  },
+  {
+    "alias": "ㄹㄹㄸㅅㅂㅊㅅㅊㄸㅆㄹㅂㄹㄴㄹㄸ",
+    "canonical": "3A24401",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅉㄹㅌㅊㄸㅆㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2418423\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅉㅅㅂㅊㅅㅊㅋㄴㄴㅅ\"",
+    "canonical": "\"2419422\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅉㅅㅂㅊㅅㅊㅂㄴㄴㅅ\"",
+    "canonical": "\"3419402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅉㄹㅌㅊㄸㅆㅂㄴㄴㅅ\"",
+    "canonical": "\"3419403\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅉㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ\"",
+    "canonical": "\"3419404\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㅊㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ\"",
+    "canonical": "\"3422004\"",
+    "count": 2
+  },
+  {
+    "alias": "\"tc\"",
+    "canonical": "\"2421023\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㅊㅃㄸㅉㅅㅊㅋㄴㄴㅅ\"",
+    "canonical": "\"2421023\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄹㅅㅆㄹㅅㄴㅂㄴㄹㅉㅂㅊㅋㄴㄴㅅ\"",
+    "canonical": "\"2420031\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄹㅅㅆㄹㅅㄴㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ\"",
+    "canonical": "\"3420013\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄹㅅㅆㅂㄴㄹㅉㅂㅊㅂㄴㄴㅅ\"",
+    "canonical": "\"3420012\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄹㅅㅆㅂㄴㄹㅉㅂㅊㅋㄴㄴㅅ\"",
+    "canonical": "\"2420030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㅅㅅㄴㄸㅂㄸㄴㄴㅂㅊㄸㅈㅅㅌㅅㄸㅆㄹㅊㄸㅅ\"",
+    "canonical": "\"3420501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㅅㅅㄴㄸㅋㄴㄴㅅㅂㅊㄸㅈㅅㅌㅅㄸㅆㄹㅊㄸㅅ\"",
+    "canonical": "\"2421505\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㅅㅅㄴㄸㅅㅅㅉㄴㅂㄸㄴㄴㅅㄸㅅㅂㅉㄹㅊㄸㅅ\"",
+    "canonical": "\"3421503\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㅅㅅㄴㄸㅋㄴㄴㅅㄹㅊㄸㅅ\"",
+    "canonical": "\"2418531\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ra\"",
+    "canonical": "\"2418523\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄸㅅㅊㅋㅊㅉㄹㄸㄴㅂㄹㄴㄴㅋㄹㄸ\"",
+    "canonical": "\"2418523\"",
+    "count": 2
+  },
+  {
+    "alias": "\"rr\"",
+    "canonical": "\"2419022\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄸㄸㅈㅅㄸㄴㅅㅅㄴㅋㄹㄸ\"",
+    "canonical": "\"2419022\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄸㄴㅂㅅㅆㅂㄸㄴㄴㅂㄴㄹㅉㅂㅊ\"",
+    "canonical": "\"3418502\"",
+    "count": 2
+  },
+  {
+    "alias": "\"rs\"",
+    "canonical": "\"3418503\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄸㅂㅋㄹㅂㄸㄴㄴㅂㄴㄹㅉㅂㅊ\"",
+    "canonical": "\"3418503\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㅊㅋㄸㄴㅂㄹㄸㄴㄸㄹㅅㄴㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2419524\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㅊㅋㄸㄴㅂㄹㄸㄸ\"",
+    "canonical": "\"2419525\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㅊㅋㄸㄴㅂㄹㄸㄴㄸㄹㅅㄴㅆㅋㄴ\"",
+    "canonical": "\"2418530\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅉㅅㅉㄹㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2418030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅉㅅㅉㄹㅉㄹㄸㄴㅋㄸ\"",
+    "canonical": "\"2415030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄹㅋㄹㄸㄹㅅㄴㄴㅋㄹㄸㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2418431\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄹㅋㄹㄸㄹㅅㄴㄴㅋㄹㄸㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3422401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄹㄴㅋㄹㄸㄸㅆ\"",
+    "canonical": "\"4421501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅊㄹㄸㄴㅅㅊㄹㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3419018\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄴㄴㅂㅊㅅㅆㅉㅈㄹㅅㄴㅅㅊㄸㅂㅋㅉㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2418031\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄸㅂㅊㄸㅈㅉㅈㄱ\"",
+    "canonical": "\"2416003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄸㅂㅊㄸㅈㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2422404\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅋㄹㄸㄹㅅㄴㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2417528\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅋㄹㄸㄹㅅㄴㅆㅋㄴ\"",
+    "canonical": "\"2418129\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㅂㅋㄴㅋㄹㄸㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2419023\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ho\"",
+    "canonical": "\"2415802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅌㅂㅅㅉㄹㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2415802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅌㅋㅂㅌㅋㄸㄴㅋㄹㄸㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2419825\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅌㅂㅂㄴㄴㅅㅆㄴㅂㄹㅅㄴ\"",
+    "canonical": "\"3418802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅌㅋㅂㅌㅋㄸㄴㅋㄹㄸㅂㄴㄴㅅ\"",
+    "canonical": "\"3420014\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅌㅋㄸㅉㄸㅋㄴㅅㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2421801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ec\"",
+    "canonical": "\"2622030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㅉㅅ\"",
+    "canonical": "\"2622030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"es\"",
+    "canonical": "\"2619504\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㅅㅂㄴㅅㅂㄸ\"",
+    "canonical": "\"2619504\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㄴㄹㅂㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2623802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㄴㄷㄸㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2621409\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㄴㄷㄸㅂㄴㄴ\"",
+    "canonical": "\"2622408\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ee\"",
+    "canonical": "\"2619418\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㅅㅊㄴㅉ\"",
+    "canonical": "\"2619418\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ea\"",
+    "canonical": "\"4621401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㅅㄴㄹㄸㅆ\"",
+    "canonical": "\"4621401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"et\"",
+    "canonical": "\"4620001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅅㄴㅊㅅㅂㄸㅆ\"",
+    "canonical": "\"4620001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅅㄴㄹㄹ\"",
+    "canonical": "\"2D20005\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅅㄴㅂㄸㄴㄴ\"",
+    "canonical": "\"3D21001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅂㅊㅅㅊㅂㄸㅂㄹㄹ\"",
+    "canonical": "\"2D21401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅂㅊㅅㅊㅂㄸㅂㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2D21001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅂㅊㅅㅊㅊㄸㅊㅂㅋㄸㄸㄱㄴ\"",
+    "canonical": "\"4B23401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅂㅊㅅㅊㅂㄸㅂㅊㄸㅊㅂ\"",
+    "canonical": "\"3B21001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㄴㄴㅅㅂㅊㅅㅊㄹㄹ\"",
+    "canonical": "\"2D23002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㄴㄴㅅㅂㅊㅅㅊㄸㅆ\"",
+    "canonical": "\"4D21001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅉㄴㅅㅊㄸㅊㄹㄹ\"",
+    "canonical": "\"2B23002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㄴㅊㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2716806\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㄴㅊㅂㄴㄴ\"",
+    "canonical": "\"3719701\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㄴㅂㅊㄸㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2718401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㄴㅂㅊㄸㅂㄸㅆ\"",
+    "canonical": "\"2718601\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㄴㅂㅊㄸㅂㄸㄴㄴ\"",
+    "canonical": "\"3722001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㅅㅌㄴㅂㄸㅆ\"",
+    "canonical": "\"2723709\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2720809\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㅂㄴㄴㅅ\"",
+    "canonical": "\"3723805\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3721801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅂㄱㄴㅈㅂㄸㅆㅂㄸㅆ\"",
+    "canonical": "\"2724810\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㅉㅅㅈㅂㄴㄴ\"",
+    "canonical": "\"3722801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㅉㅅㅈㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2721806\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㅋㅉㅅㅈㅂㄸㅆ\"",
+    "canonical": "\"2722801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㄹㅈㅌㅂㄴㄴㅅ\"",
+    "canonical": "\"3719802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㄹㅈㅌㅂㄸㅆ\"",
+    "canonical": "\"2720708\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄹㅊㅅㅊㄸㄹㅈㅌㅋㅉㄹㅂㅉㅊ\"",
+    "canonical": "\"4720801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㅉㅈㄸㅂㄸㅊㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3A24003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㅉㅈㄸㅂㅋㅉㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3A24001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㅉㅈㄸㅂㄴㅂㅊㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3A24403\"",
+    "count": 2
+  },
+  {
+    "alias": "\"me\"",
+    "canonical": "\"3A24401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㄸㅅㅂㅊㅅㅊㄸㅆㄹㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3A24401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅌㅂㅂㄱㄸㅅㅋ\"",
+    "canonical": "\"ACXX027\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅌㄴㄷㄸㄸㅆㄹ\"",
+    "canonical": "\"ACXX026\"",
+    "count": 2
+  },
+  {
+    "alias": "\"gl\"",
+    "canonical": "\"AC19101\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅌㅋㅊ\"",
+    "canonical": "\"AC19101\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅌㅋㅅㄸㄹㅋㅊ\"",
+    "canonical": "\"ACXX001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ge\"",
+    "canonical": "\"ACXX014\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅌㅅㅂㅊㄸㄴㄸㅅㅌㅅㅊㅋㅊ\"",
+    "canonical": "\"ACXX014\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㅊㅋㄹㄸㅅㅂㅊㅅㅊㅅㅊㄴㄸㅆㄸㄹ\"",
+    "canonical": "\"2C18003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㅊㅋㄹㄸㅅㅂㅊㅅㅊㅅㅊㄴㅌㅅㅊㄸㅆㄸㄹ\"",
+    "canonical": "\"3C17001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㅊㅋㄹㄸㅅㅂㅊㅅㅊㅅㅊㄴ\"",
+    "canonical": "\"2C19002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅌㅅㅊㄹㅆ\"",
+    "canonical": "\"AC07402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅌㅅㅊㄹㅅ\"",
+    "canonical": "\"AC08003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅌㅅㅊㄹㄸㄴㅌ\"",
+    "canonical": "\"AC09002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅌㅅㅊㅂㄸㅂㅅ\"",
+    "canonical": "\"AC09003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㅂㄹㄴㅅㄸㅂㄱㅌㄹㅂㅊㄹㅆ\"",
+    "canonical": "\"AC16022\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㅂㄹㄴㅅㄸㅂㄸㅂㅅㄴ\"",
+    "canonical": "\"ACXX802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㅂㄹㄴㅅㄸㄴㄸㅆㄸㄹ\"",
+    "canonical": "\"ACXX021\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㅂㄹㄴㅅㄸㄴㅉㅅㄹㅉㄸㄸㅂㄴ\"",
+    "canonical": "\"ACXX801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㅂㄹㄴㅅㄸㄸㅅㅅㅊ\"",
+    "canonical": "\"ACXX803\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅂㅊㅉㄸㅊㅊ\"",
+    "canonical": "\"2C19004\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅂㅊㅉㄸㄹㄸㅉ\"",
+    "canonical": "\"3C21002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅂㅊㅅㄸㄹㅊㄴㄹㄸㅉ\"",
+    "canonical": "\"3C21001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅂㅊㅅㄸㄹㅊㄴㅊㅊ\"",
+    "canonical": "\"2C19003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㅂㅋㅉㅅㅂㄸㅂㅋㄴㄴㅅㅂㅊㄸㅊㅌㅂ\"",
+    "canonical": "\"2420020\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㅂㅋㅉㅅㅂㄸㅂㅂㄸㄴㄴㅂㅊㄸㅊㅌㅂ\"",
+    "canonical": "\"3419019\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㅂㅋㅉㅋㄴㄴㅅㅂㅊㄸㅊㅌㅂ\"",
+    "canonical": "\"2421004\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅂㅅㅆㄹㄸㅂㄴㄴㅅ\"",
+    "canonical": "\"3421003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅂㅂㅊㄸㅊㅌㅂㅋㄴㄴㅅ\"",
+    "canonical": "\"2420005\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄹㄸㅂㅂㅊㄸㅊㅌㅂㅂㄴㄴㅅ\"",
+    "canonical": "\"3422003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅊㅅㅂㄹㄴㄴㅅㄸㅆㄹ\"",
+    "canonical": "\"2418504\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅊㅅㅂㅃㅊㅅㅅㅉㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2419502\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅊㅅㅂㅅㅌㄴㄸㄴㄹㅅㄴㅁㄷㅂㄸ\"",
+    "canonical": "\"2419503\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅊㅅㅂㄹㄸㄹㅅㄴㅂㄴㄴㅅ\"",
+    "canonical": "\"3421602\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅊㅅㅂㄸㄹㄸㅈㄹㅅㄴㅅㄸㅅㄴㅉㄸㅆ\"",
+    "canonical": "\"4422601\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄱㄸㅅㅋㅂㄸㄹㄸㅂㅉㄹㄸㄴㅂㄹㄴㄹㅊㅆㄸㅆㄹ\"",
+    "canonical": "\"2420607\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄱㄸㅅㄹㅊㄸㅅㅉㄹㄸㄴㅂㄹㄴㄹㅊㅆㄸㅆㄹ\"",
+    "canonical": "\"2420606\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄱㄸㅅㅋㄴㄴㅅㄹㅊㅆㄸㅆㄹ\"",
+    "canonical": "\"2421605\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㅅㄹㅅㅋㅃㄴㄱㄸㅂㄹㅅㄴㅋㄴㄴㅅ\"",
+    "canonical": "\"2421502\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㅅㄹㅅㅂㄹㄸㄴㅂㄹㅅㄴㅋㄴㄴㅅ\"",
+    "canonical": "\"2421503\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㅅㄹㅅㅂㄹㄸㄴㅂㄹㅅㄴㅂㄴㄴㅅ\"",
+    "canonical": "\"3421502\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㅅㄹㅅㅋㅃㄴㅅㅂㅊㅅㅊㅉㄹㅋㄴㄴㅅ\"",
+    "canonical": "\"2421501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㅅㄹㅅㅋㅃㄴㅅㅂㅊㅅㅊㅉㄹㅂㄴㄴㅅ\"",
+    "canonical": "\"3421501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㄹㅅㅋㅃㄴㅋㅉㄹㄸㅉ\"",
+    "canonical": "\"3422502\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅃㄹㅅㅋㅃㄴㄸㅆㅅㄹㅋㄴㄴㅅ\"",
+    "canonical": "\"4422501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅆㄸㅊㅂㅋㄸ\"",
+    "canonical": "\"2423018\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅆㄸㅊㅅㅂㅊㅅㅊㅁㄷㅂㄸ\"",
+    "canonical": "\"2422401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"rp\"",
+    "canonical": "\"2423003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅆㅋㄱㄴㄸㅈㅆㅋㄴ\"",
+    "canonical": "\"2423003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅆㅃㄸㄹㄸㅂㅂㄴㄹㅉㅅㅊ\"",
+    "canonical": "\"2422001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"dv\"",
+    "canonical": "\"2019044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄹㅉㄸㅆㅋㅂㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2019044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"dvc\"",
+    "canonical": "\"2019044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㅉㄸㄴㄸㅂㅋㄹㄴㅉㄸㄴㄸㅂㅋㄹㄴㅋ\"",
+    "canonical": "\"2022079\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㅉㄸㄴㄸㅂㅋㄹㄴㅊㅅㅅㅋㅅㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2021099\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㅉㄸㄴㄸㅂㅋㅋㄹㄸㄸㅂㄸㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2020067\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㅉㄸㄴㄸㅂㅋㄹㅂㅋㄹ\"",
+    "canonical": "\"2021066\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄱㄸㅉㄸㄱㄸㄴㅅ\"",
+    "canonical": "\"3022406\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄱㄸㅉㄸㄹㄴㅆㄸ\"",
+    "canonical": "\"3022408\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄱㄸㅉㄸㄸㄲㄸ\"",
+    "canonical": "\"3022407\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄹㅊ\"",
+    "canonical": "\"3022043\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㄹㅂㅅㅋㅂㄹㄸㄹㅊㄴㅊㄴㅌ\"",
+    "canonical": "\"3022042\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅅㄹㅂㅅㅋㅂㄹㄸ\"",
+    "canonical": "\"3023039\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㄹㄸㄹㄸㅂㄹㄸㅉㅊㄴㅆㅅ\"",
+    "canonical": "\"3022705\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㄹㄸㄹㄸㅂㄹㄸㄴ\"",
+    "canonical": "\"3020050\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㄹㄸㄹㄸㅂㄹㄸㄸㅆㄴㄸ\"",
+    "canonical": "\"3022704\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄸㅂㅊㄹㅌㄸ\"",
+    "canonical": "\"3021065\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㄹㄸㄹㄸㅂㄹㄸ\"",
+    "canonical": "\"3021049\"",
+    "count": 2
+  },
+  {
+    "alias": "\"dj\"",
+    "canonical": "\"3022044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㅆㅋㅋㅉㄸㅂㅂㄸㄹㄸㄸㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"3022044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"djp\"",
+    "canonical": "\"3022044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"dm\"",
+    "canonical": "\"3018044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㅋㄱㄹㄸㅈㅊㄸㄹㄴㄱㄸㅉㄸㄹㄸ\"",
+    "canonical": "\"3018044\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㅋㅅㅆㅂㅋㄴㄴㅅ\"",
+    "canonical": "\"2021401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄲㄸㄴㄷㅅㄸㅂㄷ\"",
+    "canonical": "\"3020443\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄲㄸㄴㄷㅅㄸㅂㄴ\"",
+    "canonical": "\"3018042\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄲㄸㄴㄷㅅㄸㄲㄸㄴㄸㄲㅉㄸㅂㄴ\"",
+    "canonical": "\"2016468\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄲㄸㄴㄷㅅㄸㄲㄸㄴㄸㄲ\"",
+    "canonical": "\"2018423\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄲㄸㄴㄷㅅㄸㄱㄸㄹㅅ\"",
+    "canonical": "\"2020022\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄷㄴㄸㄱㄸㄴㅂㄷㄴㅋㄴㅁㅋㅅㄹㄷ\"",
+    "canonical": "\"2017074\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄷㄴㄸㄱㄸㄴㅂㄷㄴㅋㄴㅁㅋㄱㅂㅊㅋㄸ\"",
+    "canonical": "\"2017425\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄴㄸㄱㄸㄴㅂㄷㄴㅋㄴㅁㅋㄸㅊㄸㄴㅂㅅ\"",
+    "canonical": "\"2021424\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㄴㄸㄱㄸㄴㅅㄸㄹㅊㅆ\"",
+    "canonical": "\"2021082\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㄴㄸㄱㄸㄴㄲㄸㄴㅂ\"",
+    "canonical": "\"2020081\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄴㄸㄱㄸㄴㅂㅆㅂ\"",
+    "canonical": "\"2023023\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄴㄸㄱㄸㄴㅉㄸㄴ\"",
+    "canonical": "\"2023004\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄴㄸㄱㄸㄴㄲㄷㄴㄸㄸㅆ\"",
+    "canonical": "\"2023003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄴㄴㄸㄱㄸㄴㄲㄴㄸㅅ\"",
+    "canonical": "\"3021067\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄴㄸㄱㄸㄴㄲㄷㄴㄸㄹㄸ\"",
+    "canonical": "\"3024001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㅋㄲㄷㄴㄸㄸㅆㄹㄹㄸ\"",
+    "canonical": "\"3023802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㅋㄹㄸㅋㄸㄹㅂㄸㅆ\"",
+    "canonical": "\"0021009\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄴㅅㅋㄹㅅㄸㅂㄹㄸㅅㄹㄸㄸㄹㄸ\"",
+    "canonical": "\"3023040\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄴㅅㅋㄹㅅㄸㅂㄸㅂㄹㄸㄸㄹㄸ\"",
+    "canonical": "\"3024003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄴㅅㅋㄹㅅㄸㄸㄸㄹㄸ\"",
+    "canonical": "\"3024002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄴㅅㅋㄹㅅㄸㅂㄸㅂㄸㅆㄸㄹㄸ\"",
+    "canonical": "\"2022081\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄴㅅㅋㄹㅅㄸㅆㄸㅆ\"",
+    "canonical": "\"2023078\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅂㄴㅅㄴㄸㅅㄴㄹㄸㄸㄸㅆㄸㄹㅋㄸㅅㄸ\"",
+    "canonical": "\"2115036\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅂㄴㅅㄴㄸㅅㄴㄹㄸㄸㄹㅂㅅ\"",
+    "canonical": "\"2118040\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅂㄴㅅㄴㄸㅅㄴㄹㄸㄸ\"",
+    "canonical": "\"2118042\"",
+    "count": 2
+  },
+  {
+    "alias": "\"pb\"",
+    "canonical": "\"2118039\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄸㅂㄹㄸㄸㅂㄸㄸㅆㄴㄹㄸㄴㄴ\"",
+    "canonical": "\"2118039\"",
+    "count": 2
+  },
+  {
+    "alias": "\"pt\"",
+    "canonical": "\"3123013\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄸㅂㅊㅈㄸㅅㄸㅅㄸㄴㅅㅂ\"",
+    "canonical": "\"3123013\"",
+    "count": 2
+  },
+  {
+    "alias": "\"pm\"",
+    "canonical": "\"1124001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅋㄸㅂㄹㅂㅉㅊㄴㅂㅊ\"",
+    "canonical": "\"1124001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄸㄱㄹㄸㄴㄹㅂㅉㅊ\"",
+    "canonical": "\"11NV014\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ac\"",
+    "canonical": "\"3120804\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅂㄹㅅㅉㅋㅊㄸㄹㄴㅊ\"",
+    "canonical": "\"3120804\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅂㄹㄸㅅㄴㄲㄹㄸㄴㅂㄹㄴ\"",
+    "canonical": "\"2117008\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅂㄹㅉㅋㅊㅉㄸㅈ\"",
+    "canonical": "\"3121002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅂㄹㅂㄹㅂㅆㄹㄴㅊ\"",
+    "canonical": "\"3124401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ef\"",
+    "canonical": "\"2119820\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅋㅅㅅㅉㅅㅊㅉㄸㅂㅉㄱㄸㅂㄸㅆㅅㄴㅉㅊㅂㄸ\"",
+    "canonical": "\"2120404\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅋㅅㅅㅉㅅㅊㅉㄸㅂㅉㄸㅆㄸㄹ\"",
+    "canonical": "\"2121403\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅋㅅㅅㅉㅅㅊㅉㄸㅂㅉ\"",
+    "canonical": "\"2121002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅋㅅㅅㅋㄸㄸㅅㅂㄹㄸㄹㅊㄴ\"",
+    "canonical": "\"3122001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅋㅅㅅㅈㅊ\"",
+    "canonical": "\"2123001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㅅㄸㄴㄸㅅㅅㄹㄱㄸ\"",
+    "canonical": "\"2120019\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㄸㅂㄸㄴㅅㄹㄴㅅㄸㄴㄸㅅㅅ\"",
+    "canonical": "\"2120523\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㅋㅆㅅㅅㄸㄱㅆㄴㅅㄸㄴㄸㅅㅅ\"",
+    "canonical": "\"3120012\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅊㄴㅊㄴㅅㄸㄴㄸㅅㅅㄸㄹㄷㄴㅅㄸㄴㄸㅅㅅㅊㅂㅉㄴ\"",
+    "canonical": "\"2121811\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅅㄴㅂㅊㄹㄸㄴㄸㄴㄹㅊㅈㄴ\"",
+    "canonical": "\"2118023\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅅㄴㅂㅊㄸㅃㄴㄹㅊㅈㄴ\"",
+    "canonical": "\"2121831\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄹㄸㄴㄸㄴㄹㅊㅈㄴㄸㅆㄸㄹ\"",
+    "canonical": "\"2117823\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄹㄸㄴㄸㄴㄹㅊㅈㄴㄹㅊㅂㄸ\"",
+    "canonical": "\"2118031\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄹㄸㄴㄸㄴㄹㅊㅈㄴ\"",
+    "canonical": "\"2118533\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄸㅃㄴㄹㅊㅈㄴ\"",
+    "canonical": "\"2122524\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㅅㅊㄴㅊㅂ\"",
+    "canonical": "\"2117731\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ap\"",
+    "canonical": "\"2117030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㅋㄸㅇㅅㅊㅂ\"",
+    "canonical": "\"2117030\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄸㅃㅊㅂㅉㄴ\"",
+    "canonical": "\"2119401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄹㅅㅉㅊㅂㅉㄴ\"",
+    "canonical": "\"3122402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄱㄸㅋㅅㅊㅈㄴ\"",
+    "canonical": "\"61XX401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㅊㅂㄴㄱㄸㅋㅅㅊㅈㄴㄸㅆㄸㄹ\"",
+    "canonical": "\"61XX402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄱㄸㅋㄱㄸㅋㄲㅅㅅㄹㄱㄸㅂㅋㄸㅅㄸ\"",
+    "canonical": "\"2120501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅅㄱㄸㅋㄱㄸㅋㄲㅊㄹㄱㄸㄸㅃ\"",
+    "canonical": "\"2120032\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄹㅊㄴㅅㅂㅅㅂㅉㄸㅉ\"",
+    "canonical": "\"2918807\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㄹㅊㄴㅉㄹㅋㅂㄸㄸㅂ\"",
+    "canonical": "\"2917808\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅆㄹㅅㄲㅋㄹㄸㄴㄴㅅ\"",
+    "canonical": "\"1916401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅆㄹㅅㄲㅋㄹㄸㄸㅆ\"",
+    "canonical": "\"19NV101\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄸㅉㄹㄸㅅ\"",
+    "canonical": "\"2918810\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄸㅉㅊㄸ\"",
+    "canonical": "\"2916809\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄹㄸㅉㅂㄸㄴㄴ\"",
+    "canonical": "\"3919802\"",
+    "count": 2
+  },
+  {
+    "alias": "\"sg\"",
+    "canonical": "\"49NV001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㄱㄸㄴㅈㅊㅋㄸㄴㅅㄸㅆ\"",
+    "canonical": "\"49NV001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"sa\"",
+    "canonical": "\"39NV001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㅅㅅㄸㅂㄹㄴㄹㄸ\"",
+    "canonical": "\"39NV001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"cb\"",
+    "canonical": "\"2C19001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅂㅅㅊㄹㅂㅊㄸㄴ\"",
+    "canonical": "\"2C19001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅂㅅㅊㅉㅊㄸㅂㅊㄸㄴ\"",
+    "canonical": "\"2C17801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㅂㅅㅊㅉㅊㄸㅂㅊㅌㅅㅊ\"",
+    "canonical": "\"3C19801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄱㄸㅌㅂㅊㅊㄸㅂㄹㅊㅆㅋㅊ\"",
+    "canonical": "\"AC21402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"g1\"",
+    "canonical": "\"AC94001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㅋㄴㄹㄸㄴㄹㄸ\"",
+    "canonical": "\"1H19002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅂㅌㅅㅆㄸㅆㄸㅆㄹ\"",
+    "canonical": "\"00NV804\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅂㅌㅅㅆㄹㄸㄹㄸㅆ\"",
+    "canonical": "\"0018801\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅂㅌㅅㅆㄹㄸㄴㄹㄸㄴㅌ\"",
+    "canonical": "\"0007804\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅈㅂㅌㅅㅆㅂㅋㅅㅈㄸ\"",
+    "canonical": "\"00MV401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㄸㅆㄹㄸㄱㄸㅉㄸ\"",
+    "canonical": "\"00MV002\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㄸㅆㅃㄴㅅㄹㄸㄱㄸㅉㄸ\"",
+    "canonical": "\"00MV003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㄹㄸㄴㄹㄸㄹㄸㄱㄸㅉㄸ\"",
+    "canonical": "\"00MV004\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㅂㄱㄴㅈㄹㄸㄱㄸㅉㄸ\"",
+    "canonical": "\"00MV001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"sp\"",
+    "canonical": "\"00MV005\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄸㅋㅌㄸㄴㅅㄹㄸㄱㄸㅉㄸ\"",
+    "canonical": "\"00MV005\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄱㅅㄷㅌㄹㄸㄲㄸㄴㄹㄴㄸㄹㄸㅂㅌㄸㅂㅌㄹㅌㄴ\"",
+    "canonical": "\"0016009\"",
+    "count": 2
+  },
+  {
+    "alias": "\"lr\"",
+    "canonical": "\"00MV007\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄱㅅㄷㅌㄹㄸㄸㅆㄹㄸㅃㅋㅆㄴㅊㄸㅋㅅ\"",
+    "canonical": "\"00MV007\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄱㅅㄷㅌㄹㄸㄹㄸㅃㅋㅆㄴㅊㄸㅋㅅ\"",
+    "canonical": "\"00MV006\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄱㅅㄷㅌㄹㄸㄹㄸㄴㄹㄸㅅㅂㅊㄸㄹㄸㅃㅋㅆㄴㅊㄸㅋㅅ\"",
+    "canonical": "\"00MV008\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄱㅅㄷㅌㄹㄸㅋㄸㄸㄴㄹㄸ\"",
+    "canonical": "\"00MV010\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅉㄸㅂㅊㅋㅋㄷㅅㄸㄹㄴㅂㄸㅅㅆㄱㄸㅉㄸㄹㄸㄴㄹㄸ\"",
+    "canonical": "\"00MV014\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅊㄱㄸㅆㄱㅂㅊㄸ\"",
+    "canonical": "\"3019443\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄷㄹㅅㅅ\"",
+    "canonical": "\"2019416\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄷㄹㅂㅊㅉㅅ\"",
+    "canonical": "\"2020017\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄷㄸㅂㄱㄸㄴ\"",
+    "canonical": "\"2020018\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄷㄸㄹㄸㅂ\"",
+    "canonical": "\"2016530\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㅅㄹㅉㄸㄹㄴㄹㄸㄱㄴㄱㄸㄲㄹㄸㅆ\"",
+    "canonical": "\"10NV003\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㅅㄹㅉㄸㄹㄴㄹㄸㄱㄴㄱㄸㄲㄹㄹㄸ\"",
+    "canonical": "\"10NV004\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄸㄸㄹㄸㄴㄹㄸㄹㄸ\"",
+    "canonical": "\"10NV009\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㄸㄸㄹㄸㄴㄹㄸㄴㄹㅂ\"",
+    "canonical": "\"10nv010\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㅅㄹㄸㄸㅊㄸㅋㅌㄹㅂㄲㄸㅆ\"",
+    "canonical": "\"10NV013\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㅅㄹㅂㄸㄸㅂㅋㄸㅈㄹㄸㅉㄸㅊ\"",
+    "canonical": "\"10XX010\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㅅㄹㅂㄸㄸㅂㅋㄸㅈㅅㄴㅋㄸㅅ\"",
+    "canonical": "\"10XX012\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㄹㅅㄹㅂㄸㄸㅂㅋㄸㅈㅅㄸㅆ\"",
+    "canonical": "\"10XX011\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄴㄹㄴㄹㄸㄱㄴㅅㄸㄱㄷ\"",
+    "canonical": "\"3018401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄴㄹㄴㅅㅂㄴㄸㅂㄸㄲㄸ\"",
+    "canonical": "\"3011401\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㄸㅅㄹㄸㄹㄴㄸㄹㄹ\"",
+    "canonical": "\"2013046\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㄸㅅㄴㅅㅂㅆㄸㅆㅅㅆㄸ\"",
+    "canonical": "\"2014441\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㄸㅅㄹㄸㄹㄴㅅㅆㄴㄹㄸㅅㄸ\"",
+    "canonical": "\"2011074\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㄸㅅㄸㄹㄴㅂㄹㄹ\"",
+    "canonical": "\"2014447\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㅂㅂㄴㄹㄸㅂㄸㅂㄴㄹ\"",
+    "canonical": "\"3013041\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㅂㅂㄴㄹㄸㅂㄹㅆ\"",
+    "canonical": "\"3013037\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㅁㄸㄴㄹㄸㅂㄸㅋㄸㅊㅅ\"",
+    "canonical": "\"3013036\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㅂㄹㄴㄸㄹㄸㅌㄷㅂ\"",
+    "canonical": "\"2003534\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㅂㄸㄸㄹ\"",
+    "canonical": "\"2003533\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㅂㅊㄴ\"",
+    "canonical": "\"2003672\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄹㄸㅂ\"",
+    "canonical": "\"3017437\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄹㅊㄸ\"",
+    "canonical": "\"2018072\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄴㅅㅂㅆㄸㅆ\"",
+    "canonical": "\"2013072\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄹㄸㄱㄴㄹㄸㅋㄸㄸㄴㄹㄴ\"",
+    "canonical": "\"30NV007\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄹㄸㄱㄴㄹㄸ\"",
+    "canonical": "\"3018005\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㄸㅅㄹㅆㄸㄹㄸㅆㅋㄸㄹㄸ\"",
+    "canonical": "\"2025001\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㅂㄴㄹㄸㅂㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3021068\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅉㄸㅊㅂㄸㄹㄴㄱㄸㅉㄸ\"",
+    "canonical": "\"3022853\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅁㄸㄴㄹㄸㅂㄸㅋㄸㅊㅅ\"",
+    "canonical": "\"3022803\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅁㄸㄴㄹㄸㅂㄸㅂㄱ\"",
+    "canonical": "\"3022844\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅁㄸㄴㄹㄸㅂㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3021852\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㅂㅋㄸㅅ\"",
+    "canonical": "\"3018704\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅂㄴㄴㄲㄹㄸㅆㄹ\"",
+    "canonical": "\"3020041\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅂㄴㄴㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3016501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㄹㄸㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3021701\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㄹㄸㅊㄱㄸㅉㄸ\"",
+    "canonical": "\"2019805\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㄹㄸㅊㅉㄸㄴㄹㅆㄱㄸㅉㄸ\"",
+    "canonical": "\"2015850\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄹㄸㄱㄸㅉㄸ\"",
+    "canonical": "\"2019804\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅅㅃㅆㄱㄸㅉㄸ\"",
+    "canonical": "\"2019825\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄲㄸㄴㄹㅆㄱㄸㅉㄸ\"",
+    "canonical": "\"2019866\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㄹㄴㄸㅂㅂ\"",
+    "canonical": "\"2019026\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㄹㄴ\"",
+    "canonical": "\"2017075\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅆㄹㄸㅂㄹㄸㅊ\"",
+    "canonical": "\"2020806\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄴㅅㅂㅆㄸㅆㄸㅋㄸㄸㅅ\"",
+    "canonical": "\"2020672\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄴㅂㅆㄸㅆ\"",
+    "canonical": "\"2019020\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄴㅅㅉㄸㄲㄸㄴㅂ\"",
+    "canonical": "\"2017822\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㄹㄹㅆㄴㄸㅋ\"",
+    "canonical": "\"2018865\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㅂㄹㄴㄸㄹㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2017824\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅋㄴㄴㅅㄲㄹㄸㅆㄹ\"",
+    "canonical": "\"2022024\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅆㄸㅂㄹㄸㄹㄸㄱㄴㅋㄴㄴㅅㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2020502\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄴㅂㅆㄸㅆㅉㄸㄴㅋㄸㅅ\"",
+    "canonical": "\"2019042\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㅋㄹㄸㄸㄹㄹㄸㅅ\"",
+    "canonical": "\"2019078\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㅋㅂㅉㄸㄴㅂㅋㅊㄸ\"",
+    "canonical": "\"2019080\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄴㅂㅆㄸㅆㄸㅉㄸㅋㄸㅅ\"",
+    "canonical": "\"2019079\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄴㅅㄹ\"",
+    "canonical": "\"2019069\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄸㄴㅅㄱㄷㄸㅆ\"",
+    "canonical": "\"2020083\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄸㅆ\"",
+    "canonical": "\"2021083\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄴㄹㅅㅆㅅㄱㄷㄹㄸ\"",
+    "canonical": "\"3021064\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄷㅉㅊㄴㄴㄹㄸ\"",
+    "canonical": "\"3021851\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄱㅅㄹㄴㅋㄸㄸㄹㄸㄱㄴㅅㄸㄱㅊㄹㄸㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3020068\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄱㄸㅉㄸ\"",
+    "canonical": "\"3022501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄷㄸㄹㄸㅂㄱㄸㅉㄸ\"",
+    "canonical": "\"3022501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅉㄸㅊㅂㄸㄹㄴㄱㄸㅉㄸ\"",
+    "canonical": "\"3022641\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅂㅂㄴㄹㄸㅂㄹㄸㄹㅆ\"",
+    "canonical": "\"3022452\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅂㅂㄴㄹㄸㅂㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3022550\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄹㄸㄴ\"",
+    "canonical": "\"3022439\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄸㄲㄸ\"",
+    "canonical": "\"3022047\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄸㄴㄸㄹ\"",
+    "canonical": "\"3022601\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㅂㄸㄹㅆ\"",
+    "canonical": "\"3022540\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅂㄷㄹㅅㅌㄹ\"",
+    "canonical": "\"3022441\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄸㄸㅉㄸㄱㄸㅆㄴ\"",
+    "canonical": "\"3022843\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅋㅅㅋㅂㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"3021841\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㄱㄴㅂㄸㄴㄴㅉㄹㅂㄹㅂ\"",
+    "canonical": "\"3021440\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅆㄹㄸㅂㄹㄸㅊㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2021013\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅂㅂㄴㄹㄸㅂㄸㅆㄹㅆ\"",
+    "canonical": "\"2021421\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅅㄸㅂㅉㄸㅊㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2021012\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅋㄹㄸㄸㅆㅋㄴ\"",
+    "canonical": "\"2017413\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅋㄹㄸㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2021402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄴㄸㅂㄷㄴ\"",
+    "canonical": "\"2021474\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄴㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2021501\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㅂㅊㄴㄹㅅㅅㄹㄴ\"",
+    "canonical": "\"2021412\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄹㅂㅆㄸㄸㄴㄹㄸㄱㄴㅋㄴㄴㅅㅉㄹㅂㄹㅂ\"",
+    "canonical": "\"2021011\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅋㄸㄴㄹㄸㅂㄸㅂㄱ\"",
+    "canonical": "\"3022404\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㅂㅂㄴㄹㄸㅂㄹㄸㄹㅆㄲㄸㅋㄷㅅㄹㄴㅋㄹㄸ\"",
+    "canonical": "\"3022403\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄹㄸㄹㄸㄱㄸ\"",
+    "canonical": "\"3021446\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄹㄸㄲㄴㅂ\"",
+    "canonical": "\"3022402\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅂㅂㄴㄹㄸㅂㄸㅆㄹㅆㄲㄸㅋㄷㅅㄹㄴㅋㄸㅆ\"",
+    "canonical": "\"2020420\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄸㅆㄱㄸㄹㅅ\"",
+    "canonical": "\"2019426\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄸㅆㄹㄸㄱㄸ\"",
+    "canonical": "\"2019419\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄴㄹㄸㅆㄹㄸㅂㅊㄴㄸㅆㄲ\"",
+    "canonical": "\"2019425\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㄹㄸㅂ\"",
+    "canonical": "\"3021062\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㄹㅉㄸㅂㄴㅆㄸ\"",
+    "canonical": "\"3021061\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㄹㄸㄱㄴㅂㄸㄴㄴ\"",
+    "canonical": "\"3021060\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㅋㄹㄸㅂㄸㄹㅉㄸㄴㄴ\"",
+    "canonical": "\"2021079\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㅋㄹㄸ\"",
+    "canonical": "\"2021078\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㄹㄸㄹㅋㅆ\"",
+    "canonical": "\"2021077\"",
+    "count": 2
+  },
+  {
+    "alias": "\"ㄸㄴㅋㄴㄹㅆㄹㄸㄱㄴㅋㄴㄴㅅ\"",
+    "canonical": "\"2021076\"",
+    "count": 2
+  },
+  {
+    "alias": "rf",
+    "canonical": "라피니",
+    "count": 1
+  },
+  {
+    "alias": "su",
+    "canonical": "수티랑",
+    "count": 1
+  },
+  {
+    "alias": "lg",
+    "canonical": "레귀에뜨 호믈로",
+    "count": 1
+  },
+  {
+    "alias": "hb",
+    "canonical": "그랑 주가",
+    "count": 1
+  },
+  {
+    "alias": "ma",
+    "canonical": "마이에",
+    "count": 1
+  },
+  {
+    "alias": "wm",
+    "canonical": "샤또 레 마레쇼",
+    "count": 1
+  },
+  {
+    "alias": "la",
+    "canonical": "르로아",
+    "count": 1
+  },
+  {
+    "alias": "bl",
+    "canonical": "로쉬 벨렌",
+    "count": 1
+  },
+  {
+    "alias": "mg",
+    "canonical": "로돌프 드모조",
+    "count": 1
+  },
+  {
+    "alias": "vc",
+    "canonical": "뷰 콜라주",
+    "count": 1
+  },
+  {
+    "alias": "df",
+    "canonical": "도프",
+    "count": 1
+  },
+  {
+    "alias": "dp",
+    "canonical": "도팡",
+    "count": 1
+  },
+  {
+    "alias": "bo",
+    "canonical": "보르고 몰리노",
+    "count": 1
+  },
+  {
+    "alias": "vp",
+    "canonical": "볼파이아",
+    "count": 1
+  },
+  {
+    "alias": "or",
+    "canonical": "오르넬라이아",
+    "count": 1
+  },
+  {
+    "alias": "at",
+    "canonical": "알테치노",
+    "count": 1
+  },
+  {
+    "alias": "sm",
+    "canonical": "수마로카",
+    "count": 1
+  },
+  {
+    "alias": "co",
+    "canonical": "콘세이토",
+    "count": 1
+  },
+  {
+    "alias": "gh",
+    "canonical": "그라함",
+    "count": 1
+  },
+  {
+    "alias": "ps",
+    "canonical": "피쏘니",
+    "count": 1
+  },
+  {
+    "alias": "rg",
+    "canonical": "릿지",
+    "count": 1
+  },
+  {
+    "alias": "re",
+    "canonical": "레드카",
+    "count": 1
+  },
+  {
+    "alias": "gc",
+    "canonical": "갤리가",
+    "count": 1
+  },
+  {
+    "alias": "hp",
+    "canonical": "훕스",
+    "count": 1
+  },
+  {
+    "alias": "em",
+    "canonical": "에밀리아나",
+    "count": 1
+  },
+  {
+    "alias": "피터프레너스 나파밸리 메를로",
+    "canonical": "2419525",
+    "count": 1
+  },
+  {
+    "alias": "메종로쉬 뀌베 리저브",
+    "canonical": "3020041",
+    "count": 1
+  },
+  {
+    "alias": "루돌프 드모조 브루고뉴 샤도",
+    "canonical": "3021060",
+    "count": 1
+  },
+  {
+    "alias": "상트네 루즈 꼼므 피노누아",
+    "canonical": "2019425",
+    "count": 1
+  },
+  {
+    "alias": "\"상트네 루즈 꼼므 피노누아\"",
+    "canonical": "\"2019425\"",
+    "count": 1
+  },
+  {
+    "alias": "\"루돌프 드모조 브루고뉴 샤도\"",
+    "canonical": "\"3021060\"",
+    "count": 1
+  },
+  {
+    "alias": "\"메종로쉬 뀌베 리저브\"",
+    "canonical": "\"3020041\"",
+    "count": 1
+  },
+  {
+    "alias": "\"피터프레너스 나파밸리 메를로\"",
+    "canonical": "\"2419525\"",
+    "count": 1
+  },
+  {
+    "alias": "\"hp\"",
+    "canonical": "\"훕스\"",
+    "count": 1
+  },
+  {
+    "alias": "\"em\"",
+    "canonical": "\"에밀리아나\"",
+    "count": 1
+  },
+  {
+    "alias": "\"gc\"",
+    "canonical": "\"갤리가\"",
+    "count": 1
+  },
+  {
+    "alias": "\"rg\"",
+    "canonical": "\"릿지\"",
+    "count": 1
+  },
+  {
+    "alias": "\"re\"",
+    "canonical": "\"레드카\"",
+    "count": 1
+  },
+  {
+    "alias": "\"ps\"",
+    "canonical": "\"피쏘니\"",
+    "count": 1
+  },
+  {
+    "alias": "\"co\"",
+    "canonical": "\"콘세이토\"",
+    "count": 1
+  },
+  {
+    "alias": "\"gh\"",
+    "canonical": "\"그라함\"",
+    "count": 1
+  },
+  {
+    "alias": "\"at\"",
+    "canonical": "\"알테치노\"",
+    "count": 1
+  },
+  {
+    "alias": "\"sm\"",
+    "canonical": "\"수마로카\"",
+    "count": 1
+  },
+  {
+    "alias": "\"or\"",
+    "canonical": "\"오르넬라이아\"",
+    "count": 1
+  },
+  {
+    "alias": "\"vp\"",
+    "canonical": "\"볼파이아\"",
+    "count": 1
+  },
+  {
+    "alias": "\"bo\"",
+    "canonical": "\"보르고 몰리노\"",
+    "count": 1
+  },
+  {
+    "alias": "\"dp\"",
+    "canonical": "\"도팡\"",
+    "count": 1
+  },
+  {
+    "alias": "\"df\"",
+    "canonical": "\"도프\"",
+    "count": 1
+  },
+  {
+    "alias": "\"mg\"",
+    "canonical": "\"로돌프 드모조\"",
+    "count": 1
+  },
+  {
+    "alias": "\"vc\"",
+    "canonical": "\"뷰 콜라주\"",
+    "count": 1
+  },
+  {
+    "alias": "\"bl\"",
+    "canonical": "\"로쉬 벨렌\"",
+    "count": 1
+  },
+  {
+    "alias": "\"la\"",
+    "canonical": "\"르로아\"",
+    "count": 1
+  },
+  {
+    "alias": "\"hb\"",
+    "canonical": "\"그랑 주가\"",
+    "count": 1
+  },
+  {
+    "alias": "\"ma\"",
+    "canonical": "\"마이에\"",
+    "count": 1
+  },
+  {
+    "alias": "\"wm\"",
+    "canonical": "\"샤또 레 마레쇼\"",
+    "count": 1
+  },
+  {
+    "alias": "\"lg\"",
+    "canonical": "\"레귀에뜨 호믈로\"",
+    "count": 1
+  },
+  {
+    "alias": "\"rf\"",
+    "canonical": "\"라피니\"",
+    "count": 1
+  },
+  {
+    "alias": "\"su\"",
+    "canonical": "\"수티랑\"",
+    "count": 1
+  }
+]

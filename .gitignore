@@ -45,19 +45,13 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 
-# SQLite database files
-*.sqlite3
+# SQLite temp files
 *.sqlite3-shm
 *.sqlite3-wal
 *.sqlite3.backup-*
-*.db
 
-# Data / binary files (keep locally, never commit)
-order-ai.xlsx
+# Temp/backup data files
 .tmp-order-ai.xlsx
-item_aliases.json
-learned_aliases.csv
-tasting-notes-index.json
 
 # Vercel Build Output
 .vercel
