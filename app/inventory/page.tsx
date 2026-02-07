@@ -434,7 +434,7 @@ export default function InventoryPage() {
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: 'var(--space-4)', padding: '3px 6px' }}>
+        <Card style={{ marginBottom: 'var(--space-4)', padding: '4px 6px' }}>
           <div style={{
             display: 'flex',
             gap: '4px',
@@ -488,7 +488,7 @@ export default function InventoryPage() {
         </Card>
 
         {/* Search Section */}
-        <Card style={{ marginBottom: 'var(--space-6)', padding: '3px 6px' }}>
+        <Card style={{ marginBottom: 'var(--space-6)', padding: '4px 6px' }}>
           <div style={{
             display: 'flex',
             gap: '4px',

@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# secrets / tokens
+.dev.vars
+.vercel-token
+
 # vercel
 .vercel
 
@@ -42,11 +46,28 @@ next-env.d.ts
 .env*.local
 
 # SQLite database files
+*.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal
+*.sqlite3.backup-*
+*.db
+
+# Data / binary files (keep locally, never commit)
+order-ai.xlsx
+.tmp-order-ai.xlsx
+item_aliases.json
+learned_aliases.csv
+tasting-notes-index.json
 
 # Vercel Build Output
 .vercel
+
+# Vercel trigger/cache files
+.vercel-cache-bust
+.vercel-deploy-trigger
+.vercel-deployment-trigger
+.vercel-rebuild-*
+.vercel-trigger
 
 # Development logs
 dev-*.log

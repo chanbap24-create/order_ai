@@ -1,8 +1,0 @@
-# Force Vercel to rebuild and clear all caches
-Timestamp: 2026-02-03 00:31:07 UTC
-Commit: 6b65134
-Build: frontend-sorting-fix
-Cache-Control: no-cache
-Pragma: no-cache
-Expires: 0
-Build: 1770081949
