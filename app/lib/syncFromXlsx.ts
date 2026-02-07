@@ -152,12 +152,11 @@ export function syncFromXlsxIfNeeded() {
     `);
 
     const upsertItem = db.prepare(`
-      INSERT INTO client_item_stats (client_code, item_no, item_name, supply_price, updated_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      INSERT INTO client_item_stats (client_code, item_no, item_name, supply_price, buy_count)
+      VALUES (?, ?, ?, ?, 0)
       ON CONFLICT(client_code, item_no) DO UPDATE SET
         item_name = excluded.item_name,
-        supply_price = excluded.supply_price,
-        updated_at = CURRENT_TIMESTAMP
+        supply_price = excluded.supply_price
     `);
 
     db.transaction(() => {
