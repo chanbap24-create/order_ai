@@ -461,7 +461,16 @@ export default function Home() {
       }
     }
     
-    // 3. 기본 → 개
+    // 3. 코드만 입력된 경우 (330/07, 0330/07 등) → 0xxx면 잔
+    const codeOnly = itemName.match(/^0?\d{3,4}\/\d{1,3}[A-Z]?$/i);
+    if (codeOnly) {
+      const normalized = itemName.replace(/^(\d{3})\//, '0$1/');
+      if (normalized.startsWith("0")) {
+        return "잔";
+      }
+    }
+    
+    // 4. 기본 → 개
     return "개";
   }
 
@@ -1202,13 +1211,16 @@ export default function Home() {
               <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
-                    const resolvedUnit = it?.resolved && it?.item_name ? getGlassUnit(it.item_name) : "병";
+                    const resolvedUnit = it?.resolved && it?.item_name ? getGlassUnit(it.item_name) : getGlassUnit(it?.item_name || it?.name || "");
                     const line = it?.resolved
                       ? `${it.item_no} / ${it.item_name} / ${it.qty}${resolvedUnit}`
-                      : `확인필요 / "${it.name}" / ${it.qty}병`;
+                      : it?.item_no && it?.not_in_client_history
+                        ? `${it.item_no} / ${it.item_name} / ${it.qty}${getGlassUnit(it?.item_name || it?.name || "")}`
+                        : `확인필요 / "${it.name}" / ${it.qty}${getGlassUnit(it?.item_name || it?.name || "")}`;
 
                     const top3 = getTop3Suggestions(it);
                     const wasJustPicked = !!savedPick[idx]; // ✅ 이 아이템이 방금 선택됨
+                    const isNotInClientHistory = !!it?.not_in_client_history && !it?.resolved;
 
                     return (
                       <div
@@ -1237,12 +1249,12 @@ export default function Home() {
                           <div
                             style={{
                               width: 80,
-                              color: it?.resolved ? "#0a7" : "#b00",
+                              color: it?.resolved ? "#0a7" : isNotInClientHistory ? "#e8a820" : "#b00",
                               fontWeight: 700,
                               fontSize: 14,
                             }}
                           >
-                            {it?.resolved ? "확정 ✅" : "확인 ❗"}
+                            {it?.resolved ? "확정 ✅" : isNotInClientHistory ? "미입고 ⚠️" : "확인 ❗"}
                           </div>
                           <div style={{ flex: 1, ...monoStyle, fontSize: 13 }}>{line}</div>
                           <div
@@ -1258,6 +1270,22 @@ export default function Home() {
                               : ""}
                           </div>
                         </div>
+
+                        {/* ⚠️ 거래처 미입고 경고 */}
+                        {isNotInClientHistory && (
+                          <div style={{
+                            marginLeft: 0,
+                            padding: "8px 12px",
+                            background: "#fff8e1",
+                            border: "1px solid #ffc107",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            color: "#856404",
+                            fontWeight: 600,
+                          }}>
+                            ⚠️ 이 거래처에 입고된 적 없는 품목입니다. 코드 매칭은 확인되었으나 확인이 필요합니다.
+                          </div>
+                        )}
 
                         {/* 후보 선택 버튼 - 확정된 아이템은 접기 */}
                         {top3.length > 0 && !it?.resolved && (
@@ -1287,7 +1315,8 @@ export default function Home() {
                               const saved = !!savedPick[idx];
                               const isNewItem = !!s.is_new_item;
                               
-                              console.log(`[Glass] Item ${s.code}: isNewItem=${isNewItem}, price=${s.price || s.supply_price}`);
+                              const inClientHistory = !!s.in_client_history;
+                              console.log(`[Glass] Item ${s.code}: isNewItem=${isNewItem}, inClientHistory=${inClientHistory}, price=${s.price || s.supply_price}`);
 
                               return (
                                 <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 6, border: "1px solid #e0e0e0" }}>
@@ -1301,6 +1330,16 @@ export default function Home() {
                                       {isNewItem && (
                                         <span style={{ marginLeft: 6, padding: "1px 4px", background: "#ff6b35", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
                                           신규
+                                        </span>
+                                      )}
+                                      {!isNewItem && inClientHistory && (
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#0a7", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
+                                          입고이력
+                                        </span>
+                                      )}
+                                      {!isNewItem && !inClientHistory && (
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#e8a820", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
+                                          미입고
                                         </span>
                                       )}
                                     </div>

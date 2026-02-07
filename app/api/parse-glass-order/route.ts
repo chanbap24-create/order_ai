@@ -420,7 +420,16 @@ function getGlassUnit(itemName: string): string {
     }
   }
 
-  // 3. 나머지 → 개
+  // 3. 코드만 입력된 경우 (330/07, 0330/07 등) → 0xxx면 잔
+  const codeOnly = itemName.match(/^0?\d{3,4}\/\d{1,3}[A-Z]?$/i);
+  if (codeOnly) {
+    const normalized = itemName.replace(/^(\d{3})\//, '0$1/');
+    if (normalized.startsWith("0")) {
+      return "잔";
+    }
+  }
+
+  // 4. 나머지 → 개
   return "개";
 }
 
@@ -585,7 +594,39 @@ export async function POST(req: Request) {
     }
 
     // 2) 품목 파싱 (orderText도 한번 더 전처리)
-    const order0 = preprocessGlassMessage(orderText || rawMessage);
+    let order0 = preprocessGlassMessage(orderText || rawMessage);
+
+    // ✅ 2-0) 거래처명이 품목 텍스트에 섞여있으면 제거
+    // 한 줄 입력 "크로스비 0425/0 6" → client 해결 후 "크로스비"를 제거하여 "0425/0 6"로 만듦
+    if (client.status === "resolved" && client.client_name) {
+      const clientName = String((client as any).client_name || "");
+      if (clientName) {
+        // 각 줄에서 거래처명이 앞에 붙어있으면 제거
+        order0 = order0
+          .split("\n")
+          .map((line) => {
+            const trimmed = line.trim();
+            // 거래처명으로 시작하는 경우 제거
+            if (trimmed.startsWith(clientName)) {
+              const rest = trimmed.slice(clientName.length).trim();
+              if (rest) return rest;
+            }
+            // norm 비교: 거래처명이 다양한 형태로 붙을 수 있음
+            const clientNorm = norm(clientName);
+            const lineTokens = trimmed.split(/\s+/);
+            if (lineTokens.length > 1) {
+              const firstToken = lineTokens[0];
+              if (norm(firstToken) === clientNorm || clientNorm.includes(norm(firstToken)) || norm(firstToken).includes(clientNorm)) {
+                return lineTokens.slice(1).join(" ");
+              }
+            }
+            return trimmed;
+          })
+          .filter(Boolean)
+          .join("\n");
+        console.log(`[Glass] 거래처명 제거 후 orderText: "${order0}"`);
+      }
+    }
 
     // ✅ 2-1) 번역(영어 비중 높을 때만)
     const trOrder = await translateOrderToKoreanIfNeeded(order0);
