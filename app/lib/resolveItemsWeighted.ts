@@ -179,11 +179,12 @@ function scoreCompoundTokenMatch(normalizedQuery: string, normalizedTarget: stri
   const recall = matchedCount / tokens.length;
   
   if (recall >= 1.0) {
-    // 모든 토큰이 후보에 존재 → 0.93 (contains(0.9)보다 약간 높음)
-    return 0.93;
+    // 모든 토큰이 후보에 존재 → 0.95 (강력한 신호)
+    // 예: "아이니" + "샤르도네" 모두 있음 = 거의 확실
+    return 0.95;
   } else if (recall >= 0.5) {
-    // 절반 이상 매칭 → 토큰 수에 따라 점수 부여
-    return 0.5 + (recall * 0.3);
+    // 절반 이상 매칭: 예) "샤르도네"만 있고 "아이니"는 없음
+    return 0.55 + (recall * 0.15);
   }
   
   return 0;
@@ -551,7 +552,12 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
       const aset = new Set(a.split(""));
       let common = 0;
       for (const ch of Array.from(aset)) if (b.includes(ch)) common++;
-      const charScore = Math.min(0.89, common / Math.max(6, a.length));
+      const rawCharScore = common / Math.max(6, a.length);
+      // 복합 토큰 분해가 가능하면 charSet 상한을 0.70으로 제한
+      // (compound 매칭이 더 정확한 점수를 제공하므로)
+      const compoundTokens = decomposeCompoundKorean(a);
+      const charCap = compoundTokens.length >= 2 ? 0.70 : 0.89;
+      const charScore = Math.min(charCap, rawCharScore);
       bestScore = Math.max(bestScore, charScore);
     }
   }
