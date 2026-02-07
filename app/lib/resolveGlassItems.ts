@@ -345,7 +345,7 @@ export function resolveGlassItemsByClient(
 ) {
   const minScore = opts?.minScore ?? 0.55;
   const minGap = opts?.minGap ?? 0.15;
-  const topN = opts?.topN ?? 5;
+  const topN = opts?.topN ?? 20;
 
   // ✅ Glass 거래처 이력 후보 (supply_price 포함)
   const clientRows = db
@@ -905,7 +905,7 @@ export function resolveGlassItemsByClient(
         })),
         suggestions: (() => {
           // 자동확정이어도 신규품목 함께 표시
-          const existingTop = scored.slice(0, 2).map((c) => withPrice({
+          const existingTop = scored.slice(0, 10).map((c) => withPrice({
             item_no: c.item_no,
             item_name: c.item_name,
             score: Number(c.score.toFixed(3)),
@@ -920,7 +920,7 @@ export function resolveGlassItemsByClient(
             price: item.price,
           }));
           
-          const combined = [...existingTop, ...newItems.slice(0, 3)];
+          const combined = [...existingTop, ...newItems.slice(0, 5)];
           console.log('[DEBUG Glass] Auto-resolved suggestions:', { existing: existingTop.length, new: newItems.length });
           return combined;
         })(),
@@ -930,8 +930,8 @@ export function resolveGlassItemsByClient(
     // ✅ 항상 기존품목 + 신규품목 함께 표시 (Glass는 신규품목 확인이 중요)
     console.log('[DEBUG Glass] Building suggestions for:', q);
     const suggestions = (() => {
-      // 기존품목 상위 2개 (supply_price 포함)
-      const existingTop = scored.slice(0, 2).map((c) => withPrice({
+      // 기존품목 상위 10개 (supply_price 포함)
+      const existingTop = scored.slice(0, 10).map((c) => withPrice({
         item_no: c.item_no,
         item_name: c.item_name,
         score: Number(c.score.toFixed(3)),
@@ -949,7 +949,7 @@ export function resolveGlassItemsByClient(
       }));
       
       // 기존 2개 + 신규 상위 3개
-      const combined = [...existingTop, ...newItems.slice(0, 3)];
+      const combined = [...existingTop, ...newItems.slice(0, 5)];
       
       console.log('[DEBUG Glass] 후보 조합:', {
         existing: existingTop.length,

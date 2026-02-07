@@ -68,6 +68,9 @@ export default function Home() {
   // ✅ 신규 품목 할인율 입력 (itemIndex별)
   const [newItemDiscounts, setNewItemDiscounts] = useState<Record<number, number>>({});
 
+  // ✅ 더보기 상태 (itemIndex별)
+  const [showMoreSuggestions, setShowMoreSuggestions] = useState<Record<number, boolean>>({});
+
   // ✅ 품목 결과/학습 입력 접기
   const [showItemsPanel, setShowItemsPanel] = useState(false);
   const [showLearnInput, setShowLearnInput] = useState(false);
@@ -650,13 +653,29 @@ export default function Home() {
   };
 
   // ✅ 후보는 최대 5개까지 보여주기 (기존 2개 + 신규 3개)
-  function getTop3Suggestions(it: any) {
-    const arr = Array.isArray(it?.suggestions)
+  // ✅ 후보 가져오기 (확정 품목: 기본 2개, 미확정: 기본 5개, 더보기: 20개)
+  function getSuggestions(it: any, showMore: boolean) {
+    let arr = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
       ? it.suggestions
       : Array.isArray(it?.candidates)
         ? it.candidates
         : [];
-    return arr.slice(0, 5); // ✅ 3개 → 5개로 변경
+    
+    // 기존 품목(입고이력) 우선 정렬
+    arr = [...arr].sort((a: any, b: any) => {
+      const aIsExisting = !a.is_new_item && a.in_client_history;
+      const bIsExisting = !b.is_new_item && b.in_client_history;
+      if (aIsExisting && !bIsExisting) return -1;
+      if (!aIsExisting && bIsExisting) return 1;
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
+    
+    const isResolved = it?.resolved === true;
+    if (showMore) {
+      return arr.slice(0, 20);
+    } else {
+      return isResolved ? arr.slice(0, 2) : arr.slice(0, 5);
+    }
   }
 
   const needsClientPick = data?.status === "needs_review_client";
@@ -1220,7 +1239,11 @@ export default function Home() {
                         ? `${it.item_no} / ${it.item_name} / ${it.qty}${getGlassUnit(it?.item_name || it?.name || "")}`
                         : `확인필요 / "${it.name}" / ${it.qty}${getGlassUnit(it?.item_name || it?.name || "")}`;
 
-                    const top3 = getTop3Suggestions(it);
+                    const showMore = !!showMoreSuggestions[idx];
+                    const top3 = getSuggestions(it, showMore);
+                    const allSuggestions = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
+                      ? it.suggestions
+                      : Array.isArray(it?.candidates) ? it.candidates : [];
                     const wasJustPicked = !!savedPick[idx]; // ✅ 이 아이템이 방금 선택됨
                     const isNotInClientHistory = !!it?.not_in_client_history && !it?.resolved;
 
@@ -1289,8 +1312,8 @@ export default function Home() {
                           </div>
                         )}
 
-                        {/* 후보 선택 버튼 - 확정된 아이템은 접기 */}
-                        {top3.length > 0 && !it?.resolved && (
+                        {/* 후보 선택 버튼 (확정 아이템도 더보기로 볼 수 있음) */}
+                        {(top3.length > 0 || allSuggestions.length > 0) && (!it?.resolved || showMore) && (
                           <div
                             style={{
                               marginLeft: 80,
@@ -1456,6 +1479,38 @@ export default function Home() {
                                 </div>
                               );
                             })}
+
+                            {/* 더보기 버튼 */}
+                            <button
+                              onClick={() => {
+                                setShowMoreSuggestions(prev => ({
+                                  ...prev,
+                                  [idx]: !prev[idx]
+                                }));
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "8px 12px",
+                                marginTop: 8,
+                                borderRadius: 6,
+                                border: "1px solid #ddd",
+                                background: "white",
+                                color: "#4a90e2",
+                                cursor: "pointer",
+                                fontSize: 12,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {showMore
+                                ? `▲ 접기 (${allSuggestions.length}개 중 ${Math.min(20, allSuggestions.length)}개 표시)`
+                                : it?.resolved
+                                  ? (allSuggestions.length > 2
+                                      ? `▼ 더보기 (${allSuggestions.length}개 중 2개 표시)`
+                                      : `총 ${allSuggestions.length}개 후보`)
+                                  : (allSuggestions.length > 5
+                                      ? `▼ 더보기 (${allSuggestions.length}개 중 5개 표시)`
+                                      : `총 ${allSuggestions.length}개 후보`)}
+                            </button>
                           </div>
                         )}
 
@@ -1463,6 +1518,28 @@ export default function Home() {
                         {it?.resolved && wasJustPicked && (
                           <div style={{ marginLeft: 80, fontSize: 12, color: "#0a7", fontWeight: 600 }}>
                             직원 메시지에 반영되었습니다
+                          </div>
+                        )}
+
+                        {/* 확정된 아이템: 더보기 버튼만 표시 */}
+                        {it?.resolved && !showMore && allSuggestions.length > 0 && (
+                          <div style={{ marginLeft: 80 }}>
+                            <button
+                              onClick={() => setShowMoreSuggestions(prev => ({ ...prev, [idx]: true }))}
+                              style={{
+                                padding: "6px 12px",
+                                marginTop: 4,
+                                borderRadius: 6,
+                                border: "1px solid #ddd",
+                                background: "white",
+                                color: "#4a90e2",
+                                cursor: "pointer",
+                                fontSize: 11,
+                                fontWeight: 600,
+                              }}
+                            >
+                              ▼ 다른 후보 보기 ({allSuggestions.length}개)
+                            </button>
                           </div>
                         )}
 
