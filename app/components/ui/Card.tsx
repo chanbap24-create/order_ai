@@ -6,6 +6,7 @@ interface CardProps {
   hover?: boolean;
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export default function Card({ 
@@ -13,7 +14,8 @@ export default function Card({
   className = '', 
   hover = false,
   size = 'md',
-  onClick 
+  onClick,
+  style 
 }: CardProps) {
   const sizeClass = size === 'sm' ? 'card-sm' : size === 'lg' ? 'card-lg' : '';
   const hoverClass = hover ? 'cursor-pointer' : '';
@@ -23,6 +25,7 @@ export default function Card({
     <div 
       className={`card ${sizeClass} ${hoverClass} ${clickableClass} ${className}`}
       onClick={onClick}
+      style={style}
     >
       {children}
     </div>
