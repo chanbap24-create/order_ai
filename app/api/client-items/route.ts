@@ -20,9 +20,12 @@ export async function POST(req: NextRequest) {
     const table = type === "wine" ? "client_item_stats" : "glass_client_item_stats";
 
     // ✅ 거래처별 품목 조회 (최근 거래 품목)
+    // ✅ 와인은 avg_price, Glass는 supply_price 컬럼명이 다름
+    const priceCol = type === "wine" ? "avg_price" : "supply_price";
+    // ✅ last_ship_date는 있을 수도 없을 수도 있으므로 안전하게 처리
     const items = db
       .prepare(
-        `SELECT item_no, item_name, avg_price as supply_price, last_ship_date 
+        `SELECT item_no, item_name, ${priceCol} as supply_price
          FROM ${table} 
          WHERE client_code = ? 
          ORDER BY item_no ASC`
@@ -31,7 +34,6 @@ export async function POST(req: NextRequest) {
       item_no: string;
       item_name: string;
       supply_price: number;
-      last_ship_date: string;
     }>;
 
     return NextResponse.json({
