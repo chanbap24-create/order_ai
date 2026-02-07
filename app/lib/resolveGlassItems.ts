@@ -21,8 +21,11 @@ function normTight(s: string) {
 
 function stripQtyAndUnit(raw: string) {
   let s = String(raw || "").trim();
-  s = s.replace(/\b(\d+)\s*(병|박스|cs|box|bt|btl|개)\b/gi, "").trim();
-  s = s.replace(/\b\d+\b\s*$/g, "").trim();
+  // ✅ 단위 포함 수량 제거 (Korean \b 호환: \b 대신 경계 없이 매칭)
+  s = s.replace(/(\d+)\s*(병|박스|cs|box|bt|btl|개|잔)/gi, "").trim();
+  // ✅ 슬래시/대시 뒤 숫자는 코드 일부이므로 보호 (0330/07의 07을 지우면 안됨)
+  // 슬래시나 대시가 앞에 없는 경우에만 후행 숫자 제거
+  s = s.replace(/(?<![\/\-])\b\d+\b\s*$/g, "").trim();
   s = s.replace(/\s+/g, " ").trim();
   return s;
 }
@@ -41,17 +44,107 @@ function scoreItem(q: string, name: string) {
   if (a === b) return 1.0;
   if (b.includes(a) || a.includes(b)) return 0.9;
 
-  const aset = new Set(a.split(""));
-  let common = 0;
-  for (const ch of aset) if (b.includes(ch)) common++;
-  return Math.min(0.89, common / Math.max(6, a.length));
+  // ✅ Bigram (Dice coefficient) 유사도로 교체 — 문자 셋 교집합보다 정확
+  if (a.length < 2 || b.length < 2) return 0;
+  const bigramsA = new Map<string, number>();
+  for (let i = 0; i < a.length - 1; i++) {
+    const bg = a.substring(i, i + 2);
+    bigramsA.set(bg, (bigramsA.get(bg) || 0) + 1);
+  }
+  let intersection = 0;
+  for (let i = 0; i < b.length - 1; i++) {
+    const bg = b.substring(i, i + 2);
+    const cnt = bigramsA.get(bg) || 0;
+    if (cnt > 0) {
+      bigramsA.set(bg, cnt - 1);
+      intersection++;
+    }
+  }
+  const dice = (2.0 * intersection) / (a.length - 1 + b.length - 1);
+  return Math.min(0.89, dice);
 }
 
-/* ================= Glass 코드 추출 ================= */
-// RD 0447/07 → 0447/07
+/* ================= Glass 코드 추출 / 비교 ================= */
+// RD 0447/07 → 0447/07, RD 4900/28JG → 4900/28JG, RD 4900/97SKY → 4900/97SKY
+// RD 0515/02S3 → 0515/02S3, RD 1515/02S3DG → 1515/02S3DG, RD 4900/16BWT → 4900/16BWT
+// ✅ (?:[A-Z][A-Z0-9]*)? : 알파벳으로 시작하는 영숫자 혼합 접미사 지원 (17건)
 function extractRDCode(itemName: string): string | null {
-  const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,3}[A-Z]?)/i);
+  const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?)/i);
   return m ? m[1] : null;
+}
+
+// ✅ Glass 코드 정규화: 330/07 → 0330/07 (선행 0 보정)
+function normalizeGlassCode(code: string): string {
+  if (!code) return code;
+  const parts = code.split('/');
+  if (parts.length === 2) {
+    let prefix = parts[0];
+    if (/^\d{3}$/.test(prefix)) {
+      prefix = '0' + prefix;
+    }
+    return `${prefix}/${parts[1]}`;
+  }
+  return code;
+}
+
+// ✅ 코드 비교 (0425/0 == 0425/00, 330/07 == 0330/07)
+function codesMatch(input: string, dbCode: string): boolean {
+  if (!input || !dbCode) return false;
+  // ✅ 선행 0 정규화 후 비교
+  const a = normalizeGlassCode(input).toUpperCase();
+  const b = normalizeGlassCode(dbCode).toUpperCase();
+  if (a === b) return true;
+  
+  // 슬래시 기준으로 분리해서 숫자 부분 비교 (0425/0 vs 0425/00)
+  const [aPrefix, aSuffix] = a.split('/');
+  const [bPrefix, bSuffix] = b.split('/');
+  if (!aPrefix || !bPrefix || !aSuffix || !bSuffix) return false;
+  if (aPrefix !== bPrefix) return false;
+  
+  // 접미사를 "선행 숫자" + "알파벳으로 시작하는 혼합 접미사"로 분리
+  // 예: "02S3" → num="02", tail="S3" / "07" → num="07", tail="" / "0" → num="0", tail=""
+  // "28JG" → num="28", tail="JG" / "97SKY" → num="97", tail="SKY" / "16BWT" → num="16", tail="BWT"
+  const splitSuffix = (s: string) => {
+    const m = s.match(/^(\d+)((?:[A-Z][A-Z0-9]*)?)$/i);
+    if (!m) return { num: NaN, tail: s };
+    return { num: parseInt(m[1], 10), tail: m[2].toUpperCase() };
+  };
+  const aP = splitSuffix(aSuffix);
+  const bP = splitSuffix(bSuffix);
+  
+  return aP.num === bP.num && aP.tail === bP.tail;
+}
+
+/* ================= 비-RD 품목 키워드 매핑 ================= */
+// 마닐라박스, 쇼핑백 등 RD코드가 없는 8건의 부자재 품목
+const NON_RD_KEYWORDS: Array<{ keywords: string[]; item_no: string; item_name: string }> = [
+  { keywords: ["마닐라", "특대", "마닐라박스특대"], item_no: "D000074", item_name: "마닐라박스(특대)" },
+  { keywords: ["6본입", "데구스타지오네", "데구박스"], item_no: "D026001", item_name: "6본입 데구스타지오네 박스" },
+  { keywords: ["2본입", "마닐라"], item_no: "D200018", item_name: "2본입 마닐라 박스" },
+  { keywords: ["1본입", "스템잔", "스템"], item_no: "D200159", item_name: "1본입 마닐라 박스(2016)-스템잔용" },
+  { keywords: ["1본입", "오잔", "소"], item_no: "D200160", item_name: "1본입 마닐라 박스(소)-오잔용" },
+  { keywords: ["쇼핑백", "소", "리델"], item_no: "D200166", item_name: "2020 리델 쇼핑백(소)" },
+  { keywords: ["쇼핑백", "중", "종이"], item_no: "E200102", item_name: "2019 종이 쇼핑백(중)" },
+  { keywords: ["린넨", "리델"], item_no: "D200201", item_name: "리델 린넨" },
+];
+
+function matchNonRDItem(query: string): { item_no: string; item_name: string; score: number } | null {
+  const q = norm(query);
+  if (!q) return null;
+  
+  let bestMatch: { item_no: string; item_name: string; score: number } | null = null;
+  
+  for (const entry of NON_RD_KEYWORDS) {
+    const matchedCount = entry.keywords.filter(kw => q.includes(norm(kw))).length;
+    if (matchedCount === 0) continue;
+    
+    const score = matchedCount / entry.keywords.length;
+    if (score >= 0.5 && (!bestMatch || score > bestMatch.score)) {
+      bestMatch = { item_no: entry.item_no, item_name: entry.item_name, score: Math.min(0.95, 0.7 + score * 0.25) };
+    }
+  }
+  
+  return bestMatch;
 }
 
 /* ================= 신규 품목 검색 (Riedel 시트) ================= */
@@ -200,24 +293,12 @@ type LearnedMatch =
 
 function getLearnedMatch(rawInput: string): LearnedMatch {
   try {
-    db.prepare(`
-      CREATE TABLE IF NOT EXISTS item_alias (
-        alias TEXT PRIMARY KEY,
-        canonical TEXT NOT NULL,
-        count INTEGER DEFAULT 1,
-        last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    `).run();
-  } catch {
-    // 테이블 이미 존재
-  }
+    const inputItem = stripQtyAndUnit(rawInput);
+    const nInputItem = normTight(inputItem);
+    if (!nInputItem) return null;
 
-  const inputItem = stripQtyAndUnit(rawInput);
-  const nInputItem = normTight(inputItem);
-
-  const rows = db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[];
-  if (!rows?.length) return null;
+    const rows = db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[];
+    if (!rows?.length) return null;
 
   const pairs = rows
     .map((r) => {
@@ -249,7 +330,10 @@ function getLearnedMatch(rawInput: string): LearnedMatch {
     }
   }
 
-  return null;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /* ================= 메인: Glass 전용 ================= */
@@ -262,66 +346,116 @@ export function resolveGlassItemsByClient(
   const minGap = opts?.minGap ?? 0.15;
   const topN = opts?.topN ?? 5;
 
-  // ✅ Glass 거래처 이력 후보
+  // ✅ Glass 거래처 이력 후보 (supply_price 포함)
   const clientRows = db
     .prepare(
-      `SELECT item_no, item_name
+      `SELECT item_no, item_name, supply_price
        FROM glass_client_item_stats
        WHERE client_code = ?`
     )
-    .all(clientCode) as Array<{ item_no: string; item_name: string }>;
+    .all(clientCode) as Array<{ item_no: string; item_name: string; supply_price?: number }>;
 
-  // ✅ Glass 전체 품목 마스터 (코드 매칭용)
+  // ✅ Glass 전체 품목 마스터 (코드 매칭용, supply_price 포함)
   const allItems = db
-    .prepare(`SELECT item_no, item_name FROM glass_items`)
-    .all() as Array<{ item_no: string; item_name: string }>;
+    .prepare(`SELECT item_no, item_name, supply_price FROM glass_items`)
+    .all() as Array<{ item_no: string; item_name: string; supply_price?: number }>;
+
+  // ✅ RD코드 인덱스 맵 (O(N) 스캔 → O(1) 룩업으로 성능 최적화)
+  // key = 정규화된 RD코드 (대문자), value = 매칭되는 품목들
+  const rdCodeIndex = new Map<string, Array<{ item_no: string; item_name: string; rdCode: string }>>();
+  for (const item of allItems) {
+    const rdCode = extractRDCode(item.item_name);
+    if (rdCode) {
+      const normalized = normalizeGlassCode(rdCode).toUpperCase();
+      if (!rdCodeIndex.has(normalized)) rdCodeIndex.set(normalized, []);
+      rdCodeIndex.get(normalized)!.push({ ...item, rdCode });
+    }
+  }
+
+  // ✅ 인덱스 기반 코드 매칭 헬퍼: codesMatch 로직을 인덱스에서 수행
+  function findByCode(inputCode: string): Array<{ item_no: string; item_name: string }> {
+    const normInput = normalizeGlassCode(inputCode).toUpperCase();
+    // 1) 정확 매칭 (정규화 후 동일)
+    const exact = rdCodeIndex.get(normInput);
+    if (exact && exact.length > 0) return exact;
+    
+    // 2) 숫자 정규화 매칭 (0425/0 == 0425/00)
+    const results: Array<{ item_no: string; item_name: string }> = [];
+    for (const [key, items] of rdCodeIndex) {
+      if (codesMatch(inputCode, items[0].rdCode)) {
+        results.push(...items);
+      }
+    }
+    return results;
+  }
+
+  // ✅ 인덱스 기반 접두사 매칭 헬퍼
+  function findByPrefix(inputCode: string): Array<{ item_no: string; item_name: string }> {
+    const normInput = normalizeGlassCode(inputCode).toUpperCase();
+    const results: Array<{ item_no: string; item_name: string }> = [];
+    for (const [key, items] of rdCodeIndex) {
+      if (key.startsWith(normInput)) {
+        results.push(...items);
+      }
+    }
+    return results;
+  }
 
   return items.map((it) => {
     // 🔍 0단계: 품목번호 직접 입력 감지 (최우선)
     // 예: "0884/33", "0447/07", "0884/0", "4100/00R" 같은 와인잔 품목번호
-    const itemNoPattern = /^([A-Z]?\d{4}[\/-]?\d{1,3}[A-Z]?)$/i;
+    const itemNoPattern = /^([A-Z]?\d{3,4}[\/-]?\d{1,3}(?:[A-Z][A-Z0-9]*)?)$/i;
     const itemNoMatch = stripQtyAndUnit(it.name).trim().match(itemNoPattern);
     
     if (itemNoMatch) {
-      const inputItemNo = itemNoMatch[1].toUpperCase();
+      const inputItemNo = normalizeGlassCode(itemNoMatch[1]).toUpperCase();
       console.log(`[Glass ItemNo Exact] 와인잔 품목번호 입력 감지: "${inputItemNo}"`);
       
       // 🍷 와인잔 패턴: "RD {번호}" 형식으로 품목명 내부 검색
       try {
-        // ✅ 정확 매칭 우선: "RD 0884/0 " 또는 "RD 0884/0" (줄 끝) 형식으로 정확히 매칭
-        // "0884/0"이 "0884/07"에 헷갈리지 않도록 경계 처리
+        // ✅ 정확 매칭 우선: codesMatch로 0425/0 == 0425/00 처리
         console.log(`[Glass Pattern] 와인잔 패턴 검색: "RD ${inputItemNo}"`);
         
-        // 정확 매칭: 코드 다음에 공백 또는 끝
-        const exactCodeMatches = allItems.filter((r) => {
-          const rdCode = extractRDCode(r.item_name);
-          return rdCode && rdCode.toUpperCase() === inputItemNo.toUpperCase();
-        });
+        // 정확 매칭: 인덱스 기반 (0 == 00 포함)
+        const exactCodeMatches = findByCode(inputItemNo);
         
         if (exactCodeMatches.length > 0) {
           // 거래처 이력에 있는 것 우선
-          const clientHit = exactCodeMatches.find(m => clientRows.some(r => r.item_no === m.item_no));
-          const best = clientHit || exactCodeMatches[0];
+          const clientHits = exactCodeMatches.filter(m => clientRows.some(r => r.item_no === m.item_no));
+          const best = clientHits[0] || exactCodeMatches[0];
+          const inClientHistory = clientHits.length > 0;
           
-          console.log(`[Glass Pattern] ✅ 코드 정확 매칭: ${best.item_no} - ${best.item_name}`);
+          // ✅ 중복 코드 처리: 동일 RD코드에 여러 품목이 있으면 신중하게 처리
+          // 예: 0412/0 → D701204 (일반) vs D701A04 (2nd), 4100/00 → D700122 (올블랙) vs D700424 (블랙타이)
+          const isDuplicateCode = exactCodeMatches.length > 1;
+          
+          // 중복 코드 + 거래처 이력에 1개만 있으면 자동확정, 여러 개 있거나 없으면 확인필요
+          const canAutoResolve = inClientHistory && (!isDuplicateCode || clientHits.length === 1);
+          
+          console.log(`[Glass Pattern] ✅ 코드 정확 매칭: ${best.item_no} - ${best.item_name} (거래처이력: ${inClientHistory}, 중복코드: ${isDuplicateCode}, 자동확정: ${canAutoResolve})`);
+          
           return {
             ...it,
             normalized_query: it.name,
-            resolved: true,
+            resolved: canAutoResolve,
             item_no: best.item_no,
             item_name: best.item_name,
-            score: 1.0,
+            score: canAutoResolve ? 1.0 : 0.95,
             method: "exact_rd_code",
-            candidates: exactCodeMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
-            suggestions: exactCodeMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
+            not_in_client_history: !inClientHistory,
+            candidates: exactCodeMatches.map(m => ({
+              item_no: m.item_no, item_name: m.item_name, score: 1.0,
+              in_client_history: clientRows.some(r => r.item_no === m.item_no),
+            })),
+            suggestions: exactCodeMatches.map(m => ({
+              item_no: m.item_no, item_name: m.item_name, score: 1.0,
+              in_client_history: clientRows.some(r => r.item_no === m.item_no),
+            })),
           };
         }
         
-        // ✅ 접두사 매칭: "0884/0" → "0884/0", "0884/07" 등
-        const prefixCodeMatches = allItems.filter((r) => {
-          const rdCode = extractRDCode(r.item_name);
-          return rdCode && rdCode.toUpperCase().startsWith(inputItemNo.toUpperCase());
-        });
+        // ✅ 접두사 매칭: "0884/0" → "0884/0", "0884/07" 등 (인덱스 기반)
+        const prefixCodeMatches = findByPrefix(inputItemNo);
         
         if (prefixCodeMatches.length > 0) {
           // 거래처 이력에 있는 것 우선 정렬
@@ -336,9 +470,11 @@ export function resolveGlassItemsByClient(
           });
           
           const best = sorted[0];
-          const autoResolve = prefixCodeMatches.length === 1; // 1개면 자동확정
+          const bestInClientHistory = clientRows.some(r => r.item_no === best.item_no);
+          // 1개이면서 거래처 이력에 있을 때만 자동확정
+          const autoResolve = prefixCodeMatches.length === 1 && bestInClientHistory;
           
-          console.log(`[Glass Pattern] ✅ 코드 접두사 매칭 ${prefixCodeMatches.length}개: ${sorted.map(m => extractRDCode(m.item_name)).join(', ')}`);
+          console.log(`[Glass Pattern] ✅ 코드 접두사 매칭 ${prefixCodeMatches.length}개: ${sorted.map(m => extractRDCode(m.item_name)).join(', ')} (거래처이력: ${bestInClientHistory})`);
           
           if (autoResolve) {
             return {
@@ -349,18 +485,35 @@ export function resolveGlassItemsByClient(
               item_name: best.item_name,
               score: 1.0,
               method: "prefix_rd_code",
-              candidates: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
-              suggestions: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
+              candidates: sorted.map(m => ({
+                item_no: m.item_no, item_name: m.item_name, score: 1.0,
+                in_client_history: clientRows.some(r => r.item_no === m.item_no),
+              })),
+              suggestions: sorted.map(m => ({
+                item_no: m.item_no, item_name: m.item_name, score: 1.0,
+                in_client_history: clientRows.some(r => r.item_no === m.item_no),
+              })),
             };
           }
           
-          // 여러 개면 후보로 제시
+          // 여러 개이거나 거래처 이력에 없으면 확인필요
           return {
             ...it,
             normalized_query: it.name,
             resolved: false,
-            candidates: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95 })),
-            suggestions: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95 })),
+            item_no: best.item_no,
+            item_name: best.item_name,
+            score: 0.95,
+            method: prefixCodeMatches.length === 1 ? "prefix_rd_code" : "prefix_rd_code_multi",
+            not_in_client_history: !bestInClientHistory,
+            candidates: sorted.map(m => ({
+              item_no: m.item_no, item_name: m.item_name, score: 0.95,
+              in_client_history: clientRows.some(r => r.item_no === m.item_no),
+            })),
+            suggestions: sorted.map(m => ({
+              item_no: m.item_no, item_name: m.item_name, score: 0.95,
+              in_client_history: clientRows.some(r => r.item_no === m.item_no),
+            })),
           };
         }
         
@@ -391,12 +544,12 @@ export function resolveGlassItemsByClient(
             item_name: clientGlass.item_name,
             score: 1.0,
             method: "glass_pattern_client",
-            candidates: [],
-            suggestions: [],
+            candidates: [{ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true }],
+            suggestions: [{ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true }],
           };
         }
         
-        // 2) 전체 품목에서 품목명 내부 번호로 검색
+        // 2) 전체 품목에서 품목명 내부 번호로 검색 → 거래처 이력에 없으므로 확인필요
         const masterGlass = allItems.find((r) => {
           const itemNameUpper = r.item_name.toUpperCase();
           return itemNameUpper.includes(`RD ${inputItemNo}`) ||
@@ -405,17 +558,18 @@ export function resolveGlassItemsByClient(
         });
         
         if (masterGlass) {
-          console.log(`[Glass Pattern] ✅ 전체 품목에서 와인잔 발견: ${masterGlass.item_no} - ${masterGlass.item_name}`);
+          console.log(`[Glass Pattern] ⚠️ 전체 품목에서 와인잔 발견 (거래처 미입고): ${masterGlass.item_no} - ${masterGlass.item_name}`);
           return {
             ...it,
             normalized_query: it.name,
-            resolved: true,
+            resolved: false,
             item_no: masterGlass.item_no,
             item_name: masterGlass.item_name,
-            score: 1.0,
+            score: 0.95,
             method: "glass_pattern_master",
-            candidates: [],
-            suggestions: [],
+            not_in_client_history: true,
+            candidates: [{ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false }],
+            suggestions: [{ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false }],
           };
         }
       } catch (e) {
@@ -427,40 +581,133 @@ export function resolveGlassItemsByClient(
     
     // ✅ 1순위: 코드가 있으면 코드로 정확히 매칭 (전체 품목에서 검색)
     if (it.code) {
-      const codeMatch = allItems.find((r) => {
-        const rdCode = extractRDCode(r.item_name);
-        return rdCode && rdCode.toLowerCase() === it.code!.toLowerCase();
-      });
+      // ✅ 정확 매칭 우선 (0425/0 == 0425/00 포함) — 인덱스 기반
+      const codeMatches = findByCode(it.code!);
 
-      if (codeMatch) {
+      if (codeMatches.length > 0) {
+        const clientHits = codeMatches.filter(m => clientRows.some(r => r.item_no === m.item_no));
+        const best = clientHits[0] || codeMatches[0];
+        const inClientHistory = clientHits.length > 0;
+        const isDuplicateCode = codeMatches.length > 1;
+        const canAutoResolve = inClientHistory && (!isDuplicateCode || clientHits.length === 1);
+        
+        console.log(`[Glass] 1순위 exact_code: ${best.item_no} (거래처이력: ${inClientHistory}, 중복: ${isDuplicateCode}, 자동확정: ${canAutoResolve})`);
+        
         return {
           ...it,
           normalized_query: it.code,
-          resolved: true,
-          item_no: codeMatch.item_no,
-          item_name: codeMatch.item_name,
-          score: 1.0,
+          resolved: canAutoResolve,
+          item_no: best.item_no,
+          item_name: best.item_name,
+          score: canAutoResolve ? 1.0 : 0.95,
           method: "exact_code",
-          candidates: [
-            {
-              item_no: codeMatch.item_no,
-              item_name: codeMatch.item_name,
-              score: 1.0,
-            },
-          ],
-          suggestions: [
-            {
-              item_no: codeMatch.item_no,
-              item_name: codeMatch.item_name,
-              score: 1.0,
-            },
-          ],
+          not_in_client_history: !inClientHistory,
+          candidates: codeMatches.map(m => ({
+            item_no: m.item_no,
+            item_name: m.item_name,
+            score: 1.0,
+            in_client_history: clientRows.some(r => r.item_no === m.item_no),
+          })),
+          suggestions: codeMatches.map(m => ({
+            item_no: m.item_no,
+            item_name: m.item_name,
+            score: 1.0,
+            in_client_history: clientRows.some(r => r.item_no === m.item_no),
+          })),
         };
       }
     }
 
+    // ✅ 1.5순위: 품목명 안에 코드 패턴이 숨어있는 경우 추출하여 매칭
+    // 예: "크로스비 0425/0" → 코드 0425/0 추출, "330/07" → 0330/07
+    if (!it.code) {
+      const embeddedCodeMatch = it.name.match(/(\d{3,4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?)/i);
+      if (embeddedCodeMatch) {
+        const embeddedCode = normalizeGlassCode(embeddedCodeMatch[1]);
+        console.log(`[Glass] 1.5순위: 품목명에서 코드 추출: "${embeddedCode}" (from "${it.name}")`);
+        
+        // 인덱스 기반 정확 매칭
+        const embeddedMatches = findByCode(embeddedCode);
+        const codeMatch = embeddedMatches[0];
+        
+        if (codeMatch) {
+          const inHistory = clientRows.some(r => r.item_no === codeMatch.item_no);
+          console.log(`[Glass] 1.5순위 ✅ 코드 매칭: ${codeMatch.item_no} - ${codeMatch.item_name} (거래처이력: ${inHistory})`);
+          return {
+            ...it,
+            normalized_query: embeddedCode,
+            resolved: inHistory,
+            item_no: codeMatch.item_no,
+            item_name: codeMatch.item_name,
+            score: inHistory ? 1.0 : 0.95,
+            method: "embedded_code",
+            not_in_client_history: !inHistory,
+            candidates: [{ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory }],
+            suggestions: [{ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory }],
+          };
+        }
+        
+        // 인덱스 기반 접두사 매칭
+        const prefixMatches = findByPrefix(embeddedCode);
+        
+        if (prefixMatches.length === 1) {
+          const best = prefixMatches[0];
+          const inHistory = clientRows.some(r => r.item_no === best.item_no);
+          console.log(`[Glass] 1.5순위 ✅ 접두사 매칭 (1개): ${best.item_no} - ${best.item_name}`);
+          return {
+            ...it,
+            normalized_query: embeddedCode,
+            resolved: inHistory,
+            item_no: best.item_no,
+            item_name: best.item_name,
+            score: inHistory ? 1.0 : 0.95,
+            method: "embedded_prefix_code",
+            not_in_client_history: !inHistory,
+            candidates: prefixMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+            suggestions: prefixMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+          };
+        }
+        
+        if (prefixMatches.length > 1) {
+          const sorted = prefixMatches.sort((a, b) => {
+            const aClient = clientRows.some(r => r.item_no === a.item_no) ? 1 : 0;
+            const bClient = clientRows.some(r => r.item_no === b.item_no) ? 1 : 0;
+            return bClient - aClient;
+          });
+          console.log(`[Glass] 1.5순위 ⚠️ 접두사 매칭 ${prefixMatches.length}개 → 후보 제시`);
+          return {
+            ...it,
+            normalized_query: embeddedCode,
+            resolved: false,
+            candidates: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+            suggestions: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+          };
+        }
+      }
+    }
+
+    // ✅ 1.8순위: 비-RD 품목 키워드 매칭 (마닐라박스, 쇼핑백, 린넨 등)
+    const nonRDMatch = matchNonRDItem(it.name);
+    if (nonRDMatch) {
+      const inHistory = clientRows.some(r => r.item_no === nonRDMatch.item_no);
+      console.log(`[Glass] 1.8순위 ✅ 비-RD 품목 매칭: ${nonRDMatch.item_no} - ${nonRDMatch.item_name} (score: ${nonRDMatch.score})`);
+      return {
+        ...it,
+        normalized_query: it.name,
+        resolved: inHistory,
+        item_no: nonRDMatch.item_no,
+        item_name: nonRDMatch.item_name,
+        score: nonRDMatch.score,
+        method: "non_rd_keyword",
+        not_in_client_history: !inHistory,
+        candidates: [{ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory }],
+        suggestions: [{ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory }],
+      };
+    }
+
     // ✅ 2순위: 검색어 확장 (토큰 매핑 학습 활용)
-    const expansion = expandQuery(it.name, 0.5);
+    const cleanName = stripQtyAndUnit(it.name);
+    const expansion = expandQuery(cleanName, 0.5);
     logQueryExpansion(expansion);
     
     const learned = getLearnedMatch(it.name);

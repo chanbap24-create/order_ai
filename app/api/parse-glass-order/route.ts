@@ -36,6 +36,12 @@ function preprocessGlassMessage(text: string) {
   // ✅ Glass는 슬래시를 유지 (코드 때문)
   // s = s.replace(/\s*\/\s*/g, "\n");  // ❌ 이걸 하면 0447/07이 깨짐
 
+  // ✅ 콤마 구분 지원: "0330/07 6, 0330/15 6" → 줄바꿈 분리
+  // 단, 품목명 내부 콤마(예: "카베르네/메를로, 시라")는 보호
+  // 콤마 뒤에 숫자나 코드 패턴이 오면 줄바꿈으로 변환
+  s = s.replace(/,\s*(?=\d{3,4}\/)/g, "\n");  // 콤마 뒤에 코드패턴
+  s = s.replace(/,\s*(?=[가-힣]{2})/g, "\n");  // 콤마 뒤에 한글 품목명
+
   // 문장부호만 줄바꿈으로
   s = s.replace(/[.!?]/g, "\n");
 
@@ -378,10 +384,16 @@ function splitClientAndOrder(body: any) {
   const orderText = body?.orderText ?? "";
 
   if (clientText || orderText) {
+    // ✅ clientText가 있고 orderText가 없으면 message에서 clientText 제거한 나머지를 orderText로 사용
+    const effectiveOrder = orderText
+      ? String(orderText)
+      : String(message || "").replace(/\r/g, "").split("\n")
+          .filter(l => l.trim() && l.trim() !== String(clientText).trim())
+          .join("\n");
     return {
       rawMessage: String(message || ""),
       clientText: String(clientText || ""),
-      orderText: String(orderText || ""),
+      orderText: effectiveOrder,
     };
   }
 
@@ -405,22 +417,33 @@ function splitClientAndOrder(body: any) {
 }
 
 // ✅ Glass 품목 단위 결정 함수
+// "개" 단위: 디캔터, 박스, 쇼핑백, 클리너, 캐링백, 세트, 밸류팩, 클로스, 린넨
+// "잔" 단위: 그 외 모든 RD 와인잔 (0xxx, 4xxx, 6xxx 등 모든 시리즈)
 function getGlassUnit(itemName: string): string {
-  // 1. 품목명에 "레스토랑" 포함 → 잔
+  // 1. 명확한 "개" 단위 품목 키워드 (부자재/악세서리)
+  if (/디캔터|박스|쇼핑백|클리너|캐링백|세트|밸류팩|폴리싱|클로스|린넨|보틀\s*클리너/i.test(itemName)) {
+    return "개";
+  }
+
+  // 2. RD 코드가 있는 와인잔 → 잔 (모든 시리즈: 0xxx, 4xxx, 6xxx 등)
+  // ✅ (?:[A-Z][A-Z0-9]*)? : 알파벳으로 시작하는 영숫자 혼합 접미사(JG,SKY,BWT,MA,S3 등) 지원
+  const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?)/i);
+  if (rdMatch) {
+    return "잔";
+  }
+
+  // 3. 품목명에 "레스토랑" 포함 → 잔
   if (/레스토랑/i.test(itemName)) {
     return "잔";
   }
 
-  // 2. RD 코드가 0으로 시작 (0447/07, 0884/67 등) → 잔
-  const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
-  if (rdMatch) {
-    const code = rdMatch[1];
-    if (code.startsWith("0")) {
-      return "잔";
-    }
+  // 4. 코드만 입력된 경우 (330/07, 0330/07, 4900/28JG 등) → 잔
+  const codeOnly = itemName.match(/^0?\d{3,4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?$/i);
+  if (codeOnly) {
+    return "잔";
   }
 
-  // 3. 나머지 → 개
+  // 5. 나머지 → 개
   return "개";
 }
 
@@ -585,7 +608,54 @@ export async function POST(req: Request) {
     }
 
     // 2) 품목 파싱 (orderText도 한번 더 전처리)
-    const order0 = preprocessGlassMessage(orderText || rawMessage);
+    console.log(`[Glass DEBUG] orderText="${orderText}", rawMessage="${rawMessage.substring(0,50)}"`);
+    let order0 = preprocessGlassMessage(orderText || rawMessage);
+    console.log(`[Glass DEBUG] order0 after preprocess="${order0}"`);
+
+    // ✅ 2-0) 거래처명이 품목 텍스트에 섞여있으면 제거
+    // 한 줄 입력 "크로스비 0425/0 6" → client 해결 후 "크로스비"를 제거하여 "0425/0 6"로 만듦
+    if (client.status === "resolved" && client.client_name) {
+      const clientName = String((client as any).client_name || "");
+      if (clientName) {
+        // 각 줄에서 거래처명이 앞에 붙어있으면 제거
+        order0 = order0
+          .split("\n")
+          .map((line) => {
+            const trimmed = line.trim();
+            // 거래처명으로 시작하는 경우 제거 (또는 거래처명만 있는 줄 완전 제거)
+            if (trimmed.startsWith(clientName)) {
+              const rest = trimmed.slice(clientName.length).trim();
+              return rest || ""; // 빈 문자열은 filter(Boolean)에서 제거됨
+            }
+            // ✅ 거래처명과 정규화 후 일치하면 완전 제거
+            if (norm(trimmed) === norm(clientName)) {
+              return "";
+            }
+            // norm 비교: 거래처명이 다양한 형태로 붙을 수 있음
+            const clientNorm = norm(clientName);
+            const lineTokens = trimmed.split(/\s+/);
+            if (lineTokens.length > 1) {
+              // ✅ 2토큰 결합 비교 우선 (예: "스시소라 광교" → 거래처명)
+              if (lineTokens.length > 2) {
+                const twoTokens = lineTokens.slice(0, 2).join(" ");
+                const twoTokenNorm = norm(twoTokens);
+                if (twoTokenNorm === clientNorm || clientNorm.includes(twoTokenNorm) || twoTokenNorm.includes(clientNorm)) {
+                  return lineTokens.slice(2).join(" ");
+                }
+              }
+              // 1토큰 비교
+              const firstToken = lineTokens[0];
+              if (norm(firstToken) === clientNorm || clientNorm.includes(norm(firstToken)) || norm(firstToken).includes(clientNorm)) {
+                return lineTokens.slice(1).join(" ");
+              }
+            }
+            return trimmed;
+          })
+          .filter(Boolean)
+          .join("\n");
+        console.log(`[Glass] 거래처명 제거 후 orderText: "${order0}"`);
+      }
+    }
 
     // ✅ 2-1) 번역(영어 비중 높을 때만)
     const trOrder = await translateOrderToKoreanIfNeeded(order0);

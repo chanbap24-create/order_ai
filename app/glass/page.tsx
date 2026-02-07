@@ -446,22 +446,32 @@ export default function Home() {
   }
 
   // ✅ Glass 품목 단위 결정 (API와 동일한 로직)
+  // "개" 단위: 디캔터, 박스, 쇼핑백, 클리너, 캐링백, 세트, 밸류팩, 클로스, 린넨
+  // "잔" 단위: 그 외 모든 RD 와인잔 (0xxx, 4xxx, 6xxx 등 모든 시리즈)
   function getGlassUnit(itemName: string): string {
-    // 1. 품목명에 "레스토랑" 포함 → 잔
+    // 1. 명확한 "개" 단위 품목 키워드 (부자재/악세서리)
+    if (/디캔터|박스|쇼핑백|클리너|캐링백|세트|밸류팩|폴리싱|클로스|린넨|보틀\s*클리너/i.test(itemName)) {
+      return "개";
+    }
+
+    // 2. RD 코드가 있는 와인잔 → 잔 (모든 시리즈)
+    const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?)/i);
+    if (rdMatch) {
+      return "잔";
+    }
+
+    // 3. 품목명에 "레스토랑" 포함 → 잔
     if (/레스토랑/i.test(itemName)) {
       return "잔";
     }
-    
-    // 2. RD 코드가 0으로 시작 (0447/07, 0884/67 등) → 잔
-    const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
-    if (rdMatch) {
-      const code = rdMatch[1];
-      if (code.startsWith("0")) {
-        return "잔";
-      }
+
+    // 4. 코드만 입력된 경우 → 잔
+    const codeOnly = itemName.match(/^0?\d{3,4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?$/i);
+    if (codeOnly) {
+      return "잔";
     }
-    
-    // 3. 기본 → 개
+
+    // 5. 기본 → 개
     return "개";
   }
 
@@ -1202,13 +1212,16 @@ export default function Home() {
               <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
-                    const resolvedUnit = it?.resolved && it?.item_name ? getGlassUnit(it.item_name) : "병";
+                    const resolvedUnit = it?.resolved && it?.item_name ? getGlassUnit(it.item_name) : getGlassUnit(it?.item_name || it?.name || "");
                     const line = it?.resolved
                       ? `${it.item_no} / ${it.item_name} / ${it.qty}${resolvedUnit}`
-                      : `확인필요 / "${it.name}" / ${it.qty}병`;
+                      : it?.item_no && it?.not_in_client_history
+                        ? `${it.item_no} / ${it.item_name} / ${it.qty}${getGlassUnit(it?.item_name || it?.name || "")}`
+                        : `확인필요 / "${it.name}" / ${it.qty}${getGlassUnit(it?.item_name || it?.name || "")}`;
 
                     const top3 = getTop3Suggestions(it);
                     const wasJustPicked = !!savedPick[idx]; // ✅ 이 아이템이 방금 선택됨
+                    const isNotInClientHistory = !!it?.not_in_client_history && !it?.resolved;
 
                     return (
                       <div
@@ -1237,12 +1250,12 @@ export default function Home() {
                           <div
                             style={{
                               width: 80,
-                              color: it?.resolved ? "#0a7" : "#b00",
+                              color: it?.resolved ? "#0a7" : isNotInClientHistory ? "#e8a820" : "#b00",
                               fontWeight: 700,
                               fontSize: 14,
                             }}
                           >
-                            {it?.resolved ? "확정 ✅" : "확인 ❗"}
+                            {it?.resolved ? "확정 ✅" : isNotInClientHistory ? "미입고 ⚠️" : "확인 ❗"}
                           </div>
                           <div style={{ flex: 1, ...monoStyle, fontSize: 13 }}>{line}</div>
                           <div
@@ -1258,6 +1271,22 @@ export default function Home() {
                               : ""}
                           </div>
                         </div>
+
+                        {/* ⚠️ 거래처 미입고 경고 */}
+                        {isNotInClientHistory && (
+                          <div style={{
+                            marginLeft: 0,
+                            padding: "8px 12px",
+                            background: "#fff8e1",
+                            border: "1px solid #ffc107",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            color: "#856404",
+                            fontWeight: 600,
+                          }}>
+                            ⚠️ 이 거래처에 입고된 적 없는 품목입니다. 코드 매칭은 확인되었으나 확인이 필요합니다.
+                          </div>
+                        )}
 
                         {/* 후보 선택 버튼 - 확정된 아이템은 접기 */}
                         {top3.length > 0 && !it?.resolved && (
@@ -1287,7 +1316,8 @@ export default function Home() {
                               const saved = !!savedPick[idx];
                               const isNewItem = !!s.is_new_item;
                               
-                              console.log(`[Glass] Item ${s.code}: isNewItem=${isNewItem}, price=${s.price || s.supply_price}`);
+                              const inClientHistory = !!s.in_client_history;
+                              console.log(`[Glass] Item ${s.code}: isNewItem=${isNewItem}, inClientHistory=${inClientHistory}, price=${s.price || s.supply_price}`);
 
                               return (
                                 <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 6, border: "1px solid #e0e0e0" }}>
@@ -1301,6 +1331,16 @@ export default function Home() {
                                       {isNewItem && (
                                         <span style={{ marginLeft: 6, padding: "1px 4px", background: "#ff6b35", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
                                           신규
+                                        </span>
+                                      )}
+                                      {!isNewItem && inClientHistory && (
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#0a7", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
+                                          입고이력
+                                        </span>
+                                      )}
+                                      {!isNewItem && !inClientHistory && (
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#e8a820", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
+                                          미입고
                                         </span>
                                       )}
                                     </div>
