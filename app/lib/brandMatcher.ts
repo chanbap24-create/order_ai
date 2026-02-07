@@ -16,6 +16,7 @@ import * as XLSX from "xlsx";
 import path from "path";
 import fs from "fs";
 import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
+import { logger } from "@/app/lib/logger";
 
 // ========== 타입 정의 ==========
 export interface BrandInfo {
@@ -85,12 +86,12 @@ function loadEnglishSheet(): WineItem[] {
   const xlsxPath =
     process.env.ORDER_AI_XLSX_PATH || path.join(process.cwd(), "order-ai.xlsx");
 
-  console.log(`[BrandMatcher] Trying to load from: ${xlsxPath}`);
-  console.log(`[BrandMatcher] File exists: ${fs.existsSync(xlsxPath)}`);
-  console.log(`[BrandMatcher] process.cwd(): ${process.cwd()}`);
+  logger.debug(`[BrandMatcher] Trying to load from: ${xlsxPath}`);
+  logger.debug(`[BrandMatcher] File exists: ${fs.existsSync(xlsxPath)}`);
+  logger.debug(`[BrandMatcher] process.cwd(): ${process.cwd()}`);
 
   if (!fs.existsSync(xlsxPath)) {
-    console.warn(`[BrandMatcher] order-ai.xlsx not found at ${xlsxPath}`);
+    logger.warn(`[BrandMatcher] order-ai.xlsx not found at ${xlsxPath}`);
     return [];
   }
 
@@ -125,7 +126,7 @@ function loadEnglishSheet(): WineItem[] {
           price: row.L ? Number(row.L) : undefined,
         });
       }
-      console.log(`[BrandMatcher] Loaded ${items.length} items from English sheet`);
+      logger.debug(`[BrandMatcher] Loaded ${items.length} items from English sheet`);
     }
     
     // === Downloads 시트 로드 (팔콘 등 추가 품목) ===
@@ -166,15 +167,15 @@ function loadEnglishSheet(): WineItem[] {
           price: undefined,
         });
       }
-      console.log(`[BrandMatcher] Loaded ${items.length - downloadsCount} additional items from Downloads sheet`);
+      logger.debug(`[BrandMatcher] Loaded ${items.length - downloadsCount} additional items from Downloads sheet`);
     }
 
     cachedEnglishData = items;
     cacheTimestamp = now;
-    console.log(`[BrandMatcher] Total loaded: ${items.length} items`);
+    logger.debug(`[BrandMatcher] Total loaded: ${items.length} items`);
     return items;
   } catch (err) {
-    console.error(`[BrandMatcher] Failed to load sheets:`, err);
+    logger.error(`[BrandMatcher] Failed to load sheets`, err);
     return [];
   }
 }
@@ -184,7 +185,7 @@ export function clearBrandMatcherCache() {
   cachedEnglishData = null;
   cachedBrandGroups = null;
   cacheTimestamp = 0;
-  console.log('[BrandMatcher] 캐시 초기화됨');
+  logger.debug('[BrandMatcher] 캐시 초기화됨');
 }
 
 // ========== 생산자별 그룹화 캐싱 ==========
@@ -208,7 +209,7 @@ function getItemsByBrand(): Map<string, WineItem[]> {
   }
 
   cachedBrandGroups = groups;
-  console.log(`[BrandMatcher] Grouped into ${groups.size} brands`);
+  logger.debug(`[BrandMatcher] Grouped into ${groups.size} brands`);
   return groups;
 }
 
@@ -295,11 +296,9 @@ export function matchBrand(input: string, minScore = 0.6): BrandInfo[] {
   // 점수 내림차순 정렬
   candidates.sort((a, b) => b.score - a.score);
 
-  console.log(
-    `[BrandMatcher] matchBrand("${input}") → ${candidates.length} candidates (minScore=${minScore})`
-  );
+  logger.debug(`[BrandMatcher] matchBrand("${input}") → ${candidates.length} candidates (minScore=${minScore})`);
   if (candidates.length > 0) {
-    console.log(`[BrandMatcher] Top match: ${candidates[0].supplier_kr} (${candidates[0].score.toFixed(2)})`);
+    logger.debug(`[BrandMatcher] Top match: ${candidates[0].supplier_kr} (${candidates[0].score.toFixed(2)})`);
   }
 
   return candidates;
@@ -316,15 +315,15 @@ export function searchWineInBrand(
 
   const wines = brandGroups.get(brandKey) || [];
   if (wines.length === 0) {
-    console.log(`[BrandMatcher] No wines found for brand: ${brandInfo.supplier_kr}`);
+    logger.debug(`[BrandMatcher] No wines found for brand: ${brandInfo.supplier_kr}`);
     return [];
   }
 
-  console.log(`[BrandMatcher] Searching ${wines.length} wines in brand: ${brandInfo.supplier_kr}`);
+  logger.debug(`[BrandMatcher] Searching ${wines.length} wines in brand: ${brandInfo.supplier_kr}`);
 
   const normalizedQuery = normalize(wineQuery);
   const queryTokens = normalizedQuery.split(/\s+/).filter(t => t.length >= 2);
-  console.log(`[BrandMatcher] Query tokens:`, queryTokens);
+  logger.debug(`[BrandMatcher] Query tokens:`, { tokens: queryTokens });
   const results: Array<WineItem & { score: number }> = [];
 
   for (const wine of wines) {
@@ -350,9 +349,7 @@ export function searchWineInBrand(
     
     // Debug first wine
     if (wines.indexOf(wine) === 0) {
-      console.log(`[BrandMatcher] First wine: "${wine.wine_kr}"`);
-      console.log(`[BrandMatcher]   normKr: "${normKr}"`);
-      console.log(`[BrandMatcher]   scoreKr: ${scoreKr.toFixed(3)}, tokenMatches: ${tokenMatchCount}/${queryTokens.length}, final: ${score.toFixed(3)}`);
+      logger.debug(`[BrandMatcher] First wine`, { wine_kr: wine.wine_kr, normKr, scoreKr: scoreKr.toFixed(3), tokenMatches: `${tokenMatchCount}/${queryTokens.length}`, final: score.toFixed(3) });
     }
 
     if (score >= minScore) {
@@ -363,16 +360,11 @@ export function searchWineInBrand(
   // 점수 내림차순 정렬
   results.sort((a, b) => b.score - a.score);
 
-  console.log(
-    `[BrandMatcher] searchWineInBrand("${wineQuery}") in ${brandInfo.supplier_kr} → ${results.length} results`
-  );
+  logger.debug(`[BrandMatcher] searchWineInBrand("${wineQuery}") in ${brandInfo.supplier_kr} → ${results.length} results`);
   
   // 상위 3개 결과 로깅
   if (results.length > 0) {
-    console.log(`[BrandMatcher] Top wines:`);
-    results.slice(0, 3).forEach((w, i) => {
-      console.log(`  ${i + 1}. ${w.wine_kr} (${w.score.toFixed(3)})`);
-    });
+    logger.debug(`[BrandMatcher] Top wines`, { wines: results.slice(0, 3).map((w, i) => `${i + 1}. ${w.wine_kr} (${w.score.toFixed(3)})`) });
   }
 
   return results;
@@ -397,16 +389,16 @@ export function hierarchicalSearch(
   wineMinScore = 0.5,
   topBrands = 3
 ): HierarchicalSearchResult[] {
-  console.log(`[BrandMatcher] hierarchicalSearch("${input}")`);
+  logger.debug(`[BrandMatcher] hierarchicalSearch("${input}")`);
 
   // ✅ Step 0: 별칭 확장 (VG → 뱅상 지라르댕, cl → 클레멍 라발리)
   const preprocessed = preprocessNaturalLanguage(input);
-  console.log(`[BrandMatcher] After alias expansion: "${preprocessed}"`);
+  logger.debug(`[BrandMatcher] After alias expansion: "${preprocessed}"`);
 
   // Step 1: 브랜드 매칭
   const brandCandidates = matchBrand(preprocessed, brandMinScore);
   if (brandCandidates.length === 0) {
-    console.log(`[BrandMatcher] No brand matched for "${preprocessed}"`);
+    logger.debug(`[BrandMatcher] No brand matched for "${preprocessed}"`);
     return [];
   }
 
@@ -446,7 +438,7 @@ export function hierarchicalSearch(
       cleanQuery = filteredKeywords;
     }
     
-    console.log(`[BrandMatcher] Wine query after brand removal: "${queryNorm}" → "${cleanQuery}"`);
+    logger.debug(`[BrandMatcher] Wine query after brand removal: "${queryNorm}" → "${cleanQuery}"`);
     
     const wines = searchWineInBrand(brand, cleanQuery || preprocessed, wineMinScore);
 
@@ -455,6 +447,6 @@ export function hierarchicalSearch(
     }
   }
 
-  console.log(`[BrandMatcher] Found ${results.length} brand(s) with matching wines`);
+  logger.debug(`[BrandMatcher] Found ${results.length} brand(s) with matching wines`);
   return results;
 }

@@ -862,6 +862,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               item_name: topWine.wine_kr,
               score: topWine.score,
               method: 'brand_hierarchical',
+              supply_price: topWine.price,
               brand_info: {
                 brand_name: topBrand.brand.supplier_kr,
                 brand_score: topBrand.brand.score,
@@ -871,6 +872,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 item_name: w.wine_kr,
                 score: w.score,
                 method: 'brand_hierarchical',
+                supply_price: w.price,
               })),
             });
             
