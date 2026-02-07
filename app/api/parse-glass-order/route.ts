@@ -3,7 +3,7 @@ import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 import { parseGlassItemsFromMessage } from "@/app/lib/parseGlassItems";
 import { resolveGlassItemsByClient } from "@/app/lib/resolveGlassItems";
-import { syncFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
+import { syncFromXlsxIfNeeded, syncGlassFromXlsxIfNeeded } from "@/app/lib/syncFromXlsx";
 import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 
 
@@ -481,7 +481,8 @@ function formatStaffMessage(
 export async function POST(req: Request) {
   // ✅ 엑셀 자동 동기화 (파일 변경 시에만 실행)
   const sync = syncFromXlsxIfNeeded();
-  console.log("[XLSX SYNC]", sync);
+  const glassSync = syncGlassFromXlsxIfNeeded();
+  console.log("[XLSX SYNC]", sync, "[GLASS SYNC]", glassSync);
 
   try {
     const body = await req.json().catch(() => ({}));
