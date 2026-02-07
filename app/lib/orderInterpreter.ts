@@ -6,14 +6,9 @@ import { getAllItemsList } from "./parseOrderWithGPT";
 
 // API 키 확인
 if (!process.env.OPENAI_API_KEY) {
-  console.error('❌ OPENAI_API_KEY is not set in environment variables!');
+  console.error('OPENAI_API_KEY is not set in environment variables');
   throw new Error('OPENAI_API_KEY environment variable is required');
 }
-
-console.log('✅ OPENAI_API_KEY is set:', 
-  process.env.OPENAI_API_KEY.substring(0, 15) + '...' + 
-  process.env.OPENAI_API_KEY.substring(process.env.OPENAI_API_KEY.length - 4)
-);
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
