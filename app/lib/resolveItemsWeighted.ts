@@ -838,11 +838,13 @@ function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
   try {
     db.prepare(`
       CREATE TABLE IF NOT EXISTS item_alias (
-        alias TEXT PRIMARY KEY,
+        alias TEXT NOT NULL,
         canonical TEXT NOT NULL,
+        client_code TEXT NOT NULL DEFAULT '*',
         count INTEGER DEFAULT 1,
         last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (alias, client_code)
       )
     `).run();
   } catch {
@@ -852,12 +854,32 @@ function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
   const inputItem = stripQtyAndUnit(rawInput);
   const nInputItem = normTight(inputItem);
 
-  // ✅ item_alias 조회 (count 순)
-  const rows = db.prepare(`
-    SELECT alias, canonical 
-    FROM item_alias
-    ORDER BY count DESC
-  `).all() as AliasRow[];
+  // ✅ 거래처별 학습 우선, 전역('*') 폴백
+  let rows: AliasRow[] = [];
+  
+  // client_code 컬럼 존재 여부 확인
+  const hasClientCode = (() => {
+    try {
+      const cols = db.prepare("PRAGMA table_info(item_alias)").all() as Array<{ name: string }>;
+      return cols.some(c => c.name === 'client_code');
+    } catch { return false; }
+  })();
+
+  if (hasClientCode && clientCode) {
+    rows = db.prepare(`
+      SELECT alias, canonical 
+      FROM item_alias
+      WHERE client_code = ? OR client_code = '*'
+      ORDER BY CASE WHEN client_code = ? THEN 0 ELSE 1 END, count DESC
+    `).all(clientCode, clientCode) as AliasRow[];
+  }
+  if (!rows?.length) {
+    rows = db.prepare(`
+      SELECT alias, canonical 
+      FROM item_alias
+      ORDER BY count DESC
+    `).all() as AliasRow[];
+  }
   
   if (!rows?.length) return null;
 
@@ -1234,7 +1256,8 @@ export function resolveItemsByClientWeighted(
       console.log(`[Wine] 생산자 감지됨: "${producer}" - 해당 브랜드 품목만 필터링`);
     }
     
-    const learned = getLearnedMatch(searchName, clientCode);
+    // ✅ 학습 매칭은 원본 이름(it.name)으로 먼저, 전처리된 이름으로 폴백
+    const learned = getLearnedMatch(it.name, clientCode) || getLearnedMatch(searchName, clientCode);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
@@ -1347,8 +1370,14 @@ export function resolveItemsByClientWeighted(
 
     // 1) Exact 학습이면 하드 확정
     if (learned && learned.kind === "exact" && learnedItemNo) {
-      const hit = filteredPool.find((r) => String(r.item_no) === learnedItemNo);
+      let hit = filteredPool.find((r) => String(r.item_no) === learnedItemNo);
+      // ✅ 풀에 없으면 DB에서 직접 조회 (학습된 약어 → 품목번호 매핑)
+      if (!hit) {
+        const dbRow = db.prepare(`SELECT item_no, item_name FROM items WHERE item_no = ? LIMIT 1`).get(learnedItemNo) as { item_no: string; item_name: string } | undefined;
+        if (dbRow) hit = { item_no: String(dbRow.item_no), item_name: String(dbRow.item_name) };
+      }
       if (hit) {
+        console.log(`[Learn] ✅ alias_exact 매칭: "${searchName}" → ${hit.item_no} ${hit.item_name}`);
         return {
           ...it,
           normalized_query: normalizeItemName(applyItemSynonym(searchName)),
@@ -1365,8 +1394,14 @@ export function resolveItemsByClientWeighted(
 
     // 2) contains_specific 학습이면 하드 확정
     if (learned && learned.kind === "contains_specific" && learnedItemNo) {
-      const hit = filteredPool.find((r) => String(r.item_no) === learnedItemNo);
+      let hit = filteredPool.find((r) => String(r.item_no) === learnedItemNo);
+      // ✅ 풀에 없으면 DB에서 직접 조회
+      if (!hit) {
+        const dbRow = db.prepare(`SELECT item_no, item_name FROM items WHERE item_no = ? LIMIT 1`).get(learnedItemNo) as { item_no: string; item_name: string } | undefined;
+        if (dbRow) hit = { item_no: String(dbRow.item_no), item_name: String(dbRow.item_name) };
+      }
       if (hit) {
+        console.log(`[Learn] ✅ alias_contains_specific 매칭: "${searchName}" → ${hit.item_no} ${hit.item_name}`);
         return {
           ...it,
           normalized_query: normalizeItemName(applyItemSynonym(searchName)),

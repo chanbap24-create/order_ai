@@ -4,6 +4,128 @@ import fs from "fs";
 import { config } from "./config";
 import { logger } from "./logger";
 
+// ✅ 학습 데이터 보존 테이블 목록
+const LEARNING_TABLES = ['item_alias', 'client_alias', 'token_mapping', 'search_learning'];
+
+/**
+ * ✅ /tmp DB에서 학습 데이터를 백업한 뒤, 원본 DB 복사 후 학습 데이터를 복원
+ * Vercel 콜드 스타트 시 학습 데이터 유실 방지
+ */
+function preserveLearningData(tmpPath: string, originalPath: string) {
+  const backupPath = "/tmp/data_learning_backup.sqlite3";
+  
+  try {
+    if (!fs.existsSync(tmpPath)) return;
+
+    // 1) 기존 /tmp DB에서 학습 테이블 백업
+    const oldDb = new Database(tmpPath, { readonly: true });
+    const backupDb = new Database(backupPath);
+
+    let hasLearningData = false;
+
+    for (const table of LEARNING_TABLES) {
+      try {
+        const rows = oldDb.prepare(`SELECT * FROM ${table}`).all() as any[];
+        if (!rows.length) continue;
+        hasLearningData = true;
+
+        // 스키마 복사
+        const createSql = oldDb.prepare(
+          `SELECT sql FROM sqlite_master WHERE type='table' AND name=?`
+        ).get(table) as { sql: string } | undefined;
+        if (createSql?.sql) {
+          backupDb.prepare(`DROP TABLE IF EXISTS ${table}`).run();
+          backupDb.prepare(createSql.sql).run();
+          
+          // 데이터 복사
+          const cols = oldDb.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+          const colNames = cols.map(c => c.name);
+          const placeholders = colNames.map(() => '?').join(',');
+          const ins = backupDb.prepare(
+            `INSERT OR REPLACE INTO ${table} (${colNames.join(',')}) VALUES (${placeholders})`
+          );
+          backupDb.transaction(() => {
+            for (const row of rows) {
+              ins.run(...colNames.map(c => (row as any)[c]));
+            }
+          })();
+          logger.info(`[Learning Backup] ${table}: ${rows.length} rows backed up`);
+        }
+      } catch {
+        // 테이블이 없으면 무시
+      }
+    }
+
+    oldDb.close();
+    backupDb.close();
+
+    if (!hasLearningData) {
+      try { fs.unlinkSync(backupPath); } catch {}
+      return;
+    }
+
+    // 2) 원본 DB를 /tmp로 복사 (최신 상품/거래처 데이터)
+    fs.copyFileSync(originalPath, tmpPath);
+    logger.info("Database copied to /tmp (fresh)", { from: originalPath, to: tmpPath });
+
+    // 3) 백업한 학습 데이터를 새 /tmp DB에 복원
+    const newDb = new Database(tmpPath);
+    const bkDb = new Database(backupPath, { readonly: true });
+
+    for (const table of LEARNING_TABLES) {
+      try {
+        const rows = bkDb.prepare(`SELECT * FROM ${table}`).all() as any[];
+        if (!rows.length) continue;
+
+        // 새 DB에 테이블이 있는지 확인
+        const exists = newDb.prepare(
+          `SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name=?`
+        ).get(table) as { cnt: number };
+
+        if (!exists.cnt) {
+          // 백업 스키마로 생성
+          const createSql = bkDb.prepare(
+            `SELECT sql FROM sqlite_master WHERE type='table' AND name=?`
+          ).get(table) as { sql: string } | undefined;
+          if (createSql?.sql) newDb.prepare(createSql.sql).run();
+        }
+
+        const cols = bkDb.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+        const newCols = newDb.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+        const newColNames = new Set(newCols.map(c => c.name));
+        // 새 테이블에 존재하는 컬럼만 사용
+        const commonCols = cols.map(c => c.name).filter(c => newColNames.has(c));
+        if (!commonCols.length) continue;
+
+        const placeholders = commonCols.map(() => '?').join(',');
+        const ins = newDb.prepare(
+          `INSERT OR REPLACE INTO ${table} (${commonCols.join(',')}) VALUES (${placeholders})`
+        );
+        newDb.transaction(() => {
+          for (const row of rows) {
+            ins.run(...commonCols.map(c => (row as any)[c]));
+          }
+        })();
+        logger.info(`[Learning Restore] ${table}: ${rows.length} rows restored`);
+      } catch (err) {
+        logger.warn(`[Learning Restore] ${table} failed:`, { error: err });
+      }
+    }
+
+    newDb.close();
+    bkDb.close();
+
+    // 백업 파일 삭제
+    try { fs.unlinkSync(backupPath); } catch {}
+  } catch (err) {
+    logger.warn("[Learning Preserve] Failed (non-fatal):", { error: err });
+    // 실패 시 원본 그대로 복사
+    try {
+      fs.copyFileSync(originalPath, tmpPath);
+    } catch {}
+  }
+}
+
 // Vercel 호환: 프로덕션에서는 /tmp에 DB 복사
 function getDatabasePath(): string {
   const originalPath = config.database.path
@@ -17,13 +139,25 @@ function getDatabasePath(): string {
     const tmpPath = "/tmp/data.sqlite3";
     
     try {
-      // 원본 DB가 존재하면 /tmp로 복사 (쓰기 가능)
-      if (fs.existsSync(originalPath) && !fs.existsSync(tmpPath)) {
-        fs.copyFileSync(originalPath, tmpPath);
-        logger.info("Database copied to /tmp for write support", { 
-          from: originalPath, 
-          to: tmpPath 
-        });
+      if (fs.existsSync(originalPath)) {
+        if (fs.existsSync(tmpPath)) {
+          // ✅ 이미 /tmp DB 존재: 학습 데이터가 있을 수 있으므로 그대로 사용
+          // 단, 원본이 더 최신이면 학습 데이터 보존하며 갱신
+          const origStat = fs.statSync(originalPath);
+          const tmpStat = fs.statSync(tmpPath);
+          if (origStat.mtimeMs > tmpStat.mtimeMs) {
+            // 새 배포(원본이 더 최신): 학습 데이터 보존하며 원본 복사
+            preserveLearningData(tmpPath, originalPath);
+          }
+          // 그 외: 기존 /tmp DB 유지 (학습 데이터 포함)
+        } else {
+          // /tmp DB 없음: 최초 복사
+          fs.copyFileSync(originalPath, tmpPath);
+          logger.info("Database copied to /tmp for write support", { 
+            from: originalPath, 
+            to: tmpPath 
+          });
+        }
       }
       return tmpPath;
     } catch (err) {

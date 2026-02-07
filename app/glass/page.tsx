@@ -609,12 +609,14 @@ export default function Home() {
     setSavedPick((p) => ({ ...p, [itemIndex]: false }));
 
     try {
+      const clientCode = String(data?.client?.client_code ?? "").trim();
       const res = await fetch("/api/learn-item-alias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           alias, 
           canonical,
+          client_code: clientCode || '*',
           dataType: 'glass',
           ...(price ? { price: Number(price) } : {})
         }),

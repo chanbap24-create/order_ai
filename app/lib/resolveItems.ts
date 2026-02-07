@@ -143,9 +143,13 @@ function fetchFromMasterByTail(rawName: string, limit = 60) {
 function ensureItemAliasTable() {
   db.prepare(`
     CREATE TABLE IF NOT EXISTS item_alias (
-      alias TEXT PRIMARY KEY,
+      alias TEXT NOT NULL,
       canonical TEXT NOT NULL,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      client_code TEXT NOT NULL DEFAULT '*',
+      count INTEGER DEFAULT 1,
+      last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (alias, client_code)
     )
   `).run();
 }

@@ -292,13 +292,22 @@ type LearnedMatch =
   | { kind: "contains_weak"; alias: string; canonical: string }
   | null;
 
-function getLearnedMatch(rawInput: string): LearnedMatch {
+function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
   try {
     const inputItem = stripQtyAndUnit(rawInput);
     const nInputItem = normTight(inputItem);
     if (!nInputItem) return null;
 
-    const rows = db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[];
+    // ✅ 거래처별 학습 우선, 전역('*') 폴백
+    let rows: AliasRow[] = [];
+    if (clientCode) {
+      rows = db.prepare(
+        `SELECT alias, canonical FROM item_alias WHERE client_code = ? OR client_code = '*' ORDER BY CASE WHEN client_code = ? THEN 0 ELSE 1 END, count DESC`
+      ).all(clientCode, clientCode) as AliasRow[];
+    }
+    if (!rows?.length) {
+      rows = db.prepare(`SELECT alias, canonical FROM item_alias ORDER BY count DESC`).all() as AliasRow[];
+    }
     if (!rows?.length) return null;
 
   const pairs = rows
@@ -745,7 +754,7 @@ export function resolveGlassItemsByClient(
     const expansion = expandQuery(cleanName, 0.5);
     logQueryExpansion(expansion);
     
-    const learned = getLearnedMatch(it.name);
+    const learned = getLearnedMatch(it.name, clientCode);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
@@ -770,8 +779,14 @@ export function resolveGlassItemsByClient(
 
     // 1) Exact 학습이면 하드 확정
     if (learned && learned.kind === "exact" && learnedItemNo) {
-      const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      let hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      // ✅ 풀에 없으면 DB에서 직접 조회 (학습된 약어 → 품목번호 매핑)
+      if (!hit) {
+        const dbRow = db.prepare(`SELECT item_no, item_name FROM glass_items WHERE item_no = ? LIMIT 1`).get(learnedItemNo) as { item_no: string; item_name: string } | undefined;
+        if (dbRow) hit = { item_no: String(dbRow.item_no), item_name: String(dbRow.item_name) };
+      }
       if (hit) {
+        console.log(`[Learn] ✅ alias_exact 매칭: "${it.name}" → ${hit.item_no} ${hit.item_name}`);
         return {
           ...it,
           normalized_query: norm(it.name),
@@ -788,8 +803,14 @@ export function resolveGlassItemsByClient(
 
     // 2) contains_specific 학습이면 하드 확정
     if (learned && learned.kind === "contains_specific" && learnedItemNo) {
-      const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      let hit = pool.find((r) => String(r.item_no) === learnedItemNo);
+      // ✅ 풀에 없으면 DB에서 직접 조회
+      if (!hit) {
+        const dbRow = db.prepare(`SELECT item_no, item_name FROM glass_items WHERE item_no = ? LIMIT 1`).get(learnedItemNo) as { item_no: string; item_name: string } | undefined;
+        if (dbRow) hit = { item_no: String(dbRow.item_no), item_name: String(dbRow.item_name) };
+      }
       if (hit) {
+        console.log(`[Learn] ✅ alias_contains_specific 매칭: "${it.name}" → ${hit.item_no} ${hit.item_name}`);
         return {
           ...it,
           normalized_query: norm(it.name),
