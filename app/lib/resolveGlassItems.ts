@@ -50,7 +50,7 @@ function scoreItem(q: string, name: string) {
 /* ================= Glass 코드 추출 ================= */
 // RD 0447/07 → 0447/07
 function extractRDCode(itemName: string): string | null {
-  const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
+  const m = String(itemName || "").match(/RD\s+(\d{4}\/\d{1,3}[A-Z]?)/i);
   return m ? m[1] : null;
 }
 
@@ -278,8 +278,8 @@ export function resolveGlassItemsByClient(
 
   return items.map((it) => {
     // 🔍 0단계: 품목번호 직접 입력 감지 (최우선)
-    // 예: "0884/33", "0447/07" 같은 와인잔 품목번호
-    const itemNoPattern = /^([A-Z]?\d{4}[\/-]?\d{2,3})$/i;
+    // 예: "0884/33", "0447/07", "0884/0", "4100/00R" 같은 와인잔 품목번호
+    const itemNoPattern = /^([A-Z]?\d{4}[\/-]?\d{1,3}[A-Z]?)$/i;
     const itemNoMatch = stripQtyAndUnit(it.name).trim().match(itemNoPattern);
     
     if (itemNoMatch) {
@@ -288,11 +288,86 @@ export function resolveGlassItemsByClient(
       
       // 🍷 와인잔 패턴: "RD {번호}" 형식으로 품목명 내부 검색
       try {
+        // ✅ 정확 매칭 우선: "RD 0884/0 " 또는 "RD 0884/0" (줄 끝) 형식으로 정확히 매칭
+        // "0884/0"이 "0884/07"에 헷갈리지 않도록 경계 처리
+        console.log(`[Glass Pattern] 와인잔 패턴 검색: "RD ${inputItemNo}"`);
+        
+        // 정확 매칭: 코드 다음에 공백 또는 끝
+        const exactCodeMatches = allItems.filter((r) => {
+          const rdCode = extractRDCode(r.item_name);
+          return rdCode && rdCode.toUpperCase() === inputItemNo.toUpperCase();
+        });
+        
+        if (exactCodeMatches.length > 0) {
+          // 거래처 이력에 있는 것 우선
+          const clientHit = exactCodeMatches.find(m => clientRows.some(r => r.item_no === m.item_no));
+          const best = clientHit || exactCodeMatches[0];
+          
+          console.log(`[Glass Pattern] ✅ 코드 정확 매칭: ${best.item_no} - ${best.item_name}`);
+          return {
+            ...it,
+            normalized_query: it.name,
+            resolved: true,
+            item_no: best.item_no,
+            item_name: best.item_name,
+            score: 1.0,
+            method: "exact_rd_code",
+            candidates: exactCodeMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
+            suggestions: exactCodeMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
+          };
+        }
+        
+        // ✅ 접두사 매칭: "0884/0" → "0884/0", "0884/07" 등
+        const prefixCodeMatches = allItems.filter((r) => {
+          const rdCode = extractRDCode(r.item_name);
+          return rdCode && rdCode.toUpperCase().startsWith(inputItemNo.toUpperCase());
+        });
+        
+        if (prefixCodeMatches.length > 0) {
+          // 거래처 이력에 있는 것 우선 정렬
+          const sorted = prefixCodeMatches.sort((a, b) => {
+            const aClient = clientRows.some(r => r.item_no === a.item_no) ? 1 : 0;
+            const bClient = clientRows.some(r => r.item_no === b.item_no) ? 1 : 0;
+            if (aClient !== bClient) return bClient - aClient;
+            // 코드 길이가 짧은 것(정확 매칭에 가까운 것) 우선
+            const aCode = extractRDCode(a.item_name) || '';
+            const bCode = extractRDCode(b.item_name) || '';
+            return aCode.length - bCode.length;
+          });
+          
+          const best = sorted[0];
+          const autoResolve = prefixCodeMatches.length === 1; // 1개면 자동확정
+          
+          console.log(`[Glass Pattern] ✅ 코드 접두사 매칭 ${prefixCodeMatches.length}개: ${sorted.map(m => extractRDCode(m.item_name)).join(', ')}`);
+          
+          if (autoResolve) {
+            return {
+              ...it,
+              normalized_query: it.name,
+              resolved: true,
+              item_no: best.item_no,
+              item_name: best.item_name,
+              score: 1.0,
+              method: "prefix_rd_code",
+              candidates: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
+              suggestions: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 1.0 })),
+            };
+          }
+          
+          // 여러 개면 후보로 제시
+          return {
+            ...it,
+            normalized_query: it.name,
+            resolved: false,
+            candidates: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95 })),
+            suggestions: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95 })),
+          };
+        }
+        
+        // ✅ 폴백: 기존 LIKE 검색 (RD 없이 숫자만 입력한 경우)
         const glassPattern = `%RD ${inputItemNo}%`;
         const glassPattern2 = `%RD ${inputItemNo.replace(/\//g, '-')}%`;
         const glassPattern3 = `%RD ${inputItemNo.replace(/[\/-]/g, '')}%`;
-        
-        console.log(`[Glass Pattern] 와인잔 패턴 검색: "${glassPattern}"`);
         
         // 1) 거래처 이력에서 품목명 내부 번호로 검색
         const clientGlass = db.prepare(`
