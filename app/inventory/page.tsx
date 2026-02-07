@@ -328,7 +328,7 @@ export default function InventoryPage() {
       }}>
         {/* Header */}
         <div style={{
-          marginBottom: 'var(--space-6)',
+          marginBottom: '5px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -434,11 +434,13 @@ export default function InventoryPage() {
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: 'var(--space-4)', padding: '4px 6px' }}>
+        <Card style={{ marginBottom: '5px', padding: '4px 6px' }}>
           <div style={{
             display: 'flex',
             gap: '4px',
-            justifyContent: 'flex-end'
+            justifyContent: 'flex-end',
+            height: '48px',
+            alignItems: 'center'
           }}>
             <button
               onClick={() => {
@@ -448,7 +450,8 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-2) var(--space-5)',
+                padding: '0 var(--space-5)',
+                height: '40px',
                 fontSize: 'var(--text-sm)',
                 fontWeight: 500,
                 border: 'none',
@@ -470,7 +473,8 @@ export default function InventoryPage() {
                 setSearchQuery('');
               }}
               style={{
-                padding: 'var(--space-2) var(--space-5)',
+                padding: '0 var(--space-5)',
+                height: '40px',
                 fontSize: 'var(--text-sm)',
                 fontWeight: 500,
                 border: 'none',
@@ -488,7 +492,7 @@ export default function InventoryPage() {
         </Card>
 
         {/* Search Section */}
-        <Card style={{ marginBottom: 'var(--space-6)', padding: '4px 6px' }}>
+        <Card style={{ marginBottom: '5px', padding: '4px 6px' }}>
           <div style={{
             display: 'flex',
             gap: '4px',
