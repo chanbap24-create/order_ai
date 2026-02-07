@@ -119,7 +119,7 @@ export default function Home() {
     }
   }, [data?.status]);
 
-  // ✅ 신규품목의 공급가를 자동으로 입력란에 채우기
+  // ✅ 신규/미입고 품목의 공급가를 자동으로 입력란에 채우기 (와인처럼)
   useEffect(() => {
     if (!data?.items) return;
     
@@ -128,12 +128,14 @@ export default function Home() {
       if (item.suggestions && Array.isArray(item.suggestions)) {
         item.suggestions.forEach((s: any) => {
           const itemKey = `${idx}-${s.code || s.item_no}`; // ✅ 고유 키 생성
-          // Glass는 price 필드 사용
-          if (s.is_new_item && s.price) {
+          const needsPrice = !!s.is_new_item || !s.in_client_history;
+          if (!needsPrice) return;
+          // Glass 신규품목은 price 필드 우선
+          if (s.price) {
             newPrices[itemKey] = String(s.price);
           }
-          // 혹시 supply_price도 확인
-          if (s.is_new_item && s.supply_price && !newPrices[itemKey]) {
+          // supply_price 폴백
+          if (s.supply_price && !newPrices[itemKey]) {
             newPrices[itemKey] = String(s.supply_price);
           }
         });
@@ -142,7 +144,7 @@ export default function Home() {
     
     if (Object.keys(newPrices).length > 0) {
       setNewItemPrices(prev => ({ ...prev, ...newPrices }));
-      console.log('[Glass] 신규품목 공급가 자동 설정:', newPrices);
+      console.log('[Glass] 신규/미입고 품목 공급가 자동 설정:', newPrices);
     }
   }, [data?.items]);
 
@@ -543,9 +545,9 @@ export default function Home() {
           : "";
       }
 
-      // ✅ 신규 품목일 때 가격 포함, 올바른 단위 사용
+      // ✅ 신규/미입고 품목일 때 가격 포함, 올바른 단위 사용
       const koreanName = s.item_name?.split(' / ')[0] || s.item_name;
-      const newLine = isNewItem && price
+      const newLine = price
         ? `- ${s.code || s.item_no} / ${koreanName} / ${qty}${unit} / ${parseInt(price, 10).toLocaleString()}원`
         : `- ${s.code || s.item_no} / ${koreanName} / ${qty}${unit}`;
 
@@ -604,7 +606,6 @@ export default function Home() {
     setSavedPick((p) => ({ ...p, [itemIndex]: false }));
 
     try {
-      const isNewItem = !!s.is_new_item;
       const res = await fetch("/api/learn-item-alias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -612,7 +613,7 @@ export default function Home() {
           alias, 
           canonical,
           dataType: 'glass',
-          ...(isNewItem && price ? { price: Number(price) } : {})
+          ...(price ? { price: Number(price) } : {})
         }),
       });
 
@@ -1303,10 +1304,10 @@ export default function Home() {
                               반영됩니다
                             </div>
 
-                            {/* 신규 품목이 있을 때만 안내 표시 */}
-                            {top3.some((s: any) => s.is_new_item) && (
+                            {/* 신규/미입고 품목이 있을 때만 안내 표시 */}
+                            {top3.some((s: any) => s.is_new_item || !s.in_client_history) && (
                               <div style={{ fontSize: 12, color: "#ff6b35", marginBottom: 8, padding: "8px 12px", background: "#fff8f0", borderRadius: 6, border: "1px solid #ffd699" }}>
-                                ⚠️ 신규 품목이 포함되어 있습니다. 각 품목의 할인율을 선택하세요
+                                ⚠️ 신규/미입고 품목: 할인율과 공급가를 확인하세요
                               </div>
                             )}
 
@@ -1317,7 +1318,9 @@ export default function Home() {
                               const isNewItem = !!s.is_new_item;
                               
                               const inClientHistory = !!s.in_client_history;
-                              console.log(`[Glass] Item ${s.code}: isNewItem=${isNewItem}, inClientHistory=${inClientHistory}, price=${s.price || s.supply_price}`);
+                              // ✅ 신규품목 OR 미입고 품목 → 할인율/공급가 입력 UI 표시 (와인처럼)
+                              const needsPriceInput = isNewItem || !inClientHistory;
+                              console.log(`[Glass] Item ${s.code || s.item_no}: isNewItem=${isNewItem}, inClientHistory=${inClientHistory}, needsPriceInput=${needsPriceInput}, price=${s.price || s.supply_price}`);
 
                               return (
                                 <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 6, border: "1px solid #e0e0e0" }}>
@@ -1347,16 +1350,23 @@ export default function Home() {
                                     <span style={{ fontSize: 10, color: "#888", marginLeft: 8 }}>{Number(s.score || 0).toFixed(3)}</span>
                                   </div>
 
-                                  {/* 신규품목이면 가격/할인 입력 (컴팩트) */}
-                                  {isNewItem ? (
+                                  {/* 🔥 공급가 항상 표시 (있으면) */}
+                                  {s.supply_price && (
+                                    <div style={{ marginBottom: 6, fontSize: 11, color: "#0a7", fontWeight: 600 }}>
+                                      공급가: {Number(s.supply_price).toLocaleString()}원
+                                    </div>
+                                  )}
+
+                                  {/* 신규품목 OR 미입고 품목이면 가격/할인 입력 (와인처럼) */}
+                                  {needsPriceInput && (
                                     <div style={{ marginBottom: 6 }}>
                                       {/* 공급가 + 할인율 (한 줄로 통합) */}
-                                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                                      <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                                         <div style={{ flex: "0 0 auto", fontSize: 10, color: "#666" }}>공급가</div>
                                         <input
                                           type="number"
                                           placeholder="25000"
-                                          value={newItemPrices[itemKey] || ''}
+                                          value={newItemPrices[itemKey] || s.supply_price || ''}
                                           onChange={(e) => setNewItemPrices(prev => ({ ...prev, [itemKey]: e.target.value }))}
                                           style={{
                                             flex: "0 0 120px",
@@ -1410,29 +1420,21 @@ export default function Home() {
                                         </button>
                                       </div>
                                     </div>
-                                  ) : (
-                                    s.supply_price && (
-                                      <div style={{ marginBottom: 6, fontSize: 11, color: "#0a7", fontWeight: 600 }}>
-                                        공급가: {Number(s.supply_price).toLocaleString()}원
-                                      </div>
-                                    )
                                   )}
 
                                   {/* 적용 버튼 (작게) */}
                                   <button
-                                    disabled={saving || (isNewItem && !newItemPrices[itemKey])}
+                                    disabled={saving}
                                     onClick={async () => {
-                                      if (isNewItem && !newItemPrices[itemKey]) {
-                                        alert('신규 품목은 공급가를 입력해주세요.');
-                                        return;
-                                      }
-                                      let finalPrice = newItemPrices[itemKey];
-                                      if (isNewItem && newItemPrices[itemKey] && newItemDiscounts[itemKey] > 0) {
-                                        const basePrice = Number(newItemPrices[itemKey]);
+                                      // ✅ 공급가 계산: 입력값 > supply_price > undefined
+                                      const inputPrice = newItemPrices[itemKey] || (s.supply_price ? String(s.supply_price) : '');
+                                      let finalPrice = inputPrice;
+                                      if (needsPriceInput && inputPrice && newItemDiscounts[itemKey] > 0) {
+                                        const basePrice = Number(inputPrice);
                                         const discount = newItemDiscounts[itemKey];
                                         finalPrice = String(Math.round(basePrice * (1 - discount / 100)));
                                       }
-                                      const price = isNewItem ? finalPrice : undefined;
+                                      const price = needsPriceInput && finalPrice ? finalPrice : undefined;
                                       applySuggestionToResult(idx, s, price);
                                       await learnSelectedAlias(idx, s, price);
                                     }}
@@ -1443,10 +1445,10 @@ export default function Home() {
                                       border: "none",
                                       background: saved ? "#0a7" : "#4a90e2",
                                       color: "white",
-                                      cursor: saving || (isNewItem && !newItemPrices[itemKey]) ? "not-allowed" : "pointer",
+                                      cursor: saving ? "not-allowed" : "pointer",
                                       fontSize: 12,
                                       fontWeight: 600,
-                                      opacity: saving || (isNewItem && !newItemPrices[itemKey]) ? 0.5 : 1,
+                                      opacity: saving ? 0.5 : 1,
                                     }}
                                   >
                                     {saving ? "처리중..." : saved ? "적용됨 ✅" : "적용"}
