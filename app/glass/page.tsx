@@ -59,6 +59,9 @@ export default function Home() {
   const [savingPick, setSavingPick] = useState<Record<number, boolean>>({});
   const [savedPick, setSavedPick] = useState<Record<number, boolean>>({});
   
+  // ✅ 직원 메시지 업데이트 플래시 효과
+  const [staffMsgFlash, setStaffMsgFlash] = useState(false);
+  
   // ✅ 신규 품목 가격 입력
   const [newItemPrices, setNewItemPrices] = useState<Record<number, string>>({});
   
@@ -462,8 +465,11 @@ export default function Home() {
     return "개";
   }
 
-  // ✅ 선택 즉시 화면 반영(직원메시지 + items)
+  // ✅ 선택 즉시 화면 반영(직원메시지 + items) + 플래시 효과
   function applySuggestionToResult(itemIndex: number, s: any, price?: string) {
+    // ✅ 직원 메시지 업데이트 플래시
+    setStaffMsgFlash(true);
+    setTimeout(() => setStaffMsgFlash(false), 1200);
     console.log(`[Glass applySuggestionToResult] itemIndex=${itemIndex}, s.code=${s.code}, price=${price}, s.is_new_item=${s.is_new_item}`);
     
     setData((prev: any) => {
@@ -1102,7 +1108,19 @@ export default function Home() {
                 alignItems: "center",
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 800 }}>직원 메시지</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 16, fontWeight: 800 }}>직원 메시지</div>
+                {data?.status === "resolved" && (
+                  <span style={{ fontSize: 11, padding: "2px 8px", background: "#0a7", color: "white", borderRadius: 10, fontWeight: 600 }}>
+                    전체 확정
+                  </span>
+                )}
+                {data?.status === "needs_review_items" && (
+                  <span style={{ fontSize: 11, padding: "2px 8px", background: "#e8a820", color: "white", borderRadius: 10, fontWeight: 600 }}>
+                    확인 필요
+                  </span>
+                )}
+              </div>
 
               <button
                 onClick={copyStaffMessage}
@@ -1123,9 +1141,11 @@ export default function Home() {
                 whiteSpace: "pre-wrap",
                 padding: 12,
                 borderRadius: 12,
-                border: "1px solid #eee",
-                background: "#fafafa",
+                border: staffMsgFlash ? "2px solid #0a7" : "1px solid #eee",
+                background: staffMsgFlash ? "#d4edda" : "#fafafa",
                 marginTop: 10,
+                transition: "all 0.4s ease",
+                boxShadow: staffMsgFlash ? "0 0 12px rgba(10, 170, 119, 0.3)" : "none",
                 ...monoStyle,
               }}
             >
@@ -1182,17 +1202,19 @@ export default function Home() {
               <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
+                    const resolvedUnit = it?.resolved && it?.item_name ? getGlassUnit(it.item_name) : "병";
                     const line = it?.resolved
-                      ? `${it.item_no} / ${it.item_name} / ${it.qty}병`
+                      ? `${it.item_no} / ${it.item_name} / ${it.qty}${resolvedUnit}`
                       : `확인필요 / "${it.name}" / ${it.qty}병`;
 
                     const top3 = getTop3Suggestions(it);
+                    const wasJustPicked = !!savedPick[idx]; // ✅ 이 아이템이 방금 선택됨
 
                     return (
                       <div
                         key={idx}
                         style={{
-                          padding: "10px 0",
+                          padding: "10px 12px",
                           borderBottom:
                             idx === data.items.length - 1
                               ? "none"
@@ -1200,19 +1222,29 @@ export default function Home() {
                           display: "flex",
                           gap: 10,
                           flexDirection: "column",
+                          // ✅ 확정된 아이템은 녹색 배경
+                          background: it?.resolved
+                            ? wasJustPicked
+                              ? "#d4edda" // 방금 선택한 건 진한 녹색
+                              : "#eaf7ee" // 기존 확정 건은 연한 녹색
+                            : "transparent",
+                          borderRadius: 8,
+                          transition: "background 0.4s ease",
+                          marginBottom: 4,
                         }}
                       >
-                        <div style={{ display: "flex", gap: 10 }}>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                           <div
                             style={{
                               width: 80,
                               color: it?.resolved ? "#0a7" : "#b00",
                               fontWeight: 700,
+                              fontSize: 14,
                             }}
                           >
-                            {it?.resolved ? "확정" : "확인"}
+                            {it?.resolved ? "확정 ✅" : "확인 ❗"}
                           </div>
-                          <div style={{ flex: 1, ...monoStyle }}>{line}</div>
+                          <div style={{ flex: 1, ...monoStyle, fontSize: 13 }}>{line}</div>
                           <div
                             style={{
                               width: 70,
@@ -1227,8 +1259,8 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* 후보 3개 선택 버튼 */}
-                        {top3.length > 0 && (
+                        {/* 후보 선택 버튼 - 확정된 아이템은 접기 */}
+                        {top3.length > 0 && !it?.resolved && (
                           <div
                             style={{
                               marginLeft: 80,
@@ -1385,7 +1417,14 @@ export default function Home() {
                           </div>
                         )}
 
-                        {top3.length === 0 && (
+                        {/* 확정된 아이템에 대한 간단 안내 */}
+                        {it?.resolved && wasJustPicked && (
+                          <div style={{ marginLeft: 80, fontSize: 12, color: "#0a7", fontWeight: 600 }}>
+                            직원 메시지에 반영되었습니다
+                          </div>
+                        )}
+
+                        {top3.length === 0 && !it?.resolved && (
                           <div
                             style={{
                               marginLeft: 80,

@@ -47,10 +47,10 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
       continue;
     }
 
-    // ✅ 패턴 1: 코드가 앞에 있는 경우
+    // ✅ 패턴 1a: 코드 + 괄호 설명 + 수량
     // "0447/07(레스토랑 뉴월드 피노) : 12잔"
     // "0446/0(레스토랑 까베르네) : 12잔"
-    const codePattern = /^(\d{4}\/\d{1,2}[A-Z]?)\s*\(([^)]+)\)\s*[:：]?\s*(\d+)\s*(잔|개|병|박스|box)?/i;
+    const codePattern = /^(\d{4}\/\d{1,3}[A-Z]?)\s*\(([^)]+)\)\s*[:：]?\s*(\d+)\s*(잔|개|병|박스|box)?/i;
     const m1 = line.match(codePattern);
     
     if (m1) {
@@ -59,6 +59,21 @@ export function parseGlassItemsFromMessage(text: string): ParsedGlassItem[] {
         code: m1[1],
         name: m1[2].trim(),
         qty: Number(m1[3]),
+      });
+      continue;
+    }
+
+    // ✅ 패턴 1b: 코드만 + 수량 (괄호 설명 없이)
+    // "0884/0 6", "0447/07 12", "4100/00R 6"
+    const codeOnlyPattern = /^(\d{4}\/\d{1,3}[A-Z]?)\s+(\d+)\s*(잔|개|병|박스|box)?$/i;
+    const m1b = line.match(codeOnlyPattern);
+    
+    if (m1b) {
+      items.push({
+        raw: line,
+        code: m1b[1],
+        name: m1b[1], // 코드 자체를 이름으로도 저장
+        qty: Number(m1b[2]),
       });
       continue;
     }
