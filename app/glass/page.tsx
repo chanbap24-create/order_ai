@@ -446,31 +446,32 @@ export default function Home() {
   }
 
   // ✅ Glass 품목 단위 결정 (API와 동일한 로직)
+  // "개" 단위: 디캔터, 박스, 쇼핑백, 클리너, 캐링백, 세트, 밸류팩, 클로스, 린넨
+  // "잔" 단위: 그 외 모든 RD 와인잔 (0xxx, 4xxx, 6xxx 등 모든 시리즈)
   function getGlassUnit(itemName: string): string {
-    // 1. 품목명에 "레스토랑" 포함 → 잔
+    // 1. 명확한 "개" 단위 품목 키워드 (부자재/악세서리)
+    if (/디캔터|박스|쇼핑백|클리너|캐링백|세트|밸류팩|폴리싱|클로스|린넨|보틀\s*클리너/i.test(itemName)) {
+      return "개";
+    }
+
+    // 2. RD 코드가 있는 와인잔 → 잔 (모든 시리즈)
+    const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?)/i);
+    if (rdMatch) {
+      return "잔";
+    }
+
+    // 3. 품목명에 "레스토랑" 포함 → 잔
     if (/레스토랑/i.test(itemName)) {
       return "잔";
     }
-    
-    // 2. RD 코드가 0으로 시작 (0447/07, 0884/67 등) → 잔
-    const rdMatch = itemName.match(/RD\s+(\d{4}\/\d{1,2}[A-Z]?)/i);
-    if (rdMatch) {
-      const code = rdMatch[1];
-      if (code.startsWith("0")) {
-        return "잔";
-      }
-    }
-    
-    // 3. 코드만 입력된 경우 (330/07, 0330/07 등) → 0xxx면 잔
-    const codeOnly = itemName.match(/^0?\d{3,4}\/\d{1,3}[A-Z]?$/i);
+
+    // 4. 코드만 입력된 경우 → 잔
+    const codeOnly = itemName.match(/^0?\d{3,4}\/\d{1,3}(?:[A-Z][A-Z0-9]*)?$/i);
     if (codeOnly) {
-      const normalized = itemName.replace(/^(\d{3})\//, '0$1/');
-      if (normalized.startsWith("0")) {
-        return "잔";
-      }
+      return "잔";
     }
-    
-    // 4. 기본 → 개
+
+    // 5. 기본 → 개
     return "개";
   }
 
