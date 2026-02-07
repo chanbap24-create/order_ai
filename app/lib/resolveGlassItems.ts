@@ -401,6 +401,18 @@ export function resolveGlassItemsByClient(
     return results;
   }
 
+  // ✅ 거래처별 공급가 조회 헬퍼
+  function getSupplyPrice(item_no: string): number | undefined {
+    const row = clientRows.find(r => r.item_no === item_no);
+    return (row?.supply_price && row.supply_price > 0) ? row.supply_price : undefined;
+  }
+
+  // ✅ candidates/suggestions에 supply_price 포함하는 헬퍼
+  function withPrice(m: { item_no: string; item_name: string; score: number; in_client_history?: boolean; [key: string]: any }) {
+    const sp = getSupplyPrice(m.item_no);
+    return sp ? { ...m, supply_price: sp } : m;
+  }
+
   return items.map((it) => {
     // 🔍 0단계: 품목번호 직접 입력 감지 (최우선)
     // 예: "0884/33", "0447/07", "0884/0", "4100/00R" 같은 와인잔 품목번호
@@ -443,11 +455,11 @@ export function resolveGlassItemsByClient(
             score: canAutoResolve ? 1.0 : 0.95,
             method: "exact_rd_code",
             not_in_client_history: !inClientHistory,
-            candidates: exactCodeMatches.map(m => ({
+            candidates: exactCodeMatches.map(m => withPrice({
               item_no: m.item_no, item_name: m.item_name, score: 1.0,
               in_client_history: clientRows.some(r => r.item_no === m.item_no),
             })),
-            suggestions: exactCodeMatches.map(m => ({
+            suggestions: exactCodeMatches.map(m => withPrice({
               item_no: m.item_no, item_name: m.item_name, score: 1.0,
               in_client_history: clientRows.some(r => r.item_no === m.item_no),
             })),
@@ -485,11 +497,11 @@ export function resolveGlassItemsByClient(
               item_name: best.item_name,
               score: 1.0,
               method: "prefix_rd_code",
-              candidates: sorted.map(m => ({
+              candidates: sorted.map(m => withPrice({
                 item_no: m.item_no, item_name: m.item_name, score: 1.0,
                 in_client_history: clientRows.some(r => r.item_no === m.item_no),
               })),
-              suggestions: sorted.map(m => ({
+              suggestions: sorted.map(m => withPrice({
                 item_no: m.item_no, item_name: m.item_name, score: 1.0,
                 in_client_history: clientRows.some(r => r.item_no === m.item_no),
               })),
@@ -506,11 +518,11 @@ export function resolveGlassItemsByClient(
             score: 0.95,
             method: prefixCodeMatches.length === 1 ? "prefix_rd_code" : "prefix_rd_code_multi",
             not_in_client_history: !bestInClientHistory,
-            candidates: sorted.map(m => ({
+            candidates: sorted.map(m => withPrice({
               item_no: m.item_no, item_name: m.item_name, score: 0.95,
               in_client_history: clientRows.some(r => r.item_no === m.item_no),
             })),
-            suggestions: sorted.map(m => ({
+            suggestions: sorted.map(m => withPrice({
               item_no: m.item_no, item_name: m.item_name, score: 0.95,
               in_client_history: clientRows.some(r => r.item_no === m.item_no),
             })),
@@ -544,8 +556,8 @@ export function resolveGlassItemsByClient(
             item_name: clientGlass.item_name,
             score: 1.0,
             method: "glass_pattern_client",
-            candidates: [{ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true }],
-            suggestions: [{ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true }],
+            candidates: [withPrice({ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true })],
+            suggestions: [withPrice({ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true })],
           };
         }
         
@@ -568,8 +580,8 @@ export function resolveGlassItemsByClient(
             score: 0.95,
             method: "glass_pattern_master",
             not_in_client_history: true,
-            candidates: [{ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false }],
-            suggestions: [{ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false }],
+            candidates: [withPrice({ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false })],
+            suggestions: [withPrice({ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false })],
           };
         }
       } catch (e) {
@@ -602,13 +614,13 @@ export function resolveGlassItemsByClient(
           score: canAutoResolve ? 1.0 : 0.95,
           method: "exact_code",
           not_in_client_history: !inClientHistory,
-          candidates: codeMatches.map(m => ({
+          candidates: codeMatches.map(m => withPrice({
             item_no: m.item_no,
             item_name: m.item_name,
             score: 1.0,
             in_client_history: clientRows.some(r => r.item_no === m.item_no),
           })),
-          suggestions: codeMatches.map(m => ({
+          suggestions: codeMatches.map(m => withPrice({
             item_no: m.item_no,
             item_name: m.item_name,
             score: 1.0,
@@ -642,8 +654,8 @@ export function resolveGlassItemsByClient(
             score: inHistory ? 1.0 : 0.95,
             method: "embedded_code",
             not_in_client_history: !inHistory,
-            candidates: [{ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory }],
-            suggestions: [{ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory }],
+            candidates: [withPrice({ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory })],
+            suggestions: [withPrice({ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory })],
           };
         }
         
@@ -663,8 +675,8 @@ export function resolveGlassItemsByClient(
             score: inHistory ? 1.0 : 0.95,
             method: "embedded_prefix_code",
             not_in_client_history: !inHistory,
-            candidates: prefixMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
-            suggestions: prefixMatches.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+            candidates: prefixMatches.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+            suggestions: prefixMatches.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
           };
         }
         
@@ -679,8 +691,8 @@ export function resolveGlassItemsByClient(
             ...it,
             normalized_query: embeddedCode,
             resolved: false,
-            candidates: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
-            suggestions: sorted.map(m => ({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+            candidates: sorted.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
+            suggestions: sorted.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
           };
         }
       }
@@ -700,8 +712,8 @@ export function resolveGlassItemsByClient(
         score: nonRDMatch.score,
         method: "non_rd_keyword",
         not_in_client_history: !inHistory,
-        candidates: [{ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory }],
-        suggestions: [{ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory }],
+        candidates: [withPrice({ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory })],
+        suggestions: [withPrice({ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory })],
       };
     }
 
@@ -861,18 +873,20 @@ export function resolveGlassItemsByClient(
         item_name: top.item_name,
         score: Number(top.score.toFixed(3)),
         method: learned?.kind ? `weighted+${learned.kind}` : "weighted",
-        candidates: scored.slice(0, topN).map((c) => ({
+        candidates: scored.slice(0, topN).map((c) => withPrice({
           item_no: c.item_no,
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
+          in_client_history: clientRows.some(r => r.item_no === c.item_no),
           _debug: (c as any)._debug,
         })),
         suggestions: (() => {
           // 자동확정이어도 신규품목 함께 표시
-          const existingTop = scored.slice(0, 2).map((c) => ({
+          const existingTop = scored.slice(0, 2).map((c) => withPrice({
             item_no: c.item_no,
             item_name: c.item_name,
             score: Number(c.score.toFixed(3)),
+            in_client_history: clientRows.some(r => r.item_no === c.item_no),
           }));
           
           const newItems = searchNewGlassFromRiedel(q).map(item => ({
@@ -893,11 +907,12 @@ export function resolveGlassItemsByClient(
     // ✅ 항상 기존품목 + 신규품목 함께 표시 (Glass는 신규품목 확인이 중요)
     console.log('[DEBUG Glass] Building suggestions for:', q);
     const suggestions = (() => {
-      // 기존품목 상위 2개
-      const existingTop = scored.slice(0, 2).map((c) => ({
+      // 기존품목 상위 2개 (supply_price 포함)
+      const existingTop = scored.slice(0, 2).map((c) => withPrice({
         item_no: c.item_no,
         item_name: c.item_name,
         score: Number(c.score.toFixed(3)),
+        in_client_history: clientRows.some(r => r.item_no === c.item_no),
       }));
 
       console.log('[DEBUG Glass] Searching Riedel for:', q);
@@ -928,10 +943,11 @@ export function resolveGlassItemsByClient(
       ...it,
       normalized_query: q,
       resolved: false,
-      candidates: scored.slice(0, topN).map((c) => ({
+      candidates: scored.slice(0, topN).map((c) => withPrice({
         item_no: c.item_no,
         item_name: c.item_name,
         score: Number(c.score.toFixed(3)),
+        in_client_history: clientRows.some(r => r.item_no === c.item_no),
         _debug: (c as any)._debug,
       })),
       suggestions,
