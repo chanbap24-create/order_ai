@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./styles/design-system.css";
@@ -9,14 +9,16 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#8B1538",
+};
+
 export const metadata: Metadata = {
   title: "Cave De Vin - 주문 자동화",
   description: "와인 & 와인잔 발주 자동 생성 시스템",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1, // ✅ 모바일 자동 줌 방지
-  },
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -33,7 +35,6 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'Cave De Vin'
   },
-  themeColor: '#8B1538',
   applicationName: 'Cave De Vin',
 };
 

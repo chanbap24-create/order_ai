@@ -9,6 +9,7 @@ import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 import { jsonResponse } from "@/app/lib/api-response";
 import type { ParseFullOrderResponse } from "@/app/types/api";
 import { hierarchicalSearch } from "@/app/lib/brandMatcher";
+import { logger } from "@/app/lib/logger";
 
 
 import Holidays from "date-holidays";
@@ -588,14 +589,14 @@ function formatStaffMessage(
     // ✅ undefined/null 품목명 스킵
     const itemName = String(it.name || it.item_name || "").trim().toLowerCase();
     if (!itemName || itemName === "undefined" || itemName === "null" || it.name === undefined || it.name === null) {
-      console.log('[formatStaffMessage] 무효 품목 스킵:', JSON.stringify({name: it.name, item_name: it.item_name, raw: it.raw}));
+      logger.debug('[formatStaffMessage] 무효 품목 스킵', {name: it.name, item_name: it.item_name, raw: it.raw});
       continue;
     }
     
     if (it.resolved) {
       // ✅ resolved인데 item_no가 없으면 스킵 (방어 로직)
       if (!it.item_no) {
-        console.log('[formatStaffMessage] resolved이지만 item_no 없음, 스킵:', JSON.stringify({name: it.name, raw: it.raw}));
+        logger.debug('[formatStaffMessage] resolved이지만 item_no 없음, 스킵', {name: it.name, raw: it.raw});
         continue;
       }
       
@@ -636,7 +637,7 @@ function formatStaffMessage(
 export async function POST(req: Request): Promise<NextResponse<ParseFullOrderResponse>> {
   // ✅ 엑셀 자동 동기화 (파일 변경 시에만 실행)
   const sync = syncFromXlsxIfNeeded();
-  console.log("[XLSX SYNC]", sync);
+  logger.debug("[XLSX SYNC]", { result: sync });
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -646,7 +647,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // ✅ 신규 사업자 처리
     const newBusiness = body?.newBusiness;
     if (newBusiness && newBusiness.name && newBusiness.phone) {
-      console.log("[NEW BUSINESS]", newBusiness);
+      logger.debug("[NEW BUSINESS]", { newBusiness });
       
       // 품목만 파싱
       const pre0 = preprocessMessage(body?.message ?? "");
@@ -657,7 +658,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         .filter(item => {
           const name = String(item.name || "").trim().toLowerCase();
           if (name === "undefined" || name === "null" || name === "") {
-            console.log(`[FILTER] 무효 입력 제거: "${item.raw}"`);
+            logger.debug(`[FILTER] 무효 입력 제거`, { raw: item.raw });
             return false;
           }
           return true;
@@ -673,7 +674,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       };
       
       // 신규 사업자는 이력 없음 → master_items에서만 검색
-      console.log("[NEW BUSINESS] Calling resolveItemsByClientWeighted with parsedItems:", parsedItems);
+      logger.debug("[NEW BUSINESS] Calling resolveItemsByClientWeighted", { itemCount: parsedItems.length });
       
       const resolvedItems = resolveItemsByClientWeighted("NEW", parsedItems, {
         minScore: 0.55,
@@ -681,7 +682,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         topN: 10, // ✅ 10개로 증가 (루이 미셸 등 다양한 브랜드 포함)
       });
       
-      console.log("[NEW BUSINESS] resolvedItems:", JSON.stringify(resolvedItems, null, 2));
+      logger.debug("[NEW BUSINESS] resolvedItems", { count: resolvedItems.length });
       
       // suggestions 추가 (안전하게 score 처리)
       const itemsWithSuggestions = resolvedItems.map((it: any) => {
@@ -699,7 +700,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         };
       });
       
-      console.log("[NEW BUSINESS] itemsWithSuggestions:", JSON.stringify(itemsWithSuggestions, null, 2));
+      logger.debug("[NEW BUSINESS] itemsWithSuggestions", { count: itemsWithSuggestions.length });
 
       // ✅ 같은 item_no를 가진 아이템 통합 (수량 합산)
       const mergedItems = (() => {
@@ -722,12 +723,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         return Array.from(itemMap.values());
       })();
 
-      console.log("[NEW BUSINESS] mergedItems:", JSON.stringify(mergedItems, null, 2));
+      logger.debug("[NEW BUSINESS] mergedItems", { count: mergedItems.length });
       
       const allResolved = mergedItems.every((it: any) => it.resolved);
       
       // 직원 메시지 생성
-      console.log("[NEW BUSINESS] Calling formatStaffMessage...");
+      logger.debug("[NEW BUSINESS] Calling formatStaffMessage");
       const staffMessage = formatStaffMessage(
         client,
         mergedItems,
@@ -738,7 +739,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         }
       );
       
-      console.log("[NEW BUSINESS] staffMessage generated:", staffMessage);
+      logger.debug("[NEW BUSINESS] staffMessage generated");
       
       return jsonResponse({
         success: true,
@@ -768,7 +769,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // ✅ 프론트에서 이미 선택한 거래처가 있으면 바로 사용
     let client: any;
     if (body?.resolvedClientCode && body?.resolvedClientName) {
-      console.log("[CLIENT] Using resolved client from frontend:", body.resolvedClientCode, body.resolvedClientName);
+      logger.debug("[CLIENT] Using resolved client from frontend", { code: body.resolvedClientCode, name: body.resolvedClientName });
       client = {
         status: "resolved" as const,
         client_code: String(body.resolvedClientCode),
@@ -811,9 +812,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // ✅ "undefined" 필터링: 프론트에서 빈 입력을 "undefined"로 보낼 때 제거
       .filter(item => {
         const name = String(item.name || "").trim().toLowerCase();
-        console.log(`[FILTER-CHECK] raw="${item.raw}", name="${name}"`);
+        logger.debug(`[FILTER-CHECK]`, { raw: item.raw, name });
         if (name === "undefined" || name === "null" || name === "") {
-          console.log(`[FILTER] 무효 입력 제거: "${item.raw}"`);
+          logger.debug(`[FILTER] 무효 입력 제거`, { raw: item.raw });
           return false;
         }
         return true;
@@ -833,7 +834,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // Wine 페이지에서만 활성화
     let brandMatchedItems: any[] = [];
     if (pageType === "wine") {
-      console.log("[BrandMatch] 브랜드 우선 매칭 시작");
+      logger.debug("[BrandMatch] 브랜드 우선 매칭 시작");
       for (let i = 0; i < parsedItems.length; i++) {
         const item = parsedItems[i];
         const inputName = item.name || '';
@@ -846,7 +847,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             const topBrand = brandResults[0];
             const topWine = topBrand.wines[0];
             
-            console.log(`[BrandMatch] ✅ "${inputName}" → ${topBrand.brand.supplier_kr} / ${topWine.wine_kr} (score: ${topWine.score.toFixed(3)})`);
+            logger.debug(`[BrandMatch] 매칭`, { input: inputName, brand: topBrand.brand.supplier_kr, wine: topWine.wine_kr, score: topWine.score });
             
             // 브랜드 매칭된 아이템 저장 (원본 순서 인덱스 포함)
             brandMatchedItems.push({
@@ -876,7 +877,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             continue; // 브랜드 매칭 성공하면 기존 로직 스킵
           }
         } catch (err) {
-          console.error(`[BrandMatch] 오류: ${err}`);
+          logger.error(`[BrandMatch] 오류`, err);
         }
       }
     }
@@ -891,7 +892,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           )
       : parsedItems.map((item: any, idx: number) => ({ ...item, _originalIndex: idx }));
 
-    console.log(`[품목 resolve] 전체: ${parsedItems.length}개, 브랜드 매칭: ${brandMatchedItems.length}개, 기존 방식: ${itemsToResolve.length}개`);
+    logger.debug(`[품목 resolve]`, { total: parsedItems.length, brandMatched: brandMatchedItems.length, fallback: itemsToResolve.length });
 
     const resolvedItems = itemsToResolve.length > 0
       ? resolveItemsByClientWeighted(clientCode, itemsToResolve, {
@@ -911,7 +912,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const itemsWithSuggestions = allResolvedItems.map((x: any) => {
       // ✅ resolved인데 item_no가 없으면 false로 변경 (최우선 검사)
       if (x?.resolved && !x?.item_no) {
-        console.log(`[CRITICAL] ${x.name}: resolved=true인데 item_no 없음 → resolved=false로 강제 변경`);
+        logger.warn(`[CRITICAL] resolved=true인데 item_no 없음 → resolved=false로 강제 변경`, { name: x.name });
         x = { ...x, resolved: false };
       }
       
@@ -943,7 +944,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         .all(clientCode) as Array<{ item_no: string }>;
       const clientItemSet = new Set(clientHistory.map(r => String(r.item_no)));
       
-      console.log(`[거래처이력] ${clientCode}: ${clientHistory.length}개 품목`);
+      logger.debug(`[거래처이력]`, { clientCode, itemCount: clientHistory.length });
 
       // ✅ 빈티지 중복 제거 (기존 입고 품목끼리만 적용)
       const grouped = new Map<string, any[]>();
@@ -976,13 +977,13 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               return (b.score ?? 0) - (a.score ?? 0);
             });
             
-            console.log(`[빈티지] ${baseName}: 기존 입고 ${sorted[0].item_no} (${existingItems.length}개 중 선택)`);
+            logger.debug(`[빈티지] 기존 입고 선택`, { baseName, itemNo: sorted[0].item_no, total: existingItems.length });
             dedupedCandidates.push(sorted[0]);
           }
           
           // 신규 품목은 모두 추가 (빈티지 상관없이)
           newItems.forEach(c => {
-            console.log(`[빈티지] ${baseName}: 신규 ${c.item_no} 추가`);
+            logger.debug(`[빈티지] 신규 추가`, { baseName, itemNo: c.item_no });
             dedupedCandidates.push(c);
           });
         }
@@ -1006,7 +1007,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         const isInClientHistory = clientItemSet.has(String(c.item_no));
         // 기존 입고 품목은 점수에 +0.15 부스트 (top 결과에 포함되도록)
         const boostedScore = isInClientHistory ? (c.score ?? 0) + 0.15 : (c.score ?? 0);
-        console.log(`[점수부스트] ${c.item_no}: ${(c.score ?? 0).toFixed(3)} → ${boostedScore.toFixed(3)} (기존입고: ${isInClientHistory})`);
+        logger.debug(`[점수부스트]`, { itemNo: c.item_no, original: (c.score ?? 0), boosted: boostedScore, isExisting: isInClientHistory });
         return {
           ...c,
           score: boostedScore,
@@ -1020,7 +1021,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
       // 기본 suggestions 초기화 (부스트 적용된 후보에서)
       let suggestions = boostedCandidates.slice(0, config.suggestions.total).map((c: any) => {
-        console.log(`[후보선택] ${c.item_no} ${c.item_name}: score=${c.score?.toFixed(3)}, is_new_item=${c.is_new_item}`);
+        logger.debug(`[후보선택]`, { itemNo: c.item_no, itemName: c.item_name, score: c.score, isNew: c.is_new_item });
         return c;
       });
 
@@ -1031,18 +1032,18 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         
         // ✅ 중앙 설정에서 임계값 가져오기
         if (bestScore < config.newItemSearch.threshold && inputName) {
-          console.log(`[신규품목] 검색 시도: "${inputName}", bestScore=${bestScore.toFixed(3)}`);
+          logger.debug(`[신규품목] 검색 시도`, { inputName, bestScore });
           
           // 신규 품목 검색 시도
           const newItemCandidates = searchNewItem(clientCode, inputName, bestScore, config.newItemSearch.threshold);
           
           if (newItemCandidates && newItemCandidates.length > 0) {
-            console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
+            logger.debug(`[신규품목] English 시트 결과`, { count: newItemCandidates.length });
             
             // ✅ GAP 기반 후보 조합 결정
             const composition = decideSuggestionComposition(boostedCandidates, newItemCandidates);
             
-            console.log(`[후보조합] ${composition.type}: 기존 ${composition.existing}개 + 신규 ${composition.newItems}개 (${composition.reason})`);
+            logger.debug(`[후보조합]`, { type: composition.type, existing: composition.existing, newItems: composition.newItems, reason: composition.reason });
             
             // ✅ 신규품목 점수가 충분히 높을 때만 조합 적용
             // 그렇지 않으면 기존 품목을 전부 표시 (신규품목은 무시)
@@ -1051,11 +1052,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             const shouldIncludeNewItems = newItemBestScore >= existingBestScore * 0.7; // 신규품목이 기존의 70% 이상
             
             if (!shouldIncludeNewItems) {
-              console.log(`[후보조합] 신규품목 점수 낮음 (${newItemBestScore.toFixed(3)} < ${existingBestScore.toFixed(3)} * 0.7) → 기존품목 ${config.suggestions.total}개만 표시`);
+              logger.debug(`[후보조합] 신규품목 점수 낮음 → 기존품목만 표시`, { newBest: newItemBestScore, existingBest: existingBestScore });
               // 기존 품목만 표시 (composition 무시)
               suggestions = boostedCandidates.slice(0, config.suggestions.total); // 이미 is_new_item 설정됨
             } else {
-              console.log(`[후보조합] 신규품목 포함 (${newItemBestScore.toFixed(3)} >= ${existingBestScore.toFixed(3)} * 0.7)`);
+              logger.debug(`[후보조합] 신규품목 포함`, { newBest: newItemBestScore, existingBest: existingBestScore });
             
               // ✅ 기존 후보도 is_new_item 추가
               const existingSuggestions = boostedCandidates.slice(0, composition.existing); // 이미 is_new_item 설정됨
@@ -1105,7 +1106,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   if (existingItems.length > 0) {
                     // 기존 품목이 있으면 기존 품목만 표시 (점수 높은 것 우선)
                     const best = existingItems.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
-                    console.log(`[중복제거] item_no=${itemNo}: 기존 입고품목 우선 (${existingItems.length}개 중 선택) - ${best.item_name}`);
+                    logger.debug(`[중복제거] 기존 입고품목 우선`, { itemNo, count: existingItems.length, itemName: best.item_name });
                     dedupedByItemNo.push(best);
                   } else {
                     // 기존 품목이 없으면 신규 품목 중 점수 높은 것
@@ -1155,7 +1156,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                       return (b.score ?? 0) - (a.score ?? 0);
                     });
                     
-                    console.log(`[빈티지중복] ${baseName}: 기존(${existingSorted[0].item_no}) + 신규(${newSorted[0].item_no}) 모두 표시`);
+                    logger.debug(`[빈티지중복] 기존+신규 모두 표시`, { baseName, existing: existingSorted[0].item_no, newItem: newSorted[0].item_no });
                     deduped.push(existingSorted[0]); // 기존 품목 추가
                     deduped.push(newSorted[0]);      // 신규 빈티지 추가
                   } 
@@ -1178,7 +1179,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                     const selected = sorted[0];
                     if (group.length > 1) {
                       const isExisting = selected.is_new_item === false;
-                      console.log(`[빈티지중복] ${baseName}: ${selected.item_no} 선택 (${isExisting ? '기존품목' : '신규빈티지'} ${selected._vintage || ''}) - ${group.length}개 중`);
+                      logger.debug(`[빈티지중복] 선택`, { baseName, itemNo: selected.item_no, type: isExisting ? '기존품목' : '신규빈티지', vintage: selected._vintage, groupSize: group.length });
                     }
                     deduped.push(selected);
                   }
@@ -1199,20 +1200,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 })
                 .slice(0, config.suggestions.total);
               
-              console.log(`[최종정렬] 기존품목 우선 → 점수순:`, suggestions.map((s: any) => ({ 
-                no: s.item_no, 
-                score: s.score?.toFixed(3), 
-                isNew: s.is_new_item || false 
-              })));
+              logger.debug(`[최종정렬] 기존품목 우선 → 점수순`, { items: suggestions.map((s: any) => ({ no: s.item_no, score: s.score, isNew: s.is_new_item || false })) });
               
               // 🔍 디버깅: 첫 번째 항목이 기존 품목인지 확인
               if (suggestions.length > 0) {
                 const first = suggestions[0];
-                console.log(`[정렬검증] 1번 항목:`, {
-                  item_no: first.item_no,
-                  is_new_item: first.is_new_item,
-                  expected: '기존 품목이어야 함'
-                });
+                logger.debug(`[정렬검증] 1번 항목`, { item_no: first.item_no, is_new_item: first.is_new_item });
               }
 
               // ✅ 신규 품목 정보 저장 (resolved 재판단 후 반환)
@@ -1223,7 +1216,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               } : undefined;
             }
           } else {
-            console.log(`[신규품목] English 시트 결과 없음 - 기존품목 ${config.suggestions.total}개 표시`);
+            logger.debug(`[신규품목] English 시트 결과 없음`, { showExisting: config.suggestions.total });
           }
         }
       }
@@ -1233,7 +1226,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       
       // ✅ resolved인데 item_no가 없으면 무조건 false로 변경
       if (resolved && !x?.item_no) {
-        console.log(`[AutoResolve] ${x.name}: resolved=true인데 item_no 없음 → resolved=false로 변경`);
+        logger.debug(`[AutoResolve] resolved=true인데 item_no 없음 → resolved=false`, { name: x.name });
         resolved = false;
         x = { ...x, resolved: false };  // x 객체도 업데이트
       }
@@ -1250,7 +1243,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         if (isNewItem) {
           // 신규 품목: 자동 확정 안 함
           resolved = false;
-          console.log(`[AutoResolve] ${x.name}: 신규품목이므로 수동 확인 필요 (score=${(top.score ?? 0).toFixed(3)}, is_new_item=true)`);
+          logger.debug(`[AutoResolve] 신규품목 수동 확인 필요`, { name: x.name, score: top.score });
         } else {
           // 기존 품목: 자동 확정 조건
           const minScore = config.autoResolve?.minScore ?? 0.55;
@@ -1260,30 +1253,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           // ⭐ 새 로직: 0.9점 이상이면 무조건 확정
           if (topScore >= 0.90) {
             resolved = true;
-            console.log(`[AutoResolve] ${x.name}: 고득점 확정 (score=${topScore.toFixed(3)} >= 0.90)`);
+            logger.debug(`[AutoResolve] 고득점 확정`, { name: x.name, score: topScore });
           }
           // ⭐ 새 로직: 2위가 신규 품목이면 gap 무시하고 확정
           else if (second && (second.is_new_item ?? false)) {
             resolved = topScore >= minScore;
-            console.log(`[AutoResolve] ${x.name}: 2위가 신규품목이므로 gap 무시 (score=${topScore.toFixed(3)}, 2nd_is_new=true, resolved=${resolved})`);
+            logger.debug(`[AutoResolve] 2위 신규품목 → gap 무시`, { name: x.name, score: topScore, resolved });
           }
           // 기존 로직: 2위도 기존 품목이면 gap 체크
           else {
             resolved = top.item_no && topScore >= minScore && gap >= minGap;
-            console.log(`[AutoResolve] ${x.name}: 기존품목 gap 체크 (score=${topScore.toFixed(3)}, gap=${gap.toFixed(3)}, resolved=${resolved})`);
+            logger.debug(`[AutoResolve] 기존품목 gap 체크`, { name: x.name, score: topScore, gap, resolved });
           }
         }
       }
 
       // ✅ resolved가 true로 변경되었고, suggestions가 있으면 top item_no로 업데이트
-      console.log(`[ITEM DEBUG] Before resultItem:`, {
-        name: x.name,
-        resolved,
-        x_item_no: x.item_no,
-        x_resolved: x.resolved,
-        suggestions_length: suggestions.length,
-        top_item_no: suggestions[0]?.item_no
-      });
+      logger.debug(`[ITEM DEBUG] Before resultItem`, { name: x.name, resolved, x_item_no: x.item_no, suggestions_length: suggestions.length });
       
       const resultItem: any = {
         ...x,
@@ -1293,18 +1279,13 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       };
       
       if (resolved && suggestions.length > 0 && suggestions[0].item_no) {
-        console.log(`[ITEM DEBUG] Updating item_no: ${suggestions[0].item_no}`);
+        logger.debug(`[ITEM DEBUG] Updating item_no`, { item_no: suggestions[0].item_no });
         resultItem.item_no = suggestions[0].item_no;
         resultItem.item_name = suggestions[0].item_name;
         resultItem.score = suggestions[0].score;
       }
       
-      console.log(`[ITEM DEBUG] After resultItem:`, {
-        name: resultItem.name,
-        resolved: resultItem.resolved,
-        item_no: resultItem.item_no,
-        item_name: resultItem.item_name?.substring(0, 30)
-      });
+      logger.debug(`[ITEM DEBUG] After resultItem`, { name: resultItem.name, resolved: resultItem.resolved, item_no: resultItem.item_no });
 
       return resultItem;
     });
@@ -1313,35 +1294,30 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const mergedItems = (() => {
       const itemMap = new Map<string, any>();
       for (const item of itemsWithSuggestions) {
-        console.log(`[MERGE DEBUG] Processing item:`, {
-          resolved: item.resolved,
-          item_no: item.item_no,
-          item_name: item.item_name?.substring(0, 30),
-          quantity: item.quantity
-        });
+        logger.debug(`[MERGE DEBUG] Processing item`, { resolved: item.resolved, item_no: item.item_no, quantity: item.quantity });
         
         if (item.resolved && item.item_no) {
           const key = String(item.item_no);
           const existing = itemMap.get(key);
           if (existing) {
             // 같은 품목이 여러 번 확정된 경우 수량 합산
-            console.log(`[MERGE DEBUG] ✅ 중복 발견! ${key} - 수량 합산: ${existing.quantity} + ${item.quantity} = ${(existing.quantity || 0) + (item.quantity || 0)}`);
+            logger.debug(`[MERGE DEBUG] 중복 발견 - 수량 합산`, { key, prev: existing.quantity, add: item.quantity });
             existing.quantity = (existing.quantity || 0) + (item.quantity || 0);
           } else {
-            console.log(`[MERGE DEBUG] 새 아이템 추가: ${key}`);
+            logger.debug(`[MERGE DEBUG] 새 아이템 추가`, { key });
             itemMap.set(key, { ...item });
           }
         } else {
           // 미확정 아이템은 그대로 추가 (중복 체크 안 함)
           const unresolvedKey = `unresolved_${Date.now()}_${Math.random()}`;
-          console.log(`[MERGE DEBUG] 미확정 아이템 추가: ${unresolvedKey}`);
+          logger.debug(`[MERGE DEBUG] 미확정 아이템 추가`, { key: unresolvedKey });
           itemMap.set(unresolvedKey, { ...item });
         }
       }
       return Array.from(itemMap.values());
     })();
 
-    console.log("[EXISTING CLIENT] mergedItems:", JSON.stringify(mergedItems, null, 2));
+    logger.debug("[EXISTING CLIENT] mergedItems", { count: mergedItems.length });
 
     // 4) 상태 결정
     const hasUnresolved = mergedItems.some((x: any) => !x.resolved);
@@ -1370,8 +1346,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       },
     } as any);
   } catch (e: any) {
-    console.error("[parse-full-order] ERROR:", e);
-    console.error("[parse-full-order] Stack:", e?.stack);
+    logger.error("[parse-full-order] ERROR", e);
     return jsonResponse(
       { success: false, error: String(e?.message || e) } as any,
       { status: 500 }

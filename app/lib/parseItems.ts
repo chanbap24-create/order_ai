@@ -1,5 +1,4 @@
 // app/lib/parseItems.ts
-console.log("[USING parseItems.ts]", __filename);
 
 // message에서 "품목명 + 수량"만 뽑아냄
 // - 줄바꿈/슬래시(/)/쉼표 기준으로 쪼갬
@@ -26,35 +25,22 @@ export function parseItemsFromMessage(message: string) {
   
   // ✅ 줄바꿈 병합: 숫자로 시작하는 다음 줄을 이전 줄에 병합
   // 예: "레이크 찰리스 에스테이트\n24병" → "레이크 찰리스 에스테이트 24병"
-  console.log(`[DEBUG-MERGE-START] lines.length = ${lines.length}`);
-  lines.forEach((line, i) => console.log(`  [${i}]: "${line}"`));
-  
   const mergedLines: string[] = [];
   for (let i = 0; i < lines.length; i++) {
     const currentLine = lines[i].trim();
     const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : "";
-    
-    console.log(`[DEBUG-MERGE-LOOP] i=${i}, currentLine="${currentLine}", nextLine="${nextLine}"`);
     
     // 다음 줄이 숫자로 시작하거나 "병", "개" 등의 단위로만 구성되어 있으면 병합
     if (nextLine && (/^\d+\s*(?:병|개|본|ea|EA|pcs|PCS|박스|box|BOX|케이스|보틀|바틀|case|CASE|bt|btl|cs|CS)?$/.test(nextLine))) {
       const merged = `${currentLine} ${nextLine}`.trim();
       mergedLines.push(merged);
       i++; // 다음 줄 건너뛰기
-      console.log(`[DEBUG-MERGE] ✅ Merged: "${currentLine}" + "${nextLine}" → "${merged}"`);
     } else {
       mergedLines.push(currentLine);
-      console.log(`[DEBUG-MERGE] ⏭️ No merge, added: "${currentLine}"`);
     }
   }
   
   lines = mergedLines;
-  
-  // ✅ DEBUG: 병합 후 lines 확인
-  console.log("[DEBUG-LINES] After merge, lines count:", lines.length);
-  lines.forEach((line, i) => {
-    console.log(`  [${i}]: "${line}"`);
-  });
   
   const parts0: string[] = [];
   
@@ -65,17 +51,13 @@ export function parseItemsFromMessage(message: string) {
     const hasProducerPattern = /[A-Z][a-z]+\s+[A-Z][a-z]+,\s+[A-Z]/.test(line) || 
                                /[A-Z][a-z]+,\s+[A-Z]/.test(line);
     
-    console.log(`[DEBUG-PARSE] Line: "${line}" | hasProducerPattern: ${hasProducerPattern}`);
-    
     if (hasProducerPattern) {
       // 영문 생산자명이 있으면 쉼표 무시하고 슬래시/세미콜론만 분리
       const subParts = line.split(/\/|；|;/).map(s => s.trim()).filter(Boolean);
-      console.log(`[DEBUG-PARSE] Keeping comma, subParts:`, subParts);
       parts0.push(...subParts);
     } else {
       // 일반 케이스: 쉼표도 분리
       const subParts = line.split(/\/|,|；|;/).map(s => s.trim()).filter(Boolean);
-      console.log(`[DEBUG-PARSE] Splitting comma, subParts:`, subParts);
       parts0.push(...subParts);
     }
   }
