@@ -401,10 +401,26 @@ export function resolveGlassItemsByClient(
     return results;
   }
 
-  // ✅ 거래처별 공급가 조회 헬퍼
+  // ✅ 거래처별 공급가 조회 헬퍼 (해당 거래처 → 다른 거래처 최빈가 폴백)
   function getSupplyPrice(item_no: string): number | undefined {
+    // 1순위: 해당 거래처의 공급가
     const row = clientRows.find(r => r.item_no === item_no);
-    return (row?.supply_price && row.supply_price > 0) ? row.supply_price : undefined;
+    if (row?.supply_price && row.supply_price > 0) return row.supply_price;
+    
+    // 2순위: 다른 거래처에서 가장 많이 사용된 공급가 (미입고 품목용)
+    try {
+      const fallback = db.prepare(
+        `SELECT supply_price, COUNT(*) as cnt 
+         FROM glass_client_item_stats 
+         WHERE item_no = ? AND supply_price > 0 
+         GROUP BY supply_price 
+         ORDER BY cnt DESC 
+         LIMIT 1`
+      ).get(item_no) as { supply_price: number; cnt: number } | undefined;
+      return fallback?.supply_price;
+    } catch {
+      return undefined;
+    }
   }
 
   // ✅ candidates/suggestions에 supply_price 포함하는 헬퍼
