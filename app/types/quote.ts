@@ -20,6 +20,28 @@ export type QuoteItem = {
   updated_at: string;
 };
 
+export type WineProfile = {
+  item_code: string;
+  country: string;
+  region: string;
+  sub_region: string;
+  appellation: string;
+  grape_varieties: string;
+  wine_type: string;
+  body: string;
+  sweetness: string;
+  tasting_aroma: string;
+  tasting_palate: string;
+  food_pairing: string;
+  description_kr: string;
+  description_en: string;
+  alcohol: string;
+  serving_temp: string;
+  aging_potential: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type QuoteColumnKey =
   | 'item_code'
   | 'country'
@@ -38,7 +60,9 @@ export type QuoteColumnKey =
   | 'normal_total'
   | 'discount_total'
   | 'note'
-  | 'tasting_note';
+  | 'tasting_note'
+  | 'grape_varieties'
+  | 'description_kr';
 
 export type QuoteColumnConfig = {
   key: QuoteColumnKey;

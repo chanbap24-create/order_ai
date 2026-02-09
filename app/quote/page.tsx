@@ -49,7 +49,8 @@ type ColumnKey =
   | 'supply_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
   | 'retail_normal_total' | 'retail_discount_total'
-  | 'note' | 'tasting_note';
+  | 'note' | 'tasting_note'
+  | 'grape_varieties' | 'description_kr';
 
 interface ColumnConfig {
   key: ColumnKey;
@@ -77,6 +78,8 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'discount_total', label: '할인공급가합계', type: 'computed' },
   { key: 'retail_normal_total', label: '정상소비자가합계', type: 'computed' },
   { key: 'retail_discount_total', label: '할인소비자가합계', type: 'computed' },
+  { key: 'grape_varieties', label: '포도품종', type: 'text' },
+  { key: 'description_kr', label: '와인설명', type: 'text' },
   { key: 'note', label: '비고', editable: true, type: 'text' },
   { key: 'tasting_note', label: '테이스팅노트', type: 'text' },
 ];
@@ -189,6 +192,21 @@ export default function QuotePage() {
   // 테이스팅노트 존재 여부
   const [tastingNoteSet, setTastingNoteSet] = useState<Set<string>>(new Set());
 
+  // 와인 프로필
+  const [wineProfiles, setWineProfiles] = useState<Record<string, { grape_varieties: string; description_kr: string }>>({});
+
+  // 와인 필터
+  const [filterCountry, setFilterCountry] = useState('');
+  const [filterRegion, setFilterRegion] = useState('');
+  const [filterWineType, setFilterWineType] = useState('');
+  const [filterGrapeVariety, setFilterGrapeVariety] = useState('');
+  const [filterOptions, setFilterOptions] = useState<{
+    countries: string[];
+    regions: string[];
+    wineTypes: string[];
+    grapeVarieties: string[];
+  }>({ countries: [], regions: [], wineTypes: [], grapeVarieties: [] });
+
   // ── 초기화 ──
   useEffect(() => {
     fetchItems();
@@ -245,7 +263,25 @@ export default function QuotePage() {
     try {
       const res = await fetch('/api/quote');
       const data = await res.json();
-      if (data.success) setItems(data.items || []);
+      if (data.success) {
+        const fetchedItems = data.items || [];
+        setItems(fetchedItems);
+        // 와인 프로필 로드
+        const codes = fetchedItems.map((i: QuoteItem) => i.item_code).filter(Boolean);
+        if (codes.length > 0) {
+          try {
+            const wpRes = await fetch(`/api/wine-profiles?item_codes=${encodeURIComponent(JSON.stringify(codes))}`);
+            const wpData = await wpRes.json();
+            if (wpData.success && wpData.profiles) {
+              const map: Record<string, { grape_varieties: string; description_kr: string }> = {};
+              for (const p of wpData.profiles) {
+                map[p.item_code] = { grape_varieties: p.grape_varieties || '', description_kr: p.description_kr || '' };
+              }
+              setWineProfiles(map);
+            }
+          } catch {}
+        }
+      }
     } catch (e) {
       console.error('Failed to fetch quote items:', e);
     } finally {
@@ -329,17 +365,24 @@ export default function QuotePage() {
   // ── 재고 검색 (디바운스) ──
   const doSearch = useCallback((q: string) => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (!q.trim()) {
+    const hasFilters = filterCountry || filterRegion || filterWineType || filterGrapeVariety;
+    if (!q.trim() && !hasFilters) {
       setSearchResults([]);
       return;
     }
     searchTimeout.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const endpoint = searchSource === 'CDV'
-          ? `/api/inventory/search?q=${encodeURIComponent(q)}`
-          : `/api/inventory/dl/search?q=${encodeURIComponent(q)}`;
-        const res = await fetch(endpoint);
+        const base = searchSource === 'CDV'
+          ? '/api/inventory/search'
+          : '/api/inventory/dl/search';
+        const params = new URLSearchParams();
+        if (q.trim()) params.set('q', q);
+        if (filterCountry) params.set('country', filterCountry);
+        if (filterRegion) params.set('region', filterRegion);
+        if (filterWineType) params.set('wine_type', filterWineType);
+        if (filterGrapeVariety) params.set('grape_variety', filterGrapeVariety);
+        const res = await fetch(`${base}?${params.toString()}`);
         const data = await res.json();
         setSearchResults(data.results || []);
       } catch {
@@ -348,7 +391,7 @@ export default function QuotePage() {
         setIsSearching(false);
       }
     }, 300);
-  }, [searchSource]);
+  }, [searchSource, filterCountry, filterRegion, filterWineType, filterGrapeVariety]);
 
   useEffect(() => {
     doSearch(searchQuery);
@@ -445,6 +488,10 @@ export default function QuotePage() {
         return calcDiscountedPrice(item.retail_price || 0, item.discount_rate) * item.quantity;
       case 'discount_rate':
         return item.discount_rate;
+      case 'grape_varieties':
+        return wineProfiles[item.item_code]?.grape_varieties || '';
+      case 'description_kr':
+        return wineProfiles[item.item_code]?.description_kr || '';
       default:
         return (item as any)[key] ?? '';
     }
@@ -538,7 +585,25 @@ export default function QuotePage() {
               {exporting ? '생성 중...' : '엑셀 다운로드'}
             </button>
             <button
-              onClick={() => setShowSearch(!showSearch)}
+              onClick={() => {
+                const next = !showSearch;
+                setShowSearch(next);
+                if (next) {
+                  fetch('/api/wine-profiles/filters')
+                    .then(r => r.json())
+                    .then(data => {
+                      if (data.success) {
+                        setFilterOptions({
+                          countries: data.countries || [],
+                          regions: data.regions || [],
+                          wineTypes: data.wineTypes || [],
+                          grapeVarieties: data.grapeVarieties || [],
+                        });
+                      }
+                    })
+                    .catch(() => {});
+                }
+              }}
               style={{
                 padding: '8px 16px', borderRadius: 8, border: '1px solid #8B1538', cursor: 'pointer',
                 background: showSearch ? '#8B1538' : 'white',
@@ -696,6 +761,58 @@ export default function QuotePage() {
                   border: '1px solid #ddd', minWidth: 0,
                 }}
               />
+            </div>
+
+            {/* 와인 필터 */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select
+                value={filterCountry}
+                onChange={e => setFilterCountry(e.target.value)}
+                style={filterSelectStyle}
+              >
+                <option value="">국가 전체</option>
+                {filterOptions.countries.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select
+                value={filterRegion}
+                onChange={e => setFilterRegion(e.target.value)}
+                style={filterSelectStyle}
+              >
+                <option value="">지역 전체</option>
+                {filterOptions.regions.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <select
+                value={filterWineType}
+                onChange={e => setFilterWineType(e.target.value)}
+                style={filterSelectStyle}
+              >
+                <option value="">타입 전체</option>
+                {filterOptions.wineTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <select
+                value={filterGrapeVariety}
+                onChange={e => setFilterGrapeVariety(e.target.value)}
+                style={filterSelectStyle}
+              >
+                <option value="">품종 전체</option>
+                {filterOptions.grapeVarieties.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              {(filterCountry || filterRegion || filterWineType || filterGrapeVariety) && (
+                <button
+                  onClick={() => {
+                    setFilterCountry('');
+                    setFilterRegion('');
+                    setFilterWineType('');
+                    setFilterGrapeVariety('');
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 6, border: '1px solid #ddd',
+                    background: '#f5f5f5', fontSize: 12, cursor: 'pointer', color: '#666',
+                  }}
+                >
+                  필터 초기화
+                </button>
+              )}
             </div>
 
             {/* 검색 결과 */}
@@ -1164,4 +1281,14 @@ const sheetInputStyle: React.CSSProperties = {
   borderRadius: 8,
   border: '1px solid #ddd',
   boxSizing: 'border-box',
+};
+
+const filterSelectStyle: React.CSSProperties = {
+  fontSize: 13,
+  padding: '6px 10px',
+  borderRadius: 6,
+  border: '1px solid #ddd',
+  background: 'white',
+  minWidth: 100,
+  cursor: 'pointer',
 };
