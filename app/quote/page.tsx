@@ -90,6 +90,7 @@ const DEFAULT_VISIBLE: ColumnKey[] = [
 interface DocSettings {
   companyName: string;
   address: string;
+  addressEn: string;
   sender: string;
   title: string;
   content1: string;
@@ -103,6 +104,7 @@ interface DocSettings {
 const CDV_DOC_DEFAULTS: DocSettings = {
   companyName: '(주) 까 브 드 뱅',
   address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
+  addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
   sender: '(주)까브드뱅',
   title: '와인 제안의 건',
   content1: '1. 귀사의 일익 번창하심을 기원합니다.',
@@ -116,6 +118,7 @@ const CDV_DOC_DEFAULTS: DocSettings = {
 const DL_DOC_DEFAULTS: DocSettings = {
   companyName: '대유라이프 주식회사',
   address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
+  addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
   sender: '대유라이프 주식회사',
   title: '리델글라스 견적의 건',
   content1: '1. 귀사의 일익 번창하심을 기원합니다.',
@@ -619,6 +622,7 @@ export default function QuotePage() {
               {([
                 ['companyName', '회사명'],
                 ['address', '주소/연락처'],
+                ['addressEn', '영문주소'],
                 ['sender', '발신'],
                 ['title', '제목'],
                 ['content1', '내용 1'],
