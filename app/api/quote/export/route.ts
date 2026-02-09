@@ -15,6 +15,7 @@ interface DocSettings {
   companyName: string;
   address: string;
   addressEn: string;
+  websiteUrl: string;
   sender: string;
   title: string;
   content1: string;
@@ -61,6 +62,7 @@ const DEFAULT_DOC: DocSettings = {
   companyName: '(주) 까 브 드 뱅',
   address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
   addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
+  websiteUrl: 'www.cavedevin.co.kr',
   sender: '(주)까브드뱅',
   title: '와인 제안의 건',
   content1: '1. 귀사의 일익 번창하심을 기원합니다.',
@@ -323,81 +325,87 @@ function buildQuote(
   ws.getCell('A5').font = { name: '굴림', size: 7 };
   ws.getCell('A5').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Row 6: spacer (영문주소 ↔ 수신 여백 1)
-  ws.getRow(6).height = 12;
+  // Row 6: 웹사이트/SNS URL
+  ws.mergeCells(`A6:${lastCol}6`);
+  ws.getCell('A6').value = doc.websiteUrl || '';
+  ws.getCell('A6').font = { name: '굴림', size: 7 };
+  ws.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Row 7: spacer (영문주소 ↔ 수신 여백 2)
+  // Row 7~10: spacer (URL ↔ 수신 여백 4줄)
   ws.getRow(7).height = 12;
+  ws.getRow(8).height = 12;
+  ws.getRow(9).height = 12;
+  ws.getRow(10).height = 12;
 
-  // Row 8: 수신 + date
-  ws.getCell('A8').value = `수      신 : ${clientName || ''}`;
-  ws.getCell('A8').font = { name: '굴림', size: 11 };
-  ws.getCell(`${lastCol}8`).value = fmtDate(new Date());
-  ws.getCell(`${lastCol}8`).font = { name: '굴림', size: 11 };
-  ws.getCell(`${lastCol}8`).alignment = { horizontal: 'right', vertical: 'middle' };
+  // Row 11: 수신 + date
+  ws.getCell('A11').value = `수      신 : ${clientName || ''}`;
+  ws.getCell('A11').font = { name: '굴림', size: 11 };
+  ws.getCell(`${lastCol}11`).value = fmtDate(new Date());
+  ws.getCell(`${lastCol}11`).font = { name: '굴림', size: 11 };
+  ws.getCell(`${lastCol}11`).alignment = { horizontal: 'right', vertical: 'middle' };
 
-  // Row 9: spacer
-  ws.getRow(9).height = 8;
+  // Row 12: spacer
+  ws.getRow(12).height = 8;
 
-  // Row 10: 발신
-  ws.getCell('A10').value = `발      신 : ${doc.sender}`;
-  ws.getCell('A10').font = { name: '굴림', size: 11 };
+  // Row 13: 발신
+  ws.getCell('A13').value = `발      신 : ${doc.sender}`;
+  ws.getCell('A13').font = { name: '굴림', size: 11 };
 
-  // Row 11: spacer
-  ws.getRow(11).height = 8;
+  // Row 14: spacer
+  ws.getRow(14).height = 8;
 
-  // Row 12: 제목
-  ws.getCell('A12').value = `제    목 : ${doc.title}`;
-  ws.getCell('A12').font = { name: '굴림', size: 11, bold: true };
+  // Row 15: 제목
+  ws.getCell('A15').value = `제    목 : ${doc.title}`;
+  ws.getCell('A15').font = { name: '굴림', size: 11, bold: true };
 
-  // Row 13: spacer
-  ws.getRow(13).height = 8;
+  // Row 16: spacer
+  ws.getRow(16).height = 8;
 
-  // Row 14: 내용 1
-  ws.getCell('A14').value = doc.content1;
-  ws.getCell('A14').font = { name: '굴림', size: 11 };
+  // Row 17: 내용 1
+  ws.getCell('A17').value = doc.content1;
+  ws.getCell('A17').font = { name: '굴림', size: 11 };
 
-  // Row 15: spacer
-  ws.getRow(15).height = 8;
+  // Row 18: spacer
+  ws.getRow(18).height = 8;
 
-  // Row 16: 내용 2
-  ws.getCell('A16').value = doc.content2;
-  ws.getCell('A16').font = { name: '굴림', size: 11 };
+  // Row 19: 내용 2
+  ws.getCell('A19').value = doc.content2;
+  ws.getCell('A19').font = { name: '굴림', size: 11 };
 
-  // Row 17: spacer
-  ws.getRow(17).height = 8;
+  // Row 20: spacer
+  ws.getRow(20).height = 8;
 
-  // Row 18: 내용 3 (centered)
-  ws.mergeCells(`A18:${lastCol}18`);
-  ws.getCell('A18').value = doc.content3;
-  ws.getCell('A18').font = { name: '굴림', size: 11 };
-  ws.getCell('A18').alignment = { horizontal: 'center', vertical: 'middle' };
+  // Row 21: 내용 3 (centered)
+  ws.mergeCells(`A21:${lastCol}21`);
+  ws.getCell('A21').value = doc.content3;
+  ws.getCell('A21').font = { name: '굴림', size: 11 };
+  ws.getCell('A21').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Row 19: 제품 및 가격 + 단위
-  ws.getCell('A19').value = '1. 제품 및 가격 :';
-  ws.getCell('A19').font = { name: '굴림', size: 10 };
+  // Row 22: 제품 및 가격 + 단위
+  ws.getCell('A22').value = '1. 제품 및 가격 :';
+  ws.getCell('A22').font = { name: '굴림', size: 10 };
   const unitStartCol = colLetter(Math.max(1, totalCols - 2));
   if (totalCols > 3) {
-    ws.mergeCells(`${unitStartCol}19:${lastCol}19`);
+    ws.mergeCells(`${unitStartCol}22:${lastCol}22`);
   }
-  ws.getCell(`${unitStartCol}19`).value = doc.unit;
-  ws.getCell(`${unitStartCol}19`).font = { name: '굴림', size: 11, bold: true };
-  ws.getCell(`${unitStartCol}19`).alignment = { horizontal: 'right', vertical: 'middle' };
-  ws.getCell(`${unitStartCol}19`).border = { bottom: { style: 'medium' } };
+  ws.getCell(`${unitStartCol}22`).value = doc.unit;
+  ws.getCell(`${unitStartCol}22`).font = { name: '굴림', size: 11, bold: true };
+  ws.getCell(`${unitStartCol}22`).alignment = { horizontal: 'right', vertical: 'middle' };
+  ws.getCell(`${unitStartCol}22`).border = { bottom: { style: 'medium' } };
 
-  // ── Column headers (Row 20) ──
+  // ── Column headers (Row 23) ──
   const hBorder: Partial<ExcelJS.Borders> = {
     top: { style: 'medium' }, bottom: { style: 'double' },
     left: { style: 'thin' }, right: { style: 'thin' },
   };
-  const hRow = ws.getRow(20);
+  const hRow = ws.getRow(23);
   hRow.height = 32;
   activeCols.forEach((col, i) => {
     sc(hRow, i + 1, col.label, { border: hBorder, fill: BLUE_FILL, bold: true, size: 10, wrap: true });
   });
 
-  // ── Data rows (Row 21+) ──
-  const DS = 21;
+  // ── Data rows (Row 24+) ──
+  const DS = 24;
   const hasImageCol = activeCols.some(c => c.type === 'image');
   const IMG_ROW_HEIGHT = 75; // points when image column is active
 
@@ -623,8 +631,8 @@ function buildQuote(
     ws.getCell(`${lastCol}${endR}`).font = { name: '굴림', size: 11 };
     ws.getCell(`${lastCol}${endR}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
-    // Signature block
-    const sigR = sumR + 3;
+    // Signature block (끝 아래 2줄 여백 추가)
+    const sigR = sumR + 5;
     const sigStart = colLetter(Math.max(1, totalCols - 3));
 
     ws.mergeCells(`${sigStart}${sigR}:${lastCol}${sigR}`);
