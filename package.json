@@ -29,8 +29,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "adm-zip": "^0.5.16",
     "eslint": "^8",
     "eslint-config-next": "14.2.18",
+    "image-size": "^2.0.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
