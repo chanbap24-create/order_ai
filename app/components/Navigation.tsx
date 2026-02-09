@@ -109,6 +109,23 @@ export default function Navigation() {
           >
             RIEDEL
           </Link>
+
+          <Link
+            href="/quote"
+            style={{
+              padding: 'var(--space-2) var(--space-4)',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              fontSize: 'var(--text-xs)',
+              textDecoration: 'none',
+              color: isActive('/quote') ? 'white' : '#1a1a1a',
+              background: isActive('/quote') ? '#8B1538' : 'transparent',
+              transition: 'all var(--transition-fast)',
+              letterSpacing: '0.03em'
+            }}
+          >
+            QUOTE
+          </Link>
         </div>
       </div>
     </nav>

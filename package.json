@@ -13,6 +13,7 @@
     "@types/string-similarity": "^4.0.2",
     "better-sqlite3": "^12.5.0",
     "date-holidays": "^3.26.5",
+    "exceljs": "^4.4.0",
     "next": "14.2.18",
     "node-fetch": "^2.7.0",
     "openai": "^6.17.0",
