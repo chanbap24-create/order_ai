@@ -418,9 +418,24 @@ function buildQuote(
             const imgBuf = fs.readFileSync(imgPath);
             const ext = (rawExt === 'jpg' ? 'jpeg' : rawExt) as 'png' | 'jpeg' | 'gif';
             const imgId = wb.addImage({ buffer: imgBuf, extension: ext });
+            // DB에서 원본 크기 조회하여 비율 유지
+            let origW = 1, origH = 2;
+            try {
+              const meta = db.prepare('SELECT width, height FROM bottle_images WHERE item_code = ?').get(itemCode) as any;
+              if (meta?.width && meta?.height) { origW = meta.width; origH = meta.height; }
+            } catch {}
+            const maxH = 93; // px (셀 높이 75pt ≈ 100px, 여백 고려)
+            const maxW = 68; // px (컬럼 10 ≈ 75px, 여백 고려)
+            const ratio = origW / origH;
+            let drawH = maxH;
+            let drawW = drawH * ratio;
+            if (drawW > maxW) { drawW = maxW; drawH = drawW / ratio; }
+            // 셀 내 가운데 정렬 (좌우)
+            const colWidthPx = 10 * 7.5;
+            const offsetX = (colWidthPx - drawW) / 2 / colWidthPx;
             ws.addImage(imgId, {
-              tl: { col: ci + 0.05, row: r - 1 + 0.05 } as ExcelJS.Anchor,
-              ext: { width: 65, height: 95 },
+              tl: { col: ci + Math.max(0.02, offsetX), row: r - 1 + 0.03 } as ExcelJS.Anchor,
+              ext: { width: drawW, height: drawH },
             });
           }
         }
