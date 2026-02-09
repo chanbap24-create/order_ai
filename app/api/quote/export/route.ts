@@ -427,23 +427,26 @@ function buildQuote(
             // 셀 크기 (px)
             const cellWPx = 10 * 7.5;                   // 컬럼 width 10 ≈ 75px
             const cellHPx = IMG_ROW_HEIGHT * 1.333;      // 75pt ≈ 100px
-            const pad = 4;                                // 상하좌우 여백 px
+            const pad = 3;
             const fitW = cellWPx - pad * 2;
             const fitH = cellHPx - pad * 2;
             // 비율 유지하며 축소
-            const ratio = origW / origH;
+            const imgRatio = origW / origH;
             let drawW: number, drawH: number;
-            if (fitW / fitH > ratio) {
-              drawH = fitH; drawW = drawH * ratio;       // 높이 기준
+            if (fitW / fitH > imgRatio) {
+              drawH = fitH; drawW = drawH * imgRatio;
             } else {
-              drawW = fitW; drawH = drawW / ratio;        // 폭 기준
+              drawW = fitW; drawH = drawW / imgRatio;
             }
-            // 셀 내 수평·수직 가운데 오프셋 (0~1 비율)
-            const offsetX = (cellWPx - drawW) / 2 / cellWPx;
-            const offsetY = (cellHPx - drawH) / 2 / cellHPx;
+            // 셀 내 중앙정렬 오프셋 (0~1 비율로 변환)
+            const padL = (cellWPx - drawW) / 2 / cellWPx;
+            const padT = (cellHPx - drawH) / 2 / cellHPx;
+            const padR = padL;
+            const padB = padT;
+            // tl+br 앵커: 셀에 고정 (플로팅X, 셀과 함께 이동/크기 조정)
             ws.addImage(imgId, {
-              tl: { col: ci + offsetX, row: r - 1 + offsetY } as ExcelJS.Anchor,
-              ext: { width: drawW, height: drawH },
+              tl: { col: ci + padL, row: r - 1 + padT } as ExcelJS.Anchor,
+              br: { col: ci + 1 - padR, row: r - padB } as ExcelJS.Anchor,
             });
           }
         }
