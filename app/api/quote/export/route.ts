@@ -411,17 +411,18 @@ function buildQuote(
         const itemCode = item.item_code || '';
         const imgPath = itemCode ? getBottleImagePath(itemCode) : null;
         if (imgPath) {
-          const imgBuf = fs.readFileSync(imgPath);
           const rawExt = path.extname(imgPath).replace('.', '').toLowerCase();
-          const ext = (rawExt === 'jpg' ? 'jpeg' : rawExt) as 'png' | 'jpeg' | 'gif';
-          const imgId = wb.addImage({ buffer: imgBuf, extension: ext });
-          // Scale image to fit row height (75pt ≈ 100px), keep aspect ratio
-          const targetH = 95; // px
-          ws.addImage(imgId, {
-            tl: { col: ci + 0.1, row: r - 1 + 0.05 } as ExcelJS.Anchor,
-            ext: { width: 60, height: targetH },
-            editAs: 'oneCell',
-          });
+          if (rawExt === 'tiff' || rawExt === 'tif') {
+            sc(row, c, itemCode, { border: THIN, size: 8, color: 'FF999999' });
+          } else {
+            const imgBuf = fs.readFileSync(imgPath);
+            const ext = (rawExt === 'jpg' ? 'jpeg' : rawExt) as 'png' | 'jpeg' | 'gif';
+            const imgId = wb.addImage({ buffer: imgBuf, extension: ext });
+            ws.addImage(imgId, {
+              tl: { col: ci + 0.05, row: r - 1 + 0.05 } as ExcelJS.Anchor,
+              ext: { width: 65, height: 95 },
+            });
+          }
         }
         return;
       }
