@@ -33,5 +33,35 @@ export function ensureWineProfileTable() {
   db.prepare('CREATE INDEX IF NOT EXISTS idx_wp_wine_type ON wine_profiles(wine_type)').run();
   db.prepare('CREATE INDEX IF NOT EXISTS idx_wp_region ON wine_profiles(region)').run();
 
+  // inventory 테이블에서 wine_profiles 자동 seed (country 데이터 활용)
+  try {
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM wine_profiles').get() as { cnt: number }).cnt;
+    if (count === 0) {
+      seedFromInventory();
+    }
+  } catch { /* inventory 테이블이 없을 수 있음 */ }
+
   initialized = true;
+}
+
+function seedFromInventory() {
+  // CDV inventory에서 seed
+  try {
+    db.prepare(`
+      INSERT OR IGNORE INTO wine_profiles (item_code, country)
+      SELECT item_no, COALESCE(country, '')
+      FROM inventory_cdv
+      WHERE item_no != '' AND item_no IS NOT NULL
+    `).run();
+  } catch { /* 테이블 없으면 무시 */ }
+
+  // DL inventory에서 seed
+  try {
+    db.prepare(`
+      INSERT OR IGNORE INTO wine_profiles (item_code, country)
+      SELECT item_no, COALESCE(country, '')
+      FROM inventory_dl
+      WHERE item_no != '' AND item_no IS NOT NULL
+    `).run();
+  } catch { /* 테이블 없으면 무시 */ }
 }

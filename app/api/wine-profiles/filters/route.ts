@@ -8,9 +8,34 @@ export async function GET() {
   try {
     ensureWineProfileTable();
 
-    const countries = (db.prepare(
-      "SELECT DISTINCT country FROM wine_profiles WHERE country != '' ORDER BY country"
-    ).all() as { country: string }[]).map(r => r.country);
+    // country: inventory 테이블 + wine_profiles 모두에서 조회 후 합산
+    const countrySet = new Set<string>();
+
+    // wine_profiles 국가
+    try {
+      const wpCountries = db.prepare(
+        "SELECT DISTINCT country FROM wine_profiles WHERE country != '' AND country IS NOT NULL"
+      ).all() as { country: string }[];
+      for (const r of wpCountries) countrySet.add(r.country);
+    } catch {}
+
+    // inventory_cdv 국가
+    try {
+      const cdvCountries = db.prepare(
+        "SELECT DISTINCT country FROM inventory_cdv WHERE country != '' AND country IS NOT NULL"
+      ).all() as { country: string }[];
+      for (const r of cdvCountries) countrySet.add(r.country);
+    } catch {}
+
+    // inventory_dl 국가
+    try {
+      const dlCountries = db.prepare(
+        "SELECT DISTINCT country FROM inventory_dl WHERE country != '' AND country IS NOT NULL"
+      ).all() as { country: string }[];
+      for (const r of dlCountries) countrySet.add(r.country);
+    } catch {}
+
+    const countries = Array.from(countrySet).sort();
 
     const regions = (db.prepare(
       "SELECT DISTINCT region FROM wine_profiles WHERE region != '' ORDER BY region"

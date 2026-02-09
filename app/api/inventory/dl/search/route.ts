@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (filterCountry) {
-      conditions.push('wp.country = ?');
-      params.push(filterCountry);
+      conditions.push('(i.country = ? OR wp.country = ?)');
+      params.push(filterCountry, filterCountry);
     }
 
     if (filterRegion) {
