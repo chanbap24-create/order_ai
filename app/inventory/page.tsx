@@ -97,19 +97,23 @@ export default function InventoryPage() {
 
   // localStorage에서 설정 불러오기
   useEffect(() => {
-    const savedCDV = localStorage.getItem('inventory_columns_cdv');
-    const savedDL = localStorage.getItem('inventory_columns_dl');
-    
-    if (savedCDV) {
-      try {
-        setVisibleColumnsCDV(JSON.parse(savedCDV));
-      } catch (e) {}
-    }
-    
-    if (savedDL) {
-      try {
-        setVisibleColumnsDL(JSON.parse(savedDL));
-      } catch (e) {}
+    try {
+      const savedCDV = localStorage.getItem('inventory_columns_cdv');
+      const savedDL = localStorage.getItem('inventory_columns_dl');
+
+      if (savedCDV) {
+        try {
+          setVisibleColumnsCDV(JSON.parse(savedCDV));
+        } catch (e) {}
+      }
+
+      if (savedDL) {
+        try {
+          setVisibleColumnsDL(JSON.parse(savedDL));
+        } catch (e) {}
+      }
+    } catch (e) {
+      // localStorage 접근 불가 환경 (일부 모바일 웹뷰, Private 모드 등)
     }
   }, []);
 
@@ -127,8 +131,12 @@ export default function InventoryPage() {
     setVisibleColumns(newColumns);
     
     // localStorage에 저장
-    const storageKey = activeTab === 'CDV' ? 'inventory_columns_cdv' : 'inventory_columns_dl';
-    localStorage.setItem(storageKey, JSON.stringify(newColumns));
+    try {
+      const storageKey = activeTab === 'CDV' ? 'inventory_columns_cdv' : 'inventory_columns_dl';
+      localStorage.setItem(storageKey, JSON.stringify(newColumns));
+    } catch (e) {
+      // localStorage 접근 불가 환경
+    }
   };
 
   const handleSearch = async () => {
@@ -156,18 +164,21 @@ export default function InventoryPage() {
       const results = data.results || [];
       setResults(results);
       
-      // 검색 결과의 각 품목에 대해 테이스팅 노트 존재 여부 확인
-      results.forEach(async (item: InventoryItem) => {
-        try {
-          const response = await fetch(`/api/tasting-notes?item_no=${item.item_no}`);
-          const data = await response.json();
-          if (data.success) {
-            setTastingNotesAvailable(prev => ({ ...prev, [item.item_no]: true }));
-          }
-        } catch (err) {
-          // 에러 무시 (테이스팅 노트 없음)
-        }
-      });
+      // CDV 탭에서만 테이스팅 노트 존재 여부 확인
+      if (activeTab === 'CDV') {
+        results.forEach((item: InventoryItem) => {
+          fetch(`/api/tasting-notes?item_no=${item.item_no}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                setTastingNotesAvailable(prev => ({ ...prev, [item.item_no]: true }));
+              }
+            })
+            .catch(() => {
+              // 에러 무시 (테이스팅 노트 없음)
+            });
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.');
       setResults([]);
@@ -176,7 +187,7 @@ export default function InventoryPage() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
@@ -246,11 +257,13 @@ export default function InventoryPage() {
     }
   };
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | null | undefined) => {
+    if (num == null || isNaN(num)) return '0';
     return num.toLocaleString('ko-KR');
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | null | undefined) => {
+    if (price == null || isNaN(price)) return '-';
     return price > 0 ? `₩${formatNumber(price)}` : '-';
   };
 
@@ -292,19 +305,19 @@ export default function InventoryPage() {
         return formatPrice(item[key]);
       case 'available_stock':
         return (
-          <span style={{ 
-            color: item.available_stock > 0 ? '#10b981' : '#ef4444',
+          <span style={{
+            color: (item.available_stock ?? 0) > 0 ? '#10b981' : '#ef4444',
             fontWeight: 700
           }}>
-            {formatNumber(item.available_stock)}
+            {formatNumber(item.available_stock ?? 0)}
           </span>
         );
       case 'bonded_warehouse':
-        return formatNumber(item.bonded_warehouse || 0);
+        return formatNumber(item.bonded_warehouse ?? 0);
       case 'incoming_stock':
-        return formatNumber(item.incoming_stock);
+        return formatNumber(item.incoming_stock ?? 0);
       case 'sales_30days':
-        return formatNumber(item.sales_30days);
+        return formatNumber(item.sales_30days ?? 0);
       case 'vintage':
         return item.vintage || '-';
       case 'alcohol_content':
@@ -503,7 +516,7 @@ export default function InventoryPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 placeholder=""
                 disabled={isSearching}
                 style={{
@@ -975,19 +988,21 @@ export default function InventoryPage() {
                         </button>
                       </div>
                     
-                    {/* PDF 미리보기 (embed) */}
+                    {/* PDF 미리보기 (iframe - 모바일 호환) */}
                     <div style={{
                       flex: 1,
                       background: '#f5f5f5',
                       borderRadius: 'var(--radius-md)',
                       overflow: 'hidden',
-                      border: '1px solid var(--color-border)'
+                      border: '1px solid var(--color-border)',
+                      position: 'relative'
                     }}>
-                      <embed
+                      <iframe
                         src={`${tastingNoteUrl}#toolbar=1&navpanes=0&scrollbar=1`}
-                        type="application/pdf"
+                        title="테이스팅 노트 PDF"
                         width="100%"
                         height="100%"
+                        style={{ border: 'none' }}
                       />
                     </div>
                   </div>
