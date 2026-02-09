@@ -64,6 +64,7 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'country', label: '국가' },
   { key: 'brand', label: '브랜드' },
   { key: 'region', label: '지역' },
+  { key: 'grape_varieties', label: '포도품종', type: 'text' },
   { key: 'image_url', label: '이미지' },
   { key: 'vintage', label: '빈티지' },
   { key: 'product_name', label: '상품명' },
@@ -78,9 +79,8 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'discount_total', label: '할인공급가합계', type: 'computed' },
   { key: 'retail_normal_total', label: '정상소비자가합계', type: 'computed' },
   { key: 'retail_discount_total', label: '할인소비자가합계', type: 'computed' },
-  { key: 'grape_varieties', label: '포도품종', type: 'text' },
-  { key: 'note', label: '비고', editable: true, type: 'text' },
   { key: 'tasting_note', label: '테이스팅노트', type: 'text' },
+  { key: 'note', label: '비고', editable: true, type: 'text' },
 ];
 
 const DEFAULT_VISIBLE: ColumnKey[] = [

@@ -41,6 +41,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'country', label: '국가', width: 8, type: 'text', dataField: 'country' },
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
   { uiKey: 'region', label: '지역', width: 10, type: 'text', dataField: 'region' },
+  { uiKey: 'grape_varieties', label: '포도품종', width: 20, type: 'text', dataField: 'grape_varieties' },
   { uiKey: 'image_url', label: '이미지', width: 10, type: 'image' },
   { uiKey: 'vintage', label: '빈티지', width: 8, type: 'text', dataField: 'vintage' },
   { uiKey: 'product_name', label: '상품명', width: 35, type: 'text', dataField: 'product_name' },
@@ -55,9 +56,8 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'discount_total', label: '할인공급가합계', width: 14, type: 'formula' },
   { uiKey: 'retail_normal_total', label: '정상소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'retail_discount_total', label: '할인소비자가합계', width: 15, type: 'formula' },
-  { uiKey: 'grape_varieties', label: '포도품종', width: 20, type: 'text', dataField: 'grape_varieties' },
-  { uiKey: 'note', label: '비고', width: 15, type: 'text', dataField: 'note' },
   { uiKey: 'tasting_note', label: '테이스팅노트', width: 18, type: 'link' },
+  { uiKey: 'note', label: '비고', width: 15, type: 'text', dataField: 'note' },
 ];
 
 const DEFAULT_DOC: DocSettings = {
