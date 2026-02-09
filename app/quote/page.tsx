@@ -48,6 +48,7 @@ type ColumnKey =
   | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
   | 'supply_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
+  | 'retail_normal_total' | 'retail_discount_total'
   | 'note' | 'tasting_note';
 
 interface ColumnConfig {
@@ -74,6 +75,8 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'quantity', label: '수량', editable: true, type: 'number' },
   { key: 'normal_total', label: '정상공급가합계', type: 'computed' },
   { key: 'discount_total', label: '할인공급가합계', type: 'computed' },
+  { key: 'retail_normal_total', label: '정상소비자가합계', type: 'computed' },
+  { key: 'retail_discount_total', label: '할인소비자가합계', type: 'computed' },
   { key: 'note', label: '비고', editable: true, type: 'text' },
   { key: 'tasting_note', label: '테이스팅노트', editable: true, type: 'text' },
 ];
@@ -412,6 +415,10 @@ export default function QuotePage() {
         return item.supply_price * item.quantity;
       case 'discount_total':
         return calcDiscountedPrice(item.supply_price, item.discount_rate) * item.quantity;
+      case 'retail_normal_total':
+        return (item.retail_price || 0) * item.quantity;
+      case 'retail_discount_total':
+        return calcDiscountedPrice(item.retail_price || 0, item.discount_rate) * item.quantity;
       case 'discount_rate':
         return item.discount_rate;
       default:
@@ -434,6 +441,11 @@ export default function QuotePage() {
   const totalNormal = items.reduce((s, i) => s + i.supply_price * i.quantity, 0);
   const totalDiscount = items.reduce(
     (s, i) => s + calcDiscountedPrice(i.supply_price, i.discount_rate) * i.quantity,
+    0
+  );
+  const totalRetailNormal = items.reduce((s, i) => s + (i.retail_price || 0) * i.quantity, 0);
+  const totalRetailDiscount = items.reduce(
+    (s, i) => s + calcDiscountedPrice(i.retail_price || 0, i.discount_rate) * i.quantity,
     0
   );
   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
@@ -850,6 +862,8 @@ export default function QuotePage() {
                       else if (col.key === 'quantity') content = String(totalQty);
                       else if (col.key === 'normal_total') content = formatWon(totalNormal);
                       else if (col.key === 'discount_total') content = formatWon(totalDiscount);
+                      else if (col.key === 'retail_normal_total') content = formatWon(totalRetailNormal);
+                      else if (col.key === 'retail_discount_total') content = formatWon(totalRetailDiscount);
 
                       const align: 'left' | 'right' | 'center' =
                         (col.type === 'currency' || col.type === 'computed') ? 'right'

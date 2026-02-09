@@ -46,8 +46,10 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'discount_rate', label: '할인율', width: 8, type: 'percent', dataField: 'discount_rate' },
   { uiKey: 'discounted_price', label: '할인가', width: 12, type: 'formula' },
   { uiKey: 'quantity', label: '수량', width: 6, type: 'number', dataField: 'quantity' },
-  { uiKey: 'normal_total', label: '정상합계', width: 14, type: 'formula' },
-  { uiKey: 'discount_total', label: '할인합계', width: 14, type: 'formula' },
+  { uiKey: 'normal_total', label: '정상공급가합계', width: 14, type: 'formula' },
+  { uiKey: 'discount_total', label: '할인공급가합계', width: 14, type: 'formula' },
+  { uiKey: 'retail_normal_total', label: '정상소비자가합계', width: 15, type: 'formula' },
+  { uiKey: 'retail_discount_total', label: '할인소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'note', label: '비고', width: 15, type: 'text', dataField: 'note' },
   { uiKey: 'tasting_note', label: '테이스팅노트', width: 18, type: 'text', dataField: 'tasting_note' },
 ];
@@ -340,6 +342,24 @@ function buildQuote(
             const dp = Math.round((item.supply_price || 0) * (1 - (item.discount_rate || 0)));
             sc(row, c, dp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: YELLOW_FILL });
           }
+        } else if (col.uiKey === 'retail_normal_total') {
+          if (pos['retail_price'] && pos['quantity']) {
+            const rp = colLetter(pos['retail_price']);
+            const qty = colLetter(pos['quantity']);
+            sf(row, c, `IFERROR(${rp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR });
+          } else {
+            sc(row, c, (item.retail_price || 0) * (item.quantity || 0), { border: THIN, fmt: CURR });
+          }
+        } else if (col.uiKey === 'retail_discount_total') {
+          if (pos['retail_price'] && pos['discount_rate'] && pos['quantity']) {
+            const rp = colLetter(pos['retail_price']);
+            const dr = colLetter(pos['discount_rate']);
+            const qty = colLetter(pos['quantity']);
+            sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+          } else {
+            const rdp = Math.round((item.retail_price || 0) * (1 - (item.discount_rate || 0)));
+            sc(row, c, rdp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+          }
         }
         return;
       }
@@ -400,6 +420,18 @@ function buildQuote(
     if (pos['discount_total']) {
       const cl = colLetter(pos['discount_total']);
       sf(row, pos['discount_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
+    }
+
+    // Retail normal total sum
+    if (pos['retail_normal_total']) {
+      const cl = colLetter(pos['retail_normal_total']);
+      sf(row, pos['retail_normal_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
+    }
+
+    // Retail discount total sum
+    if (pos['retail_discount_total']) {
+      const cl = colLetter(pos['retail_discount_total']);
+      sf(row, pos['retail_discount_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
     }
 
     // ── Footer ──
