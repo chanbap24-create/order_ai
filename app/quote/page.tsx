@@ -78,7 +78,7 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'retail_normal_total', label: '정상소비자가합계', type: 'computed' },
   { key: 'retail_discount_total', label: '할인소비자가합계', type: 'computed' },
   { key: 'note', label: '비고', editable: true, type: 'text' },
-  { key: 'tasting_note', label: '테이스팅노트', editable: true, type: 'text' },
+  { key: 'tasting_note', label: '테이스팅노트', type: 'text' },
 ];
 
 const DEFAULT_VISIBLE: ColumnKey[] = [
@@ -125,6 +125,8 @@ const DL_DOC_DEFAULTS: DocSettings = {
   representative: '대표이사  유 병 우',
   sealText: '-직인 생략-',
 };
+
+const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
 
 // ── 유틸 ──
 function formatWon(n: number): string {
@@ -831,6 +833,16 @@ export default function QuotePage() {
                                   textAlign: align, boxSizing: 'border-box',
                                 }}
                               />
+                            ) : col.key === 'tasting_note' && item.item_code ? (
+                              <a
+                                href={`${TASTING_NOTE_BASE_URL}/${item.item_code}.pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                style={{ color: '#0563C1', textDecoration: 'underline', fontSize: 12 }}
+                              >
+                                테이스팅노트
+                              </a>
                             ) : (
                               formatted
                             )}

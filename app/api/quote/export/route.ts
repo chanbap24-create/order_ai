@@ -26,7 +26,7 @@ interface ColDef {
   uiKey: string | null; // null = always shown (No.)
   label: string;
   width: number;
-  type: 'index' | 'text' | 'currency' | 'percent' | 'number' | 'formula';
+  type: 'index' | 'text' | 'currency' | 'percent' | 'number' | 'formula' | 'link';
   dataField?: string;
 }
 
@@ -51,7 +51,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'retail_normal_total', label: '정상소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'retail_discount_total', label: '할인소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'note', label: '비고', width: 15, type: 'text', dataField: 'note' },
-  { uiKey: 'tasting_note', label: '테이스팅노트', width: 18, type: 'text', dataField: 'tasting_note' },
+  { uiKey: 'tasting_note', label: '테이스팅노트', width: 18, type: 'link' },
 ];
 
 const DEFAULT_DOC: DocSettings = {
@@ -70,6 +70,8 @@ const DEFAULT_DOC: DocSettings = {
 // ═══════════════════════════════════════
 // Shared helpers
 // ═══════════════════════════════════════
+
+const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
 
 const THIN: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' }, left: { style: 'thin' },
@@ -360,6 +362,22 @@ function buildQuote(
             const rdp = Math.round((item.retail_price || 0) * (1 - (item.discount_rate || 0)));
             sc(row, c, rdp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: YELLOW_FILL });
           }
+        }
+        return;
+      }
+
+      // Link column (tasting note)
+      if (col.type === 'link') {
+        const itemCode = item.item_code || '';
+        if (itemCode) {
+          const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf`;
+          const cell = row.getCell(c);
+          cell.value = { text: '테이스팅노트', hyperlink: pdfUrl } as ExcelJS.CellHyperlinkValue;
+          cell.font = { name: '굴림', size: 9, color: { argb: 'FF0563C1' }, underline: true };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = THIN;
+        } else {
+          sc(row, c, '', { border: THIN });
         }
         return;
       }
