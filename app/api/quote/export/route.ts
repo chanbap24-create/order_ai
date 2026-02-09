@@ -28,7 +28,7 @@ interface ColDef {
   uiKey: string | null; // null = always shown (No.)
   label: string;
   width: number;
-  type: 'index' | 'text' | 'currency' | 'percent' | 'number' | 'formula' | 'link';
+  type: 'index' | 'text' | 'currency' | 'percent' | 'number' | 'formula' | 'link' | 'image';
   dataField?: string;
 }
 
@@ -38,7 +38,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'country', label: '국가', width: 8, type: 'text', dataField: 'country' },
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
   { uiKey: 'region', label: '지역', width: 10, type: 'text', dataField: 'region' },
-  { uiKey: 'image_url', label: '이미지', width: 12, type: 'text', dataField: 'image_url' },
+  { uiKey: 'image_url', label: '이미지', width: 10, type: 'image' },
   { uiKey: 'vintage', label: '빈티지', width: 8, type: 'text', dataField: 'vintage' },
   { uiKey: 'product_name', label: '상품명', width: 35, type: 'text', dataField: 'product_name' },
   { uiKey: 'english_name', label: '영문명', width: 30, type: 'text', dataField: 'english_name' },
@@ -84,6 +84,25 @@ function getLogoPath(company: string): string | null {
     path.join(process.cwd(), 'logos', filename),
   ];
   for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+const BOTTLE_IMG_DIR = path.join(process.cwd(), 'public', 'bottle-images');
+
+function getBottleImagePath(itemCode: string): string | null {
+  // DB에서 파일명 조회
+  try {
+    const row = db.prepare('SELECT filename FROM bottle_images WHERE item_code = ?').get(itemCode) as any;
+    if (row?.filename) {
+      const p = path.join(BOTTLE_IMG_DIR, row.filename);
+      if (fs.existsSync(p)) return p;
+    }
+  } catch {}
+  // fallback: 직접 파일 탐색
+  for (const ext of ['png', 'jpg', 'jpeg', 'tiff']) {
+    const p = path.join(BOTTLE_IMG_DIR, `${itemCode}.${ext}`);
     if (fs.existsSync(p)) return p;
   }
   return null;
@@ -368,11 +387,13 @@ function buildQuote(
 
   // ── Data rows (Row 18+) ──
   const DS = 18;
+  const hasImageCol = activeCols.some(c => c.type === 'image');
+  const IMG_ROW_HEIGHT = 75; // points when image column is active
 
   items.forEach((item: any, idx: number) => {
     const r = DS + idx;
     const row = ws.getRow(r);
-    row.height = 24;
+    row.height = hasImageCol ? IMG_ROW_HEIGHT : 24;
 
     activeCols.forEach((col, ci) => {
       const c = ci + 1;
@@ -380,6 +401,28 @@ function buildQuote(
       // No.
       if (col.type === 'index') {
         sc(row, c, idx + 1, { border: THIN });
+        return;
+      }
+
+      // Image column (wine bottle)
+      if (col.type === 'image') {
+        const cell = row.getCell(c);
+        cell.border = THIN;
+        const itemCode = item.item_code || '';
+        const imgPath = itemCode ? getBottleImagePath(itemCode) : null;
+        if (imgPath) {
+          const imgBuf = fs.readFileSync(imgPath);
+          const rawExt = path.extname(imgPath).replace('.', '').toLowerCase();
+          const ext = (rawExt === 'jpg' ? 'jpeg' : rawExt) as 'png' | 'jpeg' | 'gif';
+          const imgId = wb.addImage({ buffer: imgBuf, extension: ext });
+          // Scale image to fit row height (75pt ≈ 100px), keep aspect ratio
+          const targetH = 95; // px
+          ws.addImage(imgId, {
+            tl: { col: ci + 0.1, row: r - 1 + 0.05 } as ExcelJS.Anchor,
+            ext: { width: 60, height: targetH },
+            editAs: 'oneCell',
+          });
+        }
         return;
       }
 
@@ -469,7 +512,7 @@ function buildQuote(
       } else if (col.type === 'number') {
         sc(row, c, Number(val) || 0, { border: THIN });
       } else {
-        const leftAlign = ['product_name', 'english_name', 'korean_name', 'brand', 'note', 'tasting_note', 'region', 'image_url'].includes(col.uiKey || '');
+        const leftAlign = ['product_name', 'english_name', 'korean_name', 'brand', 'note', 'tasting_note', 'region'].includes(col.uiKey || '');
         const bold = col.uiKey === 'product_name' || col.uiKey === 'korean_name';
         const isNote = col.uiKey === 'note';
         sc(row, c, String(val), {
