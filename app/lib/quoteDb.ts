@@ -15,6 +15,8 @@ export function ensureQuoteTable() {
       image_url TEXT NOT NULL DEFAULT '',
       vintage TEXT NOT NULL DEFAULT '',
       product_name TEXT NOT NULL DEFAULT '',
+      english_name TEXT NOT NULL DEFAULT '',
+      korean_name TEXT NOT NULL DEFAULT '',
       supply_price REAL NOT NULL DEFAULT 0,
       retail_price REAL NOT NULL DEFAULT 0,
       discount_rate REAL NOT NULL DEFAULT 0,
@@ -31,11 +33,17 @@ export function ensureQuoteTable() {
     'CREATE INDEX IF NOT EXISTS idx_quote_items_item_code ON quote_items(item_code)'
   ).run();
 
-  // retail_price 컬럼이 없으면 추가 (기존 테이블 마이그레이션)
+  // 마이그레이션: 기존 테이블에 새 컬럼 추가
   try {
     const cols = db.prepare('PRAGMA table_info(quote_items)').all() as Array<{ name: string }>;
     if (!cols.find(c => c.name === 'retail_price')) {
       db.prepare('ALTER TABLE quote_items ADD COLUMN retail_price REAL NOT NULL DEFAULT 0').run();
+    }
+    if (!cols.find(c => c.name === 'english_name')) {
+      db.prepare("ALTER TABLE quote_items ADD COLUMN english_name TEXT NOT NULL DEFAULT ''").run();
+    }
+    if (!cols.find(c => c.name === 'korean_name')) {
+      db.prepare("ALTER TABLE quote_items ADD COLUMN korean_name TEXT NOT NULL DEFAULT ''").run();
     }
   } catch { /* already exists */ }
 

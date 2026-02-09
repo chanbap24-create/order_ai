@@ -12,6 +12,8 @@ interface QuoteItem {
   image_url: string;
   vintage: string;
   product_name: string;
+  english_name: string;
+  korean_name: string;
   supply_price: number;
   retail_price: number;
   discount_rate: number;
@@ -43,7 +45,8 @@ interface InventoryItem {
 
 type ColumnKey =
   | 'item_code' | 'country' | 'brand' | 'region' | 'image_url'
-  | 'vintage' | 'product_name' | 'supply_price' | 'retail_price' | 'discount_rate'
+  | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
+  | 'supply_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
   | 'note' | 'tasting_note';
 
@@ -62,6 +65,8 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'image_url', label: '이미지' },
   { key: 'vintage', label: '빈티지' },
   { key: 'product_name', label: '상품명' },
+  { key: 'english_name', label: '영문명' },
+  { key: 'korean_name', label: '한글명' },
   { key: 'supply_price', label: '공급가', type: 'currency' },
   { key: 'retail_price', label: '소비자가', type: 'currency' },
   { key: 'discount_rate', label: '할인율', editable: true, type: 'percent' },
@@ -763,9 +768,15 @@ export default function QuotePage() {
                     #{idx + 1} {item.item_code}
                     {item.vintage && ` · ${item.vintage}`}
                     {item.country && ` · ${item.country}`}
+                    {item.brand && ` · ${item.brand}`}
                   </div>
+                  {item.english_name && (
+                    <div style={{ fontSize: 12, color: '#555', marginBottom: 2, paddingRight: 24 }}>
+                      {item.english_name}
+                    </div>
+                  )}
                   <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, paddingRight: 24 }}>
-                    {item.product_name}
+                    {item.korean_name || item.product_name}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: 12 }}>

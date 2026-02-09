@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
         alcohol_content,
         country
       FROM inventory_cdv
-      WHERE LOWER(item_name) LIKE ?
+      WHERE LOWER(item_name) LIKE ? OR LOWER(item_no) LIKE ?
       ORDER BY supply_price DESC
-    `).all(searchQuery) as InventoryItem[];
+    `).all(searchQuery, searchQuery) as InventoryItem[];
 
     return NextResponse.json({
       results,

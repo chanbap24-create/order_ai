@@ -7,7 +7,10 @@ export type QuoteItem = {
   image_url: string;
   vintage: string;
   product_name: string;
+  english_name: string;
+  korean_name: string;
   supply_price: number;
+  retail_price: number;
   discount_rate: number;
   discounted_price: number;
   quantity: number;
@@ -25,7 +28,10 @@ export type QuoteColumnKey =
   | 'image_url'
   | 'vintage'
   | 'product_name'
+  | 'english_name'
+  | 'korean_name'
   | 'supply_price'
+  | 'retail_price'
   | 'discount_rate'
   | 'discounted_price'
   | 'quantity'
