@@ -424,30 +424,37 @@ function buildQuote(
               const meta = db.prepare('SELECT width, height FROM bottle_images WHERE item_code = ?').get(itemCode) as any;
               if (meta?.width && meta?.height) { origW = meta.width; origH = meta.height; }
             } catch {}
-            // 셀 크기 (px)
-            const cellWPx = 10 * 7.5;                   // 컬럼 width 10 ≈ 75px
-            const cellHPx = IMG_ROW_HEIGHT * 1.333;      // 75pt ≈ 100px
-            const pad = 3;
-            const fitW = cellWPx - pad * 2;
-            const fitH = cellHPx - pad * 2;
+
+            // EMU 단위로 정확한 셀 크기 계산
+            const PT_EMU = 12700;
+            const PX_EMU = 9525;
+            const colWEmu = Math.round((10 * 7 + 5) * PX_EMU);  // 컬럼10 = 75px = 714375 EMU
+            const rowHEmu = IMG_ROW_HEIGHT * PT_EMU;              // 75pt = 952500 EMU
+            const padEmu = 2 * PX_EMU;                            // 2px 여백
+
             // 비율 유지하며 축소
+            const availW = colWEmu - padEmu * 2;
+            const availH = rowHEmu - padEmu * 2;
             const imgRatio = origW / origH;
-            let drawW: number, drawH: number;
-            if (fitW / fitH > imgRatio) {
-              drawH = fitH; drawW = drawH * imgRatio;
+            let imgWEmu: number, imgHEmu: number;
+            if (availW / availH > imgRatio) {
+              imgHEmu = availH;
+              imgWEmu = Math.round(imgHEmu * imgRatio);
             } else {
-              drawW = fitW; drawH = drawW / imgRatio;
+              imgWEmu = availW;
+              imgHEmu = Math.round(imgWEmu / imgRatio);
             }
-            // 셀 내 중앙정렬 오프셋 (0~1 비율로 변환)
-            const padL = (cellWPx - drawW) / 2 / cellWPx;
-            const padT = (cellHPx - drawH) / 2 / cellHPx;
-            const padR = padL;
-            const padB = padT;
-            // tl+br 앵커: 셀에 고정 (플로팅X, 셀과 함께 이동/크기 조정)
+
+            // 셀 내 중앙정렬 오프셋 (EMU)
+            const offL = Math.round((colWEmu - imgWEmu) / 2);
+            const offT = Math.round((rowHEmu - imgHEmu) / 2);
+
+            // nativeCol/nativeRow + offset(EMU)로 셀에 직접 고정
             ws.addImage(imgId, {
-              tl: { col: ci + padL, row: r - 1 + padT } as ExcelJS.Anchor,
-              br: { col: ci + 1 - padR, row: r - padB } as ExcelJS.Anchor,
-            });
+              tl: { nativeCol: ci, nativeColOff: offL, nativeRow: r - 1, nativeRowOff: offT } as any,
+              br: { nativeCol: ci, nativeColOff: offL + imgWEmu, nativeRow: r - 1, nativeRowOff: offT + imgHEmu } as any,
+              editAs: 'oneCell',
+            } as any);
           }
         }
         return;
