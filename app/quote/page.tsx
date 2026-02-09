@@ -83,6 +83,46 @@ const DEFAULT_VISIBLE: ColumnKey[] = [
   'discounted_price', 'quantity', 'normal_total', 'discount_total', 'note',
 ];
 
+// ── 문서 설정 ──
+interface DocSettings {
+  companyName: string;
+  address: string;
+  sender: string;
+  title: string;
+  content1: string;
+  content2: string;
+  content3: string;
+  unit: string;
+  representative: string;
+  sealText: string;
+}
+
+const CDV_DOC_DEFAULTS: DocSettings = {
+  companyName: '(주) 까 브 드 뱅',
+  address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
+  sender: '(주)까브드뱅',
+  title: '와인 제안의 건',
+  content1: '1. 귀사의 일익 번창하심을 기원합니다.',
+  content2: '2. 아래와 같이 와인 견적을 보내드리오니 검토하여 주시기 바랍니다.',
+  content3: '- 아         래 -',
+  unit: '단위 : VAT별도, WON, BTL.',
+  representative: '대표이사 유병우',
+  sealText: '-직인생략-',
+};
+
+const DL_DOC_DEFAULTS: DocSettings = {
+  companyName: '대유라이프 주식회사',
+  address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
+  sender: '대유라이프 주식회사',
+  title: '리델글라스 견적의 건',
+  content1: '1. 귀사의 일익 번창하심을 기원합니다.',
+  content2: '2. 아래와 같이 리델글라스 견적을 보내드리오니 검토하여 주시기 바랍니다.',
+  content3: '- 아         래 -',
+  unit: '단위 : 원, ea, %, VAT별도',
+  representative: '대표이사  유 병 우',
+  sealText: '-직인 생략-',
+};
+
 // ── 유틸 ──
 function formatWon(n: number): string {
   if (!n && n !== 0) return '';
@@ -129,7 +169,11 @@ export default function QuotePage() {
 
   // 엑셀 다운로드
   const [exporting, setExporting] = useState(false);
-  const [templateKey, setTemplateKey] = useState('cdv1');
+
+  // 문서 설정
+  const [company, setCompany] = useState<'CDV' | 'DL'>('CDV');
+  const [docSettings, setDocSettings] = useState<DocSettings>(CDV_DOC_DEFAULTS);
+  const [showDocSettings, setShowDocSettings] = useState(false);
 
   // ── 초기화 ──
   useEffect(() => {
@@ -139,21 +183,35 @@ export default function QuotePage() {
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener('change', handler);
 
-    // localStorage에서 컬럼 설정 로드
-    const saved = localStorage.getItem('quote_visible_columns');
-    if (saved) {
-      try {
-        setVisibleColumns(JSON.parse(saved));
-      } catch { /* ignore */ }
-    }
+    try {
+      const saved = localStorage.getItem('quote_visible_columns');
+      if (saved) {
+        try { setVisibleColumns(JSON.parse(saved)); } catch {}
+      }
+      const savedCompany = localStorage.getItem('quote_company') as 'CDV' | 'DL' | null;
+      if (savedCompany === 'CDV' || savedCompany === 'DL') {
+        setCompany(savedCompany);
+      }
+      const savedDoc = localStorage.getItem(`quote_doc_settings_${savedCompany || 'CDV'}`);
+      if (savedDoc) {
+        try { setDocSettings(JSON.parse(savedDoc)); } catch {}
+      }
+    } catch {}
 
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // 컬럼 설정 저장
+  // 설정 저장
   useEffect(() => {
-    localStorage.setItem('quote_visible_columns', JSON.stringify(visibleColumns));
+    try { localStorage.setItem('quote_visible_columns', JSON.stringify(visibleColumns)); } catch {}
   }, [visibleColumns]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('quote_company', company);
+      localStorage.setItem(`quote_doc_settings_${company}`, JSON.stringify(docSettings));
+    } catch {}
+  }, [company, docSettings]);
 
   // ── API 호출 ──
   async function fetchItems() {
@@ -226,6 +284,21 @@ export default function QuotePage() {
     setItems([]);
   }
 
+  // ── 회사 전환 ──
+  function switchCompany(c: 'CDV' | 'DL') {
+    setCompany(c);
+    try {
+      const saved = localStorage.getItem(`quote_doc_settings_${c}`);
+      if (saved) {
+        setDocSettings(JSON.parse(saved));
+      } else {
+        setDocSettings(c === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS);
+      }
+    } catch {
+      setDocSettings(c === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS);
+    }
+  }
+
   // ── 재고 검색 (디바운스) ──
   const doSearch = useCallback((q: string) => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -259,7 +332,8 @@ export default function QuotePage() {
     setExporting(true);
     try {
       const columnsParam = encodeURIComponent(JSON.stringify(visibleColumns));
-      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&template=${templateKey}&columns=${columnsParam}`);
+      const settingsParam = encodeURIComponent(JSON.stringify(docSettings));
+      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&columns=${columnsParam}&doc_settings=${settingsParam}`);
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -400,19 +474,21 @@ export default function QuotePage() {
                 border: '1px solid #ddd', width: 160, background: 'white'
               }}
             />
-            <select
-              value={templateKey}
-              onChange={e => setTemplateKey(e.target.value)}
-              style={{
-                fontSize: 16, padding: '8px 10px', borderRadius: 8,
-                border: '1px solid #ddd', background: 'white', cursor: 'pointer',
-              }}
-            >
-              <option value="cdv1">영업1부 와인</option>
-              <option value="cdv2">영업2부 와인</option>
-              <option value="dl1">영업1부 글라스</option>
-              <option value="dl2">영업2부 글라스</option>
-            </select>
+            <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
+              {(['CDV', 'DL'] as const).map(c => (
+                <button
+                  key={c}
+                  onClick={() => switchCompany(c)}
+                  style={{
+                    padding: '8px 14px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    background: company === c ? '#8B1538' : 'white',
+                    color: company === c ? 'white' : '#333',
+                  }}
+                >
+                  {c === 'CDV' ? '까브드뱅' : '대유라이프'}
+                </button>
+              ))}
+            </div>
             <button
               onClick={handleExport}
               disabled={exporting || items.length === 0}
@@ -444,6 +520,16 @@ export default function QuotePage() {
               title="컬럼 표시/숨김"
             >
               ⚙
+            </button>
+            <button
+              onClick={() => setShowDocSettings(!showDocSettings)}
+              style={{
+                padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer',
+                background: showDocSettings ? '#f0f0f0' : 'white', fontSize: 14,
+              }}
+              title="문서 설정"
+            >
+              📄
             </button>
             {items.length > 0 && (
               <button
@@ -489,6 +575,54 @@ export default function QuotePage() {
                 </label>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── 문서 설정 ── */}
+        {showDocSettings && (
+          <div style={{
+            background: 'white', borderRadius: 12, padding: 16, marginBottom: 16,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee'
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>문서 설정</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {([
+                ['companyName', '회사명'],
+                ['address', '주소/연락처'],
+                ['sender', '발신'],
+                ['title', '제목'],
+                ['content1', '내용 1'],
+                ['content2', '내용 2'],
+                ['content3', '내용 3'],
+                ['unit', '단위'],
+                ['representative', '대표자'],
+                ['sealText', '직인'],
+              ] as [string, string][]).map(([key, label]) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#555', minWidth: 80, flexShrink: 0 }}>
+                    {label}
+                  </label>
+                  <input
+                    type="text"
+                    value={(docSettings as any)[key] || ''}
+                    onChange={e => setDocSettings(prev => ({ ...prev, [key]: e.target.value }))}
+                    style={{
+                      flex: 1, fontSize: 13, padding: '6px 10px', borderRadius: 6,
+                      border: '1px solid #ddd', minWidth: 0,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setDocSettings(company === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)}
+              style={{
+                marginTop: 12, padding: '6px 14px', borderRadius: 6, border: '1px solid #ddd',
+                background: '#f5f5f5', fontSize: 12, cursor: 'pointer', color: '#666',
+              }}
+            >
+              기본값 초기화
+            </button>
           </div>
         )}
 
