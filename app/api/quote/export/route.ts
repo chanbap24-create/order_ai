@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
 import ExcelJS from 'exceljs';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
 
@@ -72,6 +74,38 @@ const DEFAULT_DOC: DocSettings = {
 // ═══════════════════════════════════════
 
 const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
+const TASTING_NOTE_INDEX_URL = `${TASTING_NOTE_BASE_URL}/tasting-notes-index.json`;
+
+function getLogoPath(company: string): string | null {
+  const filename = company === 'DL' ? 'riedel.png' : 'cavedevin.png';
+  // Try multiple possible paths (local dev + Vercel)
+  const candidates = [
+    path.join(process.cwd(), 'public', 'logos', filename),
+    path.join(process.cwd(), 'logos', filename),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+async function loadTastingNoteIndex(): Promise<Set<string>> {
+  try {
+    const res = await fetch(`${TASTING_NOTE_INDEX_URL}?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (!res.ok) return new Set();
+    const data = await res.json();
+    const s = new Set<string>();
+    for (const [k, v] of Object.entries(data.notes || {} as Record<string, any>)) {
+      if ((v as any)?.exists) s.add(k);
+    }
+    return s;
+  } catch {
+    return new Set();
+  }
+}
 
 const THIN: Partial<ExcelJS.Borders> = {
   top: { style: 'thin' }, left: { style: 'thin' },
@@ -151,16 +185,22 @@ export async function GET(request: NextRequest) {
       try { docSettings = { ...docSettings, ...JSON.parse(settingsParam) }; } catch {}
     }
 
+    // Parse company
+    const company = request.nextUrl.searchParams.get('company') || 'CDV';
+
     // Filter active columns based on visibility
     const activeCols = ALL_EXCEL_COLUMNS.filter(
       c => c.uiKey === null || visibleColumns.includes(c.uiKey)
     );
 
+    // Load tasting note index for existence check
+    const tastingNoteSet = await loadTastingNoteIndex();
+
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Cave De Vin - Order AI';
     workbook.created = new Date();
 
-    buildQuote(workbook, items, clientName, activeCols, docSettings);
+    buildQuote(workbook, items, clientName, activeCols, docSettings, company, tastingNoteSet);
 
     const buffer = await workbook.xlsx.writeBuffer();
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -191,7 +231,9 @@ function buildQuote(
   items: any[],
   clientName: string,
   activeCols: ColDef[],
-  doc: DocSettings
+  doc: DocSettings,
+  company: string,
+  tastingNoteSet: Set<string>
 ) {
   const ws = wb.addWorksheet('견적서');
   const totalCols = activeCols.length;
@@ -211,13 +253,30 @@ function buildQuote(
   // Row 1: spacer
   ws.getRow(1).height = 8;
 
-  // Row 2: Company name
+  // Row 2: Company logo or name
   ws.mergeCells(`A2:${lastCol}2`);
-  const titleCell = ws.getCell('A2');
-  titleCell.value = doc.companyName;
-  titleCell.font = { name: '굴림', size: 16, bold: true };
-  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  ws.getRow(2).height = 30;
+  const logoPath = getLogoPath(company);
+  if (logoPath) {
+    const logoBuffer = fs.readFileSync(logoPath);
+    const logoId = wb.addImage({ buffer: logoBuffer, extension: 'png' });
+    // cavedevin: 307x100, riedel: 231x160 → scale to ~55px height
+    const imgH = company === 'DL' ? 60 : 50;
+    const imgW = company === 'DL' ? Math.round(231 * (60 / 160)) : Math.round(307 * (50 / 100));
+    // Convert to EMU (1px ≈ 9525 EMU)
+    const rowHeight = imgH + 10;
+    ws.getRow(2).height = rowHeight * 0.75; // Excel row height in points (1pt ≈ 1.333px)
+    // Center the image across merged cells
+    ws.addImage(logoId, {
+      tl: { col: 0, row: 1 } as ExcelJS.Anchor,
+      ext: { width: imgW, height: imgH },
+    });
+  } else {
+    const titleCell = ws.getCell('A2');
+    titleCell.value = doc.companyName;
+    titleCell.font = { name: '굴림', size: 16, bold: true };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 30;
+  }
 
   // Row 3: Address
   ws.mergeCells(`A3:${lastCol}3`);
@@ -370,10 +429,16 @@ function buildQuote(
       if (col.type === 'link') {
         const itemCode = item.item_code || '';
         if (itemCode) {
+          const exists = tastingNoteSet.has(itemCode);
           const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf`;
           const cell = row.getCell(c);
-          cell.value = { text: '테이스팅노트', hyperlink: pdfUrl } as ExcelJS.CellHyperlinkValue;
-          cell.font = { name: '굴림', size: 9, color: { argb: 'FF0563C1' }, underline: true };
+          if (exists) {
+            cell.value = { text: '테이스팅노트', hyperlink: pdfUrl } as ExcelJS.CellHyperlinkValue;
+            cell.font = { name: '굴림', size: 9, color: { argb: 'FF27AE60' }, underline: true };
+          } else {
+            cell.value = '테이스팅노트(없음)';
+            cell.font = { name: '굴림', size: 9, color: { argb: 'FF8B1538' } };
+          }
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = THIN;
         } else {

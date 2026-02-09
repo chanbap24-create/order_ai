@@ -180,9 +180,25 @@ export default function QuotePage() {
   const [docSettings, setDocSettings] = useState<DocSettings>(CDV_DOC_DEFAULTS);
   const [showDocSettings, setShowDocSettings] = useState(false);
 
+  // 테이스팅노트 존재 여부
+  const [tastingNoteSet, setTastingNoteSet] = useState<Set<string>>(new Set());
+
   // ── 초기화 ──
   useEffect(() => {
     fetchItems();
+    // 테이스팅노트 인덱스 로드
+    fetch('/api/tasting-notes')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.notes) {
+          const s = new Set<string>();
+          for (const [k, v] of Object.entries(data.notes as Record<string, any>)) {
+            if (v?.exists) s.add(k);
+          }
+          setTastingNoteSet(s);
+        }
+      })
+      .catch(() => {});
     const mq = window.matchMedia('(max-width: 768px)');
     setIsMobile(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
@@ -338,7 +354,7 @@ export default function QuotePage() {
     try {
       const columnsParam = encodeURIComponent(JSON.stringify(visibleColumns));
       const settingsParam = encodeURIComponent(JSON.stringify(docSettings));
-      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&columns=${columnsParam}&doc_settings=${settingsParam}`);
+      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&columns=${columnsParam}&doc_settings=${settingsParam}&company=${company}`);
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -839,9 +855,12 @@ export default function QuotePage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={e => e.stopPropagation()}
-                                style={{ color: '#0563C1', textDecoration: 'underline', fontSize: 12 }}
+                                style={{
+                                  color: tastingNoteSet.has(item.item_code) ? '#27ae60' : '#8B1538',
+                                  textDecoration: 'underline', fontSize: 12, fontWeight: 600,
+                                }}
                               >
-                                테이스팅노트
+                                {tastingNoteSet.has(item.item_code) ? '테이스팅노트' : '테이스팅노트(없음)'}
                               </a>
                             ) : (
                               formatted
