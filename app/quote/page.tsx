@@ -258,7 +258,8 @@ export default function QuotePage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&template=${templateKey}`);
+      const columnsParam = encodeURIComponent(JSON.stringify(visibleColumns));
+      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&template=${templateKey}&columns=${columnsParam}`);
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);

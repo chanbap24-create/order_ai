@@ -23,6 +23,15 @@ export async function GET(request: NextRequest) {
     const templateKey = (request.nextUrl.searchParams.get('template') || 'cdv1') as TemplateKey;
     const items = db.prepare('SELECT * FROM quote_items ORDER BY id ASC').all() as any[];
 
+    // 클라이언트에서 전달받은 visibleColumns 파싱
+    const columnsParam = request.nextUrl.searchParams.get('columns');
+    let visibleColumns: string[] | null = null;
+    if (columnsParam) {
+      try {
+        visibleColumns = JSON.parse(columnsParam);
+      } catch { /* ignore */ }
+    }
+
     if (!['cdv1', 'cdv2', 'dl1', 'dl2'].includes(templateKey)) {
       return NextResponse.json({ error: '유효하지 않은 템플릿입니다.' }, { status: 400 });
     }
@@ -36,6 +45,14 @@ export async function GET(request: NextRequest) {
       case 'cdv2': await buildCDV2(workbook, items, clientName); break;
       case 'dl1':  await buildDL1(workbook, items, clientName); break;
       case 'dl2':  await buildDL2(workbook, items, clientName); break;
+    }
+
+    // 체크되지 않은 컬럼 숨김 처리
+    if (visibleColumns) {
+      const ws = workbook.worksheets[0];
+      if (ws) {
+        hideUncheckedColumns(ws, templateKey, visibleColumns);
+      }
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -817,4 +834,78 @@ async function buildDL2(wb: ExcelJS.Workbook, items: any[], clientName: string) 
   }
 
   ws.pageSetup = { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+}
+
+// ═══════════════════════════════════════════════════
+// 체크되지 않은 컬럼 숨김
+// ═══════════════════════════════════════════════════
+
+// 각 템플릿의 엑셀 컬럼 → UI ColumnKey 매핑
+const COLUMN_MAP: Record<TemplateKey, Record<number, string>> = {
+  cdv1: {
+    // Col 1 (A): No. → 항상 표시
+    2: 'item_code',       // B: 품목코드
+    3: 'country',         // C: 국가
+    4: 'brand',           // D: 브랜드
+    5: 'region',          // E: 지역
+    6: 'vintage',         // F: 빈티지
+    // Col 7 (G): 상품명 → 항상 표시
+    8: 'supply_price',    // H: 공급가
+    9: 'retail_price',    // I: 소비자가
+    10: 'discount_rate',  // J: 할인율
+    11: 'discounted_price', // K: 할인가
+    12: 'quantity',       // L: 수량
+    13: 'normal_total',   // M: 정상공급가합계
+    14: 'discount_total', // N: 할인공급가합계
+    15: 'note',           // O: 비고
+    16: 'tasting_note',   // P: 테이스팅노트
+  },
+  cdv2: {
+    // Col 1 (A): 구분 → 항상 표시
+    2: 'brand',           // B: 와이너리
+    // Col 3 (C): 상품명 → 항상 표시
+    4: 'country',         // D: 국가
+    // Col 5 (E): 본입 → 항상 표시
+    // Col 6 (F): 종류 → 항상 표시
+    7: 'retail_price',    // G: 권장소비자가
+    8: 'discounted_price', // H: 제안가
+    9: 'discount_rate',   // I: 할인율
+    10: 'note',           // J: 비고
+  },
+  dl1: {
+    // Col 1 (A): 구분 → 항상 표시
+    2: 'brand',           // B: 시리즈
+    3: 'item_code',       // C: 제품코드
+    4: 'image_url',       // D: 이미지
+    // Col 5 (E): 품명 → 항상 표시
+    6: 'supply_price',    // F: 정상공급가
+    7: 'discounted_price', // G: 할인공급가
+    8: 'discount_rate',   // H: 할인율
+    9: 'quantity',        // I: 수량
+    10: 'normal_total',   // J: 정상공급가합계
+    11: 'discount_total', // K: 할인공급가합계
+    12: 'note',           // L: 비고
+  },
+  dl2: {
+    // Col 1 (A): 구분 → 항상 표시
+    // Col 2 (B): 상품명 → 항상 표시
+    3: 'country',         // C: 원산지
+    // Col 4 (D): 생산 방법 → 항상 표시
+    // Col 5 (E): BOX 본입수 → 항상 표시
+    6: 'supply_price',    // F: 공급가
+    7: 'quantity',        // G: 수량
+    8: 'discount_total',  // H: 합계
+    9: 'note',            // I: 비고
+  },
+};
+
+function hideUncheckedColumns(ws: ExcelJS.Worksheet, templateKey: TemplateKey, visibleColumns: string[]) {
+  const map = COLUMN_MAP[templateKey];
+  if (!map) return;
+
+  for (const [colIdx, uiKey] of Object.entries(map)) {
+    if (!visibleColumns.includes(uiKey)) {
+      ws.getColumn(Number(colIdx)).hidden = true;
+    }
+  }
 }
