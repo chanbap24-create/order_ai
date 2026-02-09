@@ -424,17 +424,25 @@ function buildQuote(
               const meta = db.prepare('SELECT width, height FROM bottle_images WHERE item_code = ?').get(itemCode) as any;
               if (meta?.width && meta?.height) { origW = meta.width; origH = meta.height; }
             } catch {}
-            const maxH = 93; // px (셀 높이 75pt ≈ 100px, 여백 고려)
-            const maxW = 68; // px (컬럼 10 ≈ 75px, 여백 고려)
+            // 셀 크기 (px)
+            const cellWPx = 10 * 7.5;                   // 컬럼 width 10 ≈ 75px
+            const cellHPx = IMG_ROW_HEIGHT * 1.333;      // 75pt ≈ 100px
+            const pad = 4;                                // 상하좌우 여백 px
+            const fitW = cellWPx - pad * 2;
+            const fitH = cellHPx - pad * 2;
+            // 비율 유지하며 축소
             const ratio = origW / origH;
-            let drawH = maxH;
-            let drawW = drawH * ratio;
-            if (drawW > maxW) { drawW = maxW; drawH = drawW / ratio; }
-            // 셀 내 가운데 정렬 (좌우)
-            const colWidthPx = 10 * 7.5;
-            const offsetX = (colWidthPx - drawW) / 2 / colWidthPx;
+            let drawW: number, drawH: number;
+            if (fitW / fitH > ratio) {
+              drawH = fitH; drawW = drawH * ratio;       // 높이 기준
+            } else {
+              drawW = fitW; drawH = drawW / ratio;        // 폭 기준
+            }
+            // 셀 내 수평·수직 가운데 오프셋 (0~1 비율)
+            const offsetX = (cellWPx - drawW) / 2 / cellWPx;
+            const offsetY = (cellHPx - drawH) / 2 / cellHPx;
             ws.addImage(imgId, {
-              tl: { col: ci + Math.max(0.02, offsetX), row: r - 1 + 0.03 } as ExcelJS.Anchor,
+              tl: { col: ci + offsetX, row: r - 1 + offsetY } as ExcelJS.Anchor,
               ext: { width: drawW, height: drawH },
             });
           }
