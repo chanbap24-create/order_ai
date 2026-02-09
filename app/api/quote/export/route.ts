@@ -262,12 +262,24 @@ function buildQuote(
     // cavedevin: 307x100, riedel: 231x160 → scale to ~55px height
     const imgH = company === 'DL' ? 60 : 50;
     const imgW = company === 'DL' ? Math.round(231 * (60 / 160)) : Math.round(307 * (50 / 100));
-    // Convert to EMU (1px ≈ 9525 EMU)
     const rowHeight = imgH + 10;
-    ws.getRow(2).height = rowHeight * 0.75; // Excel row height in points (1pt ≈ 1.333px)
-    // Center the image across merged cells
+    ws.getRow(2).height = rowHeight * 0.75;
+    // Calculate total sheet width in pixels (1 Excel width unit ≈ 7.5px)
+    const totalWidthPx = activeCols.reduce((sum, c) => sum + c.width * 7.5, 0);
+    // Calculate column offset for centering (fractional col units)
+    const offsetPx = (totalWidthPx - imgW) / 2;
+    let accPx = 0;
+    let centerCol = 0;
+    for (let i = 0; i < activeCols.length; i++) {
+      const colPx = activeCols[i].width * 7.5;
+      if (accPx + colPx > offsetPx) {
+        centerCol = i + (offsetPx - accPx) / colPx;
+        break;
+      }
+      accPx += colPx;
+    }
     ws.addImage(logoId, {
-      tl: { col: 0, row: 1 } as ExcelJS.Anchor,
+      tl: { col: centerCol, row: 1 } as ExcelJS.Anchor,
       ext: { width: imgW, height: imgH },
     });
   } else {
