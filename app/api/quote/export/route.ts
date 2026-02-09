@@ -285,8 +285,8 @@ function buildQuote(
   if (logoPath) {
     const logoBuffer = fs.readFileSync(logoPath);
     const logoId = wb.addImage({ buffer: logoBuffer, extension: 'png' });
-    const imgH = company === 'DL' ? 60 : 50;
-    const imgW = company === 'DL' ? Math.round(231 * (60 / 160)) : Math.round(307 * (50 / 100));
+    const imgH = company === 'DL' ? 150 : 100;
+    const imgW = company === 'DL' ? Math.round(231 * (150 / 160)) : Math.round(307 * (100 / 100));
     const rowHeight = imgH + 10;
     ws.getRow(3).height = rowHeight * 0.75;
     const totalWidthPx = activeCols.reduce((sum, c) => sum + c.width * 7.5, 0);
@@ -332,10 +332,10 @@ function buildQuote(
   ws.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 7~10: spacer (URL ↔ 수신 여백 4줄)
-  ws.getRow(7).height = 12;
-  ws.getRow(8).height = 12;
-  ws.getRow(9).height = 12;
-  ws.getRow(10).height = 12;
+  ws.getRow(7).height = 16.5;
+  ws.getRow(8).height = 16.5;
+  ws.getRow(9).height = 16.5;
+  ws.getRow(10).height = 16.5;
 
   // Row 11: 수신 + date
   ws.getCell('A11').value = `수      신 : ${clientName || ''}`;
@@ -344,15 +344,15 @@ function buildQuote(
   ws.getCell(`${lastCol}11`).font = { name: '굴림', size: 11 };
   ws.getCell(`${lastCol}11`).alignment = { horizontal: 'right', vertical: 'middle' };
 
-  // Row 12: spacer
-  ws.getRow(12).height = 8;
+  // Row 12: spacer (수신↔발신)
+  ws.getRow(12).height = 12.5;
 
   // Row 13: 발신
   ws.getCell('A13').value = `발      신 : ${doc.sender}`;
   ws.getCell('A13').font = { name: '굴림', size: 11 };
 
-  // Row 14: spacer
-  ws.getRow(14).height = 8;
+  // Row 14: spacer (발신↔제목)
+  ws.getRow(14).height = 12.5;
 
   // Row 15: 제목
   ws.getCell('A15').value = `제    목 : ${doc.title}`;
@@ -365,8 +365,8 @@ function buildQuote(
   ws.getCell('A17').value = doc.content1;
   ws.getCell('A17').font = { name: '굴림', size: 11 };
 
-  // Row 18: spacer
-  ws.getRow(18).height = 8;
+  // Row 18: spacer (내용1↔내용2)
+  ws.getRow(18).height = 12.5;
 
   // Row 19: 내용 2
   ws.getCell('A19').value = doc.content2;
@@ -561,11 +561,11 @@ function buildQuote(
       if (col.type === 'currency') {
         sc(row, c, Number(val) || 0, { border: THIN, fmt: CURR });
       } else if (col.type === 'percent') {
-        sc(row, c, Number(val) || 0, { border: THIN, fmt: PCT, color: 'FFFF0000' });
+        sc(row, c, Number(val) || 0, { border: THIN, fmt: PCT, color: 'FFFF0000', align: 'center' });
       } else if (col.type === 'number') {
-        sc(row, c, Number(val) || 0, { border: THIN });
+        sc(row, c, Number(val) || 0, { border: THIN, align: 'center' });
       } else {
-        const leftAlign = ['product_name', 'english_name', 'korean_name', 'brand', 'note', 'tasting_note', 'region'].includes(col.uiKey || '');
+        const leftAlign = ['product_name', 'english_name', 'korean_name', 'note', 'tasting_note', 'region'].includes(col.uiKey || '');
         const bold = col.uiKey === 'product_name' || col.uiKey === 'korean_name';
         const isNote = col.uiKey === 'note';
         sc(row, c, String(val), {
