@@ -48,7 +48,22 @@ function parseWineData(itemCode, texts) {
   if (grapeIdx >= 0 && grapeIdx + 1 < texts.length) {
     const endIdx = texts.findIndex((t, i) => i > grapeIdx && KEYWORDS.includes(t));
     const grapeTexts = texts.slice(grapeIdx + 1, endIdx > grapeIdx ? endIdx : grapeIdx + 2);
-    data.grape_varieties = grapeTexts.join(' ').replace(/\s+/g, ' ').trim();
+    let grapeStr = grapeTexts.join(' ').replace(/\s+/g, ' ').trim();
+    // 와이너리 설명이나 음식으로 시작하는 경우 품종 데이터 아님
+    const descStarters = /^(빈티지|숙성|와인|와이너리|해발|포도밭|연간|가장|설립|생산|수확|LA\s|갈비|스테이크|치즈|해산물|파스타|닭|소고기|돼지|양고기|Cheese)/i;
+    if (descStarters.test(grapeStr)) {
+      grapeStr = '';
+    } else {
+      // 회사 정보/연락처/설명 이후 텍스트 제거
+      const cutPatterns = [/㈜/, /\(주\)/, /T\.\s*\d{2,3}-/, /www\./, /http/, /양조/, /수상/, /테이스팅/, /푸드\s*페어링/, /글라스\s*페어링/, /해발\s*고도/, /포도밭은/, /포도밭의/, /에서\s*재배/, /토양은/, /에서\s*생산/, /\s+[\u2013\u2014\-]+\s+[\uAC00-\uD7AF]/];
+      for (const pat of cutPatterns) {
+        const m = grapeStr.search(pat);
+        if (m >= 0) { grapeStr = grapeStr.substring(0, m).trim(); break; }
+      }
+      // 끝 쉼표/공백 정리
+      grapeStr = grapeStr.replace(/[,\s]+$/, '').trim();
+    }
+    data.grape_varieties = grapeStr;
   }
 
   // 설명: 포도밭(또는 품종 끝) ~ COLOR

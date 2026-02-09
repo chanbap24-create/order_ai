@@ -50,7 +50,7 @@ type ColumnKey =
   | 'discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
   | 'retail_normal_total' | 'retail_discount_total'
   | 'note' | 'tasting_note'
-  | 'grape_varieties' | 'description_kr';
+  | 'grape_varieties';
 
 interface ColumnConfig {
   key: ColumnKey;
@@ -79,7 +79,6 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'retail_normal_total', label: '정상소비자가합계', type: 'computed' },
   { key: 'retail_discount_total', label: '할인소비자가합계', type: 'computed' },
   { key: 'grape_varieties', label: '포도품종', type: 'text' },
-  { key: 'description_kr', label: '와인설명', type: 'text' },
   { key: 'note', label: '비고', editable: true, type: 'text' },
   { key: 'tasting_note', label: '테이스팅노트', type: 'text' },
 ];
@@ -507,8 +506,6 @@ export default function QuotePage() {
         return item.discount_rate;
       case 'grape_varieties':
         return wineProfiles[item.item_code]?.grape_varieties || '';
-      case 'description_kr':
-        return wineProfiles[item.item_code]?.description_kr || '';
       default:
         return (item as any)[key] ?? '';
     }

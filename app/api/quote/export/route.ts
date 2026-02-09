@@ -56,7 +56,6 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'retail_normal_total', label: '정상소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'retail_discount_total', label: '할인소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'grape_varieties', label: '포도품종', width: 20, type: 'text', dataField: 'grape_varieties' },
-  { uiKey: 'description_kr', label: '와인설명', width: 40, type: 'text', dataField: 'description_kr' },
   { uiKey: 'note', label: '비고', width: 15, type: 'text', dataField: 'note' },
   { uiKey: 'tasting_note', label: '테이스팅노트', width: 18, type: 'link' },
 ];
@@ -197,7 +196,7 @@ export async function GET(request: NextRequest) {
     ensureWineProfileTable();
     const clientName = request.nextUrl.searchParams.get('client_name') || '';
     const items = db.prepare(`
-      SELECT q.*, wp.grape_varieties, wp.description_kr
+      SELECT q.*, wp.grape_varieties
       FROM quote_items q
       LEFT JOIN wine_profiles wp ON q.item_code = wp.item_code
       ORDER BY q.id ASC
@@ -574,7 +573,7 @@ function buildQuote(
       } else if (col.type === 'number') {
         sc(row, c, Number(val) || 0, { border: THIN, align: 'center' });
       } else {
-        const leftAlign = ['product_name', 'english_name', 'korean_name', 'note', 'tasting_note', 'region', 'grape_varieties', 'description_kr'].includes(col.uiKey || '');
+        const leftAlign = ['product_name', 'english_name', 'korean_name', 'note', 'tasting_note', 'region', 'grape_varieties'].includes(col.uiKey || '');
         const bold = col.uiKey === 'product_name' || col.uiKey === 'korean_name';
         const isNote = col.uiKey === 'note';
         sc(row, c, String(val), {
