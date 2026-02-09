@@ -1,39 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/app/lib/db';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     ensureWineProfileTable();
 
-    // country: inventory 테이블 + wine_profiles 모두에서 조회 후 합산
+    const source = request.nextUrl.searchParams.get('source') || ''; // 'CDV' | 'DL'
+
+    // country: 선택된 소스의 inventory 테이블에서 조회
     const countrySet = new Set<string>();
 
-    // wine_profiles 국가
-    try {
-      const wpCountries = db.prepare(
-        "SELECT DISTINCT country FROM wine_profiles WHERE country != '' AND country IS NOT NULL"
-      ).all() as { country: string }[];
-      for (const r of wpCountries) countrySet.add(r.country);
-    } catch {}
-
-    // inventory_cdv 국가
-    try {
-      const cdvCountries = db.prepare(
-        "SELECT DISTINCT country FROM inventory_cdv WHERE country != '' AND country IS NOT NULL"
-      ).all() as { country: string }[];
-      for (const r of cdvCountries) countrySet.add(r.country);
-    } catch {}
-
-    // inventory_dl 국가
-    try {
-      const dlCountries = db.prepare(
-        "SELECT DISTINCT country FROM inventory_dl WHERE country != '' AND country IS NOT NULL"
-      ).all() as { country: string }[];
-      for (const r of dlCountries) countrySet.add(r.country);
-    } catch {}
+    if (source === 'DL') {
+      try {
+        const rows = db.prepare(
+          "SELECT DISTINCT country FROM inventory_dl WHERE country != '' AND country IS NOT NULL"
+        ).all() as { country: string }[];
+        for (const r of rows) countrySet.add(r.country);
+      } catch {}
+    } else {
+      // CDV 또는 미지정 시 CDV 기본
+      try {
+        const rows = db.prepare(
+          "SELECT DISTINCT country FROM inventory_cdv WHERE country != '' AND country IS NOT NULL"
+        ).all() as { country: string }[];
+        for (const r of rows) countrySet.add(r.country);
+      } catch {}
+    }
 
     const countries = Array.from(countrySet).sort();
 

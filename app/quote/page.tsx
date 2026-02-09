@@ -397,6 +397,23 @@ export default function QuotePage() {
     doSearch(searchQuery);
   }, [searchQuery, doSearch]);
 
+  // ── 필터 옵션 로드 ──
+  function loadFilterOptions(source: string) {
+    fetch(`/api/wine-profiles/filters?source=${source}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setFilterOptions({
+            countries: data.countries || [],
+            regions: data.regions || [],
+            wineTypes: data.wineTypes || [],
+            grapeVarieties: data.grapeVarieties || [],
+          });
+        }
+      })
+      .catch(() => {});
+  }
+
   // ── 엑셀 다운로드 ──
   async function handleExport() {
     setExporting(true);
@@ -589,19 +606,7 @@ export default function QuotePage() {
                 const next = !showSearch;
                 setShowSearch(next);
                 if (next) {
-                  fetch('/api/wine-profiles/filters')
-                    .then(r => r.json())
-                    .then(data => {
-                      if (data.success) {
-                        setFilterOptions({
-                          countries: data.countries || [],
-                          regions: data.regions || [],
-                          wineTypes: data.wineTypes || [],
-                          grapeVarieties: data.grapeVarieties || [],
-                        });
-                      }
-                    })
-                    .catch(() => {});
+                  loadFilterOptions(searchSource);
                 }
               }}
               style={{
@@ -740,7 +745,16 @@ export default function QuotePage() {
                 {(['CDV', 'DL'] as const).map(tab => (
                   <button
                     key={tab}
-                    onClick={() => { setSearchSource(tab); setSearchResults([]); setSearchQuery(''); }}
+                    onClick={() => {
+                      setSearchSource(tab);
+                      setSearchResults([]);
+                      setSearchQuery('');
+                      setFilterCountry('');
+                      setFilterRegion('');
+                      setFilterWineType('');
+                      setFilterGrapeVariety('');
+                      loadFilterOptions(tab);
+                    }}
                     style={{
                       padding: '6px 16px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
                       background: searchSource === tab ? '#8B1538' : 'white',
