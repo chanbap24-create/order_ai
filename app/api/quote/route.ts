@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       vintage = '',
       product_name = '',
       supply_price = 0,
+      retail_price = 0,
       discount_rate = 0,
       quantity = 1,
       note = '',
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     } = body;
 
     const price = Number(supply_price) || 0;
+    const rPrice = Number(retail_price) || 0;
     const rate = Number(discount_rate) || 0;
     const qty = Number(quantity) || 1;
     const discounted_price = Math.round(price * (1 - rate));
@@ -63,12 +65,12 @@ export async function POST(req: Request) {
     const result = db.prepare(`
       INSERT INTO quote_items (
         item_code, country, brand, region, image_url, vintage,
-        product_name, supply_price, discount_rate, discounted_price,
+        product_name, supply_price, retail_price, discount_rate, discounted_price,
         quantity, note, tasting_note
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       item_code, country, brand, region, image_url, vintage,
-      product_name, price, rate, discounted_price,
+      product_name, price, rPrice, rate, discounted_price,
       qty, note, tasting_note
     );
 
@@ -101,7 +103,7 @@ export async function PATCH(req: Request) {
 
     const allowedFields = [
       'item_code', 'country', 'brand', 'region', 'image_url', 'vintage',
-      'product_name', 'supply_price', 'discount_rate', 'quantity', 'note', 'tasting_note'
+      'product_name', 'supply_price', 'retail_price', 'discount_rate', 'quantity', 'note', 'tasting_note'
     ];
 
     const updates: string[] = [];

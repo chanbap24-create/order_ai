@@ -16,6 +16,7 @@ export function ensureQuoteTable() {
       vintage TEXT NOT NULL DEFAULT '',
       product_name TEXT NOT NULL DEFAULT '',
       supply_price REAL NOT NULL DEFAULT 0,
+      retail_price REAL NOT NULL DEFAULT 0,
       discount_rate REAL NOT NULL DEFAULT 0,
       discounted_price REAL NOT NULL DEFAULT 0,
       quantity INTEGER NOT NULL DEFAULT 1,
@@ -29,6 +30,14 @@ export function ensureQuoteTable() {
   db.prepare(
     'CREATE INDEX IF NOT EXISTS idx_quote_items_item_code ON quote_items(item_code)'
   ).run();
+
+  // retail_price 컬럼이 없으면 추가 (기존 테이블 마이그레이션)
+  try {
+    const cols = db.prepare('PRAGMA table_info(quote_items)').all() as Array<{ name: string }>;
+    if (!cols.find(c => c.name === 'retail_price')) {
+      db.prepare('ALTER TABLE quote_items ADD COLUMN retail_price REAL NOT NULL DEFAULT 0').run();
+    }
+  } catch { /* already exists */ }
 
   initialized = true;
 }

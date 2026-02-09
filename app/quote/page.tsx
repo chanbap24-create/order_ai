@@ -13,6 +13,7 @@ interface QuoteItem {
   vintage: string;
   product_name: string;
   supply_price: number;
+  retail_price: number;
   discount_rate: number;
   discounted_price: number;
   quantity: number;
@@ -42,7 +43,7 @@ interface InventoryItem {
 
 type ColumnKey =
   | 'item_code' | 'country' | 'brand' | 'region' | 'image_url'
-  | 'vintage' | 'product_name' | 'supply_price' | 'discount_rate'
+  | 'vintage' | 'product_name' | 'supply_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
   | 'note' | 'tasting_note';
 
@@ -62,6 +63,7 @@ const ALL_COLUMNS: ColumnConfig[] = [
   { key: 'vintage', label: '빈티지' },
   { key: 'product_name', label: '상품명' },
   { key: 'supply_price', label: '공급가', type: 'currency' },
+  { key: 'retail_price', label: '소비자가', type: 'currency' },
   { key: 'discount_rate', label: '할인율', editable: true, type: 'percent' },
   { key: 'discounted_price', label: '할인가', type: 'computed' },
   { key: 'quantity', label: '수량', editable: true, type: 'number' },
@@ -122,6 +124,7 @@ export default function QuotePage() {
 
   // 엑셀 다운로드
   const [exporting, setExporting] = useState(false);
+  const [templateKey, setTemplateKey] = useState('cdv1');
 
   // ── 초기화 ──
   useEffect(() => {
@@ -169,6 +172,7 @@ export default function QuotePage() {
           item_code: inv.item_no,
           product_name: inv.item_name,
           supply_price: inv.supply_price,
+          retail_price: inv.retail_price || 0,
           country: inv.country || '',
           vintage: inv.vintage || '',
           quantity: 1,
@@ -249,7 +253,7 @@ export default function QuotePage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}`);
+      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&template=${templateKey}`);
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -390,6 +394,19 @@ export default function QuotePage() {
                 border: '1px solid #ddd', width: 160, background: 'white'
               }}
             />
+            <select
+              value={templateKey}
+              onChange={e => setTemplateKey(e.target.value)}
+              style={{
+                fontSize: 16, padding: '8px 10px', borderRadius: 8,
+                border: '1px solid #ddd', background: 'white', cursor: 'pointer',
+              }}
+            >
+              <option value="cdv1">영업1부 와인</option>
+              <option value="cdv2">영업2부 와인</option>
+              <option value="dl1">영업1부 글라스</option>
+              <option value="dl2">영업2부 글라스</option>
+            </select>
             <button
               onClick={handleExport}
               disabled={exporting || items.length === 0}
