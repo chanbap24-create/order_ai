@@ -1,9 +1,31 @@
 // app/lib/adminUpload.ts
 // 관리자 엑셀 업로드 → DB 교체 로직
 
+import fs from "fs";
+import path from "path";
 import * as XLSX from "xlsx";
 import { db } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
+
+/* ─── 업로드 파일 저장 경로 ─── */
+const UPLOAD_DIR = "/tmp/admin-uploads";
+
+function saveUploadedFile(type: string, buf: Buffer) {
+  try {
+    if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    const filePath = path.join(UPLOAD_DIR, `${type}.xlsx`);
+    fs.writeFileSync(filePath, buf);
+    logger.info(`Admin upload: saved file to ${filePath}`);
+  } catch (e) {
+    logger.warn("Failed to save uploaded file to /tmp (non-fatal)", { error: e });
+  }
+}
+
+/** 저장된 업로드 파일 경로 반환 (없으면 null) */
+export function getUploadedFilePath(type: string): string | null {
+  const filePath = path.join(UPLOAD_DIR, `${type}.xlsx`);
+  return fs.existsSync(filePath) ? filePath : null;
+}
 
 /* ─── 유틸 ─── */
 function normCode(x: unknown) {
@@ -520,6 +542,9 @@ function processEnglish(buf: Buffer) {
 /* ─── 메인 처리 함수 ─── */
 export function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);
+
+  // 업로드 파일을 /tmp에 저장 (동기화 시 최신 파일 사용 가능)
+  saveUploadedFile(type, fileBuffer);
 
   switch (type) {
     case "client":

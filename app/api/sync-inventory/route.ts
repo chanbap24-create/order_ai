@@ -3,8 +3,39 @@ import * as XLSX from 'xlsx';
 import * as path from 'path';
 import * as fs from 'fs';
 import { db } from '@/app/lib/db';
+import { getUploadedFilePath } from '@/app/lib/adminUpload';
 
 export const runtime = 'nodejs';
+
+/**
+ * 시트 데이터를 가져옴: /tmp에 업로드된 파일이 있으면 우선 사용, 없으면 번들 xlsx에서 읽기
+ */
+function getSheetData(uploadType: string, sheetName: string, bundledWorkbook: XLSX.WorkBook | null): any[] | null {
+  // 1) /tmp에 업로드된 파일 우선
+  const uploadedPath = getUploadedFilePath(uploadType);
+  if (uploadedPath) {
+    try {
+      const buf = fs.readFileSync(uploadedPath);
+      const wb = XLSX.read(buf, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (ws) {
+        console.log(`  Using uploaded file: ${uploadedPath}`);
+        return XLSX.utils.sheet_to_json(ws, { header: 1 });
+      }
+    } catch (e) {
+      console.warn(`  Failed to read uploaded file ${uploadedPath}, falling back to bundled`);
+    }
+  }
+
+  // 2) 번들 xlsx 폴백
+  if (bundledWorkbook && bundledWorkbook.SheetNames.includes(sheetName)) {
+    const ws = bundledWorkbook.Sheets[sheetName];
+    console.log(`  Using bundled sheet: ${sheetName}`);
+    return XLSX.utils.sheet_to_json(ws, { header: 1 });
+  }
+
+  return null;
+}
 
 /**
  * Excel 파일에서 재고 데이터를 읽어 DB에 동기화
@@ -12,33 +43,28 @@ export const runtime = 'nodejs';
  */
 export async function POST() {
   try {
-    console.log('🔄 Starting inventory sync...');
-    
-    // Read Excel file
+    console.log('Starting inventory sync...');
+
+    // 번들 Excel 파일 (폴백용)
     const filePath = path.join(process.cwd(), 'order-ai.xlsx');
-    
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json(
-        { error: 'Excel 파일을 찾을 수 없습니다.' },
-        { status: 404 }
-      );
+    let bundledWorkbook: XLSX.WorkBook | null = null;
+
+    if (fs.existsSync(filePath)) {
+      const buffer = fs.readFileSync(filePath);
+      bundledWorkbook = XLSX.read(buffer, { type: 'buffer' });
     }
-    
-    const buffer = fs.readFileSync(filePath);
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    
+
     // ===== CDV (Downloads) 동기화 =====
-    console.log('📦 Syncing CDV (Downloads) inventory...');
-    
-    if (!workbook.SheetNames.includes('Downloads')) {
+    console.log('Syncing CDV (Downloads) inventory...');
+
+    const downloadsData = getSheetData('downloads', 'Downloads', bundledWorkbook);
+
+    if (!downloadsData) {
       return NextResponse.json(
-        { error: 'Downloads 시트를 찾을 수 없습니다.' },
+        { error: 'Downloads 데이터를 찾을 수 없습니다. (업로드 파일 또는 번들 xlsx 없음)' },
         { status: 404 }
       );
     }
-    
-    const downloadsSheet = workbook.Sheets['Downloads'];
-    const downloadsData: any[] = XLSX.utils.sheet_to_json(downloadsSheet, { header: 1 });
     
     // Clear existing data
     db.prepare('DELETE FROM inventory_cdv').run();
@@ -81,17 +107,16 @@ export async function POST() {
     console.log(`✅ CDV: ${cdvCount} items synced`);
     
     // ===== DL (Glass) 동기화 =====
-    console.log('📦 Syncing DL (Glass) inventory...');
-    
-    if (!workbook.SheetNames.includes('DL')) {
+    console.log('Syncing DL (Glass) inventory...');
+
+    const dlData = getSheetData('dl', 'DL', bundledWorkbook);
+
+    if (!dlData) {
       return NextResponse.json(
-        { error: 'DL 시트를 찾을 수 없습니다.' },
+        { error: 'DL 데이터를 찾을 수 없습니다. (업로드 파일 또는 번들 xlsx 없음)' },
         { status: 404 }
       );
     }
-    
-    const dlSheet = workbook.Sheets['DL'];
-    const dlData: any[] = XLSX.utils.sheet_to_json(dlSheet, { header: 1 });
     
     // Clear existing data
     db.prepare('DELETE FROM inventory_dl').run();
