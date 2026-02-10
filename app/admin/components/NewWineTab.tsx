@@ -15,6 +15,8 @@ export default function NewWineTab() {
   const [researchData, setResearchData] = useState<WineResearchResult | null>(null);
   const [researchingIds, setResearchingIds] = useState<Set<string>>(new Set());
   const [generatingPpt, setGeneratingPpt] = useState<Set<string>>(new Set());
+  // 인라인 영문명 입력 (DB 저장 없이 직접 조사에 사용)
+  const [nameInputs, setNameInputs] = useState<Record<string, string>>({});
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
@@ -31,13 +33,31 @@ export default function NewWineTab() {
 
   useEffect(() => { fetchWines(); }, [fetchWines]);
 
+  // 와인 목록이 로드되면 기존 영문명을 nameInputs에 세팅
+  useEffect(() => {
+    setNameInputs((prev) => {
+      const next = { ...prev };
+      for (const w of wines) {
+        if (w.item_name_en && !next[w.item_code]) {
+          next[w.item_code] = w.item_name_en;
+        }
+      }
+      return next;
+    });
+  }, [wines]);
+
   const handleResearch = async (wine: Wine) => {
+    const englishName = nameInputs[wine.item_code]?.trim() || wine.item_name_en || '';
     setResearchingIds((prev) => new Set(prev).add(wine.item_code));
     try {
       const res = await fetch('/api/admin/wines/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemCode: wine.item_code, itemNameKr: wine.item_name_kr, itemNameEn: wine.item_name_en || '' }),
+        body: JSON.stringify({
+          itemCode: wine.item_code,
+          itemNameKr: wine.item_name_kr,
+          itemNameEn: englishName,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -73,8 +93,12 @@ export default function NewWineTab() {
         setResearchData(research);
         setSelectedWine({ ...wine, ...data.data.wineUpdate });
         fetchWines();
+      } else {
+        alert(`조사 실패: ${data.error || '알 수 없는 오류'}`);
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      alert(`조사 중 오류: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
+    }
     setResearchingIds((prev) => { const s = new Set(prev); s.delete(wine.item_code); return s; });
   };
 
@@ -168,10 +192,9 @@ export default function NewWineTab() {
               <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                 <th style={thStyle}>품번</th>
                 <th style={thStyle}>품명</th>
-                <th style={thStyle}>영문명</th>
+                <th style={{ ...thStyle, minWidth: 200 }}>영문명 (검색용)</th>
                 <th style={thStyle}>국가</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>공급가</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>재고</th>
                 <th style={thStyle}>상태</th>
                 <th style={thStyle}>AI</th>
                 <th style={thStyle}>작업</th>
@@ -182,15 +205,18 @@ export default function NewWineTab() {
                 <tr key={w.item_code} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
                   <td style={tdStyle}><code style={{ fontSize: 'var(--text-xs)' }}>{w.item_code}</code></td>
                   <td style={tdStyle}>{w.item_name_kr}</td>
-                  <td style={{ ...tdStyle, color: w.item_name_en ? 'var(--color-text)' : 'var(--color-text-lighter)', fontSize: 'var(--text-xs)' }}>
-                    {w.item_name_en || '-'}
+                  <td style={tdStyle}>
+                    <input
+                      className="input"
+                      style={{ width: '100%', padding: '4px 8px', fontSize: '12px' }}
+                      placeholder="English wine name..."
+                      value={nameInputs[w.item_code] || ''}
+                      onChange={(e) => setNameInputs((prev) => ({ ...prev, [w.item_code]: e.target.value }))}
+                    />
                   </td>
                   <td style={tdStyle}>{w.country || '-'}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>
                     {w.supply_price != null ? w.supply_price.toLocaleString() : '-'}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    {w.available_stock != null ? w.available_stock : '-'}
                   </td>
                   <td style={tdStyle}>
                     <Badge variant={w.status === 'new' ? 'warning' : w.status === 'active' ? 'success' : 'error'}>
@@ -214,7 +240,7 @@ export default function NewWineTab() {
                       >
                         {researchingIds.has(w.item_code) ? '조사중...' : 'AI 조사'}
                       </button>
-                      {w.ai_researched ? (
+                      {w.ai_researched && (
                         <button
                           className="btn btn-primary btn-sm"
                           style={{ padding: '4px 10px', fontSize: '12px' }}
@@ -223,15 +249,14 @@ export default function NewWineTab() {
                         >
                           {generatingPpt.has(w.item_code) ? '생성중...' : 'PPT'}
                         </button>
-                      ) : (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: '4px 10px', fontSize: '12px' }}
-                          onClick={() => setSelectedWine(w)}
-                        >
-                          편집
-                        </button>
                       )}
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '4px 10px', fontSize: '12px' }}
+                        onClick={() => setSelectedWine(w)}
+                      >
+                        편집
+                      </button>
                     </div>
                   </td>
                 </tr>
