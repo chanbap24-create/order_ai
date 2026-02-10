@@ -80,7 +80,14 @@ function formatTimestamp(iso: string | null): string {
   return `${mm}월 ${dd}일 ${hh}:${mi}`;
 }
 
+const ADMIN_PASS = '0526';
+
 export default function AdminPage() {
+  // ── 비밀번호 게이트 ──
+  const [authed, setAuthed] = useState(false);
+  const [pw, setPw] = useState('');
+  const [pwError, setPwError] = useState(false);
+
   // ── 상태 확인 ──
   const [statusResult, setStatusResult] = useState<any>(null);
   const [statusError, setStatusError] = useState('');
@@ -160,6 +167,75 @@ export default function AdminPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (!authed) {
+    return (
+      <div style={{
+        minHeight: 'calc(100vh - 70px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-background)',
+      }}>
+        <div style={{
+          textAlign: 'center',
+          padding: 32,
+          background: '#fff',
+          borderRadius: 16,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          width: 320,
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>ADMIN</div>
+          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>비밀번호를 입력하세요</p>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (pw === ADMIN_PASS) {
+              setAuthed(true);
+              setPwError(false);
+            } else {
+              setPwError(true);
+            }
+          }}>
+            <input
+              type="password"
+              value={pw}
+              onChange={(e) => { setPw(e.target.value); setPwError(false); }}
+              placeholder="비밀번호"
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                fontSize: 16,
+                border: pwError ? '2px solid #e53e3e' : '1px solid #ddd',
+                borderRadius: 8,
+                outline: 'none',
+                textAlign: 'center',
+                letterSpacing: '0.2em',
+                boxSizing: 'border-box',
+              }}
+            />
+            {pwError && (
+              <p style={{ color: '#e53e3e', fontSize: 12, marginTop: 8 }}>비밀번호가 틀렸습니다</p>
+            )}
+            <button type="submit" style={{
+              marginTop: 16,
+              width: '100%',
+              padding: '10px 0',
+              background: '#8B1538',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}>
+              확인
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
