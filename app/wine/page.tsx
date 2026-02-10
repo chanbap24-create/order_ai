@@ -799,7 +799,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
         {/* ===== 클립보드 붙여넣기 버튼 ===== */}
         <button
-          onClick={async () => {
+          onTouchStart={(e) => e.preventDefault()}
+          onClick={async (e) => {
+            e.preventDefault();
             try {
               const clipText = await navigator.clipboard.readText();
               if (clipText) {
@@ -824,7 +826,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             boxShadow: hasClipboard ? "0 0 20px rgba(255, 107, 53, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2)" : "none",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             transform: hasClipboard ? "scale(1.1)" : "scale(1)",
-          }}
+            userSelect: "none",
+            WebkitTouchCallout: "none",
+          } as React.CSSProperties}
         >
           붙여넣기
         </button>

@@ -55,10 +55,18 @@ export default function OrderPage() {
             padding: 3,
             borderRadius: 10,
           }}>
-            <button onClick={() => setProductTab('wine')} style={pillActive(productTab === 'wine')}>
+            <button
+              onTouchStart={(e) => e.preventDefault()}
+              onClick={(e) => { e.preventDefault(); setProductTab('wine'); }}
+              style={pillActive(productTab === 'wine')}
+            >
               WINE
             </button>
-            <button onClick={() => setProductTab('riedel')} style={pillActive(productTab === 'riedel')}>
+            <button
+              onTouchStart={(e) => e.preventDefault()}
+              onClick={(e) => { e.preventDefault(); setProductTab('riedel'); }}
+              style={pillActive(productTab === 'riedel')}
+            >
               RIEDEL
             </button>
           </div>
