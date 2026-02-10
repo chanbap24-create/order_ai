@@ -154,6 +154,11 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 }
 
+/** 단일 와인 테이스팅 노트 PPT 생성 → Buffer 반환 */
+export async function generateSingleWinePpt(wineId: string): Promise<Buffer> {
+  return generateTastingNotePpt([wineId]);
+}
+
 /** 여러 와인의 테이스팅 노트 PPT 생성 → Buffer 반환 */
 export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer> {
   const pptx = new PptxGenJS();
