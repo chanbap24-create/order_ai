@@ -2,6 +2,7 @@
 
 import { db } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
+import { getCountryPair } from "@/app/lib/countryMapping";
 import type { Wine, TastingNote, AdminSetting } from "@/app/types/wine";
 
 /* ─── 테이블 생성 ─── */
@@ -88,6 +89,36 @@ export function ensureWineTables() {
     INSERT OR IGNORE INTO admin_settings (key, value) VALUES (?, ?)
   `);
   insertSetting.run('low_stock_threshold', '6');
+
+  // wines 테이블이 비어있고 inventory_cdv에 데이터가 있으면 기준 데이터 자동 세팅
+  try {
+    const wineCount = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
+    if (wineCount === 0) {
+      const invCount = (db.prepare("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='inventory_cdv'").get() as { cnt: number }).cnt;
+      if (invCount > 0) {
+        const items = db.prepare(`
+          SELECT item_no, item_name, supply_price, available_stock, vintage, alcohol_content as alcohol, country
+          FROM inventory_cdv WHERE item_no IS NOT NULL AND item_no != ''
+        `).all() as Array<{ item_no: string; item_name: string; supply_price: number | null; available_stock: number | null; vintage: string | null; alcohol: string | null; country: string | null }>;
+
+        if (items.length > 0) {
+          const insert = db.prepare(`
+            INSERT OR IGNORE INTO wines (item_code, item_name_kr, country, country_en, vintage, alcohol, supply_price, available_stock, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+          `);
+          db.transaction(() => {
+            for (const item of items) {
+              const { kr, en } = getCountryPair(item.country || '');
+              insert.run(item.item_no, item.item_name, kr || item.country, en, item.vintage, item.alcohol, item.supply_price, item.available_stock);
+            }
+          })();
+          logger.info(`[WineDb] Auto-populated ${items.length} wines from existing inventory_cdv as baseline`);
+        }
+      }
+    }
+  } catch (e) {
+    logger.warn("[WineDb] Auto-populate from inventory_cdv failed (non-fatal)", { error: e });
+  }
 
   logger.info("Wine management tables ensured");
 }

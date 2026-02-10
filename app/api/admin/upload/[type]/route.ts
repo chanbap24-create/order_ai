@@ -48,11 +48,17 @@ export async function POST(
     let priceChangesDetected = 0;
     if (type === "downloads") {
       try {
+        logger.info("[Upload] Starting wine detection after downloads upload...");
         priceChangesDetected = detectPriceChanges();
+        logger.info(`[Upload] Price changes detected: ${priceChangesDetected}`);
         const detection = detectNewWines();
         newWinesDetected = detection.newCount;
+        logger.info(`[Upload] New wines detected: ${newWinesDetected}, updated: ${detection.updatedCount}`);
       } catch (e) {
-        logger.warn("Wine detection after downloads upload failed", { error: e });
+        logger.error("Wine detection after downloads upload failed", e instanceof Error ? e : undefined);
+        if (e instanceof Error) {
+          logger.error(`[Upload] Detection error details: ${e.message}\n${e.stack}`);
+        }
       }
     }
 
