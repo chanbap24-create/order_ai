@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Card from './components/ui/Card';
-import Button from './components/ui/Button';
 
 export default function Home() {
   return (
@@ -97,8 +96,8 @@ export default function Home() {
             </Card>
           </Link>
 
-          {/* Wine Card */}
-          <Link href="/wine" style={{ textDecoration: 'none' }}>
+          {/* Quote Card */}
+          <Link href="/quote" style={{ textDecoration: 'none' }}>
             <Card hover>
               <div style={{
                 display: 'flex',
@@ -117,41 +116,37 @@ export default function Home() {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  {/* 와인병 아이콘 */}
+                  {/* 견적서 아이콘 */}
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="10" y1="2" x2="14" y2="2" />
-                    <line x1="10" y1="2" x2="10" y2="8" />
-                    <line x1="14" y1="2" x2="14" y2="8" />
-                    <path d="M10 8 L8 10" />
-                    <path d="M14 8 L16 10" />
-                    <line x1="8" y1="10" x2="8" y2="20" />
-                    <line x1="16" y1="10" x2="16" y2="20" />
-                    <path d="M8 20 L8 21 L16 21 L16 20" />
-                    <path d="M9 14 L15 14" opacity="0.5" />
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="heading-lg" style={{ 
+                  <h2 className="heading-lg" style={{
                     marginBottom: 'var(--space-2)',
                     fontWeight: 700,
                     fontSize: '1.5rem'
                   }}>
-                    Wine Order
+                    Quote
                   </h2>
                   <p style={{
                     fontSize: 'var(--text-sm)',
                     color: 'var(--color-text-light)',
                     lineHeight: 1.5
                   }}>
-                    거래처와 품목 자동 인식
+                    견적서 작성
                   </p>
                 </div>
               </div>
             </Card>
           </Link>
 
-          {/* Glass Card */}
-          <Link href="/glass" style={{ textDecoration: 'none' }}>
+          {/* Order Card */}
+          <Link href="/order" style={{ textDecoration: 'none' }}>
             <Card hover>
               <div style={{
                 display: 'flex',
@@ -170,33 +165,48 @@ export default function Home() {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  {/* 와인잔 아이콘 */}
+                  {/* 클립보드 발주 아이콘 */}
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="6" y1="3" x2="18" y2="3" />
-                    <path d="M7 3 L7 8 C7 10 8.5 12 12 12 C15.5 12 17 10 17 8 L17 3" />
-                    <line x1="12" y1="12" x2="12" y2="19" />
-                    <line x1="9" y1="19" x2="15" y2="19" />
-                    <path d="M9 19 L9 20 L15 20 L15 19" />
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    <line x1="9" y1="10" x2="15" y2="10" />
+                    <line x1="9" y1="14" x2="15" y2="14" />
+                    <line x1="9" y1="18" x2="13" y2="18" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="heading-lg" style={{ 
+                  <h2 className="heading-lg" style={{
                     marginBottom: 'var(--space-2)',
                     fontWeight: 700,
                     fontSize: '1.5rem'
                   }}>
-                    Glass Order
+                    Order
                   </h2>
                   <p style={{
                     fontSize: 'var(--text-sm)',
                     color: 'var(--color-text-light)',
                     lineHeight: 1.5
                   }}>
-                    와인잔 품목 빠른 발주
+                    와인 / 리델 발주
                   </p>
                 </div>
               </div>
             </Card>
+          </Link>
+        </div>
+
+        {/* Admin Link */}
+        <div style={{
+          textAlign: 'center',
+          marginTop: 'var(--space-16)',
+        }}>
+          <Link href="/admin" style={{
+            fontSize: 'var(--text-xs)',
+            color: '#999',
+            textDecoration: 'none',
+            letterSpacing: '0.05em',
+          }}>
+            ADMIN
           </Link>
         </div>
       </div>

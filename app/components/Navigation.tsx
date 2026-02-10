@@ -77,40 +77,6 @@ export default function Navigation() {
           </Link>
 
           <Link
-            href="/wine"
-            style={{
-              padding: 'var(--space-2) var(--space-4)',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 600,
-              fontSize: 'var(--text-xs)',
-              textDecoration: 'none',
-              color: isActive('/wine') ? 'white' : '#1a1a1a',
-              background: isActive('/wine') ? '#8B1538' : 'transparent',
-              transition: 'all var(--transition-fast)',
-              letterSpacing: '0.03em'
-            }}
-          >
-            WINE
-          </Link>
-          
-          <Link
-            href="/glass"
-            style={{
-              padding: 'var(--space-2) var(--space-4)',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 600,
-              fontSize: 'var(--text-xs)',
-              textDecoration: 'none',
-              color: isActive('/glass') ? 'white' : '#1a1a1a',
-              background: isActive('/glass') ? '#8B1538' : 'transparent',
-              transition: 'all var(--transition-fast)',
-              letterSpacing: '0.03em'
-            }}
-          >
-            RIEDEL
-          </Link>
-
-          <Link
             href="/quote"
             style={{
               padding: 'var(--space-2) var(--space-4)',
@@ -128,20 +94,20 @@ export default function Navigation() {
           </Link>
 
           <Link
-            href="/admin"
+            href="/order"
             style={{
               padding: 'var(--space-2) var(--space-4)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: 'var(--text-xs)',
               textDecoration: 'none',
-              color: isActive('/admin') ? 'white' : '#1a1a1a',
-              background: isActive('/admin') ? '#8B1538' : 'transparent',
+              color: isActive('/order') ? 'white' : '#1a1a1a',
+              background: isActive('/order') ? '#8B1538' : 'transparent',
               transition: 'all var(--transition-fast)',
               letterSpacing: '0.03em'
             }}
           >
-            ADMIN
+            ORDER
           </Link>
         </div>
       </div>

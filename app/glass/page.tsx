@@ -6,7 +6,7 @@ import LearnedClientList from "@/app/components/LearnedClientList";
 
 type LearnRow = { alias: string; canonical: string };
 
-export default function Home() {
+export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
   const [text, setText] = useState("");
   const [clientInput, setClientInput] = useState(""); // ✅ 거래처 입력칸
   const [force, setForce] = useState(true);
@@ -15,6 +15,11 @@ export default function Home() {
 
   // ✅ 탭 상태
   const [activeTab, setActiveTab] = useState<"order" | "learning">("order");
+
+  // 부모(ORDER 페이지)에서 전달받은 subTab 동기화
+  useEffect(() => {
+    if (subTab) setActiveTab(subTab);
+  }, [subTab]);
 
   // ✅ 거래처 선택(동점/애매) UI용
   const [clientCandidates, setClientCandidates] = useState<any[] | null>(null);
@@ -686,47 +691,11 @@ export default function Home() {
     <div
       style={{
         maxWidth: 960,
-        margin: "40px auto",
+        margin: "0 auto",
         padding: "0 16px",
         fontFamily: "system-ui",
       }}
     >
-      {/* ===== Header ===== */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>Daeyoo Life</div>
-        
-        {/* ===== 탭 메뉴 ===== */}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setActiveTab("order")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              backgroundColor: activeTab === "order" ? "#8B1538" : "transparent",
-              color: activeTab === "order" ? "#fff" : "#666",
-              fontWeight: activeTab === "order" ? 600 : 400,
-              cursor: "pointer",
-            }}
-          >
-            발주 입력
-          </button>
-          <button
-            onClick={() => setActiveTab("learning")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              backgroundColor: activeTab === "learning" ? "#8B1538" : "transparent",
-              color: activeTab === "learning" ? "#fff" : "#666",
-              fontWeight: activeTab === "learning" ? 600 : 400,
-              cursor: "pointer",
-            }}
-          >
-            학습 관리
-          </button>
-        </div>
-      </div>
 
       {/* ===== 발주 입력 탭 ===== */}
       {activeTab === "order" && (
