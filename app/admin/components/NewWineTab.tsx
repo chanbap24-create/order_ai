@@ -64,7 +64,7 @@ export default function NewWineTab() {
         const research = data.data.research as WineResearchResult;
 
         // 자동 저장: 와인 정보 + 테이스팅 노트
-        await fetch(`/api/admin/wines/${wine.item_code}`, {
+        const patchRes = await fetch(`/api/admin/wines/${wine.item_code}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -89,6 +89,11 @@ export default function NewWineTab() {
             },
           }),
         });
+
+        if (!patchRes.ok) {
+          const patchErr = await patchRes.json().catch(() => ({}));
+          alert(`저장 오류: ${patchErr.error || `HTTP ${patchRes.status}`}\n(조사 결과는 팝업에서 확인 가능)`);
+        }
 
         setResearchData(research);
         setSelectedWine({ ...wine, ...data.data.wineUpdate });
