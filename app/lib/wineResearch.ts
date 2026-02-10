@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { logger } from "@/app/lib/logger";
+import { searchWineImage } from "@/app/lib/wineImageSearch";
 import type { WineResearchResult } from "@/app/types/wine";
 
 let _client: OpenAI | null = null;
@@ -69,6 +70,18 @@ export async function researchWine(itemCode: string, itemNameKr: string): Promis
   }
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
+
+  // 와인 병 이미지 자동 검색
+  try {
+    const imageUrl = await searchWineImage(result.item_name_en);
+    if (imageUrl) {
+      result.image_url = imageUrl;
+      logger.info(`[WineImage] Found image for ${itemCode}: ${imageUrl}`);
+    }
+  } catch (e) {
+    logger.warn(`[WineImage] Image search failed for ${itemCode}`, { error: e });
+  }
+
   logger.info(`Wine research complete for ${itemCode}`);
 
   return result;

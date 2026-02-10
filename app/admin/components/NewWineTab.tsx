@@ -55,6 +55,7 @@ export default function NewWineTab() {
               grape_varieties: research.grape_varieties,
               wine_type: research.wine_type,
               ai_researched: 1,
+              ...(research.image_url ? { image_url: research.image_url } : {}),
             },
             tastingNote: {
               winemaking: research.winemaking,

@@ -86,6 +86,7 @@ export interface WineResearchResult {
   glass_pairing: string;
   serving_temp: string;
   awards: string;
+  image_url?: string;
 }
 
 export interface DashboardStats {

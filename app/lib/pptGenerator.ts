@@ -4,6 +4,7 @@
 import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { db } from "@/app/lib/db";
+import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
 import { logger } from "@/app/lib/logger";
 import path from "path";
 import fs from "fs";
@@ -50,6 +51,8 @@ interface SlideData {
   servingTemp: string;
   awards: string;
   bottleImagePath?: string;
+  bottleImageBase64?: string;
+  bottleImageMime?: string;
 }
 
 /** wine_images 테이블에서 이미지 경로 조회 */
@@ -111,7 +114,14 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // ─── 와인 병 이미지 (좌측) ───
-  if (data.bottleImagePath && fs.existsSync(data.bottleImagePath)) {
+  if (data.bottleImageBase64) {
+    slide.addImage({
+      data: `image/${data.bottleImageMime || 'jpeg'};base64,${data.bottleImageBase64}`,
+      x: 0, y: 1.62,
+      w: LEFT_COL_W, h: 7.73,
+      sizing: { type: 'contain', w: LEFT_COL_W, h: 7.73 },
+    });
+  } else if (data.bottleImagePath && fs.existsSync(data.bottleImagePath)) {
     slide.addImage({
       path: data.bottleImagePath,
       x: 0, y: 1.62,
@@ -302,6 +312,22 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
     const note = getTastingNote(wineId);
     const bottleImagePath = getWineImagePath(wineId);
 
+    // 이미지: 로컬 파일 우선, 없으면 URL에서 다운로드
+    let bottleImageBase64: string | undefined;
+    let bottleImageMime: string | undefined;
+
+    if (!bottleImagePath && wine.image_url) {
+      try {
+        const imgData = await downloadImageAsBase64(wine.image_url);
+        if (imgData) {
+          bottleImageBase64 = imgData.base64;
+          bottleImageMime = imgData.mimeType;
+        }
+      } catch (e) {
+        logger.warn(`[PPT] Failed to download wine image for ${wineId}`, { error: e });
+      }
+    }
+
     addTastingNoteSlide(pptx, {
       itemCode: wine.item_code,
       nameKr: wine.item_name_kr,
@@ -321,6 +347,8 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
       servingTemp: note?.serving_temp || '',
       awards: note?.awards || '',
       bottleImagePath: bottleImagePath || undefined,
+      bottleImageBase64,
+      bottleImageMime,
     });
     slideCount++;
   }
