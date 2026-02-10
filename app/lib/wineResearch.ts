@@ -1,8 +1,21 @@
-// Claude AI 와인 조사 로직
+// GPT 와인 조사 로직
 
-import { getClaudeClient } from "@/app/lib/claudeClient";
+import OpenAI from "openai";
 import { logger } from "@/app/lib/logger";
 import type { WineResearchResult } from "@/app/types/wine";
+
+let _client: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!_client) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY 환경변수가 설정되지 않았습니다.");
+    }
+    _client = new OpenAI({ apiKey });
+  }
+  return _client;
+}
 
 const RESEARCH_PROMPT = `You are a professional wine sommelier and researcher. Given a Korean wine name, research and provide detailed information about this wine.
 
@@ -31,29 +44,26 @@ Important:
 - Do NOT include any text outside the JSON object`;
 
 export async function researchWine(itemCode: string, itemNameKr: string): Promise<WineResearchResult> {
-  const client = getClaudeClient();
+  const client = getOpenAIClient();
 
   logger.info(`Researching wine: ${itemCode} - ${itemNameKr}`);
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-5-20250929",
+  const response = await client.chat.completions.create({
+    model: "gpt-4o-mini",
     max_tokens: 1024,
     messages: [
-      {
-        role: "user",
-        content: `와인 이름: ${itemNameKr}\n품번: ${itemCode}\n\n이 와인에 대해 조사해주세요.`,
-      },
+      { role: "system", content: RESEARCH_PROMPT },
+      { role: "user", content: `와인 이름: ${itemNameKr}\n품번: ${itemCode}\n\n이 와인에 대해 조사해주세요.` },
     ],
-    system: RESEARCH_PROMPT,
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Claude API 응답에 텍스트가 없습니다.");
+  const text = response.choices[0]?.message?.content;
+  if (!text) {
+    throw new Error("OpenAI API 응답에 텍스트가 없습니다.");
   }
 
   // JSON 파싱 (코드블록 래핑 대응)
-  let jsonStr = textBlock.text.trim();
+  let jsonStr = text.trim();
   if (jsonStr.startsWith("```")) {
     jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
   }
