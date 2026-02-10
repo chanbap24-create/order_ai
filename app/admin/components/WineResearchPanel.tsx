@@ -1,0 +1,141 @@
+'use client';
+
+import { useState } from 'react';
+import Card from '@/app/components/ui/Card';
+import type { Wine, WineResearchResult } from '@/app/types/wine';
+
+interface WineResearchPanelProps {
+  wine: Wine;
+  onSave: (itemCode: string, wineData: Partial<Wine>, noteData: Partial<WineResearchResult>) => void;
+  onClose: () => void;
+}
+
+export default function WineResearchPanel({ wine, onSave, onClose }: WineResearchPanelProps) {
+  const [form, setForm] = useState({
+    item_name_en: wine.item_name_en || '',
+    country_en: wine.country_en || '',
+    region: wine.region || '',
+    grape_varieties: wine.grape_varieties || '',
+    wine_type: wine.wine_type || '',
+    winemaking: '',
+    color_note: '',
+    nose_note: '',
+    palate_note: '',
+    food_pairing: '',
+    glass_pairing: '',
+    serving_temp: '',
+    awards: '',
+  });
+
+  const updateField = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    const wineData: Partial<Wine> = {
+      item_name_en: form.item_name_en,
+      country_en: form.country_en,
+      region: form.region,
+      grape_varieties: form.grape_varieties,
+      wine_type: form.wine_type,
+      ai_researched: 1,
+      status: 'active',
+    };
+
+    const noteData: Partial<WineResearchResult> = {
+      winemaking: form.winemaking,
+      color_note: form.color_note,
+      nose_note: form.nose_note,
+      palate_note: form.palate_note,
+      food_pairing: form.food_pairing,
+      glass_pairing: form.glass_pairing,
+      serving_temp: form.serving_temp,
+      awards: form.awards,
+    };
+
+    onSave(wine.item_code, wineData, noteData);
+  };
+
+  const fieldGroups = [
+    {
+      title: '와인 정보',
+      fields: [
+        { key: 'item_name_en', label: '영문명' },
+        { key: 'country_en', label: '국가 (영문)' },
+        { key: 'region', label: '지역' },
+        { key: 'grape_varieties', label: '품종' },
+        { key: 'wine_type', label: '와인 유형' },
+      ],
+    },
+    {
+      title: '양조 & 테이스팅',
+      fields: [
+        { key: 'winemaking', label: '양조 방법', multiline: true },
+        { key: 'color_note', label: '색상 (Color)', multiline: true },
+        { key: 'nose_note', label: '향 (Nose)', multiline: true },
+        { key: 'palate_note', label: '맛 (Palate)', multiline: true },
+      ],
+    },
+    {
+      title: '페어링 & 기타',
+      fields: [
+        { key: 'food_pairing', label: '음식 페어링', multiline: true },
+        { key: 'glass_pairing', label: '추천 글라스' },
+        { key: 'serving_temp', label: '서빙 온도' },
+        { key: 'awards', label: '수상내역', multiline: true },
+      ],
+    },
+  ];
+
+  return (
+    <Card style={{ marginBottom: 'var(--space-6)', border: '2px solid var(--color-primary)', background: 'rgba(139,21,56,0.02)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+        <div>
+          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-primary)' }}>
+            와인 조사 결과
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-light)' }}>
+            <strong>{wine.item_code}</strong> - {wine.item_name_kr}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <button className="btn btn-primary btn-sm" onClick={handleSave}>저장</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>닫기</button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)' }}>
+        {fieldGroups.map((group) => (
+          <div key={group.title}>
+            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-light)', marginBottom: 'var(--space-3)', textTransform: 'uppercase' }}>
+              {group.title}
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              {group.fields.map((f) => (
+                <div key={f.key}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-light)', display: 'block', marginBottom: 2 }}>
+                    {f.label}
+                  </label>
+                  {f.multiline ? (
+                    <textarea
+                      className="input"
+                      style={{ minHeight: 60, resize: 'vertical' }}
+                      value={form[f.key as keyof typeof form]}
+                      onChange={(e) => updateField(f.key, e.target.value)}
+                    />
+                  ) : (
+                    <input
+                      className="input"
+                      value={form[f.key as keyof typeof form]}
+                      onChange={(e) => updateField(f.key, e.target.value)}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
