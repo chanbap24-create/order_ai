@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import LearnedAliasList from "@/app/components/LearnedAliasList";
 import LearnedClientList from "@/app/components/LearnedClientList";
 import LearnedNewItemsList from "@/app/components/LearnedNewItemsList";
@@ -39,43 +39,14 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
   // ✅ 복사 상태(버튼 텍스트)
   const [copied, setCopied] = useState(false);
 
-  // ✅ 클립보드 내용 있는지 체크
-  const [hasClipboard, setHasClipboard] = useState(false);
+  // ✅ textarea ref (붙여넣기 포커스용)
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // ✅ 페이지 로드 시 클립보드 내용 자동 붙여넣기
-  const [autoLoaded, setAutoLoaded] = useState(false);
+  // ✅ 페이지 로드 시 textarea 자동 포커스 (iOS 붙여넣기 바 유도)
   useEffect(() => {
-    const loadClipboard = async () => {
-      try {
-        const clip = await navigator.clipboard.readText();
-        if (clip && clip.length > 0) {
-          if (!autoLoaded) {
-            setText(clip);
-            setAutoLoaded(true);
-          }
-          setHasClipboard(true);
-        } else {
-          setHasClipboard(false);
-        }
-      } catch {
-        setHasClipboard(false);
-      }
-    };
-    loadClipboard();
-  }, []);
-
-  // ✅ 클립보드 체크 (주기적)
-  useEffect(() => {
-    const checkClipboard = async () => {
-      try {
-        const clip = await navigator.clipboard.readText();
-        setHasClipboard(!!clip && clip.length > 0);
-      } catch {
-        setHasClipboard(false);
-      }
-    };
-    const interval = setInterval(checkClipboard, 3000);
-    return () => clearInterval(interval);
+    if (subTab === 'order' && !text.trim()) {
+      setTimeout(() => textareaRef.current?.focus(), 500);
+    }
   }, []);
 
   // ✅ 전체 JSON 토글
@@ -765,6 +736,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               발주 내용
             </label>
             <textarea
+              ref={textareaRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
@@ -775,7 +747,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                 }
               }}
               rows={10}
-              placeholder="품목과 수량을 입력하세요"
+              placeholder="여기를 탭하고 붙여넣기 하세요"
               style={{
                 width: "100%",
                 padding: 12,
@@ -823,42 +795,28 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           지우기
         </button>
 
-        {/* ===== 클립보드 붙여넣기 버튼 ===== */}
-        <div
-          role="button"
-          tabIndex={-1}
-          onPointerDown={async (e) => {
-            e.preventDefault();
+        {/* ===== 붙여넣기 유도 버튼 (textarea 포커스) ===== */}
+        <button
+          onClick={() => {
             if (loading) return;
-            try {
-              const clipText = await navigator.clipboard.readText();
-              if (clipText) {
-                setText(clipText);
-                setHasClipboard(false);
-              }
-            } catch (err) {
-              alert("클립보드 접근 권한이 필요합니다.");
-            }
+            textareaRef.current?.focus();
           }}
+          disabled={loading}
           style={{
             padding: "10px 20px",
             borderRadius: 10,
-            border: hasClipboard ? "4px solid #8B1538" : "2px solid #ddd",
+            border: "2px solid #8B1538",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : hasClipboard ? "#8B1538" : "#fff",
-            color: hasClipboard ? "#fff" : "#000",
-            fontWeight: hasClipboard ? 700 : 600,
+            background: loading ? "#f5f5f5" : "#8B1538",
+            color: "#fff",
+            fontWeight: 700,
             fontSize: 16,
             marginLeft: "auto",
-            boxShadow: hasClipboard ? "0 0 20px rgba(255, 107, 53, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2)" : "none",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: hasClipboard ? "scale(1.1)" : "scale(1)",
             userSelect: "none",
-            WebkitTouchCallout: "none",
-          } as React.CSSProperties}
+          }}
         >
           붙여넣기
-        </div>
+        </button>
       </div>
 
       {/* ===== 신규 사업자 ===== */}
