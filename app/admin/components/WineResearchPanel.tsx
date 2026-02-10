@@ -60,8 +60,38 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
   const handleGeneratePpt = async () => {
     setGeneratingPpt(true);
     try {
-      // 먼저 현재 데이터를 저장
-      handleSave();
+      // 먼저 현재 데이터를 직접 저장 (onSave를 통하지 않음 - 패널 닫힘 방지)
+      const saveRes = await fetch(`/api/admin/wines/${wine.item_code}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wine: {
+            item_name_en: form.item_name_en,
+            country_en: form.country_en,
+            region: form.region,
+            grape_varieties: form.grape_varieties,
+            wine_type: form.wine_type,
+            ai_researched: 1,
+          },
+          tastingNote: {
+            winemaking: form.winemaking,
+            color_note: form.color_note,
+            nose_note: form.nose_note,
+            palate_note: form.palate_note,
+            food_pairing: form.food_pairing,
+            glass_pairing: form.glass_pairing,
+            serving_temp: form.serving_temp,
+            awards: form.awards,
+          },
+        }),
+      });
+
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({ error: `저장 실패 HTTP ${saveRes.status}` }));
+        alert(`저장 오류: ${err.error || '알 수 없는 오류'}`);
+        setGeneratingPpt(false);
+        return;
+      }
 
       // PPT 생성 요청
       const res = await fetch('/api/admin/tasting-notes/generate-ppt', {
