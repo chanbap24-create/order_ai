@@ -27,6 +27,7 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
     serving_temp: researchData?.serving_temp || '',
     awards: researchData?.awards || '',
   });
+  const [generatingPpt, setGeneratingPpt] = useState(false);
 
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -40,7 +41,6 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
       grape_varieties: form.grape_varieties,
       wine_type: form.wine_type,
       ai_researched: 1,
-      status: 'active',
     };
 
     const noteData: Partial<WineResearchResult> = {
@@ -55,6 +55,31 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
     };
 
     onSave(wine.item_code, wineData, noteData);
+  };
+
+  const handleGeneratePpt = async () => {
+    setGeneratingPpt(true);
+    try {
+      // 먼저 현재 데이터를 저장
+      handleSave();
+
+      // PPT 생성 요청
+      const res = await fetch('/api/admin/tasting-notes/generate-ppt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wineIds: [wine.item_code] }),
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${wine.item_code}.pptx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch { /* ignore */ }
+    setGeneratingPpt(false);
   };
 
   const fieldGroups = [
@@ -100,6 +125,14 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
           </p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ background: '#2563eb' }}
+            onClick={handleGeneratePpt}
+            disabled={generatingPpt}
+          >
+            {generatingPpt ? 'PPT 생성중...' : 'PPTX 저장'}
+          </button>
           <button className="btn btn-primary btn-sm" onClick={handleSave}>저장</button>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>닫기</button>
         </div>
