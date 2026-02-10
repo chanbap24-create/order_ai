@@ -111,7 +111,7 @@ export default function NewWineTab() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `tasting-note-${wineId}.pptx`;
+        a.download = `${wineId}.pptx`;
         a.click();
         URL.revokeObjectURL(url);
       }
