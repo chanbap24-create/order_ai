@@ -51,17 +51,42 @@ Important:
 - Be specific and accurate - prefer real data over guesses
 - Do NOT include any text outside the JSON object`;
 
+/** Step 0: 한글 와인명 → 영문 와인명 변환 (GPT 경량 호출) */
+async function translateWineName(client: OpenAI, itemNameKr: string): Promise<string> {
+  const response = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_tokens: 100,
+    messages: [
+      {
+        role: "system",
+        content: "You are a wine name translator. Given a Korean wine name, return ONLY the original English/French wine name. No explanation, no quotes, just the wine name. Example: 샤또 라그랑쥬 → Chateau Lagrange",
+      },
+      { role: "user", content: itemNameKr },
+    ],
+  });
+  return response.choices[0]?.message?.content?.trim() || "";
+}
+
 export async function researchWine(itemCode: string, itemNameKr: string): Promise<WineResearchResult> {
   const client = getOpenAIClient();
 
   logger.info(`Researching wine: ${itemCode} - ${itemNameKr}`);
 
-  // Step 1: Wine-Searcher에서 실제 데이터 검색
+  // Step 1: 한글 와인명을 영문으로 변환
+  let englishName = "";
+  try {
+    englishName = await translateWineName(client, itemNameKr);
+    logger.info(`[Translate] ${itemNameKr} → ${englishName}`);
+  } catch (e) {
+    logger.warn(`[Translate] Failed to translate wine name`, { error: e });
+  }
+
+  // Step 2: Wine-Searcher에서 영문명으로 실제 데이터 검색
   let wsContext = "";
   let imageUrl: string | null = null;
 
-  // 한글 이름으로 먼저 검색 시도
-  const wsData = await scrapeWineSearcher(itemNameKr);
+  const searchName = englishName || itemNameKr;
+  const wsData = await scrapeWineSearcher(searchName);
 
   if (wsData) {
     wsContext = `\n\n=== Wine-Searcher 실제 데이터 ===\n`;
@@ -74,13 +99,13 @@ export async function researchWine(itemCode: string, itemNameKr: string): Promis
       wsContext += `리뷰:\n${wsData.reviews.map(r => `- ${r}`).join('\n')}\n`;
     }
     imageUrl = wsData.imageUrl || null;
-    logger.info(`[WineSearcher] Got data for ${itemCode}`, { name: wsData.name, varietal: wsData.varietal });
+    logger.info(`[WineSearcher] Got data for ${itemCode}`, { name: wsData.name, varietal: wsData.varietal, hasImage: !!imageUrl });
   } else {
-    logger.info(`[WineSearcher] No data found for Korean name, will rely on GPT`);
+    logger.info(`[WineSearcher] No data found for: ${searchName}`);
   }
 
-  // Step 2: GPT에 실제 데이터를 컨텍스트로 전달하여 구조화
-  const userMessage = `와인 이름: ${itemNameKr}\n품번: ${itemCode}${wsContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요. Wine-Searcher 데이터가 있다면 그것을 우선 사용하세요.`;
+  // Step 3: GPT에 실제 데이터를 컨텍스트로 전달하여 구조화
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문 추정): ${englishName}\n품번: ${itemCode}${wsContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요. Wine-Searcher 데이터가 있다면 그것을 우선 사용하세요.`;
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
@@ -104,7 +129,7 @@ export async function researchWine(itemCode: string, itemNameKr: string): Promis
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // Step 3: 이미지 URL 설정
+  // Step 4: 이미지 URL 설정
   // Wine-Searcher에서 이미 이미지를 얻었으면 사용, 아니면 영문명으로 재검색
   if (!imageUrl && result.item_name_en) {
     imageUrl = await searchWineImage(result.item_name_en);
@@ -114,7 +139,7 @@ export async function researchWine(itemCode: string, itemNameKr: string): Promis
     logger.info(`[WineImage] Image found for ${itemCode}: ${imageUrl}`);
   }
 
-  logger.info(`Wine research complete for ${itemCode} (WS data: ${wsData ? 'yes' : 'no'})`);
+  logger.info(`Wine research complete for ${itemCode} (WS data: ${wsData ? 'yes' : 'no'}, image: ${imageUrl ? 'yes' : 'no'})`);
 
   return result;
 }
