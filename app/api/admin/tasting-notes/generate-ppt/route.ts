@@ -1,6 +1,7 @@
 // app/api/admin/tasting-notes/generate-ppt/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { generateTastingNotePpt, generateSingleWinePpt } from "@/app/lib/pptGenerator";
+import { generateSingleWinePdf } from "@/app/lib/pdfGenerator";
 import { logChange } from "@/app/lib/changeLogDb";
 import { upsertTastingNote } from "@/app/lib/wineDb";
 import { uploadToRelease } from "@/app/lib/githubRelease";
@@ -17,26 +18,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "wineIds 배열이 필요합니다." }, { status: 400 });
     }
 
-    // 개별 와인별 PPTX 생성 + GitHub 릴리스 업로드
-    const uploadResults: { wineId: string; url?: string; error?: string }[] = [];
+    // 개별 와인별 PPTX + PDF 생성 + GitHub 릴리스 업로드
+    const uploadResults: { wineId: string; pptxUrl?: string; pdfUrl?: string; error?: string }[] = [];
 
     for (const wineId of wineIds) {
       try {
-        const buf = await generateSingleWinePpt(wineId);
+        // PPTX 생성
+        const pptBuf = await generateSingleWinePpt(wineId);
         upsertTastingNote(wineId, { ppt_generated: 1 });
 
-        // GitHub 릴리스 업로드
+        // PDF 생성
+        let pdfBuf: Buffer | null = null;
         try {
-          const url = await uploadToRelease(
+          pdfBuf = await generateSingleWinePdf(wineId);
+        } catch (e) {
+          logger.warn(`[PDF] Generation failed for ${wineId}`, { error: e });
+        }
+
+        // GitHub 릴리스 업로드 (PPTX + PDF)
+        const result: typeof uploadResults[number] = { wineId };
+
+        try {
+          result.pptxUrl = await uploadToRelease(
             `${wineId}.pptx`,
-            buf,
+            pptBuf,
             "application/vnd.openxmlformats-officedocument.presentationml.presentation"
           );
-          uploadResults.push({ wineId, url });
         } catch (e) {
           logger.warn(`[PPT] GitHub upload failed for ${wineId}`, { error: e });
-          uploadResults.push({ wineId, error: "GitHub 업로드 실패" });
         }
+
+        if (pdfBuf) {
+          try {
+            result.pdfUrl = await uploadToRelease(
+              `${wineId}.pdf`,
+              pdfBuf,
+              "application/pdf"
+            );
+          } catch (e) {
+            logger.warn(`[PDF] GitHub upload failed for ${wineId}`, { error: e });
+          }
+        }
+
+        uploadResults.push(result);
       } catch (e) {
         uploadResults.push({ wineId, error: e instanceof Error ? e.message : "생성 실패" });
       }
