@@ -55,20 +55,22 @@ export default function OrderPage() {
             padding: 3,
             borderRadius: 10,
           }}>
-            <button
-              onTouchStart={(e) => e.preventDefault()}
-              onClick={(e) => { e.preventDefault(); setProductTab('wine'); }}
+            <div
+              role="button"
+              tabIndex={-1}
+              onPointerDown={(e) => { e.preventDefault(); setProductTab('wine'); }}
               style={pillActive(productTab === 'wine')}
             >
               WINE
-            </button>
-            <button
-              onTouchStart={(e) => e.preventDefault()}
-              onClick={(e) => { e.preventDefault(); setProductTab('riedel'); }}
+            </div>
+            <div
+              role="button"
+              tabIndex={-1}
+              onPointerDown={(e) => { e.preventDefault(); setProductTab('riedel'); }}
               style={pillActive(productTab === 'riedel')}
             >
               RIEDEL
-            </button>
+            </div>
           </div>
 
           {/* Right: Sub tabs (발주 입력 / 학습 관리) */}

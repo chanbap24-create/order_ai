@@ -798,21 +798,22 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         </button>
 
         {/* ===== 클립보드 붙여넣기 버튼 ===== */}
-        <button
-          onTouchStart={(e) => e.preventDefault()}
-          onClick={async (e) => {
+        <div
+          role="button"
+          tabIndex={-1}
+          onPointerDown={async (e) => {
             e.preventDefault();
+            if (loading) return;
             try {
               const clipText = await navigator.clipboard.readText();
               if (clipText) {
                 setText(clipText);
-                setHasClipboard(false); // 붙여넣기 후 이펙트 제거
+                setHasClipboard(false);
               }
             } catch (err) {
               alert("클립보드 접근 권한이 필요합니다.");
             }
           }}
-          disabled={loading}
           style={{
             padding: "10px 20px",
             borderRadius: 10,
@@ -831,7 +832,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           } as React.CSSProperties}
         >
           붙여넣기
-        </button>
+        </div>
       </div>
 
       {/* ===== 신규 사업자 ===== */}
