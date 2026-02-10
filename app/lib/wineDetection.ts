@@ -20,25 +20,33 @@ interface InventoryItem {
 /** inventory_cdv 테이블에서 현재 재고 목록 가져오기 */
 function getInventoryItems(): InventoryItem[] {
   try {
-    return db.prepare(`
+    const items = db.prepare(`
       SELECT item_no, item_name, supply_price, available_stock, vintage, alcohol_content as alcohol, country
       FROM inventory_cdv
     `).all() as InventoryItem[];
-  } catch {
+    logger.info(`[WineDetection] inventory_cdv: ${items.length} items loaded`);
+    return items;
+  } catch (e) {
+    logger.error(`[WineDetection] Failed to load inventory_cdv`, e instanceof Error ? e : undefined);
     return [];
   }
 }
 
 /** 신규 와인 감지 및 등록 */
 export function detectNewWines(): { newCount: number; updatedCount: number } {
+  logger.info(`[WineDetection] detectNewWines() called`);
   ensureWineTables();
 
   const items = getInventoryItems();
-  if (items.length === 0) return { newCount: 0, updatedCount: 0 };
+  if (items.length === 0) {
+    logger.warn(`[WineDetection] No inventory items found, skipping detection`);
+    return { newCount: 0, updatedCount: 0 };
+  }
 
   // wines 테이블이 비어있으면 첫 업로드 → 모두 'active'로 등록 (신규 아님)
   const wineCount = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
   const isFirstLoad = wineCount === 0;
+  logger.info(`[WineDetection] wines table: ${wineCount} existing, isFirstLoad=${isFirstLoad}`);
 
   let newCount = 0;
   let updatedCount = 0;
@@ -121,9 +129,7 @@ export function detectNewWines(): { newCount: number; updatedCount: number } {
     }
   })();
 
-  if (newCount > 0) {
-    logger.info(`Wine detection: ${newCount} new wines, ${updatedCount} updated`);
-  }
+  logger.info(`[WineDetection] Result: ${newCount} new wines, ${updatedCount} updated, isFirstLoad=${isFirstLoad}`);
 
   return { newCount, updatedCount };
 }
