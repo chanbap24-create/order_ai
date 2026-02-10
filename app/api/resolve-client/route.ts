@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { jsonResponse } from "@/app/lib/api-response";
 import { db } from "@/app/lib/db";
 import { handleApiError, AppError } from "@/app/lib/errors";
 import { validateRequest, safeParseBody, resolveClientSchema } from "@/app/lib/validation";
@@ -66,7 +65,7 @@ export async function POST(req: Request): Promise<NextResponse<ResolveClientResp
     if (candidateName) {
       const exact = rows.find((r) => eqNorm(r.alias, candidateName));
       if (exact) {
-        return jsonResponse({
+        return NextResponse.json({
           success: true,
           status: "resolved",
           client: {
@@ -108,7 +107,7 @@ export async function POST(req: Request): Promise<NextResponse<ResolveClientResp
       (!second || top.score - second.score >= config.matching.client.autoResolveGap);
 
     if (canAuto) {
-      return jsonResponse({
+      return NextResponse.json({
         success: true,
         status: "resolved",
         client: { status: "resolved", ...top, method: "fuzzy_auto" },
@@ -123,7 +122,7 @@ export async function POST(req: Request): Promise<NextResponse<ResolveClientResp
       (!second || top.score - second.score >= config.matching.client.forceResolveGap);
 
     if (forceOk) {
-      return jsonResponse({
+      return NextResponse.json({
         success: true,
         status: "resolved",
         client: { status: "resolved", ...top, method: "fuzzy_force" },
@@ -141,9 +140,9 @@ export async function POST(req: Request): Promise<NextResponse<ResolveClientResp
       },
     };
 
-    return jsonResponse(response);
+    return NextResponse.json(response);
   } catch (error) {
     logger.error("resolve-client error", error);
-    return handleApiError<ResolveClientResponse>(error);
+    return handleApiError(error) as NextResponse<ResolveClientResponse>;
   }
 }

@@ -63,7 +63,7 @@ function toNumber(x: unknown): number | null {
 }
 
 /* ─── 업로드 타입 정의 ─── */
-export const UPLOAD_TYPES: Record<string, { label: string; description: string }> = {
+export const UPLOAD_TYPES = {
   client: {
     label: "거래처별 와인 출고현황",
     description: "Client 시트 - 와인 거래처/품목 데이터",
@@ -88,7 +88,7 @@ export const UPLOAD_TYPES: Record<string, { label: string; description: string }
     label: "와인리스트",
     description: "와인 영문/한글 가격 리스트",
   },
-};
+} as const;
 
 export type UploadType = keyof typeof UPLOAD_TYPES;
 
@@ -97,6 +97,8 @@ export function isValidUploadType(type: string): type is UploadType {
 }
 
 /* ─── Client / DL-Client 공통 파서 ─── */
+// Header row 0: 열1, 선택, 사업장, 출고번호, 판매처(4), 판매처번호(5), ...
+// 품번(12), 품명(13), 판매단가(16), 기준단가(19)
 function parseClientSheet(rows: unknown[][]) {
   const IDX_CLIENT_NAME = 4;
   const IDX_CLIENT_CODE = 5;
@@ -143,7 +145,7 @@ function parseDlClientSheet(rows: unknown[][]) {
   const IDX_GL_PRICE = 16;
 
   const clientMap = new Map<string, string>();
-  const itemsMap = new Map<string, string>();
+  const itemsMap = new Map<string, string>(); // itemNo -> itemName
   const clientItemsMap = new Map<
     string,
     { clientCode: string; itemNo: string; itemName: string; price: number }
@@ -183,6 +185,7 @@ function processClient(buf: Buffer) {
 
   if (clientMap.size === 0) throw new Error("거래처 데이터가 없습니다. 엑셀 형식을 확인하세요.");
 
+  // 기존 syncFromXlsx.ts와 동일한 테이블/로직 사용
   db.prepare(`CREATE TABLE IF NOT EXISTS clients (
     client_code TEXT PRIMARY KEY, client_name TEXT NOT NULL, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`).run();
@@ -209,6 +212,7 @@ function processClient(buf: Buffer) {
   `);
 
   db.transaction(() => {
+    // 엑셀 유래 데이터만 삭제 (학습 데이터 보존)
     db.prepare("DELETE FROM client_item_stats").run();
     db.prepare("DELETE FROM clients").run();
     db.prepare("DELETE FROM client_alias WHERE weight >= 10").run();
@@ -235,6 +239,7 @@ function processDlClient(buf: Buffer) {
 
   if (clientMap.size === 0) throw new Error("거래처 데이터가 없습니다. 엑셀 형식을 확인하세요.");
 
+  // 기존 glass 테이블 구조 사용
   db.prepare(`CREATE TABLE IF NOT EXISTS glass_clients (
     client_code TEXT PRIMARY KEY, client_name TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`).run();
@@ -268,6 +273,7 @@ function processDlClient(buf: Buffer) {
   `);
 
   db.transaction(() => {
+    // FK 순서: 자식 테이블 먼저 삭제 (glass_client_item_stats → glass_client_alias → glass_items → glass_clients)
     db.prepare("DELETE FROM glass_client_item_stats").run();
     db.prepare("DELETE FROM glass_client_alias WHERE weight >= 10").run();
     db.prepare("DELETE FROM glass_items").run();
@@ -295,6 +301,7 @@ function processRiedel(buf: Buffer) {
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
 
+  // 헤더 행 찾기: "Code" 컬럼이 있는 행
   let headerIdx = -1;
   for (let i = 0; i < Math.min(20, rows.length); i++) {
     const r = (rows[i] || []) as unknown[];
@@ -305,6 +312,7 @@ function processRiedel(buf: Buffer) {
   }
   if (headerIdx < 0) throw new Error("리델 헤더 행을 찾을 수 없습니다. 'Code' 컬럼이 필요합니다.");
 
+  // 기존 glass_items 테이블에 리델 공급가 업데이트 + 별도 riedel_items 테이블
   db.prepare(`CREATE TABLE IF NOT EXISTS riedel_items (
     code TEXT PRIMARY KEY, series TEXT, item_kr TEXT, item_en TEXT,
     unit INTEGER, supply_price REAL, box_price REAL, note TEXT,
@@ -316,6 +324,7 @@ function processRiedel(buf: Buffer) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   `);
 
+  // 리델 공급가를 glass_items에도 반영
   const updateGlassPrice = db.prepare(`
     UPDATE glass_items SET supply_price = ?, updated_at = CURRENT_TIMESTAMP WHERE item_no = ?
   `);
@@ -338,6 +347,7 @@ function processRiedel(buf: Buffer) {
 
       insert.run(code, series, normText(r[2]), normText(r[3]), toNumber(r[4]), supplyPrice, toNumber(r[6]), normText(r[7]));
 
+      // glass_items에 공급가 반영
       if (supplyPrice != null) {
         updateGlassPrice.run(supplyPrice, code);
       }
@@ -355,7 +365,11 @@ function processDownloads(buf: Buffer) {
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+  // Header row 0: 열1, 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
+  //   국가(8), 표준바코드(9), 출고예정(10), 가용재고(11), 30일출고(12), 90일/3평균출고(13),
+  //   365일/12평균출고(14), 공급가(15), 할인공급가(16), 도매장가(17), 판매가(18), 최저판매가(19)
 
+  // 기존 inventory_cdv 테이블 사용
   db.prepare(`CREATE TABLE IF NOT EXISTS inventory_cdv (
     item_no TEXT PRIMARY KEY, item_name TEXT, supply_price REAL, available_stock REAL,
     bonded_warehouse REAL, sales_30days REAL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -363,6 +377,7 @@ function processDownloads(buf: Buffer) {
     incoming_stock REAL, vintage TEXT, alcohol_content TEXT, country TEXT
   )`).run();
 
+  // items 마스터 테이블도 함께 업데이트
   db.prepare(`CREATE TABLE IF NOT EXISTS items (
     item_no TEXT PRIMARY KEY, item_name TEXT, supply_price REAL,
     category TEXT, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -403,15 +418,15 @@ function processDownloads(buf: Buffer) {
 
       upsertInventory.run(
         item_no, item_name, supply_price,
-        toNumber(r[11]),
-        toNumber(r[12]),
-        toNumber(r[16]),
-        toNumber(r[17]),
-        toNumber(r[18]),
-        toNumber(r[19]),
-        normText(r[6]),
-        normText(r[7]),
-        normText(r[8])
+        toNumber(r[11]), // available_stock
+        toNumber(r[12]), // sales_30days
+        toNumber(r[16]), // discount_price
+        toNumber(r[17]), // wholesale_price
+        toNumber(r[18]), // retail_price
+        toNumber(r[19]), // min_price
+        normText(r[6]),  // vintage
+        normText(r[7]),  // alcohol
+        normText(r[8])   // country
       );
 
       upsertItem.run(item_no, item_name, supply_price);
@@ -428,7 +443,10 @@ function processDl(buf: Buffer) {
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
+  // 동일 구조: 열1, 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
+  //   국가(8), ... 공급가(15)
 
+  // 기존 inventory_dl 테이블 사용
   db.prepare(`CREATE TABLE IF NOT EXISTS inventory_dl (
     item_no TEXT PRIMARY KEY, item_name TEXT, supply_price REAL, available_stock REAL,
     anseong_warehouse REAL, sales_30days REAL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -458,13 +476,13 @@ function processDl(buf: Buffer) {
 
       upsert.run(
         item_no,
-        normText(r[2]),
-        toNumber(r[15]),
-        toNumber(r[11]),
-        toNumber(r[12]),
-        normText(r[6]),
-        normText(r[7]),
-        normText(r[8])
+        normText(r[2]),  // item_name
+        toNumber(r[15]), // supply_price
+        toNumber(r[11]), // available_stock
+        toNumber(r[12]), // sales_30days
+        normText(r[6]),  // vintage
+        normText(r[7]),  // alcohol
+        normText(r[8])   // country
       );
       count++;
     }
@@ -480,6 +498,7 @@ function processEnglish(buf: Buffer) {
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
 
+  // 헤더 행 찾기: 국가(country) 컬럼이 있는 행
   let headerIdx = -1;
   for (let i = 0; i < Math.min(10, rows.length); i++) {
     const r = (rows[i] || []) as unknown[];
@@ -488,7 +507,13 @@ function processEnglish(buf: Buffer) {
       break;
     }
   }
+  // 데이터 시작: 헤더 + 서브헤더(영문/한글) 건너뛰기
   const dataStart = headerIdx >= 0 ? headerIdx + 2 : 4;
+
+  // Data columns (0-based):
+  // 0=seq, 1=item_no, 2=?, 3=country, 4=supplier, 5=region, 6=image,
+  // 7=wine_name_en, 8=wine_name_kr, 9=vintage, 10=ml, 11=supply_price,
+  // 12=supplier_name, 13=stock, 14=bonded
 
   db.prepare(`CREATE TABLE IF NOT EXISTS wine_list_english (
     item_no TEXT PRIMARY KEY, country TEXT, supplier TEXT, region TEXT,
@@ -515,17 +540,17 @@ function processEnglish(buf: Buffer) {
 
       insert.run(
         item_no,
-        normText(r[3]),
-        normText(r[4]),
-        normText(r[5]),
-        normText(r[7]),
-        normText(r[8]),
-        normText(r[9]),
-        toNumber(r[10]),
-        toNumber(r[11]),
-        normText(r[12]),
-        toNumber(r[13]),
-        toNumber(r[14])
+        normText(r[3]),  // country
+        normText(r[4]),  // supplier
+        normText(r[5]),  // region
+        normText(r[7]),  // wine_name_en
+        normText(r[8]),  // wine_name_kr
+        normText(r[9]),  // vintage
+        toNumber(r[10]), // ml
+        toNumber(r[11]), // supply_price
+        normText(r[12]), // supplier_name
+        toNumber(r[13]), // stock
+        toNumber(r[14])  // bonded
       );
       count++;
     }
@@ -535,9 +560,10 @@ function processEnglish(buf: Buffer) {
 }
 
 /* ─── 메인 처리 함수 ─── */
-export function processUpload(type: string, fileBuffer: Buffer) {
+export function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);
 
+  // 업로드 파일을 /tmp에 저장 (동기화 시 최신 파일 사용 가능)
   saveUploadedFile(type, fileBuffer);
 
   switch (type) {

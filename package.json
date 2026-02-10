@@ -1,27 +1,23 @@
 {
   "name": "order-ai",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "echo '🚀 Building Order AI...' && next build && echo '✅ Build complete!'",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "init-supply-price": "node scripts/init-supply-price.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
-    "@types/string-similarity": "^4.0.2",
     "better-sqlite3": "^12.5.0",
     "date-holidays": "^3.26.5",
     "exceljs": "^4.4.0",
-    "next": "14.2.18",
-    "node-fetch": "^2.7.0",
-    "openai": "^6.17.0",
+    "next": "16.0.10",
+    "openai": "^6.15.0",
     "pptxgenjs": "^4.0.1",
-    "react": "^18",
-    "react-dom": "^18",
-    "string-similarity": "^4.0.4",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "xlsx": "^0.18.5",
     "zod": "^4.3.5"
   },
@@ -31,10 +27,8 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "adm-zip": "^0.5.16",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.18",
-    "image-size": "^2.0.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.10",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

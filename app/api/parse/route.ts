@@ -9,23 +9,9 @@ import type { ParseRequest, ParseResponse, ParsedItem } from "@/app/types/api";
 
 export const runtime = "nodejs";
 
-// ✅ Lazy Initialization: 실제 사용 시점에만 OpenAI 클라이언트 생성
-let openai: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openai) {
-    if (!config.openai.apiKey) {
-      throw new InternalServerError(
-        "OPENAI_API_KEY is not configured",
-        "MISSING_API_KEY"
-      );
-    }
-    openai = new OpenAI({
-      apiKey: config.openai.apiKey,
-    });
-  }
-  return openai;
-}
+const openai = new OpenAI({
+  apiKey: config.openai.apiKey,
+});
 
 const MAX_ITEMS = config.parsing.maxItems;
 
@@ -121,12 +107,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
     const rawBody = await safeParseBody(req);
     const { text } = validateRequest(parseSchema, rawBody) as ParseRequest;
 
-    const openaiClient = getOpenAIClient();
-    const completion = await (openaiClient.responses.create({
+    const createParams = {
       model: config.openai.model,
       input: [
         {
-          role: "system",
+          role: "system" as const,
           content: [
             "You extract a Korean wine order into structured JSON.",
             "Return ONLY valid JSON that matches the schema.",
@@ -144,9 +129,12 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
             "- Do not add extra fields.",
           ].join("\n"),
         },
-        { role: "user", content: text },
+        { role: "user" as const, content: text },
       ],
-    }) as any);
+      response_format: responseFormat,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const completion = await openai.responses.create(createParams as any);
 
     const jsonText = completion.output_text;
 
@@ -181,6 +169,6 @@ export async function POST(req: Request): Promise<NextResponse<ParseResponse>> {
     return NextResponse.json(response);
   } catch (error) {
     logger.error("parse error", error);
-    return handleApiError<ParseResponse>(error);
+    return handleApiError(error) as NextResponse<ParseResponse>;
   }
 }

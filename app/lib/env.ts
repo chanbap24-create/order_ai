@@ -1,7 +1,7 @@
 // 환경 변수 검증 및 관리
 
 type EnvConfig = {
-  OPENAI_API_KEY?: string;  // ✅ 선택 사항으로 변경 (번역 비활성화 시 불필요)
+  OPENAI_API_KEY: string;
   ANTHROPIC_API_KEY?: string;
   DB_PATH?: string;
   DATABASE_URL?: string;
@@ -14,7 +14,7 @@ type EnvConfig = {
   MIN_SCORE_GAP?: string;
 };
 
-const requiredEnvVars = [] as const;  // ✅ OPENAI_API_KEY 필수 제거
+const requiredEnvVars = ["OPENAI_API_KEY"] as const;
 
 function validateEnv(): EnvConfig {
   const missing: string[] = [];
@@ -39,7 +39,7 @@ function validateEnv(): EnvConfig {
   }
 
   return {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     DB_PATH: process.env.DB_PATH,
     DATABASE_URL: process.env.DATABASE_URL,
@@ -66,3 +66,4 @@ export const isDev = env.NODE_ENV === "development";
 export const isProd = env.NODE_ENV === "production";
 export const isTest = env.NODE_ENV === "test";
 
+// 환경 변수 재내보내기 (호환성 - 이미 위에서 export됨)
