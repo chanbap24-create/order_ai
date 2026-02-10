@@ -41,18 +41,38 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
   // ✅ 클립보드 내용 있는지 체크
   const [hasClipboard, setHasClipboard] = useState(false);
 
-  // ✅ 클립보드 체크
+  // ✅ 페이지 로드 시 클립보드 내용 자동 붙여넣기
+  const [autoLoaded, setAutoLoaded] = useState(false);
   useEffect(() => {
-    const checkClipboard = async () => {
+    const loadClipboard = async () => {
       try {
-        const text = await navigator.clipboard.readText();
-        setHasClipboard(!!text && text.length > 0);
+        const clip = await navigator.clipboard.readText();
+        if (clip && clip.length > 0) {
+          if (!autoLoaded) {
+            setText(clip);
+            setAutoLoaded(true);
+          }
+          setHasClipboard(true);
+        } else {
+          setHasClipboard(false);
+        }
       } catch {
         setHasClipboard(false);
       }
     };
-    checkClipboard();
-    // 3초마다 체크
+    loadClipboard();
+  }, []);
+
+  // ✅ 클립보드 체크 (주기적)
+  useEffect(() => {
+    const checkClipboard = async () => {
+      try {
+        const clip = await navigator.clipboard.readText();
+        setHasClipboard(!!clip && clip.length > 0);
+      } catch {
+        setHasClipboard(false);
+      }
+    };
     const interval = setInterval(checkClipboard, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -123,8 +143,14 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
     if (st === "resolved") {
       setShowItemsPanel(false); // 모두 확정되면 자동으로 닫기
+      // ✅ 모든 품목 확정 시 자동 복사 → 카톡 열기
+      setTimeout(async () => {
+        await copyStaffMessage();
+        setTimeout(() => { window.location.href = 'kakaotalk://'; }, 500);
+      }, 300);
       return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.status]);
 
   // ✅ 신규/미입고 품목의 공급가를 자동으로 입력란에 채우기 (와인처럼)
