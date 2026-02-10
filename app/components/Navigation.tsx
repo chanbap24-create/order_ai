@@ -126,6 +126,23 @@ export default function Navigation() {
           >
             QUOTE
           </Link>
+
+          <Link
+            href="/admin"
+            style={{
+              padding: 'var(--space-2) var(--space-4)',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              fontSize: 'var(--text-xs)',
+              textDecoration: 'none',
+              color: isActive('/admin') ? 'white' : '#1a1a1a',
+              background: isActive('/admin') ? '#8B1538' : 'transparent',
+              transition: 'all var(--transition-fast)',
+              letterSpacing: '0.03em'
+            }}
+          >
+            ADMIN
+          </Link>
         </div>
       </div>
     </nav>
