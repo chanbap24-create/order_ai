@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/app/lib/db';
+import { db } from '@/app/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +32,6 @@ interface InventoryStats {
  */
 export async function GET(request: NextRequest) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
     
     // Parse query parameters
