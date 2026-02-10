@@ -8,13 +8,13 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { itemCode, itemNameKr } = await request.json();
+    const { itemCode, itemNameKr, itemNameEn } = await request.json();
 
     if (!itemCode || !itemNameKr) {
       return NextResponse.json({ success: false, error: "itemCode와 itemNameKr이 필요합니다." }, { status: 400 });
     }
 
-    const result = await researchWine(itemCode, itemNameKr);
+    const result = await researchWine(itemCode, itemNameKr, itemNameEn || '');
 
     logChange('ai_research', 'wine', itemCode, { item_name: itemNameKr });
 

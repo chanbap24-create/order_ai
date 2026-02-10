@@ -67,18 +67,22 @@ async function translateWineName(client: OpenAI, itemNameKr: string): Promise<st
   return response.choices[0]?.message?.content?.trim() || "";
 }
 
-export async function researchWine(itemCode: string, itemNameKr: string): Promise<WineResearchResult> {
+export async function researchWine(itemCode: string, itemNameKr: string, itemNameEn?: string): Promise<WineResearchResult> {
   const client = getOpenAIClient();
 
-  logger.info(`Researching wine: ${itemCode} - ${itemNameKr}`);
+  logger.info(`Researching wine: ${itemCode} - ${itemNameKr} (en: ${itemNameEn || 'none'})`);
 
-  // Step 1: 한글 와인명을 영문으로 변환
-  let englishName = "";
-  try {
-    englishName = await translateWineName(client, itemNameKr);
-    logger.info(`[Translate] ${itemNameKr} → ${englishName}`);
-  } catch (e) {
-    logger.warn(`[Translate] Failed to translate wine name`, { error: e });
+  // Step 1: 영문명 결정 (이미 있으면 사용, 없으면 GPT로 번역)
+  let englishName = itemNameEn?.trim() || "";
+  if (!englishName) {
+    try {
+      englishName = await translateWineName(client, itemNameKr);
+      logger.info(`[Translate] ${itemNameKr} → ${englishName}`);
+    } catch (e) {
+      logger.warn(`[Translate] Failed to translate wine name`, { error: e });
+    }
+  } else {
+    logger.info(`[Research] Using provided English name: ${englishName}`);
   }
 
   // Step 2: Wine-Searcher에서 영문명으로 실제 데이터 검색

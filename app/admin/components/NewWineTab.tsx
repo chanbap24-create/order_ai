@@ -37,7 +37,7 @@ export default function NewWineTab() {
       const res = await fetch('/api/admin/wines/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemCode: wine.item_code, itemNameKr: wine.item_name_kr }),
+        body: JSON.stringify({ itemCode: wine.item_code, itemNameKr: wine.item_name_kr, itemNameEn: wine.item_name_en || '' }),
       });
       const data = await res.json();
       if (data.success) {
