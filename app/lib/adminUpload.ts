@@ -27,6 +27,26 @@ export function getUploadedFilePath(type: string): string | null {
   return fs.existsSync(filePath) ? filePath : null;
 }
 
+/** 모든 업로드 파일의 최종 수정 시간 반환 */
+export function getAllUploadTimestamps(): Record<string, string | null> {
+  const types = ["client", "dl-client", "riedel", "downloads", "dl", "english"];
+  const result: Record<string, string | null> = {};
+  for (const type of types) {
+    const filePath = path.join(UPLOAD_DIR, `${type}.xlsx`);
+    try {
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+        result[type] = stat.mtime.toISOString();
+      } else {
+        result[type] = null;
+      }
+    } catch {
+      result[type] = null;
+    }
+  }
+  return result;
+}
+
 /* ─── 유틸 ─── */
 function normCode(x: unknown) {
   return String(x ?? "").trim().replace(/\.0$/, "");

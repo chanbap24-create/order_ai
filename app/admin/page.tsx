@@ -61,11 +61,30 @@ interface Toast {
 
 const ACCEPT = '.xlsx,.xls,.csv';
 
+const UPLOAD_LABELS: Record<string, string> = {
+  client: '거래처별 와인 출고현황',
+  'dl-client': '거래처별 글라스 출고현황',
+  riedel: '리델리스트',
+  downloads: '와인재고현황',
+  dl: '글라스재고현황',
+  english: '와인리스트',
+};
+
+function formatTimestamp(iso: string | null): string {
+  if (!iso) return '업로드 기록 없음';
+  const d = new Date(iso);
+  const mm = d.getMonth() + 1;
+  const dd = d.getDate();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}월 ${dd}일 ${hh}:${mi}`;
+}
+
 export default function AdminPage() {
-  // ── 기존 동기화 상태 ──
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<any>(null);
-  const [syncError, setSyncError] = useState('');
+  // ── 상태 확인 ──
+  const [statusResult, setStatusResult] = useState<any>(null);
+  const [statusError, setStatusError] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
 
   // ── 업로드 상태 ──
   const [cards, setCards] = useState<Record<string, UploadCardState>>(
@@ -79,34 +98,17 @@ export default function AdminPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
 
-  // ── 기존 동기화 로직 ──
-  const handleSync = async () => {
-    if (!confirm('재고 DB를 동기화하시겠습니까?\n\n이 작업은 약 10-20초 정도 소요됩니다.')) return;
-    setIsSyncing(true);
-    setSyncError('');
-    setSyncResult(null);
-    try {
-      const response = await fetch('/api/sync-inventory', { method: 'POST' });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || '동기화 실패');
-      setSyncResult(data);
-      addToast('success', `동기화 완료! CDV: ${data.stats?.cdv_items}개, DL: ${data.stats?.dl_items}개`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '동기화 중 오류 발생';
-      setSyncError(message);
-      addToast('error', message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const checkStatus = async () => {
+    setIsChecking(true);
+    setStatusError('');
     try {
       const response = await fetch('/api/sync-inventory');
       const data = await response.json();
-      setSyncResult(data);
+      setStatusResult(data);
     } catch (err) {
-      setSyncError(err instanceof Error ? err.message : '상태 확인 실패');
+      setStatusError(err instanceof Error ? err.message : '상태 확인 실패');
+    } finally {
+      setIsChecking(false);
     }
   };
 
@@ -179,35 +181,22 @@ export default function AdminPage() {
           </h1>
         </div>
 
-        {/* ── 기존: 재고 동기화 섹션 ── */}
+        {/* ── 상태 확인 섹션 ── */}
         <Card style={{ marginBottom: 'var(--space-8)' }}>
-          <h2 style={{
-            fontSize: 'var(--text-xl)',
-            fontWeight: 700,
-            marginBottom: 'var(--space-4)',
-          }}>
-            재고 DB 동기화
-          </h2>
-          <p style={{
-            fontSize: 'var(--text-base)',
-            color: 'var(--color-text-light)',
-            marginBottom: 'var(--space-6)',
-            lineHeight: 1.6,
-          }}>
-            서버의 Excel 파일에서 재고 데이터를 동기화합니다.
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-            <Button onClick={handleSync} disabled={isSyncing}>
-              {isSyncing ? '동기화 중...' : '동기화 실행'}
-            </Button>
-            <Button onClick={checkStatus} disabled={isSyncing} variant="outline">
-              상태 확인
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+            <h2 style={{
+              fontSize: 'var(--text-xl)',
+              fontWeight: 700,
+            }}>
+              DB 상태
+            </h2>
+            <Button onClick={checkStatus} disabled={isChecking} variant="outline">
+              {isChecking ? '확인 중...' : '상태 확인'}
             </Button>
           </div>
 
-          {syncError && (
+          {statusError && (
             <div style={{
-              marginTop: 'var(--space-4)',
               padding: 'var(--space-3) var(--space-4)',
               background: 'rgba(255, 59, 48, 0.08)',
               border: '1px solid rgba(255, 59, 48, 0.2)',
@@ -215,38 +204,81 @@ export default function AdminPage() {
               color: 'var(--color-error)',
               fontSize: 'var(--text-sm)',
             }}>
-              {syncError}
+              {statusError}
             </div>
           )}
 
-          {syncResult?.stats && (
-            <div style={{
-              marginTop: 'var(--space-4)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 'var(--space-3)',
-            }}>
+          {statusResult?.stats && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {/* DB 건수 */}
               <div style={{
-                padding: 'var(--space-3) var(--space-4)',
-                background: 'var(--color-background)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                justifyContent: 'space-between',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 'var(--space-3)',
               }}>
-                <span style={{ color: 'var(--color-text-light)' }}>CDV (와인)</span>
-                <span style={{ fontWeight: 700 }}>{syncResult.stats.cdv_items?.toLocaleString()}개</span>
+                <div style={{
+                  padding: 'var(--space-3) var(--space-4)',
+                  background: 'var(--color-background)',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}>
+                  <span style={{ color: 'var(--color-text-light)' }}>CDV (와인)</span>
+                  <span style={{ fontWeight: 700 }}>{statusResult.stats.cdv_items?.toLocaleString()}개</span>
+                </div>
+                <div style={{
+                  padding: 'var(--space-3) var(--space-4)',
+                  background: 'var(--color-background)',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}>
+                  <span style={{ color: 'var(--color-text-light)' }}>DL (글라스)</span>
+                  <span style={{ fontWeight: 700 }}>{statusResult.stats.dl_items?.toLocaleString()}개</span>
+                </div>
               </div>
-              <div style={{
-                padding: 'var(--space-3) var(--space-4)',
-                background: 'var(--color-background)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}>
-                <span style={{ color: 'var(--color-text-light)' }}>DL (글라스)</span>
-                <span style={{ fontWeight: 700 }}>{syncResult.stats.dl_items?.toLocaleString()}개</span>
-              </div>
+
+              {/* 파일별 업로드 시간 */}
+              {statusResult.uploadTimestamps && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: 'var(--space-2)',
+                }}>
+                  {Object.entries(statusResult.uploadTimestamps as Record<string, string | null>).map(([type, ts]) => (
+                    <div key={type} style={{
+                      padding: 'var(--space-2) var(--space-4)',
+                      background: 'var(--color-background)',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: 'var(--text-sm)',
+                    }}>
+                      <span style={{ color: 'var(--color-text-light)', fontWeight: 600 }}>
+                        {UPLOAD_LABELS[type] || type}
+                      </span>
+                      <span style={{
+                        fontWeight: 500,
+                        color: ts ? 'var(--color-text)' : 'var(--color-text-lighter)',
+                        fontSize: 'var(--text-xs)',
+                      }}>
+                        {formatTimestamp(ts as string | null)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
+
+          {!statusResult && !statusError && (
+            <p style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-lighter)',
+            }}>
+              상태 확인 버튼을 눌러 현재 DB 상태를 조회합니다.
+            </p>
           )}
         </Card>
 

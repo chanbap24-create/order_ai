@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import * as path from 'path';
 import * as fs from 'fs';
 import { db } from '@/app/lib/db';
-import { getUploadedFilePath } from '@/app/lib/adminUpload';
+import { getUploadedFilePath, getAllUploadTimestamps } from '@/app/lib/adminUpload';
 
 export const runtime = 'nodejs';
 
@@ -187,6 +187,8 @@ export async function GET() {
     const cdvSample = db.prepare('SELECT * FROM inventory_cdv LIMIT 3').all();
     const dlSample = db.prepare('SELECT * FROM inventory_dl LIMIT 3').all();
     
+    const uploadTimestamps = getAllUploadTimestamps();
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -197,7 +199,8 @@ export async function GET() {
       samples: {
         cdv: cdvSample,
         dl: dlSample
-      }
+      },
+      uploadTimestamps
     });
   } catch (error: any) {
     return NextResponse.json(
