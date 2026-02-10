@@ -12,7 +12,9 @@ export default function NewWineTab() {
   const [filter, setFilter] = useState<'new' | 'all'>('new');
   const [search, setSearch] = useState('');
   const [selectedWine, setSelectedWine] = useState<Wine | null>(null);
+  const [researchData, setResearchData] = useState<WineResearchResult | null>(null);
   const [researchingIds, setResearchingIds] = useState<Set<string>>(new Set());
+  const [generatingPpt, setGeneratingPpt] = useState<Set<string>>(new Set());
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
@@ -39,7 +41,37 @@ export default function NewWineTab() {
       });
       const data = await res.json();
       if (data.success) {
+        const research = data.data.research as WineResearchResult;
+
+        // 자동 저장: 와인 정보 + 테이스팅 노트
+        await fetch(`/api/admin/wines/${wine.item_code}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wine: {
+              item_name_en: research.item_name_en,
+              country_en: research.country_en,
+              region: research.region,
+              grape_varieties: research.grape_varieties,
+              wine_type: research.wine_type,
+              ai_researched: 1,
+            },
+            tastingNote: {
+              winemaking: research.winemaking,
+              color_note: research.color_note,
+              nose_note: research.nose_note,
+              palate_note: research.palate_note,
+              food_pairing: research.food_pairing,
+              glass_pairing: research.glass_pairing,
+              serving_temp: research.serving_temp,
+              awards: research.awards,
+            },
+          }),
+        });
+
+        setResearchData(research);
         setSelectedWine({ ...wine, ...data.data.wineUpdate });
+        fetchWines();
       }
     } catch { /* ignore */ }
     setResearchingIds((prev) => { const s = new Set(prev); s.delete(wine.item_code); return s; });
@@ -61,8 +93,30 @@ export default function NewWineTab() {
         body: JSON.stringify({ wine: wineData, tastingNote: noteData }),
       });
       setSelectedWine(null);
+      setResearchData(null);
       fetchWines();
     } catch { /* ignore */ }
+  };
+
+  const handleGeneratePpt = async (wineId: string) => {
+    setGeneratingPpt((prev) => new Set(prev).add(wineId));
+    try {
+      const res = await fetch('/api/admin/tasting-notes/generate-ppt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wineIds: [wineId] }),
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tasting-note-${wineId}.pptx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch { /* ignore */ }
+    setGeneratingPpt((prev) => { const s = new Set(prev); s.delete(wineId); return s; });
   };
 
   return (
@@ -93,8 +147,9 @@ export default function NewWineTab() {
       {selectedWine && (
         <WineResearchPanel
           wine={selectedWine}
+          researchData={researchData}
           onSave={handleSaveResearch}
-          onClose={() => setSelectedWine(null)}
+          onClose={() => { setSelectedWine(null); setResearchData(null); }}
         />
       )}
 
@@ -158,13 +213,24 @@ export default function NewWineTab() {
                       >
                         {researchingIds.has(w.item_code) ? '조사중...' : 'AI 조사'}
                       </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '4px 10px', fontSize: '12px' }}
-                        onClick={() => setSelectedWine(w)}
-                      >
-                        편집
-                      </button>
+                      {w.ai_researched ? (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ padding: '4px 10px', fontSize: '12px' }}
+                          onClick={() => handleGeneratePpt(w.item_code)}
+                          disabled={generatingPpt.has(w.item_code)}
+                        >
+                          {generatingPpt.has(w.item_code) ? '생성중...' : 'PPT'}
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '4px 10px', fontSize: '12px' }}
+                          onClick={() => setSelectedWine(w)}
+                        >
+                          편집
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

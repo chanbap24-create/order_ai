@@ -49,7 +49,7 @@ export async function researchWine(itemCode: string, itemNameKr: string): Promis
   logger.info(`Researching wine: ${itemCode} - ${itemNameKr}`);
 
   const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     max_tokens: 1024,
     messages: [
       { role: "system", content: RESEARCH_PROMPT },

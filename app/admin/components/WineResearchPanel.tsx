@@ -6,25 +6,26 @@ import type { Wine, WineResearchResult } from '@/app/types/wine';
 
 interface WineResearchPanelProps {
   wine: Wine;
+  researchData?: WineResearchResult | null;
   onSave: (itemCode: string, wineData: Partial<Wine>, noteData: Partial<WineResearchResult>) => void;
   onClose: () => void;
 }
 
-export default function WineResearchPanel({ wine, onSave, onClose }: WineResearchPanelProps) {
+export default function WineResearchPanel({ wine, researchData, onSave, onClose }: WineResearchPanelProps) {
   const [form, setForm] = useState({
-    item_name_en: wine.item_name_en || '',
-    country_en: wine.country_en || '',
-    region: wine.region || '',
-    grape_varieties: wine.grape_varieties || '',
-    wine_type: wine.wine_type || '',
-    winemaking: '',
-    color_note: '',
-    nose_note: '',
-    palate_note: '',
-    food_pairing: '',
-    glass_pairing: '',
-    serving_temp: '',
-    awards: '',
+    item_name_en: wine.item_name_en || researchData?.item_name_en || '',
+    country_en: wine.country_en || researchData?.country_en || '',
+    region: wine.region || researchData?.region || '',
+    grape_varieties: wine.grape_varieties || researchData?.grape_varieties || '',
+    wine_type: wine.wine_type || researchData?.wine_type || '',
+    winemaking: researchData?.winemaking || '',
+    color_note: researchData?.color_note || '',
+    nose_note: researchData?.nose_note || '',
+    palate_note: researchData?.palate_note || '',
+    food_pairing: researchData?.food_pairing || '',
+    glass_pairing: researchData?.glass_pairing || '',
+    serving_temp: researchData?.serving_temp || '',
+    awards: researchData?.awards || '',
   });
 
   const updateField = (field: string, value: string) => {
