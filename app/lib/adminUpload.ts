@@ -231,10 +231,11 @@ function processDlClient(buf: Buffer) {
   `);
 
   db.transaction(() => {
+    // FK 순서: 자식 테이블 먼저 삭제 (glass_client_item_stats → glass_client_alias → glass_items → glass_clients)
     db.prepare("DELETE FROM glass_client_item_stats").run();
+    db.prepare("DELETE FROM glass_client_alias WHERE weight >= 10").run();
     db.prepare("DELETE FROM glass_items").run();
     db.prepare("DELETE FROM glass_clients").run();
-    db.prepare("DELETE FROM glass_client_alias WHERE weight >= 10").run();
 
     for (const [code, name] of clientMap.entries()) {
       upsertClient.run(code, name);
