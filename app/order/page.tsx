@@ -24,7 +24,9 @@ export default function OrderPage() {
     cursor: 'pointer',
     transition: 'all 0.15s ease',
     whiteSpace: 'nowrap',
-  });
+    userSelect: 'none',
+    WebkitTouchCallout: 'none',
+  } as React.CSSProperties);
 
   return (
     <div>
