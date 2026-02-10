@@ -77,8 +77,13 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
         a.download = `${wine.item_code}.pptx`;
         a.click();
         URL.revokeObjectURL(url);
+      } else {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        alert(`PPT 생성 오류: ${err.error || '알 수 없는 오류'}`);
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      alert(`PPT 생성 중 오류: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
+    }
     setGeneratingPpt(false);
   };
 
