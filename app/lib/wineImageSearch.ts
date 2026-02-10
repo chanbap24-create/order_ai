@@ -1,14 +1,28 @@
-// 와인 병 이미지 자동 검색
-// Wine-Searcher에서 와인 라벨/병 이미지를 검색
+// 와인 이미지 검색 + Wine-Searcher 데이터 스크래핑
 
 import { logger } from "@/app/lib/logger";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
+/** Wine-Searcher에서 스크래핑한 와인 데이터 */
+export interface WineSearcherData {
+  name?: string;
+  description?: string;
+  imageUrl?: string;
+  varietal?: string;
+  region?: string;
+  origin?: string;
+  rating?: string;
+  reviews?: string[];
+}
+
 /**
- * Wine-Searcher에서 와인 이미지 URL 검색
+ * Wine-Searcher에서 와인 정보 + 이미지 스크래핑
+ * JSON-LD, meta 태그, OG 태그에서 데이터 추출
  */
-async function searchWineSearcher(wineNameEn: string): Promise<string | null> {
+export async function scrapeWineSearcher(wineNameEn: string): Promise<WineSearcherData | null> {
+  if (!wineNameEn) return null;
+
   try {
     const query = encodeURIComponent(wineNameEn);
     const res = await fetch(`https://www.wine-searcher.com/find/${query}`, {
@@ -18,90 +32,76 @@ async function searchWineSearcher(wineNameEn: string): Promise<string | null> {
     if (!res.ok) return null;
 
     const html = await res.text();
+    const data: WineSearcherData = {};
 
-    // Wine-Searcher 라벨 이미지 패턴
-    const labelMatch = html.match(
-      /https:\/\/www\.wine-searcher\.com\/images\/labels\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/i
-    );
-    if (labelMatch) return labelMatch[0];
+    // 1. JSON-LD 파싱 (가장 풍부한 데이터)
+    const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
+    if (jsonLdMatch) {
+      try {
+        const jsonLd = JSON.parse(jsonLdMatch[1].trim());
+        if (jsonLd.name) data.name = jsonLd.name;
+        if (jsonLd.description) data.description = jsonLd.description;
+        if (jsonLd.image) {
+          const imgPath = typeof jsonLd.image === 'string' ? jsonLd.image : jsonLd.image?.url || jsonLd.image?.[0];
+          if (imgPath) {
+            data.imageUrl = imgPath.startsWith('http') ? imgPath : `https://www.wine-searcher.com${imgPath}`;
+          }
+        }
+        // 리뷰 추출
+        if (jsonLd.review && Array.isArray(jsonLd.review)) {
+          data.reviews = jsonLd.review
+            .map((r: { reviewBody?: string }) => r.reviewBody)
+            .filter(Boolean)
+            .slice(0, 3);
+        }
+      } catch { /* JSON parse error */ }
+    }
 
-    // 대체: 와인 이미지 패턴
-    const imgMatch = html.match(
-      /https:\/\/[^"'\s]*wine-searcher[^"'\s]*\/images\/[^"'\s]*\.(?:jpg|jpeg|png|webp)/i
-    );
-    if (imgMatch) return imgMatch[0];
+    // 2. Meta 태그 (품종, 지역)
+    const varietalMatch = html.match(/name="productVarietal"\s*content="([^"]+)"/i);
+    if (varietalMatch) data.varietal = varietalMatch[1];
+
+    const regionMatch = html.match(/name="productRegion"\s*content="([^"]+)"/i);
+    if (regionMatch) data.region = regionMatch[1];
+
+    const originMatch = html.match(/name="productOrigin"\s*content="([^"]+)"/i);
+    if (originMatch) data.origin = originMatch[1];
+
+    // 3. OG image (이미지 fallback)
+    if (!data.imageUrl) {
+      const ogImgMatch = html.match(/property="og:image"\s*content="([^"]+)"/i);
+      if (ogImgMatch) data.imageUrl = ogImgMatch[1];
+    }
+
+    // 4. 라벨 이미지 fallback
+    if (!data.imageUrl) {
+      const labelMatch = html.match(/https:\/\/www\.wine-searcher\.com\/images\/labels\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/i);
+      if (labelMatch) data.imageUrl = labelMatch[0];
+    }
+
+    // 데이터가 있으면 반환
+    if (data.name || data.varietal || data.imageUrl) {
+      logger.info(`[WineSearcher] Found data for: ${wineNameEn}`, {
+        name: data.name,
+        varietal: data.varietal,
+        hasImage: !!data.imageUrl,
+      });
+      return data;
+    }
 
     return null;
   } catch (e) {
-    logger.warn("[WineImage] Wine-Searcher search failed", { error: e });
+    logger.warn("[WineSearcher] Scraping failed", { error: e });
     return null;
   }
 }
 
 /**
- * Google Images에서 와인 병 이미지 URL 검색 (fallback)
- */
-async function searchGoogleImages(wineNameEn: string): Promise<string | null> {
-  try {
-    const query = encodeURIComponent(`${wineNameEn} wine bottle`);
-    const res = await fetch(
-      `https://www.google.com/search?q=${query}&tbm=isch&safe=active`,
-      { headers: { "User-Agent": USER_AGENT } }
-    );
-
-    if (!res.ok) return null;
-
-    const html = await res.text();
-
-    // Google Images에서 외부 이미지 URL 추출
-    const matches = html.match(
-      /https?:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/gi
-    );
-
-    if (!matches) return null;
-
-    // Google 자체 이미지나 아이콘은 제외, 실제 와인 이미지만 필터
-    const filtered = matches.filter(
-      (url) =>
-        !url.includes("google.com") &&
-        !url.includes("gstatic.com") &&
-        !url.includes("googleapis.com") &&
-        !url.includes("favicon") &&
-        !url.includes("icon") &&
-        url.length > 50
-    );
-
-    return filtered[0] || null;
-  } catch (e) {
-    logger.warn("[WineImage] Google image search failed", { error: e });
-    return null;
-  }
-}
-
-/**
- * 와인 이미지 URL 검색 (여러 소스 시도)
+ * 와인 이미지 URL만 검색 (간단 버전)
  */
 export async function searchWineImage(wineNameEn: string): Promise<string | null> {
-  if (!wineNameEn) return null;
-
-  logger.info(`[WineImage] Searching image for: ${wineNameEn}`);
-
-  // 1. Wine-Searcher
-  const wsUrl = await searchWineSearcher(wineNameEn);
-  if (wsUrl) {
-    logger.info(`[WineImage] Found via Wine-Searcher: ${wsUrl}`);
-    return wsUrl;
-  }
-
-  // 2. Google Images (fallback)
-  const googleUrl = await searchGoogleImages(wineNameEn);
-  if (googleUrl) {
-    logger.info(`[WineImage] Found via Google: ${googleUrl}`);
-    return googleUrl;
-  }
-
-  logger.warn(`[WineImage] No image found for: ${wineNameEn}`);
-  return null;
+  const data = await scrapeWineSearcher(wineNameEn);
+  return data?.imageUrl || null;
 }
 
 /**

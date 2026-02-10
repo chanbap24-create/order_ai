@@ -5,14 +5,13 @@ import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { db } from "@/app/lib/db";
 import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
+import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
-import path from "path";
 import fs from "fs";
 
-// 에셋 경로
-const ASSETS_DIR = path.join(process.cwd(), "app/assets/ppt");
-const LOGO_PATH = path.join(ASSETS_DIR, "logo-cavedevin.jpeg");
-const AWARD_ICON_PATH = path.join(ASSETS_DIR, "icon-award.jpeg");
+// base64 이미지 데이터 URI
+const LOGO_DATA = `image/jpeg;base64,${LOGO_CAVEDEVIN_BASE64}`;
+const AWARD_ICON_DATA = `image/jpeg;base64,${ICON_AWARD_BASE64}`;
 
 // 색상
 const TEXT_COLOR = '000000';
@@ -74,13 +73,11 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
 
   // ─── HEADER ───
   // 까브드뱅 로고 (좌상단)
-  if (fs.existsSync(LOGO_PATH)) {
-    slide.addImage({
-      path: LOGO_PATH,
-      x: MARGIN, y: MARGIN,
-      w: 1.49, h: 0.57,
-    });
-  }
+  slide.addImage({
+    data: LOGO_DATA,
+    x: MARGIN, y: MARGIN,
+    w: 1.49, h: 0.57,
+  });
 
   // 헤더 구분선
   slide.addShape(pptx.ShapeType.line, {
@@ -243,13 +240,11 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // 수상 아이콘
-  if (fs.existsSync(AWARD_ICON_PATH)) {
-    slide.addImage({
-      path: AWARD_ICON_PATH,
-      x: 0.3, y: awardY + 0.07,
-      w: 0.2, h: 0.25,
-    });
-  }
+  slide.addImage({
+    data: AWARD_ICON_DATA,
+    x: 0.3, y: awardY + 0.07,
+    w: 0.2, h: 0.25,
+  });
 
   slide.addText('수상내역', {
     x: 0.51, y: awardY + 0.07, w: 0.77, h: 0.25,
@@ -272,13 +267,11 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // 까브드뱅 로고 (하단)
-  if (fs.existsSync(LOGO_PATH)) {
-    slide.addImage({
-      path: LOGO_PATH,
-      x: 0.09, y: 9.7,
-      w: 0.95, h: 0.25,
-    });
-  }
+  slide.addImage({
+    data: LOGO_DATA,
+    x: 0.09, y: 9.7,
+    w: 0.95, h: 0.25,
+  });
 
   // 회사 정보
   slide.addText('㈜까브드뱅   T. 02-786-3136 |  www.cavedevin.co.kr', {
