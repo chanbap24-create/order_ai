@@ -6,10 +6,10 @@ interface BadgeProps {
   className?: string;
 }
 
-export default function Badge({ 
-  children, 
+export default function Badge({
+  children,
   variant = 'primary',
-  className = '' 
+  className = ''
 }: BadgeProps) {
   return (
     <span className={`badge badge-${variant} ${className}`}>

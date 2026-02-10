@@ -9,20 +9,20 @@ interface CardProps {
   style?: React.CSSProperties;
 }
 
-export default function Card({ 
-  children, 
-  className = '', 
+export default function Card({
+  children,
+  className = '',
   hover = false,
   size = 'md',
   onClick,
-  style 
+  style
 }: CardProps) {
   const sizeClass = size === 'sm' ? 'card-sm' : size === 'lg' ? 'card-lg' : '';
   const hoverClass = hover ? 'cursor-pointer' : '';
   const clickableClass = onClick ? 'cursor-pointer' : '';
-  
+
   return (
-    <div 
+    <div
       className={`card ${sizeClass} ${hoverClass} ${clickableClass} ${className}`}
       onClick={onClick}
       style={style}

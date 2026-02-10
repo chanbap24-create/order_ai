@@ -10,6 +10,7 @@ interface ButtonProps {
   onClick?: () => void;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export default function Button({
@@ -21,25 +22,22 @@ export default function Button({
   loading = false,
   onClick,
   type = 'button',
-  className = ''
+  className = '',
+  style
 }: ButtonProps) {
   const variantClass = `btn-${variant}`;
   const sizeClass = size !== 'md' ? `btn-${size}` : '';
   const iconClass = icon ? 'btn-icon' : '';
-  
+
   return (
     <button
       type={type}
       className={`btn ${variantClass} ${sizeClass} ${iconClass} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
-      style={{ opacity: disabled ? 0.5 : 1 }}
+      style={{ opacity: disabled ? 0.5 : 1, ...style }}
     >
-      {loading ? (
-        <span className="loading-spinner">⏳</span>
-      ) : (
-        children
-      )}
+      {loading ? <span>...</span> : children}
     </button>
   );
 }
