@@ -43,10 +43,8 @@ export function detectNewWines(): { newCount: number; updatedCount: number } {
     return { newCount: 0, updatedCount: 0 };
   }
 
-  // wines 테이블이 비어있으면 첫 업로드 → 모두 'active'로 등록 (신규 아님)
   const wineCount = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
-  const isFirstLoad = wineCount === 0;
-  logger.info(`[WineDetection] wines table: ${wineCount} existing, isFirstLoad=${isFirstLoad}`);
+  logger.info(`[WineDetection] wines table: ${wineCount} existing`);
 
   let newCount = 0;
   let updatedCount = 0;
@@ -77,7 +75,6 @@ export function detectNewWines(): { newCount: number; updatedCount: number } {
       const { kr, en } = getCountryPair(item.country || '');
 
       if (!existing) {
-        const status = isFirstLoad ? 'active' : 'new';
         insertWine.run(
           item.item_no,
           item.item_name,
@@ -87,17 +84,14 @@ export function detectNewWines(): { newCount: number; updatedCount: number } {
           item.alcohol,
           item.supply_price,
           item.available_stock,
-          status
+          'new'
         );
-
-        if (!isFirstLoad) {
-          newCount++;
-          logChange('new_wine_detected', 'wine', item.item_no, {
-            item_name: item.item_name,
-            country: item.country,
-            supply_price: item.supply_price,
-          });
-        }
+        newCount++;
+        logChange('new_wine_detected', 'wine', item.item_no, {
+          item_name: item.item_name,
+          country: item.country,
+          supply_price: item.supply_price,
+        });
       } else {
         // 기존 와인 - 재고/가격 업데이트
         updateWine.run(
@@ -114,9 +108,9 @@ export function detectNewWines(): { newCount: number; updatedCount: number } {
       }
     }
 
-    // 재고 목록에 없는 와인은 discontinued로 변경 (첫 업로드가 아닌 경우에만)
+    // 재고 목록에 없는 기존 와인은 discontinued로 변경
     const currentCodes = items.map((i) => i.item_no).filter(Boolean);
-    if (!isFirstLoad && currentCodes.length > 0) {
+    if (wineCount > 0 && currentCodes.length > 0) {
       const placeholders = currentCodes.map(() => '?').join(',');
       const discontinued = db.prepare(`
         UPDATE wines SET status = 'discontinued', available_stock = 0, updated_at = CURRENT_TIMESTAMP
@@ -129,7 +123,7 @@ export function detectNewWines(): { newCount: number; updatedCount: number } {
     }
   })();
 
-  logger.info(`[WineDetection] Result: ${newCount} new wines, ${updatedCount} updated, isFirstLoad=${isFirstLoad}`);
+  logger.info(`[WineDetection] Result: ${newCount} new wines, ${updatedCount} updated`);
 
   return { newCount, updatedCount };
 }
