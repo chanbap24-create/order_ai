@@ -36,7 +36,7 @@ export async function researchWine(itemCode: string, itemNameKr: string): Promis
   logger.info(`Researching wine: ${itemCode} - ${itemNameKr}`);
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1024,
     messages: [
       {

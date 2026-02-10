@@ -6,6 +6,8 @@ import path from "path";
 import * as XLSX from "xlsx";
 import { db } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
+import { ensureWineTables, getWineByCode } from "@/app/lib/wineDb";
+import { getCountryPair } from "@/app/lib/countryMapping";
 
 /* ─── 업로드 파일 저장 경로 ─── */
 const UPLOAD_DIR = "/tmp/admin-uploads";
@@ -365,9 +367,39 @@ function processDownloads(buf: Buffer) {
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-  // Header row 0: 열1, 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
-  //   국가(8), 표준바코드(9), 출고예정(10), 가용재고(11), 30일출고(12), 90일/3평균출고(13),
-  //   365일/12평균출고(14), 공급가(15), 할인공급가(16), 도매장가(17), 판매가(18), 최저판매가(19)
+
+  // ★ 중요: inventory_cdv를 덮어쓰기 전에 wines 기준선 세팅
+  // Vercel cold start 시 wines 테이블이 비어있으면 기존 inventory_cdv 데이터로 'active' 기준선 생성
+  // 이후 detectNewWines()에서 새 데이터와 비교하여 신규 와인 감지 가능
+  try {
+    ensureWineTables();
+    const wineCount = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
+    if (wineCount === 0) {
+      const hasTable = (db.prepare("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='inventory_cdv'").get() as { cnt: number }).cnt;
+      if (hasTable > 0) {
+        const oldItems = db.prepare(`
+          SELECT item_no, item_name, supply_price, available_stock, vintage, alcohol_content as alcohol, country
+          FROM inventory_cdv WHERE item_no IS NOT NULL AND item_no != ''
+        `).all() as Array<{ item_no: string; item_name: string; supply_price: number | null; available_stock: number | null; vintage: string | null; alcohol: string | null; country: string | null }>;
+
+        if (oldItems.length > 0) {
+          const insertBaseline = db.prepare(`
+            INSERT OR IGNORE INTO wines (item_code, item_name_kr, country, country_en, vintage, alcohol, supply_price, available_stock, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
+          `);
+          db.transaction(() => {
+            for (const item of oldItems) {
+              const { kr, en } = getCountryPair(item.country || '');
+              insertBaseline.run(item.item_no, item.item_name, kr || item.country, en, item.vintage, item.alcohol, item.supply_price, item.available_stock);
+            }
+          })();
+          logger.info(`[Downloads] Baseline: ${oldItems.length} wines from old inventory_cdv as 'active'`);
+        }
+      }
+    }
+  } catch (e) {
+    logger.warn("[Downloads] Baseline setup failed (non-fatal)", { error: e });
+  }
 
   // 기존 inventory_cdv 테이블 사용
   db.prepare(`CREATE TABLE IF NOT EXISTS inventory_cdv (
