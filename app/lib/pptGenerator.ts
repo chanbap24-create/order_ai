@@ -4,7 +4,7 @@
 
 import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
+import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
 
@@ -493,38 +493,21 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
 
     const note = getTastingNote(wineId);
 
-    // 이미지: URL에서 다운로드
+    // 이미지: DB에 저장된 image_url만 사용 (AI 조사 시 저장된 이미지)
+    // PPT 생성 시 새로 검색하지 않음 (속도 + Vivino 팔레트 PNG 호환 문제 방지)
     let bottleImageBase64: string | undefined;
     let bottleImageMime: string | undefined;
 
-    // 1순위: DB에 저장된 image_url (AI 조사 시 확인된 이미지)
     if (wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
           bottleImageBase64 = imgData.base64;
           bottleImageMime = imgData.mimeType;
-          logger.info(`[PPT] DB image loaded for ${wineId}`);
+          logger.info(`[PPT] DB image loaded for ${wineId}: ${wine.image_url}`);
         }
       } catch {
-        logger.warn(`[PPT] DB image download failed for ${wineId}`);
-      }
-    }
-
-    // 2순위: Vivino 누키 보틀샷 (DB 이미지 없을 때만)
-    if (!bottleImageBase64 && wine.item_name_en) {
-      try {
-        const vivinoUrl = await searchVivinoBottleImage(wine.item_name_en);
-        if (vivinoUrl) {
-          const imgData = await downloadImageAsBase64(vivinoUrl);
-          if (imgData) {
-            bottleImageBase64 = imgData.base64;
-            bottleImageMime = imgData.mimeType;
-            logger.info(`[PPT] Vivino bottle image loaded for ${wineId}`);
-          }
-        }
-      } catch {
-        logger.warn(`[PPT] Vivino image search failed for ${wineId}`);
+        logger.warn(`[PPT] Image download failed for ${wineId}`);
       }
     }
 
