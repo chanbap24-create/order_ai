@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     // wines 테이블 업데이트
     upsertWine({
       item_code: wine_id,
+      item_name_kr: item_name_kr || product_name_eng.trim(),
       item_name_en: result.item_name_en,
       country_en: result.country_en,
       region: result.region,
