@@ -4,11 +4,8 @@ import fs from "fs";
 import { config } from "./config";
 import { logger } from "./logger";
 
-// ✅ 학습 + 와인관리 데이터 보존 테이블 목록
-const LEARNING_TABLES = [
-  'item_alias', 'client_alias', 'token_mapping', 'search_learning',
-  'wines', 'tasting_notes',
-];
+// ✅ 학습 데이터 보존 테이블 목록
+const LEARNING_TABLES = ['item_alias', 'client_alias', 'token_mapping', 'search_learning'];
 
 /**
  * ✅ /tmp DB에서 학습 데이터를 백업한 뒤, 원본 DB 복사 후 학습 데이터를 복원

@@ -4,7 +4,7 @@
 
 import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
+import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
 
@@ -60,8 +60,9 @@ const CARD_SHADOW: PptxGenJS.ShadowProps = {
   color: COLORS.CARD_SHADOW,
   opacity: 0.08,
 };
-const LABEL_BADGE_RADIUS = 0.04;
-const LABEL_BADGE_TEXT_OPTS = {
+const LABEL_BADGE_OPTS = {
+  fill: { color: COLORS.BURGUNDY },
+  rectRadius: 0.04,
   color: COLORS.TEXT_ON_DARK,
   fontSize: 8.5,
   fontFace: FONT_MAIN,
@@ -124,21 +125,15 @@ function addBentoCard(
   });
 }
 
-// ─── 헬퍼: 섹션 라벨 뱃지 (roundRect + text overlay) ───
+// ─── 헬퍼: 섹션 라벨 뱃지 ───
 function addLabelBadge(
   slide: PptxGenJS.Slide,
   text: string,
   x: number, y: number, w: number
 ) {
-  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
-    x, y, w, h: 0.22,
-    fill: { color: COLORS.BURGUNDY },
-    rectRadius: LABEL_BADGE_RADIUS,
-    line: { width: 0 },
-  });
   slide.addText(text, {
     x, y, w, h: 0.22,
-    ...LABEL_BADGE_TEXT_OPTS,
+    ...LABEL_BADGE_OPTS,
     align: 'center',
     valign: 'middle',
   });
@@ -264,7 +259,7 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
       const imgX = 0.30;
       const imgY = 2.20;
       slide.addImage({
-        data: `${data.bottleImageMime || 'image/png'};base64,${data.bottleImageBase64}`,
+        data: `image/${data.bottleImageMime || 'png'};base64,${data.bottleImageBase64}`,
         x: imgX, y: imgY, w: imgW, h: imgH,
         sizing: { type: 'contain', w: imgW, h: imgH },
       });
@@ -345,15 +340,11 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
     transparency: 30,
   });
 
-  // 테이스팅 노트 라벨 (roundRect + text overlay)
-  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
-    x: 2.12, y: 5.35, w: 1.32, h: 0.22,
-    fill: { color: COLORS.BURGUNDY },
-    rectRadius: LABEL_BADGE_RADIUS,
-    line: { width: 0 },
-  });
+  // 테이스팅 노트 라벨
   slide.addText('  TASTING NOTE  ', {
     x: 2.12, y: 5.35, w: 1.32, h: 0.22,
+    fill: { color: COLORS.BURGUNDY },
+    rectRadius: 0.04,
     color: COLORS.TEXT_ON_DARK,
     fontSize: 7.5, fontFace: FONT_EN, bold: true,
     align: 'center', valign: 'middle',
@@ -494,14 +485,30 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
     let bottleImageBase64: string | undefined;
     let bottleImageMime: string | undefined;
 
-    // DB에 저장된 image_url만 사용 (AI 조사 시 저장된 이미지)
-    if (wine.image_url) {
+    // 1순위: Vivino 누키 보틀샷 (투명 배경 PNG)
+    if (wine.item_name_en) {
+      try {
+        const vivinoUrl = await searchVivinoBottleImage(wine.item_name_en);
+        if (vivinoUrl) {
+          const imgData = await downloadImageAsBase64(vivinoUrl);
+          if (imgData) {
+            bottleImageBase64 = imgData.base64;
+            bottleImageMime = imgData.mimeType;
+            logger.info(`[PPT] Vivino bottle image loaded for ${wineId}`);
+          }
+        }
+      } catch {
+        logger.warn(`[PPT] Vivino image search failed for ${wineId}`);
+      }
+    }
+
+    // 2순위: DB에 저장된 image_url
+    if (!bottleImageBase64 && wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
           bottleImageBase64 = imgData.base64;
           bottleImageMime = imgData.mimeType;
-          logger.info(`[PPT] DB image loaded for ${wineId}`);
         }
       } catch {
         logger.warn(`[PPT] Image download failed for ${wineId}`);
