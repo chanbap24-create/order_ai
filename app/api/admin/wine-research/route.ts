@@ -60,6 +60,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (e) {
-    return handleApiError(e);
+    const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error(`[wine-research] ERROR:`, msg, stack);
+    return NextResponse.json(
+      { success: false, error: msg, stack: stack?.split('\n').slice(0, 3).join('\n') },
+      { status: 500 }
+    );
   }
 }
