@@ -40,7 +40,7 @@ export default function AllWinesTab() {
         setTotalPages(data.totalPages);
         if (data.countries) setCountries(data.countries);
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error('[AllWinesTab] fetch error:', e); }
     setLoading(false);
   }, [search, country, statusFilter, page]);
 

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       ${where}
       ORDER BY w.updated_at DESC
       LIMIT ? OFFSET ?
-    `).all(...params, limit, offset);
+    `).all(...params, Math.floor(limit), Math.floor(offset));
 
     return NextResponse.json({
       success: true,
