@@ -6,6 +6,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'upload', label: '데이터 업로드', icon: '📤' },
   { id: 'dashboard', label: '대시보드', icon: '📊' },
   { id: 'new-wine', label: '신규와인', icon: '🍷' },
+  { id: 'all-wines', label: '전체와인', icon: '🗂️' },
   { id: 'tasting-note', label: '테이스팅노트', icon: '📝' },
   { id: 'price-list', label: '가격리스트', icon: '💰' },
   { id: 'change-log', label: '변경이력', icon: '📋' },

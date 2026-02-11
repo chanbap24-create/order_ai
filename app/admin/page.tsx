@@ -6,6 +6,7 @@ import AdminTabs from './components/AdminTabs';
 import UploadTab from './components/UploadTab';
 import DashboardTab from './components/DashboardTab';
 import NewWineTab from './components/NewWineTab';
+import AllWinesTab from './components/AllWinesTab';
 import TastingNoteTab from './components/TastingNoteTab';
 import PriceListTab from './components/PriceListTab';
 import ChangeLogTab from './components/ChangeLogTab';
@@ -52,6 +53,7 @@ export default function AdminPage() {
         {activeTab === 'upload' && <UploadTab onUploadComplete={handleUploadComplete} />}
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'new-wine' && <NewWineTab />}
+        {activeTab === 'all-wines' && <AllWinesTab />}
         {activeTab === 'tasting-note' && <TastingNoteTab />}
         {activeTab === 'price-list' && <PriceListTab />}
         {activeTab === 'change-log' && <ChangeLogTab />}

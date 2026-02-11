@@ -109,4 +109,4 @@ export interface DashboardStats {
   recentChanges: ChangeLogEntry[];
 }
 
-export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'tasting-note' | 'price-list' | 'change-log';
+export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log';
