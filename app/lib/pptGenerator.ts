@@ -60,9 +60,8 @@ const CARD_SHADOW: PptxGenJS.ShadowProps = {
   color: COLORS.CARD_SHADOW,
   opacity: 0.08,
 };
-const LABEL_BADGE_OPTS = {
-  fill: { color: COLORS.BURGUNDY },
-  rectRadius: 0.04,
+const LABEL_BADGE_RADIUS = 0.04;
+const LABEL_BADGE_TEXT_OPTS = {
   color: COLORS.TEXT_ON_DARK,
   fontSize: 8.5,
   fontFace: FONT_MAIN,
@@ -125,15 +124,23 @@ function addBentoCard(
   });
 }
 
-// ─── 헬퍼: 섹션 라벨 뱃지 ───
+// ─── 헬퍼: 섹션 라벨 뱃지 (roundRect shape + text overlay) ───
 function addLabelBadge(
   slide: PptxGenJS.Slide,
   text: string,
   x: number, y: number, w: number
 ) {
+  // 배경: roundRect shape (addText의 rectRadius는 rect+adj 생성 → PowerPoint 호환 불가)
+  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
+    x, y, w, h: 0.22,
+    fill: { color: COLORS.BURGUNDY },
+    rectRadius: LABEL_BADGE_RADIUS,
+    line: { width: 0 },
+  });
+  // 텍스트 오버레이
   slide.addText(text, {
     x, y, w, h: 0.22,
-    ...LABEL_BADGE_OPTS,
+    ...LABEL_BADGE_TEXT_OPTS,
     align: 'center',
     valign: 'middle',
   });
@@ -341,11 +348,15 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
     transparency: 30,
   });
 
-  // 테이스팅 노트 라벨
-  slide.addText('  TASTING NOTE  ', {
+  // 테이스팅 노트 라벨 (roundRect shape + text overlay)
+  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
     x: 2.12, y: 5.35, w: 1.32, h: 0.22,
     fill: { color: COLORS.BURGUNDY },
-    rectRadius: 0.04,
+    rectRadius: LABEL_BADGE_RADIUS,
+    line: { width: 0 },
+  });
+  slide.addText('  TASTING NOTE  ', {
+    x: 2.12, y: 5.35, w: 1.32, h: 0.22,
     color: COLORS.TEXT_ON_DARK,
     fontSize: 7.5, fontFace: FONT_EN, bold: true,
     align: 'center', valign: 'middle',
