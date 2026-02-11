@@ -6,6 +6,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ['pdfkit'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

@@ -34,6 +34,12 @@ export interface TastingNote {
   serving_temp: string | null;
   awards: string | null;
   winemaking: string | null;
+  winery_description: string | null;
+  vintage_note: string | null;
+  aging_potential: string | null;
+  ai_generated: number; // 0 or 1
+  manually_edited: number; // 0 or 1
+  approved: number; // 0 or 1
   ppt_generated: number; // 0 or 1
   created_at: string;
   updated_at: string;
@@ -78,7 +84,11 @@ export interface WineResearchResult {
   region: string;
   grape_varieties: string;
   wine_type: string;
+  alcohol_percentage: string;
   winemaking: string;
+  winery_description: string;
+  vintage_note: string;
+  aging_potential: string;
   color_note: string;
   nose_note: string;
   palate_note: string;

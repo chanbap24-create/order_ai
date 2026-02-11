@@ -43,6 +43,12 @@ export function ensureWineTables() {
       serving_temp TEXT,
       awards TEXT,
       winemaking TEXT,
+      winery_description TEXT,
+      vintage_note TEXT,
+      aging_potential TEXT,
+      ai_generated INTEGER DEFAULT 0,
+      manually_edited INTEGER DEFAULT 0,
+      approved INTEGER DEFAULT 0,
       ppt_generated INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -89,6 +95,21 @@ export function ensureWineTables() {
     INSERT OR IGNORE INTO admin_settings (key, value) VALUES (?, ?)
   `);
   insertSetting.run('low_stock_threshold', '6');
+
+  // 기존 DB 마이그레이션: tasting_notes에 새 컬럼 추가
+  const newColumns = [
+    { name: 'winery_description', type: 'TEXT' },
+    { name: 'vintage_note', type: 'TEXT' },
+    { name: 'aging_potential', type: 'TEXT' },
+    { name: 'ai_generated', type: 'INTEGER DEFAULT 0' },
+    { name: 'manually_edited', type: 'INTEGER DEFAULT 0' },
+    { name: 'approved', type: 'INTEGER DEFAULT 0' },
+  ];
+  for (const col of newColumns) {
+    try {
+      db.exec(`ALTER TABLE tasting_notes ADD COLUMN ${col.name} ${col.type}`);
+    } catch { /* 이미 존재하면 무시 */ }
+  }
 
   logger.info("Wine management tables ensured");
 }
@@ -210,8 +231,8 @@ export function upsertTastingNote(wineId: string, note: Partial<TastingNote>) {
     db.prepare(`UPDATE tasting_notes SET ${fields.join(', ')} WHERE wine_id = ?`).run(...values);
   } else {
     db.prepare(`
-      INSERT INTO tasting_notes (wine_id, color_note, nose_note, palate_note, food_pairing, glass_pairing, serving_temp, awards, winemaking)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasting_notes (wine_id, color_note, nose_note, palate_note, food_pairing, glass_pairing, serving_temp, awards, winemaking, winery_description, vintage_note, aging_potential, ai_generated, manually_edited, approved)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       wineId,
       note.color_note || null,
@@ -221,7 +242,13 @@ export function upsertTastingNote(wineId: string, note: Partial<TastingNote>) {
       note.glass_pairing || null,
       note.serving_temp || null,
       note.awards || null,
-      note.winemaking || null
+      note.winemaking || null,
+      note.winery_description || null,
+      note.vintage_note || null,
+      note.aging_potential || null,
+      note.ai_generated || 0,
+      note.manually_edited || 0,
+      note.approved || 0
     );
   }
 }
@@ -264,6 +291,53 @@ export function getWineStats() {
     tastingNotesComplete: tnComplete,
     tastingNotesTotal: tnTotal,
   };
+}
+
+/* ─── New Wines with Status ─── */
+
+export interface WineWithStatus extends Wine {
+  tasting_note_id: number | null;
+  ai_generated: number;
+  approved: number;
+  wine_status: 'detected' | 'researched' | 'approved';
+}
+
+export function getNewWinesWithStatus(filters?: { status?: string; search?: string; wineStatus?: string }): WineWithStatus[] {
+  ensureWineTables();
+  let sql = `
+    SELECT w.*, tn.id as tasting_note_id,
+      COALESCE(tn.ai_generated, 0) as ai_generated,
+      COALESCE(tn.approved, 0) as approved,
+      CASE
+        WHEN tn.approved = 1 THEN 'approved'
+        WHEN tn.ai_generated = 1 OR w.ai_researched = 1 THEN 'researched'
+        ELSE 'detected'
+      END as wine_status
+    FROM wines w
+    LEFT JOIN tasting_notes tn ON w.item_code = tn.wine_id
+    WHERE 1=1
+  `;
+  const params: unknown[] = [];
+
+  if (filters?.status) {
+    sql += ' AND w.status = ?';
+    params.push(filters.status);
+  }
+  if (filters?.search) {
+    sql += ' AND (w.item_name_kr LIKE ? OR w.item_name_en LIKE ? OR w.item_code LIKE ?)';
+    const term = `%${filters.search}%`;
+    params.push(term, term, term);
+  }
+  if (filters?.wineStatus === 'detected') {
+    sql += ' AND (tn.ai_generated IS NULL OR tn.ai_generated = 0) AND (w.ai_researched = 0 OR w.ai_researched IS NULL)';
+  } else if (filters?.wineStatus === 'researched') {
+    sql += ' AND (tn.ai_generated = 1 OR w.ai_researched = 1) AND (tn.approved IS NULL OR tn.approved = 0)';
+  } else if (filters?.wineStatus === 'approved') {
+    sql += ' AND tn.approved = 1';
+  }
+
+  sql += ' ORDER BY w.updated_at DESC';
+  return db.prepare(sql).all(...params) as WineWithStatus[];
 }
 
 /* ─── Price List ─── */

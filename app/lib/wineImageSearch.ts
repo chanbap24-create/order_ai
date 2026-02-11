@@ -1,4 +1,4 @@
-// 와인 이미지 검색 + Wine-Searcher 데이터 스크래핑
+// 와인 이미지 검색 + Wine-Searcher 데이터 스크래핑 + Vivino 보틀샷
 
 import { logger } from "@/app/lib/logger";
 
@@ -14,6 +14,52 @@ export interface WineSearcherData {
   origin?: string;
   rating?: string;
   reviews?: string[];
+}
+
+/**
+ * Vivino에서 와인 보틀 이미지 검색
+ * Vivino의 이미지는 세로 긴 풀 보틀샷이므로 PPT에 적합
+ */
+export async function searchVivinoBottleImage(wineNameEn: string): Promise<string | null> {
+  if (!wineNameEn) return null;
+
+  try {
+    const query = encodeURIComponent(wineNameEn);
+    const res = await fetch(`https://www.vivino.com/search/wines?q=${query}`, {
+      headers: { "User-Agent": USER_AGENT },
+    });
+
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // Vivino 보틀 이미지 패턴: images.vivino.com/thumbs/...full/...
+    // 풀 보틀샷 우선 검색
+    const fullBottleMatch = html.match(/https:\/\/images\.vivino\.com\/thumbs\/[^"'\s]*_full[^"'\s]*\.(?:jpg|jpeg|png)/i);
+    if (fullBottleMatch) {
+      logger.info(`[Vivino] Full bottle image found: ${fullBottleMatch[0]}`);
+      return fullBottleMatch[0];
+    }
+
+    // 일반 보틀 이미지
+    const bottleMatch = html.match(/https:\/\/images\.vivino\.com\/thumbs\/[^"'\s]*\.(?:jpg|jpeg|png)/i);
+    if (bottleMatch) {
+      logger.info(`[Vivino] Bottle image found: ${bottleMatch[0]}`);
+      return bottleMatch[0];
+    }
+
+    // og:image fallback
+    const ogMatch = html.match(/property="og:image"\s*content="([^"]+)"/i);
+    if (ogMatch && ogMatch[1].includes('vivino.com')) {
+      logger.info(`[Vivino] OG image found: ${ogMatch[1]}`);
+      return ogMatch[1];
+    }
+
+    return null;
+  } catch (e) {
+    logger.warn("[Vivino] Scraping failed", { error: e });
+    return null;
+  }
 }
 
 /**
@@ -41,6 +87,7 @@ export async function scrapeWineSearcher(wineNameEn: string): Promise<WineSearch
         const jsonLd = JSON.parse(jsonLdMatch[1].trim());
         if (jsonLd.name) data.name = jsonLd.name;
         if (jsonLd.description) data.description = jsonLd.description;
+        // 이미지는 Vivino 우선이므로 Wine-Searcher 이미지는 별도 저장하지 않음
         if (jsonLd.image) {
           const imgPath = typeof jsonLd.image === 'string' ? jsonLd.image : jsonLd.image?.url || jsonLd.image?.[0];
           if (imgPath) {
@@ -97,11 +144,16 @@ export async function scrapeWineSearcher(wineNameEn: string): Promise<WineSearch
 }
 
 /**
- * 와인 이미지 URL만 검색 (간단 버전)
+ * 와인 보틀 이미지 검색 (Vivino 우선 → Wine-Searcher fallback)
  */
 export async function searchWineImage(wineNameEn: string): Promise<string | null> {
-  const data = await scrapeWineSearcher(wineNameEn);
-  return data?.imageUrl || null;
+  // 1순위: Vivino 풀 보틀샷
+  const vivinoImage = await searchVivinoBottleImage(wineNameEn);
+  if (vivinoImage) return vivinoImage;
+
+  // 2순위: Wine-Searcher 이미지
+  const wsData = await scrapeWineSearcher(wineNameEn);
+  return wsData?.imageUrl || null;
 }
 
 /**

@@ -1,42 +1,35 @@
 // PDF 생성기 - pdfkit 사용
-// 테이스팅 노트 PDF 생성
+// pptGenerator.ts와 동일한 레이아웃을 PDF로 직접 생성 (LibreOffice 불필요)
 
 import PDFDocument from "pdfkit";
+import { existsSync } from "fs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
+import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
+import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
-import path from "path";
-import fs from "fs";
 
-const PRIMARY_COLOR = "#8B1538";
-const TEXT_COLOR = "#1A1A1A";
-const LIGHT_TEXT = "#666666";
-const ACCENT_BG = "#F8F4F0";
-const AWARDS_BG = "#FFF8E1";
+// 슬라이드 크기 (인치) → 포인트 (1in = 72pt)
+const SLIDE_W = 7.5 * 72; // 540pt
+const SLIDE_H = 10.0 * 72; // 720pt
+const I = 72; // 1 inch in points
 
-// 한글 폰트 경로 (Vercel/시스템 폰트)
-function getFontPath(fontName: string): string | null {
-  const candidates = [
-    // Windows
-    `C:/Windows/Fonts/${fontName}`,
-    // Project local
-    path.join(process.cwd(), `fonts/${fontName}`),
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
+// 폰트 경로
+const FONT_REGULAR = "C:\\Windows\\Fonts\\malgun.ttf";
+const FONT_BOLD = "C:\\Windows\\Fonts\\malgunbd.ttf";
 
-interface NoteData {
-  itemCode: string;
+interface PdfSlideData {
   nameKr: string;
   nameEn: string;
   country: string;
+  countryEn: string;
   region: string;
   grapeVarieties: string;
   vintage: string;
-  wineType: string;
+  vintageNote: string;
+  wineryDescription: string;
   winemaking: string;
+  alcoholPercentage: string;
+  agingPotential: string;
   colorNote: string;
   noseNote: string;
   palateNote: string;
@@ -44,162 +37,206 @@ interface NoteData {
   glassPairing: string;
   servingTemp: string;
   awards: string;
+  bottleImageBase64?: string;
 }
 
-function addTastingNotePage(doc: PDFKit.PDFDocument, data: NoteData, isFirst: boolean) {
-  if (!isFirst) doc.addPage();
+function registerFonts(doc: PDFKit.PDFDocument) {
+  if (existsSync(FONT_REGULAR)) {
+    doc.registerFont("MalgunGothic", FONT_REGULAR);
+    // Turbopack이 pdfkit 내장 Helvetica.afm 경로를 C:\ROOT\로 변환하는 문제 우회
+    // 'Helvetica'를 맑은 고딕으로 덮어씌워 AFM 로드를 방지
+    doc.registerFont("Helvetica", FONT_REGULAR);
+  }
+  if (existsSync(FONT_BOLD)) {
+    doc.registerFont("MalgunGothicBold", FONT_BOLD);
+    doc.registerFont("Helvetica-Bold", FONT_BOLD);
+  }
+}
 
-  const pageW = doc.page.width;
-  const margin = 40;
-  const contentW = pageW - margin * 2;
+function addPage(doc: PDFKit.PDFDocument, data: PdfSlideData) {
+  doc.addPage({ size: [SLIDE_W, SLIDE_H], margin: 0 });
 
-  // 상단 바
-  doc.rect(0, 0, pageW, 65).fill(PRIMARY_COLOR);
+  const hasFonts = existsSync(FONT_REGULAR);
+  const fontR = hasFonts ? "MalgunGothic" : "Helvetica";
+  const fontB = hasFonts ? "MalgunGothicBold" : "Helvetica-Bold";
 
-  // 와인명 (한글)
-  doc.font("KoreanFont").fontSize(18).fillColor("white");
-  doc.text(data.nameKr, margin, 12, { width: contentW, height: 28 });
+  // ═══════════════════════════════
+  // HEADER
+  // ═══════════════════════════════
 
-  // 와인명 (영문)
-  if (data.nameEn) {
-    doc.font("KoreanFont").fontSize(10).fillColor("#DDBBBB");
-    doc.text(data.nameEn, margin, 40, { width: contentW, height: 20 });
+  // Logo (0.20in, 0.20in, 1.49x0.57in)
+  try {
+    const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
+    doc.image(logoBuffer, 0.20 * I, 0.20 * I, { width: 1.49 * I, height: 0.57 * I });
+  } catch { /* logo failed */ }
+
+  // 와이너리 태그라인 (1.66in, 0.18in, 10pt italic)
+  if (data.wineryDescription) {
+    const tagline = data.wineryDescription.split(/[.。]/)[0].trim();
+    if (tagline) {
+      doc.font(fontR).fontSize(10).fillColor("#000000")
+        .text(tagline, 1.66 * I, 0.18 * I, { width: 4.45 * I, lineBreak: false });
+    }
   }
 
-  // 기본 정보
-  let y = 80;
+  // 헤더 구분선 (0.21in, 0.84in, w=7.09in, 0.5pt)
+  doc.strokeColor("#000000").lineWidth(0.5)
+    .moveTo(0.21 * I, 0.84 * I)
+    .lineTo((0.21 + 7.09) * I, 0.84 * I)
+    .stroke();
 
-  // 국가/지역
-  doc.font("KoreanFont").fontSize(9).fillColor(LIGHT_TEXT);
-  doc.text("국가  ", margin, y, { continued: true });
-  doc.fontSize(10).fillColor(TEXT_COLOR);
-  doc.text(`${data.country}${data.region ? " - " + data.region : ""}`, { lineBreak: false });
+  // ═══════════════════════════════
+  // 와인명 (2.12in, 1.08in)
+  // ═══════════════════════════════
+  doc.font(fontR).fontSize(14.5).fillColor("#000000")
+    .text(data.nameKr, 2.12 * I, 1.08 * I, { width: 4.21 * I });
 
-  y += 22;
-  doc.font("KoreanFont").fontSize(9).fillColor(LIGHT_TEXT);
-  doc.text("품종  ", margin, y, { continued: true });
-  doc.fontSize(10).fillColor(TEXT_COLOR);
-  doc.text(data.grapeVarieties || "-", { lineBreak: false });
+  if (data.nameEn) {
+    const nameY = doc.y + 2;
+    doc.font(fontB).fontSize(11).fillColor("#000000")
+      .text(data.nameEn, 2.12 * I, nameY, { width: 4.21 * I });
+  }
 
-  y += 22;
-  doc.font("KoreanFont").fontSize(9).fillColor(LIGHT_TEXT);
-  doc.text("빈티지  ", margin, y, { continued: true });
-  doc.fontSize(10).fillColor(TEXT_COLOR);
-  doc.text(data.vintage || "-", { continued: true, lineBreak: false });
-  doc.fontSize(9).fillColor(LIGHT_TEXT);
-  doc.text("    타입  ", { continued: true, lineBreak: false });
-  doc.fontSize(10).fillColor(TEXT_COLOR);
-  doc.text(data.wineType || "-", { lineBreak: false });
+  // ═══════════════════════════════
+  // 와인 병 이미지 (0, 1.62in, 2.13x7.73in)
+  // ═══════════════════════════════
+  if (data.bottleImageBase64) {
+    try {
+      const imgBuffer = Buffer.from(data.bottleImageBase64, "base64");
+      doc.image(imgBuffer, 0, 1.62 * I, {
+        fit: [2.13 * I, 7.73 * I],
+        align: "center",
+        valign: "center",
+      });
+    } catch { /* image failed */ }
+  }
+
+  // 와인명 하단 점선 (2.19in, 1.82in, w=3.28in)
+  doc.strokeColor("#000000").lineWidth(1.5)
+    .dash(3, { space: 3 })
+    .moveTo(2.19 * I, 1.82 * I)
+    .lineTo((2.19 + 3.28) * I, 1.82 * I)
+    .stroke()
+    .undash();
+
+  // ═══════════════════════════════
+  // 와인 상세 정보
+  // ═══════════════════════════════
+
+  // 지역
+  doc.font(fontB).fontSize(11).fillColor("#000000")
+    .text("지역", 2.10 * I, 1.93 * I);
+  const regionText = data.region
+    ? `${data.countryEn || data.country}, ${data.region}`
+    : (data.countryEn || data.country || "-");
+  doc.font(fontR).fontSize(10)
+    .text(regionText, 2.10 * I, 2.13 * I, { width: 4.24 * I });
+
+  // 품종
+  doc.font(fontB).fontSize(11)
+    .text("품종", 2.12 * I, 2.42 * I);
+  doc.font(fontR).fontSize(10)
+    .text(data.grapeVarieties || "-", 2.12 * I, 2.71 * I, { width: 4.33 * I });
+
+  // 빈티지
+  doc.font(fontB).fontSize(11)
+    .text("빈티지", 2.12 * I, 3.02 * I);
+  doc.font(fontR).fontSize(10)
+    .text(data.vintageNote || data.vintage || "-", 2.10 * I, 3.29 * I, { width: 4.86 * I });
 
   // 양조
-  if (data.winemaking) {
-    y += 30;
-    doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-    doc.text("양조", margin, y);
-    y += 14;
-    doc.fontSize(8.5).fillColor(TEXT_COLOR);
-    doc.text(data.winemaking, margin, y, { width: contentW * 0.5, lineGap: 2 });
-    y = doc.y + 10;
-  } else {
-    y += 30;
-  }
+  doc.font(fontB).fontSize(11)
+    .text("양조", 2.14 * I, 3.82 * I);
+  const wineMakingText = data.winemaking || "-";
+  const alcoholLine = data.alcoholPercentage ? `\n알코올: ${data.alcoholPercentage}` : "";
+  doc.font(fontR).fontSize(9)
+    .text(wineMakingText + alcoholLine, 2.13 * I, 4.11 * I, { width: 5.16 * I, height: 1.21 * I });
 
-  // 테이스팅 노트 영역
-  const noteY = Math.max(y, 190);
-  const noteX = margin;
-  const noteW = contentW;
+  // 테이스팅 노트
+  doc.font(fontB).fontSize(11)
+    .text("테이스팅 노트", 2.10 * I, 5.63 * I);
+  const tastingLines: string[] = [];
+  if (data.colorNote) tastingLines.push(`컬러: ${data.colorNote}`);
+  if (data.noseNote) tastingLines.push(`노즈: ${data.noseNote}`);
+  if (data.palateNote) tastingLines.push(`팔렛: ${data.palateNote}`);
+  if (data.agingPotential) tastingLines.push(`잠재력: ${data.agingPotential}`);
+  if (data.servingTemp) tastingLines.push(`서빙 온도: ${data.servingTemp}`);
+  doc.font(fontR).fontSize(9)
+    .text(tastingLines.join("\n") || "-", 2.14 * I, 5.86 * I, { width: 5.16 * I, height: 1.43 * I });
 
-  // 배경 박스
-  doc.roundedRect(noteX - 5, noteY - 5, noteW + 10, 280, 5).fill(ACCENT_BG);
+  // 푸드 페어링
+  doc.font(fontB).fontSize(11)
+    .text("푸드 페어링", 2.13 * I, 7.36 * I);
+  doc.font(fontR).fontSize(9)
+    .text(data.foodPairing || "-", 2.13 * I, 7.70 * I, { width: 5.25 * I });
 
-  doc.font("KoreanFont").fontSize(12).fillColor(PRIMARY_COLOR);
-  doc.text("TASTING NOTES", noteX, noteY + 5, { width: noteW });
+  // 글라스 페어링
+  doc.font(fontB).fontSize(11)
+    .text("글라스 페어링", 2.10 * I, 8.15 * I);
+  doc.font(fontR).fontSize(9)
+    .text(data.glassPairing || "-", 2.10 * I, 8.49 * I, { width: 5.58 * I, height: 0.56 * I });
 
-  let ny = noteY + 28;
-
-  // Color
-  doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-  doc.text("Color", noteX, ny, { continued: true });
-  doc.fillColor(TEXT_COLOR).fontSize(9);
-  doc.text("  " + (data.colorNote || "-"), { width: noteW - 50 });
-  ny = doc.y + 8;
-
-  // Nose
-  doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-  doc.text("Nose", noteX, ny, { continued: true });
-  doc.fillColor(TEXT_COLOR).fontSize(9);
-  doc.text("  " + (data.noseNote || "-"), { width: noteW - 50 });
-  ny = doc.y + 8;
-
-  // Palate
-  doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-  doc.text("Palate", noteX, ny, { continued: true });
-  doc.fillColor(TEXT_COLOR).fontSize(9);
-  doc.text("  " + (data.palateNote || "-"), { width: noteW - 50 });
-  ny = doc.y + 8;
-
-  // Food Pairing
-  doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-  doc.text("Food Pairing", noteX, ny, { continued: true });
-  doc.fillColor(TEXT_COLOR).fontSize(9);
-  doc.text("  " + (data.foodPairing || "-"), { width: noteW - 50 });
-  ny = doc.y + 8;
-
-  // Glass & Temp
-  doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-  doc.text("Glass  ", noteX, ny, { continued: true });
-  doc.fillColor(TEXT_COLOR);
-  doc.text((data.glassPairing || "-"), { continued: true, lineBreak: false });
-  doc.fillColor(PRIMARY_COLOR);
-  doc.text("    Temp  ", { continued: true, lineBreak: false });
-  doc.fillColor(TEXT_COLOR);
-  doc.text(data.servingTemp || "-", { lineBreak: false });
-  ny = doc.y + 15;
-
+  // ═══════════════════════════════
   // 수상내역
-  if (data.awards && data.awards !== "N/A") {
-    doc.roundedRect(margin - 5, ny, noteW + 10, 30, 3).fill(AWARDS_BG);
-    doc.font("KoreanFont").fontSize(9).fillColor(PRIMARY_COLOR);
-    doc.text("Awards  ", margin, ny + 8, { continued: true });
-    doc.fillColor(TEXT_COLOR);
-    doc.text(data.awards, { width: noteW - 60 });
-    ny = doc.y + 10;
-  }
+  // ═══════════════════════════════
+  doc.strokeColor("#000000").lineWidth(1.5)
+    .dash(3, { space: 3 })
+    .moveTo(0.26 * I, 9.06 * I)
+    .lineTo((0.26 + 7.09) * I, 9.06 * I)
+    .stroke()
+    .undash();
 
-  // 하단 바
-  const footerY = doc.page.height - 40;
-  doc.rect(0, footerY, pageW, 40).fill(PRIMARY_COLOR);
-  doc.font("KoreanFont").fontSize(9).fillColor("white");
-  doc.text(
-    "㈜까브드뱅  T.02-786-3136  |  www.cavedevin.co.kr",
-    0, footerY + 12,
-    { width: pageW, align: "center" }
-  );
+  // 수상 아이콘
+  try {
+    const iconBuffer = Buffer.from(ICON_AWARD_BASE64, "base64");
+    doc.image(iconBuffer, 0.30 * I, 9.13 * I, { width: 0.20 * I, height: 0.25 * I });
+  } catch { /* icon failed */ }
+
+  // 수상내역 텍스트
+  const awardsText = data.awards && data.awards !== "N/A"
+    ? `수상내역  ${data.awards}`
+    : "수상내역";
+  doc.font(fontR).fontSize(10).fillColor("#000000")
+    .text(awardsText, 0.51 * I, 9.16 * I, { width: 6.5 * I });
+
+  // ═══════════════════════════════
+  // FOOTER
+  // ═══════════════════════════════
+  doc.strokeColor("#000000").lineWidth(3)
+    .moveTo(0.21 * I, 9.52 * I)
+    .lineTo((0.21 + 7.09) * I, 9.52 * I)
+    .stroke();
+
+  // 로고
+  try {
+    const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
+    doc.image(logoBuffer, 0.09 * I, 9.70 * I, { width: 0.95 * I, height: 0.25 * I });
+  } catch { /* logo failed */ }
+
+  // 회사 정보
+  doc.font(fontR).fontSize(7.5).fillColor("#000000")
+    .text("㈜까브드뱅   T. 02-786-3136 |  www.cavedevin.co.kr", 1.12 * I, 9.73 * I, {
+      width: 2.76 * I,
+      align: "right",
+    });
 }
 
-/** 단일 와인 테이스팅 노트 PDF 생성 → Buffer 반환 */
+/** 단일 와인 PDF 생성 */
 export async function generateSingleWinePdf(wineId: string): Promise<Buffer> {
   return generateTastingNotePdf([wineId]);
 }
 
-/** 여러 와인의 테이스팅 노트 PDF 생성 → Buffer 반환 */
+/** 여러 와인의 테이스팅 노트 PDF 생성 */
 export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer> {
-  // 한글 폰트 로드
-  const malgunPath = getFontPath("malgun.ttf");
-
   const doc = new PDFDocument({
-    size: "A4",
-    margin: 40,
+    size: [SLIDE_W, SLIDE_H],
+    margin: 0,
+    autoFirstPage: false,
+    bufferPages: true,
     info: { Author: "까브드뱅 와인 관리 시스템", Title: "Tasting Notes" },
   });
 
-  // 한글 폰트 등록
-  if (malgunPath) {
-    doc.registerFont("KoreanFont", malgunPath);
-  } else {
-    // 폰트가 없으면 기본 Helvetica 사용 (한글 깨질 수 있음)
-    doc.registerFont("KoreanFont", "Helvetica");
-  }
+  registerFonts(doc);
 
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -212,16 +249,29 @@ export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer>
 
     const note = getTastingNote(wineId);
 
-    addTastingNotePage(doc, {
-      itemCode: wine.item_code,
+    let bottleImageBase64: string | undefined;
+    if (wine.image_url) {
+      try {
+        const imgData = await downloadImageAsBase64(wine.image_url);
+        if (imgData) bottleImageBase64 = imgData.base64;
+      } catch {
+        logger.warn(`[PDF] Image download failed for ${wineId}`);
+      }
+    }
+
+    addPage(doc, {
       nameKr: wine.item_name_kr,
       nameEn: wine.item_name_en || "",
-      country: wine.country_en || wine.country || "",
+      country: wine.country || "",
+      countryEn: wine.country_en || "",
       region: wine.region || "",
       grapeVarieties: wine.grape_varieties || "",
       vintage: wine.vintage || "",
-      wineType: wine.wine_type || "",
+      vintageNote: note?.vintage_note || "",
+      wineryDescription: note?.winery_description || "",
       winemaking: note?.winemaking || "",
+      alcoholPercentage: wine.alcohol || "",
+      agingPotential: note?.aging_potential || "",
       colorNote: note?.color_note || "",
       noseNote: note?.nose_note || "",
       palateNote: note?.palate_note || "",
@@ -229,7 +279,8 @@ export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer>
       glassPairing: note?.glass_pairing || "",
       servingTemp: note?.serving_temp || "",
       awards: note?.awards || "",
-    }, slideCount === 0);
+      bottleImageBase64,
+    });
     slideCount++;
   }
 
@@ -237,14 +288,11 @@ export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer>
     throw new Error("생성할 페이지가 없습니다.");
   }
 
-  doc.end();
+  logger.info(`[PDF] Generated: ${slideCount} pages`);
 
   return new Promise((resolve, reject) => {
-    doc.on("end", () => {
-      const result = Buffer.concat(chunks);
-      logger.info(`PDF generated: ${slideCount} pages (${result.length} bytes)`);
-      resolve(result);
-    });
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
+    doc.end();
   });
 }

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateSingleWinePpt, generateTastingNotePpt } from "@/app/lib/pptGenerator";
 import { logChange } from "@/app/lib/changeLogDb";
 import { upsertTastingNote } from "@/app/lib/wineDb";
-import { uploadToRelease } from "@/app/lib/githubRelease";
+import { savePptx, convertToPdf } from "@/app/lib/fileOutput";
 import { logger } from "@/app/lib/logger";
 
 export const runtime = "nodejs";
@@ -30,6 +30,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: `PPT 생성 실패: ${msg}` }, { status: 500 });
     }
 
+    // 파일 저장 + PDF 변환
+    for (const wineId of wineIds) {
+      if (wineIds.length === 1) {
+        const pptxPath = savePptx(wineId, pptBuffer);
+        convertToPdf(pptxPath);
+      }
+    }
+
+    // 일괄 생성 시 개별 파일도 저장
+    if (wineIds.length > 1) {
+      for (const wineId of wineIds) {
+        try {
+          const singleBuffer = await generateSingleWinePpt(wineId);
+          const pptxPath = savePptx(wineId, singleBuffer);
+          convertToPdf(pptxPath);
+        } catch {
+          logger.warn(`[PPT] Individual save failed for ${wineId}`);
+        }
+      }
+    }
+
     // DB 업데이트
     for (const wineId of wineIds) {
       try {
@@ -37,33 +58,19 @@ export async function POST(request: NextRequest) {
       } catch { /* ignore */ }
     }
 
-    // GitHub 릴리스 업로드 (백그라운드, 실패해도 다운로드에는 영향 없음)
-    const uploadResults: { wineId: string; pptxUrl?: string; error?: string }[] = [];
-    for (const wineId of wineIds) {
-      try {
-        const singleBuf = wineIds.length === 1 ? pptBuffer : await generateSingleWinePpt(wineId);
-        const url = await uploadToRelease(
-          `${wineId}.pptx`,
-          singleBuf,
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        );
-        uploadResults.push({ wineId, pptxUrl: url });
-      } catch (e) {
-        logger.warn(`[PPT] GitHub upload failed for ${wineId}`, { error: e });
-        uploadResults.push({ wineId, error: "GitHub 업로드 실패" });
-      }
-    }
-
-    logChange('ppt_generated', 'tasting_note', wineIds.join(','), { count: wineIds.length });
+    try {
+      logChange('ppt_generated', 'tasting_note', wineIds.join(','), { count: wineIds.length });
+    } catch { /* ignore */ }
 
     const fileName = wineIds.length === 1 ? `${wineIds[0]}.pptx` : "tasting-notes-bulk.pptx";
 
-    return new NextResponse(new Uint8Array(pptBuffer), {
+    // Buffer를 직접 Response로 반환
+    return new Response(pptBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         'Content-Disposition': `attachment; filename="${fileName}"`,
-        'X-Upload-Results': JSON.stringify(uploadResults),
+        'Content-Length': String(pptBuffer.length),
       },
     });
   } catch (e) {
