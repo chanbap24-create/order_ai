@@ -124,20 +124,18 @@ function addBentoCard(
   });
 }
 
-// ─── 헬퍼: 섹션 라벨 뱃지 (roundRect shape + text overlay) ───
+// ─── 헬퍼: 섹션 라벨 뱃지 (roundRect + text overlay) ───
 function addLabelBadge(
   slide: PptxGenJS.Slide,
   text: string,
   x: number, y: number, w: number
 ) {
-  // 배경: roundRect shape (addText의 rectRadius는 rect+adj 생성 → PowerPoint 호환 불가)
   slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
     x, y, w, h: 0.22,
     fill: { color: COLORS.BURGUNDY },
     rectRadius: LABEL_BADGE_RADIUS,
     line: { width: 0 },
   });
-  // 텍스트 오버레이
   slide.addText(text, {
     x, y, w, h: 0.22,
     ...LABEL_BADGE_TEXT_OPTS,
@@ -187,7 +185,7 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // 우측 상단 장식 악센트 바 (버건디 얇은 라인)
-  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
+  slide.addShape('rect' as PptxGenJS.SHAPE_NAME, {
     x: 7.15, y: 0.20, w: 0.06, h: 0.57,
     fill: { color: COLORS.BURGUNDY },
     line: { width: 0 },
@@ -230,7 +228,7 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // 와인명 좌측 악센트 바
-  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
+  slide.addShape('rect' as PptxGenJS.SHAPE_NAME, {
     x: 2.05, y: 1.01, w: 0.05, h: 0.68,
     fill: { color: COLORS.BURGUNDY },
     line: { width: 0 },
@@ -265,9 +263,8 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
       const imgH = 5.80;
       const imgX = 0.30;
       const imgY = 2.20;
-      const mime = data.bottleImageMime || 'image/png';
       slide.addImage({
-        data: `${mime};base64,${data.bottleImageBase64}`,
+        data: `${data.bottleImageMime || 'image/png'};base64,${data.bottleImageBase64}`,
         x: imgX, y: imgY, w: imgW, h: imgH,
         sizing: { type: 'contain', w: imgW, h: imgH },
       });
@@ -348,7 +345,7 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
     transparency: 30,
   });
 
-  // 테이스팅 노트 라벨 (roundRect shape + text overlay)
+  // 테이스팅 노트 라벨 (roundRect + text overlay)
   slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
     x: 2.12, y: 5.35, w: 1.32, h: 0.22,
     fill: { color: COLORS.BURGUNDY },
@@ -493,18 +490,18 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
 
     const note = getTastingNote(wineId);
 
-    // 이미지: DB에 저장된 image_url만 사용 (AI 조사 시 저장된 이미지)
-    // PPT 생성 시 새로 검색하지 않음 (속도 + Vivino 팔레트 PNG 호환 문제 방지)
+    // 이미지: URL에서 다운로드
     let bottleImageBase64: string | undefined;
     let bottleImageMime: string | undefined;
 
+    // DB에 저장된 image_url만 사용 (AI 조사 시 저장된 이미지)
     if (wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
           bottleImageBase64 = imgData.base64;
           bottleImageMime = imgData.mimeType;
-          logger.info(`[PPT] DB image loaded for ${wineId}: ${wine.image_url}`);
+          logger.info(`[PPT] DB image loaded for ${wineId}`);
         }
       } catch {
         logger.warn(`[PPT] Image download failed for ${wineId}`);
