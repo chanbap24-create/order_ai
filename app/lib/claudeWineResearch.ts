@@ -37,10 +37,26 @@ const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연�
   "awards": "수상 내역 또는 평점 (없으면 N/A)"
 }`;
 
+/** 빈티지 약식 → 4자리 연도 변환 (15→2015, 99→1999, NV→NV) */
+function parseVintage(raw: string | undefined | null): string {
+  if (!raw) return '';
+  const trimmed = raw.trim().toUpperCase();
+  if (trimmed === 'NV' || trimmed === 'MV' || trimmed === 'N/V') return trimmed;
+  if (/^\d{4}$/.test(trimmed)) return trimmed; // 이미 4자리
+  const num = parseInt(trimmed, 10);
+  if (isNaN(num)) return trimmed;
+  // 2자리: 현재연도(26) 이하면 2000년대, 초과면 1900년대
+  if (num >= 0 && num <= 99) {
+    return num > 26 ? `19${String(num).padStart(2, '0')}` : `20${String(num).padStart(2, '0')}`;
+  }
+  return trimmed;
+}
+
 export async function researchWineWithClaude(
   itemCode: string,
   itemNameKr: string,
-  itemNameEn: string
+  itemNameEn: string,
+  vintage?: string
 ): Promise<WineResearchResult> {
   const client = getClaudeClient();
 
@@ -77,7 +93,9 @@ export async function researchWineWithClaude(
   }
 
   // Step 2: Claude API 호출
-  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${wsContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요. Wine-Searcher 데이터가 있다면 그것을 우선 사용하세요.`;
+  const vintageYear = parseVintage(vintage);
+  const vintageInfo = vintageYear ? `\n빈티지: ${vintageYear}년` : '';
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${wsContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요. Wine-Searcher 데이터가 있다면 그것을 우선 사용하세요.${vintageYear ? `\n\n중요: 이 와인의 빈티지는 ${vintageYear}년입니다. vintage_note에 ${vintageYear}년의 기후, 작황, 포도 품질에 대해 구체적으로 작성해주세요.` : ''}`;
 
   const response = await client.messages.create({
     model: CLAUDE_MODEL,

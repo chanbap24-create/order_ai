@@ -41,6 +41,7 @@ export default function NewWineTab() {
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [uploadingGithub, setUploadingGithub] = useState(false);
   const [dispatchingIndex, setDispatchingIndex] = useState(false);
+  const [showDetailPanel, setShowDetailPanel] = useState(true);
 
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -159,6 +160,7 @@ export default function NewWineTab() {
           wine_id: selectedWine.item_code,
           product_name_eng: engName,
           item_name_kr: selectedWine.item_name_kr,
+          vintage: selectedWine.vintage || '',
         }),
       });
       const data = await res.json();
@@ -206,6 +208,7 @@ export default function NewWineTab() {
             wine_id: id,
             product_name_eng: w?.item_name_en || '',
             item_name_kr: w?.item_name_kr || '',
+            vintage: w?.vintage || '',
           }),
         });
       } catch { /* continue */ }
@@ -572,11 +575,11 @@ export default function NewWineTab() {
         </div>
       )}
 
-      {/* ─── 좌우 분할 패널 ─── */}
+      {/* ─── 3단 분할 패널 ─── */}
       <div style={{ display: 'flex', flex: 1, gap: 12, overflow: 'hidden' }}>
 
         {/* ─── 좌측: 와인 리스트 ─── */}
-        <div ref={listRef} style={{ width: 420, minWidth: 360, borderRight: '1px solid #e5e7eb', overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+        <div ref={listRef} style={{ width: 340, minWidth: 300, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0 }}>
           {/* 리스트 헤더 */}
           <div style={{ padding: '10px 12px', borderBottom: '2px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 8, position: 'sticky', top: 0, background: '#f9fafb', zIndex: 1 }}>
             <input
@@ -634,8 +637,8 @@ export default function NewWineTab() {
           )}
         </div>
 
-        {/* ─── 우측: 상세 패널 ─── */}
-        <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+        {/* ─── 중앙: 편집 패널 ─── */}
+        <div style={{ flex: 1, minWidth: 320, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
           {!selectedWine ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: 15 }}>
               좌측에서 와인을 선택하세요
@@ -790,6 +793,75 @@ export default function NewWineTab() {
             </div>
           )}
         </div>
+
+        {/* ─── 우측: 조사 결과 상세 패널 (토글) ─── */}
+        {selectedWine && showDetailPanel && (
+          <div style={{ width: 380, minWidth: 320, overflowY: 'auto', background: '#fafbfc', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0, position: 'relative' }}>
+            {/* 접기 버튼 */}
+            <button
+              onClick={() => setShowDetailPanel(false)}
+              style={{
+                position: 'sticky', top: 8, float: 'right', margin: '8px 8px 0 0', zIndex: 2,
+                width: 28, height: 28, borderRadius: '50%', border: '1px solid #d1d5db',
+                background: '#fff', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              title="패널 접기"
+            >
+              ✕
+            </button>
+
+            {!tastingNote || !tastingNote.ai_generated ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: 14, padding: 40, textAlign: 'center' }}>
+                조사를 먼저 진행해주세요
+              </div>
+            ) : (
+              <div style={{ padding: '16px 18px' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>
+                  AI 조사 원본 데이터
+                </div>
+
+                <DetailSection icon="🏰" title="와이너리 상세" content={tastingNote.winery_description} />
+                <DetailSection icon="🍷" title="양조 방법 상세" content={tastingNote.winemaking} />
+                <DetailSection icon="📅" title="빈티지 특성" content={tastingNote.vintage_note} />
+
+                <DetailSection icon="🎨" title="테이스팅 노트 상세" content={null}>
+                  <DetailField label="컬러" value={tastingNote.color_note} />
+                  <DetailField label="노즈" value={tastingNote.nose_note} />
+                  <DetailField label="팔렛" value={tastingNote.palate_note} />
+                </DetailSection>
+
+                <DetailSection icon="🍽️" title="페어링 상세" content={null}>
+                  <DetailField label="푸드 페어링" value={tastingNote.food_pairing} />
+                  <DetailField label="글라스 페어링" value={tastingNote.glass_pairing} />
+                </DetailSection>
+
+                <DetailSection icon="🏆" title="수상/평가" content={tastingNote.awards} />
+                <DetailSection icon="⏳" title="숙성 잠재력" content={tastingNote.aging_potential} />
+
+                {tastingNote.serving_temp && (
+                  <div style={{ marginTop: 12, padding: '8px 12px', background: '#e0f2fe', borderRadius: 6, fontSize: 12, color: '#0369a1' }}>
+                    🌡️ 서빙 온도: {tastingNote.serving_temp}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 우측 패널 접혔을 때 펼치기 버튼 */}
+        {selectedWine && !showDetailPanel && (
+          <button
+            onClick={() => setShowDetailPanel(true)}
+            style={{
+              writingMode: 'vertical-rl', padding: '12px 6px', borderRadius: '8px',
+              border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer',
+              fontSize: 12, color: '#6b7280', fontWeight: 600, flexShrink: 0,
+            }}
+            title="상세 패널 펼치기"
+          >
+            ◀ 조사 상세
+          </button>
+        )}
       </div>
     </div>
   );
@@ -838,6 +910,35 @@ function FormTextarea({ label, value, onChange, rows = 2 }: { label: string; val
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
       />
+    </div>
+  );
+}
+
+function DetailSection({ icon, title, content, children }: { icon: string; title: string; content?: string | null; children?: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
+        {icon} {title}
+      </div>
+      {content ? (
+        <div style={{ fontSize: 12, color: '#4b5563', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+          {content}
+        </div>
+      ) : children ? (
+        <div>{children}</div>
+      ) : (
+        <div style={{ fontSize: 12, color: '#d1d5db', fontStyle: 'italic' }}>정보 없음</div>
+      )}
+    </div>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 12, color: '#4b5563', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{value}</div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { wine_id, product_name_eng, item_name_kr } = await request.json();
+    const { wine_id, product_name_eng, item_name_kr, vintage } = await request.json();
 
     if (!wine_id) {
       return NextResponse.json({ success: false, error: "wine_id가 필요합니다." }, { status: 400 });
@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
     const result = await researchWineWithClaude(
       wine_id,
       item_name_kr || '',
-      product_name_eng.trim()
+      product_name_eng.trim(),
+      vintage || undefined
     );
 
     // wines 테이블 업데이트
