@@ -497,8 +497,22 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
     let bottleImageBase64: string | undefined;
     let bottleImageMime: string | undefined;
 
-    // 1순위: Vivino 누키 보틀샷 (투명 배경 PNG)
-    if (wine.item_name_en) {
+    // 1순위: DB에 저장된 image_url (AI 조사 시 확인된 이미지)
+    if (wine.image_url) {
+      try {
+        const imgData = await downloadImageAsBase64(wine.image_url);
+        if (imgData) {
+          bottleImageBase64 = imgData.base64;
+          bottleImageMime = imgData.mimeType;
+          logger.info(`[PPT] DB image loaded for ${wineId}`);
+        }
+      } catch {
+        logger.warn(`[PPT] DB image download failed for ${wineId}`);
+      }
+    }
+
+    // 2순위: Vivino 누키 보틀샷 (DB 이미지 없을 때만)
+    if (!bottleImageBase64 && wine.item_name_en) {
       try {
         const vivinoUrl = await searchVivinoBottleImage(wine.item_name_en);
         if (vivinoUrl) {
@@ -511,19 +525,6 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
         }
       } catch {
         logger.warn(`[PPT] Vivino image search failed for ${wineId}`);
-      }
-    }
-
-    // 2순위: DB에 저장된 image_url
-    if (!bottleImageBase64 && wine.image_url) {
-      try {
-        const imgData = await downloadImageAsBase64(wine.image_url);
-        if (imgData) {
-          bottleImageBase64 = imgData.base64;
-          bottleImageMime = imgData.mimeType;
-        }
-      } catch {
-        logger.warn(`[PPT] Image download failed for ${wineId}`);
       }
     }
 
