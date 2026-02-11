@@ -2,10 +2,10 @@
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
-import { scrapeWineSearcher } from "@/app/lib/wineImageSearch";
+import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import type { WineResearchResult } from "@/app/types/wine";
 
-const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
+const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 
 const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
 사용자가 제공한 와인 정보와 Wine-Searcher 실제 데이터를 기반으로 와인을 분석하세요.
@@ -66,19 +66,11 @@ export async function researchWineWithClaude(
 
   logger.info(`[Claude] Researching wine: ${itemCode} - ${itemNameKr} (en: ${itemNameEn})`);
 
-  // Step 1: Wine-Searcher에서 실제 데이터 검색 (5초 타임아웃)
+  // Step 1: Wine-Searcher에서 실제 데이터 검색
   let wsContext = "";
   let imageUrl: string | null = null;
 
-  let wsData = null;
-  try {
-    wsData = await Promise.race([
-      scrapeWineSearcher(itemNameEn),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-    ]);
-  } catch {
-    logger.warn(`[Claude][WineSearcher] Scrape failed/timeout for: ${itemNameEn}`);
-  }
+  const wsData = await scrapeWineSearcher(itemNameEn);
 
   if (wsData) {
     wsContext = `\n\n=== Wine-Searcher 실제 데이터 ===\n`;
@@ -127,9 +119,18 @@ export async function researchWineWithClaude(
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // 이미지는 PPT 생성 시 별도 검색 (타임아웃 방지)
+  // Step 3: 이미지 URL 설정 (Vivino 풀 보틀샷 우선)
+  if (!imageUrl) {
+    // Vivino에서 보틀 이미지 우선 검색
+    imageUrl = await searchVivinoBottleImage(result.item_name_en || itemNameEn);
+  }
+  if (!imageUrl && result.item_name_en) {
+    // fallback: searchWineImage (Vivino → Wine-Searcher)
+    imageUrl = await searchWineImage(result.item_name_en);
+  }
   if (imageUrl) {
     result.image_url = imageUrl;
+    logger.info(`[Claude][WineImage] Image found for ${itemCode}: ${imageUrl}`);
   }
 
   logger.info(`[Claude] Wine research complete for ${itemCode} (WS data: ${wsData ? 'yes' : 'no'}, image: ${imageUrl ? 'yes' : 'no'})`);

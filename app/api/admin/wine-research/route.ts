@@ -6,7 +6,6 @@ import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +28,6 @@ export async function POST(request: NextRequest) {
     // wines 테이블 업데이트
     upsertWine({
       item_code: wine_id,
-      item_name_kr: item_name_kr || product_name_eng.trim(),
       item_name_en: result.item_name_en,
       country_en: result.country_en,
       region: result.region,
@@ -62,12 +60,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const stack = e instanceof Error ? e.stack : undefined;
-    console.error(`[wine-research] ERROR:`, msg, stack);
-    return NextResponse.json(
-      { success: false, error: msg, stack: stack?.split('\n').slice(0, 3).join('\n') },
-      { status: 500 }
-    );
+    return handleApiError(e);
   }
 }
