@@ -180,7 +180,7 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // 우측 상단 장식 악센트 바 (버건디 얇은 라인)
-  slide.addShape('rect' as PptxGenJS.SHAPE_NAME, {
+  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
     x: 7.15, y: 0.20, w: 0.06, h: 0.57,
     fill: { color: COLORS.BURGUNDY },
     line: { width: 0 },
@@ -223,7 +223,7 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
   });
 
   // 와인명 좌측 악센트 바
-  slide.addShape('rect' as PptxGenJS.SHAPE_NAME, {
+  slide.addShape('roundRect' as PptxGenJS.SHAPE_NAME, {
     x: 2.05, y: 1.01, w: 0.05, h: 0.68,
     fill: { color: COLORS.BURGUNDY },
     line: { width: 0 },
