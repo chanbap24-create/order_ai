@@ -14,9 +14,27 @@ Usage: python generate_ppt.py <input.json> <output.pptx>
 import sys
 import os
 import json
+import subprocess
 
-# Vercel 배포 시 .python_packages 경로 추가
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.python_packages'))
+# 런타임 패키지 설치 (Vercel Lambda 등 패키지 미설치 환경)
+_PKG_DIR = '/tmp/python_packages'
+
+def _ensure_packages():
+    """python-pptx, Pillow가 없으면 /tmp에 자동 설치"""
+    try:
+        import pptx  # noqa: F401
+        return
+    except ImportError:
+        pass
+    os.makedirs(_PKG_DIR, exist_ok=True)
+    sys.path.insert(0, _PKG_DIR)
+    subprocess.check_call([
+        sys.executable, '-m', 'pip', 'install',
+        'python-pptx', 'Pillow',
+        '-t', _PKG_DIR, '--quiet', '--disable-pip-version-check'
+    ], stdout=subprocess.DEVNULL)
+
+_ensure_packages()
 
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
