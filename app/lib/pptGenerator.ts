@@ -258,8 +258,10 @@ function addTastingNoteSlide(pptx: PptxGenJS, data: SlideData) {
       const imgH = 5.80;
       const imgX = 0.30;
       const imgY = 2.20;
+      // bottleImageMime은 "image/png" 형태이므로 그대로 사용
+      const mime = data.bottleImageMime || 'image/png';
       slide.addImage({
-        data: `image/${data.bottleImageMime || 'png'};base64,${data.bottleImageBase64}`,
+        data: `${mime};base64,${data.bottleImageBase64}`,
         x: imgX, y: imgY, w: imgW, h: imgH,
         sizing: { type: 'contain', w: imgW, h: imgH },
       });
