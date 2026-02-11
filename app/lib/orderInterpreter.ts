@@ -4,13 +4,12 @@ import { config } from "./config";
 import { logger } from "./logger";
 import { getAllItemsList } from "./parseOrderWithGPT";
 
-// API 키 확인
-if (!process.env.OPENAI_API_KEY) {
-  console.error('OPENAI_API_KEY is not set in environment variables');
-  throw new Error('OPENAI_API_KEY environment variable is required');
+// API 키는 런타임에 확인 (빌드 시 env가 없을 수 있음)
+function getOpenAIKey() {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error('OPENAI_API_KEY environment variable is required');
+  return key;
 }
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 /**
  * 발주 해석 결과 타입
@@ -319,7 +318,7 @@ ${relevantItems.map(item => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${getOpenAIKey()}`
       },
       body: JSON.stringify({
         model: config.openai.model,

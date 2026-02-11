@@ -4,9 +4,13 @@ import { db } from "./db";
 import { config } from "./config";
 import { logger } from "./logger";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI;
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 /**
  * GPT를 활용하여 자연어 발주 메시지를 구조화
@@ -402,7 +406,7 @@ ${relevantItems.map(item => {
       console.log('- 주요 약어:', learnedAliases.slice(0, 10).map(a => `${a.alias}→${a.canonical}`).join(', '));
     }
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: config.openai.model,
       messages: [
         { role: "system", content: systemPrompt },

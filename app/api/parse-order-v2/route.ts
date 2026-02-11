@@ -10,7 +10,7 @@ import { translateOrderToKoreanIfNeeded } from "@/app/lib/translateOrder";
 import type { ParseFullOrderResponse } from "@/app/types/api";
 
 
-import Holidays from "date-holidays";
+import { isHolidayKST } from "@/app/lib/holidays";
 
 export const runtime = "nodejs";
 
@@ -251,40 +251,14 @@ function scoreName(q: any, name: any) {
 
 
 /* -------------------- 배송일 계산 (공휴일 자동) -------------------- */
-// ✅ 한국 공휴일: date-holidays 사용 (설/추석/대체공휴일 포함)
-const hd = new Holidays("KR");
-
-function toKSTParts(d: Date) {
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = fmt.formatToParts(d);
-  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
-  const m = parts.find((p) => p.type === "month")?.value ?? "01";
-  const day = parts.find((p) => p.type === "day")?.value ?? "01";
-  return { y, m, day };
-}
-
-function kstDateForHolidayCheck(d: Date) {
-  // KST의 날짜로 고정된 Date를 만들어 체크 (서버 로컬 타임존 영향 최소화)
-  const { y, m, day } = toKSTParts(d);
-  return new Date(`${y}-${m}-${day}T12:00:00+09:00`); // 정오로 안전하게
-}
+// ✅ 한국 공휴일: app/lib/holidays.ts (공공데이터 API + SQLite 캐시)
 
 function isSundayKST(d: Date) {
   const kst = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   return kst.getDay() === 0; // 일요일만 불가 (토요일 OK)
 }
 
-function isHolidayKST(d: Date) {
-  const chk = kstDateForHolidayCheck(d);
-  return Boolean(hd.isHoliday(chk));
-}
-
-function getDeliveryDateKST(now = new Date()) {
+async function getDeliveryDateKST(now = new Date()) {
   // ✅ 정확한 KST 시간 추출
   const kstString = now.toLocaleString("en-US", { 
     timeZone: "Asia/Seoul",
@@ -318,7 +292,7 @@ function getDeliveryDateKST(now = new Date()) {
   delivery.setDate(kst.getDate() + addDays);
 
   // ✅ 공휴일/일요일이면 다음날로 미룸 (토요일은 허용)
-  while (isSundayKST(delivery) || isHolidayKST(delivery)) {
+  while (isSundayKST(delivery) || await isHolidayKST(delivery)) {
     delivery.setDate(delivery.getDate() + 1);
   }
 
@@ -474,7 +448,7 @@ function splitClientAndOrder(body: any) {
   return { rawMessage: msg, clientText: first, orderText: rest };
 }
 
-function formatStaffMessage(
+async function formatStaffMessage(
   client: any,
   items: any[],
   options?: {
@@ -483,7 +457,7 @@ function formatStaffMessage(
     requireInvoice?: boolean;
   }
 ) {
-  const delivery = getDeliveryDateKST();
+  const delivery = await getDeliveryDateKST();
   const deliveryLabel = options?.customDeliveryDate || delivery.label;
 
   const lines: string[] = [];
@@ -683,7 +657,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       items: itemsWithSuggestions,
 
       // ✅ 직원 메시지는 기존과 동일하게 동작 (unresolved는 여전히 확인필요로 표기)
-      staff_message: formatStaffMessage(client, itemsWithSuggestions, {
+      staff_message: await formatStaffMessage(client, itemsWithSuggestions, {
         customDeliveryDate: body?.customDeliveryDate,
         requirePaymentConfirm: body?.requirePaymentConfirm,
         requireInvoice: body?.requireInvoice,

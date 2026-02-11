@@ -1,3 +1,15 @@
-# Force rebuild
+# Build artifacts
 .vercel
 .next
+
+# Development only
+ml-server/
+scripts/
+output/
+sample/
+.claude/
+data/
+
+# Large files not needed in deployment
+*.pptx
+*.sqlite
