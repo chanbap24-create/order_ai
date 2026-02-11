@@ -5,7 +5,7 @@ import { logger } from "@/app/lib/logger";
 import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import type { WineResearchResult } from "@/app/types/wine";
 
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 
 const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
 사용자가 제공한 와인 정보와 Wine-Searcher 실제 데이터를 기반으로 와인을 분석하세요.
