@@ -69,3 +69,6 @@ core
 test-scripts/
 
 nul
+
+# Python packages (runtime install)
+.python_packages/
