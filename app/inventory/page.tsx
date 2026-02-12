@@ -333,7 +333,7 @@ export default function InventoryPage() {
 
   return (
     <div style={{
-      minHeight: 'calc(100vh - 48px)',
+      minHeight: 'calc(100vh - 56px)',
       background: '#fafaf8',
       wordBreak: 'keep-all' as const,
     }}>

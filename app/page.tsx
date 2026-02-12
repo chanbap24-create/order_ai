@@ -61,8 +61,6 @@ export default function Home() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(24px); }
           to { opacity: 1; transform: translateY(0); }
@@ -122,7 +120,7 @@ export default function Home() {
           .home-mobile-header {
             display: none !important;
           }
-          /* 컨텐츠: 화면 전체 사용 (main paddingTop 48px이 이미 있음) */
+          /* 컨텐츠: 화면 전체 사용 (main paddingTop 56px이 이미 있음) */
           .home-content {
             width: 100% !important;
             margin-left: 0 !important;
@@ -158,7 +156,7 @@ export default function Home() {
 
       <div className="home-page-root" style={{
         display: 'flex',
-        minHeight: 'calc(100vh - 48px)',
+        minHeight: 'calc(100vh - 56px)',
         fontFamily: "'DM Sans', -apple-system, sans-serif",
         wordBreak: 'keep-all',
       }}>

@@ -542,14 +542,14 @@ export default function QuotePage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: 'calc(100vh - 48px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: 'calc(100vh - 56px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: '#999' }}>견적서를 불러오는 중...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 48px)', background: '#fafaf8', wordBreak: 'keep-all' as const }}>
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#fafaf8', wordBreak: 'keep-all' as const }}>
       <div className="ds-page">
 
         {/* ── 상단 헤더 ── */}

@@ -14,7 +14,7 @@ export default function OrderPage() {
   const [subTab, setSubTab] = useState<SubTab>('order');
 
   return (
-    <div style={{ background: '#fafaf8', minHeight: 'calc(100vh - 48px)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
+    <div style={{ background: '#fafaf8', minHeight: 'calc(100vh - 56px)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
       {/* Unified Tab Bar */}
       <div className="ds-subheader">
         <div className="ds-subheader-inner">

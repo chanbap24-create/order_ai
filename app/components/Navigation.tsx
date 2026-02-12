@@ -2,310 +2,442 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
-
-const PAGE_TITLES: Record<string, string> = {
-  '/': 'Dashboard',
-  '/inventory': 'Inventory',
-  '/quote': 'Quote',
-  '/order': 'Order',
-  '/admin': 'Admin',
-  '/glass': 'Glass',
-};
+import { useState, useEffect, useRef } from 'react';
 
 const NAV_LINKS = [
-  {
-    href: '/',
-    label: 'Dashboard',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-    ),
-  },
-  {
-    href: '/inventory',
-    label: 'Inventory',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-        <line x1="12" y1="22.08" x2="12" y2="12" />
-      </svg>
-    ),
-  },
-  {
-    href: '/quote',
-    label: 'Quote',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-    ),
-  },
-  {
-    href: '/order',
-    label: 'Order',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-      </svg>
-    ),
-  },
+  { href: '/inventory', label: 'Inventory' },
+  { href: '/quote', label: 'Quote' },
+  { href: '/order', label: 'Order' },
 ];
 
 export default function Navigation() {
   const pathname = usePathname();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   const isActive = (path: string) =>
     path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(path + '/');
 
-  // 현재 페이지 타이틀
-  const pageTitle =
-    Object.entries(PAGE_TITLES).find(([path]) =>
-      path === '/' ? pathname === '/' : pathname.startsWith(path)
-    )?.[1] || 'Cave De Vin';
-
-  // 드로어 열릴 때 body 스크롤 방지
+  // 외부 클릭 시 드로어 닫기
   useEffect(() => {
-    if (drawerOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
+    if (!mobileMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        drawerRef.current && !drawerRef.current.contains(target) &&
+        hamburgerRef.current && !hamburgerRef.current.contains(target)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [mobileMenuOpen]);
+
+  // body 스크롤 잠금
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => { document.body.style.overflow = ''; };
-  }, [drawerOpen]);
+  }, [mobileMenuOpen]);
+
+  // 페이지 이동 시 메뉴 닫기
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   return (
     <>
       <style>{`
-        /* ─── Drawer ─── */
-        .gn-drawer-overlay {
-          position: fixed; inset: 0; z-index: 1999;
-          background: rgba(0,0,0,0.45);
-          opacity: 0; pointer-events: none;
+        /* ─── Top bar ─── */
+        .nav-bar {
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          height: 56px;
+          background: #fff;
+          border-bottom: 1px solid #E5E5E5;
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          padding: 0 24px;
+          font-family: 'DM Sans', -apple-system, sans-serif;
+        }
+
+        .nav-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        /* ─── Logo ─── */
+        .nav-logo {
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 1.05rem;
+          font-weight: 600;
+          color: #1a1a2e;
+          letter-spacing: 0.12em;
+          text-decoration: none;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .nav-logo:hover { color: #5A1515; }
+
+        /* ─── Desktop nav ─── */
+        .nav-links {
+          display: flex;
+          align-items: center;
+          gap: 32px;
+        }
+
+        .nav-link {
+          position: relative;
+          text-decoration: none;
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: #999;
+          padding: 18px 0;
+          transition: color 0.2s ease;
+          white-space: nowrap;
+        }
+        .nav-link:hover { color: #5A1515; }
+        .nav-link.active {
+          color: #5A1515;
+          font-weight: 600;
+        }
+        .nav-link.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: #5A1515;
+          border-radius: 1px;
+        }
+
+        /* ─── Hamburger ─── */
+        .nav-hamburger {
+          display: none;
+          width: 36px; height: 36px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+          color: #2D2D2D;
+          padding: 0;
+          flex-shrink: 0;
+        }
+
+        /* ─── Mobile logo (center) ─── */
+        .nav-mobile-logo {
+          display: none;
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #1a1a2e;
+          letter-spacing: 0.12em;
+          text-decoration: none;
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        /* ─── Overlay ─── */
+        .nav-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1001;
+          opacity: 0;
+          pointer-events: none;
           transition: opacity 0.3s ease;
         }
-        .gn-drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .nav-overlay.open {
+          opacity: 1;
+          pointer-events: auto;
+        }
 
-        .gn-drawer {
-          position: fixed; top: 0; left: 0; bottom: 0;
-          width: 280px; z-index: 2000;
+        /* ─── Side drawer (dark, matches dashboard sidebar) ─── */
+        .nav-drawer {
+          position: fixed;
+          top: 0; left: 0; bottom: 0;
+          width: 300px;
+          max-width: 82vw;
           background: #1a1a2e;
+          z-index: 1002;
           transform: translateX(-100%);
-          transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          display: flex; flex-direction: column;
-          padding: 0;
-          overflow-y: auto;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          flex-direction: column;
+          font-family: 'DM Sans', -apple-system, sans-serif;
+          overflow: hidden;
         }
-        .gn-drawer.open { transform: translateX(0); }
+        .nav-drawer.open {
+          transform: translateX(0);
+        }
 
-        .gn-drawer-link {
-          display: flex; align-items: center; gap: 12px;
-          padding: 12px 24px;
-          text-decoration: none;
-          font-size: 0.85rem; font-weight: 500;
-          color: rgba(240,236,230,0.55);
+        /* Grain texture overlay */
+        .nav-drawer-grain {
+          position: absolute; inset: 0;
+          opacity: 0.03;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+          pointer-events: none;
+        }
+
+        /* Gradient accent */
+        .nav-drawer-gradient {
+          position: absolute; top: 0; left: 0; right: 0; height: 100%;
+          background: radial-gradient(ellipse at 20% 20%, rgba(90, 21, 21, 0.15) 0%, transparent 60%);
+          pointer-events: none;
+        }
+
+        .nav-drawer-header {
+          position: relative;
+          z-index: 1;
+          padding: 40px 32px 0;
+          flex-shrink: 0;
+        }
+
+        .nav-drawer-close {
+          position: absolute;
+          top: 16px; right: 16px;
+          width: 32px; height: 32px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(240, 236, 230, 0.3);
+          border-radius: 6px;
           transition: all 0.2s ease;
-          border-left: 2px solid transparent;
+          z-index: 2;
         }
-        .gn-drawer-link:hover {
-          color: #f0ece6;
-          background: rgba(240,236,230,0.04);
-        }
-        .gn-drawer-link.active {
-          color: #f0ece6;
-          border-left-color: #5A1515;
-          background: rgba(90,21,21,0.15);
+        .nav-drawer-close:hover {
+          color: rgba(240, 236, 230, 0.7);
+          background: rgba(240, 236, 230, 0.06);
         }
 
-        /* ─── Top bar ─── */
-        .gn-topbar { height: 48px; }
-        .gn-hamburger { display: none; }
+        .nav-drawer-body {
+          position: relative;
+          z-index: 1;
+          flex: 1;
+          overflow-y: auto;
+          padding: 32px 0 0;
+        }
 
+        .nav-drawer-link {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 14px 32px;
+          text-decoration: none;
+          font-size: 0.88rem;
+          font-weight: 500;
+          color: rgba(240, 236, 230, 0.5);
+          letter-spacing: 0.03em;
+          transition: all 0.2s ease;
+        }
+        .nav-drawer-link:hover {
+          color: rgba(240, 236, 230, 0.85);
+          background: rgba(240, 236, 230, 0.04);
+        }
+        .nav-drawer-link.active {
+          color: #f0ece6;
+          font-weight: 600;
+          background: rgba(90, 21, 21, 0.25);
+          border-left: 3px solid #5A1515;
+        }
+
+        .nav-drawer-footer {
+          position: relative;
+          z-index: 1;
+          padding: 0 32px 32px;
+          flex-shrink: 0;
+        }
+
+        .nav-drawer-admin {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          font-size: 0.7rem;
+          color: rgba(240, 236, 230, 0.25);
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          font-weight: 500;
+          padding: 8px 0;
+          transition: color 0.3s ease;
+        }
+        .nav-drawer-admin:hover {
+          color: rgba(240, 236, 230, 0.6);
+        }
+        .nav-drawer-admin.active {
+          color: rgba(240, 236, 230, 0.6);
+        }
+
+        /* ─── Responsive ─── */
         @media (max-width: 768px) {
-          .gn-topbar { height: 44px !important; padding: 0 12px !important; }
-          .gn-hamburger { display: flex !important; }
-          .gn-page-title { font-size: 0.8rem !important; }
+          .nav-bar { padding: 0 16px; }
+          .nav-links { display: none; }
+          .nav-logo { display: none; }
+          .nav-hamburger { display: flex; }
+          .nav-mobile-logo { display: block; }
         }
       `}</style>
 
-      {/* ─── Drawer Overlay ─── */}
+      <header className="nav-bar">
+        <div className="nav-inner" style={{ position: 'relative' }}>
+          {/* Left: Logo (desktop) / Hamburger (mobile) */}
+          <Link href="/" className="nav-logo">CAVE DE VIN</Link>
+          <button
+            ref={hamburgerRef}
+            className="nav-hamburger"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="메뉴"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
+          {/* Center: Nav tabs (desktop) / Logo (mobile) */}
+          <nav className="nav-links">
+            {NAV_LINKS.map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`nav-link${isActive(link.href) ? ' active' : ''}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <Link href="/" className="nav-mobile-logo">CAVE DE VIN</Link>
+
+          {/* Right: spacer for balance */}
+          <div style={{ width: 32, flexShrink: 0 }} />
+        </div>
+      </header>
+
+      {/* ─── Overlay ─── */}
       <div
-        className={`gn-drawer-overlay${drawerOpen ? ' open' : ''}`}
-        onClick={() => setDrawerOpen(false)}
+        className={`nav-overlay${mobileMenuOpen ? ' open' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
       />
 
-      {/* ─── Slide-out Drawer ─── */}
-      <nav className={`gn-drawer${drawerOpen ? ' open' : ''}`}>
-        {/* Drawer header */}
-        <div style={{
-          padding: '28px 24px 20px',
-          borderBottom: '1px solid rgba(240,236,230,0.06)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{
+      {/* ─── Side drawer (dark, matches dashboard sidebar) ─── */}
+      <div ref={drawerRef} className={`nav-drawer${mobileMenuOpen ? ' open' : ''}`}>
+        {/* Texture overlays */}
+        <div className="nav-drawer-grain" />
+        <div className="nav-drawer-gradient" />
+
+        {/* Close button */}
+        <button className="nav-drawer-close" onClick={() => setMobileMenuOpen(false)} aria-label="닫기">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        {/* Branding header */}
+        <div className="nav-drawer-header">
+          <div style={{
+            width: 32, height: 1,
+            background: 'linear-gradient(90deg, #5A1515, rgba(90,21,21,0.3))',
+            marginBottom: 24,
+          }} />
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: '1.4rem',
+              fontSize: '2.2rem',
               fontWeight: 300,
               color: '#f0ece6',
-              letterSpacing: '0.1em',
-            }}>
-              CAVE DE VIN
-            </h2>
-            <button
-              onClick={() => setDrawerOpen(false)}
-              style={{
-                width: 28, height: 28, borderRadius: '50%',
-                border: '1px solid rgba(240,236,230,0.12)', background: 'transparent',
-                color: 'rgba(240,236,230,0.5)', fontSize: 13, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              ✕
-            </button>
-          </div>
+              letterSpacing: '0.12em',
+              lineHeight: 1.1,
+              textDecoration: 'none',
+              display: 'block',
+              marginBottom: 12,
+            }}
+          >
+            CAVE<br />DE VIN
+          </Link>
+          <div style={{
+            width: 48, height: 1,
+            background: 'linear-gradient(90deg, rgba(90,21,21,0.6), transparent)',
+            marginBottom: 16,
+          }} />
           <p style={{
-            fontSize: '0.65rem',
-            color: 'rgba(240,236,230,0.25)',
-            letterSpacing: '0.15em',
+            fontSize: '0.7rem',
+            color: 'rgba(240, 236, 230, 0.4)',
+            letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            marginTop: 6,
+            fontWeight: 500,
+            margin: 0,
           }}>
             Sales Automation
           </p>
         </div>
 
         {/* Nav links */}
-        <div style={{ padding: '12px 0', flex: 1 }}>
+        <div className="nav-drawer-body">
+          <Link
+            href="/"
+            className={`nav-drawer-link${pathname === '/' ? ' active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Dashboard
+          </Link>
           {NAV_LINKS.map(link => (
             <Link
               key={link.href}
               href={link.href}
-              className={`gn-drawer-link${isActive(link.href) ? ' active' : ''}`}
-              onClick={() => setDrawerOpen(false)}
+              className={`nav-drawer-link${isActive(link.href) ? ' active' : ''}`}
+              onClick={() => setMobileMenuOpen(false)}
             >
-              <span style={{ opacity: isActive(link.href) ? 1 : 0.5, display: 'flex' }}>{link.icon}</span>
-              <span>{link.label}</span>
+              {link.label}
             </Link>
           ))}
         </div>
 
-        {/* Drawer footer */}
-        <div style={{
-          padding: '16px 24px 24px',
-          borderTop: '1px solid rgba(240,236,230,0.06)',
-        }}>
-          <Link
-            href="/admin"
-            className="gn-drawer-link"
-            onClick={() => setDrawerOpen(false)}
-            style={{ padding: '8px 0', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase' as const }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-            </svg>
-            <span>Admin</span>
-          </Link>
-          <div style={{
-            marginTop: 12,
-            fontSize: '0.6rem',
-            color: 'rgba(240,236,230,0.15)',
-            letterSpacing: '0.05em',
-          }}>
-            v2.0 · Powered by AI
-          </div>
-        </div>
-      </nav>
-
-      {/* ─── Minimal Top Bar ─── */}
-      <header className="gn-topbar" style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0,
-        height: 48,
-        background: '#fafaf8',
-        borderBottom: '1px solid #e8e5e0',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 20px',
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%',
-          maxWidth: 1200,
-          margin: '0 auto',
-        }}>
-          {/* Left: hamburger + page title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              className="gn-hamburger"
-              onClick={() => setDrawerOpen(true)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: '#8E8E93', padding: 4,
-                alignItems: 'center', justifyContent: 'center',
-              }}
+        {/* Footer */}
+        <div className="nav-drawer-footer">
+          <div style={{ borderTop: '1px solid rgba(240,236,230,0.06)', paddingTop: 16 }}>
+            <Link
+              href="/admin"
+              className={`nav-drawer-admin${isActive('/admin') ? ' active' : ''}`}
+              onClick={() => setMobileMenuOpen(false)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
               </svg>
-            </button>
-
-            <span className="gn-page-title" style={{
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: '#1a1a2e',
-              letterSpacing: '0.01em',
+              Admin Console
+            </Link>
+            <div style={{
+              marginTop: 20, paddingTop: 20,
+              borderTop: '1px solid rgba(240, 236, 230, 0.06)',
+              fontSize: '0.65rem',
+              color: 'rgba(240, 236, 230, 0.15)',
+              letterSpacing: '0.05em',
             }}>
-              {pageTitle}
-            </span>
-          </div>
-
-          {/* Right: utility icons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* Search */}
-            <button style={{
-              width: 32, height: 32, borderRadius: 8,
-              border: 'none', background: 'transparent', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#8E8E93', transition: 'color 0.2s ease',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#5A1515')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#8E8E93')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </button>
-
-            {/* Profile / Menu */}
-            <button
-              onClick={() => setDrawerOpen(true)}
-              style={{
-                width: 28, height: 28, borderRadius: '50%',
-                border: 'none',
-                background: 'linear-gradient(135deg, #5A1515, #8B1538)',
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#f0ece6', fontSize: 11, fontWeight: 600,
-                letterSpacing: '0.03em',
-              }}
-            >
-              C
-            </button>
+              v2.0 &middot; Powered by AI
+            </div>
           </div>
         </div>
-      </header>
+      </div>
     </>
   );
 }
