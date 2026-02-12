@@ -232,7 +232,7 @@ function renderPage(doc: PDFKit.PDFDocument, data: SlideData, fontRegular: strin
     if (!tagline) tagline = wineryDesc.split("。")[0].trim();
     if (tagline) {
       doc.save()
-        .font(fontEn)
+        .font(fontRegular)
         .fontSize(9)
         .fillColor(C.TEXT_MUTED)
         .text(tagline, i(1.76), i(0.22), { width: i(5.20) })
