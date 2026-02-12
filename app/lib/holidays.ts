@@ -29,7 +29,10 @@ let memFetchedAt: string | null = null;
 /** ------------------ 공휴일 API 호출 ------------------ */
 async function fetchHolidaysFromApi(year: number): Promise<Array<{ ymd: string; name: string }>> {
   const key = process.env.DATA_GO_KR_SERVICE_KEY;
-  if (!key) throw new Error("DATA_GO_KR_SERVICE_KEY missing in .env.local");
+  if (!key) {
+    console.warn("[holidays] DATA_GO_KR_SERVICE_KEY not set, skipping API fetch");
+    return [];
+  }
 
   const out: Array<{ ymd: string; name: string }> = [];
 
@@ -127,12 +130,25 @@ export async function ensureHolidayCache(year?: number) {
   }
 
   // 3) DB가 오래됨 → API 호출 → DB 저장 → 메모리 Set 구성
-  const list = await fetchHolidaysFromApi(y);
-  await upsertHolidays(y, list);
-
-  memYear = y;
-  memSet = new Set(list.map((x) => x.ymd));
-  memFetchedAt = todayKST();
+  try {
+    const list = await fetchHolidaysFromApi(y);
+    if (list.length > 0) {
+      await upsertHolidays(y, list);
+      memYear = y;
+      memSet = new Set(list.map((x) => x.ymd));
+      memFetchedAt = todayKST();
+    } else {
+      // API 키 없거나 결과 없으면 DB 캐시라도 사용
+      memYear = y;
+      memSet = await loadSetFromDb(y);
+      memFetchedAt = null;
+    }
+  } catch (e) {
+    console.error("[holidays] API fetch failed, using DB cache:", e);
+    memYear = y;
+    memSet = await loadSetFromDb(y);
+    memFetchedAt = null;
+  }
 }
 
 export async function isHolidayKST(d: Date) {
