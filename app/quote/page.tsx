@@ -208,20 +208,9 @@ export default function QuotePage() {
 
   // ── 초기화 ──
   useEffect(() => {
+    // quote 데이터 + 테이스팅노트 인덱스 병렬 로드
     fetchItems();
-    // 테이스팅노트 인덱스 로드
-    fetch('/api/tasting-notes')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success && data.notes) {
-          const s = new Set<string>();
-          for (const [k, v] of Object.entries(data.notes as Record<string, any>)) {
-            if (v?.exists) s.add(k);
-          }
-          setTastingNoteSet(s);
-        }
-      })
-      .catch(() => {});
+    fetchTastingNotes();
     const mq = window.matchMedia('(max-width: 768px)');
     setIsMobile(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
@@ -258,6 +247,20 @@ export default function QuotePage() {
   }, [company, docSettings]);
 
   // ── API 호출 ──
+  async function fetchTastingNotes() {
+    try {
+      const r = await fetch('/api/tasting-notes');
+      const data = await r.json();
+      if (data.success && data.notes) {
+        const s = new Set<string>();
+        for (const [k, v] of Object.entries(data.notes as Record<string, any>)) {
+          if (v?.exists) s.add(k);
+        }
+        setTastingNoteSet(s);
+      }
+    } catch {}
+  }
+
   async function fetchItems() {
     try {
       const res = await fetch('/api/quote');
@@ -265,20 +268,21 @@ export default function QuotePage() {
       if (data.success) {
         const fetchedItems = data.items || [];
         setItems(fetchedItems);
-        // 와인 프로필 로드
+        // 와인 프로필 병렬 로드 (await 하지 않음)
         const codes = fetchedItems.map((i: QuoteItem) => i.item_code).filter(Boolean);
         if (codes.length > 0) {
-          try {
-            const wpRes = await fetch(`/api/wine-profiles?item_codes=${encodeURIComponent(JSON.stringify(codes))}`);
-            const wpData = await wpRes.json();
-            if (wpData.success && wpData.profiles) {
-              const map: Record<string, { grape_varieties: string; description_kr: string }> = {};
-              for (const p of wpData.profiles) {
-                map[p.item_code] = { grape_varieties: p.grape_varieties || '', description_kr: p.description_kr || '' };
+          fetch(`/api/wine-profiles?item_codes=${encodeURIComponent(JSON.stringify(codes))}`)
+            .then(r => r.json())
+            .then(wpData => {
+              if (wpData.success && wpData.profiles) {
+                const map: Record<string, { grape_varieties: string; description_kr: string }> = {};
+                for (const p of wpData.profiles) {
+                  map[p.item_code] = { grape_varieties: p.grape_varieties || '', description_kr: p.description_kr || '' };
+                }
+                setWineProfiles(map);
               }
-              setWineProfiles(map);
-            }
-          } catch {}
+            })
+            .catch(() => {});
         }
       }
     } catch (e) {
