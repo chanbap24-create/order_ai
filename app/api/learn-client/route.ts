@@ -1,11 +1,10 @@
-import { db } from "@/app/lib/db";
-import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/app/lib/db";
+import { NextRequest } from "next/server";
 import { jsonResponse } from "@/app/lib/api-response";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// ✅ 거래처 alias 학습 API (Vercel 호환: 읽기 전용)
+// 거래처 alias 학습 API
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -18,13 +17,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ⚠️ Vercel Serverless에서는 SQLite Write 불가
-    // 클라이언트에서 localStorage로 관리
-    // 서버는 검증만 수행
-    
+    const table = type === "wine" ? "client_alias" : "glass_client_alias";
+
+    // Supabase는 write 가능하므로 직접 upsert
+    const { error } = await supabase.from(table).upsert(
+      {
+        client_code,
+        alias,
+        weight: 10,
+      },
+      { onConflict: "client_code,alias" }
+    );
+
+    if (error) throw error;
+
     return jsonResponse({
       success: true,
-      message: "거래처 학습 완료 (클라이언트 저장)",
+      message: "거래처 학습 완료",
       client_code,
       alias,
       type,
@@ -38,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ 학습된 거래처 alias 목록 조회 (읽기 전용: Vercel 호환)
+// 학습된 거래처 alias 목록 조회
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -47,22 +56,41 @@ export async function GET(req: NextRequest) {
     const table = type === "wine" ? "client_alias" : "glass_client_alias";
     const clientTable = type === "wine" ? "clients" : "glass_clients";
 
-    // ✅ 가중치 10 이상인 alias만 (사용자가 학습한 것들)
-    // 읽기 작업은 Vercel에서도 가능
-    const items = db
-      .prepare(
-        `SELECT a.client_code, a.alias, a.weight, c.client_name
-         FROM ${table} a
-         LEFT JOIN ${clientTable} c ON a.client_code = c.client_code
-         WHERE a.weight >= 10
-         ORDER BY a.weight DESC, a.alias ASC`
-      )
-      .all() as Array<{
-      client_code: string;
-      alias: string;
-      weight: number;
-      client_name: string;
-    }>;
+    // 가중치 10 이상인 alias만 (사용자가 학습한 것들)
+    const { data: aliases, error: aliasError } = await supabase
+      .from(table)
+      .select("client_code, alias, weight")
+      .gte("weight", 10)
+      .order("weight", { ascending: false })
+      .order("alias", { ascending: true });
+
+    if (aliasError) throw aliasError;
+
+    // client_name을 별도로 조회하여 join
+    const clientCodes = [
+      ...new Set((aliases || []).map((a: any) => a.client_code)),
+    ];
+
+    let clientMap: Record<string, string> = {};
+    if (clientCodes.length > 0) {
+      const { data: clients } = await supabase
+        .from(clientTable)
+        .select("client_code, client_name")
+        .in("client_code", clientCodes);
+
+      if (clients) {
+        for (const c of clients) {
+          clientMap[c.client_code] = c.client_name;
+        }
+      }
+    }
+
+    const items = (aliases || []).map((a: any) => ({
+      client_code: a.client_code,
+      alias: a.alias,
+      weight: a.weight,
+      client_name: clientMap[a.client_code] || null,
+    }));
 
     return jsonResponse({
       success: true,
@@ -78,7 +106,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ✅ 학습된 거래처 alias 삭제 (Vercel 호환: 읽기 전용)
+// 학습된 거래처 alias 삭제
 export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json();
@@ -91,12 +119,19 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // ⚠️ Vercel Serverless에서는 SQLite Write 불가
-    // 클라이언트에서 localStorage로 관리
-    
+    const table = type === "wine" ? "client_alias" : "glass_client_alias";
+
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("client_code", client_code)
+      .eq("alias", alias);
+
+    if (error) throw error;
+
     return jsonResponse({
       success: true,
-      message: "거래처 학습 삭제 완료 (클라이언트 저장)",
+      message: "거래처 학습 삭제 완료",
     });
   } catch (error: any) {
     console.error("[learn-client DELETE] error:", error);

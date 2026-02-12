@@ -2,8 +2,6 @@
 import { NextResponse } from "next/server";
 import { upsertSearchLearning } from "@/app/lib/searchLearning";
 
-export const runtime = "nodejs";
-
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -17,7 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const r = upsertSearchLearning(raw, item_no);
+    const r = await upsertSearchLearning(raw, item_no);
 
     return NextResponse.json({
       success: true,

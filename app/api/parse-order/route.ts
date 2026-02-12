@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { handleApiError } from "@/app/lib/errors";
 import { validateRequest, safeParseBody, parseOrderSchema } from "@/app/lib/validation";
 import { logger } from "@/app/lib/logger";
 import type { ParseOrderRequest, ParseOrderResponse, ParseOrderLineResult } from "@/app/types/api";
-import type { ClientItemStatsRow } from "@/app/types/db";
-
-export const runtime = "nodejs";
 
 function splitLines(text: string) {
   return (text || "")
-    .replaceAll("／", "/")
+    .replaceAll("\uFF0F", "/")
     .replaceAll("/", "\n")
     .split("\n")
     .map(s => s.trim())
@@ -51,13 +48,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseOrderRespons
     const rawBody = await safeParseBody(req);
     const { clientCode, orderText } = validateRequest(parseOrderSchema, rawBody) as ParseOrderRequest;
 
-    const candidates = db.prepare(`
-      SELECT item_no, item_name, last_ship_date, buy_count, avg_price
-      FROM client_item_stats
-      WHERE client_code = ?
-      ORDER BY last_ship_date DESC, buy_count DESC
-      LIMIT 200
-    `).all(clientCode) as ClientItemStatsRow[];
+    const { data: candidatesData, error } = await supabase
+      .from("client_item_stats")
+      .select("item_no, item_name, last_ship_date, buy_count, avg_price")
+      .eq("client_code", clientCode)
+      .order("last_ship_date", { ascending: false })
+      .order("buy_count", { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+
+    const candidates = (candidatesData || []) as Array<{
+      item_no: string;
+      item_name: string;
+      last_ship_date: string | null;
+      buy_count: number;
+      avg_price: number | null;
+    }>;
 
     const lines = splitLines(orderText);
 

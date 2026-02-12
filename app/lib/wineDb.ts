@@ -1,295 +1,181 @@
-// 와인 관리 시스템 DB 테이블 및 CRUD
+// 와인 관리 시스템 DB 테이블 및 CRUD (Supabase)
 
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
-import { getCountryPair } from "@/app/lib/countryMapping";
 import type { Wine, TastingNote, AdminSetting } from "@/app/types/wine";
 
-/* ─── 테이블 생성 ─── */
-
+/* ─── 테이블 생성 (no-op) ─── */
 export function ensureWineTables() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS wines (
-      item_code TEXT PRIMARY KEY,
-      item_name_kr TEXT NOT NULL,
-      item_name_en TEXT,
-      country TEXT,
-      country_en TEXT,
-      region TEXT,
-      grape_varieties TEXT,
-      wine_type TEXT,
-      vintage TEXT,
-      volume_ml INTEGER,
-      alcohol TEXT,
-      supplier TEXT,
-      supplier_kr TEXT,
-      supply_price REAL,
-      available_stock REAL,
-      status TEXT DEFAULT 'active' CHECK(status IN ('active','new','discontinued')),
-      ai_researched INTEGER DEFAULT 0,
-      image_url TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS tasting_notes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      wine_id TEXT NOT NULL UNIQUE,
-      color_note TEXT,
-      nose_note TEXT,
-      palate_note TEXT,
-      food_pairing TEXT,
-      glass_pairing TEXT,
-      serving_temp TEXT,
-      awards TEXT,
-      winemaking TEXT,
-      winery_description TEXT,
-      vintage_note TEXT,
-      aging_potential TEXT,
-      ai_generated INTEGER DEFAULT 0,
-      manually_edited INTEGER DEFAULT 0,
-      approved INTEGER DEFAULT 0,
-      ppt_generated INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (wine_id) REFERENCES wines(item_code)
-    );
-
-    CREATE TABLE IF NOT EXISTS wine_images (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      wine_id TEXT NOT NULL,
-      image_type TEXT,
-      file_path TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (wine_id) REFERENCES wines(item_code)
-    );
-
-    CREATE TABLE IF NOT EXISTS price_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      item_code TEXT NOT NULL,
-      field_name TEXT DEFAULT 'supply_price',
-      old_value REAL,
-      new_value REAL,
-      change_pct REAL,
-      detected_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS change_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
-      entity_id TEXT,
-      details TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS admin_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // 기본 설정값
-  const insertSetting = db.prepare(`
-    INSERT OR IGNORE INTO admin_settings (key, value) VALUES (?, ?)
-  `);
-  insertSetting.run('low_stock_threshold', '6');
-
-  // 기존 DB 마이그레이션: tasting_notes에 새 컬럼 추가
-  const newColumns = [
-    { name: 'winery_description', type: 'TEXT' },
-    { name: 'vintage_note', type: 'TEXT' },
-    { name: 'aging_potential', type: 'TEXT' },
-    { name: 'ai_generated', type: 'INTEGER DEFAULT 0' },
-    { name: 'manually_edited', type: 'INTEGER DEFAULT 0' },
-    { name: 'approved', type: 'INTEGER DEFAULT 0' },
-  ];
-  for (const col of newColumns) {
-    try {
-      db.exec(`ALTER TABLE tasting_notes ADD COLUMN ${col.name} ${col.type}`);
-    } catch { /* 이미 존재하면 무시 */ }
-  }
-
-  logger.info("Wine management tables ensured");
+  // no-op: 테이블은 Supabase migration에서 생성됨
 }
 
 /* ─── Wines CRUD ─── */
 
-export function getWines(filters?: { status?: string; search?: string; country?: string }): Wine[] {
-  ensureWineTables();
-  let sql = 'SELECT * FROM wines WHERE 1=1';
-  const params: unknown[] = [];
+export async function getWines(filters?: { status?: string; search?: string; country?: string }): Promise<Wine[]> {
+  let query = supabase.from('wines').select('*');
 
   if (filters?.status) {
-    sql += ' AND status = ?';
-    params.push(filters.status);
+    query = query.eq('status', filters.status);
   }
   if (filters?.search) {
-    sql += ' AND (item_name_kr LIKE ? OR item_name_en LIKE ? OR item_code LIKE ?)';
     const term = `%${filters.search}%`;
-    params.push(term, term, term);
+    query = query.or(`item_name_kr.ilike.${term},item_name_en.ilike.${term},item_code.ilike.${term}`);
   }
   if (filters?.country) {
-    sql += ' AND (country = ? OR country_en = ?)';
-    params.push(filters.country, filters.country);
+    query = query.or(`country.eq.${filters.country},country_en.eq.${filters.country}`);
   }
 
-  sql += ' ORDER BY updated_at DESC';
-  return db.prepare(sql).all(...params) as Wine[];
+  const { data, error } = await query.order('updated_at', { ascending: false });
+  if (error) { logger.warn('getWines error', { error }); return []; }
+  return (data || []) as Wine[];
 }
 
-export function getWineByCode(itemCode: string): Wine | undefined {
-  ensureWineTables();
-  return db.prepare('SELECT * FROM wines WHERE item_code = ?').get(itemCode) as Wine | undefined;
+export async function getWineByCode(itemCode: string): Promise<Wine | undefined> {
+  const { data } = await supabase
+    .from('wines')
+    .select('*')
+    .eq('item_code', itemCode)
+    .maybeSingle();
+  return data as Wine | undefined;
 }
 
-export function upsertWine(wine: Partial<Wine> & { item_code: string }) {
-  ensureWineTables();
-  const existing = getWineByCode(wine.item_code);
+export async function upsertWine(wine: Partial<Wine> & { item_code: string }) {
+  const existing = await getWineByCode(wine.item_code);
 
   if (existing) {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-
-    for (const [key, value] of Object.entries(wine)) {
-      if (key === 'item_code' || key === 'created_at') continue;
-      fields.push(`${key} = ?`);
-      values.push(value);
-    }
-    fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(wine.item_code);
-
-    db.prepare(`UPDATE wines SET ${fields.join(', ')} WHERE item_code = ?`).run(...values);
+    const updates: Record<string, unknown> = { ...wine, updated_at: new Date().toISOString() };
+    delete updates.item_code;
+    delete updates.created_at;
+    await supabase.from('wines').update(updates).eq('item_code', wine.item_code);
   } else {
-    const cols = Object.keys(wine);
-    const placeholders = cols.map(() => '?').join(', ');
-    const values = cols.map((k) => (wine as Record<string, unknown>)[k]);
-    db.prepare(`INSERT INTO wines (${cols.join(', ')}) VALUES (${placeholders})`).run(...values);
+    await supabase.from('wines').insert(wine);
   }
 }
 
-export function deleteWine(itemCode: string) {
-  ensureWineTables();
-  db.prepare('DELETE FROM tasting_notes WHERE wine_id = ?').run(itemCode);
-  db.prepare('DELETE FROM wine_images WHERE wine_id = ?').run(itemCode);
-  db.prepare('DELETE FROM wines WHERE item_code = ?').run(itemCode);
+export async function deleteWine(itemCode: string) {
+  await supabase.from('tasting_notes').delete().eq('wine_id', itemCode);
+  await supabase.from('wine_images').delete().eq('wine_id', itemCode);
+  await supabase.from('wines').delete().eq('item_code', itemCode);
 }
 
 /* ─── Tasting Notes CRUD ─── */
 
-export function getTastingNote(wineId: string): TastingNote | undefined {
-  ensureWineTables();
-  return db.prepare('SELECT * FROM tasting_notes WHERE wine_id = ?').get(wineId) as TastingNote | undefined;
+export async function getTastingNote(wineId: string): Promise<TastingNote | undefined> {
+  const { data } = await supabase
+    .from('tasting_notes')
+    .select('*')
+    .eq('wine_id', wineId)
+    .maybeSingle();
+  return data as TastingNote | undefined;
 }
 
-export function getTastingNotes(filters?: { search?: string; country?: string; hasNote?: boolean }): (Wine & { tasting_note_id: number | null })[] {
-  ensureWineTables();
-  let sql = `
-    SELECT w.*, tn.id as tasting_note_id
-    FROM wines w
-    LEFT JOIN tasting_notes tn ON w.item_code = tn.wine_id
-    WHERE 1=1
-  `;
-  const params: unknown[] = [];
+export async function getTastingNotes(filters?: { search?: string; country?: string; hasNote?: boolean }): Promise<(Wine & { tasting_note_id: number | null })[]> {
+  // Use wines with embedded tasting_notes
+  let query = supabase.from('wines').select('*, tasting_notes(id)');
 
   if (filters?.search) {
-    sql += ' AND (w.item_name_kr LIKE ? OR w.item_name_en LIKE ?)';
     const term = `%${filters.search}%`;
-    params.push(term, term);
+    query = query.or(`item_name_kr.ilike.${term},item_name_en.ilike.${term}`);
   }
   if (filters?.country) {
-    sql += ' AND (w.country = ? OR w.country_en = ?)';
-    params.push(filters.country, filters.country);
-  }
-  if (filters?.hasNote === true) {
-    sql += ' AND tn.id IS NOT NULL';
-  } else if (filters?.hasNote === false) {
-    sql += ' AND tn.id IS NULL';
+    query = query.or(`country.eq.${filters.country},country_en.eq.${filters.country}`);
   }
 
-  sql += ' ORDER BY w.updated_at DESC';
-  return db.prepare(sql).all(...params) as (Wine & { tasting_note_id: number | null })[];
+  const { data, error } = await query.order('updated_at', { ascending: false });
+  if (error) { logger.warn('getTastingNotes error', { error }); return []; }
+
+  return (data || []).map((w: any) => {
+    const tn = Array.isArray(w.tasting_notes) ? w.tasting_notes[0] : w.tasting_notes;
+    return {
+      ...w,
+      tasting_note_id: tn?.id ?? null,
+      tasting_notes: undefined,
+    };
+  }).filter((w: any) => {
+    if (filters?.hasNote === true) return w.tasting_note_id !== null;
+    if (filters?.hasNote === false) return w.tasting_note_id === null;
+    return true;
+  }) as (Wine & { tasting_note_id: number | null })[];
 }
 
-export function upsertTastingNote(wineId: string, note: Partial<TastingNote>) {
-  ensureWineTables();
-  const existing = getTastingNote(wineId);
+export async function upsertTastingNote(wineId: string, note: Partial<TastingNote>) {
+  const existing = await getTastingNote(wineId);
 
   if (existing) {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-
-    for (const [key, value] of Object.entries(note)) {
-      if (key === 'id' || key === 'wine_id' || key === 'created_at') continue;
-      fields.push(`${key} = ?`);
-      values.push(value);
-    }
-    fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(wineId);
-
-    db.prepare(`UPDATE tasting_notes SET ${fields.join(', ')} WHERE wine_id = ?`).run(...values);
+    const updates: Record<string, unknown> = { ...note, updated_at: new Date().toISOString() };
+    delete updates.id;
+    delete updates.wine_id;
+    delete updates.created_at;
+    await supabase.from('tasting_notes').update(updates).eq('wine_id', wineId);
   } else {
-    db.prepare(`
-      INSERT INTO tasting_notes (wine_id, color_note, nose_note, palate_note, food_pairing, glass_pairing, serving_temp, awards, winemaking, winery_description, vintage_note, aging_potential, ai_generated, manually_edited, approved)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      wineId,
-      note.color_note || null,
-      note.nose_note || null,
-      note.palate_note || null,
-      note.food_pairing || null,
-      note.glass_pairing || null,
-      note.serving_temp || null,
-      note.awards || null,
-      note.winemaking || null,
-      note.winery_description || null,
-      note.vintage_note || null,
-      note.aging_potential || null,
-      note.ai_generated || 0,
-      note.manually_edited || 0,
-      note.approved || 0
-    );
+    await supabase.from('tasting_notes').insert({
+      wine_id: wineId,
+      color_note: note.color_note || null,
+      nose_note: note.nose_note || null,
+      palate_note: note.palate_note || null,
+      food_pairing: note.food_pairing || null,
+      glass_pairing: note.glass_pairing || null,
+      serving_temp: note.serving_temp || null,
+      awards: note.awards || null,
+      winemaking: note.winemaking || null,
+      winery_description: note.winery_description || null,
+      vintage_note: note.vintage_note || null,
+      aging_potential: note.aging_potential || null,
+      ai_generated: note.ai_generated || 0,
+      manually_edited: note.manually_edited || 0,
+      approved: note.approved || 0,
+    });
   }
 }
 
 /* ─── Admin Settings ─── */
 
-export function getSetting(key: string): string | undefined {
-  ensureWineTables();
-  const row = db.prepare('SELECT value FROM admin_settings WHERE key = ?').get(key) as AdminSetting | undefined;
-  return row?.value;
+export async function getSetting(key: string): Promise<string | undefined> {
+  const { data } = await supabase
+    .from('admin_settings')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle();
+  return data?.value;
 }
 
-export function setSetting(key: string, value: string) {
-  ensureWineTables();
-  db.prepare(`
-    INSERT INTO admin_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
-  `).run(key, value);
+export async function setSetting(key: string, value: string) {
+  await supabase
+    .from('admin_settings')
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 }
 
 /* ─── Statistics ─── */
 
-export function getWineStats() {
-  ensureWineTables();
-  const threshold = parseInt(getSetting('low_stock_threshold') || '6', 10);
+export async function getWineStats() {
+  const thresholdStr = await getSetting('low_stock_threshold') || '6';
+  const threshold = parseInt(thresholdStr, 10);
 
-  const totalWines = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
-  const newWines = (db.prepare("SELECT COUNT(*) as cnt FROM wines WHERE status = 'new'").get() as { cnt: number }).cnt;
-  const lowStock = (db.prepare('SELECT COUNT(*) as cnt FROM wines WHERE available_stock IS NOT NULL AND available_stock > 0 AND available_stock <= ?').get(threshold) as { cnt: number }).cnt;
-  const priceChanges = (db.prepare("SELECT COUNT(*) as cnt FROM price_history WHERE detected_at > datetime('now', '-30 days')").get() as { cnt: number }).cnt;
+  const { count: totalWines } = await supabase.from('wines').select('*', { count: 'exact', head: true });
+  const { count: newWines } = await supabase.from('wines').select('*', { count: 'exact', head: true }).eq('status', 'new');
 
-  const tnTotal = (db.prepare('SELECT COUNT(*) as cnt FROM wines WHERE status != ?').get('discontinued') as { cnt: number }).cnt;
-  const tnComplete = (db.prepare('SELECT COUNT(*) as cnt FROM tasting_notes WHERE color_note IS NOT NULL').get() as { cnt: number }).cnt;
+  // low stock: available_stock > 0 AND available_stock <= threshold
+  const { data: lowStockData } = await supabase.from('wines')
+    .select('item_code')
+    .gt('available_stock', 0)
+    .lte('available_stock', threshold);
+
+  // price changes in last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { count: priceChanges } = await supabase.from('price_history')
+    .select('*', { count: 'exact', head: true })
+    .gte('detected_at', thirtyDaysAgo);
+
+  const { count: tnTotal } = await supabase.from('wines').select('*', { count: 'exact', head: true }).neq('status', 'discontinued');
+  const { count: tnComplete } = await supabase.from('tasting_notes').select('*', { count: 'exact', head: true }).not('color_note', 'is', null);
 
   return {
-    totalWines,
-    newWines,
-    lowStock,
-    priceChanges,
-    tastingNotesComplete: tnComplete,
-    tastingNotesTotal: tnTotal,
+    totalWines: totalWines || 0,
+    newWines: newWines || 0,
+    lowStock: lowStockData?.length || 0,
+    priceChanges: priceChanges || 0,
+    tastingNotesComplete: tnComplete || 0,
+    tastingNotesTotal: tnTotal || 0,
   };
 }
 
@@ -302,51 +188,53 @@ export interface WineWithStatus extends Wine {
   wine_status: 'detected' | 'researched' | 'approved';
 }
 
-export function getNewWinesWithStatus(filters?: { status?: string; search?: string; wineStatus?: string }): WineWithStatus[] {
-  ensureWineTables();
-  let sql = `
-    SELECT w.*, tn.id as tasting_note_id,
-      COALESCE(tn.ai_generated, 0) as ai_generated,
-      COALESCE(tn.approved, 0) as approved,
-      CASE
-        WHEN tn.approved = 1 THEN 'approved'
-        WHEN tn.ai_generated = 1 OR w.ai_researched = 1 THEN 'researched'
-        ELSE 'detected'
-      END as wine_status
-    FROM wines w
-    LEFT JOIN tasting_notes tn ON w.item_code = tn.wine_id
-    WHERE 1=1
-  `;
-  const params: unknown[] = [];
+export async function getNewWinesWithStatus(filters?: { status?: string; search?: string; wineStatus?: string }): Promise<WineWithStatus[]> {
+  let query = supabase.from('wines').select('*, tasting_notes(id, ai_generated, approved)');
 
   if (filters?.status) {
-    sql += ' AND w.status = ?';
-    params.push(filters.status);
+    query = query.eq('status', filters.status);
   }
   if (filters?.search) {
-    sql += ' AND (w.item_name_kr LIKE ? OR w.item_name_en LIKE ? OR w.item_code LIKE ?)';
     const term = `%${filters.search}%`;
-    params.push(term, term, term);
-  }
-  if (filters?.wineStatus === 'detected') {
-    sql += ' AND (tn.ai_generated IS NULL OR tn.ai_generated = 0) AND (w.ai_researched = 0 OR w.ai_researched IS NULL)';
-  } else if (filters?.wineStatus === 'researched') {
-    sql += ' AND (tn.ai_generated = 1 OR w.ai_researched = 1) AND (tn.approved IS NULL OR tn.approved = 0)';
-  } else if (filters?.wineStatus === 'approved') {
-    sql += ' AND tn.approved = 1';
+    query = query.or(`item_name_kr.ilike.${term},item_name_en.ilike.${term},item_code.ilike.${term}`);
   }
 
-  sql += ' ORDER BY w.updated_at DESC';
-  return db.prepare(sql).all(...params) as WineWithStatus[];
+  const { data, error } = await query.order('updated_at', { ascending: false });
+  if (error) { logger.warn('getNewWinesWithStatus error', { error }); return []; }
+
+  return (data || []).map((w: any) => {
+    const tn = Array.isArray(w.tasting_notes) ? w.tasting_notes[0] : w.tasting_notes;
+    const ai_gen = tn?.ai_generated ?? 0;
+    const appr = tn?.approved ?? 0;
+    let wine_status: 'detected' | 'researched' | 'approved' = 'detected';
+    if (appr === 1) wine_status = 'approved';
+    else if (ai_gen === 1 || w.ai_researched === 1) wine_status = 'researched';
+
+    return {
+      ...w,
+      tasting_note_id: tn?.id ?? null,
+      ai_generated: ai_gen,
+      approved: appr,
+      wine_status,
+      tasting_notes: undefined,
+    };
+  }).filter((w: WineWithStatus) => {
+    if (filters?.wineStatus === 'detected') return w.wine_status === 'detected';
+    if (filters?.wineStatus === 'researched') return w.wine_status === 'researched';
+    if (filters?.wineStatus === 'approved') return w.wine_status === 'approved';
+    return true;
+  }) as WineWithStatus[];
 }
 
 /* ─── Price List ─── */
 
-export function getWinesForPriceList(): Wine[] {
-  ensureWineTables();
-  return db.prepare(`
-    SELECT * FROM wines
-    WHERE status != 'discontinued'
-    ORDER BY country_en ASC, supplier ASC, supply_price DESC
-  `).all() as Wine[];
+export async function getWinesForPriceList(): Promise<Wine[]> {
+  const { data } = await supabase
+    .from('wines')
+    .select('*')
+    .neq('status', 'discontinued')
+    .order('country_en', { ascending: true })
+    .order('supplier', { ascending: true })
+    .order('supply_price', { ascending: false });
+  return (data || []) as Wine[];
 }

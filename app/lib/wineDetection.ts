@@ -1,8 +1,7 @@
-// 신규 와인 감지 로직
-// Downloads(와인재고현황) 업로드 시 기존 wines 테이블과 비교하여 신규 와인 감지
+// 신규 와인 감지 로직 (Supabase) - 배치 최적화
 
-import { db } from "@/app/lib/db";
-import { ensureWineTables, getWineByCode } from "@/app/lib/wineDb";
+import { supabase } from "@/app/lib/db";
+import { ensureWineTables } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
 import { logger } from "@/app/lib/logger";
@@ -17,158 +16,182 @@ interface InventoryItem {
   country: string | null;
 }
 
-/** inventory_cdv 테이블에서 현재 재고 목록 가져오기 */
-function getInventoryItems(): InventoryItem[] {
+async function getInventoryItems(): Promise<InventoryItem[]> {
   try {
-    const items = db.prepare(`
-      SELECT item_no, item_name, supply_price, available_stock, vintage, alcohol_content as alcohol, country
-      FROM inventory_cdv
-    `).all() as InventoryItem[];
-    logger.info(`[WineDetection] inventory_cdv: ${items.length} items loaded`);
-    return items;
+    const { data, error } = await supabase
+      .from('inventory_cdv')
+      .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country');
+    if (error) throw error;
+    return (data || []).map((r: any) => ({ ...r, alcohol: r.alcohol_content })) as InventoryItem[];
   } catch (e) {
     logger.error(`[WineDetection] Failed to load inventory_cdv`, e instanceof Error ? e : undefined);
     return [];
   }
 }
 
-/** 신규 와인 감지 및 등록 */
-export function detectNewWines(): { newCount: number; updatedCount: number } {
-  logger.info(`[WineDetection] detectNewWines() called`);
-  ensureWineTables();
+/** wines 테이블 전체를 한번에 로드하여 Map으로 반환 */
+async function loadAllWinesMap(): Promise<Map<string, any>> {
+  const map = new Map<string, any>();
+  const { data, error } = await supabase.from('wines').select('*');
+  if (error) {
+    logger.error('[WineDetection] Failed to load wines', { error });
+    return map;
+  }
+  for (const w of data || []) {
+    map.set(w.item_code, w);
+  }
+  return map;
+}
 
-  const items = getInventoryItems();
+export async function detectNewWines(): Promise<{ newCount: number; updatedCount: number }> {
+  logger.info(`[WineDetection] detectNewWines() called`);
+
+  const items = await getInventoryItems();
   if (items.length === 0) {
-    logger.warn(`[WineDetection] No inventory items found, skipping detection`);
     return { newCount: 0, updatedCount: 0 };
   }
 
-  const wineCount = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
-  logger.info(`[WineDetection] wines table: ${wineCount} existing`);
+  const winesMap = await loadAllWinesMap();
+  const wineCount = winesMap.size;
+  logger.info(`[WineDetection] wines table: ${wineCount} existing, inventory: ${items.length} items`);
 
-  let newCount = 0;
-  let updatedCount = 0;
+  // 신규/업데이트 분류
+  const newRows: any[] = [];
+  const updateRows: any[] = [];
 
-  const insertWine = db.prepare(`
-    INSERT INTO wines (item_code, item_name_kr, country, country_en, vintage, alcohol, supply_price, available_stock, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  for (const item of items) {
+    if (!item.item_no) continue;
+    const { kr, en } = getCountryPair(item.country || '');
+    const existing = winesMap.get(item.item_no);
 
-  const updateWine = db.prepare(`
-    UPDATE wines SET
-      item_name_kr = ?,
-      supply_price = ?,
-      available_stock = ?,
-      vintage = ?,
-      alcohol = ?,
-      country = ?,
-      country_en = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE item_code = ?
-  `);
-
-  db.transaction(() => {
-    for (const item of items) {
-      if (!item.item_no) continue;
-
-      const existing = getWineByCode(item.item_no);
-      const { kr, en } = getCountryPair(item.country || '');
-
-      if (!existing) {
-        insertWine.run(
-          item.item_no,
-          item.item_name,
-          kr || item.country,
-          en,
-          item.vintage,
-          item.alcohol,
-          item.supply_price,
-          item.available_stock,
-          'new'
-        );
-        newCount++;
-        logChange('new_wine_detected', 'wine', item.item_no, {
-          item_name: item.item_name,
-          country: item.country,
-          supply_price: item.supply_price,
-        });
-      } else {
-        // 기존 와인 - 재고/가격 업데이트
-        updateWine.run(
-          item.item_name,
-          item.supply_price,
-          item.available_stock,
-          item.vintage,
-          item.alcohol,
-          kr || item.country,
-          en,
-          item.item_no
-        );
-        updatedCount++;
-      }
+    if (!existing) {
+      newRows.push({
+        item_code: item.item_no,
+        item_name_kr: item.item_name,
+        country: kr || item.country,
+        country_en: en,
+        vintage: item.vintage,
+        alcohol: item.alcohol,
+        supply_price: item.supply_price,
+        available_stock: item.available_stock,
+        status: 'new',
+      });
+    } else {
+      updateRows.push({
+        item_code: item.item_no,
+        item_name_kr: item.item_name,
+        supply_price: item.supply_price,
+        available_stock: item.available_stock,
+        vintage: item.vintage,
+        alcohol: item.alcohol,
+        country: kr || item.country,
+        country_en: en,
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      });
     }
-
-    // 재고 목록에 없는 기존 와인은 discontinued로 변경
-    const currentCodes = items.map((i) => i.item_no).filter(Boolean);
-    if (wineCount > 0 && currentCodes.length > 0) {
-      const placeholders = currentCodes.map(() => '?').join(',');
-      const discontinued = db.prepare(`
-        UPDATE wines SET status = 'discontinued', available_stock = 0, updated_at = CURRENT_TIMESTAMP
-        WHERE item_code NOT IN (${placeholders}) AND status != 'discontinued'
-      `).run(...currentCodes);
-
-      if (discontinued.changes > 0) {
-        logChange('wines_discontinued', 'wine', 'bulk', { count: discontinued.changes });
-      }
-    }
-  })();
-
-  logger.info(`[WineDetection] Result: ${newCount} new wines, ${updatedCount} updated`);
-
-  return { newCount, updatedCount };
-}
-
-/** 가격 변동 감지 */
-export function detectPriceChanges(): number {
-  ensureWineTables();
-
-  const items = getInventoryItems();
-  if (items.length === 0) return 0;
-
-  let changeCount = 0;
-
-  const insertHistory = db.prepare(`
-    INSERT INTO price_history (item_code, field_name, old_value, new_value, change_pct)
-    VALUES (?, 'supply_price', ?, ?, ?)
-  `);
-
-  db.transaction(() => {
-    for (const item of items) {
-      if (!item.item_no || item.supply_price == null) continue;
-
-      const existing = getWineByCode(item.item_no);
-      if (!existing || existing.supply_price == null) continue;
-
-      if (existing.supply_price !== item.supply_price) {
-        const changePct = existing.supply_price > 0
-          ? ((item.supply_price - existing.supply_price) / existing.supply_price) * 100
-          : null;
-
-        insertHistory.run(item.item_no, existing.supply_price, item.supply_price, changePct);
-        changeCount++;
-
-        logChange('price_changed', 'wine', item.item_no, {
-          old_price: existing.supply_price,
-          new_price: item.supply_price,
-          change_pct: changePct?.toFixed(1),
-        });
-      }
-    }
-  })();
-
-  if (changeCount > 0) {
-    logger.info(`Price detection: ${changeCount} price changes detected`);
   }
 
-  return changeCount;
+  // 배치 insert 신규 와인
+  for (let i = 0; i < newRows.length; i += 500) {
+    const { error } = await supabase.from('wines').insert(newRows.slice(i, i + 500));
+    if (error) logger.error(`[WineDetection] insert batch error`, { error });
+  }
+
+  // 배치 upsert 기존 와인 업데이트
+  for (let i = 0; i < updateRows.length; i += 500) {
+    const { error } = await supabase.from('wines').upsert(updateRows.slice(i, i + 500), { onConflict: 'item_code' });
+    if (error) logger.error(`[WineDetection] upsert batch error`, { error });
+  }
+
+  // 변동 로그 (신규만 요약 기록)
+  if (newRows.length > 0) {
+    await logChange('new_wine_detected', 'wine', 'bulk', {
+      count: newRows.length,
+      samples: newRows.slice(0, 5).map(r => r.item_code),
+    });
+  }
+
+  // 재고 목록에 없는 기존 와인은 discontinued
+  if (wineCount > 0 && items.length > 0) {
+    const currentCodes = new Set(items.map(i => i.item_no).filter(Boolean));
+    const toDiscontinueCodes: string[] = [];
+    for (const [code, wine] of winesMap) {
+      if (!currentCodes.has(code) && wine.status !== 'discontinued') {
+        toDiscontinueCodes.push(code);
+      }
+    }
+
+    if (toDiscontinueCodes.length > 0) {
+      // 배치로 discontinued 처리
+      for (let i = 0; i < toDiscontinueCodes.length; i += 500) {
+        const batch = toDiscontinueCodes.slice(i, i + 500);
+        await supabase.from('wines').update({
+          status: 'discontinued',
+          available_stock: 0,
+          updated_at: new Date().toISOString(),
+        }).in('item_code', batch);
+      }
+      await logChange('wines_discontinued', 'wine', 'bulk', { count: toDiscontinueCodes.length });
+    }
+  }
+
+  logger.info(`[WineDetection] Result: ${newRows.length} new wines, ${updateRows.length} updated`);
+  return { newCount: newRows.length, updatedCount: updateRows.length };
+}
+
+export async function detectPriceChanges(): Promise<number> {
+  const items = await getInventoryItems();
+  if (items.length === 0) return 0;
+
+  const winesMap = await loadAllWinesMap();
+  if (winesMap.size === 0) return 0;
+
+  const priceChanges: any[] = [];
+  const changeLogs: any[] = [];
+
+  for (const item of items) {
+    if (!item.item_no || item.supply_price == null) continue;
+
+    const existing = winesMap.get(item.item_no);
+    if (!existing || existing.supply_price == null) continue;
+
+    if (existing.supply_price !== item.supply_price) {
+      const changePct = existing.supply_price > 0
+        ? ((item.supply_price - existing.supply_price) / existing.supply_price) * 100
+        : null;
+
+      priceChanges.push({
+        item_code: item.item_no,
+        field_name: 'supply_price',
+        old_value: existing.supply_price,
+        new_value: item.supply_price,
+        change_pct: changePct,
+      });
+
+      changeLogs.push({
+        old_price: existing.supply_price,
+        new_price: item.supply_price,
+        change_pct: changePct?.toFixed(1),
+        item_code: item.item_no,
+      });
+    }
+  }
+
+  // 배치 insert price_history
+  for (let i = 0; i < priceChanges.length; i += 500) {
+    const { error } = await supabase.from('price_history').insert(priceChanges.slice(i, i + 500));
+    if (error) logger.error(`[WineDetection] price_history insert error`, { error });
+  }
+
+  // 변동 로그 요약
+  if (priceChanges.length > 0) {
+    await logChange('price_changed', 'wine', 'bulk', {
+      count: priceChanges.length,
+      samples: changeLogs.slice(0, 5),
+    });
+    logger.info(`Price detection: ${priceChanges.length} price changes detected`);
+  }
+
+  return priceChanges.length;
 }

@@ -1,4 +1,4 @@
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { applyItemSynonym } from "@/app/lib/itemsynonyms";
 import { getSearchLearningBonuses } from "@/app/lib/searchLearning";
 import { calculateWeightedScore, type WeightedScore } from "@/app/lib/weightedScoring";
@@ -18,8 +18,8 @@ function normTight(s: string) {
     .replace(/[()\-_/.,]/g, "");
 }
 
-// ✅ 품목코드에서 빈티지 추출
-// 3A24001 → 24 → 2024
+// 품목코드에서 빈티지 추출
+// 3A24001 -> 24 -> 2024
 export function getVintageFromItemNo(itemNo: string): number | null {
   const m = String(itemNo).match(/^[A-Z0-9]{2}(\d{2})/i);
   if (!m) return null;
@@ -29,10 +29,10 @@ export function getVintageFromItemNo(itemNo: string): number | null {
   return 2000 + yy;
 }
 
-// ✅ (NEW) 동점 깨기 + 자동확정(minGap) 넘기기용
+// (NEW) 동점 깨기 + 자동확정(minGap) 넘기기용
 const LATEST_VINTAGE_BOOST = 0.2;
 
-// ✅ 주문 문장에 빈티지 힌트가 있는지
+// 주문 문장에 빈티지 힌트가 있는지
 export function hasVintageHint(text: string): boolean {
   return /\b(19|20)\d{2}\b/.test(text) || /\b\d{2}\b/.test(text);
 }
@@ -44,55 +44,6 @@ function stripQtyAndUnit(raw: string) {
   s = s.replace(/\b\d+\b\s*$/g, "").trim();
   s = s.replace(/\s+/g, " ").trim();
   return s;
-}
-
-/* ================= 테이블 유틸: 존재 확인/탐색 ================= */
-function tableExists(name: string) {
-  const r = db
-    .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1`)
-    .get(name) as any;
-  return !!r;
-}
-
-function pickMasterTable(): string | null {
-  // ✅ 프로젝트마다 다를 수 있어 후보를 여러 개 둠
-  const candidates = [
-    "items",
-    "item_master",
-    "item_mst",
-    "sku_master",
-    "product_master",
-    "products",
-    "inventory_items",
-    "downloads_items",
-    "Downloads_items",
-  ];
-  for (const t of candidates) if (tableExists(t)) return t;
-  return null;
-}
-
-function detectColumns(table: string): { itemNo: string; itemName: string } | null {
-  try {
-    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as any[];
-    const names = cols.map((c) => String(c.name));
-
-    const itemNo =
-      names.find((n) => ["item_no", "itemNo", "sku", "code", "품목번호", "품목코드"].includes(n)) ||
-      names.find((n) => n.toLowerCase().includes("item") && n.toLowerCase().includes("no")) ||
-      names.find((n) => n.toLowerCase().includes("code")) ||
-      null;
-
-    const itemName =
-      names.find((n) => ["item_name", "itemName", "name", "품목명"].includes(n)) ||
-      names.find((n) => n.toLowerCase().includes("item") && n.toLowerCase().includes("name")) ||
-      names.find((n) => n.toLowerCase().includes("name")) ||
-      null;
-
-    if (!itemNo || !itemName) return null;
-    return { itemNo, itemName };
-  } catch {
-    return null;
-  }
 }
 
 /* ================= (NEW) 뒤에서 토큰 뽑아 마스터에서 후보 확장 ================= */
@@ -112,28 +63,20 @@ function getTailTokens(rawName: string) {
   return out;
 }
 
-function fetchFromMasterByTail(rawName: string, limit = 60) {
-  const table = pickMasterTable();
-  if (!table) return [] as Array<{ item_no: string; item_name: string }>;
-
-  const cols = detectColumns(table);
-  if (!cols) return [] as Array<{ item_no: string; item_name: string }>;
-
+async function fetchFromMasterByTail(rawName: string, limit = 60) {
   const tails = getTailTokens(rawName);
   if (tails.length === 0) return [] as Array<{ item_no: string; item_name: string }>;
 
-  // LIKE 검색(뒤 토큰 기반) — 너무 많이 안 뽑히게 limit 적용
-  const where = tails.map(() => `${cols.itemName} LIKE ?`).join(" OR ");
-  const params = tails.map((t) => `%${t}%`);
-
   try {
-    const sql = `
-      SELECT ${cols.itemNo} AS item_no, ${cols.itemName} AS item_name
-      FROM ${table}
-      WHERE ${where}
-      LIMIT ${limit}
-    `;
-    return db.prepare(sql).all(...params) as Array<{ item_no: string; item_name: string }>;
+    // Build OR filter for each tail token
+    const orFilter = tails.map((t) => `item_name.ilike.%${t}%`).join(",");
+    const { data } = await supabase
+      .from("inventory_cdv")
+      .select("item_no, item_name")
+      .or(orFilter)
+      .limit(limit);
+
+    return (data || []) as Array<{ item_no: string; item_name: string }>;
   } catch {
     return [] as Array<{ item_no: string; item_name: string }>;
   }
@@ -141,23 +84,13 @@ function fetchFromMasterByTail(rawName: string, limit = 60) {
 
 /* ================= UI 학습(alias) 테이블 ================= */
 function ensureItemAliasTable() {
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS item_alias (
-      alias TEXT NOT NULL,
-      canonical TEXT NOT NULL,
-      client_code TEXT NOT NULL DEFAULT '*',
-      count INTEGER DEFAULT 1,
-      last_used_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (alias, client_code)
-    )
-  `).run();
+  // no-op: 테이블은 Supabase migration에서 생성됨
 }
 
 type AliasRow = { alias: string; canonical: string };
 
-// ✅ (중요) contains_specific 기준을 빡세게
-// - 토큰 >= 3 또는 tightLen >= 12 일 때만 “구체”로 인정 (상위 alias 방지)
+// (중요) contains_specific 기준을 빡세게
+// - 토큰 >= 3 또는 tightLen >= 12 일 때만 "구체"로 인정 (상위 alias 방지)
 function isSpecificAlias(alias: string) {
   const a = stripQtyAndUnit(alias);
   const tokens = a.split(" ").filter(Boolean);
@@ -171,17 +104,17 @@ type LearnedMatch =
   | { kind: "contains_weak"; alias: string; canonical: string }
   | null;
 
-function getLearnedMatch(rawInput: string): LearnedMatch {
-  ensureItemAliasTable();
-
+async function getLearnedMatch(rawInput: string): Promise<LearnedMatch> {
   const inputItem = stripQtyAndUnit(rawInput);
   const nInputItem = normTight(inputItem);
 
-  const rows = db.prepare(`SELECT alias, canonical FROM item_alias`).all() as AliasRow[];
+  const { data: rows } = await supabase
+    .from("item_alias")
+    .select("alias, canonical");
   if (!rows?.length) return null;
 
   const pairs = rows
-    .map((r) => {
+    .map((r: AliasRow) => {
       const aliasItem = stripQtyAndUnit(r.alias);
       return {
         aliasItem,
@@ -322,88 +255,47 @@ function scoreItem(q: string, name: string) {
 }
 
 /* =======================================================================
-   (ADD) 최근 출고일 우선: Client 시트/테이블 자동 탐지 + item_no별 MAX(출고일)
-   - 못 찾으면 빈 맵 반환 → 기존 로직 영향 0
+   최근 출고일 우선: client_item_stats 테이블에서 item_no별 updated_at 조회
+   - 못 찾으면 빈 맵 반환 -> 기존 로직 영향 0
    ======================================================================= */
-function pickClientShipTable(): string | null {
-  const candidates = [
-    "Client",
-    "client",
-    "client_rows",
-    "client_history",
-    "client_shipments",
-    "client_sales",
-    "client_item_history",
-    "client_item_rows",
-    "sales_client",
-    "sales",
-  ];
-  for (const t of candidates) if (tableExists(t)) return t;
-  return null;
-}
-
-function detectClientShipColumns(table: string): { clientCode: string; itemNo: string; shippedAt: string } | null {
-  try {
-    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as any[];
-    const names = cols.map((c) => String(c.name));
-
-    const clientCode =
-      names.find((n) => ["client_code", "clientCode", "거래처코드", "F"].includes(n)) ||
-      names.find((n) => n.toLowerCase().includes("client") && n.toLowerCase().includes("code")) ||
-      null;
-
-    const itemNo =
-      names.find((n) => ["item_no", "itemNo", "품목번호", "품목코드", "sku", "code", "M"].includes(n)) ||
-      names.find((n) => n.toLowerCase().includes("item") && n.toLowerCase().includes("no")) ||
-      names.find((n) => n.toLowerCase().includes("sku")) ||
-      null;
-
-    const shippedAt =
-      names.find((n) => ["shipped_at", "ship_date", "out_date", "출고일", "출고일자", "date", "G"].includes(n)) ||
-      names.find((n) => n.includes("출고")) ||
-      names.find((n) => n.toLowerCase().includes("ship") && n.toLowerCase().includes("date")) ||
-      null;
-
-    if (!clientCode || !itemNo || !shippedAt) return null;
-    return { clientCode, itemNo, shippedAt };
-  } catch {
-    return null;
-  }
-}
-
-function buildLastShippedMap(clientCode: string) {
+async function buildLastShippedMap(clientCode: string) {
   const map = new Map<string, number>();
-
-  const table = pickClientShipTable();
-  if (!table) return map;
-
-  const cols = detectClientShipColumns(table);
-  if (!cols) return map;
-
   try {
-    const sql = `
-      SELECT ${cols.itemNo} AS item_no, MAX(${cols.shippedAt}) AS last_shipped_at
-      FROM ${table}
-      WHERE ${cols.clientCode} = ?
-      GROUP BY ${cols.itemNo}
-    `;
-    const rows = db.prepare(sql).all(clientCode) as Array<{ item_no: any; last_shipped_at: any }>;
+    const { data: rows } = await supabase
+      .from("client_item_stats")
+      .select("item_no, updated_at")
+      .eq("client_code", clientCode);
 
-    for (const r of rows) {
+    for (const r of rows || []) {
       const itemNo = String(r.item_no || "").trim();
       if (!itemNo) continue;
-      const t = new Date(String(r.last_shipped_at || "")).getTime();
+      const t = new Date(String(r.updated_at || "")).getTime();
       if (Number.isFinite(t) && t > 0) map.set(itemNo, t);
     }
-  } catch {
-    return map;
-  }
-
+  } catch {}
   return map;
 }
 
+/* ================= English 시트 영문명 맵 로드 ================= */
+async function loadEnglishMap() {
+  try {
+    const { data: rows } = await supabase
+      .from("item_english")
+      .select("item_no, name_en");
+    const m = new Map<string, string>();
+    for (const r of rows || []) {
+      const k = String(r.item_no ?? "").trim();
+      const v = String(r.name_en ?? "").trim();
+      if (k && v) m.set(k, v);
+    }
+    return m;
+  } catch {
+    return new Map<string, string>();
+  }
+}
+
 /* ================= 메인 ================= */
-export function resolveItemsByClient(
+export async function resolveItemsByClient(
   clientCode: string,
   items: Array<{ name: string; qty: number }>,
   opts?: { minScore?: number; minGap?: number; topN?: number }
@@ -413,48 +305,29 @@ export function resolveItemsByClient(
   const topN = opts?.topN ?? 5;
 
   // 거래처 이력 후보
-  const clientRows = db
-    .prepare(
-      `SELECT item_no, item_name
-       FROM client_item_stats
-       WHERE client_code = ?`
-    )
-    .all(clientCode) as Array<{ item_no: string; item_name: string }>;
+  const { data: clientRows } = await supabase
+    .from("client_item_stats")
+    .select("item_no, item_name")
+    .eq("client_code", clientCode);
 
   // (ADD) 최근 출고일 맵: 1회만 생성(성능)
-  const lastShippedMap = buildLastShippedMap(clientCode);
+  const lastShippedMap = await buildLastShippedMap(clientCode);
 
-  // ===========================
   // (ADD-EN) English 시트 동기화된 영문명 맵 로드 (item_no -> name_en)
-  // ===========================
-  function loadEnglishMap() {
-    try {
-      const rows = db.prepare(`SELECT item_no, name_en FROM item_english`).all() as any[];
-      const m = new Map<string, string>();
-      for (const r of rows) {
-        const k = String(r.item_no ?? "").trim();
-        const v = String(r.name_en ?? "").trim();
-        if (k && v) m.set(k, v);
-      }
-      return m;
-    } catch {
-      return new Map<string, string>();
-    }
-  }
-  const englishMap = loadEnglishMap();
+  const englishMap = await loadEnglishMap();
 
-
-  return items.map((it) => {
+  const results = [];
+  for (const it of items) {
     const vintageHint = extractVintageHint(it.name);
-    const learned = getLearnedMatch(it.name);
+    const learned = await getLearnedMatch(it.name);
 
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
-    // ✅ 마스터 후보(뒤 토큰으로 추가 조회)
-    const masterRows = fetchFromMasterByTail(it.name, 80);
+    // 마스터 후보(뒤 토큰으로 추가 조회)
+    const masterRows = await fetchFromMasterByTail(it.name, 80);
 
-    // ✅ 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
+    // 영문명으로도 검색 (Christophe Pitois 같은 케이스 대응)
     // 입력값에서 영어 단어가 있으면 영문명 테이블에서도 검색
     const englishRows: Array<{ item_no: string; item_name: string }> = [];
     const hasEnglish = /[A-Za-z]{3,}/.test(it.name);
@@ -462,43 +335,46 @@ export function resolveItemsByClient(
       try {
         // 입력값을 단어 단위로 분리하여 각 단어로 검색
         const words = it.name.match(/[A-Za-z]{3,}/g) || [];
-        const searchPatterns: string[] = [];
-        
-        // 각 영어 단어를 소문자로 변환하여 검색 패턴 생성
-        for (const word of words) {
-          searchPatterns.push(`%${word.toLowerCase()}%`);
-        }
-        
-        // 각 패턴으로 검색
+
+        // 각 단어로 영문명 테이블 검색 + client_item_stats JOIN 대체
         const allCandidates = new Map<string, { item_no: string; item_name: string }>();
-        for (const pattern of searchPatterns.slice(0, 5)) { // 최대 5개 단어만 검색
-          const rows = db.prepare(`
-            SELECT ie.item_no, cis.item_name, ie.name_en
-            FROM item_english ie
-            LEFT JOIN client_item_stats cis ON ie.item_no = cis.item_no AND cis.client_code = ?
-            WHERE LOWER(ie.name_en) LIKE ?
-            LIMIT 20
-          `).all(clientCode, pattern) as any[];
-          
-          for (const r of rows) {
-            if (r.item_no && r.item_name) {
-              allCandidates.set(String(r.item_no), { 
-                item_no: String(r.item_no), 
-                item_name: String(r.item_name) 
-              });
+        for (const word of words.slice(0, 5)) {
+          // 영문명 테이블에서 검색
+          const { data: enRows } = await supabase
+            .from("item_english")
+            .select("item_no, name_en")
+            .ilike("name_en", `%${word.toLowerCase()}%`)
+            .limit(20);
+
+          if (enRows) {
+            // 각 영문명 결과에 대해 client_item_stats에서 item_name 조회
+            for (const er of enRows) {
+              const itemNo = String(er.item_no);
+              if (allCandidates.has(itemNo)) continue;
+
+              // client_item_stats에서 해당 item_no의 item_name 가져오기
+              const clientRow = (clientRows || []).find(
+                (cr: any) => String(cr.item_no) === itemNo
+              );
+              if (clientRow) {
+                allCandidates.set(itemNo, {
+                  item_no: itemNo,
+                  item_name: String(clientRow.item_name),
+                });
+              }
             }
           }
         }
-        
+
         englishRows.push(...Array.from(allCandidates.values()));
       } catch (e) {
-        console.error('[resolveItems] English search failed:', e);
+        console.error("[resolveItems] English search failed:", e);
       }
     }
 
-    // ✅ 후보 풀 = 거래처이력 + 마스터 + 영문명 (중복 제거)
+    // 후보 풀 = 거래처이력 + 마스터 + 영문명 (중복 제거)
     const poolMap = new Map<string, { item_no: string; item_name: string }>();
-    for (const r of clientRows) {
+    for (const r of clientRows || []) {
       poolMap.set(String(r.item_no), { item_no: String(r.item_no), item_name: String(r.item_name) });
     }
     for (const r of masterRows) {
@@ -513,7 +389,7 @@ export function resolveItemsByClient(
     if (learned && learned.kind === "exact" && learnedItemNo) {
       const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
       if (hit) {
-        return {
+        results.push({
           ...it,
           normalized_query: normalizeItemName(applyItemSynonym(it.name)),
           resolved: true,
@@ -523,15 +399,16 @@ export function resolveItemsByClient(
           method: "alias_exact_item_no",
           candidates: [],
           suggestions: [],
-        };
+        });
+        continue;
       }
     }
 
-    // 2) contains_specific 학습이면 하드 확정 (✅ 기준 빡세게 적용됨)
+    // 2) contains_specific 학습이면 하드 확정 (기준 빡세게 적용됨)
     if (learned && learned.kind === "contains_specific" && learnedItemNo) {
       const hit = pool.find((r) => String(r.item_no) === learnedItemNo);
       if (hit) {
-        return {
+        results.push({
           ...it,
           normalized_query: normalizeItemName(applyItemSynonym(it.name)),
           resolved: true,
@@ -541,7 +418,8 @@ export function resolveItemsByClient(
           method: "alias_contains_specific_item_no",
           candidates: [],
           suggestions: [],
-        };
+        });
+        continue;
       }
     }
 
@@ -550,12 +428,12 @@ export function resolveItemsByClient(
     const q = normalizeItemName(synonymApplied);
     const SOFT_BONUS = 0.15;
 
-    // ✅ (NEW) 검색 학습 보너스: 후보 클릭 누적 기반 가산점
-    const learnedBonuses = getSearchLearningBonuses(it.name, 30);
+    // (NEW) 검색 학습 보너스: 후보 클릭 누적 기반 가산점
+    const learnedBonuses = await getSearchLearningBonuses(it.name, 30);
     const bonusMap = new Map<string, number>();
     for (const b of learnedBonuses) bonusMap.set(String(b.item_no), b.bonus);
 
-    // ✅ scored는 "let"으로(동점 깨기 블록에서 재정렬/수정)
+    // scored는 "let"으로(동점 깨기 블록에서 재정렬/수정)
     let scored = pool
       .map((r) => {
         const ko = scoreItem(q, r.item_name);
@@ -599,7 +477,7 @@ export function resolveItemsByClient(
           // 2) 최근 빈티지 우선 fallback (항상 동작)
           const v = getVintageFromItemNo(r.item_no);
           if (v) {
-            // 2025 → +0.05 / 2024 → +0.048 정도 (상한 0.05)
+            // 2025 -> +0.05 / 2024 -> +0.048 정도 (상한 0.05)
             const vBonus = Math.min(0.05, (v - 2000) * 0.002);
             if (vBonus > 0) finalScore = Math.min(1.0, finalScore + vBonus);
           }
@@ -647,15 +525,15 @@ export function resolveItemsByClient(
     let top = scored[0];
     let second = scored[1];
 
-    // ✅ contains_weak + 토큰이 3개 이상이면 자동확정 보수적으로
+    // contains_weak + 토큰이 3개 이상이면 자동확정 보수적으로
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
 
-    // ✅ 1) 기본 자동확정 조건
+    // 1) 기본 자동확정 조건
     let resolved =
       !!top && top.score >= minScore && (!second || top.score - second.score >= minGap);
 
     // ===========================
-    // ✅ (FIX) 최신 빈티지 tie-break 자동확정
+    // (FIX) 최신 빈티지 tie-break 자동확정
     // - "같은 품목명(빈티지만 다름)" 인데 gap이 작아서 확정이 안 되는 케이스 해결
     // - 주문에 빈티지 힌트가 없을 때만 적용
     // - top/second가 같은 그룹이면 더 최신 빈티지를 top으로 스왑 후 resolved = true
@@ -685,8 +563,8 @@ export function resolveItemsByClient(
       }
     }
 
-    // ✅ contains_weak + 토큰 3개 이상은 원칙적으로 자동확정 금지
-    // ✅ 단, topScore>=0.88 AND (top-second)>=0.30 이면 예외적으로 자동확정 허용
+    // contains_weak + 토큰 3개 이상은 원칙적으로 자동확정 금지
+    // 단, topScore>=0.88 AND (top-second)>=0.30 이면 예외적으로 자동확정 허용
     if (learned?.kind === "contains_weak" && tokenCount >= 3) {
       const gap = second ? top.score - second.score : 1.0;
       const allowAuto = (top.score >= 0.95 && gap >= 0.20) || (top.score >= 0.88 && gap >= 0.30);
@@ -695,10 +573,8 @@ export function resolveItemsByClient(
       }
     }
 
-
-
     if (resolved) {
-      return {
+      results.push({
         ...it,
         normalized_query: q,
         resolved: true,
@@ -717,24 +593,24 @@ export function resolveItemsByClient(
           item_name: c.item_name,
           score: Number(c.score.toFixed(3)),
         })),
-
-      };
+      });
+    } else {
+      results.push({
+        ...it,
+        normalized_query: q,
+        resolved: false,
+        candidates: scored.slice(0, topN).map((c) => ({
+          item_no: c.item_no,
+          item_name: c.item_name,
+          score: Number(c.score.toFixed(3)),
+        })),
+        suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
+          item_no: c.item_no,
+          item_name: c.item_name,
+          score: Number(c.score.toFixed(3)),
+        })),
+      });
     }
-
-    return {
-      ...it,
-      normalized_query: q,
-      resolved: false,
-      candidates: scored.slice(0, topN).map((c) => ({
-        item_no: c.item_no,
-        item_name: c.item_name,
-        score: Number(c.score.toFixed(3)),
-      })),
-      suggestions: scored.slice(0, Math.max(3, topN)).map((c) => ({
-        item_no: c.item_no,
-        item_name: c.item_name,
-        score: Number(c.score.toFixed(3)),
-      })),
-    };
-  });
+  }
+  return results;
 }

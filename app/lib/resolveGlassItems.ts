@@ -1,4 +1,4 @@
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { calculateWeightedScore } from "@/app/lib/weightedScoring";
 import { expandQuery, logQueryExpansion } from "@/app/lib/queryExpander";
 import { searchRiedelSheet } from "@/app/lib/riedelMatcher";
@@ -95,13 +95,13 @@ function codesMatch(input: string, dbCode: string): boolean {
   const a = normalizeGlassCode(input).toUpperCase();
   const b = normalizeGlassCode(dbCode).toUpperCase();
   if (a === b) return true;
-  
+
   // 슬래시 기준으로 분리해서 숫자 부분 비교 (0425/0 vs 0425/00)
   const [aPrefix, aSuffix] = a.split('/');
   const [bPrefix, bSuffix] = b.split('/');
   if (!aPrefix || !bPrefix || !aSuffix || !bSuffix) return false;
   if (aPrefix !== bPrefix) return false;
-  
+
   // 접미사를 "선행 숫자" + "알파벳으로 시작하는 혼합 접미사"로 분리
   // 예: "02S3" → num="02", tail="S3" / "07" → num="07", tail="" / "0" → num="0", tail=""
   // "28JG" → num="28", tail="JG" / "97SKY" → num="97", tail="SKY" / "16BWT" → num="16", tail="BWT"
@@ -112,7 +112,7 @@ function codesMatch(input: string, dbCode: string): boolean {
   };
   const aP = splitSuffix(aSuffix);
   const bP = splitSuffix(bSuffix);
-  
+
   return aP.num === bP.num && aP.tail === bP.tail;
 }
 
@@ -132,19 +132,19 @@ const NON_RD_KEYWORDS: Array<{ keywords: string[]; item_no: string; item_name: s
 function matchNonRDItem(query: string): { item_no: string; item_name: string; score: number } | null {
   const q = norm(query);
   if (!q) return null;
-  
+
   let bestMatch: { item_no: string; item_name: string; score: number } | null = null;
-  
+
   for (const entry of NON_RD_KEYWORDS) {
     const matchedCount = entry.keywords.filter(kw => q.includes(norm(kw))).length;
     if (matchedCount === 0) continue;
-    
+
     const score = matchedCount / entry.keywords.length;
     if (score >= 0.5 && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { item_no: entry.item_no, item_name: entry.item_name, score: Math.min(0.95, 0.7 + score * 0.25) };
     }
   }
-  
+
   return bestMatch;
 }
 
@@ -174,100 +174,99 @@ function getAllTokens(rawName: string): string[] {
   const clean = tokens
     .map((t) => t.replace(/["'`]/g, "").trim())
     .filter((t) => t && t.length >= 2 && !/^\d+$/.test(t));
-  
+
   return clean;
 }
 
-function fetchFromGlassMasterByTokens(rawName: string, limit = 80): Array<{ item_no: string; item_name: string }> {
+async function fetchFromGlassMasterByTokens(rawName: string, limit = 80): Promise<Array<{ item_no: string; item_name: string }>> {
   const tokens = getAllTokens(rawName);
   if (tokens.length === 0) return [];
 
   try {
     const results = new Map<string, { item_no: string; item_name: string; priority: number }>();
-    
+
     // 전략 1: AND 검색 (모든 토큰 포함) - 최고 우선순위
     if (tokens.length >= 2) {
       try {
-        const andWhere = tokens.map(() => `item_name LIKE ?`).join(" AND ");
-        const andParams = tokens.map((t) => `%${t}%`);
-        const andSql = `
-          SELECT item_no, item_name
-          FROM glass_items
-          WHERE ${andWhere}
-          LIMIT 30
-        `;
-        const andResults = db.prepare(andSql).all(...andParams) as Array<{ item_no: string; item_name: string }>;
-        
+        const orFilter = tokens.map(t => `item_name.ilike.%${t}%`).join(',');
+        const { data } = await supabase
+          .from('glass_items')
+          .select('item_no, item_name')
+          .or(orFilter)
+          .limit(500);
+        // Filter in JS to enforce AND (all tokens must match)
+        const andResults = (data || []).filter(r =>
+          tokens.every(t => r.item_name.toLowerCase().includes(t.toLowerCase()))
+        ).slice(0, 30);
+
         for (const r of andResults) {
           if (!results.has(r.item_no)) {
             results.set(r.item_no, { ...r, priority: 3 });
           }
         }
-        
+
         console.log(`[Glass MultiToken] AND 검색: "${tokens.join('" AND "')}" → ${andResults.length}개`);
       } catch (e) {
         console.error('[Glass MultiToken] AND 검색 실패:', e);
       }
     }
-    
+
     // 전략 2: Half 검색 (절반 이상 토큰 포함) - 중간 우선순위
     if (tokens.length >= 3) {
       try {
         const halfCount = Math.ceil(tokens.length / 2);
         const halfTokens = tokens.slice(0, halfCount);
-        const halfWhere = halfTokens.map(() => `item_name LIKE ?`).join(" AND ");
-        const halfParams = halfTokens.map((t) => `%${t}%`);
-        const halfSql = `
-          SELECT item_no, item_name
-          FROM glass_items
-          WHERE ${halfWhere}
-          LIMIT 40
-        `;
-        const halfResults = db.prepare(halfSql).all(...halfParams) as Array<{ item_no: string; item_name: string }>;
-        
+        const halfOrFilter = halfTokens.map(t => `item_name.ilike.%${t}%`).join(',');
+        const { data } = await supabase
+          .from('glass_items')
+          .select('item_no, item_name')
+          .or(halfOrFilter)
+          .limit(500);
+        const halfResults = (data || []).filter(r =>
+          halfTokens.every(t => r.item_name.toLowerCase().includes(t.toLowerCase()))
+        ).slice(0, 40);
+
         for (const r of halfResults) {
           if (!results.has(r.item_no)) {
             results.set(r.item_no, { ...r, priority: 2 });
           }
         }
-        
+
         console.log(`[Glass MultiToken] Half 검색: "${halfTokens.join('" AND "')}" → ${halfResults.length}개`);
       } catch (e) {
         console.error('[Glass MultiToken] Half 검색 실패:', e);
       }
     }
-    
+
     // 전략 3: OR 검색 (하나라도 포함) - 낮은 우선순위
     try {
-      const orWhere = tokens.map(() => `item_name LIKE ?`).join(" OR ");
-      const orParams = tokens.map((t) => `%${t}%`);
-      const orSql = `
-        SELECT item_no, item_name
-        FROM glass_items
-        WHERE ${orWhere}
-        LIMIT 30
-      `;
-      const orResults = db.prepare(orSql).all(...orParams) as Array<{ item_no: string; item_name: string }>;
-      
+      const orFilter = tokens.map(t => `item_name.ilike.%${t}%`).join(',');
+      const { data } = await supabase
+        .from('glass_items')
+        .select('item_no, item_name')
+        .or(orFilter)
+        .limit(30);
+      const orResults = (data || []) as Array<{ item_no: string; item_name: string }>;
+
       for (const r of orResults) {
         if (!results.has(r.item_no)) {
           results.set(r.item_no, { ...r, priority: 1 });
         }
       }
-      
+
       console.log(`[Glass MultiToken] OR 검색: "${tokens.join('" OR "')}" → ${orResults.length}개`);
     } catch (e) {
       console.error('[Glass MultiToken] OR 검색 실패:', e);
     }
-    
+
     // 우선순위 순으로 정렬하고 limit 적용
     const sorted = Array.from(results.values())
       .sort((a, b) => b.priority - a.priority)
       .slice(0, limit)
       .map(({ item_no, item_name }) => ({ item_no, item_name }));
-    
+
     console.log(`[Glass MultiToken] 총 후보: ${sorted.length}개 (중복 제거 후)`);
-    
+
     return sorted;
   } catch (e) {
     console.error('[Glass MultiToken] 전체 검색 실패:', e);
@@ -292,7 +291,7 @@ type LearnedMatch =
   | { kind: "contains_weak"; alias: string; canonical: string }
   | null;
 
-function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
+async function getLearnedMatch(rawInput: string, clientCode?: string): Promise<LearnedMatch> {
   try {
     const inputItem = stripQtyAndUnit(rawInput);
     const nInputItem = normTight(inputItem);
@@ -301,12 +300,19 @@ function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
     // ✅ 거래처별 학습 우선, 전역('*') 폴백
     let rows: AliasRow[] = [];
     if (clientCode) {
-      rows = db.prepare(
-        `SELECT alias, canonical FROM item_alias WHERE client_code = ? OR client_code = '*' ORDER BY CASE WHEN client_code = ? THEN 0 ELSE 1 END, count DESC`
-      ).all(clientCode, clientCode) as AliasRow[];
+      const { data } = await supabase
+        .from('item_alias')
+        .select('alias, canonical')
+        .or(`client_code.eq.${clientCode},client_code.eq.*`);
+      rows = (data || []) as AliasRow[];
+      // Sort: client-specific first, then by count desc (handled by fetch order)
     }
     if (!rows?.length) {
-      rows = db.prepare(`SELECT alias, canonical FROM item_alias ORDER BY count DESC`).all() as AliasRow[];
+      const { data } = await supabase
+        .from('item_alias')
+        .select('alias, canonical')
+        .order('count', { ascending: false });
+      rows = (data || []) as AliasRow[];
     }
     if (!rows?.length) return null;
 
@@ -347,7 +353,7 @@ function getLearnedMatch(rawInput: string, clientCode?: string): LearnedMatch {
 }
 
 /* ================= 메인: Glass 전용 ================= */
-export function resolveGlassItemsByClient(
+export async function resolveGlassItemsByClient(
   clientCode: string,
   items: Array<{ name: string; qty: number; code?: string }>,
   opts?: { minScore?: number; minGap?: number; topN?: number }
@@ -357,18 +363,17 @@ export function resolveGlassItemsByClient(
   const topN = opts?.topN ?? 20;
 
   // ✅ Glass 거래처 이력 후보 (supply_price 포함)
-  const clientRows = db
-    .prepare(
-      `SELECT item_no, item_name, supply_price
-       FROM glass_client_item_stats
-       WHERE client_code = ?`
-    )
-    .all(clientCode) as Array<{ item_no: string; item_name: string; supply_price?: number }>;
+  const { data: clientRowsData } = await supabase
+    .from('glass_client_item_stats')
+    .select('item_no, item_name, supply_price')
+    .eq('client_code', clientCode);
+  const clientRows = (clientRowsData || []) as Array<{ item_no: string; item_name: string; supply_price?: number }>;
 
   // ✅ Glass 전체 품목 마스터 (코드 매칭용, supply_price 포함)
-  const allItems = db
-    .prepare(`SELECT item_no, item_name, supply_price FROM glass_items`)
-    .all() as Array<{ item_no: string; item_name: string; supply_price?: number }>;
+  const { data: allItemsData } = await supabase
+    .from('glass_items')
+    .select('item_no, item_name, supply_price');
+  const allItems = (allItemsData || []) as Array<{ item_no: string; item_name: string; supply_price?: number }>;
 
   // ✅ RD코드 인덱스 맵 (O(N) 스캔 → O(1) 룩업으로 성능 최적화)
   // key = 정규화된 RD코드 (대문자), value = 매칭되는 품목들
@@ -388,7 +393,7 @@ export function resolveGlassItemsByClient(
     // 1) 정확 매칭 (정규화 후 동일)
     const exact = rdCodeIndex.get(normInput);
     if (exact && exact.length > 0) return exact;
-    
+
     // 2) 숫자 정규화 매칭 (0425/0 == 0425/00)
     const results: Array<{ item_no: string; item_name: string }> = [];
     for (const [key, items] of rdCodeIndex) {
@@ -445,40 +450,42 @@ export function resolveGlassItemsByClient(
     return sp ? { ...m, supply_price: sp } : m;
   }
 
-  return items.map((it) => {
+  // items.map() → sequential for loop (async operations inside)
+  const results: any[] = [];
+  for (const it of items) {
     // 🔍 0단계: 품목번호 직접 입력 감지 (최우선)
     // 예: "0884/33", "0447/07", "0884/0", "4100/00R" 같은 와인잔 품목번호
     const itemNoPattern = /^([A-Z]?\d{3,4}[\/-]?\d{1,3}(?:[A-Z][A-Z0-9]*)?)$/i;
     const itemNoMatch = stripQtyAndUnit(it.name).trim().match(itemNoPattern);
-    
+
     if (itemNoMatch) {
       const inputItemNo = normalizeGlassCode(itemNoMatch[1]).toUpperCase();
       console.log(`[Glass ItemNo Exact] 와인잔 품목번호 입력 감지: "${inputItemNo}"`);
-      
+
       // 🍷 와인잔 패턴: "RD {번호}" 형식으로 품목명 내부 검색
       try {
         // ✅ 정확 매칭 우선: codesMatch로 0425/0 == 0425/00 처리
         console.log(`[Glass Pattern] 와인잔 패턴 검색: "RD ${inputItemNo}"`);
-        
+
         // 정확 매칭: 인덱스 기반 (0 == 00 포함)
         const exactCodeMatches = findByCode(inputItemNo);
-        
+
         if (exactCodeMatches.length > 0) {
           // 거래처 이력에 있는 것 우선
           const clientHits = exactCodeMatches.filter(m => clientRows.some(r => r.item_no === m.item_no));
           const best = clientHits[0] || exactCodeMatches[0];
           const inClientHistory = clientHits.length > 0;
-          
+
           // ✅ 중복 코드 처리: 동일 RD코드에 여러 품목이 있으면 신중하게 처리
           // 예: 0412/0 → D701204 (일반) vs D701A04 (2nd), 4100/00 → D700122 (올블랙) vs D700424 (블랙타이)
           const isDuplicateCode = exactCodeMatches.length > 1;
-          
+
           // 중복 코드 + 거래처 이력에 1개만 있으면 자동확정, 여러 개 있거나 없으면 확인필요
           const canAutoResolve = inClientHistory && (!isDuplicateCode || clientHits.length === 1);
-          
+
           console.log(`[Glass Pattern] ✅ 코드 정확 매칭: ${best.item_no} - ${best.item_name} (거래처이력: ${inClientHistory}, 중복코드: ${isDuplicateCode}, 자동확정: ${canAutoResolve})`);
-          
-          return {
+
+          results.push({
             ...it,
             normalized_query: it.name,
             resolved: canAutoResolve,
@@ -495,12 +502,13 @@ export function resolveGlassItemsByClient(
               item_no: m.item_no, item_name: m.item_name, score: 1.0,
               in_client_history: clientRows.some(r => r.item_no === m.item_no),
             })),
-          };
+          });
+          continue;
         }
-        
+
         // ✅ 접두사 매칭: "0884/0" → "0884/0", "0884/07" 등 (인덱스 기반)
         const prefixCodeMatches = findByPrefix(inputItemNo);
-        
+
         if (prefixCodeMatches.length > 0) {
           // 거래처 이력에 있는 것 우선 정렬
           const sorted = prefixCodeMatches.sort((a, b) => {
@@ -512,16 +520,16 @@ export function resolveGlassItemsByClient(
             const bCode = extractRDCode(b.item_name) || '';
             return aCode.length - bCode.length;
           });
-          
+
           const best = sorted[0];
           const bestInClientHistory = clientRows.some(r => r.item_no === best.item_no);
           // 1개이면서 거래처 이력에 있을 때만 자동확정
           const autoResolve = prefixCodeMatches.length === 1 && bestInClientHistory;
-          
+
           console.log(`[Glass Pattern] ✅ 코드 접두사 매칭 ${prefixCodeMatches.length}개: ${sorted.map(m => extractRDCode(m.item_name)).join(', ')} (거래처이력: ${bestInClientHistory})`);
-          
+
           if (autoResolve) {
-            return {
+            results.push({
               ...it,
               normalized_query: it.name,
               resolved: true,
@@ -537,11 +545,12 @@ export function resolveGlassItemsByClient(
                 item_no: m.item_no, item_name: m.item_name, score: 1.0,
                 in_client_history: clientRows.some(r => r.item_no === m.item_no),
               })),
-            };
+            });
+            continue;
           }
-          
+
           // 여러 개이거나 거래처 이력에 없으면 확인필요
-          return {
+          results.push({
             ...it,
             normalized_query: it.name,
             resolved: false,
@@ -558,29 +567,23 @@ export function resolveGlassItemsByClient(
               item_no: m.item_no, item_name: m.item_name, score: 0.95,
               in_client_history: clientRows.some(r => r.item_no === m.item_no),
             })),
-          };
+          });
+          continue;
         }
-        
-        // ✅ 폴백: 기존 LIKE 검색 (RD 없이 숫자만 입력한 경우)
-        const glassPattern = `%RD ${inputItemNo}%`;
-        const glassPattern2 = `%RD ${inputItemNo.replace(/\//g, '-')}%`;
-        const glassPattern3 = `%RD ${inputItemNo.replace(/[\/-]/g, '')}%`;
-        
+
+        // ✅ 폴백: Supabase ilike 검색 (RD 없이 숫자만 입력한 경우)
         // 1) 거래처 이력에서 품목명 내부 번호로 검색
-        const clientGlass = db.prepare(`
-          SELECT item_no, item_name
-          FROM glass_client_item_stats
-          WHERE client_code = ? AND (
-            UPPER(item_name) LIKE UPPER(?) OR
-            UPPER(item_name) LIKE UPPER(?) OR
-            UPPER(item_name) LIKE UPPER(?)
-          )
-          LIMIT 1
-        `).get(clientCode, glassPattern, glassPattern2, glassPattern3) as any;
-        
+        const { data: clientGlassData } = await supabase
+          .from('glass_client_item_stats')
+          .select('item_no, item_name')
+          .eq('client_code', clientCode)
+          .or(`item_name.ilike.%RD ${inputItemNo}%,item_name.ilike.%RD ${inputItemNo.replace(/\//g, '-')}%,item_name.ilike.%RD ${inputItemNo.replace(/[\/-]/g, '')}%`)
+          .limit(1);
+        const clientGlass = clientGlassData?.[0] as any;
+
         if (clientGlass) {
           console.log(`[Glass Pattern] ✅ 거래처 이력에서 와인잔 발견: ${clientGlass.item_no} - ${clientGlass.item_name}`);
-          return {
+          results.push({
             ...it,
             normalized_query: it.name,
             resolved: true,
@@ -590,9 +593,10 @@ export function resolveGlassItemsByClient(
             method: "glass_pattern_client",
             candidates: [withPrice({ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true })],
             suggestions: [withPrice({ item_no: clientGlass.item_no, item_name: clientGlass.item_name, score: 1.0, in_client_history: true })],
-          };
+          });
+          continue;
         }
-        
+
         // 2) 전체 품목에서 품목명 내부 번호로 검색 → 거래처 이력에 없으므로 확인필요
         const masterGlass = allItems.find((r) => {
           const itemNameUpper = r.item_name.toUpperCase();
@@ -600,10 +604,10 @@ export function resolveGlassItemsByClient(
                  itemNameUpper.includes(`RD ${inputItemNo.replace(/\//g, '-')}`) ||
                  itemNameUpper.includes(`RD ${inputItemNo.replace(/[\/-]/g, '')}`);
         });
-        
+
         if (masterGlass) {
           console.log(`[Glass Pattern] ⚠️ 전체 품목에서 와인잔 발견 (거래처 미입고): ${masterGlass.item_no} - ${masterGlass.item_name}`);
-          return {
+          results.push({
             ...it,
             normalized_query: it.name,
             resolved: false,
@@ -614,15 +618,16 @@ export function resolveGlassItemsByClient(
             not_in_client_history: true,
             candidates: [withPrice({ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false })],
             suggestions: [withPrice({ item_no: masterGlass.item_no, item_name: masterGlass.item_name, score: 0.95, in_client_history: false })],
-          };
+          });
+          continue;
         }
       } catch (e) {
         console.error('[Glass Pattern] 와인잔 패턴 검색 실패:', e);
       }
-      
+
       console.log(`[Glass ItemNo Exact] ❌ 와인잔 품목번호를 찾을 수 없음: ${inputItemNo}`);
     }
-    
+
     // ✅ 1순위: 코드가 있으면 코드로 정확히 매칭 (전체 품목에서 검색)
     if (it.code) {
       // ✅ 정확 매칭 우선 (0425/0 == 0425/00 포함) — 인덱스 기반
@@ -634,10 +639,10 @@ export function resolveGlassItemsByClient(
         const inClientHistory = clientHits.length > 0;
         const isDuplicateCode = codeMatches.length > 1;
         const canAutoResolve = inClientHistory && (!isDuplicateCode || clientHits.length === 1);
-        
+
         console.log(`[Glass] 1순위 exact_code: ${best.item_no} (거래처이력: ${inClientHistory}, 중복: ${isDuplicateCode}, 자동확정: ${canAutoResolve})`);
-        
-        return {
+
+        results.push({
           ...it,
           normalized_query: it.code,
           resolved: canAutoResolve,
@@ -658,7 +663,8 @@ export function resolveGlassItemsByClient(
             score: 1.0,
             in_client_history: clientRows.some(r => r.item_no === m.item_no),
           })),
-        };
+        });
+        continue;
       }
     }
 
@@ -669,15 +675,15 @@ export function resolveGlassItemsByClient(
       if (embeddedCodeMatch) {
         const embeddedCode = normalizeGlassCode(embeddedCodeMatch[1]);
         console.log(`[Glass] 1.5순위: 품목명에서 코드 추출: "${embeddedCode}" (from "${it.name}")`);
-        
+
         // 인덱스 기반 정확 매칭
         const embeddedMatches = findByCode(embeddedCode);
         const codeMatch = embeddedMatches[0];
-        
+
         if (codeMatch) {
           const inHistory = clientRows.some(r => r.item_no === codeMatch.item_no);
           console.log(`[Glass] 1.5순위 ✅ 코드 매칭: ${codeMatch.item_no} - ${codeMatch.item_name} (거래처이력: ${inHistory})`);
-          return {
+          results.push({
             ...it,
             normalized_query: embeddedCode,
             resolved: inHistory,
@@ -688,17 +694,18 @@ export function resolveGlassItemsByClient(
             not_in_client_history: !inHistory,
             candidates: [withPrice({ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory })],
             suggestions: [withPrice({ item_no: codeMatch.item_no, item_name: codeMatch.item_name, score: 1.0, in_client_history: inHistory })],
-          };
+          });
+          continue;
         }
-        
+
         // 인덱스 기반 접두사 매칭
         const prefixMatches = findByPrefix(embeddedCode);
-        
+
         if (prefixMatches.length === 1) {
           const best = prefixMatches[0];
           const inHistory = clientRows.some(r => r.item_no === best.item_no);
           console.log(`[Glass] 1.5순위 ✅ 접두사 매칭 (1개): ${best.item_no} - ${best.item_name}`);
-          return {
+          results.push({
             ...it,
             normalized_query: embeddedCode,
             resolved: inHistory,
@@ -709,9 +716,10 @@ export function resolveGlassItemsByClient(
             not_in_client_history: !inHistory,
             candidates: prefixMatches.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
             suggestions: prefixMatches.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
-          };
+          });
+          continue;
         }
-        
+
         if (prefixMatches.length > 1) {
           const sorted = prefixMatches.sort((a, b) => {
             const aClient = clientRows.some(r => r.item_no === a.item_no) ? 1 : 0;
@@ -719,13 +727,14 @@ export function resolveGlassItemsByClient(
             return bClient - aClient;
           });
           console.log(`[Glass] 1.5순위 ⚠️ 접두사 매칭 ${prefixMatches.length}개 → 후보 제시`);
-          return {
+          results.push({
             ...it,
             normalized_query: embeddedCode,
             resolved: false,
             candidates: sorted.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
             suggestions: sorted.map(m => withPrice({ item_no: m.item_no, item_name: m.item_name, score: 0.95, in_client_history: clientRows.some(r => r.item_no === m.item_no) })),
-          };
+          });
+          continue;
         }
       }
     }
@@ -735,7 +744,7 @@ export function resolveGlassItemsByClient(
     if (nonRDMatch) {
       const inHistory = clientRows.some(r => r.item_no === nonRDMatch.item_no);
       console.log(`[Glass] 1.8순위 ✅ 비-RD 품목 매칭: ${nonRDMatch.item_no} - ${nonRDMatch.item_name} (score: ${nonRDMatch.score})`);
-      return {
+      results.push({
         ...it,
         normalized_query: it.name,
         resolved: inHistory,
@@ -746,22 +755,23 @@ export function resolveGlassItemsByClient(
         not_in_client_history: !inHistory,
         candidates: [withPrice({ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory })],
         suggestions: [withPrice({ item_no: nonRDMatch.item_no, item_name: nonRDMatch.item_name, score: nonRDMatch.score, in_client_history: inHistory })],
-      };
+      });
+      continue;
     }
 
     // ✅ 2순위: 검색어 확장 (토큰 매핑 학습 활용)
     const cleanName = stripQtyAndUnit(it.name);
-    const expansion = expandQuery(cleanName, 0.5);
+    const expansion = await expandQuery(cleanName, 0.5);
     logQueryExpansion(expansion);
-    
-    const learned = getLearnedMatch(it.name, clientCode);
+
+    const learned = await getLearnedMatch(it.name, clientCode);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
     // 마스터 후보 (원본 + 확장된 검색어) - 멀티 토큰 검색
-    const masterRows1 = fetchFromGlassMasterByTokens(it.name, 40);
-    const masterRows2 = expansion.hasExpansion 
-      ? fetchFromGlassMasterByTokens(expansion.expanded, 40)
+    const masterRows1 = await fetchFromGlassMasterByTokens(it.name, 40);
+    const masterRows2 = expansion.hasExpansion
+      ? await fetchFromGlassMasterByTokens(expansion.expanded, 40)
       : [];
 
     // 후보 풀 = 거래처이력 + 마스터(원본) + 마스터(확장) (중복 제거)
@@ -782,12 +792,17 @@ export function resolveGlassItemsByClient(
       let hit = pool.find((r) => String(r.item_no) === learnedItemNo);
       // ✅ 풀에 없으면 DB에서 직접 조회 (학습된 약어 → 품목번호 매핑)
       if (!hit) {
-        const dbRow = db.prepare(`SELECT item_no, item_name FROM glass_items WHERE item_no = ? LIMIT 1`).get(learnedItemNo) as { item_no: string; item_name: string } | undefined;
+        const { data: dbRow } = await supabase
+          .from('glass_items')
+          .select('item_no, item_name')
+          .eq('item_no', learnedItemNo)
+          .limit(1)
+          .maybeSingle();
         if (dbRow) hit = { item_no: String(dbRow.item_no), item_name: String(dbRow.item_name) };
       }
       if (hit) {
         console.log(`[Learn] ✅ alias_exact 매칭: "${it.name}" → ${hit.item_no} ${hit.item_name}`);
-        return {
+        results.push({
           ...it,
           normalized_query: norm(it.name),
           resolved: true,
@@ -797,7 +812,8 @@ export function resolveGlassItemsByClient(
           method: "alias_exact_item_no",
           candidates: [],
           suggestions: [],
-        };
+        });
+        continue;
       }
     }
 
@@ -806,12 +822,17 @@ export function resolveGlassItemsByClient(
       let hit = pool.find((r) => String(r.item_no) === learnedItemNo);
       // ✅ 풀에 없으면 DB에서 직접 조회
       if (!hit) {
-        const dbRow = db.prepare(`SELECT item_no, item_name FROM glass_items WHERE item_no = ? LIMIT 1`).get(learnedItemNo) as { item_no: string; item_name: string } | undefined;
+        const { data: dbRow } = await supabase
+          .from('glass_items')
+          .select('item_no, item_name')
+          .eq('item_no', learnedItemNo)
+          .limit(1)
+          .maybeSingle();
         if (dbRow) hit = { item_no: String(dbRow.item_no), item_name: String(dbRow.item_name) };
       }
       if (hit) {
         console.log(`[Learn] ✅ alias_contains_specific 매칭: "${it.name}" → ${hit.item_no} ${hit.item_name}`);
-        return {
+        results.push({
           ...it,
           normalized_query: norm(it.name),
           resolved: true,
@@ -821,7 +842,8 @@ export function resolveGlassItemsByClient(
           method: "alias_contains_specific_item_no",
           candidates: [],
           suggestions: [],
-        };
+        });
+        continue;
       }
     }
 
@@ -829,41 +851,48 @@ export function resolveGlassItemsByClient(
     const q = norm(stripQtyAndUnit(it.name));
     const qExpanded = expansion.hasExpansion ? norm(expansion.expanded) : q;
 
-    let scored = pool
-      .map((r) => {
-        // 원본 쿼리 점수
-        const score1 = scoreItem(q, r.item_name);
-        
-        // 확장된 쿼리 점수 (학습 효과)
-        const score2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name) : 0;
-        
-        // 최고 점수 선택 (확장 검색은 20% 부스트)
-        const baseScore = Math.max(score1, score2 * 1.2);
+    const scored: Array<{
+      item_no: string;
+      item_name: string;
+      score: number;
+      _debug?: any;
+    }> = [];
 
-        // 🎯 가중치 시스템으로 최종 점수 계산
-        const weighted = calculateWeightedScore(
-          it.name,
-          clientCode,
-          String(r.item_no),
-          baseScore,
-          'glass' // Glass 전용 테이블 지정
-        );
+    for (const r of pool) {
+      // 원본 쿼리 점수
+      const score1 = scoreItem(q, r.item_name);
 
-        return {
-          item_no: r.item_no,
-          item_name: r.item_name,
-          score: weighted.finalScore,
-          _debug: {
-            baseScore: weighted.signals.baseScore,
-            userLearning: weighted.signals.userLearning,
-            recentPurchase: weighted.signals.recentPurchase,
-            purchaseFrequency: weighted.signals.purchaseFrequency,
-            weights: weighted.weights,
-            rawTotal: weighted.rawTotal,
-          },
-        };
-      })
-      .sort((a, b) => b.score - a.score);
+      // 확장된 쿼리 점수 (학습 효과)
+      const score2 = expansion.hasExpansion ? scoreItem(qExpanded, r.item_name) : 0;
+
+      // 최고 점수 선택 (확장 검색은 20% 부스트)
+      const baseScore = Math.max(score1, score2 * 1.2);
+
+      // 🎯 가중치 시스템으로 최종 점수 계산
+      const weighted = await calculateWeightedScore(
+        it.name,
+        clientCode,
+        String(r.item_no),
+        baseScore,
+        'glass' // Glass 전용 테이블 지정
+      );
+
+      scored.push({
+        item_no: r.item_no,
+        item_name: r.item_name,
+        score: weighted.finalScore,
+        _debug: {
+          baseScore: weighted.signals.baseScore,
+          userLearning: weighted.signals.userLearning,
+          recentPurchase: weighted.signals.recentPurchase,
+          purchaseFrequency: weighted.signals.purchaseFrequency,
+          weights: weighted.weights,
+          rawTotal: weighted.rawTotal,
+        },
+      });
+    }
+
+    scored.sort((a, b) => b.score - a.score);
 
     let top = scored[0];
     let second = scored[1];
@@ -873,34 +902,34 @@ export function resolveGlassItemsByClient(
     const hasClientHistory = top && clientRows.some(r => r.item_no === top.item_no);
     // 2. DB에 아예 없으면 신규 품목
     const isInDb = top && allItems.some(r => r.item_no === top.item_no);
-    
+
     const isNewItem = top && (!hasClientHistory || !isInDb);
-    
+
     console.log(`[DEBUG Glass] Auto-resolve check: item=${top?.item_no}, hasClientHistory=${hasClientHistory}, isInDb=${isInDb}, isNewItem=${isNewItem}`);
 
     // 자동확정 조건
     let resolved =
-      !!top && 
+      !!top &&
       !isNewItem && // ✅ 신규 품목은 절대 자동확정 안 함
-      top.score >= minScore && 
+      top.score >= minScore &&
       (!second || top.score - second.score >= minGap);
 
     // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
     if (tokenCount >= 3) {
       const gap = second ? top.score - second.score : 999;
-      
+
       // learned가 있는 경우
       if (learned?.kind === "contains_weak") {
-        const allowAuto = (top.score >= 0.92 && gap >= 0.20) || 
+        const allowAuto = (top.score >= 0.92 && gap >= 0.20) ||
                           (top.score >= 0.88 && gap >= 0.30);
         if (!allowAuto) {
           resolved = false;
         }
-      } 
+      }
       // learned가 없는 경우
       else if (!learned) {
-        const allowAuto = (top.score >= 0.90 && gap >= 0.20) || 
+        const allowAuto = (top.score >= 0.90 && gap >= 0.20) ||
                           (top.score >= 0.85 && gap >= 0.25);
         if (!allowAuto) {
           resolved = false;
@@ -909,7 +938,7 @@ export function resolveGlassItemsByClient(
     }
 
     if (resolved) {
-      return {
+      results.push({
         ...it,
         normalized_query: q,
         resolved: true,
@@ -932,7 +961,7 @@ export function resolveGlassItemsByClient(
             score: Number(c.score.toFixed(3)),
             in_client_history: clientRows.some(r => r.item_no === c.item_no),
           }));
-          
+
           const newItems = searchNewGlassFromRiedel(q).map(item => ({
             item_no: item.code,
             item_name: item.item_name,
@@ -940,12 +969,13 @@ export function resolveGlassItemsByClient(
             is_new_item: true,
             price: item.price,
           }));
-          
+
           const combined = [...existingTop, ...newItems.slice(0, 5)];
           console.log('[DEBUG Glass] Auto-resolved suggestions:', { existing: existingTop.length, new: newItems.length });
           return combined;
         })(),
-      };
+      });
+      continue;
     }
 
     // ✅ 항상 기존품목 + 신규품목 함께 표시 (Glass는 신규품목 확인이 중요)
@@ -968,10 +998,10 @@ export function resolveGlassItemsByClient(
         is_new_item: true,
         price: item.price,
       }));
-      
+
       // 기존 2개 + 신규 상위 3개
       const combined = [...existingTop, ...newItems.slice(0, 5)];
-      
+
       console.log('[DEBUG Glass] 후보 조합:', {
         existing: existingTop.length,
         newItems: newItems.length,
@@ -979,11 +1009,11 @@ export function resolveGlassItemsByClient(
         topScore: top?.score,
         items: combined.map(c => ({ code: c.item_no, score: c.score, isNew: (c as any).is_new_item, price: (c as any).price }))
       });
-      
+
       return combined;
     })();
 
-    return {
+    results.push({
       ...it,
       normalized_query: q,
       resolved: false,
@@ -995,6 +1025,8 @@ export function resolveGlassItemsByClient(
         _debug: (c as any)._debug,
       })),
       suggestions,
-    };
-  });
+    });
+  }
+
+  return results;
 }

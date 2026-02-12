@@ -4,8 +4,6 @@ import { upsertTastingNote, getTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function PUT(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,14 +11,14 @@ export async function PUT(
   try {
     const { id } = await params;
 
-    const existing = getTastingNote(id);
+    const existing = await getTastingNote(id);
     if (!existing) {
       return NextResponse.json({ success: false, error: "테이스팅 노트가 없습니다. 먼저 AI 조사를 실행하세요." }, { status: 404 });
     }
 
-    upsertTastingNote(id, { approved: 1 });
+    await upsertTastingNote(id, { approved: 1 });
 
-    logChange('tasting_note_approved', 'tasting_note', id, {});
+    await logChange('tasting_note_approved', 'tasting_note', id, {});
 
     return NextResponse.json({ success: true });
   } catch (e) {

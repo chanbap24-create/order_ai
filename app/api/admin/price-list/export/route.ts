@@ -4,8 +4,6 @@ import { generatePriceListExcel } from "@/app/lib/priceListExcel";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -13,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     const buffer = await generatePriceListExcel(version);
 
-    logChange('price_list_exported', 'price_list', version, {});
+    await logChange('price_list_exported', 'price_list', version, {});
 
     const filename = `CavedeVin-PriceList-${version}-${new Date().toISOString().split('T')[0]}.xlsx`;
 

@@ -2,9 +2,9 @@
  * ========================================
  * 조합 가중치 시스템 (Weighted Scoring Engine)
  * ========================================
- * 
+ *
  * 여러 신호(signal)를 종합해서 "이 와인이 정답일 확률"을 계산합니다.
- * 
+ *
  * 신호 종류:
  * 1. 사용자 학습 (User Learning) - 사용자가 명시적으로 선택한 이력
  * 2. 최근 구매 (Recent Purchase) - 거래처가 최근에 구매한 이력
@@ -13,7 +13,7 @@
  * 5. 기본 점수 (Base Score) - 문자열 유사도
  */
 
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 
 /* ==================== 가중치 설정 ==================== */
 
@@ -98,12 +98,12 @@ function isSpecificAlias(alias: string) {
   const a = stripQtyAndUnit(alias);
   const tokens = a.split(" ").filter(Boolean);
   const tightLen = normTight(a).length;
-  
+
   // ✅ 한글 감지: 한글이 50% 이상이면 한글 기준 적용
   const koreanChars = (a.match(/[가-힣]/g) || []).length;
   const totalChars = a.length;
   const isKorean = koreanChars / totalChars > 0.5;
-  
+
   if (isKorean) {
     // 한글 기준: 2토큰 이상 OR 6글자 이상 (한글은 정보밀도 높음)
     return tokens.length >= 2 || tightLen >= 6;
@@ -113,44 +113,48 @@ function isSpecificAlias(alias: string) {
   }
 }
 
-export function getUserLearningSignal(rawInput: string, itemNo: string, clientCode?: string): LearningSignal {
+export async function getUserLearningSignal(rawInput: string, itemNo: string, clientCode?: string): Promise<LearningSignal> {
   try {
     const inputItem = stripQtyAndUnit(rawInput);
     const nInputItem = normTight(inputItem);
 
-    // ✅ 거래처별 학습 우선 조회 (client_code 컬럼이 있는 경우)
-    let rows: Array<{ alias: string; canonical: string; count: number; client_code?: string }> = [];
-    
+    // ✅ 거래처별 학습 우선 조회
+    let rows: Array<{ alias: string; canonical: string; count: number; client_code?: string | null }> = [];
+
     if (clientCode) {
-      // 1순위: 해당 거래처 전용 학습
-      try {
-        rows = db.prepare(`
-          SELECT alias, canonical, count, client_code 
-          FROM item_alias 
-          WHERE canonical = ? AND (client_code = ? OR client_code IS NULL OR client_code = '' OR client_code = '*')
-          ORDER BY 
-            CASE 
-              WHEN client_code = ? THEN 1  -- 거래처별 학습 최우선
-              WHEN client_code = '*' THEN 2  -- 전역 학습 2순위
-              ELSE 3  -- NULL/빈값 3순위
-            END,
-            count DESC
-        `).all(itemNo, clientCode, clientCode) as Array<{ alias: string; canonical: string; count: number; client_code?: string }>;
-      } catch {
-        // client_code 컬럼이 없으면 기존 방식
-        rows = db.prepare(`
-          SELECT alias, canonical, count 
-          FROM item_alias 
-          WHERE canonical = ?
-        `).all(itemNo) as Array<{ alias: string; canonical: string; count: number }>;
+      // item_alias에서 canonical이 일치하고, client_code가 해당 거래처이거나 전역('*')이거나 null인 것 조회
+      const { data } = await supabase
+        .from('item_alias')
+        .select('alias, canonical, count, client_code')
+        .eq('canonical', itemNo);
+
+      if (data) {
+        // JS에서 client_code 필터링 및 정렬
+        rows = data
+          .filter(r =>
+            r.client_code === clientCode ||
+            r.client_code === '*' ||
+            !r.client_code
+          )
+          .sort((a, b) => {
+            // 거래처별 학습 최우선
+            const priorityA = a.client_code === clientCode ? 1 : a.client_code === '*' ? 2 : 3;
+            const priorityB = b.client_code === clientCode ? 1 : b.client_code === '*' ? 2 : 3;
+            if (priorityA !== priorityB) return priorityA - priorityB;
+            // 같은 우선순위면 count 내림차순
+            return (b.count || 0) - (a.count || 0);
+          });
       }
     } else {
       // clientCode 없으면 기존 방식
-      rows = db.prepare(`
-        SELECT alias, canonical, count 
-        FROM item_alias 
-        WHERE canonical = ?
-      `).all(itemNo) as Array<{ alias: string; canonical: string; count: number }>;
+      const { data } = await supabase
+        .from('item_alias')
+        .select('alias, canonical, count, client_code')
+        .eq('canonical', itemNo);
+
+      if (data) {
+        rows = data;
+      }
     }
 
     if (!rows?.length) return { score: 0, count: 0, kind: null };
@@ -163,7 +167,7 @@ export function getUserLearningSignal(rawInput: string, itemNo: string, clientCo
       if (nAliasItem === nInputItem) {
         const count = r.count || 1;
         const bonus = count >= 3 ? LEARNING_BONUS[3] : count === 2 ? LEARNING_BONUS[2] : LEARNING_BONUS[1];
-        
+
         // ✅ 거래처별 학습이면 강력한 보너스 (+0.15)
         const clientBonus = r.client_code === clientCode ? 0.15 : 0;
         return { score: bonus + clientBonus, count, kind: "exact" };
@@ -173,10 +177,10 @@ export function getUserLearningSignal(rawInput: string, itemNo: string, clientCo
       if (nInputItem.includes(nAliasItem)) {
         const count = r.count || 1;
         const bonus = count >= 3 ? LEARNING_BONUS[3] : count === 2 ? LEARNING_BONUS[2] : LEARNING_BONUS[1];
-        
+
         // ✅ 거래처별 학습이면 강력한 보너스 (+0.15)
         const clientBonus = r.client_code === clientCode ? 0.15 : 0;
-        
+
         if (isSpecificAlias(aliasItem)) {
           return { score: bonus + clientBonus, count, kind: "contains_specific" };
         } else {
@@ -198,58 +202,29 @@ interface RecentPurchaseSignal {
   lastPurchaseDaysAgo: number | null;
 }
 
-export function getRecentPurchaseSignal(clientCode: string, itemNo: string, dataType: 'wine' | 'glass' = 'wine'): RecentPurchaseSignal {
+export async function getRecentPurchaseSignal(clientCode: string, itemNo: string, dataType: 'wine' | 'glass' = 'wine'): Promise<RecentPurchaseSignal> {
   try {
-    // 데이터 타입에 따라 다른 테이블 우선순위
-    const candidates = dataType === 'glass'
-      ? [
-          "Glass_Client", "glass_client", "glass_client_rows", "glass_client_history",
-          "Client", "client", "client_rows", "client_history"
-        ]
-      : [
-          "Client", "client", "client_rows", "client_history", "client_shipments",
-          "client_sales", "client_item_history", "client_item_rows", "sales_client", "sales"
-        ];
+    const table = dataType === 'glass' ? 'glass_client_item_stats' : 'client_item_stats';
+    const { data } = await supabase
+      .from(table)
+      .select('updated_at')
+      .eq('client_code', clientCode)
+      .eq('item_no', itemNo)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    for (const table of candidates) {
-      try {
-        const cols = db.prepare(`PRAGMA table_info(${table})`).all() as any[];
-        const names = cols.map((c) => String(c.name));
+    if (data?.updated_at) {
+      const lastDate = new Date(data.updated_at);
+      const daysAgo = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
 
-        const clientCodeCol = names.find((n) => 
-          ["client_code", "clientCode", "거래처코드", "F"].includes(n)
-        );
-        const itemNoCol = names.find((n) => 
-          ["item_no", "itemNo", "품목번호", "품목코드", "sku", "code", "M"].includes(n)
-        );
-        const shippedAtCol = names.find((n) => 
-          ["shipped_at", "ship_date", "out_date", "출고일", "출고일자", "date", "G"].includes(n)
-        );
+      let score = 0;
+      if (daysAgo <= 7) score = RECENT_PURCHASE_BONUS.WITHIN_7_DAYS;
+      else if (daysAgo <= 30) score = RECENT_PURCHASE_BONUS.WITHIN_30_DAYS;
+      else if (daysAgo <= 90) score = RECENT_PURCHASE_BONUS.WITHIN_90_DAYS;
+      else score = RECENT_PURCHASE_BONUS.OLDER;
 
-        if (!clientCodeCol || !itemNoCol || !shippedAtCol) continue;
-
-        const sql = `
-          SELECT MAX(${shippedAtCol}) AS last_shipped_at
-          FROM ${table}
-          WHERE ${clientCodeCol} = ? AND ${itemNoCol} = ?
-        `;
-        const row = db.prepare(sql).get(clientCode, itemNo) as { last_shipped_at: any } | undefined;
-
-        if (row?.last_shipped_at) {
-          const lastDate = new Date(String(row.last_shipped_at));
-          const daysAgo = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-
-          let score = 0;
-          if (daysAgo <= 7) score = RECENT_PURCHASE_BONUS.WITHIN_7_DAYS;
-          else if (daysAgo <= 30) score = RECENT_PURCHASE_BONUS.WITHIN_30_DAYS;
-          else if (daysAgo <= 90) score = RECENT_PURCHASE_BONUS.WITHIN_90_DAYS;
-          else score = RECENT_PURCHASE_BONUS.OLDER;
-
-          return { score, lastPurchaseDaysAgo: daysAgo };
-        }
-      } catch {
-        continue;
-      }
+      return { score, lastPurchaseDaysAgo: daysAgo };
     }
 
     return { score: 0, lastPurchaseDaysAgo: null };
@@ -265,56 +240,24 @@ interface FrequencySignal {
   purchaseCount: number;
 }
 
-export function getPurchaseFrequencySignal(clientCode: string, itemNo: string, dataType: 'wine' | 'glass' = 'wine'): FrequencySignal {
+export async function getPurchaseFrequencySignal(clientCode: string, itemNo: string, dataType: 'wine' | 'glass' = 'wine'): Promise<FrequencySignal> {
   try {
-    const candidates = dataType === 'glass'
-      ? [
-          "Glass_Client", "glass_client", "glass_client_rows", "glass_client_history",
-          "Client", "client", "client_rows", "client_history"
-        ]
-      : [
-          "Client", "client", "client_rows", "client_history", "client_shipments",
-          "client_sales", "client_item_history", "client_item_rows", "sales_client", "sales"
-        ];
+    const table = dataType === 'glass' ? 'glass_client_item_stats' : 'client_item_stats';
+    const { count } = await supabase
+      .from(table)
+      .select('*', { count: 'exact', head: true })
+      .eq('client_code', clientCode)
+      .eq('item_no', itemNo);
 
-    for (const table of candidates) {
-      try {
-        const cols = db.prepare(`PRAGMA table_info(${table})`).all() as any[];
-        const names = cols.map((c) => String(c.name));
+    const purchaseCount = count || 0;
+    let score = 0;
 
-        const clientCodeCol = names.find((n) => 
-          ["client_code", "clientCode", "거래처코드", "F"].includes(n)
-        );
-        const itemNoCol = names.find((n) => 
-          ["item_no", "itemNo", "품목번호", "품목코드", "sku", "code", "M"].includes(n)
-        );
+    if (purchaseCount >= 10) score = FREQUENCY_BONUS.VERY_HIGH;
+    else if (purchaseCount >= 5) score = FREQUENCY_BONUS.HIGH;
+    else if (purchaseCount >= 2) score = FREQUENCY_BONUS.MEDIUM;
+    else if (purchaseCount >= 1) score = FREQUENCY_BONUS.LOW;
 
-        if (!clientCodeCol || !itemNoCol) continue;
-
-        const sql = `
-          SELECT COUNT(*) AS purchase_count
-          FROM ${table}
-          WHERE ${clientCodeCol} = ? AND ${itemNoCol} = ?
-        `;
-        const row = db.prepare(sql).get(clientCode, itemNo) as { purchase_count: number } | undefined;
-
-        if (row) {
-          const count = row.purchase_count || 0;
-          let score = 0;
-          
-          if (count >= 10) score = FREQUENCY_BONUS.VERY_HIGH;
-          else if (count >= 5) score = FREQUENCY_BONUS.HIGH;
-          else if (count >= 2) score = FREQUENCY_BONUS.MEDIUM;
-          else if (count >= 1) score = FREQUENCY_BONUS.LOW;
-
-          return { score, purchaseCount: count };
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    return { score: 0, purchaseCount: 0 };
+    return { score, purchaseCount };
   } catch {
     return { score: 0, purchaseCount: 0 };
   }
@@ -328,41 +271,40 @@ interface TokenMatchSignal {
   learnedCount: number;
 }
 
-function getTokenMatchSignal(rawInput: string, itemNo: string): TokenMatchSignal {
+async function getTokenMatchSignal(rawInput: string, itemNo: string): Promise<TokenMatchSignal> {
   try {
     // token_mapping에서 해당 품목 검색
-    const tokens = db.prepare(`
-      SELECT token, learned_count
-      FROM token_mapping
-      WHERE mapped_text = ? COLLATE NOCASE
-    `).all(itemNo) as Array<{ token: string; learned_count: number }>;
-    
-    if (tokens.length === 0) {
+    const { data: tokens } = await supabase
+      .from('token_mapping')
+      .select('token, learned_count')
+      .ilike('mapped_text', itemNo);
+
+    if (!tokens || tokens.length === 0) {
       return { score: 0, matchedTokens: [], learnedCount: 0 };
     }
-    
+
     // 입력 문자열을 소문자로 변환
     const lowerInput = rawInput.toLowerCase();
-    
+
     // 매칭된 토큰 찾기
     const matchedTokens: string[] = [];
     let totalLearnedCount = 0;
-    
+
     for (const t of tokens) {
       if (lowerInput.includes(t.token.toLowerCase())) {
         matchedTokens.push(t.token);
         totalLearnedCount += t.learned_count;
       }
     }
-    
+
     if (matchedTokens.length === 0) {
       return { score: 0, matchedTokens: [], learnedCount: 0 };
     }
-    
+
     // 점수 계산
     const avgLearnedCount = totalLearnedCount / matchedTokens.length;
     let score = TOKEN_MATCH_BONUS.BASE;
-    
+
     if (avgLearnedCount >= 10) {
       score += TOKEN_MATCH_BONUS.HIGH_FREQUENCY;
     } else if (avgLearnedCount >= 5) {
@@ -370,7 +312,7 @@ function getTokenMatchSignal(rawInput: string, itemNo: string): TokenMatchSignal
     } else {
       score += TOKEN_MATCH_BONUS.LOW_FREQUENCY;
     }
-    
+
     return { score, matchedTokens, learnedCount: totalLearnedCount };
   } catch (e) {
     console.error('[getTokenMatchSignal] 에러:', e);
@@ -386,28 +328,27 @@ interface AliasMatchSignal {
   useCount: number;
 }
 
-function getAliasMatchSignal(rawInput: string, itemNo: string): AliasMatchSignal {
+async function getAliasMatchSignal(rawInput: string, itemNo: string): Promise<AliasMatchSignal> {
   try {
     // item_alias에서 해당 품목 검색
-    const aliases = db.prepare(`
-      SELECT alias, count
-      FROM item_alias
-      WHERE canonical = ? COLLATE NOCASE
-    `).all(itemNo) as Array<{ alias: string; count: number }>;
-    
-    if (aliases.length === 0) {
+    const { data: aliases } = await supabase
+      .from('item_alias')
+      .select('alias, count')
+      .ilike('canonical', itemNo);
+
+    if (!aliases || aliases.length === 0) {
       return { score: 0, matchedAlias: null, useCount: 0 };
     }
-    
+
     // 입력 문자열을 소문자로 변환
     const lowerInput = rawInput.toLowerCase();
-    
+
     // 매칭된 별칭 찾기 (가장 많이 사용된 것 우선)
     for (const a of aliases.sort((x, y) => y.count - x.count)) {
       if (lowerInput.includes(a.alias.toLowerCase())) {
         // 점수 계산
         let score = ALIAS_MATCH_BONUS.BASE;
-        
+
         if (a.count >= 10) {
           score += ALIAS_MATCH_BONUS.HIGH_USE;
         } else if (a.count >= 5) {
@@ -415,11 +356,11 @@ function getAliasMatchSignal(rawInput: string, itemNo: string): AliasMatchSignal
         } else {
           score += ALIAS_MATCH_BONUS.LOW_USE;
         }
-        
+
         return { score, matchedAlias: a.alias, useCount: a.count };
       }
     }
-    
+
     return { score: 0, matchedAlias: null, useCount: 0 };
   } catch (e) {
     console.error('[getAliasMatchSignal] 에러:', e);
@@ -506,20 +447,22 @@ export interface WeightedScore {
   rawTotal: number; // 정규화 전 점수
 }
 
-export function calculateWeightedScore(
+export async function calculateWeightedScore(
   rawInput: string,
   clientCode: string,
   itemNo: string,
   baseScore: number,
   dataType: 'wine' | 'glass' = 'wine',
   supplyPrice?: number // ✅ 공급가 추가
-): WeightedScore {
-  // 각 신호 계산
-  const userLearning = getUserLearningSignal(rawInput, itemNo, clientCode); // ✅ clientCode 전달
-  const recentPurchase = getRecentPurchaseSignal(clientCode, itemNo, dataType);
-  const purchaseFrequency = getPurchaseFrequencySignal(clientCode, itemNo, dataType);
-  const tokenMatch = getTokenMatchSignal(rawInput, itemNo);
-  const aliasMatch = getAliasMatchSignal(rawInput, itemNo);
+): Promise<WeightedScore> {
+  // 각 신호 계산 (병렬로 실행)
+  const [userLearning, recentPurchase, purchaseFrequency, tokenMatch, aliasMatch] = await Promise.all([
+    getUserLearningSignal(rawInput, itemNo, clientCode), // ✅ clientCode 전달
+    getRecentPurchaseSignal(clientCode, itemNo, dataType),
+    getPurchaseFrequencySignal(clientCode, itemNo, dataType),
+    getTokenMatchSignal(rawInput, itemNo),
+    getAliasMatchSignal(rawInput, itemNo),
+  ]);
   const vintage = dataType === 'wine' ? getVintageSignal(rawInput, itemNo) : { score: 0, itemVintage: null };
 
   // 가중치 적용

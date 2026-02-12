@@ -2,7 +2,8 @@
 // 개별 와인 PPTX/PDF 다운로드
 import { NextRequest, NextResponse } from "next/server";
 import { generateSingleWinePpt } from "@/app/lib/pptGenerator";
-import { readOutputFile, savePptx, convertToPdf } from "@/app/lib/fileOutput";
+import { generateSingleWinePdf } from "@/app/lib/pdfGenerator";
+import { readOutputFile, savePptx } from "@/app/lib/fileOutput";
 import { logger } from "@/app/lib/logger";
 
 export const runtime = "nodejs";
@@ -16,34 +17,23 @@ export async function GET(
     const url = new URL(request.url);
     const format = (url.searchParams.get("format") || "pptx") as "pptx" | "pdf";
 
-    // 저장된 파일 확인
-    let buffer = readOutputFile(wineId, format);
+    let buffer: Buffer | null = null;
 
-    // PPTX가 없으면 새로 생성
-    if (!buffer && format === "pptx") {
-      const pptBuffer = await generateSingleWinePpt(wineId);
-      const pptxPath = savePptx(wineId, pptBuffer);
-      convertToPdf(pptxPath);
-      buffer = pptBuffer;
-    }
-
-    // PDF가 없으면 PPTX에서 변환 시도
-    if (!buffer && format === "pdf") {
-      let pptxBuffer = readOutputFile(wineId, "pptx");
-      if (!pptxBuffer) {
-        pptxBuffer = await generateSingleWinePpt(wineId);
-        savePptx(wineId, pptxBuffer);
+    if (format === "pptx") {
+      buffer = readOutputFile(wineId, "pptx");
+      if (!buffer) {
+        const pptBuffer = await generateSingleWinePpt(wineId);
+        savePptx(wineId, pptBuffer);
+        buffer = pptBuffer;
       }
-      const pptxPath = savePptx(wineId, pptxBuffer);
-      const pdfPath = convertToPdf(pptxPath);
-      if (pdfPath) {
-        buffer = readOutputFile(wineId, "pdf");
-      }
+    } else {
+      // PDF: Python reportlab으로 직접 생성 (PPTX와 동일한 디자인)
+      buffer = await generateSingleWinePdf(wineId);
     }
 
     if (!buffer) {
       return NextResponse.json(
-        { success: false, error: format === "pdf" ? "PDF 변환 불가 (LibreOffice 필요)" : "파일 생성 실패" },
+        { success: false, error: "파일 생성 실패" },
         { status: 404 }
       );
     }

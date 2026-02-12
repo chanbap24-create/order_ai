@@ -5,8 +5,6 @@ import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 import { detectNewWines, detectPriceChanges } from "@/app/lib/wineDetection";
 
-export const runtime = "nodejs";
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ type: string }> }
@@ -41,7 +39,7 @@ export async function POST(
     const buffer = Buffer.from(arrayBuffer);
 
     logger.info(`Admin upload: type=${type}, file=${file.name}, size=${file.size}`);
-    const result = processUpload(type, buffer);
+    const result = await processUpload(type, buffer);
 
     // Downloads(와인재고현황) 업로드 시 신규 와인 감지 + 가격 변동 감지
     let newWinesDetected = 0;
@@ -49,9 +47,9 @@ export async function POST(
     if (type === "downloads") {
       try {
         logger.info("[Upload] Starting wine detection after downloads upload...");
-        priceChangesDetected = detectPriceChanges();
+        priceChangesDetected = await detectPriceChanges();
         logger.info(`[Upload] Price changes detected: ${priceChangesDetected}`);
-        const detection = detectNewWines();
+        const detection = await detectNewWines();
         newWinesDetected = detection.newCount;
         logger.info(`[Upload] New wines detected: ${newWinesDetected}, updated: ${detection.updatedCount}`);
       } catch (e) {

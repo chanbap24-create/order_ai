@@ -2,13 +2,13 @@
  * ========================================
  * 자동 학습 시스템 (Auto Learning)
  * ========================================
- * 
+ *
  * 사용자가 후보를 선택하면 자동으로:
  * 1. 토큰 매핑 학습 (ch → 찰스하이직)
  * 2. ML 학습 데이터 수집 (PyTorch 준비)
  */
 
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 
 /* ==================== 유틸리티 ==================== */
 
@@ -65,21 +65,21 @@ function extractKeywords(itemName: string): {
 } {
   // "3A24401 찰스하이직 샤르도네 2022" 형태
   let s = itemName.replace(/^[\dA-Z]+\s+/, ''); // 품목번호 제거
-  
+
   // 빈티지 추출 (4자리 연도)
   const vintageMatch = s.match(/\b(19|20)\d{2}\b/);
   const vintage = vintageMatch ? vintageMatch[0] : null;
   if (vintage) {
     s = s.replace(vintage, '').trim();
   }
-  
+
   // 토큰 분해
   const tokens = s.split(/\s+/).filter(Boolean);
-  
+
   // 일반적으로 첫 번째 토큰은 생산자, 두 번째는 품종
   const producer = tokens[0] || null;
   const varietal = tokens[1] || null;
-  
+
   return { producer, varietal, vintage, raw: s };
 }
 
@@ -90,13 +90,13 @@ function extractKeywords(itemName: string): {
  */
 function isProducerAbbreviation(token: string, producer: string | null): boolean {
   if (!producer || !token) return false;
-  
+
   const t = token.toLowerCase().replace(/\s+/g, '');
   const p = producer.toLowerCase().replace(/\s+/g, '');
-  
+
   // 너무 짧으면 거짓 양성
   if (t.length < 2) return false;
-  
+
   // 1. 영문 이니셜? (ch → Charles Heidsieck)
   if (/^[a-z]+$/.test(t)) {
     const words = p.split(/\s+/).filter(Boolean);
@@ -104,18 +104,18 @@ function isProducerAbbreviation(token: string, producer: string | null): boolean
       const initials = words.map(w => w[0]).join('');
       if (t === initials) return true;
     }
-    
+
     // 단일 단어의 앞 글자들?
     if (p.startsWith(t)) return true;
   }
-  
+
   // 2. 한글 초성? (ㅊㅎㅈ → 찰스하이직)
   const consonants = extractConsonants(p);
   if (consonants && t === consonants.toLowerCase()) return true;
-  
+
   // 3. 부분 매칭? (찰스 → 찰스하이직)
   if (p.includes(t) && t.length >= 2) return true;
-  
+
   return false;
 }
 
@@ -124,13 +124,13 @@ function isProducerAbbreviation(token: string, producer: string | null): boolean
  */
 function isVarietalAbbreviation(token: string, varietal: string | null): boolean {
   if (!varietal || !token) return false;
-  
+
   const t = token.toLowerCase().replace(/\s+/g, '');
   const v = varietal.toLowerCase().replace(/\s+/g, '');
-  
+
   // 너무 짧으면 거짓 양성
   if (t.length < 2) return false;
-  
+
   // 알려진 약어 매핑
   const knownAbbreviations: Record<string, string[]> = {
     '샤르도네': ['샤도', '샤도네', 'chard', 'chardonnay'],
@@ -140,7 +140,7 @@ function isVarietalAbbreviation(token: string, varietal: string | null): boolean
     '말벡': ['말벡', 'malbec'],
     '시라': ['시라', 'syrah', 'shiraz']
   };
-  
+
   // 알려진 약어 체크
   for (const [full, abbrs] of Object.entries(knownAbbreviations)) {
     if (v.includes(full.toLowerCase())) {
@@ -149,10 +149,10 @@ function isVarietalAbbreviation(token: string, varietal: string | null): boolean
       }
     }
   }
-  
+
   // 부분 매칭
   if (v.includes(t) && t.length >= 3) return true;
-  
+
   return false;
 }
 
@@ -161,36 +161,47 @@ function isVarietalAbbreviation(token: string, varietal: string | null): boolean
 /**
  * 토큰 매핑 저장/업데이트
  */
-export function upsertTokenMapping(
+export async function upsertTokenMapping(
   token: string,
   mappedText: string,
   tokenType: 'producer' | 'varietal' | 'region' | 'vintage'
-): { ok: boolean; token: string; mapped: string; count: number } {
+): Promise<{ ok: boolean; token: string; mapped: string; count: number }> {
   if (!token || !mappedText) {
     return { ok: false, token: '', mapped: '', count: 0 };
   }
-  
+
   try {
-    const result = db.prepare(`
-      INSERT INTO token_mapping (token, mapped_text, token_type, learned_count, confidence)
-      VALUES (?, ?, ?, 1, 0.5)
-      ON CONFLICT(token) DO UPDATE SET
-        mapped_text = excluded.mapped_text,
-        token_type = excluded.token_type,
-        learned_count = learned_count + 1,
-        confidence = MIN(1.0, confidence + 0.1),
-        last_used_at = CURRENT_TIMESTAMP
-    `).run(token, mappedText, tokenType);
-    
-    const row = db.prepare(`
-      SELECT learned_count FROM token_mapping WHERE token = ?
-    `).get(token) as any;
-    
-    const count = row?.learned_count || 1;
-    
-    console.log(`[AutoLearn] 토큰 매핑: "${token}" → "${mappedText}" (${tokenType}, count: ${count})`);
-    
-    return { ok: true, token, mapped: mappedText, count };
+    // First try to get existing
+    const { data: existing } = await supabase
+      .from('token_mapping')
+      .select('learned_count, confidence')
+      .eq('token', token)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from('token_mapping').update({
+        mapped_text: mappedText,
+        token_type: tokenType,
+        learned_count: existing.learned_count + 1,
+        confidence: Math.min(1.0, existing.confidence + 0.1),
+        last_used_at: new Date().toISOString(),
+      }).eq('token', token);
+
+      const count = existing.learned_count + 1;
+      console.log(`[AutoLearn] 토큰 매핑: "${token}" → "${mappedText}" (${tokenType}, count: ${count})`);
+      return { ok: true, token, mapped: mappedText, count };
+    } else {
+      await supabase.from('token_mapping').insert({
+        token,
+        mapped_text: mappedText,
+        token_type: tokenType,
+        learned_count: 1,
+        confidence: 0.5,
+      });
+
+      console.log(`[AutoLearn] 토큰 매핑: "${token}" → "${mappedText}" (${tokenType}, count: 1)`);
+      return { ok: true, token, mapped: mappedText, count: 1 };
+    }
   } catch (err) {
     console.error('[AutoLearn] 토큰 매핑 저장 실패:', err);
     return { ok: false, token: '', mapped: '', count: 0 };
@@ -217,26 +228,22 @@ interface MLTrainingInput {
 /**
  * ML 학습 데이터 저장 (PyTorch 준비)
  */
-export function saveMLTrainingData(input: MLTrainingInput): { ok: boolean; id?: number } {
+export async function saveMLTrainingData(input: MLTrainingInput): Promise<{ ok: boolean; id?: number }> {
   try {
-    const result = db.prepare(`
-      INSERT INTO ml_training_data (
-        query, query_normalized, selected_item_no, selected_item_name,
-        rejected_items, client_code, features, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(
-      input.query,
-      input.query_normalized,
-      input.selected_item_no,
-      input.selected_item_name,
-      JSON.stringify(input.rejected_items),
-      input.client_code,
-      JSON.stringify(input.features)
-    );
-    
+    const { data } = await supabase.from('ml_training_data').insert({
+      query: input.query,
+      query_normalized: input.query_normalized,
+      selected_item_no: input.selected_item_no,
+      selected_item_name: input.selected_item_name,
+      rejected_items: JSON.stringify(input.rejected_items),
+      client_code: input.client_code,
+      features: JSON.stringify(input.features),
+      created_at: new Date().toISOString(),
+    }).select('id').single();
+
     console.log(`[ML Data] 학습 데이터 저장: "${input.query_normalized}" → ${input.selected_item_no}`);
-    
-    return { ok: true, id: Number(result.lastInsertRowid) };
+
+    return { ok: true, id: data?.id };
   } catch (err) {
     console.error('[ML Data] 저장 실패:', err);
     return { ok: false };
@@ -269,30 +276,30 @@ export interface LearnFromSelectionInput {
 /**
  * 사용자 선택으로부터 자동 학습
  */
-export function learnFromSelection(input: LearnFromSelectionInput): {
+export async function learnFromSelection(input: LearnFromSelectionInput): Promise<{
   ok: boolean;
   mappings: Array<{ token: string; mapped: string; type: string; count: number }>;
   mlDataId?: number;
-} {
+}> {
   const { query, selectedItem, rejectedItems = [], clientCode, features = {} } = input;
-  
+
   console.log(`\n[AutoLearn] 학습 시작: "${query}" → ${selectedItem.item_no}`);
-  
+
   // 1. 입력 토큰 추출
   const queryTokens = extractTokens(query);
   console.log(`[AutoLearn] 입력 토큰: ${JSON.stringify(queryTokens)}`);
-  
+
   // 2. 선택된 품목에서 핵심 키워드 추출
   const keywords = extractKeywords(selectedItem.item_name);
   console.log(`[AutoLearn] 키워드: producer="${keywords.producer}", varietal="${keywords.varietal}", vintage="${keywords.vintage}"`);
-  
+
   // 3. 토큰 → 키워드 매핑 자동 생성
   const mappings: Array<{ token: string; mapped: string; type: string; count: number }> = [];
-  
+
   for (const token of queryTokens) {
     // 생산자 약어 감지
     if (keywords.producer && isProducerAbbreviation(token, keywords.producer)) {
-      const result = upsertTokenMapping(token.toLowerCase(), keywords.producer, 'producer');
+      const result = await upsertTokenMapping(token.toLowerCase(), keywords.producer, 'producer');
       if (result.ok) {
         mappings.push({
           token: result.token,
@@ -302,10 +309,10 @@ export function learnFromSelection(input: LearnFromSelectionInput): {
         });
       }
     }
-    
+
     // 품종 약어 감지
     if (keywords.varietal && isVarietalAbbreviation(token, keywords.varietal)) {
-      const result = upsertTokenMapping(token.toLowerCase(), keywords.varietal, 'varietal');
+      const result = await upsertTokenMapping(token.toLowerCase(), keywords.varietal, 'varietal');
       if (result.ok) {
         mappings.push({
           token: result.token,
@@ -316,14 +323,14 @@ export function learnFromSelection(input: LearnFromSelectionInput): {
       }
     }
   }
-  
+
   console.log(`[AutoLearn] 매핑 생성: ${mappings.length}개`);
   mappings.forEach(m => {
     console.log(`  - "${m.token}" → "${m.mapped}" (${m.type}, ${m.count}회)`);
   });
-  
+
   // 4. ML 학습 데이터 저장
-  const mlResult = saveMLTrainingData({
+  const mlResult = await saveMLTrainingData({
     query,
     query_normalized: stripQtyAndUnit(query),
     selected_item_no: selectedItem.item_no,
@@ -332,7 +339,7 @@ export function learnFromSelection(input: LearnFromSelectionInput): {
     client_code: clientCode,
     features
   });
-  
+
   return {
     ok: true,
     mappings,

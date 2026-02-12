@@ -4,12 +4,10 @@ import { getWineStats } from "@/app/lib/wineDb";
 import { getRecentChanges } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function GET() {
   try {
-    const stats = getWineStats();
-    const recentChanges = getRecentChanges(10);
+    const stats = await getWineStats();
+    const recentChanges = await getRecentChanges(10);
 
     return NextResponse.json({
       success: true,

@@ -1,29 +1,27 @@
-// 가격리스트 DB 헬퍼
-// 가격 변동 조회 및 관련 유틸
+// 가격리스트 DB 헬퍼 (Supabase)
 
-import { db } from "@/app/lib/db";
-import { ensureWineTables } from "@/app/lib/wineDb";
+import { supabase } from "@/app/lib/db";
 import type { PriceHistoryEntry } from "@/app/types/wine";
 
 /** 최근 가격 변동 내역 조회 */
-export function getRecentPriceChanges(days: number = 30): PriceHistoryEntry[] {
-  ensureWineTables();
-  return db.prepare(`
-    SELECT * FROM price_history
-    WHERE detected_at > datetime('now', '-' || ? || ' days')
-    ORDER BY detected_at DESC
-  `).all(days) as PriceHistoryEntry[];
+export async function getRecentPriceChanges(days: number = 30): Promise<PriceHistoryEntry[]> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from('price_history')
+    .select('*')
+    .gte('detected_at', since)
+    .order('detected_at', { ascending: false });
+  return (data || []) as PriceHistoryEntry[];
 }
 
 /** 특정 와인의 가격 이력 조회 */
-export function getPriceHistory(itemCode: string): PriceHistoryEntry[] {
-  ensureWineTables();
-  return db.prepare(`
-    SELECT * FROM price_history
-    WHERE item_code = ?
-    ORDER BY detected_at DESC
-  `).all(itemCode) as PriceHistoryEntry[];
+export async function getPriceHistory(itemCode: string): Promise<PriceHistoryEntry[]> {
+  const { data } = await supabase
+    .from('price_history')
+    .select('*')
+    .eq('item_code', itemCode)
+    .order('detected_at', { ascending: false });
+  return (data || []) as PriceHistoryEntry[];
 }
 
-// detectPriceChanges는 wineDetection.ts에 구현됨
 export { detectPriceChanges } from "@/app/lib/wineDetection";

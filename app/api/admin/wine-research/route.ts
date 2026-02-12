@@ -5,8 +5,6 @@ import { upsertWine, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
   try {
     const { wine_id, product_name_eng, item_name_kr, vintage } = await request.json();
@@ -26,7 +24,7 @@ export async function POST(request: NextRequest) {
     );
 
     // wines 테이블 업데이트
-    upsertWine({
+    await upsertWine({
       item_code: wine_id,
       item_name_en: result.item_name_en,
       country_en: result.country_en,
@@ -39,7 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
     // tasting_notes 테이블 업데이트
-    upsertTastingNote(wine_id, {
+    await upsertTastingNote(wine_id, {
       winemaking: result.winemaking,
       winery_description: result.winery_description,
       vintage_note: result.vintage_note,
@@ -56,7 +54,7 @@ export async function POST(request: NextRequest) {
       approved: 0,
     });
 
-    logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en });
+    await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en });
 
     return NextResponse.json({ success: true, data: result });
   } catch (e) {

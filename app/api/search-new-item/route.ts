@@ -14,8 +14,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { searchMasterSheet } from '@/app/lib/masterMatcher';
 import { jsonResponse } from '@/app/lib/api-response';
 
-export const runtime = 'nodejs';
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

@@ -1,23 +1,32 @@
 import { NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
-
-export const runtime = "nodejs";
+import { supabase } from "@/app/lib/db";
 
 export async function GET() {
   try {
-    // 테이블 존재 확인
-    const tables = db.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    ).all() as { name: string }[];
+    // 테이블 목록 (Supabase에서는 hardcoded or information_schema)
+    const knownTables = [
+      'inventory_cdv', 'inventory_dl', 'quote_items',
+      'item_alias', 'client_alias', 'token_mapping', 'search_learning',
+      'shipments', 'client_item_stats', 'wines', 'tasting_notes',
+      'glass_clients', 'glass_client_alias', 'glass_inventory',
+      'glass_client_item_stats', 'wine_profiles',
+    ];
 
     // wines 테이블 정보
     let wineCount = 0;
-    let wineColumns: string[] = [];
-    let sampleWine = null;
+    const wineColumns = ['item_code', 'item_name_kr', 'status', 'ai_researched'];
+    let sampleWine: any = null;
     try {
-      wineCount = (db.prepare("SELECT COUNT(*) as cnt FROM wines").get() as { cnt: number }).cnt;
-      wineColumns = (db.prepare("PRAGMA table_info(wines)").all() as { name: string }[]).map(c => c.name);
-      sampleWine = db.prepare("SELECT item_code, item_name_kr, status, ai_researched FROM wines LIMIT 1").get();
+      const { count } = await supabase
+        .from('wines')
+        .select('*', { count: 'exact', head: true });
+      wineCount = count || 0;
+
+      const { data } = await supabase
+        .from('wines')
+        .select('item_code, item_name_kr, status, ai_researched')
+        .limit(1);
+      sampleWine = data?.[0] || null;
     } catch (e) {
       sampleWine = { error: e instanceof Error ? e.message : String(e) };
     }
@@ -25,13 +34,16 @@ export async function GET() {
     // tasting_notes 테이블
     let noteCount = 0;
     try {
-      noteCount = (db.prepare("SELECT COUNT(*) as cnt FROM tasting_notes").get() as { cnt: number }).cnt;
+      const { count } = await supabase
+        .from('tasting_notes')
+        .select('*', { count: 'exact', head: true });
+      noteCount = count || 0;
     } catch { /* */ }
 
     return NextResponse.json({
       success: true,
-      dbPath: process.env.VERCEL ? '/tmp/data.sqlite3' : 'local',
-      tables: tables.map(t => t.name),
+      dbPath: 'supabase',
+      tables: knownTables,
       wines: { count: wineCount, columns: wineColumns, sample: sampleWine },
       tastingNotes: { count: noteCount },
       env: {

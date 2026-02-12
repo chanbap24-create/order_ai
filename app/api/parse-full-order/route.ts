@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { parseItemsFromMessage } from "@/app/lib/parseItems";
 import { resolveItemsByClient } from "@/app/lib/resolveItems";
 import { resolveItemsByClientWeighted } from "@/app/lib/resolveItemsWeighted";
@@ -14,8 +14,6 @@ import { logger } from "@/app/lib/logger";
 
 import { isHolidayKST } from "@/app/lib/holidays";
 
-export const runtime = "nodejs";
-
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
   // Excel 파일 존재 확인
@@ -23,7 +21,7 @@ export async function GET() {
   const path = require('path');
   const xlsxPath = path.join(process.cwd(), 'order-ai.xlsx');
   const xlsxExists = fs.existsSync(xlsxPath);
-  
+
   let xlsxInfo = null;
   if (xlsxExists) {
     const stats = fs.statSync(xlsxPath);
@@ -32,7 +30,7 @@ export async function GET() {
       size: stats.size,
       modified: stats.mtime,
     };
-    
+
     // 샘플 데이터 읽기
     try {
       const { loadMasterSheet } = require('@/app/lib/masterSheet');
@@ -44,7 +42,7 @@ export async function GET() {
       xlsxInfo.loadError = e.message;
     }
   }
-  
+
   return jsonResponse({
     success: true,
     message: "parse-full-order API is running. Use POST method to parse orders.",
@@ -89,7 +87,7 @@ function preprocessMessage(text: string) {
     // 영문명이 포함된 경우 쉼표를 유지 (3글자 이상 영어 단어 2개 이상 + 쉼표)
     const hasEnglishWords = (line.match(/[A-Za-z]{3,}/g) || []).length >= 2;
     const hasComma = line.includes(',');
-    
+
     if (hasEnglishWords && hasComma) {
       return line; // 영문명이 있으면 쉼표 유지
     } else {
@@ -111,7 +109,7 @@ function preprocessMessage(text: string) {
   s = s.replace(/([가-힣A-Za-z])(\d+)(?!(er|eme|ième)\b)/gi, "$1 $2");
   // 숫자 + (한글/영문) (단, 프랑스어 서수 제외)
   s = s.replace(/(\d+)(?<!(1|2|3))([가-힣A-Za-z])/g, "$1 $2");
-  
+
   // ✅ 한글-영문 사이 공백 추가 (알테시노bdm → 알테시노 bdm)
   s = s.replace(/([가-힣])([a-z])/gi, "$1 $2");
   s = s.replace(/([a-z])([가-힣])/gi, "$1 $2");
@@ -171,15 +169,15 @@ function extractKoreanTokens(s: string) {
 // 입력에서 "브랜드(핵심)" 토큰 1개를 뽑음: 가장 긴 토큰 우선
 function pickBrandToken(input: string) {
   const stop = new Set(["주식회사", "스시", "점", "지점", "본점"]); // 필요하면 추가
-  
+
   // ✅ 괄호 안의 별칭도 추출 (예: "라뜨리에드 오르조" from "에프엔비버드독 (라뜨리에드 오르조)")
   const aliasMatch = input.match(/\(([^)]+)\)/);
   const mainText = input.replace(/\([^)]+\)/g, "").trim();
   const aliasText = aliasMatch ? aliasMatch[1].trim() : "";
-  
+
   // 메인 텍스트와 괄호 안 텍스트 모두에서 토큰 추출
   const allText = [mainText, aliasText].filter(Boolean).join(" ");
-  
+
   const toks = extractKoreanTokens(allText)
     .map((t) => t.replace(/(지점|점|본점)$/g, ""))
     .filter((t) => t.length >= 2 && !stop.has(t));
@@ -209,27 +207,27 @@ function scoreName(q: any, name: any) {
   // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리!
   const nameAlias = nRaw.match(/\(([^)]+)\)/);
   const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
-  
+
   // 괄호 안 별칭이 있으면 별칭과 메인 이름 모두 비교
   if (nameAlias) {
     const aliasText = nameAlias[1].trim();
     const aliasNorm = norm(aliasText);
     const mainNorm = norm(nameMainText);
-    
+
     // 별칭과 완전 일치
     if (a === aliasNorm) return 1.0;
-    
+
     // 메인 이름과 완전 일치
     if (a === mainNorm) return 1.0;
-    
+
     // 별칭 포함 관계 (우선순위 높음)
     if (aliasNorm.includes(a)) return 0.98;
     if (a.includes(aliasNorm) && aliasNorm.length >= 3) return 0.97;
-    
+
     // 메인 이름 포함 관계
     if (mainNorm.includes(a)) return 0.96;
     if (a.includes(mainNorm) && mainNorm.length >= 3) return 0.95;
-    
+
     // 별칭 유사도 매칭
     const aChars = new Set(a.split(""));
     const aliasChars = new Set(aliasNorm.split(""));
@@ -238,14 +236,14 @@ function scoreName(q: any, name: any) {
       if (aliasChars.has(ch)) commonAlias++;
     }
     const aliasSimilarity = commonAlias / Math.max(a.length, aliasNorm.length);
-    
+
     // 70% 이상 유사하면 괄호 안 상호명으로 간주
     if (aliasSimilarity >= 0.7) {
       const lenDiff = Math.abs(a.length - aliasNorm.length);
       const lenPenalty = lenDiff * 0.02;
       return Math.max(0.85, Math.min(0.94, 0.92 - lenPenalty));
     }
-    
+
     // 메인 이름 유사도 매칭
     const mainChars = new Set(mainNorm.split(""));
     let commonMain = 0;
@@ -253,38 +251,38 @@ function scoreName(q: any, name: any) {
       if (mainChars.has(ch)) commonMain++;
     }
     const mainSimilarity = commonMain / Math.max(a.length, mainNorm.length);
-    
+
     if (mainSimilarity >= 0.7) {
       const lenDiff = Math.abs(a.length - mainNorm.length);
       const lenPenalty = lenDiff * 0.02;
       return Math.max(0.80, Math.min(0.90, 0.88 - lenPenalty));
     }
   }
-  
+
   // 괄호가 없는 경우
   const b = norm(nRaw);
   if (!b) return 0;
-  
+
   // 완전 일치
   if (a === b) return 1.0;
-  
+
   // 포함 관계
   if (b.includes(a)) return 0.90;
   if (a.includes(b) && b.length >= 3) return 0.88;
-  
+
   // 문자 겹침 비율
   const aset = new Set(a.split(""));
   let common = 0;
   for (const ch of aset) if (b.includes(ch)) common++;
   const overlap = common / Math.max(a.length, b.length);
-  
+
   // 유사도 점수
   if (overlap >= 0.7) {
     const lenDiff = Math.abs(a.length - b.length);
     const lenPenalty = lenDiff * 0.02;
     return Math.max(0.60, Math.min(0.85, 0.82 - lenPenalty));
   }
-  
+
   return Math.max(0, Math.min(0.75, overlap * 0.9));
 }
 
@@ -300,7 +298,7 @@ function isSundayKST(d: Date) {
 
 async function getDeliveryDateKST(now = new Date()) {
   // ✅ 정확한 KST 시간 추출
-  const kstString = now.toLocaleString("en-US", { 
+  const kstString = now.toLocaleString("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
@@ -309,14 +307,14 @@ async function getDeliveryDateKST(now = new Date()) {
     minute: "2-digit",
     hour12: false
   });
-  
+
   // "01/07/2025, 16:31" → 파싱
   const [datePart, timePart] = kstString.split(", ");
   const [month, day, year] = datePart.split("/");
   const [hour, minute] = timePart.split(":");
-  
+
   const kst = new Date(`${year}-${month}-${day}T${hour}:${minute}:00+09:00`);
-  
+
   const dayOfWeek = kst.getDay(); // 0=일, 5=금
   const hourNum = parseInt(hour);
   const minuteNum = parseInt(minute);
@@ -348,7 +346,7 @@ async function getDeliveryDateKST(now = new Date()) {
 }
 
 /* -------------------- client resolve (client_alias) -------------------- */
-function resolveClient({
+async function resolveClient({
   clientText,
   message,
   forceResolve,
@@ -361,10 +359,12 @@ function resolveClient({
 
   // ✅ 1) 거래처 코드 직접 입력 (숫자 5자리)
   if (candidate && /^\d{5}$/.test(candidate)) {
-    const directClient = db
-      .prepare(`SELECT client_code, client_name FROM clients WHERE client_code = ?`)
-      .get(candidate) as any;
-    
+    const { data: directClient } = await supabase
+      .from("clients")
+      .select("client_code, client_name")
+      .eq("client_code", candidate)
+      .maybeSingle();
+
     if (directClient) {
       return {
         status: "resolved",
@@ -375,9 +375,11 @@ function resolveClient({
     }
   }
 
-  const rows = db
-    .prepare(`SELECT client_code, alias, weight FROM client_alias`)
-    .all() as Array<{ client_code: any; alias: any; weight?: any }>;
+  const { data: aliasRows } = await supabase
+    .from("client_alias")
+    .select("client_code, alias, weight");
+
+  const rows = (aliasRows || []) as Array<{ client_code: any; alias: any; weight?: any }>;
 
   // ✅ 2) exact(norm) 매칭
   if (candidate) {
@@ -474,7 +476,7 @@ function splitClientAndOrder(body: any) {
   const first = (lines[0] || "").trim();
   const rest = lines.slice(1).join("\n").trim();
 
-  // ✅ 한 줄뿐이면: “거래처”로 가정하지 말고 주문으로 취급
+  // ✅ 한 줄뿐이면: "거래처"로 가정하지 말고 주문으로 취급
   if (lines.length <= 1) {
     return { rawMessage: msg, clientText: "", orderText: msg };
   }
@@ -495,12 +497,12 @@ function splitClientAndOrder(body: any) {
 function extractVintage(itemNo: string): number | null {
   const code = String(itemNo || '');
   if (code.length < 4) return null;
-  
+
   const vintageStr = code.substring(2, 4); // 3,4번째 (index 2,3)
   const vintage = parseInt(vintageStr, 10);
-  
+
   if (isNaN(vintage)) return null;
-  
+
   // 21 → 2021, 18 → 2018
   return vintage < 50 ? 2000 + vintage : 1900 + vintage;
 }
@@ -531,13 +533,13 @@ async function formatStaffMessage(
   const deliveryLabel = options?.customDeliveryDate || delivery.label;
 
   const lines: string[] = [];
-  
+
   // ✅ 거래처 정보 안전하게 처리
   const clientName = String(client?.client_name || "미정").trim();
   const clientCode = client?.client_code ? cleanClientCode(client.client_code) : "미정";
   lines.push(`거래처: ${clientName} (${clientCode})`);
   lines.push(`배송 예정일: ${deliveryLabel}`);
-  
+
   // ✅ 신규 사업자 정보 (연락처, 이메일)
   if ((client as any).phone) {
     lines.push(`연락처: ${(client as any).phone}`);
@@ -545,9 +547,9 @@ async function formatStaffMessage(
   if ((client as any).email) {
     lines.push(`세금계산서: ${(client as any).email}`);
   }
-  
+
   lines.push(""); // 한 칸 띄우기
-  
+
   // ✅ 발주 옵션 (배송일 두 칸 아래에 표기)
   if (options?.requirePaymentConfirm) {
     lines.push("입금확인후 출고");
@@ -555,7 +557,7 @@ async function formatStaffMessage(
   if (options?.requireInvoice) {
     lines.push("거래명세표 부탁드립니다");
   }
-  
+
   lines.push("");
   lines.push("품목:");
 
@@ -566,36 +568,36 @@ async function formatStaffMessage(
       logger.debug('[formatStaffMessage] 무효 품목 스킵', {name: it.name, item_name: it.item_name, raw: it.raw});
       continue;
     }
-    
+
     if (it.resolved) {
       // ✅ resolved인데 item_no가 없으면 스킵 (방어 로직)
       if (!it.item_no) {
         logger.debug('[formatStaffMessage] resolved이지만 item_no 없음, 스킵', {name: it.name, raw: it.raw});
         continue;
       }
-      
+
       // ✅ 한글 이름만 추출 (영어 및 약어 제거)
       let koreanName = String(it.item_name || '');
-      
+
       // 1. " / " 앞부분만 (한글 부분)
       if (koreanName.includes(' / ')) {
         koreanName = koreanName.split(' / ')[0].trim();
       }
-      
+
       // 2. 괄호 안 영어 제거 (예: "샤블리 (Chablis)" → "샤블리")
       koreanName = koreanName.replace(/\s*\([^)]*\)\s*/g, '').trim();
-      
+
       // 3. 앞의 영문 약어 제거 (예: "AT 알테시노" → "알테시노", "CH 샤또" → "샤또")
       koreanName = koreanName.replace(/^[A-Z]{1,3}\s+/, '');
-      
+
       // 가격 정보가 있으면 포함
-      const priceInfo = it.unit_price_hint 
+      const priceInfo = it.unit_price_hint
         ? ` / ${it.unit_price_hint.toLocaleString()}원`
         : '';
       lines.push(`- ${it.item_no} / ${koreanName} / ${it.qty}병${priceInfo}`);
     } else {
       // 미확정 품목도 가격 정보가 있으면 포함
-      const priceInfo = it.unit_price_hint 
+      const priceInfo = it.unit_price_hint
         ? ` / ${it.unit_price_hint.toLocaleString()}원`
         : '';
       const displayName = it.name !== undefined && it.name !== null ? String(it.name) : "이름없음";
@@ -610,19 +612,19 @@ async function formatStaffMessage(
 
 export async function POST(req: Request): Promise<NextResponse<ParseFullOrderResponse>> {
   // ✅ 엑셀 자동 동기화 (파일 변경 시에만 실행)
-  const sync = syncFromXlsxIfNeeded();
+  const sync = await syncFromXlsxIfNeeded();
   logger.debug("[XLSX SYNC]", { result: sync });
 
   try {
     const body = await req.json().catch(() => ({}));
     const forceResolve = Boolean(body?.force_resolve);
     const pageType = body?.type || "wine"; // 기본값 wine
-    
+
     // ✅ 신규 사업자 처리
     const newBusiness = body?.newBusiness;
     if (newBusiness && newBusiness.name && newBusiness.phone) {
       logger.debug("[NEW BUSINESS]", { newBusiness });
-      
+
       // 품목만 파싱
       const pre0 = preprocessMessage(body?.message ?? "");
       const trMsg = await translateOrderToKoreanIfNeeded(pre0);
@@ -637,7 +639,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           }
           return true;
         });
-      
+
       // 거래처 정보는 신규 사업자로 설정 (client_code는 임시로 "NEW")
       const client = {
         status: "resolved" as const,
@@ -646,18 +648,18 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         phone: newBusiness.phone,
         email: newBusiness.email, // 이메일 추가
       };
-      
+
       // 신규 사업자는 이력 없음 → master_items에서만 검색
       logger.debug("[NEW BUSINESS] Calling resolveItemsByClientWeighted", { itemCount: parsedItems.length });
-      
-      const resolvedItems = resolveItemsByClientWeighted("NEW", parsedItems, {
+
+      const resolvedItems = await resolveItemsByClientWeighted("NEW", parsedItems, {
         minScore: 0.55,
         minGap: 0.05,
         topN: 10, // ✅ 10개로 증가 (루이 미셸 등 다양한 브랜드 포함)
       });
-      
+
       logger.debug("[NEW BUSINESS] resolvedItems", { count: resolvedItems.length });
-      
+
       // suggestions 추가 (안전하게 score 처리)
       const itemsWithSuggestions = resolvedItems.map((it: any) => {
         // ✅ 확정/미확정 모두 candidates를 suggestions로 변환
@@ -667,13 +669,13 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           score: c.score ?? 0,
           supply_price: c.supply_price, // ✅ 공급가 포함
         }));
-        
+
         return {
           ...it,
           suggestions,
         };
       });
-      
+
       logger.debug("[NEW BUSINESS] itemsWithSuggestions", { count: itemsWithSuggestions.length });
 
       // ✅ 같은 item_no를 가진 아이템 통합 (수량 합산)
@@ -698,9 +700,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       })();
 
       logger.debug("[NEW BUSINESS] mergedItems", { count: mergedItems.length });
-      
+
       const allResolved = mergedItems.every((it: any) => it.resolved);
-      
+
       // 직원 메시지 생성
       logger.debug("[NEW BUSINESS] Calling formatStaffMessage");
       const staffMessage = await formatStaffMessage(
@@ -712,9 +714,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           requireInvoice: body?.requireInvoice,
         }
       );
-      
+
       logger.debug("[NEW BUSINESS] staffMessage generated");
-      
+
       return jsonResponse({
         success: true,
         status: allResolved ? "resolved" : "needs_review_items",
@@ -751,7 +753,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         method: "frontend_resolved",
       };
     } else {
-      client = resolveClient({
+      client = await resolveClient({
         clientText,
         message: rawMessage,
         forceResolve,
@@ -815,14 +817,14 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         if (!inputName) continue;
 
         try {
-          const brandResults = hierarchicalSearch(inputName, 0.5, 0.5, 2);
-          
+          const brandResults = await hierarchicalSearch(inputName, 0.5, 0.5, 2);
+
           if (brandResults.length > 0 && brandResults[0].wines.length > 0) {
             const topBrand = brandResults[0];
             const topWine = topBrand.wines[0];
-            
+
             logger.debug(`[BrandMatch] 매칭`, { input: inputName, brand: topBrand.brand.supplier_kr, wine: topWine.wine_kr, score: topWine.score });
-            
+
             // 브랜드 매칭된 아이템 저장 (원본 순서 인덱스 포함)
             brandMatchedItems.push({
               _originalIndex: i,
@@ -849,7 +851,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 supply_price: w.price,
               })),
             });
-            
+
             continue; // 브랜드 매칭 성공하면 기존 로직 스킵
           }
         } catch (err) {
@@ -863,7 +865,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // 브랜드 매칭되지 않은 품목만 기존 방식으로 처리
     const itemsToResolve = brandMatchedItems.length > 0
       ? parsedItems.map((item: any, idx: number) => ({ ...item, _originalIndex: idx }))
-          .filter((item: any) => 
+          .filter((item: any) =>
             !brandMatchedItems.some((bm: any) => bm.name === item.name)
           )
       : parsedItems.map((item: any, idx: number) => ({ ...item, _originalIndex: idx }));
@@ -871,7 +873,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     logger.debug(`[품목 resolve]`, { total: parsedItems.length, brandMatched: brandMatchedItems.length, fallback: itemsToResolve.length });
 
     const resolvedItems = itemsToResolve.length > 0
-      ? resolveItemsByClientWeighted(clientCode, itemsToResolve, {
+      ? await resolveItemsByClientWeighted(clientCode, itemsToResolve, {
           minScore: 0.55,
           minGap: 0.05,
           topN: 5,
@@ -885,13 +887,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
     //     - 🆕 신규 품목: 기존 매칭이 약하면 English 시트에서 검색
-    const itemsWithSuggestions = allResolvedItems.map((x: any) => {
+
+    // ✅ 거래처 이력 먼저 조회 (is_new_item 판단용) - 한 번만 조회
+    const { data: clientHistoryRows } = await supabase
+      .from("client_item_stats")
+      .select("item_no")
+      .eq("client_code", clientCode);
+
+    const clientItemSet = new Set((clientHistoryRows || []).map(r => String(r.item_no)));
+    logger.debug(`[거래처이력]`, { clientCode, itemCount: clientItemSet.size });
+
+    const itemsWithSuggestions = await Promise.all(allResolvedItems.map(async (x: any) => {
       // ✅ resolved인데 item_no가 없으면 false로 변경 (최우선 검사)
       if (x?.resolved && !x?.item_no) {
         logger.warn(`[CRITICAL] resolved=true인데 item_no 없음 → resolved=false로 강제 변경`, { name: x.name });
         x = { ...x, resolved: false };
       }
-      
+
       // ✅ 이미 resolved된 경우
       if (x?.resolved) {
         // ✅ resolved 품목도 suggestions 포함 (공급가 표시용)
@@ -906,21 +918,13 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           suggestions,
         };
       }
-      
+
       // ✅ 중앙 설정 가져오기
       const { ITEM_MATCH_CONFIG, decideSuggestionComposition } = require('@/app/lib/itemMatchConfig');
       const config = ITEM_MATCH_CONFIG;
-      
+
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
       const candidates = Array.isArray(x?.candidates) ? x.candidates : [];
-      
-      // ✅ 거래처 이력 먼저 조회 (is_new_item 판단용)
-      const clientHistory = db
-        .prepare(`SELECT item_no FROM client_item_stats WHERE client_code = ?`)
-        .all(clientCode) as Array<{ item_no: string }>;
-      const clientItemSet = new Set(clientHistory.map(r => String(r.item_no)));
-      
-      logger.debug(`[거래처이력]`, { clientCode, itemCount: clientHistory.length });
 
       // ✅ 빈티지 중복 제거 (기존 입고 품목끼리만 적용)
       const grouped = new Map<string, any[]>();
@@ -931,7 +935,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         }
         grouped.get(baseName)!.push(c);
       }
-      
+
       const dedupedCandidates: any[] = [];
       for (const [baseName, group] of grouped.entries()) {
         if (group.length === 1) {
@@ -940,23 +944,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           // 기존 입고 품목과 신규 품목 분리
           const existingItems = group.filter(c => clientItemSet.has(String(c.item_no)));
           const newItems = group.filter(c => !clientItemSet.has(String(c.item_no)));
-          
+
           // 기존 입고 품목 중에서 최신 빈티지 1개만 선택
           if (existingItems.length > 0) {
             const withVintage = existingItems.map(c => ({
               ...c,
               _vintage: extractVintage(c.item_no)
             }));
-            
+
             const sorted = withVintage.sort((a, b) => {
               if (a._vintage && b._vintage) return b._vintage - a._vintage;
               return (b.score ?? 0) - (a.score ?? 0);
             });
-            
+
             logger.debug(`[빈티지] 기존 입고 선택`, { baseName, itemNo: sorted[0].item_no, total: existingItems.length });
             dedupedCandidates.push(sorted[0]);
           }
-          
+
           // 신규 품목은 모두 추가 (빈티지 상관없이)
           newItems.forEach(c => {
             logger.debug(`[빈티지] 신규 추가`, { baseName, itemNo: c.item_no });
@@ -964,19 +968,17 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           });
         }
       }
-      
+
       const sortedCandidates = dedupedCandidates
         .slice()
         .sort((a: any, b: any) => {
           // 1순위: 점수 내림차순
           const scoreDiff = (b?.score ?? 0) - (a?.score ?? 0);
           if (Math.abs(scoreDiff) > 0.0001) return scoreDiff;
-          
+
           // 2순위: 동점일 때 item_no 오름차순 (2420005 < 2421005)
           return String(a?.item_no ?? '').localeCompare(String(b?.item_no ?? ''));
         });
-
-      // 거래처 이력은 이미 위에서 조회했으므로 clientItemSet 재사용
 
       // ⭐ 1단계: 기존 입고 품목에 점수 부스트 적용 (검색 결과에 포함되도록)
       const boostedCandidates = sortedCandidates.map((c: any) => {
@@ -991,7 +993,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           is_new_item: c.is_new_item ?? !isInClientHistory,
         };
       });
-      
+
       // 점수 기준으로 재정렬
       boostedCandidates.sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0));
 
@@ -1005,38 +1007,38 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       if (pageType === "wine") {
         const bestScore = boostedCandidates.length > 0 ? boostedCandidates[0]?.original_score ?? 0 : 0; // 원래 점수 사용
         const inputName = x.name || '';
-        
+
         // ✅ 중앙 설정에서 임계값 가져오기
         if (bestScore < config.newItemSearch.threshold && inputName) {
           logger.debug(`[신규품목] 검색 시도`, { inputName, bestScore });
-          
+
           // 신규 품목 검색 시도
-          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore, config.newItemSearch.threshold);
-          
+          const newItemCandidates = await searchNewItem(clientCode, inputName, bestScore, config.newItemSearch.threshold);
+
           if (newItemCandidates && newItemCandidates.length > 0) {
             logger.debug(`[신규품목] English 시트 결과`, { count: newItemCandidates.length });
-            
+
             // ✅ GAP 기반 후보 조합 결정
             const composition = decideSuggestionComposition(boostedCandidates, newItemCandidates);
-            
+
             logger.debug(`[후보조합]`, { type: composition.type, existing: composition.existing, newItems: composition.newItems, reason: composition.reason });
-            
+
             // ✅ 신규품목 점수가 충분히 높을 때만 조합 적용
             // 그렇지 않으면 기존 품목을 전부 표시 (신규품목은 무시)
             const newItemBestScore = newItemCandidates[0]?.score ?? 0;
             const existingBestScore = boostedCandidates[0]?.original_score ?? 0; // 원래 점수 사용
             const shouldIncludeNewItems = newItemBestScore >= existingBestScore * 0.7; // 신규품목이 기존의 70% 이상
-            
+
             if (!shouldIncludeNewItems) {
               logger.debug(`[후보조합] 신규품목 점수 낮음 → 기존품목만 표시`, { newBest: newItemBestScore, existingBest: existingBestScore });
               // 기존 품목만 표시 (composition 무시)
               suggestions = boostedCandidates.slice(0, config.suggestions.total); // 이미 is_new_item 설정됨
             } else {
               logger.debug(`[후보조합] 신규품목 포함`, { newBest: newItemBestScore, existingBest: existingBestScore });
-            
+
               // ✅ 기존 후보도 is_new_item 추가
               const existingSuggestions = boostedCandidates.slice(0, composition.existing); // 이미 is_new_item 설정됨
-              
+
               // 신규품목 매핑 (신규품목 플래그 포함)
               const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => {
                 const isInClientHistory = clientItemSet.has(String(c.itemNo));
@@ -1050,26 +1052,26 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   _debug: c._debug,
                 };
               });
-              
+
               // 조합에 따라 후보 구성 후 점수 순으로 재정렬
               const allSuggestions = [
                 ...existingSuggestions,
                 ...newItemSuggestions
               ];
-              
+
               // ✅ 중복 제거 (같은 품목 코드면 기존 입고품목 우선)
               // 1단계: item_no 기준으로 중복 제거 + 기존 입고품목 우선
               const groupByItemNo = new Map<string, any[]>();
               for (const s of allSuggestions) {
                 const itemNo = String(s.item_no || '');
                 if (!itemNo) continue; // item_no 없으면 스킵
-                
+
                 if (!groupByItemNo.has(itemNo)) {
                   groupByItemNo.set(itemNo, []);
                 }
                 groupByItemNo.get(itemNo)!.push(s);
               }
-              
+
               const dedupedByItemNo: any[] = [];
               for (const [itemNo, group] of Array.from(groupByItemNo.entries())) {
                 if (group.length === 1) {
@@ -1078,7 +1080,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   // ✅ 같은 item_no가 여러 개면: 기존 입고품목 우선 (is_new_item === false)
                   const existingItems = group.filter(s => s.is_new_item === false);
                   const newItems = group.filter(s => s.is_new_item === true);
-                  
+
                   if (existingItems.length > 0) {
                     // 기존 품목이 있으면 기존 품목만 표시 (점수 높은 것 우선)
                     const best = existingItems.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
@@ -1091,7 +1093,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   }
                 }
               }
-              
+
               // 2단계: 품목명 기준으로 그룹화 (빈티지 중복 제거)
               const groupByName = new Map<string, any[]>();
               for (const s of dedupedByItemNo) {
@@ -1101,7 +1103,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 }
                 groupByName.get(baseNameWithoutVintage)!.push(s);
               }
-              
+
               // 3단계: 각 그룹에서 빈티지 선택 (기존 + 신규 빈티지 모두 표시)
               const deduped: any[] = [];
               for (const [baseName, group] of Array.from(groupByName.entries())) {
@@ -1113,11 +1115,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                     ...s,
                     _vintage: extractVintage(s.item_no)
                   }));
-                  
+
                   // 기존 품목과 신규 품목 분리
                   const existingItems = withVintage.filter(s => s.is_new_item === false);
                   const newItems = withVintage.filter(s => s.is_new_item === true);
-                  
+
                   // 🔥 수정: 기존 품목이 있고 신규 품목도 있으면 둘 다 표시!
                   if (existingItems.length > 0 && newItems.length > 0) {
                     // 기존 품목: 최신 빈티지 선택
@@ -1125,17 +1127,17 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                       if (a._vintage && b._vintage) return b._vintage - a._vintage;
                       return (b.score ?? 0) - (a.score ?? 0);
                     });
-                    
+
                     // 신규 품목: 최신 빈티지 선택
                     const newSorted = newItems.sort((a, b) => {
                       if (a._vintage && b._vintage) return b._vintage - a._vintage;
                       return (b.score ?? 0) - (a.score ?? 0);
                     });
-                    
+
                     logger.debug(`[빈티지중복] 기존+신규 모두 표시`, { baseName, existing: existingSorted[0].item_no, newItem: newSorted[0].item_no });
                     deduped.push(existingSorted[0]); // 기존 품목 추가
                     deduped.push(newSorted[0]);      // 신규 빈티지 추가
-                  } 
+                  }
                   // 기존 품목만 있거나 신규 품목만 있으면 최신 빈티지 선택
                   else {
                     const sorted = withVintage.sort((a, b) => {
@@ -1144,14 +1146,14 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                       const bIsExisting = b.is_new_item === false;
                       if (aIsExisting && !bIsExisting) return -1;
                       if (!aIsExisting && bIsExisting) return 1;
-                      
+
                       // 2순위: 빈티지가 있으면 최신 우선
                       if (a._vintage && b._vintage) {
                         return b._vintage - a._vintage;
                       }
                       return (b.score ?? 0) - (a.score ?? 0);
                     });
-                    
+
                     const selected = sorted[0];
                     if (group.length > 1) {
                       const isExisting = selected.is_new_item === false;
@@ -1161,7 +1163,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   }
                 }
               }
-              
+
               // ✅ 기존 품목 우선 정렬 → 각 그룹 내에서 점수 내림차순
               suggestions = deduped
                 .sort((a: any, b: any) => {
@@ -1170,14 +1172,14 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                   const bIsExisting = b.is_new_item === false;
                   if (aIsExisting && !bIsExisting) return -1;
                   if (!aIsExisting && bIsExisting) return 1;
-                  
+
                   // 2순위: 같은 그룹(기존 or 신규) 내에서는 점수 내림차순
                   return (b.score ?? 0) - (a.score ?? 0);
                 })
                 .slice(0, config.suggestions.total);
-              
+
               logger.debug(`[최종정렬] 기존품목 우선 → 점수순`, { items: suggestions.map((s: any) => ({ no: s.item_no, score: s.score, isNew: s.is_new_item || false })) });
-              
+
               // 🔍 디버깅: 첫 번째 항목이 기존 품목인지 확인
               if (suggestions.length > 0) {
                 const first = suggestions[0];
@@ -1199,23 +1201,23 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
       // ✅ 중복 제거 후 resolved 재판단
       let resolved = x?.resolved ?? false;
-      
+
       // ✅ resolved인데 item_no가 없으면 무조건 false로 변경
       if (resolved && !x?.item_no) {
         logger.debug(`[AutoResolve] resolved=true인데 item_no 없음 → resolved=false`, { name: x.name });
         resolved = false;
         x = { ...x, resolved: false };  // x 객체도 업데이트
       }
-      
+
       // 중복 제거된 suggestions로 다시 판단
       if (!resolved && suggestions.length > 0) {
         const top = suggestions[0];
         const second = suggestions[1];
         const gap = second ? (top.score ?? 0) - (second.score ?? 0) : 999;
-        
+
         // ✅ 신규 품목은 자동 확정하지 않음
         const isNewItem = top.is_new_item ?? false;
-        
+
         if (isNewItem) {
           // 신규 품목: 자동 확정 안 함
           resolved = false;
@@ -1225,7 +1227,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
           const minScore = config.autoResolve?.minScore ?? 0.55;
           const minGap = config.autoResolve?.minGap ?? 0.10;
           const topScore = top.score ?? 0;
-          
+
           // ⭐ 새 로직: 0.9점 이상이면 무조건 확정
           if (topScore >= 0.90) {
             resolved = true;
@@ -1246,32 +1248,32 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
       // ✅ resolved가 true로 변경되었고, suggestions가 있으면 top item_no로 업데이트
       logger.debug(`[ITEM DEBUG] Before resultItem`, { name: x.name, resolved, x_item_no: x.item_no, suggestions_length: suggestions.length });
-      
+
       const resultItem: any = {
         ...x,
         resolved,
         suggestions,
         candidates: suggestions, // ✅ 프론트엔드 호환성: candidates도 동일하게 설정
       };
-      
+
       if (resolved && suggestions.length > 0 && suggestions[0].item_no) {
         logger.debug(`[ITEM DEBUG] Updating item_no`, { item_no: suggestions[0].item_no });
         resultItem.item_no = suggestions[0].item_no;
         resultItem.item_name = suggestions[0].item_name;
         resultItem.score = suggestions[0].score;
       }
-      
+
       logger.debug(`[ITEM DEBUG] After resultItem`, { name: resultItem.name, resolved: resultItem.resolved, item_no: resultItem.item_no });
 
       return resultItem;
-    });
+    }));
 
     // ✅ 같은 item_no를 가진 아이템 통합 (수량 합산)
     const mergedItems = (() => {
       const itemMap = new Map<string, any>();
       for (const item of itemsWithSuggestions) {
         logger.debug(`[MERGE DEBUG] Processing item`, { resolved: item.resolved, item_no: item.item_no, quantity: item.quantity });
-        
+
         if (item.resolved && item.item_no) {
           const key = String(item.item_no);
           const existing = itemMap.get(key);
@@ -1329,4 +1331,3 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     );
   }
 }
-

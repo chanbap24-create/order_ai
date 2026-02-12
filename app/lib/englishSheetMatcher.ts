@@ -2,13 +2,13 @@
  * ========================================
  * English 시트 기반 품목 매칭
  * ========================================
- * 
+ *
  * English 시트의 H열(영어명)을 사용해서
  * 영어 검색어를 한글 품목 코드로 매칭
  */
 
 import * as XLSX from 'xlsx';
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import path from 'path';
 
 interface EnglishMapping {
@@ -19,67 +19,83 @@ interface EnglishMapping {
 }
 
 let englishMappingCache: Map<string, EnglishMapping> | null = null;
+let englishMappingPromise: Promise<Map<string, EnglishMapping>> | null = null;
 
 /**
  * English 시트 로드 및 캐싱
  */
-function loadEnglishMapping(): Map<string, EnglishMapping> {
+async function loadEnglishMapping(): Promise<Map<string, EnglishMapping>> {
   if (englishMappingCache) {
     return englishMappingCache;
   }
 
-  const mapping = new Map<string, EnglishMapping>();
-
-  try {
-    const xlsxPath = process.env.ORDER_AI_XLSX_PATH || path.join(process.cwd(), 'order-ai.xlsx');
-    const workbook = XLSX.readFile(xlsxPath);
-
-    if (!workbook.SheetNames.includes('English')) {
-      console.log('⚠️  English 시트가 없습니다.');
-      return mapping;
-    }
-
-    const sheet = workbook.Sheets['English'];
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
-
-    // 헤더 스킵하고 데이터 로드
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const code = row[1];        // B열
-      const englishName = row[7]; // H열
-      const supplyPrice = row[11]; // L열 (공급가)
-
-      if (code && englishName) {
-        const codeStr = String(code).trim();
-        
-        // DB에서 한글명 가져오기
-        try {
-          const item = db.prepare('SELECT item_name FROM items WHERE item_no = ?').get(codeStr) as { item_name: string } | undefined;
-          
-          mapping.set(codeStr, {
-            code: codeStr,
-            englishName: String(englishName).trim(),
-            koreanName: item?.item_name,
-            supplyPrice: supplyPrice ? Number(supplyPrice) : undefined
-          });
-        } catch (err) {
-          // DB 오류는 무시하고 계속
-          mapping.set(codeStr, {
-            code: codeStr,
-            englishName: String(englishName).trim(),
-            supplyPrice: supplyPrice ? Number(supplyPrice) : undefined
-          });
-        }
-      }
-    }
-
-    englishMappingCache = mapping;
-    console.log(`✅ English 시트 로드 완료: ${mapping.size}개 품목`);
-  } catch (error) {
-    console.error('❌ English 시트 로드 실패:', error);
+  // 동시 호출 시 중복 로드 방지
+  if (englishMappingPromise) {
+    return englishMappingPromise;
   }
 
-  return mapping;
+  englishMappingPromise = (async () => {
+    const mapping = new Map<string, EnglishMapping>();
+
+    try {
+      const xlsxPath = process.env.ORDER_AI_XLSX_PATH || path.join(process.cwd(), 'order-ai.xlsx');
+      const workbook = XLSX.readFile(xlsxPath);
+
+      if (!workbook.SheetNames.includes('English')) {
+        console.log('⚠️  English 시트가 없습니다.');
+        return mapping;
+      }
+
+      const sheet = workbook.Sheets['English'];
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+
+      // 헤더 스킵하고 데이터 로드
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const code = row[1];        // B열
+        const englishName = row[7]; // H열
+        const supplyPrice = row[11]; // L열 (공급가)
+
+        if (code && englishName) {
+          const codeStr = String(code).trim();
+
+          // DB에서 한글명 가져오기
+          try {
+            const { data: item } = await supabase
+              .from('inventory_cdv')
+              .select('item_name')
+              .eq('item_no', codeStr)
+              .maybeSingle();
+
+            mapping.set(codeStr, {
+              code: codeStr,
+              englishName: String(englishName).trim(),
+              koreanName: item?.item_name,
+              supplyPrice: supplyPrice ? Number(supplyPrice) : undefined
+            });
+          } catch (err) {
+            // DB 오류는 무시하고 계속
+            mapping.set(codeStr, {
+              code: codeStr,
+              englishName: String(englishName).trim(),
+              supplyPrice: supplyPrice ? Number(supplyPrice) : undefined
+            });
+          }
+        }
+      }
+
+      englishMappingCache = mapping;
+      console.log(`✅ English 시트 로드 완료: ${mapping.size}개 품목`);
+    } catch (error) {
+      console.error('❌ English 시트 로드 실패:', error);
+    }
+
+    return mapping;
+  })();
+
+  const result = await englishMappingPromise;
+  englishMappingPromise = null;
+  return result;
 }
 
 /**
@@ -97,9 +113,9 @@ function normalize(text: string): string {
 /**
  * English 시트에서 검색
  */
-export function searchEnglishSheet(query: string): EnglishMapping[] {
-  const mapping = loadEnglishMapping();
-  
+export async function searchEnglishSheet(query: string): Promise<EnglishMapping[]> {
+  const mapping = await loadEnglishMapping();
+
   if (mapping.size === 0) {
     return [];
   }
@@ -111,7 +127,7 @@ export function searchEnglishSheet(query: string): EnglishMapping[] {
     .replace(/é/g, 'e')
     .split(/\s+/)
     .filter(w => w.length >= 3); // 3글자 이상만
-  
+
   const matches: Array<EnglishMapping & { score: number }> = [];
 
   for (const [code, item] of mapping.entries()) {
@@ -122,13 +138,13 @@ export function searchEnglishSheet(query: string): EnglishMapping[] {
       .replace(/é/g, 'e')
       .split(/\s+/)
       .filter(w => w.length >= 2);
-    
+
     let score = 0;
 
     // 1) 완전 일치
     const normalizedQuery = normalize(query);
     const normalizedName = normalize(item.englishName);
-    
+
     if (normalizedName === normalizedQuery) {
       score = 1.0;
     }
@@ -168,9 +184,9 @@ export function searchEnglishSheet(query: string): EnglishMapping[] {
 /**
  * English 시트에서 품목 코드 찾기 (단일 결과)
  */
-export function findItemCodeFromEnglish(query: string): string | null {
-  const matches = searchEnglishSheet(query);
-  
+export async function findItemCodeFromEnglish(query: string): Promise<string | null> {
+  const matches = await searchEnglishSheet(query);
+
   if (matches.length > 0) {
     console.log(`✅ English 시트 매칭: [${matches[0].code}] ${matches[0].englishName}`);
     return matches[0].code;
@@ -182,7 +198,7 @@ export function findItemCodeFromEnglish(query: string): string | null {
 /**
  * English 시트에서 여러 후보 찾기
  */
-export function findMultipleFromEnglish(query: string, limit: number = 5): EnglishMapping[] {
-  const matches = searchEnglishSheet(query);
+export async function findMultipleFromEnglish(query: string, limit: number = 5): Promise<EnglishMapping[]> {
+  const matches = await searchEnglishSheet(query);
   return matches.slice(0, limit);
 }

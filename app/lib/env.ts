@@ -3,8 +3,8 @@
 type EnvConfig = {
   OPENAI_API_KEY?: string;  // ✅ 선택 사항으로 변경 (번역 비활성화 시 불필요)
   ANTHROPIC_API_KEY?: string;
-  DB_PATH?: string;
-  DATABASE_URL?: string;
+  SUPABASE_URL?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
   ORDER_AI_XLSX_PATH?: string;
   DATA_GO_KR_SERVICE_KEY?: string;
   NODE_ENV: "development" | "production" | "test";
@@ -41,8 +41,8 @@ function validateEnv(): EnvConfig {
   return {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-    DB_PATH: process.env.DB_PATH,
-    DATABASE_URL: process.env.DATABASE_URL,
+    SUPABASE_URL: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     ORDER_AI_XLSX_PATH: process.env.ORDER_AI_XLSX_PATH,
     DATA_GO_KR_SERVICE_KEY: process.env.DATA_GO_KR_SERVICE_KEY,
     NODE_ENV: nodeEnv,

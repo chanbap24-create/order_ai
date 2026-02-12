@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getChangeLogs } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -14,7 +12,7 @@ export async function GET(request: NextRequest) {
     const entityType = url.searchParams.get('entityType') || undefined;
     const entityId = url.searchParams.get('entityId') || undefined;
 
-    const result = getChangeLogs(page, limit, { action, entityType, entityId });
+    const result = await getChangeLogs(page, limit, { action, entityType, entityId });
 
     return NextResponse.json({
       success: true,

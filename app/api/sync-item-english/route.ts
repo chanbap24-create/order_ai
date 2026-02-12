@@ -1,19 +1,7 @@
 import { NextResponse } from "next/server";
 import { jsonResponse } from "@/app/lib/api-response";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import * as XLSX from "xlsx";
-
-export const runtime = "nodejs";
-
-function ensureItemEnglishTable() {
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS item_english (
-      item_no TEXT PRIMARY KEY,
-      name_en TEXT NOT NULL,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-}
 
 function normCell(v: any) {
   return String(v ?? "").trim();
@@ -29,10 +17,7 @@ export async function POST() {
       );
     }
 
-    // 1) 테이블 보장
-    ensureItemEnglishTable();
-
-    // 2) 엑셀 로드
+    // 1) 엑셀 로드
     const wb = XLSX.readFile(filePath, { cellDates: true });
     const ws = wb.Sheets["English"];
     if (!ws) {
@@ -42,41 +27,44 @@ export async function POST() {
       );
     }
 
-    // 3) 범위 파악
+    // 2) 범위 파악
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1:A1");
 
-    // 4) 업서트 준비
-    const upsert = db.prepare(`
-      INSERT INTO item_english(item_no, name_en, updated_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(item_no) DO UPDATE SET
-        name_en = excluded.name_en,
-        updated_at = CURRENT_TIMESTAMP
-    `);
-
+    // 3) 데이터 수집
     let scanned = 0;
     let saved = 0;
 
-    const tx = db.transaction(() => {
-      for (let r = range.s.r + 1; r <= range.e.r; r++) {
-        // B열(=2), H열(=8)
-        const bAddr = XLSX.utils.encode_cell({ r, c: 1 });
-        const hAddr = XLSX.utils.encode_cell({ r, c: 7 });
+    const rows: Array<{ item_no: string; name_en: string; updated_at: string }> = [];
 
-        const itemNo = normCell(ws[bAddr]?.v);
-        const nameEn = normCell(ws[hAddr]?.v);
+    for (let r = range.s.r + 1; r <= range.e.r; r++) {
+      // B열(=2), H열(=8)
+      const bAddr = XLSX.utils.encode_cell({ r, c: 1 });
+      const hAddr = XLSX.utils.encode_cell({ r, c: 7 });
 
-        // 빈 행 skip
-        if (!itemNo || !nameEn) continue;
+      const itemNo = normCell(ws[bAddr]?.v);
+      const nameEn = normCell(ws[hAddr]?.v);
 
-        scanned++;
-        const info = upsert.run(itemNo, nameEn);
-        // INSERT든 UPDATE든 changes는 1로 떨어짐이 일반적
-        if (info.changes) saved += 1;
+      // 빈 행 skip
+      if (!itemNo || !nameEn) continue;
+
+      scanned++;
+      rows.push({
+        item_no: itemNo,
+        name_en: nameEn,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // 4) Batch upsert
+    for (let i = 0; i < rows.length; i += 500) {
+      const batch = rows.slice(i, i + 500);
+      const { error } = await supabase
+        .from('item_english')
+        .upsert(batch, { onConflict: 'item_no' });
+      if (!error) {
+        saved += batch.length;
       }
-    });
-
-    tx();
+    }
 
     return jsonResponse({
       success: true,

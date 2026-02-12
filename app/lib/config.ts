@@ -21,9 +21,6 @@ export const config = {
       forceResolveGap: 0.15,
     },
   },
-  database: {
-    path: env.DB_PATH || env.DATABASE_URL || "data.sqlite3",
-  },
   excel: {
     path: env.ORDER_AI_XLSX_PATH,
   },

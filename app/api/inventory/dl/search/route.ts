@@ -1,25 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
-import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
-
-export const runtime = 'nodejs';
-
-interface InventoryItem {
-  item_no: string;
-  item_name: string;
-  supply_price: number;
-  available_stock: number;
-  anseong_warehouse: number;
-  sales_30days: number;
-  vintage: string;
-  alcohol_content: string;
-  country: string;
-}
+import { supabase } from '@/app/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    ensureWineProfileTable();
-
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q') || '';
     const filterCountry = searchParams.get('country') || '';
@@ -36,57 +19,71 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const conditions: string[] = [];
-    const params: any[] = [];
+    // Query inventory_dl first
+    let dbQuery = supabase
+      .from('inventory_dl')
+      .select('*');
 
     if (query.trim()) {
       const searchQuery = `%${query.toLowerCase()}%`;
-      conditions.push('LOWER(i.item_name) LIKE ?');
-      params.push(searchQuery);
+      dbQuery = dbQuery.or(`item_name.ilike.${searchQuery},item_no.ilike.${searchQuery}`);
     }
 
     if (filterCountry) {
-      conditions.push('(i.country = ? OR wp.country = ?)');
-      params.push(filterCountry, filterCountry);
+      dbQuery = dbQuery.eq('country', filterCountry);
     }
 
+    dbQuery = dbQuery.order('supply_price', { ascending: false });
+
+    const { data, error } = await dbQuery;
+    if (error) throw error;
+
+    // Fetch wine_profiles separately for matched item_nos
+    const itemNos = (data || []).map((r: any) => r.item_no);
+    let wpMap: Record<string, any> = {};
+    if (itemNos.length > 0) {
+      const { data: wpData } = await supabase
+        .from('wine_profiles')
+        .select('item_code, grape_varieties, wine_type, region, description_kr, country')
+        .in('item_code', itemNos);
+      if (wpData) {
+        for (const wp of wpData) {
+          wpMap[wp.item_code] = wp;
+        }
+      }
+    }
+
+    let results = (data || []).map((row: any) => {
+      const wp = wpMap[row.item_no];
+      return {
+        item_no: row.item_no,
+        item_name: row.item_name,
+        supply_price: row.supply_price,
+        available_stock: row.available_stock,
+        anseong_warehouse: row.anseong_warehouse,
+        sales_30days: row.sales_30days,
+        vintage: row.vintage,
+        alcohol_content: row.alcohol_content,
+        country: row.country,
+        grape_varieties: wp?.grape_varieties || null,
+        wine_type: wp?.wine_type || null,
+        wp_region: wp?.region || null,
+        description_kr: wp?.description_kr || null,
+      };
+    });
+
+    // Apply wine_profile filters in JS
     if (filterRegion) {
-      conditions.push('wp.region = ?');
-      params.push(filterRegion);
+      results = results.filter((r: any) => r.wp_region === filterRegion);
     }
-
     if (filterWineType) {
-      conditions.push('wp.wine_type = ?');
-      params.push(filterWineType);
+      results = results.filter((r: any) => r.wine_type === filterWineType);
     }
-
     if (filterGrapeVariety) {
-      conditions.push('wp.grape_varieties LIKE ?');
-      params.push(`%${filterGrapeVariety}%`);
+      results = results.filter((r: any) =>
+        r.grape_varieties && r.grape_varieties.toLowerCase().includes(filterGrapeVariety.toLowerCase())
+      );
     }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const results = db.prepare(`
-      SELECT
-        i.item_no,
-        i.item_name,
-        i.supply_price,
-        i.available_stock,
-        i.anseong_warehouse,
-        i.sales_30days,
-        i.vintage,
-        i.alcohol_content,
-        i.country,
-        wp.grape_varieties,
-        wp.wine_type,
-        wp.region AS wp_region,
-        wp.description_kr
-      FROM inventory_dl i
-      LEFT JOIN wine_profiles wp ON i.item_no = wp.item_code
-      ${whereClause}
-      ORDER BY i.supply_price DESC
-    `).all(...params) as InventoryItem[];
 
     return NextResponse.json({
       results,

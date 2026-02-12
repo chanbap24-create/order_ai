@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { handleApiError, AppError } from "@/app/lib/errors";
 import { validateRequest, safeParseBody, resolveClientSchema } from "@/app/lib/validation";
 import { logger } from "@/app/lib/logger";
 import { config } from "@/app/lib/config";
 import type { ResolveClientRequest, ResolveClientResponse, ClientInfo } from "@/app/types/api";
-import type { ClientAliasRow } from "@/app/types/db";
 
-export const runtime = "nodejs";
+interface ClientAliasRow {
+  client_code: string;
+  alias: string;
+  weight: number;
+}
 
 function firstLineClient(text: string): string {
   const lines = String(text || "")
@@ -57,9 +60,12 @@ export async function POST(req: Request): Promise<NextResponse<ResolveClientResp
 
     const candidateName = String(client_hint).trim() || firstLineClient(message);
 
-    const rows = db
-      .prepare(`SELECT client_code, alias, weight FROM client_alias`)
-      .all() as ClientAliasRow[];
+    const { data: rowsData, error } = await supabase
+      .from('client_alias')
+      .select('client_code, alias, weight');
+    if (error) throw error;
+
+    const rows = (rowsData || []) as ClientAliasRow[];
 
     // 1) 첫 줄 exact(norm) 매칭
     if (candidateName) {

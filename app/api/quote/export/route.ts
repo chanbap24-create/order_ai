@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
 import ExcelJS from 'exceljs';
 import fs from 'fs';
 import path from 'path';
-
-export const runtime = 'nodejs';
 
 // ═══════════════════════════════════════
 // Types
@@ -97,10 +95,14 @@ function getLogoPath(company: string): string | null {
 
 const BOTTLE_IMG_DIR = path.join(process.cwd(), 'public', 'bottle-images');
 
-function getBottleImagePath(itemCode: string): string | null {
+async function getBottleImagePath(itemCode: string): Promise<string | null> {
   // DB에서 파일명 조회
   try {
-    const row = db.prepare('SELECT filename FROM bottle_images WHERE item_code = ?').get(itemCode) as any;
+    const { data: row } = await supabase
+      .from('bottle_images')
+      .select('filename')
+      .eq('item_code', itemCode)
+      .maybeSingle();
     if (row?.filename) {
       const p = path.join(BOTTLE_IMG_DIR, row.filename);
       if (fs.existsSync(p)) return p;
@@ -111,6 +113,18 @@ function getBottleImagePath(itemCode: string): string | null {
     const p = path.join(BOTTLE_IMG_DIR, `${itemCode}.${ext}`);
     if (fs.existsSync(p)) return p;
   }
+  return null;
+}
+
+async function getBottleImageMeta(itemCode: string): Promise<{ width: number; height: number } | null> {
+  try {
+    const { data: meta } = await supabase
+      .from('bottle_images')
+      .select('width, height')
+      .eq('item_code', itemCode)
+      .maybeSingle();
+    if (meta?.width && meta?.height) return { width: meta.width, height: meta.height };
+  } catch {}
   return null;
 }
 
@@ -195,12 +209,36 @@ export async function GET(request: NextRequest) {
     ensureQuoteTable();
     ensureWineProfileTable();
     const clientName = request.nextUrl.searchParams.get('client_name') || '';
-    const items = db.prepare(`
-      SELECT q.*, wp.grape_varieties
-      FROM quote_items q
-      LEFT JOIN wine_profiles wp ON q.item_code = wp.item_code
-      ORDER BY q.id ASC
-    `).all() as any[];
+
+    // Fetch quote_items with wine_profiles grape_varieties via separate queries
+    const { data: quoteRows, error: quoteErr } = await supabase
+      .from('quote_items')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (quoteErr) throw quoteErr;
+    const quoteItems = quoteRows || [];
+
+    // Fetch wine_profiles for grape_varieties enrichment
+    const itemCodes = quoteItems.map((q: any) => q.item_code).filter(Boolean);
+    let profileMap: Record<string, string> = {};
+    if (itemCodes.length > 0) {
+      const { data: profiles } = await supabase
+        .from('wine_profiles')
+        .select('item_code, grape_varieties')
+        .in('item_code', itemCodes);
+      if (profiles) {
+        for (const p of profiles) {
+          if (p.grape_varieties) profileMap[p.item_code] = p.grape_varieties;
+        }
+      }
+    }
+
+    // Merge grape_varieties into items
+    const items = quoteItems.map((q: any) => ({
+      ...q,
+      grape_varieties: profileMap[q.item_code] || null,
+    }));
 
     // Parse visible columns
     const columnsParam = request.nextUrl.searchParams.get('columns');
@@ -231,7 +269,7 @@ export async function GET(request: NextRequest) {
     workbook.creator = 'Cave De Vin - Order AI';
     workbook.created = new Date();
 
-    buildQuote(workbook, items, clientName, activeCols, docSettings, company, tastingNoteSet);
+    await buildQuote(workbook, items, clientName, activeCols, docSettings, company, tastingNoteSet);
 
     const buffer = await workbook.xlsx.writeBuffer();
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -257,7 +295,7 @@ export async function GET(request: NextRequest) {
 // Unified quote builder
 // ═══════════════════════════════════════
 
-function buildQuote(
+async function buildQuote(
   wb: ExcelJS.Workbook,
   items: any[],
   clientName: string,
@@ -417,18 +455,20 @@ function buildQuote(
   const hasImageCol = activeCols.some(c => c.type === 'image');
   const IMG_ROW_HEIGHT = 75; // points when image column is active
 
-  items.forEach((item: any, idx: number) => {
+  for (let idx = 0; idx < items.length; idx++) {
+    const item = items[idx];
     const r = DS + idx;
     const row = ws.getRow(r);
     row.height = hasImageCol ? IMG_ROW_HEIGHT : 24;
 
-    activeCols.forEach((col, ci) => {
+    for (let ci = 0; ci < activeCols.length; ci++) {
+      const col = activeCols[ci];
       const c = ci + 1;
 
       // No.
       if (col.type === 'index') {
         sc(row, c, idx + 1, { border: THIN });
-        return;
+        continue;
       }
 
       // Image column (wine bottle)
@@ -436,7 +476,7 @@ function buildQuote(
         const cell = row.getCell(c);
         cell.border = THIN;
         const itemCode = item.item_code || '';
-        const imgPath = itemCode ? getBottleImagePath(itemCode) : null;
+        const imgPath = itemCode ? await getBottleImagePath(itemCode) : null;
         if (imgPath) {
           const rawExt = path.extname(imgPath).replace('.', '').toLowerCase();
           if (rawExt === 'tiff' || rawExt === 'tif') {
@@ -447,10 +487,8 @@ function buildQuote(
             const imgId = wb.addImage({ buffer: imgBuf, extension: ext });
             // DB에서 원본 크기 조회하여 비율 유지
             let origW = 1, origH = 2;
-            try {
-              const meta = db.prepare('SELECT width, height FROM bottle_images WHERE item_code = ?').get(itemCode) as any;
-              if (meta?.width && meta?.height) { origW = meta.width; origH = meta.height; }
-            } catch {}
+            const meta = await getBottleImageMeta(itemCode);
+            if (meta) { origW = meta.width; origH = meta.height; }
 
             // EMU 단위로 정확한 셀 크기 계산
             const PT_EMU = 12700;
@@ -484,7 +522,7 @@ function buildQuote(
             } as any);
           }
         }
-        return;
+        continue;
       }
 
       // Formula columns
@@ -538,7 +576,7 @@ function buildQuote(
             sc(row, c, rdp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: YELLOW_FILL });
           }
         }
-        return;
+        continue;
       }
 
       // Link column (tasting note)
@@ -560,7 +598,7 @@ function buildQuote(
         } else {
           sc(row, c, '', { border: THIN });
         }
-        return;
+        continue;
       }
 
       // Regular data columns
@@ -585,8 +623,8 @@ function buildQuote(
           size: (col.uiKey === 'tasting_note' || col.uiKey === 'note') ? 9 : undefined,
         });
       }
-    });
-  });
+    }
+  }
 
   // ── Summary row ──
   if (items.length > 0) {

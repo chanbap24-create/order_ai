@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
-
-export const runtime = 'nodejs';
 
 const FIELDS = [
   'item_code', 'country', 'region', 'sub_region', 'appellation',
@@ -21,26 +19,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'profiles 배열이 필요합니다.' }, { status: 400 });
     }
 
-    const cols = FIELDS;
-    const placeholders = cols.map(() => '?').join(',');
-    const stmt = db.prepare(
-      `INSERT OR REPLACE INTO wine_profiles (${cols.join(',')}, updated_at) VALUES (${placeholders}, datetime('now'))`
-    );
-
     let imported = 0;
     let skipped = 0;
 
-    db.transaction(() => {
-      for (const profile of profiles) {
-        if (!profile.item_code) {
-          skipped++;
-          continue;
-        }
-        const vals = cols.map(f => profile[f] ?? '');
-        stmt.run(...vals);
-        imported++;
+    // Build rows for upsert
+    const rows: Record<string, any>[] = [];
+    for (const profile of profiles) {
+      if (!profile.item_code) {
+        skipped++;
+        continue;
       }
-    })();
+      const record: Record<string, any> = { updated_at: new Date().toISOString() };
+      for (const f of FIELDS) {
+        record[f] = profile[f] ?? '';
+      }
+      rows.push(record);
+      imported++;
+    }
+
+    // Batch upsert
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await supabase
+        .from('wine_profiles')
+        .upsert(rows.slice(i, i + 500), { onConflict: 'item_code' });
+      if (error) throw error;
+    }
 
     return NextResponse.json({
       success: true,

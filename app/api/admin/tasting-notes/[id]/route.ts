@@ -4,15 +4,13 @@ import { getTastingNote, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const note = getTastingNote(id);
+    const note = await getTastingNote(id);
     if (!note) {
       return NextResponse.json({ success: false, error: "테이스팅 노트가 없습니다." }, { status: 404 });
     }
@@ -30,14 +28,14 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    upsertTastingNote(id, {
+    await upsertTastingNote(id, {
       ...body,
       manually_edited: 1,
     });
 
-    logChange('tasting_note_edited', 'tasting_note', id, { fields: Object.keys(body) });
+    await logChange('tasting_note_edited', 'tasting_note', id, { fields: Object.keys(body) });
 
-    const updated = getTastingNote(id);
+    const updated = await getTastingNote(id);
     return NextResponse.json({ success: true, data: updated });
   } catch (e) {
     return handleApiError(e);

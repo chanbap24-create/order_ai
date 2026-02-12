@@ -4,8 +4,6 @@ import { deleteWine } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
   try {
     const { wineIds } = await request.json();
@@ -17,12 +15,12 @@ export async function POST(request: NextRequest) {
     let deleted = 0;
     for (const id of wineIds) {
       try {
-        deleteWine(id);
+        await deleteWine(id);
         deleted++;
       } catch { /* continue */ }
     }
 
-    logChange("batch_delete", "wine", wineIds.join(","), { count: wineIds.length, deleted });
+    await logChange("batch_delete", "wine", wineIds.join(","), { count: wineIds.length, deleted });
 
     return NextResponse.json({ success: true, deleted, total: wineIds.length });
   } catch (e) {

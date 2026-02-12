@@ -6,8 +6,6 @@ import { upsertTastingNote } from "@/app/lib/wineDb";
 import { savePptx, convertToPdf } from "@/app/lib/fileOutput";
 import { logger } from "@/app/lib/logger";
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
   try {
     const { wineIds } = await request.json();
@@ -54,12 +52,12 @@ export async function POST(request: NextRequest) {
     // DB 업데이트
     for (const wineId of wineIds) {
       try {
-        upsertTastingNote(wineId, { ppt_generated: 1 });
+        await upsertTastingNote(wineId, { ppt_generated: 1 });
       } catch { /* ignore */ }
     }
 
     try {
-      logChange('ppt_generated', 'tasting_note', wineIds.join(','), { count: wineIds.length });
+      await logChange('ppt_generated', 'tasting_note', wineIds.join(','), { count: wineIds.length });
     } catch { /* ignore */ }
 
     const fileName = wineIds.length === 1 ? `${wineIds[0]}.pptx` : "tasting-notes-bulk.pptx";

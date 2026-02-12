@@ -1,10 +1,8 @@
 // GET /api/admin/wines/all - 전체 와인 목록 (페이지네이션, 검색, 필터)
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { ensureWineTables } from "@/app/lib/wineDb";
 import { handleApiError } from "@/app/lib/errors";
-
-export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,52 +15,70 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(200, Math.max(10, parseInt(url.searchParams.get("limit") || "50", 10)));
     const offset = (page - 1) * limit;
 
-    let where = "WHERE 1=1";
-    const params: unknown[] = [];
+    // ── 국가 목록 (필터용) ──
+    // Supabase doesn't support COALESCE in select directly, so fetch all and aggregate in JS
+    const { data: countryData } = await supabase
+      .from('wines')
+      .select('country, country_en');
+
+    const countryMap = new Map<string, number>();
+    for (const row of (countryData || [])) {
+      const name = row.country_en || row.country || '';
+      if (name) {
+        countryMap.set(name, (countryMap.get(name) || 0) + 1);
+      }
+    }
+    const countries = Array.from(countryMap.entries())
+      .map(([name, cnt]) => ({ name, cnt }))
+      .sort((a, b) => b.cnt - a.cnt);
+
+    // ── 데이터 쿼리 구성 ──
+    let query = supabase
+      .from('wines')
+      .select('*, tasting_notes(id, ai_generated, approved)', { count: 'exact' });
 
     if (search) {
-      where += " AND (w.item_code LIKE ? OR w.item_name_kr LIKE ? OR w.item_name_en LIKE ? OR w.country LIKE ? OR w.country_en LIKE ?)";
       const term = `%${search}%`;
-      params.push(term, term, term, term, term);
+      query = query.or(
+        `item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},country.ilike.${term},country_en.ilike.${term}`
+      );
     }
     if (country) {
-      where += " AND (w.country = ? OR w.country_en = ?)";
-      params.push(country, country);
+      query = query.or(`country.eq.${country},country_en.eq.${country}`);
     }
     if (statusFilter) {
-      where += " AND w.status = ?";
-      params.push(statusFilter);
+      query = query.eq('status', statusFilter);
     }
 
-    // 전체 카운트
-    const countRow = db.prepare(`SELECT COUNT(*) as cnt FROM wines w ${where}`).get(...params) as { cnt: number };
+    query = query
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    // 국가 목록 (필터용)
-    const countries = db.prepare(`
-      SELECT COALESCE(country_en, country) as name, COUNT(*) as cnt
-      FROM wines
-      WHERE COALESCE(country_en, country) IS NOT NULL AND COALESCE(country_en, country) != ''
-      GROUP BY COALESCE(country_en, country)
-      ORDER BY cnt DESC
-    `).all() as { name: string; cnt: number }[];
+    const { data: winesRaw, count: totalCount, error } = await query;
 
-    // 데이터
-    const wines = db.prepare(`
-      SELECT w.*, tn.id as tasting_note_id, tn.ai_generated, tn.approved
-      FROM wines w
-      LEFT JOIN tasting_notes tn ON w.item_code = tn.wine_id
-      ${where}
-      ORDER BY w.updated_at DESC
-      LIMIT ? OFFSET ?
-    `).all(...params, Math.floor(limit), Math.floor(offset));
+    if (error) throw error;
+
+    // ── 결과 변환 (tasting_notes 임베드 → 플랫화) ──
+    const wines = (winesRaw || []).map((w: any) => {
+      const tn = w.tasting_notes?.[0];
+      return {
+        ...w,
+        tasting_note_id: tn?.id ?? null,
+        ai_generated: tn?.ai_generated ?? null,
+        approved: tn?.approved ?? null,
+        tasting_notes: undefined,
+      };
+    });
+
+    const total = totalCount || 0;
 
     return NextResponse.json({
       success: true,
       data: wines,
-      total: countRow.cnt,
+      total,
       page,
       limit,
-      totalPages: Math.ceil(countRow.cnt / limit),
+      totalPages: Math.ceil(total / limit),
       countries,
     });
   } catch (e) {

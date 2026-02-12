@@ -4,20 +4,18 @@ import { getWineByCode, upsertWine, deleteWine, getTastingNote, upsertTastingNot
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const wine = getWineByCode(id);
+    const wine = await getWineByCode(id);
     if (!wine) {
       return NextResponse.json({ success: false, error: "와인을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    const tastingNote = getTastingNote(id);
+    const tastingNote = await getTastingNote(id);
     return NextResponse.json({ success: true, data: { wine, tastingNote } });
   } catch (e) {
     return handleApiError(e);
@@ -36,7 +34,7 @@ export async function PATCH(
     // 와인 정보 업데이트
     if (body.wine) {
       try {
-        upsertWine({ ...body.wine, item_code: id });
+        await upsertWine({ ...body.wine, item_code: id });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return NextResponse.json({ success: false, error: `와인 저장 실패: ${msg}`, step: 'upsertWine' }, { status: 500 });
@@ -46,7 +44,7 @@ export async function PATCH(
     // 테이스팅 노트 업데이트
     if (body.tastingNote) {
       try {
-        upsertTastingNote(id, body.tastingNote);
+        await upsertTastingNote(id, body.tastingNote);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return NextResponse.json({ success: false, error: `테이스팅 노트 저장 실패: ${msg}`, step: 'upsertTastingNote' }, { status: 500 });
@@ -54,7 +52,7 @@ export async function PATCH(
     }
 
     try {
-      logChange('wine_updated', 'wine', id, { fields: Object.keys(body.wine || {}) });
+      await logChange('wine_updated', 'wine', id, { fields: Object.keys(body.wine || {}) });
     } catch { /* logChange 실패 무시 */ }
 
     return NextResponse.json({ success: true });
@@ -70,8 +68,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    deleteWine(id);
-    logChange('wine_deleted', 'wine', id, {});
+    await deleteWine(id);
+    await logChange('wine_deleted', 'wine', id, {});
     return NextResponse.json({ success: true });
   } catch (e) {
     return handleApiError(e);

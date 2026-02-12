@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { interpretOrder, OrderInterpretation } from '@/app/lib/orderInterpreter';
 import { logger } from '@/app/lib/logger';
 
-export const runtime = 'nodejs';
-
 /**
  * GET: API 상태 확인
  */

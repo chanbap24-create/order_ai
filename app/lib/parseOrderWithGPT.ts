@@ -1,6 +1,6 @@
-// app/lib/parseOrderWithGPT.ts
+// app/lib/parseOrderWithGPT.ts (Supabase)
 import OpenAI from "openai";
-import { db } from "./db";
+import { supabase } from "./db";
 import { config } from "./config";
 import { logger } from "./logger";
 
@@ -38,31 +38,31 @@ export function getAllItemsList(): Array<{ item_no: string; name_en: string; nam
   try {
     const XLSX = require('xlsx');
     const path = require('path');
-    
+
     // Excel 파일 읽기
     const xlsxPath = process.env.ORDER_AI_XLSX_PATH || path.join(process.cwd(), 'order-ai.xlsx');
     const workbook = XLSX.readFile(xlsxPath);
     const worksheet = workbook.Sheets['English'];
-    
+
     if (!worksheet) {
       logger.error('English sheet not found in Excel file');
       return [];
     }
-    
+
     // 시트를 배열로 변환
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
-    
+
     const items: Array<{ item_no: string; name_en: string; name_kr: string }> = [];
-    
+
     // 4행부터 시작 (0-indexed로 3부터)
     for (let i = 4; i < data.length; i++) {
       const row = data[i];
       if (!row || row.length === 0) continue;
-      
+
       const itemNo = String(row[1] || '').trim(); // B열 (index 1)
       const nameEn = String(row[7] || '').trim(); // H열 (index 7)
       const nameKr = String(row[8] || '').trim(); // I열 (index 8)
-      
+
       // 품목코드가 있는 경우만 추가
       if (itemNo && (nameEn || nameKr)) {
         items.push({
@@ -72,73 +72,75 @@ export function getAllItemsList(): Array<{ item_no: string; name_en: string; nam
         });
       }
     }
-    
+
     logger.info('Loaded items from Excel', { count: items.length });
     return items;
   } catch (error) {
     logger.error('Failed to get all items list from Excel', { error });
-    
-    // Fallback: DB에서 가져오기
-    try {
-      const itemsEn = db
-        .prepare(`SELECT item_no, name_en FROM item_english WHERE name_en IS NOT NULL AND name_en != ''`)
-        .all() as Array<{ item_no: string; name_en: string }>;
+    return [];
+  }
+}
 
-      const itemsKr = db
-        .prepare(`
-          SELECT DISTINCT item_no, item_name 
-          FROM client_item_stats 
-          WHERE item_name IS NOT NULL AND item_name != ''
-        `)
-        .all() as Array<{ item_no: string; item_name: string }>;
+/**
+ * Fallback: DB에서 품목 리스트 가져오기 (async)
+ */
+async function getAllItemsListFromDb(): Promise<Array<{ item_no: string; name_en: string; name_kr: string }>> {
+  try {
+    const { data: itemsEn } = await supabase
+      .from('item_english')
+      .select('item_no, name_en')
+      .not('name_en', 'is', null)
+      .neq('name_en', '');
 
-      const itemMap = new Map<string, { item_no: string; name_en: string; name_kr: string }>();
+    const { data: itemsKr } = await supabase
+      .from('client_item_stats')
+      .select('item_no, item_name')
+      .not('item_name', 'is', null)
+      .neq('item_name', '');
 
-      for (const item of itemsEn) {
+    const itemMap = new Map<string, { item_no: string; name_en: string; name_kr: string }>();
+
+    for (const item of (itemsEn || [])) {
+      itemMap.set(item.item_no, {
+        item_no: item.item_no,
+        name_en: item.name_en,
+        name_kr: '',
+      });
+    }
+
+    for (const item of (itemsKr || [])) {
+      const existing = itemMap.get(item.item_no);
+      if (existing) {
+        existing.name_kr = item.item_name;
+      } else {
         itemMap.set(item.item_no, {
           item_no: item.item_no,
-          name_en: item.name_en,
-          name_kr: '',
+          name_en: '',
+          name_kr: item.item_name,
         });
       }
-
-      for (const item of itemsKr) {
-        const existing = itemMap.get(item.item_no);
-        if (existing) {
-          existing.name_kr = item.item_name;
-        } else {
-          itemMap.set(item.item_no, {
-            item_no: item.item_no,
-            name_en: '',
-            name_kr: item.item_name,
-          });
-        }
-      }
-
-      return Array.from(itemMap.values());
-    } catch (dbError) {
-      logger.error('Fallback DB query also failed', { dbError });
-      return [];
     }
+
+    return Array.from(itemMap.values());
+  } catch (dbError) {
+    logger.error('Fallback DB query also failed', { dbError });
+    return [];
   }
 }
 
 /**
  * 특정 거래처의 입고 이력 가져오기
  */
-function getClientItemHistory(clientCode: string): Array<{ item_no: string; item_name: string; supply_price?: number }> {
+async function getClientItemHistory(clientCode: string): Promise<Array<{ item_no: string; item_name: string; supply_price?: number }>> {
   try {
-    const items = db
-      .prepare(`
-        SELECT item_no, item_name, supply_price 
-        FROM client_item_stats 
-        WHERE client_code = ?
-        ORDER BY updated_at DESC
-        LIMIT 200
-      `)
-      .all(clientCode) as Array<{ item_no: string; item_name: string; supply_price: number | null }>;
+    const { data: items } = await supabase
+      .from('client_item_stats')
+      .select('item_no, item_name, supply_price')
+      .eq('client_code', clientCode)
+      .order('updated_at', { ascending: false })
+      .limit(200);
 
-    return items.map(item => ({
+    return (items || []).map((item: any) => ({
       item_no: item.item_no,
       item_name: item.item_name,
       supply_price: item.supply_price || undefined,
@@ -152,17 +154,14 @@ function getClientItemHistory(clientCode: string): Array<{ item_no: string; item
 /**
  * 학습된 약어 매핑 가져오기
  */
-function getLearnedAliases(): Array<{ alias: string; canonical: string; count: number }> {
+async function getLearnedAliases(): Promise<Array<{ alias: string; canonical: string; count: number }>> {
   try {
-    const aliases = db
-      .prepare(`
-        SELECT alias, canonical, count 
-        FROM item_alias 
-        ORDER BY count DESC
-      `)
-      .all() as Array<{ alias: string; canonical: string; count: number }>;
+    const { data: aliases } = await supabase
+      .from('item_alias')
+      .select('alias, canonical, count')
+      .order('count', { ascending: false });
 
-    return aliases;
+    return (aliases || []) as Array<{ alias: string; canonical: string; count: number }>;
   } catch (error) {
     logger.error('Failed to get learned aliases', { error });
     return [];
@@ -174,7 +173,7 @@ function getLearnedAliases(): Array<{ alias: string; canonical: string; count: n
  */
 function extractKeywords(itemName: string): string[] {
   const keywords: string[] = [];
-  
+
   // 브랜드명 패턴
   const brandPatterns = [
     /메종\s*로쉬?\s*벨렌/,
@@ -184,14 +183,14 @@ function extractKeywords(itemName: string): string[] {
     /도멘/,
     /메종/,
   ];
-  
+
   for (const pattern of brandPatterns) {
     const match = itemName.match(pattern);
     if (match) {
       keywords.push(match[0].replace(/\s+/g, ''));
     }
   }
-  
+
   // 품종명 패턴
   const varietalPatterns = [
     /샤르?도네|chardonnay/i,
@@ -201,14 +200,14 @@ function extractKeywords(itemName: string): string[] {
     /시라|쉬라|씨라|syrah|shiraz/i,
     /말벡|malbec/i,
   ];
-  
+
   for (const pattern of varietalPatterns) {
     const match = itemName.match(pattern);
     if (match) {
       keywords.push(match[0].replace(/\s+/g, ''));
     }
   }
-  
+
   return keywords;
 }
 
@@ -221,36 +220,36 @@ function filterRelevantItems(
 ): Array<{ item_no: string; name_en: string; name_kr: string }> {
   // 메시지에서 키워드 추출
   const messageKeywords = extractKeywords(message.toLowerCase());
-  
+
   if (messageKeywords.length === 0) {
     // 키워드가 없으면 전체 반환 (최대 100개)
     return allItems.slice(0, 100);
   }
-  
+
   // 키워드와 관련된 품목만 필터링
   const relevantItems = allItems.filter(item => {
     const itemText = (item.name_kr + ' ' + item.name_en).toLowerCase();
     const itemKeywords = extractKeywords(itemText);
-    
+
     // 메시지 키워드 중 하나라도 품목에 포함되면 관련 품목으로 간주
-    return messageKeywords.some(msgKw => 
-      itemKeywords.some(itemKw => 
+    return messageKeywords.some(msgKw =>
+      itemKeywords.some(itemKw =>
         itemKw.includes(msgKw) || msgKw.includes(itemKw) || itemText.includes(msgKw)
       )
     );
   });
-  
+
   console.log('[필터링 결과]', {
     messageKeywords,
     totalItems: allItems.length,
     filteredItems: relevantItems.length,
   });
-  
+
   // 필터링 결과가 너무 적으면 전체 반환 (최대 100개)
   if (relevantItems.length === 0) {
     return allItems.slice(0, 100);
   }
-  
+
   // 최대 50개로 제한
   return relevantItems.slice(0, 50);
 }
@@ -266,16 +265,19 @@ export async function parseOrderWithGPT(
   const pageType = options?.type || 'wine';
 
   // 1. 전체 품목 리스트 가져오기
-  const allItems = getAllItemsList();
-  
+  let allItems = getAllItemsList();
+  if (allItems.length === 0) {
+    allItems = await getAllItemsListFromDb();
+  }
+
   // 1.5. 관련 품목만 필터링 (2단계 매칭 - 1차 필터링)
   const relevantItems = filterRelevantItems(message, allItems);
-  
+
   // 2. 거래처 입고 이력 가져오기 (clientCode가 있는 경우)
-  const clientHistory = clientCode ? getClientItemHistory(clientCode) : [];
+  const clientHistory = clientCode ? await getClientItemHistory(clientCode) : [];
 
   // 3. 학습된 약어 가져오기
-  const learnedAliases = getLearnedAliases();
+  const learnedAliases = await getLearnedAliases();
 
   // 4. GPT 프롬프트 구성
   const systemPrompt = `당신은 와인/와인잔 발주 메시지를 파싱하는 전문가입니다.
@@ -318,7 +320,7 @@ export async function parseOrderWithGPT(
 - **부분 일치 시**: 브랜드명(메종 로쉬 벨렌) + 품종(샤도네)이 모두 포함되면 매칭 성공
 
 **매칭 예시 (Few-shot Learning):**
-1. 입력: "메종 로쉐 벨렌 샤르도네" 
+1. 입력: "메종 로쉐 벨렌 샤르도네"
    → 매칭: [3020041] 메종 로쉬 벨렌, 부르고뉴 샤도네 "뀌베 리져브"
    → 이유: "로쉐"="로쉬", "샤르도네"="샤도네", 브랜드명 일치
 
@@ -432,7 +434,7 @@ ${relevantItems.map(item => {
     return parsed;
   } catch (error) {
     logger.error('GPT parsing failed', { error, message });
-    
+
     // Fallback: 간단한 규칙 기반 파싱
     return fallbackParse(message);
   }

@@ -1,10 +1,9 @@
-// 가격리스트 Excel 생성기
+// 가격리스트 Excel 생성기 (Supabase)
 // exceljs 사용
 
 import ExcelJS from "exceljs";
 import { getWinesForPriceList } from "@/app/lib/wineDb";
-import { db } from "@/app/lib/db";
-import { ensureWineTables } from "@/app/lib/wineDb";
+import { supabase } from "@/app/lib/db";
 import type { PriceHistoryEntry } from "@/app/types/wine";
 
 const PRIMARY_COLOR = '8B1538';
@@ -12,18 +11,19 @@ const NEW_BG_COLOR = 'FFF3CD';
 const INCREASE_COLOR = 'FFCDD2';
 const DECREASE_COLOR = 'C8E6C9';
 
-function getRecentPriceChanges(): PriceHistoryEntry[] {
-  ensureWineTables();
-  return db.prepare(`
-    SELECT * FROM price_history
-    WHERE detected_at > datetime('now', '-30 days')
-    ORDER BY detected_at DESC
-  `).all() as PriceHistoryEntry[];
+async function getRecentPriceChanges(): Promise<PriceHistoryEntry[]> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from('price_history')
+    .select('*')
+    .gte('detected_at', thirtyDaysAgo)
+    .order('detected_at', { ascending: false });
+  return (data || []) as PriceHistoryEntry[];
 }
 
 export async function generatePriceListExcel(version: 'highlight' | 'clean'): Promise<Buffer> {
-  const wines = getWinesForPriceList();
-  const priceChanges = version === 'highlight' ? getRecentPriceChanges() : [];
+  const wines = await getWinesForPriceList();
+  const priceChanges = version === 'highlight' ? await getRecentPriceChanges() : [];
   const changedCodes = new Set(priceChanges.map((p) => p.item_code));
 
   const wb = new ExcelJS.Workbook();

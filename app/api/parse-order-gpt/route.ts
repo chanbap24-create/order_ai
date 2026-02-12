@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { jsonResponse } from "@/app/lib/api-response";
 import { parseOrderWithGPT } from "@/app/lib/parseOrderWithGPT";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { resolveItemsByClientWeighted } from "@/app/lib/resolveItemsWeighted";
 import { searchNewItem } from "@/app/lib/newItemResolver";
-
-export const runtime = "nodejs";
 
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
@@ -26,7 +24,7 @@ function norm(s: any) {
 /**
  * 거래처 resolve 함수 (기존 로직 유지)
  */
-function resolveClient(clientText: string, forceResolve: boolean) {
+async function resolveClient(clientText: string, forceResolve: boolean) {
   if (!clientText) {
     return {
       status: "needs_review_client",
@@ -36,10 +34,12 @@ function resolveClient(clientText: string, forceResolve: boolean) {
 
   // 1) 거래처 코드 직접 입력 (숫자 5자리)
   if (/^\d{5}$/.test(clientText)) {
-    const directClient = db
-      .prepare(`SELECT client_code, client_name FROM clients WHERE client_code = ?`)
-      .get(clientText) as any;
-    
+    const { data: directClient } = await supabase
+      .from("clients")
+      .select("client_code, client_name")
+      .eq("client_code", clientText)
+      .maybeSingle();
+
     if (directClient) {
       return {
         status: "resolved",
@@ -50,9 +50,11 @@ function resolveClient(clientText: string, forceResolve: boolean) {
     }
   }
 
-  const rows = db
-    .prepare(`SELECT client_code, alias, weight FROM client_alias`)
-    .all() as Array<{ client_code: any; alias: any; weight?: any }>;
+  const { data: aliasRows } = await supabase
+    .from("client_alias")
+    .select("client_code, alias, weight");
+
+  const rows = (aliasRows || []) as Array<{ client_code: any; alias: any; weight?: any }>;
 
   // 2) exact(norm) 매칭
   const exact = rows.find(
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
 
     // Step 1: GPT로 발주 메시지 파싱 (거래처 코드 없이 먼저 시도)
     const gptParsed = await parseOrderWithGPT(message, undefined, { type: pageType as 'wine' | 'glass' });
-    
+
     console.log("\n[GPT 파싱 결과]");
     console.log("- 거래처:", gptParsed.client);
     console.log("- 품목 수:", gptParsed.items.length);
@@ -167,8 +169,8 @@ export async function POST(req: Request) {
     })));
 
     // Step 2: 거래처 확정
-    const clientResolved = resolveClient(gptParsed.client, forceResolve);
-    
+    const clientResolved = await resolveClient(gptParsed.client, forceResolve);
+
     if (clientResolved.status !== "resolved") {
       console.log("\n[거래처 미확정] 사용자 선택 필요");
       return jsonResponse({
@@ -188,7 +190,7 @@ export async function POST(req: Request) {
 
     // Step 3: GPT가 매칭한 품목을 다시 재파싱 (거래처 입고 이력 포함)
     const gptReMatched = await parseOrderWithGPT(message, clientCode, { type: pageType as 'wine' | 'glass' });
-    
+
     console.log("\n[거래처 입고 이력 기반 재매칭]");
     console.log("- High confidence:", gptReMatched.items.filter(i => i.confidence === 'high').length);
     console.log("- Medium confidence:", gptReMatched.items.filter(i => i.confidence === 'medium').length);
@@ -204,22 +206,26 @@ export async function POST(req: Request) {
     }));
 
     // Step 5: 기존 가중치 시스템으로 품목 resolve (GPT 결과와 비교용)
-    const resolvedItems = resolveItemsByClientWeighted(clientCode, parsedItems, {
+    const resolvedItems = await resolveItemsByClientWeighted(clientCode, parsedItems, {
       minScore: 0.55,
       minGap: 0.05,
       topN: 5,
     });
 
     // Step 6: GPT 결과와 기존 시스템 결과 통합
-    const finalItems = resolvedItems.map((item: any, idx: number) => {
+    const finalItems = await Promise.all(resolvedItems.map(async (item: any, idx: number) => {
       const gptItem = gptReMatched.items[idx];
-      
+
       // GPT가 high confidence로 매칭했으면 우선 채택
       if (gptItem?.confidence === 'high' && gptItem.matched_item_no) {
         // GPT 매칭 품번으로 상세 정보 가져오기
-        const itemDetail = db
-          .prepare(`SELECT item_no, item_name FROM client_item_stats WHERE client_code = ? AND item_no = ? LIMIT 1`)
-          .get(clientCode, gptItem.matched_item_no) as any;
+        const { data: itemDetail } = await supabase
+          .from("client_item_stats")
+          .select("item_no, item_name")
+          .eq("client_code", clientCode)
+          .eq("item_no", gptItem.matched_item_no)
+          .limit(1)
+          .maybeSingle();
 
         if (itemDetail) {
           return {
@@ -243,9 +249,13 @@ export async function POST(req: Request) {
 
       // GPT가 매칭한 품목이 suggestions에 없으면 추가
       if (gptItem?.matched_item_no && !suggestions.find((s: any) => s.item_no === gptItem.matched_item_no)) {
-        const gptSuggestion = db
-          .prepare(`SELECT item_no, item_name FROM client_item_stats WHERE client_code = ? AND item_no = ? LIMIT 1`)
-          .get(clientCode, gptItem.matched_item_no) as any;
+        const { data: gptSuggestion } = await supabase
+          .from("client_item_stats")
+          .select("item_no, item_name")
+          .eq("client_code", clientCode)
+          .eq("item_no", gptItem.matched_item_no)
+          .limit(1)
+          .maybeSingle();
 
         if (gptSuggestion) {
           suggestions.unshift({
@@ -265,7 +275,7 @@ export async function POST(req: Request) {
           confidence: gptItem?.confidence,
         },
       };
-    });
+    }));
 
     const hasUnresolved = finalItems.some((x: any) => !x.resolved);
 

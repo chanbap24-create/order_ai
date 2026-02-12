@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
-
-export const runtime = 'nodejs';
 
 const FIELDS = [
   'item_code', 'country', 'region', 'sub_region', 'appellation',
@@ -19,7 +17,12 @@ export async function GET(request: NextRequest) {
     const itemCodesParam = params.get('item_codes');
 
     if (itemCode) {
-      const row = db.prepare('SELECT * FROM wine_profiles WHERE item_code = ?').get(itemCode);
+      const { data: row, error } = await supabase
+        .from('wine_profiles')
+        .select('*')
+        .eq('item_code', itemCode)
+        .maybeSingle();
+      if (error) throw error;
       return NextResponse.json({ success: true, profile: row || null });
     }
 
@@ -29,13 +32,20 @@ export async function GET(request: NextRequest) {
       if (codes.length === 0) {
         return NextResponse.json({ success: true, profiles: [] });
       }
-      const placeholders = codes.map(() => '?').join(',');
-      const rows = db.prepare(`SELECT * FROM wine_profiles WHERE item_code IN (${placeholders})`).all(...codes);
-      return NextResponse.json({ success: true, profiles: rows });
+      const { data: rows, error } = await supabase
+        .from('wine_profiles')
+        .select('*')
+        .in('item_code', codes);
+      if (error) throw error;
+      return NextResponse.json({ success: true, profiles: rows || [] });
     }
 
-    const rows = db.prepare('SELECT * FROM wine_profiles ORDER BY item_code ASC').all();
-    return NextResponse.json({ success: true, profiles: rows, count: rows.length });
+    const { data: rows, error } = await supabase
+      .from('wine_profiles')
+      .select('*')
+      .order('item_code', { ascending: true });
+    if (error) throw error;
+    return NextResponse.json({ success: true, profiles: rows || [], count: (rows || []).length });
   } catch (error) {
     console.error('Wine profiles GET error:', error);
     return NextResponse.json(
@@ -54,15 +64,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'item_code는 필수입니다.' }, { status: 400 });
     }
 
-    const cols = FIELDS.filter(f => body[f] !== undefined);
-    const vals = cols.map(f => body[f] ?? '');
-    const placeholders = cols.map(() => '?').join(',');
+    const record: Record<string, any> = { updated_at: new Date().toISOString() };
+    for (const f of FIELDS) {
+      if (body[f] !== undefined) {
+        record[f] = body[f] ?? '';
+      }
+    }
 
-    db.prepare(
-      `INSERT OR REPLACE INTO wine_profiles (${cols.join(',')}, updated_at) VALUES (${placeholders}, datetime('now'))`
-    ).run(...vals);
+    const { error: upsertError } = await supabase
+      .from('wine_profiles')
+      .upsert(record, { onConflict: 'item_code' });
+    if (upsertError) throw upsertError;
 
-    const row = db.prepare('SELECT * FROM wine_profiles WHERE item_code = ?').get(body.item_code);
+    const { data: row, error: fetchError } = await supabase
+      .from('wine_profiles')
+      .select('*')
+      .eq('item_code', body.item_code)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+
     return NextResponse.json({ success: true, profile: row });
   } catch (error) {
     console.error('Wine profiles POST error:', error);
@@ -82,19 +102,32 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'item_code는 필수입니다.' }, { status: 400 });
     }
 
-    const updates = FIELDS.filter(f => f !== 'item_code' && body[f] !== undefined);
-    if (updates.length === 0) {
+    const updates: Record<string, any> = {};
+    for (const f of FIELDS) {
+      if (f !== 'item_code' && body[f] !== undefined) {
+        updates[f] = body[f] ?? '';
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: '업데이트할 필드가 없습니다.' }, { status: 400 });
     }
 
-    const setClauses = updates.map(f => `${f} = ?`).join(', ');
-    const vals = updates.map(f => body[f] ?? '');
+    updates.updated_at = new Date().toISOString();
 
-    db.prepare(
-      `UPDATE wine_profiles SET ${setClauses}, updated_at = datetime('now') WHERE item_code = ?`
-    ).run(...vals, body.item_code);
+    const { error: updateError } = await supabase
+      .from('wine_profiles')
+      .update(updates)
+      .eq('item_code', body.item_code);
+    if (updateError) throw updateError;
 
-    const row = db.prepare('SELECT * FROM wine_profiles WHERE item_code = ?').get(body.item_code);
+    const { data: row, error: fetchError } = await supabase
+      .from('wine_profiles')
+      .select('*')
+      .eq('item_code', body.item_code)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+
     return NextResponse.json({ success: true, profile: row });
   } catch (error) {
     console.error('Wine profiles PATCH error:', error);
@@ -114,7 +147,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'item_code는 필수입니다.' }, { status: 400 });
     }
 
-    db.prepare('DELETE FROM wine_profiles WHERE item_code = ?').run(itemCode);
+    const { error } = await supabase
+      .from('wine_profiles')
+      .delete()
+      .eq('item_code', itemCode);
+    if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Wine profiles DELETE error:', error);

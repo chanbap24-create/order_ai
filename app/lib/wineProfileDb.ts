@@ -1,67 +1,41 @@
-import { db } from './db';
-
-let initialized = false;
+import { supabase } from './db';
 
 export function ensureWineProfileTable() {
-  if (initialized) return;
-
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS wine_profiles (
-      item_code TEXT PRIMARY KEY,
-      country TEXT DEFAULT '',
-      region TEXT DEFAULT '',
-      sub_region TEXT DEFAULT '',
-      appellation TEXT DEFAULT '',
-      grape_varieties TEXT DEFAULT '',
-      wine_type TEXT DEFAULT '',
-      body TEXT DEFAULT '',
-      sweetness TEXT DEFAULT '',
-      tasting_aroma TEXT DEFAULT '',
-      tasting_palate TEXT DEFAULT '',
-      food_pairing TEXT DEFAULT '',
-      description_kr TEXT DEFAULT '',
-      description_en TEXT DEFAULT '',
-      alcohol TEXT DEFAULT '',
-      serving_temp TEXT DEFAULT '',
-      aging_potential TEXT DEFAULT '',
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
-    )
-  `).run();
-
-  db.prepare('CREATE INDEX IF NOT EXISTS idx_wp_country ON wine_profiles(country)').run();
-  db.prepare('CREATE INDEX IF NOT EXISTS idx_wp_wine_type ON wine_profiles(wine_type)').run();
-  db.prepare('CREATE INDEX IF NOT EXISTS idx_wp_region ON wine_profiles(region)').run();
-
-  // inventory 테이블에서 wine_profiles 자동 seed (country 데이터 활용)
-  try {
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM wine_profiles').get() as { cnt: number }).cnt;
-    if (count === 0) {
-      seedFromInventory();
-    }
-  } catch { /* inventory 테이블이 없을 수 있음 */ }
-
-  initialized = true;
+  // no-op: 테이블은 Supabase migration에서 생성됨
 }
 
-function seedFromInventory() {
+export async function seedFromInventory() {
   // CDV inventory에서 seed
   try {
-    db.prepare(`
-      INSERT OR IGNORE INTO wine_profiles (item_code, country)
-      SELECT item_no, COALESCE(country, '')
-      FROM inventory_cdv
-      WHERE item_no != '' AND item_no IS NOT NULL
-    `).run();
+    const { data: cdvRows } = await supabase
+      .from('inventory_cdv')
+      .select('item_no, country')
+      .not('item_no', 'eq', '')
+      .not('item_no', 'is', null);
+
+    if (cdvRows && cdvRows.length > 0) {
+      const rows = cdvRows.map(r => ({
+        item_code: r.item_no,
+        country: r.country || '',
+      }));
+      await supabase.from('wine_profiles').upsert(rows, { onConflict: 'item_code', ignoreDuplicates: true });
+    }
   } catch { /* 테이블 없으면 무시 */ }
 
   // DL inventory에서 seed
   try {
-    db.prepare(`
-      INSERT OR IGNORE INTO wine_profiles (item_code, country)
-      SELECT item_no, COALESCE(country, '')
-      FROM inventory_dl
-      WHERE item_no != '' AND item_no IS NOT NULL
-    `).run();
+    const { data: dlRows } = await supabase
+      .from('inventory_dl')
+      .select('item_no, country')
+      .not('item_no', 'eq', '')
+      .not('item_no', 'is', null);
+
+    if (dlRows && dlRows.length > 0) {
+      const rows = dlRows.map(r => ({
+        item_code: r.item_no,
+        country: r.country || '',
+      }));
+      await supabase.from('wine_profiles').upsert(rows, { onConflict: 'item_code', ignoreDuplicates: true });
+    }
   } catch { /* 테이블 없으면 무시 */ }
 }

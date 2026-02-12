@@ -1,12 +1,12 @@
 // app/lib/adminUpload.ts
-// 관리자 엑셀 업로드 → DB 교체 로직
+// 관리자 엑셀 업로드 → DB 교체 로직 (Supabase)
 
 import fs from "fs";
 import path from "path";
 import * as XLSX from "xlsx";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
-import { ensureWineTables, getWineByCode } from "@/app/lib/wineDb";
+import { ensureWineTables } from "@/app/lib/wineDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
 
 /* ─── 업로드 파일 저장 경로 ─── */
@@ -177,7 +177,7 @@ function parseDlClientSheet(rows: unknown[][]) {
 
 /* ─── 업로드 처리기들 ─── */
 
-function processClient(buf: Buffer) {
+async function processClient(buf: Buffer) {
   const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
@@ -187,51 +187,40 @@ function processClient(buf: Buffer) {
 
   if (clientMap.size === 0) throw new Error("거래처 데이터가 없습니다. 엑셀 형식을 확인하세요.");
 
-  // 기존 syncFromXlsx.ts와 동일한 테이블/로직 사용
-  db.prepare(`CREATE TABLE IF NOT EXISTS clients (
-    client_code TEXT PRIMARY KEY, client_name TEXT NOT NULL, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-  db.prepare(`CREATE TABLE IF NOT EXISTS client_alias (
-    client_code TEXT NOT NULL, alias TEXT NOT NULL, weight INTEGER DEFAULT 1, PRIMARY KEY (client_code, alias)
-  )`).run();
-  db.prepare(`CREATE TABLE IF NOT EXISTS client_item_stats (
-    client_code TEXT NOT NULL, item_no TEXT NOT NULL, item_name TEXT NOT NULL,
-    supply_price REAL, buy_count INTEGER DEFAULT 0, updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (client_code, item_no)
-  )`).run();
+  // 엑셀 유래 데이터만 삭제 (학습 데이터 보존)
+  await supabase.from('client_item_stats').delete().not('client_code', 'is', null);
+  await supabase.from('clients').delete().not('client_code', 'is', null);
+  await supabase.from('client_alias').delete().gte('weight', 10);
 
-  const upsertClient = db.prepare(`
-    INSERT INTO clients (client_code, client_name, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(client_code) DO UPDATE SET client_name = excluded.client_name, updated_at = CURRENT_TIMESTAMP
-  `);
-  const upsertAlias = db.prepare(`
-    INSERT INTO client_alias (client_code, alias, weight) VALUES (?, ?, 10)
-    ON CONFLICT(client_code, alias) DO UPDATE SET weight = CASE WHEN client_alias.weight < 10 THEN 10 ELSE client_alias.weight END
-  `);
-  const upsertItem = db.prepare(`
-    INSERT INTO client_item_stats (client_code, item_no, item_name, supply_price, buy_count) VALUES (?, ?, ?, ?, 0)
-    ON CONFLICT(client_code, item_no) DO UPDATE SET item_name = excluded.item_name, supply_price = excluded.supply_price
-  `);
+  // Batch upsert clients
+  const clientRows = Array.from(clientMap.entries()).map(([code, name]) => ({
+    client_code: code, client_name: name, updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < clientRows.length; i += 500) {
+    await supabase.from('clients').upsert(clientRows.slice(i, i + 500), { onConflict: 'client_code' });
+  }
 
-  db.transaction(() => {
-    // 엑셀 유래 데이터만 삭제 (학습 데이터 보존)
-    db.prepare("DELETE FROM client_item_stats").run();
-    db.prepare("DELETE FROM clients").run();
-    db.prepare("DELETE FROM client_alias WHERE weight >= 10").run();
+  // Batch upsert aliases
+  const aliasRows = Array.from(clientMap.entries()).map(([code, name]) => ({
+    client_code: code, alias: name, weight: 10,
+  }));
+  for (let i = 0; i < aliasRows.length; i += 500) {
+    await supabase.from('client_alias').upsert(aliasRows.slice(i, i + 500), { onConflict: 'client_code,alias' });
+  }
 
-    for (const [code, name] of clientMap.entries()) {
-      upsertClient.run(code, name);
-      upsertAlias.run(code, name);
-    }
-    for (const v of itemMap.values()) {
-      upsertItem.run(v.client_code, v.item_no, v.item_name, v.supply_price);
-    }
-  })();
+  // Batch upsert items
+  const itemRows = Array.from(itemMap.values()).map(v => ({
+    client_code: v.client_code, item_no: v.item_no, item_name: v.item_name,
+    supply_price: v.supply_price, buy_count: 0,
+  }));
+  for (let i = 0; i < itemRows.length; i += 500) {
+    await supabase.from('client_item_stats').upsert(itemRows.slice(i, i + 500), { onConflict: 'client_code,item_no' });
+  }
 
   return { clients: clientMap.size, items: itemMap.size };
 }
 
-function processDlClient(buf: Buffer) {
+async function processDlClient(buf: Buffer) {
   const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
@@ -241,62 +230,49 @@ function processDlClient(buf: Buffer) {
 
   if (clientMap.size === 0) throw new Error("거래처 데이터가 없습니다. 엑셀 형식을 확인하세요.");
 
-  // 기존 glass 테이블 구조 사용
-  db.prepare(`CREATE TABLE IF NOT EXISTS glass_clients (
-    client_code TEXT PRIMARY KEY, client_name TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-  db.prepare(`CREATE TABLE IF NOT EXISTS glass_client_alias (
-    client_code TEXT NOT NULL, alias TEXT NOT NULL, weight INTEGER DEFAULT 10, PRIMARY KEY (client_code, alias)
-  )`).run();
-  db.prepare(`CREATE TABLE IF NOT EXISTS glass_items (
-    item_no TEXT PRIMARY KEY, item_name TEXT NOT NULL, supply_price REAL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-  db.prepare(`CREATE TABLE IF NOT EXISTS glass_client_item_stats (
-    client_code TEXT NOT NULL, item_no TEXT NOT NULL, item_name TEXT NOT NULL,
-    supply_price REAL DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (client_code, item_no)
-  )`).run();
+  // FK 순서: 자식 테이블 먼저 삭제 (glass_client_item_stats → glass_client_alias → glass_items → glass_clients)
+  await supabase.from('glass_client_item_stats').delete().not('client_code', 'is', null);
+  await supabase.from('glass_client_alias').delete().gte('weight', 10);
+  await supabase.from('glass_items').delete().not('item_no', 'is', null);
+  await supabase.from('glass_clients').delete().not('client_code', 'is', null);
 
-  const upsertClient = db.prepare(`
-    INSERT INTO glass_clients (client_code, client_name) VALUES (?, ?)
-    ON CONFLICT(client_code) DO UPDATE SET client_name = excluded.client_name
-  `);
-  const upsertAlias = db.prepare(`
-    INSERT INTO glass_client_alias (client_code, alias, weight) VALUES (?, ?, 10)
-    ON CONFLICT(client_code, alias) DO UPDATE SET weight = CASE WHEN glass_client_alias.weight < 10 THEN 10 ELSE glass_client_alias.weight END
-  `);
-  const upsertItem = db.prepare(`
-    INSERT INTO glass_items (item_no, item_name, supply_price, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(item_no) DO UPDATE SET item_name = excluded.item_name, supply_price = excluded.supply_price, updated_at = CURRENT_TIMESTAMP
-  `);
-  const upsertClientItem = db.prepare(`
-    INSERT INTO glass_client_item_stats (client_code, item_no, item_name, supply_price, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(client_code, item_no) DO UPDATE SET item_name = excluded.item_name, supply_price = excluded.supply_price, updated_at = CURRENT_TIMESTAMP
-  `);
+  // Batch upsert clients
+  const clientRows = Array.from(clientMap.entries()).map(([code, name]) => ({
+    client_code: code, client_name: name,
+  }));
+  for (let i = 0; i < clientRows.length; i += 500) {
+    await supabase.from('glass_clients').upsert(clientRows.slice(i, i + 500), { onConflict: 'client_code' });
+  }
 
-  db.transaction(() => {
-    // FK 순서: 자식 테이블 먼저 삭제 (glass_client_item_stats → glass_client_alias → glass_items → glass_clients)
-    db.prepare("DELETE FROM glass_client_item_stats").run();
-    db.prepare("DELETE FROM glass_client_alias WHERE weight >= 10").run();
-    db.prepare("DELETE FROM glass_items").run();
-    db.prepare("DELETE FROM glass_clients").run();
+  // Batch upsert aliases
+  const aliasRows = Array.from(clientMap.entries()).map(([code, name]) => ({
+    client_code: code, alias: name, weight: 10,
+  }));
+  for (let i = 0; i < aliasRows.length; i += 500) {
+    await supabase.from('glass_client_alias').upsert(aliasRows.slice(i, i + 500), { onConflict: 'client_code,alias' });
+  }
 
-    for (const [code, name] of clientMap.entries()) {
-      upsertClient.run(code, name);
-      upsertAlias.run(code, name);
-    }
-    for (const [no, name] of itemsMap.entries()) {
-      upsertItem.run(no, name, 0);
-    }
-    for (const item of clientItemsMap.values()) {
-      upsertClientItem.run(item.clientCode, item.itemNo, item.itemName, item.price);
-    }
-  })();
+  // Batch upsert items
+  const itemRows = Array.from(itemsMap.entries()).map(([no, name]) => ({
+    item_no: no, item_name: name, supply_price: 0, updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < itemRows.length; i += 500) {
+    await supabase.from('glass_items').upsert(itemRows.slice(i, i + 500), { onConflict: 'item_no' });
+  }
+
+  // Batch upsert client items
+  const clientItemRows = Array.from(clientItemsMap.values()).map(item => ({
+    client_code: item.clientCode, item_no: item.itemNo, item_name: item.itemName,
+    supply_price: item.price, updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < clientItemRows.length; i += 500) {
+    await supabase.from('glass_client_item_stats').upsert(clientItemRows.slice(i, i + 500), { onConflict: 'client_code,item_no' });
+  }
 
   return { clients: clientMap.size, items: itemsMap.size, clientItems: clientItemsMap.size };
 }
 
-function processRiedel(buf: Buffer) {
+async function processRiedel(buf: Buffer) {
   const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
@@ -314,54 +290,60 @@ function processRiedel(buf: Buffer) {
   }
   if (headerIdx < 0) throw new Error("리델 헤더 행을 찾을 수 없습니다. 'Code' 컬럼이 필요합니다.");
 
-  // 기존 glass_items 테이블에 리델 공급가 업데이트 + 별도 riedel_items 테이블
-  db.prepare(`CREATE TABLE IF NOT EXISTS riedel_items (
-    code TEXT PRIMARY KEY, series TEXT, item_kr TEXT, item_en TEXT,
-    unit INTEGER, supply_price REAL, box_price REAL, note TEXT,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-
-  const insert = db.prepare(`
-    INSERT INTO riedel_items (code, series, item_kr, item_en, unit, supply_price, box_price, note, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `);
-
-  // 리델 공급가를 glass_items에도 반영
-  const updateGlassPrice = db.prepare(`
-    UPDATE glass_items SET supply_price = ?, updated_at = CURRENT_TIMESTAMP WHERE item_no = ?
-  `);
+  // 기존 riedel_items 삭제
+  await supabase.from('riedel_items').delete().not('code', 'is', null);
 
   let count = 0;
   let lastSeries = "";
 
-  db.transaction(() => {
-    db.prepare("DELETE FROM riedel_items").run();
+  const riedelRows: Array<{
+    code: string; series: string; item_kr: string; item_en: string;
+    unit: number | null; supply_price: number | null; box_price: number | null; note: string;
+    updated_at: string;
+  }> = [];
 
-    for (let i = headerIdx + 1; i < rows.length; i++) {
-      const r = (rows[i] || []) as unknown[];
-      const code = normText(r[1]);
-      if (!code) continue;
+  const glassUpdates: Array<{ code: string; supply_price: number }> = [];
 
-      const series = normText(r[0]) || lastSeries;
-      if (normText(r[0])) lastSeries = normText(r[0]);
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const code = normText(r[1]);
+    if (!code) continue;
 
-      const supplyPrice = toNumber(r[5]);
+    const series = normText(r[0]) || lastSeries;
+    if (normText(r[0])) lastSeries = normText(r[0]);
 
-      insert.run(code, series, normText(r[2]), normText(r[3]), toNumber(r[4]), supplyPrice, toNumber(r[6]), normText(r[7]));
+    const supplyPrice = toNumber(r[5]);
 
-      // glass_items에 공급가 반영
-      if (supplyPrice != null) {
-        updateGlassPrice.run(supplyPrice, code);
-      }
+    riedelRows.push({
+      code, series, item_kr: normText(r[2]), item_en: normText(r[3]),
+      unit: toNumber(r[4]), supply_price: supplyPrice, box_price: toNumber(r[6]),
+      note: normText(r[7]), updated_at: new Date().toISOString(),
+    });
 
-      count++;
+    // glass_items에 공급가 반영
+    if (supplyPrice != null) {
+      glassUpdates.push({ code, supply_price: supplyPrice });
     }
-  })();
+
+    count++;
+  }
+
+  // Batch insert riedel_items
+  for (let i = 0; i < riedelRows.length; i += 500) {
+    await supabase.from('riedel_items').insert(riedelRows.slice(i, i + 500));
+  }
+
+  // Update glass_items supply_price one by one (different codes)
+  for (const u of glassUpdates) {
+    await supabase.from('glass_items')
+      .update({ supply_price: u.supply_price, updated_at: new Date().toISOString() })
+      .eq('item_no', u.code);
+  }
 
   return { items: count };
 }
 
-function processDownloads(buf: Buffer) {
+async function processDownloads(buf: Buffer) {
   const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
@@ -372,104 +354,101 @@ function processDownloads(buf: Buffer) {
   // Vercel cold start 시 wines 테이블이 비어있으면 기존 inventory_cdv 데이터로 'active' 기준선 생성
   // 이후 detectNewWines()에서 새 데이터와 비교하여 신규 와인 감지 가능
   try {
-    ensureWineTables();
-    const wineCount = (db.prepare('SELECT COUNT(*) as cnt FROM wines').get() as { cnt: number }).cnt;
-    if (wineCount === 0) {
-      const hasTable = (db.prepare("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='inventory_cdv'").get() as { cnt: number }).cnt;
-      if (hasTable > 0) {
-        const oldItems = db.prepare(`
-          SELECT item_no, item_name, supply_price, available_stock, vintage, alcohol_content as alcohol, country
-          FROM inventory_cdv WHERE item_no IS NOT NULL AND item_no != ''
-        `).all() as Array<{ item_no: string; item_name: string; supply_price: number | null; available_stock: number | null; vintage: string | null; alcohol: string | null; country: string | null }>;
+    ensureWineTables(); // no-op (Supabase migration에서 생성됨)
 
-        if (oldItems.length > 0) {
-          const insertBaseline = db.prepare(`
-            INSERT OR IGNORE INTO wines (item_code, item_name_kr, country, country_en, vintage, alcohol, supply_price, available_stock, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')
-          `);
-          db.transaction(() => {
-            for (const item of oldItems) {
-              const { kr, en } = getCountryPair(item.country || '');
-              insertBaseline.run(item.item_no, item.item_name, kr || item.country, en, item.vintage, item.alcohol, item.supply_price, item.available_stock);
-            }
-          })();
-          logger.info(`[Downloads] Baseline: ${oldItems.length} wines from old inventory_cdv as 'active'`);
+    const { count: wineCount } = await supabase.from('wines').select('*', { count: 'exact', head: true });
+
+    if ((wineCount ?? 0) === 0) {
+      // inventory_cdv 테이블에서 기존 데이터 조회
+      const { data: oldItems, error: oldError } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country')
+        .not('item_no', 'is', null)
+        .neq('item_no', '');
+
+      if (!oldError && oldItems && oldItems.length > 0) {
+        const baselineRows = oldItems.map((item: { item_no: string; item_name: string; supply_price: number | null; available_stock: number | null; vintage: string | null; alcohol_content: string | null; country: string | null }) => {
+          const { kr, en } = getCountryPair(item.country || '');
+          return {
+            item_code: item.item_no,
+            item_name_kr: item.item_name,
+            country: kr || item.country,
+            country_en: en,
+            vintage: item.vintage,
+            alcohol: item.alcohol_content,
+            supply_price: item.supply_price,
+            available_stock: item.available_stock,
+            status: 'active',
+          };
+        });
+
+        // Batch insert baseline wines (INSERT ignore conflicts)
+        for (let i = 0; i < baselineRows.length; i += 500) {
+          await supabase.from('wines').upsert(baselineRows.slice(i, i + 500), {
+            onConflict: 'item_code',
+            ignoreDuplicates: true,
+          });
         }
+        logger.info(`[Downloads] Baseline: ${oldItems.length} wines from old inventory_cdv as 'active'`);
       }
     }
   } catch (e) {
     logger.warn("[Downloads] Baseline setup failed (non-fatal)", { error: e });
   }
 
-  // 기존 inventory_cdv 테이블 사용
-  db.prepare(`CREATE TABLE IF NOT EXISTS inventory_cdv (
-    item_no TEXT PRIMARY KEY, item_name TEXT, supply_price REAL, available_stock REAL,
-    bonded_warehouse REAL, sales_30days REAL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    discount_price REAL, wholesale_price REAL, retail_price REAL, min_price REAL,
-    incoming_stock REAL, vintage TEXT, alcohol_content TEXT, country TEXT
-  )`).run();
+  // 기존 inventory_cdv 삭제
+  await supabase.from('inventory_cdv').delete().not('item_no', 'is', null);
 
-  // items 마스터 테이블도 함께 업데이트
-  db.prepare(`CREATE TABLE IF NOT EXISTS items (
-    item_no TEXT PRIMARY KEY, item_name TEXT, supply_price REAL,
-    category TEXT, updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
-
-  const upsertInventory = db.prepare(`
-    INSERT INTO inventory_cdv (item_no, item_name, supply_price, available_stock, bonded_warehouse,
-      sales_30days, discount_price, wholesale_price, retail_price, min_price, incoming_stock,
-      vintage, alcohol_content, country, updated_at)
-    VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(item_no) DO UPDATE SET
-      item_name = excluded.item_name, supply_price = excluded.supply_price,
-      available_stock = excluded.available_stock, sales_30days = excluded.sales_30days,
-      discount_price = excluded.discount_price, wholesale_price = excluded.wholesale_price,
-      retail_price = excluded.retail_price, min_price = excluded.min_price,
-      vintage = excluded.vintage, alcohol_content = excluded.alcohol_content,
-      country = excluded.country, updated_at = CURRENT_TIMESTAMP
-  `);
-
-  const upsertItem = db.prepare(`
-    INSERT INTO items (item_no, item_name, supply_price, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(item_no) DO UPDATE SET item_name = excluded.item_name, supply_price = excluded.supply_price, updated_at = CURRENT_TIMESTAMP
-  `);
+  const inventoryRows: Array<{
+    item_no: string; item_name: string; supply_price: number | null;
+    available_stock: number | null; bonded_warehouse: number;
+    sales_30days: number | null; discount_price: number | null;
+    wholesale_price: number | null; retail_price: number | null;
+    min_price: number | null; incoming_stock: number;
+    vintage: string; alcohol_content: string; country: string;
+  }> = [];
 
   let count = 0;
 
-  db.transaction(() => {
-    db.prepare("DELETE FROM inventory_cdv").run();
-    db.prepare("DELETE FROM items").run();
+  for (let i = 1; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const item_no = normCode(r[1]);
+    if (!item_no) continue;
 
-    for (let i = 1; i < rows.length; i++) {
-      const r = (rows[i] || []) as unknown[];
-      const item_no = normCode(r[1]);
-      if (!item_no) continue;
+    const item_name = normText(r[2]);
+    const supply_price = toNumber(r[17]);  // R열: 공급가
 
-      const item_name = normText(r[2]);
-      const supply_price = toNumber(r[15]);
+    inventoryRows.push({
+      item_no, item_name, supply_price,
+      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
+      bonded_warehouse: toNumber(r[23]),    // X열: 보세(용마)
+      sales_30days: toNumber(r[14]),        // O열: 30일출고
+      discount_price: toNumber(r[19]),      // T열: 할인공급가
+      wholesale_price: toNumber(r[20]),     // U열: 도매장가
+      retail_price: toNumber(r[18]),        // S열: 판매가
+      min_price: toNumber(r[21]),           // V열: 최저판매가
+      incoming_stock: toNumber(r[22]),      // W열: 미착품재고
+      vintage: normText(r[6]),              // G열: 빈티지
+      alcohol_content: normText(r[7]),      // H열: 알콜도수%
+      country: normText(r[8]),              // I열: 국가
+    });
 
-      upsertInventory.run(
-        item_no, item_name, supply_price,
-        toNumber(r[11]), // available_stock
-        toNumber(r[12]), // sales_30days
-        toNumber(r[16]), // discount_price
-        toNumber(r[17]), // wholesale_price
-        toNumber(r[18]), // retail_price
-        toNumber(r[19]), // min_price
-        normText(r[6]),  // vintage
-        normText(r[7]),  // alcohol
-        normText(r[8])   // country
-      );
+    count++;
+  }
 
-      upsertItem.run(item_no, item_name, supply_price);
-      count++;
+  // Batch upsert inventory_cdv
+  for (let i = 0; i < inventoryRows.length; i += 500) {
+    const { error } = await supabase.from('inventory_cdv').upsert(inventoryRows.slice(i, i + 500), { onConflict: 'item_no' });
+    if (error) {
+      logger.error(`[Downloads] inventory_cdv upsert error at batch ${i}`, { error });
+      throw new Error(`inventory_cdv upsert failed: ${error.message}`);
     }
-  })();
+  }
 
   return { items: count };
 }
 
-function processDl(buf: Buffer) {
+async function processDl(buf: Buffer) {
   const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
@@ -478,52 +457,46 @@ function processDl(buf: Buffer) {
   // 동일 구조: 열1, 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
   //   국가(8), ... 공급가(15)
 
-  // 기존 inventory_dl 테이블 사용
-  db.prepare(`CREATE TABLE IF NOT EXISTS inventory_dl (
-    item_no TEXT PRIMARY KEY, item_name TEXT, supply_price REAL, available_stock REAL,
-    anseong_warehouse REAL, sales_30days REAL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    vintage TEXT, alcohol_content TEXT, country TEXT
-  )`).run();
+  // 기존 inventory_dl 삭제
+  await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
 
-  const upsert = db.prepare(`
-    INSERT INTO inventory_dl (item_no, item_name, supply_price, available_stock, anseong_warehouse,
-      sales_30days, vintage, alcohol_content, country, updated_at)
-    VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(item_no) DO UPDATE SET
-      item_name = excluded.item_name, supply_price = excluded.supply_price,
-      available_stock = excluded.available_stock, sales_30days = excluded.sales_30days,
-      vintage = excluded.vintage, alcohol_content = excluded.alcohol_content,
-      country = excluded.country, updated_at = CURRENT_TIMESTAMP
-  `);
+  const dlRows: Array<{
+    item_no: string; item_name: string; supply_price: number | null;
+    available_stock: number | null; anseong_warehouse: number;
+    sales_30days: number | null; vintage: string; alcohol_content: string;
+    country: string;
+  }> = [];
 
   let count = 0;
 
-  db.transaction(() => {
-    db.prepare("DELETE FROM inventory_dl").run();
+  for (let i = 1; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const item_no = normCode(r[1]);
+    if (!item_no) continue;
 
-    for (let i = 1; i < rows.length; i++) {
-      const r = (rows[i] || []) as unknown[];
-      const item_no = normCode(r[1]);
-      if (!item_no) continue;
+    dlRows.push({
+      item_no,
+      item_name: normText(r[2]),
+      supply_price: toNumber(r[17]),       // R열: 공급가
+      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
+      anseong_warehouse: 0,
+      sales_30days: toNumber(r[14]),        // O열: 30일출고
+      vintage: normText(r[6]),
+      alcohol_content: normText(r[7]),
+      country: normText(r[8]),
+    });
+    count++;
+  }
 
-      upsert.run(
-        item_no,
-        normText(r[2]),  // item_name
-        toNumber(r[15]), // supply_price
-        toNumber(r[11]), // available_stock
-        toNumber(r[12]), // sales_30days
-        normText(r[6]),  // vintage
-        normText(r[7]),  // alcohol
-        normText(r[8])   // country
-      );
-      count++;
-    }
-  })();
+  // Batch upsert inventory_dl
+  for (let i = 0; i < dlRows.length; i += 500) {
+    await supabase.from('inventory_dl').upsert(dlRows.slice(i, i + 500), { onConflict: 'item_no' });
+  }
 
   return { items: count };
 }
 
-function processEnglish(buf: Buffer) {
+async function processEnglish(buf: Buffer) {
   const wb = XLSX.read(buf, { type: "buffer", cellDates: true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
@@ -547,52 +520,51 @@ function processEnglish(buf: Buffer) {
   // 7=wine_name_en, 8=wine_name_kr, 9=vintage, 10=ml, 11=supply_price,
   // 12=supplier_name, 13=stock, 14=bonded
 
-  db.prepare(`CREATE TABLE IF NOT EXISTS wine_list_english (
-    item_no TEXT PRIMARY KEY, country TEXT, supplier TEXT, region TEXT,
-    wine_name_en TEXT, wine_name_kr TEXT, vintage TEXT, ml INTEGER,
-    supply_price REAL, supplier_name TEXT, stock INTEGER, bonded INTEGER,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-  )`).run();
+  // 기존 wine_list_english 삭제
+  await supabase.from('wine_list_english').delete().not('item_no', 'is', null);
 
-  const insert = db.prepare(`
-    INSERT INTO wine_list_english (item_no, country, supplier, region, wine_name_en, wine_name_kr,
-      vintage, ml, supply_price, supplier_name, stock, bonded, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-  `);
+  const englishRows: Array<{
+    item_no: string; country: string; supplier: string; region: string;
+    wine_name_en: string; wine_name_kr: string; vintage: string;
+    ml: number | null; supply_price: number | null; supplier_name: string;
+    stock: number | null; bonded: number | null; updated_at: string;
+  }> = [];
 
   let count = 0;
 
-  db.transaction(() => {
-    db.prepare("DELETE FROM wine_list_english").run();
+  for (let i = dataStart; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const item_no = normCode(r[1]);
+    if (!item_no) continue;
 
-    for (let i = dataStart; i < rows.length; i++) {
-      const r = (rows[i] || []) as unknown[];
-      const item_no = normCode(r[1]);
-      if (!item_no) continue;
+    englishRows.push({
+      item_no,
+      country: normText(r[3]),
+      supplier: normText(r[4]),
+      region: normText(r[5]),
+      wine_name_en: normText(r[7]),
+      wine_name_kr: normText(r[8]),
+      vintage: normText(r[9]),
+      ml: toNumber(r[10]),
+      supply_price: toNumber(r[11]),
+      supplier_name: normText(r[12]),
+      stock: toNumber(r[13]),
+      bonded: toNumber(r[14]),
+      updated_at: new Date().toISOString(),
+    });
+    count++;
+  }
 
-      insert.run(
-        item_no,
-        normText(r[3]),  // country
-        normText(r[4]),  // supplier
-        normText(r[5]),  // region
-        normText(r[7]),  // wine_name_en
-        normText(r[8]),  // wine_name_kr
-        normText(r[9]),  // vintage
-        toNumber(r[10]), // ml
-        toNumber(r[11]), // supply_price
-        normText(r[12]), // supplier_name
-        toNumber(r[13]), // stock
-        toNumber(r[14])  // bonded
-      );
-      count++;
-    }
-  })();
+  // Batch insert wine_list_english
+  for (let i = 0; i < englishRows.length; i += 500) {
+    await supabase.from('wine_list_english').insert(englishRows.slice(i, i + 500));
+  }
 
   return { items: count };
 }
 
 /* ─── 메인 처리 함수 ─── */
-export function processUpload(type: UploadType, fileBuffer: Buffer) {
+export async function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);
 
   // 업로드 파일을 /tmp에 저장 (동기화 시 최신 파일 사용 가능)
@@ -600,17 +572,17 @@ export function processUpload(type: UploadType, fileBuffer: Buffer) {
 
   switch (type) {
     case "client":
-      return processClient(fileBuffer);
+      return await processClient(fileBuffer);
     case "dl-client":
-      return processDlClient(fileBuffer);
+      return await processDlClient(fileBuffer);
     case "riedel":
-      return processRiedel(fileBuffer);
+      return await processRiedel(fileBuffer);
     case "downloads":
-      return processDownloads(fileBuffer);
+      return await processDownloads(fileBuffer);
     case "dl":
-      return processDl(fileBuffer);
+      return await processDl(fileBuffer);
     case "english":
-      return processEnglish(fileBuffer);
+      return await processEnglish(fileBuffer);
     default:
       throw new Error(`지원하지 않는 업로드 타입: ${type}`);
   }

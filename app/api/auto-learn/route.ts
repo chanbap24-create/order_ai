@@ -10,8 +10,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { learnFromSelection } from "@/app/lib/autoLearn";
 
-export const runtime = "nodejs";
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
     
     // 자동 학습 실행
-    const result = learnFromSelection({
+    const result = await learnFromSelection({
       query,
       selectedItem: {
         item_no: selectedItem.item_no,

@@ -64,6 +64,7 @@ COLORS = {
 }
 
 FONT_MAIN = '맑은 고딕'
+FONT_EN = 'Georgia'        # 영문 세리프 (와인명 영문, 라벨, 와이너리)
 
 # 슬라이드 크기 (인치) - 세로 A4
 SLIDE_W = 7.5
@@ -213,18 +214,57 @@ def add_label_badge(slide, text, x, y, w, h=0.22):
     return shape
 
 
+def crop_whitespace(img):
+    """이미지 여백(투명/흰색) 제거"""
+    from PIL import ImageOps
+
+    if img.mode != 'RGBA':
+        img = img.convert('RGBA')
+
+    w, h = img.size
+    alpha = img.split()[3]
+    amin, _ = alpha.getextrema()
+
+    # 투명 배경 이미지: 알파 채널 기준 크롭
+    if amin < 128:
+        bbox = alpha.getbbox()
+        if bbox:
+            cw, ch = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            if cw < w * 0.95 or ch < h * 0.95:
+                pad = max(3, min(w, h) // 80)
+                bbox = (max(0, bbox[0] - pad), max(0, bbox[1] - pad),
+                        min(w, bbox[2] + pad), min(h, bbox[3] + pad))
+                return img.crop(bbox)
+        return img
+
+    # 불투명 이미지: 밝기 기준 크롭
+    gray = img.convert('L')
+    inv = ImageOps.invert(gray)
+    bw = inv.point(lambda x: 255 if x > 25 else 0)
+    bbox = bw.getbbox()
+    if bbox:
+        cw, ch = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        if cw < w * 0.95 or ch < h * 0.95:
+            pad = max(3, min(w, h) // 80)
+            bbox = (max(0, bbox[0] - pad), max(0, bbox[1] - pad),
+                    min(w, bbox[2] + pad), min(h, bbox[3] + pad))
+            return img.crop(bbox)
+
+    return img
+
+
 def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     """단일 와인 테이스팅 노트 슬라이드 생성"""
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
     # ════════════════════════════════════════════
-    # 1. 배경: 따뜻한 크림색
+    # 1. 배경: 흰색
     # ════════════════════════════════════════════
     bg = slide.background
     fill = bg.fill
     fill.solid()
-    fill.fore_color.rgb = COLORS['BG_CREAM']
+    fill.fore_color.rgb = COLORS['WHITE']
 
     # 2. 좌측 병 영역 배경 패널
     add_rect(slide, 0, 0.90, 2.10, 8.10,
@@ -250,7 +290,8 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         if tagline:
             add_textbox(slide, 1.76, 0.20, 5.20, 0.24,
                         text=tagline, font_size=9,
-                        color=COLORS['TEXT_MUTED'], italic=True)
+                        color=COLORS['TEXT_MUTED'], italic=True,
+                        font_name=FONT_EN)
 
     # 4-5. 헤더 구분선 (버건디 + 골드 이중선)
     add_line(slide, 0.20, 0.84, 7.10, COLORS['BURGUNDY'], 1.0)
@@ -285,14 +326,14 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     p_kr.font.bold = True
     p_kr.alignment = PP_ALIGN.LEFT
 
-    # 영문명 paragraph
+    # 영문명 paragraph (Georgia Italic)
     if name_en:
         p_en = tf.add_paragraph()
         p_en.text = name_en
         p_en.font.size = Pt(10.5)
-        p_en.font.name = FONT_MAIN
+        p_en.font.name = FONT_EN
         p_en.font.color.rgb = COLORS['TEXT_SECONDARY']
-        p_en.font.bold = True
+        p_en.font.bold = False
         p_en.font.italic = True
         p_en.alignment = PP_ALIGN.LEFT
         p_en.space_before = Pt(2)
@@ -366,7 +407,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         ('Nose', data.get('noseNote', '')),
         ('Palate', data.get('palateNote', '')),
         ('Potential', data.get('agingPotential', '')),
-        ('Serving', data.get('servingTemp', '')),
+        # ('Serving', data.get('servingTemp', '')),  # 제외
     ]
 
     txBox = slide.shapes.add_textbox(inches(2.15), inches(5.62), inches(5.00), inches(2.32))
@@ -384,13 +425,14 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
             p = tf.add_paragraph()
             p.space_before = Pt(6)
 
-        # Label run (bold, burgundy)
+        # Label run (Georgia Italic, burgundy)
         run_label = p.add_run()
         run_label.text = label
         run_label.font.size = Pt(8.5)
-        run_label.font.name = FONT_MAIN
+        run_label.font.name = FONT_EN
         run_label.font.color.rgb = COLORS['BURGUNDY']
-        run_label.font.bold = True
+        run_label.font.bold = False
+        run_label.font.italic = True
 
         # Value run
         run_value = p.add_run()
@@ -492,31 +534,47 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     bottle_path = data.get('bottleImagePath', '')
     if bottle_path and os.path.exists(bottle_path):
         try:
-            # Pillow로 이미지 전처리 (팔레트 PNG → RGBA 변환)
             from PIL import Image
             img = Image.open(bottle_path)
 
-            # 팔레트(P) 모드 이미지 → RGBA로 변환 (PowerPoint 호환성)
+            # 팔레트(P) 모드 이미지 → RGBA로 변환
             if img.mode in ('P', 'PA'):
                 img = img.convert('RGBA')
-            elif img.mode == 'L':
-                img = img.convert('RGB')
+            elif img.mode in ('L', 'RGB'):
+                img = img.convert('RGBA')
 
-            # 임시 파일로 저장 (변환된 이미지)
+            # 여백 크롭
+            img = crop_whitespace(img)
+
             converted_path = bottle_path + '_converted.png'
             img.save(converted_path, 'PNG')
+
+            # 비율 보정하여 영역에 맞추기
+            area_w = 1.60
+            area_h = 5.50
+            area_x = 0.25
+            area_y = 2.00
+
+            iw, ih = img.size
             img.close()
 
-            img_w = 1.50
-            img_h = 5.80
-            img_x = 0.30
-            img_y = 2.20
+            ratio = iw / ih
+            ar = area_w / area_h
+
+            if ratio > ar:
+                fw = area_w
+                fh = area_w / ratio
+            else:
+                fh = area_h
+                fw = area_h * ratio
+
+            ox = area_x + (area_w - fw) / 2
+            oy = area_y + (area_h - fh) * 0.3
 
             slide.shapes.add_picture(converted_path,
-                                     inches(img_x), inches(img_y),
-                                     inches(img_w), inches(img_h))
+                                     inches(ox), inches(oy),
+                                     inches(fw), inches(fh))
 
-            # 변환 파일 삭제
             try:
                 os.remove(converted_path)
             except Exception:

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
 import { loadMasterSheet } from '@/app/lib/masterSheet';
-
-export const runtime = 'nodejs';
 
 // ── 유틸: 품목코드에서 빈티지 추출 ──
 // item_code[2:4]가 빈티지. 예: 0018801→18→2018, 2019416→19→2019, 00NV801→NV
@@ -33,8 +31,14 @@ function removePrefix(name: string): string {
 export async function GET() {
   try {
     ensureQuoteTable();
-    const items = db.prepare('SELECT * FROM quote_items ORDER BY id ASC').all();
-    return NextResponse.json({ success: true, items });
+    const { data: items, error } = await supabase
+      .from('quote_items')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, items: items || [] });
   } catch (error) {
     console.error('Quote GET error:', error);
     return NextResponse.json(
@@ -104,37 +108,43 @@ export async function POST(req: Request) {
 
     // 동일 item_code가 이미 있으면 수량 합산
     if (item_code) {
-      const existing = db.prepare(
-        'SELECT id, quantity FROM quote_items WHERE item_code = ?'
-      ).get(item_code) as { id: number; quantity: number } | undefined;
+      const { data: existing } = await supabase
+        .from('quote_items')
+        .select('id, quantity')
+        .eq('item_code', item_code)
+        .maybeSingle();
 
       if (existing) {
         const newQty = existing.quantity + qty;
-        db.prepare(
-          "UPDATE quote_items SET quantity = ?, updated_at = datetime('now') WHERE id = ?"
-        ).run(newQty, existing.id);
+        await supabase
+          .from('quote_items')
+          .update({ quantity: newQty, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
 
-        const updated = db.prepare('SELECT * FROM quote_items WHERE id = ?').get(existing.id);
+        const { data: updated } = await supabase
+          .from('quote_items')
+          .select('*')
+          .eq('id', existing.id)
+          .maybeSingle();
+
         return NextResponse.json({ success: true, item: updated, merged: true });
       }
     }
 
-    const result = db.prepare(`
-      INSERT INTO quote_items (
+    const { data: inserted, error: insertError } = await supabase
+      .from('quote_items')
+      .insert({
         item_code, country, brand, region, image_url, vintage,
         product_name, english_name, korean_name,
-        supply_price, retail_price, discount_rate, discounted_price,
-        quantity, note, tasting_note
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      item_code, country, brand, region, image_url, vintage,
-      product_name, english_name, korean_name,
-      price, rPrice, rate, discounted_price,
-      qty, note, tasting_note
-    );
+        supply_price: price, retail_price: rPrice, discount_rate: rate, discounted_price,
+        quantity: qty, note, tasting_note
+      })
+      .select()
+      .single();
 
-    const item = db.prepare('SELECT * FROM quote_items WHERE id = ?').get(result.lastInsertRowid);
-    return NextResponse.json({ success: true, item });
+    if (insertError) throw insertError;
+
+    return NextResponse.json({ success: true, item: inserted });
 
   } catch (error) {
     console.error('Quote POST error:', error);
@@ -155,7 +165,12 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'id가 필요합니다.' }, { status: 400 });
     }
 
-    const existing = db.prepare('SELECT * FROM quote_items WHERE id = ?').get(id) as any;
+    const { data: existing } = await supabase
+      .from('quote_items')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
     if (!existing) {
       return NextResponse.json({ error: '항목을 찾을 수 없습니다.' }, { status: 404 });
     }
@@ -166,17 +181,14 @@ export async function PATCH(req: Request) {
       'supply_price', 'retail_price', 'discount_rate', 'quantity', 'note', 'tasting_note'
     ];
 
-    const updates: string[] = [];
-    const values: any[] = [];
-
+    const updateData: Record<string, any> = {};
     for (const field of allowedFields) {
       if (field in fields) {
-        updates.push(`${field} = ?`);
-        values.push(fields[field]);
+        updateData[field] = fields[field];
       }
     }
 
-    if (updates.length === 0) {
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: '수정할 필드가 없습니다.' }, { status: 400 });
     }
 
@@ -184,15 +196,20 @@ export async function PATCH(req: Request) {
     const newPrice = 'supply_price' in fields ? Number(fields.supply_price) : existing.supply_price;
     const newRate = 'discount_rate' in fields ? Number(fields.discount_rate) : existing.discount_rate;
     const discounted = Math.round(newPrice * (1 - newRate));
-    updates.push('discounted_price = ?');
-    values.push(discounted);
+    updateData.discounted_price = discounted;
+    updateData.updated_at = new Date().toISOString();
 
-    updates.push("updated_at = datetime('now')");
-    values.push(id);
+    await supabase
+      .from('quote_items')
+      .update(updateData)
+      .eq('id', id);
 
-    db.prepare(`UPDATE quote_items SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+    const { data: updated } = await supabase
+      .from('quote_items')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
 
-    const updated = db.prepare('SELECT * FROM quote_items WHERE id = ?').get(id);
     return NextResponse.json({ success: true, item: updated });
 
   } catch (error) {
@@ -223,9 +240,15 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'id가 필요합니다.' }, { status: 400 });
     }
 
-    const result = db.prepare('DELETE FROM quote_items WHERE id = ?').run(id);
+    const { data, error } = await supabase
+      .from('quote_items')
+      .delete()
+      .eq('id', id)
+      .select();
 
-    if (result.changes === 0) {
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
       return NextResponse.json({ error: '항목을 찾을 수 없습니다.' }, { status: 404 });
     }
 

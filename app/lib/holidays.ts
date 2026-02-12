@@ -1,25 +1,7 @@
-// app/lib/holidays.ts
-import { db } from "@/app/lib/db";
+// app/lib/holidays.ts (Supabase)
+import { supabase } from "@/app/lib/db";
 
 type HolidayRow = { ymd: string };
-
-function ensureHolidayTable() {
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS holidays (
-      ymd TEXT PRIMARY KEY,          -- "YYYY-MM-DD"
-      name TEXT,
-      year INTEGER,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
-
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS holiday_meta (
-      year INTEGER PRIMARY KEY,
-      fetched_at TEXT
-    )
-  `).run();
-}
 
 function ymdKST(d: Date) {
   const kst = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -35,7 +17,6 @@ function todayKST() {
 
 function isMetaFresh(fetchedAt: string | null | undefined) {
   if (!fetchedAt) return false;
-  // fetched_at이 오늘(KST)이면 fresh로 간주
   const f = fetchedAt.slice(0, 10);
   return f === todayKST();
 }
@@ -50,14 +31,11 @@ async function fetchHolidaysFromApi(year: number): Promise<Array<{ ymd: string; 
   const key = process.env.DATA_GO_KR_SERVICE_KEY;
   if (!key) throw new Error("DATA_GO_KR_SERVICE_KEY missing in .env.local");
 
-  // 공공데이터 API는 보통 월별로 많이 씀. (1~12월)
   const out: Array<{ ymd: string; name: string }> = [];
 
   for (let month = 1; month <= 12; month++) {
     const m = String(month).padStart(2, "0");
 
-    // NOTE: endpoint는 사용 중인 서비스키/형식에 따라 다를 수 있음.
-    // 여기서는 json 응답 가정. (dev에서 응답 확인 후 필요 시 조정)
     const url =
       `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo` +
       `?serviceKey=${encodeURIComponent(key)}` +
@@ -70,13 +48,12 @@ async function fetchHolidaysFromApi(year: number): Promise<Array<{ ymd: string; 
 
     const json: any = await res.json();
 
-    // items가 단일 객체 or 배열일 수 있음
     const items = json?.response?.body?.items?.item;
     if (!items) continue;
 
     const arr = Array.isArray(items) ? items : [items];
     for (const it of arr) {
-      const locdate = String(it?.locdate || ""); // 예: "20251225"
+      const locdate = String(it?.locdate || "");
       const dateName = String(it?.dateName || "");
       if (locdate.length === 8) {
         const ymd = `${locdate.slice(0, 4)}-${locdate.slice(4, 6)}-${locdate.slice(6, 8)}`;
@@ -85,7 +62,6 @@ async function fetchHolidaysFromApi(year: number): Promise<Array<{ ymd: string; 
     }
   }
 
-  // 중복 제거
   const uniq = new Map<string, string>();
   for (const h of out) {
     if (!uniq.has(h.ymd)) uniq.set(h.ymd, h.name);
@@ -95,80 +71,74 @@ async function fetchHolidaysFromApi(year: number): Promise<Array<{ ymd: string; 
 }
 
 /** ------------------ DB에 캐시 저장/갱신 ------------------ */
-function loadSetFromDb(year: number) {
-  ensureHolidayTable();
+async function loadSetFromDb(year: number) {
+  const { data } = await supabase
+    .from('holidays')
+    .select('ymd')
+    .eq('year', year);
 
-  const rows = db
-    .prepare(`SELECT ymd FROM holidays WHERE year = ?`)
-    .all(year) as HolidayRow[];
-
-  return new Set(rows.map((r) => r.ymd));
+  return new Set((data || []).map((r: any) => r.ymd));
 }
 
-function getMeta(year: number) {
-  ensureHolidayTable();
-  return db
-    .prepare(`SELECT fetched_at FROM holiday_meta WHERE year = ?`)
-    .get(year) as { fetched_at?: string } | undefined;
+async function getMeta(year: number) {
+  const { data } = await supabase
+    .from('holiday_meta')
+    .select('fetched_at')
+    .eq('year', year)
+    .maybeSingle();
+  return data as { fetched_at?: string } | undefined;
 }
 
-function setMeta(year: number) {
-  ensureHolidayTable();
-  db.prepare(
-    `INSERT INTO holiday_meta(year, fetched_at)
-     VALUES (?, CURRENT_TIMESTAMP)
-     ON CONFLICT(year) DO UPDATE SET fetched_at = CURRENT_TIMESTAMP`
-  ).run(year);
+async function setMeta(year: number) {
+  await supabase
+    .from('holiday_meta')
+    .upsert({ year, fetched_at: new Date().toISOString() }, { onConflict: 'year' });
 }
 
-function upsertHolidays(year: number, list: Array<{ ymd: string; name: string }>) {
-  ensureHolidayTable();
+async function upsertHolidays(year: number, list: Array<{ ymd: string; name: string }>) {
+  await supabase.from('holidays').delete().eq('year', year);
 
-  const del = db.prepare(`DELETE FROM holidays WHERE year = ?`);
-  del.run(year);
+  if (list.length > 0) {
+    const rows = list.map(h => ({ ymd: h.ymd, name: h.name, year }));
+    for (let i = 0; i < rows.length; i += 500) {
+      await supabase.from('holidays').insert(rows.slice(i, i + 500));
+    }
+  }
 
-  const ins = db.prepare(`INSERT INTO holidays(ymd, name, year) VALUES (?, ?, ?)`);
-  const tx = db.transaction(() => {
-    for (const h of list) ins.run(h.ymd, h.name, year);
-  });
-  tx();
-
-  setMeta(year);
+  await setMeta(year);
 }
 
 /** ------------------ 공개 API → (1일 TTL) 캐시 보장 ------------------ */
 export async function ensureHolidayCache(year?: number) {
   const y = year ?? new Date().getFullYear();
-  ensureHolidayTable();
 
   // 1) 메모리 캐시가 있고, 오늘 fetched이면 그대로 사용
   if (memYear === y && memSet && isMetaFresh(memFetchedAt || "")) return;
 
   // 2) DB 메타 확인
-  const meta = getMeta(y);
+  const meta = await getMeta(y);
   const fetchedAt = meta?.fetched_at;
 
   if (isMetaFresh(fetchedAt)) {
-    // DB가 오늘 기준 최신 → DB에서 Set 로드 → 메모리에 올림
     memYear = y;
-    memSet = loadSetFromDb(y);
+    memSet = await loadSetFromDb(y);
     memFetchedAt = fetchedAt || null;
     return;
   }
 
   // 3) DB가 오래됨 → API 호출 → DB 저장 → 메모리 Set 구성
   const list = await fetchHolidaysFromApi(y);
-  upsertHolidays(y, list);
+  await upsertHolidays(y, list);
 
   memYear = y;
   memSet = new Set(list.map((x) => x.ymd));
-  memFetchedAt = todayKST(); // 오늘로 마킹
+  memFetchedAt = todayKST();
 }
 
 export async function isHolidayKST(d: Date) {
   const y = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Seoul" })).getFullYear();
   await ensureHolidayCache(y);
 
-  const set = memSet ?? loadSetFromDb(y);
+  const set = memSet ?? await loadSetFromDb(y);
   return set.has(ymdKST(d));
 }

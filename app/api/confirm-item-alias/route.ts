@@ -1,9 +1,7 @@
 // app/api/confirm-item-alias/route.ts
 import { NextResponse } from "next/server";
 import { jsonResponse } from "@/app/lib/api-response";
-import { db } from "@/app/lib/db";
-
-export const runtime = "nodejs";
+import { supabase } from "@/app/lib/db";
 
 function normAlias(s: any) {
   return String(s || "")
@@ -30,26 +28,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 테이블 없으면 자동 생성
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS item_alias (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        alias TEXT NOT NULL,
-        item_no TEXT NOT NULL,
-        item_name TEXT,
-        client_code TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE INDEX IF NOT EXISTS idx_item_alias_alias ON item_alias(alias);
-      CREATE INDEX IF NOT EXISTS idx_item_alias_client ON item_alias(client_code);
-    `);
+    // Supabase에 item_alias 테이블이 이미 존재한다고 가정 (DDL은 Supabase 대시보드에서 관리)
 
-    db.prepare(
-      `
-      INSERT INTO item_alias(alias, item_no, item_name, client_code)
-      VALUES(?, ?, ?, ?)
-      `
-    ).run(alias, item_no, item_name, client_code);
+    const { error } = await supabase.from("item_alias").insert({
+      alias,
+      item_no,
+      item_name,
+      client_code,
+      created_at: new Date().toISOString(),
+    });
+
+    if (error) throw error;
 
     return jsonResponse({ success: true });
   } catch (e: any) {

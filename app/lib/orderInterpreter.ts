@@ -1,5 +1,5 @@
 // app/lib/orderInterpreter.ts
-import { db } from "./db";
+import { supabase } from "./db";
 import { config } from "./config";
 import { logger } from "./logger";
 import { getAllItemsList } from "./parseOrderWithGPT";
@@ -49,21 +49,18 @@ interface AliasMap {
 /**
  * Alias 매핑 가져오기
  */
-function getAliasMap(): AliasMap {
+async function getAliasMap(): Promise<AliasMap> {
   try {
-    const aliases = db
-      .prepare(`
-        SELECT alias, canonical 
-        FROM item_alias 
-        ORDER BY count DESC
-      `)
-      .all() as Array<{ alias: string; canonical: string }>;
-    
+    const { data: aliases } = await supabase
+      .from('item_alias')
+      .select('alias, canonical')
+      .order('count', { ascending: false });
+
     const map: AliasMap = {};
-    for (const { alias, canonical } of aliases) {
+    for (const { alias, canonical } of (aliases || [])) {
       map[alias.toLowerCase()] = canonical;
     }
-    
+
     return map;
   } catch (error) {
     logger.error('Failed to load alias map', { error });
@@ -74,24 +71,22 @@ function getAliasMap(): AliasMap {
 /**
  * 거래처 히스토리 가져오기
  */
-function getClientHistory(clientCode: string): ClientHistory[] {
+async function getClientHistory(clientCode: string): Promise<ClientHistory[]> {
   try {
-    const history = db
-      .prepare(`
-        SELECT 
-          item_no,
-          item_name,
-          COUNT(*) as purchase_count,
-          MAX(updated_at) as last_purchase
-        FROM client_item_stats
-        WHERE client_code = ?
-        GROUP BY item_no, item_name
-        ORDER BY purchase_count DESC, last_purchase DESC
-        LIMIT 50
-      `)
-      .all(clientCode) as ClientHistory[];
-    
-    return history;
+    const { data } = await supabase
+      .from('client_item_stats')
+      .select('item_no, item_name, buy_count, updated_at')
+      .eq('client_code', clientCode)
+      .order('buy_count', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .limit(50);
+
+    return (data || []).map((r: any) => ({
+      item_no: r.item_no,
+      item_name: r.item_name,
+      purchase_count: r.buy_count || 0,
+      last_purchase: r.updated_at || '',
+    }));
   } catch (error) {
     logger.error('Failed to load client history', { error, clientCode });
     return [];
@@ -103,10 +98,10 @@ function getClientHistory(clientCode: string): ClientHistory[] {
  */
 function filterRelevantItems(message: string, allItems: { item_no: string; name_en: string; name_kr: string }[]): { item_no: string; name_en: string; name_kr: string }[] {
   const messageLower = message.toLowerCase();
-  
+
   // 메시지에서 주요 키워드 추출
   const keywords: string[] = [];
-  
+
   // 브랜드명 패턴
   const brandPatterns = [
     /메종\s*로쉬?\s*벨렌/,
@@ -115,14 +110,14 @@ function filterRelevantItems(message: string, allItems: { item_no: string; name_
     /샤토/,
     /도멘/,
   ];
-  
+
   for (const pattern of brandPatterns) {
     const match = messageLower.match(pattern);
     if (match) {
       keywords.push(match[0].replace(/\s+/g, ''));
     }
   }
-  
+
   // 품종명 패턴
   const varietalPatterns = [
     /샤르?도네|chardonnay/i,
@@ -130,36 +125,36 @@ function filterRelevantItems(message: string, allItems: { item_no: string; name_
     /까?베르네|cabernet/i,
     /메를?로|merlot/i,
   ];
-  
+
   for (const pattern of varietalPatterns) {
     const match = messageLower.match(pattern);
     if (match) {
       keywords.push(match[0].replace(/\s+/g, ''));
     }
   }
-  
+
   // 키워드가 없으면 전체 반환 (최대 100개)
   if (keywords.length === 0) {
     return allItems.slice(0, 100);
   }
-  
+
   // 키워드와 관련된 품목 필터링
   const relevant = allItems.filter(item => {
     const itemText = (item.name_kr + ' ' + item.name_en).toLowerCase();
     return keywords.some(kw => itemText.includes(kw));
   });
-  
+
   console.log('[필터링]', {
     keywords,
     totalItems: allItems.length,
     filteredItems: relevant.length,
   });
-  
+
   // 필터링 결과가 없으면 전체 반환 (최대 100개)
   if (relevant.length === 0) {
     return allItems.slice(0, 100);
   }
-  
+
   // 최대 50개로 제한
   return relevant.slice(0, 50);
 }
@@ -176,20 +171,20 @@ export async function interpretOrder(
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not configured');
     }
-    
+
     // 1. 데이터 준비 - parseOrderWithGPT.ts의 getAllItemsList 재사용
     const allItems = getAllItemsList();
-    
+
     if (allItems.length === 0) {
       throw new Error('No company items loaded from Excel');
     }
-    
+
     console.log('[interpretOrder] 품목 로드 성공:', allItems.length, '개');
-    
+
     const relevantItems = filterRelevantItems(rawOrderText, allItems);
-    const aliasMap = getAliasMap();
-    const clientHistory = clientCode ? getClientHistory(clientCode) : [];
-    
+    const aliasMap = await getAliasMap();
+    const clientHistory = clientCode ? await getClientHistory(clientCode) : [];
+
     // 2. 시스템 프롬프트 구성
     const systemPrompt = `당신은 한국 와인 수입사의 "발주 해석 엔진"입니다.
 
@@ -200,15 +195,15 @@ export async function interpretOrder(
 1. 추측 금지
    - 확신이 없으면 auto_confirm=false
    - reason에 "확인 필요" 명시
-   
+
 2. 범위 제한
    - 회사 취급 리스트 + alias + 거래처 히스토리 내에서만 매칭
    - 외부 지식으로 임의 확장 절대 금지
-   
+
 3. 인사말 제거
    - "안녕하세요", "감사합니다" 등 전부 무시
    - 품목 + 수량만 추출
-   
+
 4. 출력 강제
    - JSON만 출력
    - 설명, 주석, 자연어 출력 금지
@@ -269,7 +264,7 @@ ${Object.entries(aliasMap).slice(0, 30).map(([k, v]) => `- "${k}" → "${v}"`).j
 
 ${clientHistory.length > 0 ? `
 **거래처 구매 이력 (자동확정 우선):**
-${clientHistory.slice(0, 20).map(h => 
+${clientHistory.slice(0, 20).map(h =>
   `- [${h.item_no}] ${h.item_name} (구매 ${h.purchase_count}회, 최근 ${h.last_purchase})`
 ).join('\n')}
 ` : ''}
@@ -338,16 +333,16 @@ ${relevantItems.map(item => {
 
     const responseData = await response.json();
     const content = responseData.choices[0].message.content;
-    
+
     if (!content) {
       throw new Error('GPT returned empty response');
     }
 
     const result = JSON.parse(content) as OrderInterpretation;
-    
+
     // 5. 결과 검증
     result.needs_review = result.items.some(item => !item.auto_confirm);
-    
+
     logger.info('Order interpretation completed', {
       itemsCount: result.items.length,
       autoConfirmedCount: result.items.filter(i => i.auto_confirm).length,
@@ -365,14 +360,14 @@ ${relevantItems.map(item => {
     console.error('Error response:', JSON.stringify(error.response?.data || error.response || {}, null, 2));
     console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     console.error('======================================');
-    
-    logger.error('Order interpretation failed', { 
+
+    logger.error('Order interpretation failed', {
       error,
       errorMessage: error.message,
       errorStatus: error.status,
       errorCode: error.code,
     });
-    
+
     // Fallback: 간단한 규칙 기반 파싱
     return {
       client_name: null,

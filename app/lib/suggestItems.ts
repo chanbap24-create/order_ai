@@ -1,5 +1,5 @@
 // app/lib/suggestItems.ts
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 
 function norm(s: any) {
   return String(s || "")
@@ -25,34 +25,13 @@ function scoreName(q: string, name: string) {
 
 type ItemRow = { item_no: string; item_name: string };
 
-function tryGetAllItems(): ItemRow[] {
-  // ✅ 프로젝트마다 테이블/컬럼명이 다를 수 있어서, 가장 흔한 조합을 순차 시도
-  const tries: Array<{ sql: string; map: (r: any) => ItemRow }> = [
-    {
-      sql: `SELECT item_no, item_name FROM items`,
-      map: (r) => ({ item_no: String(r.item_no), item_name: String(r.item_name) }),
-    },
-    {
-      sql: `SELECT item_no, name as item_name FROM items`,
-      map: (r) => ({ item_no: String(r.item_no), item_name: String(r.item_name) }),
-    },
-    {
-      sql: `SELECT item_code as item_no, item_name FROM items`,
-      map: (r) => ({ item_no: String(r.item_no), item_name: String(r.item_name) }),
-    },
-    {
-      sql: `SELECT item_code as item_no, name as item_name FROM items`,
-      map: (r) => ({ item_no: String(r.item_no), item_name: String(r.item_name) }),
-    },
-  ];
-
-  for (const t of tries) {
-    try {
-      const rows = db.prepare(t.sql).all() as any[];
-      if (rows?.length) return rows.map(t.map);
-    } catch {}
+async function tryGetAllItems(): Promise<ItemRow[]> {
+  try {
+    const { data } = await supabase.from('inventory_cdv').select('item_no, item_name');
+    return (data || []).map((r: any) => ({ item_no: String(r.item_no), item_name: String(r.item_name) }));
+  } catch {
+    return [];
   }
-  return [];
 }
 
 export type ItemSuggestion = {
@@ -61,11 +40,11 @@ export type ItemSuggestion = {
   score: number; // 0~1
 };
 
-export function suggestTop3Items(query: string): ItemSuggestion[] {
+export async function suggestTop3Items(query: string): Promise<ItemSuggestion[]> {
   const q = String(query || "").trim();
   if (!q) return [];
 
-  const items = tryGetAllItems();
+  const items = await tryGetAllItems();
   if (!items.length) return [];
 
   return items

@@ -1,23 +1,79 @@
-// PDF 생성기 - pdfkit 사용
-// pptGenerator.ts와 동일한 레이아웃을 PDF로 직접 생성 (LibreOffice 불필요)
+// PDF 생성기 - Python reportlab 기반 (pptGenerator.ts와 동일한 패턴)
+// generate_pdf.py가 generate_ppt.py와 동일한 디자인 시스템을 공유하여 PPTX↔PDF 일관성 보장
 
-import PDFDocument from "pdfkit";
-import { existsSync } from "fs";
+import { execFile } from "child_process";
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
+import { join } from "path";
+import { promisify } from "util";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
+import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
 
-// 슬라이드 크기 (인치) → 포인트 (1in = 72pt)
-const SLIDE_W = 7.5 * 72; // 540pt
-const SLIDE_H = 10.0 * 72; // 720pt
-const I = 72; // 1 inch in points
+const execFileAsync = promisify(execFile);
 
-// 폰트 경로
-const FONT_REGULAR = "C:\\Windows\\Fonts\\malgun.ttf";
-const FONT_BOLD = "C:\\Windows\\Fonts\\malgunbd.ttf";
+const TMP_DIR = process.env.VERCEL ? "/tmp" : join(process.cwd(), "output", "tmp");
+const PYTHON_BIN = process.platform === "win32" ? "python" : "python3";
+const SCRIPT_PATH = join(process.cwd(), "scripts", "generate_pdf.py");
 
-interface PdfSlideData {
+// ─── 헬퍼: 빈티지 2자리→4자리 변환 ───
+function formatVintage4(v: string): string {
+  if (!v || v === '-') return '-';
+  if (/^(NV|MV)$/i.test(v)) return v.toUpperCase();
+  if (/^\d{4}$/.test(v)) return v;
+  const num = parseInt(v, 10);
+  if (!isNaN(num)) {
+    return num >= 50 ? `19${String(num).padStart(2, '0')}` : `20${String(num).padStart(2, '0')}`;
+  }
+  return v;
+}
+
+function ensureTmpDir(): string {
+  if (!existsSync(TMP_DIR)) {
+    mkdirSync(TMP_DIR, { recursive: true });
+  }
+  return TMP_DIR;
+}
+
+function saveBase64ToTmp(base64: string, filename: string): string {
+  ensureTmpDir();
+  const filePath = join(TMP_DIR, filename);
+  writeFileSync(filePath, Buffer.from(base64, "base64"));
+  return filePath;
+}
+
+function cleanupTmp(paths: string[]) {
+  for (const p of paths) {
+    try {
+      if (existsSync(p)) unlinkSync(p);
+    } catch { /* ignore */ }
+  }
+}
+
+async function execPython(inputPath: string, outputPath: string): Promise<void> {
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      PYTHON_BIN,
+      [SCRIPT_PATH, inputPath, outputPath],
+      { timeout: 120000, maxBuffer: 10 * 1024 * 1024 }
+    );
+
+    if (stderr) {
+      logger.info(`[PDF Python] ${stderr.trim()}`);
+    }
+
+    if (!stdout.includes("OK")) {
+      throw new Error(`Python script did not return OK. stdout: ${stdout}`);
+    }
+  } catch (e: unknown) {
+    const err = e as { stderr?: string; message?: string };
+    const msg = err.stderr || err.message || String(e);
+    logger.error(`[PDF Python] Script failed: ${msg}`);
+    throw new Error(`PDF 생성 Python 스크립트 실패: ${msg}`);
+  }
+}
+
+interface SlidePayload {
   nameKr: string;
   nameEn: string;
   country: string;
@@ -37,188 +93,7 @@ interface PdfSlideData {
   glassPairing: string;
   servingTemp: string;
   awards: string;
-  bottleImageBase64?: string;
-}
-
-function registerFonts(doc: PDFKit.PDFDocument) {
-  if (existsSync(FONT_REGULAR)) {
-    doc.registerFont("MalgunGothic", FONT_REGULAR);
-    // Turbopack이 pdfkit 내장 Helvetica.afm 경로를 C:\ROOT\로 변환하는 문제 우회
-    // 'Helvetica'를 맑은 고딕으로 덮어씌워 AFM 로드를 방지
-    doc.registerFont("Helvetica", FONT_REGULAR);
-  }
-  if (existsSync(FONT_BOLD)) {
-    doc.registerFont("MalgunGothicBold", FONT_BOLD);
-    doc.registerFont("Helvetica-Bold", FONT_BOLD);
-  }
-}
-
-function addPage(doc: PDFKit.PDFDocument, data: PdfSlideData) {
-  doc.addPage({ size: [SLIDE_W, SLIDE_H], margin: 0 });
-
-  const hasFonts = existsSync(FONT_REGULAR);
-  const fontR = hasFonts ? "MalgunGothic" : "Helvetica";
-  const fontB = hasFonts ? "MalgunGothicBold" : "Helvetica-Bold";
-
-  // ═══════════════════════════════
-  // HEADER
-  // ═══════════════════════════════
-
-  // Logo (0.20in, 0.20in, 1.49x0.57in)
-  try {
-    const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
-    doc.image(logoBuffer, 0.20 * I, 0.20 * I, { width: 1.49 * I, height: 0.57 * I });
-  } catch { /* logo failed */ }
-
-  // 와이너리 태그라인 (1.66in, 0.18in, 10pt italic)
-  if (data.wineryDescription) {
-    const tagline = data.wineryDescription.split(/[.。]/)[0].trim();
-    if (tagline) {
-      doc.font(fontR).fontSize(10).fillColor("#000000")
-        .text(tagline, 1.66 * I, 0.18 * I, { width: 4.45 * I, lineBreak: false });
-    }
-  }
-
-  // 헤더 구분선 (0.21in, 0.84in, w=7.09in, 0.5pt)
-  doc.strokeColor("#000000").lineWidth(0.5)
-    .moveTo(0.21 * I, 0.84 * I)
-    .lineTo((0.21 + 7.09) * I, 0.84 * I)
-    .stroke();
-
-  // ═══════════════════════════════
-  // 와인명 (2.12in, 1.08in)
-  // ═══════════════════════════════
-  doc.font(fontR).fontSize(14.5).fillColor("#000000")
-    .text(data.nameKr, 2.12 * I, 1.08 * I, { width: 4.21 * I });
-
-  if (data.nameEn) {
-    const nameY = doc.y + 2;
-    doc.font(fontB).fontSize(11).fillColor("#000000")
-      .text(data.nameEn, 2.12 * I, nameY, { width: 4.21 * I });
-  }
-
-  // ═══════════════════════════════
-  // 와인 병 이미지 (0, 1.62in, 2.13x7.73in)
-  // ═══════════════════════════════
-  if (data.bottleImageBase64) {
-    try {
-      const imgBuffer = Buffer.from(data.bottleImageBase64, "base64");
-      doc.image(imgBuffer, 0, 1.62 * I, {
-        fit: [2.13 * I, 7.73 * I],
-        align: "center",
-        valign: "center",
-      });
-    } catch { /* image failed */ }
-  }
-
-  // 와인명 하단 점선 (2.19in, 1.82in, w=3.28in)
-  doc.strokeColor("#000000").lineWidth(1.5)
-    .dash(3, { space: 3 })
-    .moveTo(2.19 * I, 1.82 * I)
-    .lineTo((2.19 + 3.28) * I, 1.82 * I)
-    .stroke()
-    .undash();
-
-  // ═══════════════════════════════
-  // 와인 상세 정보
-  // ═══════════════════════════════
-
-  // 지역
-  doc.font(fontB).fontSize(11).fillColor("#000000")
-    .text("지역", 2.10 * I, 1.93 * I);
-  const regionText = data.region
-    ? `${data.countryEn || data.country}, ${data.region}`
-    : (data.countryEn || data.country || "-");
-  doc.font(fontR).fontSize(10)
-    .text(regionText, 2.10 * I, 2.13 * I, { width: 4.24 * I });
-
-  // 품종
-  doc.font(fontB).fontSize(11)
-    .text("품종", 2.12 * I, 2.42 * I);
-  doc.font(fontR).fontSize(10)
-    .text(data.grapeVarieties || "-", 2.12 * I, 2.71 * I, { width: 4.33 * I });
-
-  // 빈티지
-  doc.font(fontB).fontSize(11)
-    .text("빈티지", 2.12 * I, 3.02 * I);
-  doc.font(fontR).fontSize(10)
-    .text(data.vintageNote || data.vintage || "-", 2.10 * I, 3.29 * I, { width: 4.86 * I });
-
-  // 양조
-  doc.font(fontB).fontSize(11)
-    .text("양조", 2.14 * I, 3.82 * I);
-  const wineMakingText = data.winemaking || "-";
-  const alcoholLine = data.alcoholPercentage ? `\n알코올: ${data.alcoholPercentage}` : "";
-  doc.font(fontR).fontSize(9)
-    .text(wineMakingText + alcoholLine, 2.13 * I, 4.11 * I, { width: 5.16 * I, height: 1.21 * I });
-
-  // 테이스팅 노트
-  doc.font(fontB).fontSize(11)
-    .text("테이스팅 노트", 2.10 * I, 5.63 * I);
-  const tastingLines: string[] = [];
-  if (data.colorNote) tastingLines.push(`컬러: ${data.colorNote}`);
-  if (data.noseNote) tastingLines.push(`노즈: ${data.noseNote}`);
-  if (data.palateNote) tastingLines.push(`팔렛: ${data.palateNote}`);
-  if (data.agingPotential) tastingLines.push(`잠재력: ${data.agingPotential}`);
-  if (data.servingTemp) tastingLines.push(`서빙 온도: ${data.servingTemp}`);
-  doc.font(fontR).fontSize(9)
-    .text(tastingLines.join("\n") || "-", 2.14 * I, 5.86 * I, { width: 5.16 * I, height: 1.43 * I });
-
-  // 푸드 페어링
-  doc.font(fontB).fontSize(11)
-    .text("푸드 페어링", 2.13 * I, 7.36 * I);
-  doc.font(fontR).fontSize(9)
-    .text(data.foodPairing || "-", 2.13 * I, 7.70 * I, { width: 5.25 * I });
-
-  // 글라스 페어링
-  doc.font(fontB).fontSize(11)
-    .text("글라스 페어링", 2.10 * I, 8.15 * I);
-  doc.font(fontR).fontSize(9)
-    .text(data.glassPairing || "-", 2.10 * I, 8.49 * I, { width: 5.58 * I, height: 0.56 * I });
-
-  // ═══════════════════════════════
-  // 수상내역
-  // ═══════════════════════════════
-  doc.strokeColor("#000000").lineWidth(1.5)
-    .dash(3, { space: 3 })
-    .moveTo(0.26 * I, 9.06 * I)
-    .lineTo((0.26 + 7.09) * I, 9.06 * I)
-    .stroke()
-    .undash();
-
-  // 수상 아이콘
-  try {
-    const iconBuffer = Buffer.from(ICON_AWARD_BASE64, "base64");
-    doc.image(iconBuffer, 0.30 * I, 9.13 * I, { width: 0.20 * I, height: 0.25 * I });
-  } catch { /* icon failed */ }
-
-  // 수상내역 텍스트
-  const awardsText = data.awards && data.awards !== "N/A"
-    ? `수상내역  ${data.awards}`
-    : "수상내역";
-  doc.font(fontR).fontSize(10).fillColor("#000000")
-    .text(awardsText, 0.51 * I, 9.16 * I, { width: 6.5 * I });
-
-  // ═══════════════════════════════
-  // FOOTER
-  // ═══════════════════════════════
-  doc.strokeColor("#000000").lineWidth(3)
-    .moveTo(0.21 * I, 9.52 * I)
-    .lineTo((0.21 + 7.09) * I, 9.52 * I)
-    .stroke();
-
-  // 로고
-  try {
-    const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
-    doc.image(logoBuffer, 0.09 * I, 9.70 * I, { width: 0.95 * I, height: 0.25 * I });
-  } catch { /* logo failed */ }
-
-  // 회사 정보
-  doc.font(fontR).fontSize(7.5).fillColor("#000000")
-    .text("㈜까브드뱅   T. 02-786-3136 |  www.cavedevin.co.kr", 1.12 * I, 9.73 * I, {
-      width: 2.76 * I,
-      align: "right",
-    });
+  bottleImagePath?: string;
 }
 
 /** 단일 와인 PDF 생성 */
@@ -228,71 +103,115 @@ export async function generateSingleWinePdf(wineId: string): Promise<Buffer> {
 
 /** 여러 와인의 테이스팅 노트 PDF 생성 */
 export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer> {
-  const doc = new PDFDocument({
-    size: [SLIDE_W, SLIDE_H],
-    margin: 0,
-    autoFirstPage: false,
-    bufferPages: true,
-    info: { Author: "까브드뱅 와인 관리 시스템", Title: "Tasting Notes" },
-  });
+  ensureTmpDir();
 
-  registerFonts(doc);
+  const timestamp = Date.now();
+  const tmpFiles: string[] = [];
+  const slides: SlidePayload[] = [];
 
-  const chunks: Buffer[] = [];
-  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+  // 로고/아이콘 base64 → 임시 파일
+  const logoPath = saveBase64ToTmp(LOGO_CAVEDEVIN_BASE64, `pdf_logo_${timestamp}.jpg`);
+  tmpFiles.push(logoPath);
+
+  const iconPath = saveBase64ToTmp(ICON_AWARD_BASE64, `pdf_icon_${timestamp}.jpg`);
+  tmpFiles.push(iconPath);
 
   let slideCount = 0;
 
   for (const wineId of wineIds) {
-    const wine = getWineByCode(wineId);
+    const wine = await getWineByCode(wineId);
     if (!wine) continue;
 
-    const note = getTastingNote(wineId);
+    const note = await getTastingNote(wineId);
 
-    let bottleImageBase64: string | undefined;
-    if (wine.image_url) {
+    // 이미지: Vivino 누끼 우선 → 기존 image_url 폴백
+    let bottleImagePath: string | undefined;
+
+    const engName = wine.item_name_en;
+    if (engName) {
+      try {
+        const vivinoUrl = await searchVivinoBottleImage(engName);
+        if (vivinoUrl) {
+          const imgData = await downloadImageAsBase64(vivinoUrl);
+          if (imgData) {
+            const ext = imgData.mimeType.includes('png') ? 'png' : 'jpg';
+            const imgFilename = `pdf_bottle_${wineId}_${timestamp}.${ext}`;
+            bottleImagePath = saveBase64ToTmp(imgData.base64, imgFilename);
+            tmpFiles.push(bottleImagePath);
+            logger.info(`[PDF] Vivino nukki image for ${wineId}`);
+          }
+        }
+      } catch {
+        logger.warn(`[PDF] Vivino search failed for ${wineId}`);
+      }
+    }
+
+    if (!bottleImagePath && wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
-        if (imgData) bottleImageBase64 = imgData.base64;
+        if (imgData) {
+          const ext = imgData.mimeType.includes('png') ? 'png' : 'jpg';
+          const imgFilename = `pdf_bottle_${wineId}_${timestamp}.${ext}`;
+          bottleImagePath = saveBase64ToTmp(imgData.base64, imgFilename);
+          tmpFiles.push(bottleImagePath);
+          logger.info(`[PDF] Fallback image for ${wineId}`);
+        }
       } catch {
         logger.warn(`[PDF] Image download failed for ${wineId}`);
       }
     }
 
-    addPage(doc, {
+    slides.push({
       nameKr: wine.item_name_kr,
-      nameEn: wine.item_name_en || "",
-      country: wine.country || "",
-      countryEn: wine.country_en || "",
-      region: wine.region || "",
-      grapeVarieties: wine.grape_varieties || "",
-      vintage: wine.vintage || "",
-      vintageNote: note?.vintage_note || "",
-      wineryDescription: note?.winery_description || "",
-      winemaking: note?.winemaking || "",
-      alcoholPercentage: wine.alcohol || "",
-      agingPotential: note?.aging_potential || "",
-      colorNote: note?.color_note || "",
-      noseNote: note?.nose_note || "",
-      palateNote: note?.palate_note || "",
-      foodPairing: note?.food_pairing || "",
-      glassPairing: note?.glass_pairing || "",
-      servingTemp: note?.serving_temp || "",
-      awards: note?.awards || "",
-      bottleImageBase64,
+      nameEn: wine.item_name_en || '',
+      country: wine.country || '',
+      countryEn: wine.country_en || '',
+      region: wine.region || '',
+      grapeVarieties: wine.grape_varieties || '',
+      vintage: formatVintage4(wine.vintage || ''),
+      vintageNote: note?.vintage_note || '',
+      wineryDescription: note?.winery_description || '',
+      winemaking: note?.winemaking || '',
+      alcoholPercentage: wine.alcohol || '',
+      agingPotential: note?.aging_potential || '',
+      colorNote: note?.color_note || '',
+      noseNote: note?.nose_note || '',
+      palateNote: note?.palate_note || '',
+      foodPairing: note?.food_pairing || '',
+      glassPairing: note?.glass_pairing || '',
+      servingTemp: note?.serving_temp || '',
+      awards: note?.awards || '',
+      bottleImagePath,
     });
     slideCount++;
   }
 
   if (slideCount === 0) {
+    cleanupTmp(tmpFiles);
     throw new Error("생성할 페이지가 없습니다.");
   }
 
-  logger.info(`[PDF] Generated: ${slideCount} pages`);
+  // JSON 입력 파일 작성
+  const inputPath = join(TMP_DIR, `pdf_input_${timestamp}.json`);
+  const outputPath = join(TMP_DIR, `pdf_output_${timestamp}.pdf`);
+  tmpFiles.push(inputPath, outputPath);
 
-  return new Promise((resolve, reject) => {
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-    doc.end();
-  });
+  const payload = {
+    slides,
+    logoPath,
+    iconPath,
+  };
+
+  writeFileSync(inputPath, JSON.stringify(payload, null, 2), "utf-8");
+
+  try {
+    await execPython(inputPath, outputPath);
+
+    const pdfBuffer = readFileSync(outputPath);
+    logger.info(`[PDF] Generated: ${slideCount} pages (reportlab)`);
+
+    return pdfBuffer;
+  } finally {
+    cleanupTmp(tmpFiles);
+  }
 }

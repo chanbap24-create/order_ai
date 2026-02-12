@@ -6,7 +6,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "
 import { join } from "path";
 import { promisify } from "util";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
+import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
 
@@ -127,15 +127,36 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
   let slideCount = 0;
 
   for (const wineId of wineIds) {
-    const wine = getWineByCode(wineId);
+    const wine = await getWineByCode(wineId);
     if (!wine) continue;
 
-    const note = getTastingNote(wineId);
+    const note = await getTastingNote(wineId);
 
-    // 이미지: DB에 저장된 image_url에서 다운로드
+    // 이미지: Vivino 누끼(투명배경) 우선 → 기존 image_url 폴백
     let bottleImagePath: string | undefined;
 
-    if (wine.image_url) {
+    // 1순위: Vivino 누끼 보틀샷 검색
+    const engName = wine.item_name_en;
+    if (engName) {
+      try {
+        const vivinoUrl = await searchVivinoBottleImage(engName);
+        if (vivinoUrl) {
+          const imgData = await downloadImageAsBase64(vivinoUrl);
+          if (imgData) {
+            const ext = imgData.mimeType.includes('png') ? 'png' : 'jpg';
+            const imgFilename = `bottle_${wineId}_${timestamp}.${ext}`;
+            bottleImagePath = saveBase64ToTmp(imgData.base64, imgFilename);
+            tmpFiles.push(bottleImagePath);
+            logger.info(`[PPT] Vivino nukki image for ${wineId}`);
+          }
+        }
+      } catch {
+        logger.warn(`[PPT] Vivino search failed for ${wineId}`);
+      }
+    }
+
+    // 2순위: DB에 저장된 image_url
+    if (!bottleImagePath && wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
@@ -143,7 +164,7 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
           const imgFilename = `bottle_${wineId}_${timestamp}.${ext}`;
           bottleImagePath = saveBase64ToTmp(imgData.base64, imgFilename);
           tmpFiles.push(bottleImagePath);
-          logger.info(`[PPT] Bottle image downloaded for ${wineId}`);
+          logger.info(`[PPT] Fallback image for ${wineId}`);
         }
       } catch {
         logger.warn(`[PPT] Image download failed for ${wineId}`);

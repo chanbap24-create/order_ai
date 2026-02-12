@@ -24,17 +24,18 @@ interface InventoryItem {
 
 type WarehouseTab = 'CDV' | 'DL';
 
-type ColumnKey = 
-  | 'item_no' 
-  | 'item_name' 
-  | 'supply_price' 
-  | 'discount_price' 
-  | 'wholesale_price' 
-  | 'retail_price' 
-  | 'min_price' 
-  | 'available_stock' 
-  | 'bonded_warehouse' 
-  | 'incoming_stock' 
+type ColumnKey =
+  | 'item_no'
+  | 'item_name'
+  | 'supply_price'
+  | 'discount_price'
+  | 'wholesale_price'
+  | 'retail_price'
+  | 'min_price'
+  | 'available_stock'
+  | 'bonded_warehouse'
+  | 'anseong_warehouse'
+  | 'incoming_stock'
   | 'sales_30days'
   | 'vintage'
   | 'alcohol_content'
@@ -51,22 +52,23 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'item_no', label: '품번' },
   { key: 'item_name', label: '품명' },
   { key: 'supply_price', label: '공급가' },
-  { key: 'discount_price', label: '할인공급가' },
-  { key: 'wholesale_price', label: '도매가' },
-  { key: 'retail_price', label: '판매가' },
-  { key: 'min_price', label: '최저판매가' },
+  { key: 'discount_price', label: '할인공급가', cdvOnly: true },
+  { key: 'wholesale_price', label: '도매가', cdvOnly: true },
+  { key: 'retail_price', label: '판매가', cdvOnly: true },
+  { key: 'min_price', label: '최저판매가', cdvOnly: true },
   { key: 'vintage', label: '빈티지' },
   { key: 'alcohol_content', label: '알콜도수' },
   { key: 'country', label: '국가' },
   { key: 'available_stock', label: '가용재고', cdvOnly: true },
-  { key: 'available_stock', label: '재고', dlOnly: true },
+  { key: 'available_stock', label: '가용재고', dlOnly: true },
   { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
-  { key: 'incoming_stock', label: '미착품' },
+  { key: 'anseong_warehouse', label: '안성창고', dlOnly: true },
+  { key: 'incoming_stock', label: '미착품', cdvOnly: true },
   { key: 'sales_30days', label: '30일출고' },
 ];
 
 const DEFAULT_COLUMNS_CDV: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'bonded_warehouse', 'sales_30days'];
-const DEFAULT_COLUMNS_DL: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'sales_30days'];
+const DEFAULT_COLUMNS_DL: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'anseong_warehouse', 'sales_30days'];
 
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<WarehouseTab>('CDV');
@@ -314,6 +316,8 @@ export default function InventoryPage() {
         );
       case 'bonded_warehouse':
         return formatNumber(item.bonded_warehouse ?? 0);
+      case 'anseong_warehouse':
+        return formatNumber(item.anseong_warehouse ?? 0);
       case 'incoming_stock':
         return formatNumber(item.incoming_stock ?? 0);
       case 'sales_30days':

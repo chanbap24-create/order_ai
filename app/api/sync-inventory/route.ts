@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import * as path from 'path';
 import * as fs from 'fs';
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { getUploadedFilePath, getAllUploadTimestamps } from '@/app/lib/adminUpload';
-
-export const runtime = 'nodejs';
 
 /**
  * 시트 데이터를 가져옴: /tmp에 업로드된 파일이 있으면 우선 사용, 없으면 번들 xlsx에서 읽기
@@ -65,47 +63,50 @@ export async function POST() {
         { status: 404 }
       );
     }
-    
+
     // Clear existing data
-    db.prepare('DELETE FROM inventory_cdv').run();
-    
-    // Insert CDV data
-    const insertCDV = db.prepare(`
-      INSERT OR REPLACE INTO inventory_cdv (
-        item_no, item_name, supply_price, discount_price, wholesale_price, 
-        retail_price, min_price, available_stock, bonded_warehouse, 
-        incoming_stock, sales_30days, vintage, alcohol_content, country
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    let cdvCount = 0;
+    await supabase.from('inventory_cdv').delete().not('item_no', 'is', null);
+
+    // Insert CDV data in batches
+    const cdvRows: Array<{
+      item_no: string; item_name: string; supply_price: number;
+      discount_price: number; wholesale_price: number; retail_price: number;
+      min_price: number; available_stock: number; bonded_warehouse: number;
+      incoming_stock: number; sales_30days: number; vintage: string;
+      alcohol_content: string; country: string;
+    }> = [];
+
     for (let i = 1; i < downloadsData.length; i++) {
       const row = downloadsData[i];
       const itemNo = String(row[1] || '').trim();
       if (!itemNo) continue;
-      
-      insertCDV.run(
-        itemNo,
-        String(row[2] || ''),         // C: 품명
-        Number(row[15]) || 0,          // P: 공급가
-        Number(row[16]) || 0,          // Q: 할인공급가
-        Number(row[17]) || 0,          // R: 도매가
-        Number(row[18]) || 0,          // S: 판매가
-        Number(row[19]) || 0,          // T: 최저판매가
-        Number(row[11]) || 0,          // L: 가용재고
-        Number(row[21]) || 0,          // V: 보세창고
-        Number(row[20]) || 0,          // U: 미착품
-        Number(row[12]) || 0,          // M: 30일출고
-        String(row[6] || ''),          // G: 빈티지
-        String(row[7] || ''),          // H: 알콜도수
-        String(row[8] || '')           // I: 국가
-      );
-      cdvCount++;
+
+      cdvRows.push({
+        item_no: itemNo,
+        item_name: String(row[2] || ''),         // C: 품명
+        supply_price: Number(row[15]) || 0,       // P: 공급가
+        discount_price: Number(row[16]) || 0,     // Q: 할인공급가
+        wholesale_price: Number(row[17]) || 0,    // R: 도매가
+        retail_price: Number(row[18]) || 0,       // S: 판매가
+        min_price: Number(row[19]) || 0,          // T: 최저판매가
+        available_stock: Number(row[11]) || 0,    // L: 가용재고
+        bonded_warehouse: Number(row[21]) || 0,   // V: 보세창고
+        incoming_stock: Number(row[20]) || 0,     // U: 미착품
+        sales_30days: Number(row[12]) || 0,       // M: 30일출고
+        vintage: String(row[6] || ''),            // G: 빈티지
+        alcohol_content: String(row[7] || ''),    // H: 알콜도수
+        country: String(row[8] || ''),            // I: 국가
+      });
     }
-    
-    console.log(`✅ CDV: ${cdvCount} items synced`);
-    
+
+    // Batch upsert CDV
+    for (let i = 0; i < cdvRows.length; i += 500) {
+      await supabase.from('inventory_cdv').upsert(cdvRows.slice(i, i + 500), { onConflict: 'item_no' });
+    }
+
+    const cdvCount = cdvRows.length;
+    console.log(`CDV: ${cdvCount} items synced`);
+
     // ===== DL (Glass) 동기화 =====
     console.log('Syncing DL (Glass) inventory...');
 
@@ -117,41 +118,43 @@ export async function POST() {
         { status: 404 }
       );
     }
-    
+
     // Clear existing data
-    db.prepare('DELETE FROM inventory_dl').run();
-    
-    // Insert DL data
-    const insertDL = db.prepare(`
-      INSERT OR REPLACE INTO inventory_dl (
-        item_no, item_name, supply_price, available_stock, anseong_warehouse, 
-        sales_30days, vintage, alcohol_content, country
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    let dlCount = 0;
+    await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
+
+    // Insert DL data in batches
+    const dlRows: Array<{
+      item_no: string; item_name: string; supply_price: number;
+      available_stock: number; anseong_warehouse: number;
+      sales_30days: number; vintage: string; alcohol_content: string; country: string;
+    }> = [];
+
     for (let i = 1; i < dlData.length; i++) {
       const row = dlData[i];
       const itemNo = String(row[1] || '').trim();
       if (!itemNo) continue;
-      
-      insertDL.run(
-        itemNo,
-        String(row[2] || ''),         // C: 품명
-        Number(row[15]) || 0,          // P: 공급가
-        Number(row[11]) || 0,          // L: 재고
-        Number(row[23]) || 0,          // X: 안성창고
-        Number(row[12]) || 0,          // M: 30일출고
-        String(row[6] || ''),          // G: 빈티지
-        String(row[7] || ''),          // H: 알콜도수
-        String(row[8] || '')           // I: 국가
-      );
-      dlCount++;
+
+      dlRows.push({
+        item_no: itemNo,
+        item_name: String(row[2] || ''),         // C: 품명
+        supply_price: Number(row[15]) || 0,       // P: 공급가
+        available_stock: Number(row[11]) || 0,    // L: 재고
+        anseong_warehouse: Number(row[23]) || 0,  // X: 안성창고
+        sales_30days: Number(row[12]) || 0,       // M: 30일출고
+        vintage: String(row[6] || ''),            // G: 빈티지
+        alcohol_content: String(row[7] || ''),    // H: 알콜도수
+        country: String(row[8] || ''),            // I: 국가
+      });
     }
-    
-    console.log(`✅ DL: ${dlCount} items synced`);
-    
+
+    // Batch upsert DL
+    for (let i = 0; i < dlRows.length; i += 500) {
+      await supabase.from('inventory_dl').upsert(dlRows.slice(i, i + 500), { onConflict: 'item_no' });
+    }
+
+    const dlCount = dlRows.length;
+    console.log(`DL: ${dlCount} items synced`);
+
     return NextResponse.json({
       success: true,
       message: '재고 데이터 동기화 완료',
@@ -161,11 +164,11 @@ export async function POST() {
         total: cdvCount + dlCount
       }
     });
-    
+
   } catch (error: any) {
-    console.error('❌ Sync error:', error);
+    console.error('Sync error:', error);
     return NextResponse.json(
-      { 
+      {
         error: '동기화 중 오류가 발생했습니다.',
         details: error.message,
         stack: error.stack
@@ -181,24 +184,36 @@ export async function POST() {
  */
 export async function GET() {
   try {
-    const cdvCount = db.prepare('SELECT COUNT(*) as count FROM inventory_cdv').get() as { count: number };
-    const dlCount = db.prepare('SELECT COUNT(*) as count FROM inventory_dl').get() as { count: number };
-    
-    const cdvSample = db.prepare('SELECT * FROM inventory_cdv LIMIT 3').all();
-    const dlSample = db.prepare('SELECT * FROM inventory_dl LIMIT 3').all();
-    
+    const { count: cdvCount } = await supabase
+      .from('inventory_cdv')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: dlCount } = await supabase
+      .from('inventory_dl')
+      .select('*', { count: 'exact', head: true });
+
+    const { data: cdvSample } = await supabase
+      .from('inventory_cdv')
+      .select('*')
+      .limit(3);
+
+    const { data: dlSample } = await supabase
+      .from('inventory_dl')
+      .select('*')
+      .limit(3);
+
     const uploadTimestamps = getAllUploadTimestamps();
 
     return NextResponse.json({
       success: true,
       stats: {
-        cdv_items: cdvCount.count,
-        dl_items: dlCount.count,
-        total: cdvCount.count + dlCount.count
+        cdv_items: cdvCount || 0,
+        dl_items: dlCount || 0,
+        total: (cdvCount || 0) + (dlCount || 0)
       },
       samples: {
-        cdv: cdvSample,
-        dl: dlSample
+        cdv: cdvSample || [],
+        dl: dlSample || []
       },
       uploadTimestamps
     });

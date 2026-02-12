@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
 import JSZip from 'jszip';
 
-export const runtime = 'nodejs';
 export const maxDuration = 300; // 5분 타임아웃
 
 const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
@@ -162,10 +161,12 @@ export async function POST() {
     }
 
     // 2. 이미 description_kr이 채워진 프로필은 건너뛰기
-    const existingRows = db.prepare(
-      "SELECT item_code FROM wine_profiles WHERE grape_varieties != '' OR description_kr != ''"
-    ).all() as { item_code: string }[];
-    const existingSet = new Set(existingRows.map(r => r.item_code));
+    const { data: existingRows } = await supabase
+      .from('wine_profiles')
+      .select('item_code')
+      .or('grape_varieties.neq.,description_kr.neq.');
+
+    const existingSet = new Set((existingRows || []).map(r => r.item_code));
 
     const targetCodes = pptxCodes.filter(c => !existingSet.has(c));
 
@@ -173,13 +174,6 @@ export async function POST() {
     let imported = 0;
     let failed = 0;
     const batchSize = 10;
-
-    const stmt = db.prepare(`
-      INSERT OR REPLACE INTO wine_profiles (
-        item_code, country, region, grape_varieties, wine_type,
-        sweetness, body, description_kr, food_pairing, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `);
 
     for (let i = 0; i < targetCodes.length; i += batchSize) {
       const batch = targetCodes.slice(i, i + batchSize);
@@ -212,23 +206,31 @@ export async function POST() {
         })
       );
 
-      db.transaction(() => {
-        for (const data of results) {
-          if (!data) { failed++; continue; }
-          stmt.run(
-            data.item_code,
-            data.country,
-            data.region,
-            data.grape_varieties,
-            data.wine_type,
-            data.sweetness,
-            data.body,
-            data.description_kr,
-            data.food_pairing,
-          );
+      // Sequential upserts (replacing transaction)
+      for (const data of results) {
+        if (!data) { failed++; continue; }
+        const { error } = await supabase
+          .from('wine_profiles')
+          .upsert({
+            item_code: data.item_code,
+            country: data.country,
+            region: data.region,
+            grape_varieties: data.grape_varieties,
+            wine_type: data.wine_type,
+            sweetness: data.sweetness,
+            body: data.body,
+            description_kr: data.description_kr,
+            food_pairing: data.food_pairing,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'item_code' });
+
+        if (error) {
+          console.error(`Upsert error for ${data.item_code}:`, error);
+          failed++;
+        } else {
           imported++;
         }
-      })();
+      }
     }
 
     return NextResponse.json({

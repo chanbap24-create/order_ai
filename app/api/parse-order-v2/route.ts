@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { jsonResponse } from "@/app/lib/api-response";
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { parseItemsFromMessage } from "@/app/lib/parseItems";
 import { resolveItemsByClient } from "@/app/lib/resolveItems";
 import { resolveItemsByClientWeighted } from "@/app/lib/resolveItemsWeighted";
@@ -11,8 +11,6 @@ import type { ParseFullOrderResponse } from "@/app/types/api";
 
 
 import { isHolidayKST } from "@/app/lib/holidays";
-
-export const runtime = "nodejs";
 
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
@@ -53,7 +51,7 @@ function preprocessMessage(text: string) {
     // 영문명이 포함된 경우 쉼표를 유지 (3글자 이상 영어 단어 2개 이상 + 쉼표)
     const hasEnglishWords = (line.match(/[A-Za-z]{3,}/g) || []).length >= 2;
     const hasComma = line.includes(',');
-    
+
     if (hasEnglishWords && hasComma) {
       return line; // 영문명이 있으면 쉼표 유지
     } else {
@@ -131,15 +129,15 @@ function extractKoreanTokens(s: string) {
 // 입력에서 "브랜드(핵심)" 토큰 1개를 뽑음: 가장 긴 토큰 우선
 function pickBrandToken(input: string) {
   const stop = new Set(["주식회사", "스시", "점", "지점", "본점"]); // 필요하면 추가
-  
+
   // ✅ 괄호 안의 별칭도 추출 (예: "라뜨리에드 오르조" from "에프엔비버드독 (라뜨리에드 오르조)")
   const aliasMatch = input.match(/\(([^)]+)\)/);
   const mainText = input.replace(/\([^)]+\)/g, "").trim();
   const aliasText = aliasMatch ? aliasMatch[1].trim() : "";
-  
+
   // 메인 텍스트와 괄호 안 텍스트 모두에서 토큰 추출
   const allText = [mainText, aliasText].filter(Boolean).join(" ");
-  
+
   const toks = extractKoreanTokens(allText)
     .map((t) => t.replace(/(지점|점|본점)$/g, ""))
     .filter((t) => t.length >= 2 && !stop.has(t));
@@ -169,27 +167,27 @@ function scoreName(q: any, name: any) {
   // ✅ (0) 괄호 안 상호명 우선 매칭 - 최우선 처리!
   const nameAlias = nRaw.match(/\(([^)]+)\)/);
   const nameMainText = nRaw.replace(/\([^)]+\)/g, "").trim();
-  
+
   // 괄호 안 별칭이 있으면 별칭과 메인 이름 모두 비교
   if (nameAlias) {
     const aliasText = nameAlias[1].trim();
     const aliasNorm = norm(aliasText);
     const mainNorm = norm(nameMainText);
-    
+
     // 별칭과 완전 일치
     if (a === aliasNorm) return 1.0;
-    
+
     // 메인 이름과 완전 일치
     if (a === mainNorm) return 1.0;
-    
+
     // 별칭 포함 관계 (우선순위 높음)
     if (aliasNorm.includes(a)) return 0.98;
     if (a.includes(aliasNorm) && aliasNorm.length >= 3) return 0.97;
-    
+
     // 메인 이름 포함 관계
     if (mainNorm.includes(a)) return 0.96;
     if (a.includes(mainNorm) && mainNorm.length >= 3) return 0.95;
-    
+
     // 별칭 유사도 매칭
     const aChars = new Set(a.split(""));
     const aliasChars = new Set(aliasNorm.split(""));
@@ -198,14 +196,14 @@ function scoreName(q: any, name: any) {
       if (aliasChars.has(ch)) commonAlias++;
     }
     const aliasSimilarity = commonAlias / Math.max(a.length, aliasNorm.length);
-    
+
     // 70% 이상 유사하면 괄호 안 상호명으로 간주
     if (aliasSimilarity >= 0.7) {
       const lenDiff = Math.abs(a.length - aliasNorm.length);
       const lenPenalty = lenDiff * 0.02;
       return Math.max(0.85, Math.min(0.94, 0.92 - lenPenalty));
     }
-    
+
     // 메인 이름 유사도 매칭
     const mainChars = new Set(mainNorm.split(""));
     let commonMain = 0;
@@ -213,38 +211,38 @@ function scoreName(q: any, name: any) {
       if (mainChars.has(ch)) commonMain++;
     }
     const mainSimilarity = commonMain / Math.max(a.length, mainNorm.length);
-    
+
     if (mainSimilarity >= 0.7) {
       const lenDiff = Math.abs(a.length - mainNorm.length);
       const lenPenalty = lenDiff * 0.02;
       return Math.max(0.80, Math.min(0.90, 0.88 - lenPenalty));
     }
   }
-  
+
   // 괄호가 없는 경우
   const b = norm(nRaw);
   if (!b) return 0;
-  
+
   // 완전 일치
   if (a === b) return 1.0;
-  
+
   // 포함 관계
   if (b.includes(a)) return 0.90;
   if (a.includes(b) && b.length >= 3) return 0.88;
-  
+
   // 문자 겹침 비율
   const aset = new Set(a.split(""));
   let common = 0;
   for (const ch of aset) if (b.includes(ch)) common++;
   const overlap = common / Math.max(a.length, b.length);
-  
+
   // 유사도 점수
   if (overlap >= 0.7) {
     const lenDiff = Math.abs(a.length - b.length);
     const lenPenalty = lenDiff * 0.02;
     return Math.max(0.60, Math.min(0.85, 0.82 - lenPenalty));
   }
-  
+
   return Math.max(0, Math.min(0.75, overlap * 0.9));
 }
 
@@ -260,7 +258,7 @@ function isSundayKST(d: Date) {
 
 async function getDeliveryDateKST(now = new Date()) {
   // ✅ 정확한 KST 시간 추출
-  const kstString = now.toLocaleString("en-US", { 
+  const kstString = now.toLocaleString("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
@@ -269,14 +267,14 @@ async function getDeliveryDateKST(now = new Date()) {
     minute: "2-digit",
     hour12: false
   });
-  
+
   // "01/07/2025, 16:31" → 파싱
   const [datePart, timePart] = kstString.split(", ");
   const [month, day, year] = datePart.split("/");
   const [hour, minute] = timePart.split(":");
-  
+
   const kst = new Date(`${year}-${month}-${day}T${hour}:${minute}:00+09:00`);
-  
+
   const dayOfWeek = kst.getDay(); // 0=일, 5=금
   const hourNum = parseInt(hour);
   const minuteNum = parseInt(minute);
@@ -308,7 +306,7 @@ async function getDeliveryDateKST(now = new Date()) {
 }
 
 /* -------------------- client resolve (client_alias) -------------------- */
-function resolveClient({
+async function resolveClient({
   clientText,
   message,
   forceResolve,
@@ -321,10 +319,12 @@ function resolveClient({
 
   // ✅ 1) 거래처 코드 직접 입력 (숫자 5자리)
   if (candidate && /^\d{5}$/.test(candidate)) {
-    const directClient = db
-      .prepare(`SELECT client_code, client_name FROM clients WHERE client_code = ?`)
-      .get(candidate) as any;
-    
+    const { data: directClient } = await supabase
+      .from("clients")
+      .select("client_code, client_name")
+      .eq("client_code", candidate)
+      .maybeSingle();
+
     if (directClient) {
       return {
         status: "resolved",
@@ -335,9 +335,11 @@ function resolveClient({
     }
   }
 
-  const rows = db
-    .prepare(`SELECT client_code, alias, weight FROM client_alias`)
-    .all() as Array<{ client_code: any; alias: any; weight?: any }>;
+  const { data: aliasRows } = await supabase
+    .from("client_alias")
+    .select("client_code, alias, weight");
+
+  const rows = (aliasRows || []) as Array<{ client_code: any; alias: any; weight?: any }>;
 
   // ✅ 2) exact(norm) 매칭
   if (candidate) {
@@ -434,7 +436,7 @@ function splitClientAndOrder(body: any) {
   const first = (lines[0] || "").trim();
   const rest = lines.slice(1).join("\n").trim();
 
-  // ✅ 한 줄뿐이면: “거래처”로 가정하지 말고 주문으로 취급
+  // ✅ 한 줄뿐이면: "거래처"로 가정하지 말고 주문으로 취급
   if (lines.length <= 1) {
     return { rawMessage: msg, clientText: "", orderText: msg };
   }
@@ -466,7 +468,7 @@ async function formatStaffMessage(
   );
   lines.push(`배송 예정일: ${deliveryLabel}`);
   lines.push(""); // 한 칸 띄우기
-  
+
   // ✅ 발주 옵션 (배송일 두 칸 아래에 표기)
   if (options?.requirePaymentConfirm) {
     lines.push("입금확인후 출고");
@@ -474,7 +476,7 @@ async function formatStaffMessage(
   if (options?.requireInvoice) {
     lines.push("거래명세표 부탁드립니다");
   }
-  
+
   lines.push("");
   lines.push("품목:");
 
@@ -493,7 +495,7 @@ async function formatStaffMessage(
 
 export async function POST(req: Request): Promise<NextResponse<ParseFullOrderResponse>> {
   // ✅ 엑셀 자동 동기화 (파일 변경 시에만 실행)
-  const sync = syncFromXlsxIfNeeded();
+  const sync = await syncFromXlsxIfNeeded();
   console.log("[XLSX SYNC]", sync);
 
   try {
@@ -515,7 +517,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     });
 
     // 1) 거래처 resolve
-    const client = resolveClient({
+    const client = await resolveClient({
       clientText,
       message: rawMessage,
       forceResolve,
@@ -556,7 +558,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
     // 3) 품목 resolve
     // 🎯 조합 가중치 시스템으로 품목 매칭!
-    const resolvedItems = resolveItemsByClientWeighted(clientCode, parsedItems, {
+    const resolvedItems = await resolveItemsByClientWeighted(clientCode, parsedItems, {
       minScore: 0.55,
       minGap: 0.05,
       topN: 5,
@@ -565,7 +567,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     // ✅ 3-1) unresolved인 품목에 후보 3개(suggestions) 붙이기 (UI용)
     //     - 새로 DB에서 찾지 말고, resolveItemsByClient가 만든 candidates를 그대로 사용
     //     - 🆕 신규 품목: 기존 매칭이 약하면 English 시트에서 검색
-    const itemsWithSuggestions = resolvedItems.map((x: any) => {
+    const itemsWithSuggestions = await Promise.all(resolvedItems.map(async (x: any) => {
       if (x?.resolved) return x;
 
       // candidates가 있으면 정렬 (아직 개수 제한 안 함)
@@ -585,22 +587,22 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       if (pageType === "wine") {
         const bestScore = sortedCandidates.length > 0 ? sortedCandidates[0]?.score ?? 0 : 0;
         const inputName = x.name || '';
-        
+
         // ✅ 중앙 설정에서 임계값 가져오기
         if (bestScore < config.newItemSearch.threshold && inputName) {
           console.log(`[신규품목] 검색 시도: "${inputName}", bestScore=${bestScore.toFixed(3)}`);
-          
+
           // 신규 품목 검색 시도
-          const newItemCandidates = searchNewItem(clientCode, inputName, bestScore, config.newItemSearch.threshold);
-          
+          const newItemCandidates = await searchNewItem(clientCode, inputName, bestScore, config.newItemSearch.threshold);
+
           if (newItemCandidates && newItemCandidates.length > 0) {
             console.log(`[신규품목] English 시트에서 ${newItemCandidates.length}개 발견`);
-            
+
             // ✅ GAP 기반 후보 조합 결정
             const composition = decideSuggestionComposition(sortedCandidates, newItemCandidates);
-            
+
             console.log(`[후보조합] ${composition.type}: 기존 ${composition.existing}개 + 신규 ${composition.newItems}개 (${composition.reason})`);
-            
+
             // 신규품목 매핑 (신규품목 플래그 포함)
             const newItemSuggestions = newItemCandidates.slice(0, composition.newItems).map((c) => ({
               item_no: c.itemNo,
@@ -610,17 +612,17 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
               is_new_item: true,
               _debug: c._debug,
             }));
-            
+
             // 조합에 따라 후보 구성
             suggestions = [
               ...sortedCandidates.slice(0, composition.existing),
               ...newItemSuggestions
             ].slice(0, config.suggestions.total);
-            
-            console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({ 
-              no: s.item_no, 
-              score: s.score?.toFixed(3), 
-              isNew: s.is_new_item || false 
+
+            console.log(`[신규품목] 최종 후보:`, suggestions.map((s: any) => ({
+              no: s.item_no,
+              score: s.score?.toFixed(3),
+              isNew: s.is_new_item || false
             })));
 
             return {
@@ -642,7 +644,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         ...x,
         suggestions,
       };
-    });
+    }));
 
     // 4) 상태 결정
     const hasUnresolved = itemsWithSuggestions.some((x: any) => !x.resolved);

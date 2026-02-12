@@ -6,8 +6,6 @@ import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
   try {
     const { wine_ids } = await request.json();
@@ -20,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     for (const wineId of wine_ids) {
       try {
-        const wine = getWineByCode(wineId);
+        const wine = await getWineByCode(wineId);
         if (!wine) {
           results.push({ wine_id: wineId, success: false, error: "와인을 찾을 수 없음" });
           continue;
@@ -34,7 +32,7 @@ export async function POST(request: NextRequest) {
 
         const result = await researchWineWithClaude(wineId, wine.item_name_kr, englishName);
 
-        upsertWine({
+        await upsertWine({
           item_code: wineId,
           item_name_en: result.item_name_en,
           country_en: result.country_en,
@@ -46,7 +44,7 @@ export async function POST(request: NextRequest) {
           ...(result.image_url ? { image_url: result.image_url } : {}),
         });
 
-        upsertTastingNote(wineId, {
+        await upsertTastingNote(wineId, {
           winemaking: result.winemaking,
           winery_description: result.winery_description,
           vintage_note: result.vintage_note,
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
           approved: 0,
         });
 
-        logChange('claude_batch_research', 'wine', wineId, { item_name_en: result.item_name_en });
+        await logChange('claude_batch_research', 'wine', wineId, { item_name_en: result.item_name_en });
         results.push({ wine_id: wineId, success: true, item_name_en: result.item_name_en });
 
       } catch (e) {

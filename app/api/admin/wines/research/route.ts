@@ -4,8 +4,6 @@ import { researchWine } from "@/app/lib/wineResearch";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
   try {
     const { itemCode, itemNameKr, itemNameEn } = await request.json();
@@ -16,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     const result = await researchWine(itemCode, itemNameKr, itemNameEn || '');
 
-    logChange('ai_research', 'wine', itemCode, { item_name: itemNameKr });
+    await logChange('ai_research', 'wine', itemCode, { item_name: itemNameKr });
 
     // 와인 업데이트용 데이터 분리
     const wineUpdate = {

@@ -1,12 +1,12 @@
 /**
  * ML 통합 신규 품목 검색 (PyTorch 기반)
- * 
+ *
  * 하이브리드 접근:
  * 1. 기존 Rule-based 매칭 (빠름)
  * 2. 점수 낮으면 ML 매칭 (정확함)
  */
 
-import { db } from '@/app/lib/db';
+import { supabase } from '@/app/lib/db';
 import { searchMasterSheet, type MasterMatchCandidate } from '@/app/lib/masterMatcher';
 import { mlMatch, mlHealthCheck, type MLMatchResult } from '@/app/lib/mlClient';
 
@@ -22,16 +22,16 @@ const HEALTH_CHECK_INTERVAL = 60000; // 1분
  */
 async function checkMLServer(): Promise<boolean> {
   const now = Date.now();
-  
+
   // 최근에 체크했으면 캐시 반환
   if (mlServerAvailable !== null && now - lastHealthCheck < HEALTH_CHECK_INTERVAL) {
     return mlServerAvailable;
   }
-  
+
   // 헬스체크 수행
   mlServerAvailable = await mlHealthCheck();
   lastHealthCheck = now;
-  
+
   return mlServerAvailable;
 }
 
@@ -55,8 +55,38 @@ function convertMLResult(mlResult: MLMatchResult): MasterMatchCandidate {
 }
 
 /**
+ * 거래처가 이전에 학습한 신규 품목이 있는지 확인
+ */
+async function getLearnedNewItem(
+  clientCode: string,
+  inputName: string
+): Promise<{ itemNo: string; itemName: string } | null> {
+  try {
+    const { data: row } = await supabase
+      .from('client_new_items')
+      .select('item_no, item_name')
+      .eq('client_code', clientCode)
+      .eq('input_name', inputName)
+      .order('learned_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      itemNo: row.item_no,
+      itemName: row.item_name,
+    };
+  } catch {
+    return null; // 테이블이 없을 수 있음
+  }
+}
+
+/**
  * 신규 품목 검색 - ML 통합 버전
- * 
+ *
  * @param clientCode - 거래처 코드
  * @param inputName - 사용자 입력 품목명
  * @param currentBestScore - 기존 매칭 시스템의 최고 점수
@@ -77,7 +107,7 @@ export async function searchNewItemML(
   }
 
   // 2) 이미 학습된 신규 품목이 있는지 확인
-  const learned = getLearnedNewItem(clientCode, inputName);
+  const learned = await getLearnedNewItem(clientCode, inputName);
   if (learned) {
     return null;
   }
@@ -85,7 +115,7 @@ export async function searchNewItemML(
   // 3) Rule-based 검색 먼저 시도 (빠름)
   console.log(`[신규품목] Rule-based 검색: "${inputName}"`);
   const ruleBased = searchMasterSheet(inputName, 5);
-  
+
   // Rule-based 결과가 좋으면 바로 반환
   if (ruleBased.length > 0 && ruleBased[0].score >= 0.7) {
     console.log(`[신규품목] Rule-based 충분: ${ruleBased[0].score.toFixed(3)}`);
@@ -96,22 +126,22 @@ export async function searchNewItemML(
   if (useML) {
     try {
       const mlAvailable = await checkMLServer();
-      
+
       if (mlAvailable) {
         console.log(`[신규품목] ML 검색 시작: "${inputName}"`);
-        
+
         const mlResponse = await mlMatch({
           query: inputName,
           client_code: clientCode,
           top_k: 5,
           min_score: 0.3
         });
-        
+
         if (mlResponse.success && mlResponse.results.length > 0) {
           console.log(`[신규품목] ML 검색 성공: ${mlResponse.results.length}개 (${mlResponse.processing_time_ms.toFixed(0)}ms)`);
-          
+
           const mlCandidates = mlResponse.results.map(convertMLResult);
-          
+
           // ML 결과가 더 좋으면 ML 반환
           if (mlCandidates[0].score > (ruleBased[0]?.score || 0)) {
             console.log(`[신규품목] ML 우세: ${mlCandidates[0].score.toFixed(3)} vs ${ruleBased[0]?.score.toFixed(3) || 0}`);
@@ -129,41 +159,6 @@ export async function searchNewItemML(
 
   // 5) Rule-based 결과 반환 (폴백)
   return ruleBased.length > 0 ? ruleBased : null;
-}
-
-/**
- * 거래처가 이전에 학습한 신규 품목이 있는지 확인
- */
-function getLearnedNewItem(
-  clientCode: string,
-  inputName: string
-): { itemNo: string; itemName: string } | null {
-  const tableExists = db
-    .prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name='client_new_items'`
-    )
-    .get();
-
-  if (!tableExists) {
-    return null;
-  }
-
-  const row = db.prepare(`
-    SELECT item_no, item_name 
-    FROM client_new_items 
-    WHERE client_code = ? AND input_name = ?
-    ORDER BY learned_at DESC
-    LIMIT 1
-  `).get(clientCode, inputName) as any;
-
-  if (!row) {
-    return null;
-  }
-
-  return {
-    itemNo: row.item_no,
-    itemName: row.item_name,
-  };
 }
 
 /**

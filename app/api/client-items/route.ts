@@ -1,9 +1,7 @@
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
-// ✅ 거래처별 품목 조회 API (와인/와인잔 공통)
+// 거래처별 품목 조회 API (와인/와인잔 공통)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -16,30 +14,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 와인/와인잔에 따라 다른 테이블 사용
+    // 와인/와인잔에 따라 다른 테이블 사용
     const table = type === "wine" ? "client_item_stats" : "glass_client_item_stats";
 
-    // ✅ 거래처별 품목 조회 (최근 거래 품목)
-    // ✅ 와인은 avg_price, Glass는 supply_price 컬럼명이 다름
+    // 와인은 avg_price, Glass는 supply_price 컬럼명이 다름
     const priceCol = type === "wine" ? "avg_price" : "supply_price";
-    // ✅ last_ship_date는 있을 수도 없을 수도 있으므로 안전하게 처리
-    const items = db
-      .prepare(
-        `SELECT item_no, item_name, ${priceCol} as supply_price
-         FROM ${table} 
-         WHERE client_code = ? 
-         ORDER BY item_no ASC`
-      )
-      .all(client_code) as Array<{
-      item_no: string;
-      item_name: string;
-      supply_price: number;
-    }>;
+
+    // 거래처별 품목 조회 (최근 거래 품목)
+    const selectCols =
+      type === "wine"
+        ? `item_no, item_name, avg_price`
+        : `item_no, item_name, supply_price`;
+
+    const { data: items, error } = await supabase
+      .from(table)
+      .select(selectCols)
+      .eq("client_code", client_code)
+      .order("item_no", { ascending: true });
+
+    if (error) throw error;
+
+    // avg_price → supply_price 로 통일 (wine 테이블인 경우)
+    const normalized = (items || []).map((row: any) => ({
+      item_no: row.item_no,
+      item_name: row.item_name,
+      supply_price: type === "wine" ? row.avg_price : row.supply_price,
+    }));
 
     return NextResponse.json({
       success: true,
-      items,
-      count: items.length,
+      items: normalized,
+      count: normalized.length,
     });
   } catch (error: any) {
     console.error("거래처 품목 조회 실패:", error);

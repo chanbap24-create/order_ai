@@ -2,16 +2,16 @@
  * ========================================
  * 토큰 기반 품목 검색 시스템
  * ========================================
- * 
+ *
  * token_mapping 테이블을 활용한 자연어 검색
  * 학습된 토큰으로 품목을 빠르게 매칭
  */
 
-import { db } from "@/app/lib/db";
+import { supabase } from "@/app/lib/db";
 
 // 한글 초성 추출
 const CHOSUNG = [
-  'ㄱ', 'ㄲ', 'ㄴ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㄹ', 'ㅁ', 'ㅂ', 
+  'ㄱ', 'ㄲ', 'ㄴ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㄹ', 'ㅁ', 'ㅂ',
   'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
 ];
 
@@ -30,13 +30,13 @@ function extractConsonants(str: string): string {
 // 토큰 추출 함수
 export function extractTokens(text: string): string[] {
   const tokens = new Set<string>();
-  
+
   // 1. 공백 기준 분리
   const words = text.toLowerCase().split(/[\s,]+/);
   words.forEach(w => {
     if (w.length >= 2) tokens.add(w);
   });
-  
+
   // 2. 한글 초성 (3글자 이상)
   if (/[가-힣]{3,}/.test(text)) {
     const korean = text.match(/[가-힣]+/g);
@@ -51,13 +51,13 @@ export function extractTokens(text: string): string[] {
       });
     }
   }
-  
+
   // 3. 약어 추출 (대문자 2-4글자)
   const abbrs = text.match(/\b[A-Z]{2,4}\b/g);
   if (abbrs) {
     abbrs.forEach(a => tokens.add(a.toLowerCase()));
   }
-  
+
   return Array.from(tokens);
 }
 
@@ -71,21 +71,21 @@ export interface TokenMatch {
 }
 
 // 토큰으로 품목 검색
-export function searchByToken(token: string): TokenMatch[] {
+export async function searchByToken(token: string): Promise<TokenMatch[]> {
   try {
-    const matches = db.prepare(`
-      SELECT 
-        mapped_text as item_no,
-        token,
-        token_type,
-        confidence,
-        learned_count
-      FROM token_mapping
-      WHERE token = ? COLLATE NOCASE
-      ORDER BY learned_count DESC
-    `).all(token) as TokenMatch[];
-    
-    return matches;
+    const { data } = await supabase
+      .from('token_mapping')
+      .select('mapped_text, token, token_type, confidence, learned_count')
+      .ilike('token', token)
+      .order('learned_count', { ascending: false });
+
+    return (data || []).map((r: any) => ({
+      item_no: r.mapped_text,
+      token: r.token,
+      token_type: r.token_type,
+      confidence: r.confidence,
+      learned_count: r.learned_count,
+    }));
   } catch (e) {
     console.error(`토큰 검색 실패: ${token}`, e);
     return [];
@@ -93,17 +93,17 @@ export function searchByToken(token: string): TokenMatch[] {
 }
 
 // 여러 토큰으로 품목 검색
-export function searchByTokens(query: string): Map<string, TokenMatch[]> {
+export async function searchByTokens(query: string): Promise<Map<string, TokenMatch[]>> {
   const tokens = extractTokens(query);
   const results = new Map<string, TokenMatch[]>();
-  
+
   for (const token of tokens) {
-    const matches = searchByToken(token);
+    const matches = await searchByToken(token);
     if (matches.length > 0) {
       results.set(token, matches);
     }
   }
-  
+
   return results;
 }
 
@@ -123,7 +123,7 @@ export function aggregateTokenMatches(tokenMatches: Map<string, TokenMatch[]>): 
     confidences: number[];
     learnedCounts: number[];
   }>();
-  
+
   // 1. 토큰별 매칭 결과 집계
   for (const [token, matches] of tokenMatches.entries()) {
     for (const match of matches) {
@@ -135,7 +135,7 @@ export function aggregateTokenMatches(tokenMatches: Map<string, TokenMatch[]>): 
           learnedCounts: [],
         });
       }
-      
+
       const item = itemScores.get(match.item_no)!;
       item.tokens.add(token);
       item.scores.push(match.confidence);
@@ -143,16 +143,16 @@ export function aggregateTokenMatches(tokenMatches: Map<string, TokenMatch[]>): 
       item.learnedCounts.push(match.learned_count);
     }
   }
-  
+
   // 2. 집계 및 정렬
   const aggregated: AggregatedMatch[] = [];
-  
+
   for (const [item_no, data] of itemScores.entries()) {
     const matchedTokens = Array.from(data.tokens);
     const totalScore = data.scores.reduce((sum, s) => sum + s, 0);
     const avgConfidence = data.confidences.reduce((sum, c) => sum + c, 0) / data.confidences.length;
     const avgLearnedCount = data.learnedCounts.reduce((sum, l) => sum + l, 0) / data.learnedCounts.length;
-    
+
     aggregated.push({
       item_no,
       matchedTokens,
@@ -161,7 +161,7 @@ export function aggregateTokenMatches(tokenMatches: Map<string, TokenMatch[]>): 
       avgLearnedCount,
     });
   }
-  
+
   // 3. 정렬 (매칭된 토큰 수 > 총점 > 학습 빈도)
   aggregated.sort((a, b) => {
     if (a.matchedTokens.length !== b.matchedTokens.length) {
@@ -172,20 +172,20 @@ export function aggregateTokenMatches(tokenMatches: Map<string, TokenMatch[]>): 
     }
     return b.avgLearnedCount - a.avgLearnedCount;
   });
-  
+
   return aggregated;
 }
 
 // 토큰 기반 검색 (통합)
-export function tokenBasedSearch(query: string): AggregatedMatch[] {
-  const tokenMatches = searchByTokens(query);
+export async function tokenBasedSearch(query: string): Promise<AggregatedMatch[]> {
+  const tokenMatches = await searchByTokens(query);
   return aggregateTokenMatches(tokenMatches);
 }
 
 // 토큰 매칭 부스트 점수 계산
-export function calculateTokenBoost(query: string, itemNo: string): number {
-  const tokenMatches = searchByTokens(query);
-  
+export async function calculateTokenBoost(query: string, itemNo: string): Promise<number> {
+  const tokenMatches = await searchByTokens(query);
+
   for (const [token, matches] of tokenMatches.entries()) {
     for (const match of matches) {
       if (match.item_no === itemNo) {
@@ -196,6 +196,6 @@ export function calculateTokenBoost(query: string, itemNo: string): number {
       }
     }
   }
-  
+
   return 0;
 }

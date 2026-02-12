@@ -9,8 +9,6 @@ import { getWineByCode } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.GITHUB_TOKEN) {
@@ -30,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     for (const wineId of wineIds) {
       try {
-        const wine = getWineByCode(wineId);
+        const wine = await getWineByCode(wineId);
         if (!wine) {
           results.push({ wineId, error: "와인 정보 없음" });
           continue;
@@ -67,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      logChange("github_release", "tasting_note", wineIds.join(","), {
+      await logChange("github_release", "tasting_note", wineIds.join(","), {
         format,
         count: wineIds.length,
         success: results.filter((r) => !r.error).length,
