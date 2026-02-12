@@ -14,7 +14,7 @@
 
 import { supabase } from "@/app/lib/db";
 import { applyItemSynonym } from "@/app/lib/itemsynonyms";
-import { calculateWeightedScore } from "@/app/lib/weightedScoring";
+import { calculateWeightedScoreCached, preloadScoringData, type PreloadedScoringData } from "@/app/lib/weightedScoring";
 import { searchMasterSheet } from "@/app/lib/masterMatcher";
 import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
@@ -863,6 +863,59 @@ async function getLearnedMatch(rawInput: string, clientCode?: string): Promise<L
   }
 }
 
+/* ================= 캐시 기반 학습 매칭 (DB 조회 없음) ================= */
+
+function getLearnedMatchCached(
+  rawInput: string,
+  clientCode: string | undefined,
+  allAliases: PreloadedScoringData['itemAliases']
+): LearnedMatch {
+  const inputItem = stripQtyAndUnit(rawInput);
+  const nInputItem = normTight(inputItem);
+
+  // 1) 거래처별 + 전역 별칭 필터
+  let rows = clientCode
+    ? allAliases.filter(r => r.client_code === clientCode || r.client_code === '*' || !r.client_code)
+    : [];
+
+  // 2) 없으면 전체 (count 내림차순)
+  if (!rows.length) {
+    rows = [...allAliases].sort((a, b) => (b.count || 0) - (a.count || 0));
+  }
+
+  if (!rows.length) return null;
+
+  const pairs = rows
+    .map(r => {
+      const aliasItem = stripQtyAndUnit(r.alias);
+      return {
+        aliasItem,
+        nAliasItem: normTight(aliasItem),
+        canonical: String(r.canonical || "").trim(),
+      };
+    })
+    .filter(x => x.nAliasItem && x.canonical)
+    .sort((a, b) => b.nAliasItem.length - a.nAliasItem.length);
+
+  for (const p of pairs) {
+    if (p.nAliasItem === nInputItem) {
+      return { kind: "exact", alias: p.aliasItem, canonical: p.canonical };
+    }
+  }
+
+  for (const p of pairs) {
+    if (nInputItem.includes(p.nAliasItem)) {
+      if (isSpecificAlias(p.aliasItem)) {
+        return { kind: "contains_specific", alias: p.aliasItem, canonical: p.canonical };
+      } else {
+        return { kind: "contains_weak", alias: p.aliasItem, canonical: p.canonical };
+      }
+    }
+  }
+
+  return null;
+}
+
 /* ================= 메인 함수 ================= */
 
 export interface ResolvedItem {
@@ -922,6 +975,10 @@ export async function resolveItemsByClientWeighted(
 
   // 영문명 맵
   const englishMap = await loadEnglishMap();
+
+  // 🚀 성능 최적화: 스코어링 데이터 일괄 프리로드 (N+1 쿼리 방지)
+  const preloaded = await preloadScoringData(clientCode);
+  console.log(`[resolveItemsWeighted] 🚀 프리로드 완료: aliases=${preloaded.itemAliases.length}, stats=${preloaded.clientStats.size}, tokens=${preloaded.tokenMappings.length}, prices=${preloaded.supplyPrices.size}`);
 
   // items.map() → sequential for loop (async operations inside)
   const resolvedItems: ResolvedItem[] = [];
@@ -1111,8 +1168,8 @@ export async function resolveItemsByClientWeighted(
       console.log(`[Wine] 생산자 감지됨: "${producer}" - 해당 브랜드 품목만 필터링`);
     }
 
-    // ✅ 학습 매칭은 원본 이름(it.name)으로 먼저, 전처리된 이름으로 폴백
-    const learned = (await getLearnedMatch(it.name, clientCode)) || (await getLearnedMatch(searchName, clientCode));
+    // ✅ 학습 매칭은 원본 이름(it.name)으로 먼저, 전처리된 이름으로 폴백 (캐시 기반)
+    const learned = getLearnedMatchCached(it.name, clientCode, preloaded.itemAliases) || getLearnedMatchCached(searchName, clientCode, preloaded.itemAliases);
     const learnedItemNo =
       learned?.canonical && /^\d+$/.test(learned.canonical) ? learned.canonical : null;
 
@@ -1131,17 +1188,12 @@ export async function resolveItemsByClientWeighted(
         const englishMatches = await findMultipleFromEnglish(searchName, 10);
 
         for (const match of englishMatches) {
-          // 거래처 이력에 있는 한글명 사용, 없으면 영어명 사용
-          const { data: clientRow } = await supabase
-            .from('client_item_stats')
-            .select('item_name, supply_price')
-            .eq('client_code', clientCode)
-            .eq('item_no', match.code)
-            .limit(1)
-            .maybeSingle();
+          // 거래처 이력에 있는 한글명 사용 (프리로드 데이터 활용 - DB 조회 없음)
+          const clientHit = clientRows.find(cr => String(cr.item_no) === match.code);
+          const clientStat = preloaded.clientStats.get(match.code);
 
-          const displayName = clientRow?.item_name || match.koreanName || match.englishName;
-          const supplyPrice = clientRow?.supply_price || match.supplyPrice;
+          const displayName = clientHit?.item_name || match.koreanName || match.englishName;
+          const supplyPrice = clientStat?.supply_price || match.supplyPrice || preloaded.supplyPrices.get(match.code);
 
           englishRows.push({
             item_no: match.code,
@@ -1318,13 +1370,13 @@ export async function resolveItemsByClientWeighted(
       // 최고 점수 선택 (확장 검색은 20% 부스트)
       const baseScore = Math.max(ko1, ko2 * 1.2, en);
 
-      // 🎯 가중치 시스템으로 최종 점수 계산
-      // ✅ supply_price는 r 객체에 없을 수 있음 (기존 품목은 DB에 없음)
-      const weighted = await calculateWeightedScore(
+      // 🎯 가중치 시스템으로 최종 점수 계산 (캐시 기반 - DB 조회 제로)
+      const weighted = calculateWeightedScoreCached(
         it.name,
         clientCode,
         String(r.item_no),
         baseScore,
+        preloaded,
         undefined, // dataType (기본값 'wine' 사용)
         (r as any).supply_price // ✅ 신규 품목인 경우에만 있음
       );
@@ -1341,20 +1393,10 @@ export async function resolveItemsByClientWeighted(
       // ✅ 거래처 이력에 있는지 확인 (is_new_item 플래그 설정)
       const isInClientHistory = clientRows.some(cr => String(cr.item_no) === String(r.item_no));
 
-      // ✅ supply_price 조회 (items 테이블에서)
-      let supplyPrice: number | undefined = (r as any).supply_price;
-      if (!supplyPrice) {
-        try {
-          const { data: itemRow } = await supabase
-            .from('inventory_cdv')
-            .select('supply_price')
-            .eq('item_no', String(r.item_no))
-            .maybeSingle();
-          supplyPrice = itemRow?.supply_price || undefined;
-        } catch (e) {
-          // 테이블이 없거나 오류 발생 시 무시
-        }
-      }
+      // ✅ supply_price 조회 (프리로드 맵에서 - DB 조회 없음)
+      const supplyPrice: number | undefined = (r as any).supply_price
+        || preloaded.supplyPrices.get(String(r.item_no))
+        || undefined;
 
       scoredRaw.push({
         item_no: r.item_no,

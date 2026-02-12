@@ -74,7 +74,7 @@ function normalize(s: string): string {
 // ========== English + Downloads 시트 캐싱 ==========
 let cachedEnglishData: WineItem[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 10 * 1000; // 10초 (개발용 - 운영 시 60초로 변경)
+const CACHE_TTL = 5 * 60 * 1000; // 5분
 
 function loadEnglishSheet(): WineItem[] {
   const now = Date.now();

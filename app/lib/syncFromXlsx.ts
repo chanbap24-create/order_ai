@@ -39,7 +39,9 @@ export async function syncFromXlsxIfNeeded() {
       .select("*", { count: "exact", head: true });
     const hasData = (count || 0) > 0;
 
-    if (lastMtimeMs && stat.mtimeMs === lastMtimeMs && hasData) {
+    // ✅ DB에 데이터가 있으면 cold start에서도 동기화 건너뛰기
+    if (hasData && (!lastMtimeMs || stat.mtimeMs === lastMtimeMs)) {
+      lastMtimeMs = stat.mtimeMs;
       return { synced: false, reason: "not_changed" as const };
     }
 
@@ -147,7 +149,9 @@ export async function syncGlassFromXlsxIfNeeded() {
       .select("*", { count: "exact", head: true });
     const hasData = (glassCount || 0) > 0;
 
-    if (lastGlassMtimeMs && stat.mtimeMs === lastGlassMtimeMs && hasData) {
+    // ✅ DB에 데이터가 있으면 cold start에서도 동기화 건너뛰기
+    if (hasData && (!lastGlassMtimeMs || stat.mtimeMs === lastGlassMtimeMs)) {
+      lastGlassMtimeMs = stat.mtimeMs;
       return { synced: false, reason: "not_changed" as const };
     }
 
