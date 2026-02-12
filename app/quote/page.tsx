@@ -542,63 +542,52 @@ export default function QuotePage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: 'calc(100vh - 80px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#666' }}>견적서를 불러오는 중...</p>
+      <div style={{ minHeight: 'calc(100vh - 48px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#999' }}>견적서를 불러오는 중...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 80px)', background: '#F8F9FA', padding: isMobile ? '12px' : '24px' }}>
-      <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ minHeight: 'calc(100vh - 48px)', background: '#fafaf8', wordBreak: 'keep-all' as const }}>
+      <div className="ds-page">
 
         {/* ── 상단 헤더 ── */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center',
-          marginBottom: 16, justifyContent: 'space-between'
-        }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#1a1a1a' }}>
-            견적서
-          </h1>
+        <div className="ds-page-header" style={{ marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <h1 className="ds-page-title">Quote</h1>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input
               type="text"
+              className="ds-input"
               placeholder="거래처명"
               value={clientName}
               onChange={e => setClientName(e.target.value)}
-              style={{
-                fontSize: 16, padding: '8px 12px', borderRadius: 8,
-                border: '1px solid #ddd', width: 160, background: 'white'
-              }}
+              style={{ width: 160 }}
             />
-            <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
+            <div className="ds-tab-group">
               {(['CDV', 'DL'] as const).map(c => (
                 <button
                   key={c}
+                  className={`ds-tab${company === c ? ' active' : ''}`}
                   onClick={() => switchCompany(c)}
-                  style={{
-                    padding: '8px 14px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                    background: company === c ? '#8B1538' : 'white',
-                    color: company === c ? 'white' : '#333',
-                  }}
                 >
                   {c === 'CDV' ? '까브드뱅' : '대유라이프'}
                 </button>
               ))}
             </div>
             <button
+              className="ds-btn ds-btn-primary"
               onClick={handleExport}
               disabled={exporting || items.length === 0}
               style={{
-                padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: items.length > 0 ? '#2E7D32' : '#ccc',
-                color: 'white', fontWeight: 600, fontSize: 14,
+                background: items.length > 0 ? '#1a1a2e' : '#ccc',
                 opacity: exporting ? 0.6 : 1,
               }}
             >
               {exporting ? '생성 중...' : '엑셀 다운로드'}
             </button>
             <button
+              className={`ds-btn ${showSearch ? 'ds-btn-primary' : 'ds-btn-secondary'}`}
               onClick={() => {
                 const next = !showSearch;
                 setShowSearch(next);
@@ -606,41 +595,30 @@ export default function QuotePage() {
                   loadFilterOptions(searchSource);
                 }
               }}
-              style={{
-                padding: '8px 16px', borderRadius: 8, border: '1px solid #8B1538', cursor: 'pointer',
-                background: showSearch ? '#8B1538' : 'white',
-                color: showSearch ? 'white' : '#8B1538', fontWeight: 600, fontSize: 14,
-              }}
             >
               {showSearch ? '검색 닫기' : '+ 품목 추가'}
             </button>
             <button
+              className="ds-btn ds-btn-ghost"
               onClick={() => setShowColumnSettings(!showColumnSettings)}
-              style={{
-                padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer',
-                background: showColumnSettings ? '#f0f0f0' : 'white', fontSize: 14,
-              }}
+              style={{ background: showColumnSettings ? '#f0f0f0' : 'white' }}
               title="컬럼 표시/숨김"
             >
               ⚙
             </button>
             <button
+              className="ds-btn ds-btn-ghost"
               onClick={() => setShowDocSettings(!showDocSettings)}
-              style={{
-                padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer',
-                background: showDocSettings ? '#f0f0f0' : 'white', fontSize: 14,
-              }}
+              style={{ background: showDocSettings ? '#f0f0f0' : 'white' }}
               title="문서 설정"
             >
               📄
             </button>
             {items.length > 0 && (
               <button
+                className="ds-btn ds-btn-danger"
                 onClick={clearAll}
-                style={{
-                  padding: '8px 12px', borderRadius: 8, border: '1px solid #e74c3c', cursor: 'pointer',
-                  background: 'white', color: '#e74c3c', fontWeight: 600, fontSize: 14,
-                }}
+                style={{ background: 'white', color: '#e74c3c', border: '1px solid #e74c3c' }}
               >
                 전체 삭제
               </button>
@@ -650,18 +628,15 @@ export default function QuotePage() {
 
         {/* ── 컬럼 설정 ── */}
         {showColumnSettings && (
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 16, marginBottom: 16,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee'
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>컬럼 표시/숨김</div>
+          <div className="ds-card" style={{ marginBottom: 16, padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#2D2D2D' }}>컬럼 표시/숨김</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {ALL_COLUMNS.map(col => (
                 <label key={col.key} style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   fontSize: 13, cursor: 'pointer', padding: '4px 8px',
-                  borderRadius: 6, background: visibleColumns.includes(col.key) ? '#EBF5FB' : '#f5f5f5',
-                  border: `1px solid ${visibleColumns.includes(col.key) ? '#85C1E9' : '#ddd'}`,
+                  borderRadius: 6, background: visibleColumns.includes(col.key) ? 'rgba(90,21,21,0.06)' : '#f5f5f5',
+                  border: `1px solid ${visibleColumns.includes(col.key) ? 'rgba(90,21,21,0.2)' : 'rgba(90,21,21,0.06)'}`,
                 }}>
                   <input
                     type="checkbox"
@@ -683,11 +658,8 @@ export default function QuotePage() {
 
         {/* ── 문서 설정 ── */}
         {showDocSettings && (
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 16, marginBottom: 16,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee'
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>문서 설정</div>
+          <div className="ds-card" style={{ marginBottom: 16, padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#2D2D2D' }}>문서 설정</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {([
                 ['companyName', '회사명'],
@@ -713,18 +685,16 @@ export default function QuotePage() {
                     onChange={e => setDocSettings(prev => ({ ...prev, [key]: e.target.value }))}
                     style={{
                       flex: 1, fontSize: 13, padding: '6px 10px', borderRadius: 6,
-                      border: '1px solid #ddd', minWidth: 0,
+                      border: '1px solid #E5E5E5', minWidth: 0, outline: 'none',
                     }}
                   />
                 </div>
               ))}
             </div>
             <button
+              className="ds-btn ds-btn-ghost ds-btn-sm"
               onClick={() => setDocSettings(company === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)}
-              style={{
-                marginTop: 12, padding: '6px 14px', borderRadius: 6, border: '1px solid #ddd',
-                background: '#f5f5f5', fontSize: 12, cursor: 'pointer', color: '#666',
-              }}
+              style={{ marginTop: 12 }}
             >
               기본값 초기화
             </button>
@@ -733,15 +703,13 @@ export default function QuotePage() {
 
         {/* ── 재고 검색 영역 ── */}
         {showSearch && (
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 16, marginBottom: 16,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee'
-          }}>
+          <div className="ds-card" style={{ marginBottom: 16, padding: 16 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-              <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd' }}>
+              <div className="ds-tab-group">
                 {(['CDV', 'DL'] as const).map(tab => (
                   <button
                     key={tab}
+                    className={`ds-tab${searchSource === tab ? ' active' : ''}`}
                     onClick={() => {
                       setSearchSource(tab);
                       setSearchResults([]);
@@ -752,11 +720,7 @@ export default function QuotePage() {
                       setFilterGrapeVariety('');
                       loadFilterOptions(tab);
                     }}
-                    style={{
-                      padding: '6px 16px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                      background: searchSource === tab ? '#8B1538' : 'white',
-                      color: searchSource === tab ? 'white' : '#333',
-                    }}
+                    style={{ height: 32, padding: '0 14px' }}
                   >
                     {tab}
                   </button>
@@ -764,13 +728,11 @@ export default function QuotePage() {
               </div>
               <input
                 type="text"
+                className="ds-input"
                 placeholder="품목명 / 코드 / 브랜드 검색..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1, fontSize: 16, padding: '8px 12px', borderRadius: 8,
-                  border: '1px solid #ddd', minWidth: 0,
-                }}
+                style={{ flex: 1, minWidth: 0 }}
               />
             </div>
 
@@ -810,15 +772,12 @@ export default function QuotePage() {
               </select>
               {(filterCountry || filterRegion || filterWineType || filterGrapeVariety) && (
                 <button
+                  className="ds-btn ds-btn-ghost ds-btn-sm"
                   onClick={() => {
                     setFilterCountry('');
                     setFilterRegion('');
                     setFilterWineType('');
                     setFilterGrapeVariety('');
-                  }}
-                  style={{
-                    padding: '6px 12px', borderRadius: 6, border: '1px solid #ddd',
-                    background: '#f5f5f5', fontSize: 12, cursor: 'pointer', color: '#666',
                   }}
                 >
                   필터 초기화
@@ -829,17 +788,17 @@ export default function QuotePage() {
             {/* 검색 결과 */}
             {isSearching && <p style={{ color: '#888', fontSize: 13 }}>검색 중...</p>}
             {searchResults.length > 0 && (
-              <div style={{ maxHeight: 300, overflowY: 'auto', borderTop: '1px solid #eee', paddingTop: 8 }}>
+              <div style={{ maxHeight: 300, overflowY: 'auto', borderTop: '1px solid rgba(90,21,21,0.06)', paddingTop: 8 }}>
                 {searchResults.slice(0, 50).map((inv, idx) => (
                   <div key={`${inv.item_no}-${idx}`} style={{
                     display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px',
-                    borderBottom: '1px solid #f5f5f5', fontSize: 13,
+                    borderBottom: '1px solid rgba(90,21,21,0.04)', fontSize: 13,
                   }}>
                     <button
                       onClick={() => addItem(inv)}
                       style={{
                         width: 28, height: 28, borderRadius: '50%', border: 'none',
-                        background: '#8B1538', color: 'white', fontSize: 16,
+                        background: '#5A1515', color: 'white', fontSize: 16,
                         cursor: 'pointer', flexShrink: 0, display: 'flex',
                         alignItems: 'center', justifyContent: 'center', lineHeight: 1,
                       }}
@@ -879,9 +838,8 @@ export default function QuotePage() {
 
         {/* ── 합계 바 ── */}
         {items.length > 0 && (
-          <div style={{
-            background: 'white', borderRadius: 12, padding: '12px 16px', marginBottom: 16,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee',
+          <div className="ds-card" style={{
+            padding: '12px 16px', marginBottom: 16,
             display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
             justifyContent: 'space-between',
           }}>
@@ -893,7 +851,7 @@ export default function QuotePage() {
                 정상합계 <strong style={{ color: '#2c3e50' }}>{formatWon(totalNormal)}원</strong>
               </span>
               <span style={{ fontSize: 13, color: '#333' }}>
-                할인합계 <strong style={{ color: '#8B1538' }}>{formatWon(totalDiscount)}원</strong>
+                할인합계 <strong style={{ color: '#5A1515' }}>{formatWon(totalDiscount)}원</strong>
               </span>
             </div>
             {totalNormal > 0 && totalNormal !== totalDiscount && (
@@ -906,27 +864,21 @@ export default function QuotePage() {
 
         {/* ── 빈 상태 ── */}
         {items.length === 0 && (
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 48, textAlign: 'center',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee',
-          }}>
-            <p style={{ fontSize: 16, color: '#888', marginBottom: 8 }}>견적서가 비어있습니다.</p>
-            <p style={{ fontSize: 13, color: '#aaa' }}>
-              상단의 "품목 추가" 버튼을 눌러 재고에서 품목을 검색하세요.
-            </p>
+          <div className="ds-card ds-empty">
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#2D2D2D' }}>견적서가 비어있습니다.</div>
+            <div className="ds-empty-text">
+              상단의 &quot;품목 추가&quot; 버튼을 눌러 재고에서 품목을 검색하세요.
+            </div>
           </div>
         )}
 
         {/* ── 데스크탑: 테이블 뷰 ── */}
         {!isMobile && items.length > 0 && (
-          <div style={{
-            background: 'white', borderRadius: 12, overflow: 'hidden',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee',
-          }}>
+          <div className="ds-card" style={{ overflow: 'hidden', padding: 0 }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: '#D6EAF8' }}>
+                  <tr style={{ background: '#f5f5f5' }}>
                     <th style={{ ...thStyle, width: 36 }}>No.</th>
                     {visibleCols.map(col => (
                       <th key={col.key} style={{
@@ -963,7 +915,7 @@ export default function QuotePage() {
                               cursor: isEditable ? 'pointer' : 'default',
                               background: isEditing ? '#FFF9C4' : 'transparent',
                               fontWeight: (col.key === 'product_name') ? 600 : 400,
-                              color: col.key === 'discount_total' ? '#8B1538' : '#333',
+                              color: col.key === 'discount_total' ? '#5A1515' : '#333',
                             }}
                             onClick={() => {
                               if (isEditable && !isEditing) {
@@ -992,7 +944,7 @@ export default function QuotePage() {
                                 rel="noopener noreferrer"
                                 onClick={e => e.stopPropagation()}
                                 style={{
-                                  color: tastingNoteSet.has(item.item_code) ? '#27ae60' : '#8B1538',
+                                  color: tastingNoteSet.has(item.item_code) ? '#27ae60' : '#5A1515',
                                   textDecoration: 'underline', fontSize: 12, fontWeight: 600,
                                 }}
                               >
@@ -1062,9 +1014,9 @@ export default function QuotePage() {
                 <div
                   key={item.id}
                   onClick={() => openBottomSheet(item)}
+                  className="ds-card"
                   style={{
-                    background: 'white', borderRadius: 12, padding: 14,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #eee',
+                    padding: 14,
                     cursor: 'pointer', position: 'relative',
                   }}
                 >
@@ -1103,7 +1055,7 @@ export default function QuotePage() {
                       {item.discount_rate > 0 && (
                         <div>
                           <div style={{ fontSize: 11, color: '#888' }}>할인가</div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: '#8B1538' }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#5A1515' }}>
                             {formatWon(discounted)} ({formatPercent(item.discount_rate)})
                           </div>
                         </div>
@@ -1119,7 +1071,7 @@ export default function QuotePage() {
                     display: 'flex', justifyContent: 'space-between', fontSize: 12,
                   }}>
                     <span style={{ color: '#666' }}>정상합계 {formatWon(normalTotal)}원</span>
-                    <span style={{ color: '#8B1538', fontWeight: 600 }}>할인합계 {formatWon(discountTotal)}원</span>
+                    <span style={{ color: '#5A1515', fontWeight: 600 }}>할인합계 {formatWon(discountTotal)}원</span>
                   </div>
                   {item.note && (
                     <div style={{ marginTop: 4, fontSize: 12, color: '#888' }}>비고: {item.note}</div>
@@ -1143,7 +1095,7 @@ export default function QuotePage() {
             <div
               style={{
                 width: '100%', background: 'white',
-                borderRadius: '16px 16px 0 0', padding: '20px 16px',
+                borderRadius: '12px 12px 0 0', padding: '20px 16px',
                 maxHeight: '85vh', overflowY: 'auto',
               }}
               onClick={e => e.stopPropagation()}
@@ -1203,7 +1155,7 @@ export default function QuotePage() {
 
               {/* 미리보기 */}
               <div style={{
-                marginTop: 16, padding: 12, background: '#F8F9FA', borderRadius: 8, fontSize: 13,
+                marginTop: 16, padding: 12, background: '#fafaf8', borderRadius: 8, fontSize: 13,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ color: '#666' }}>공급가</span>
@@ -1218,7 +1170,7 @@ export default function QuotePage() {
                     ))}원
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#8B1538' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#5A1515' }}>
                   <span>할인합계</span>
                   <span>
                     {formatWon(
@@ -1233,21 +1185,16 @@ export default function QuotePage() {
 
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                 <button
+                  className="ds-btn ds-btn-ghost"
                   onClick={() => setBottomSheetItem(null)}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: 8, border: '1px solid #ddd',
-                    background: 'white', fontSize: 15, fontWeight: 600, cursor: 'pointer',
-                  }}
+                  style={{ flex: 1, height: 44 }}
                 >
                   취소
                 </button>
                 <button
+                  className="ds-btn ds-btn-primary"
                   onClick={saveBottomSheet}
-                  style={{
-                    flex: 1, padding: '12px', borderRadius: 8, border: 'none',
-                    background: '#8B1538', color: 'white', fontSize: 15,
-                    fontWeight: 600, cursor: 'pointer',
-                  }}
+                  style={{ flex: 1, height: 44 }}
                 >
                   저장
                 </button>
@@ -1265,10 +1212,13 @@ export default function QuotePage() {
 const thStyle: React.CSSProperties = {
   padding: '10px 8px',
   fontSize: 12,
-  fontWeight: 700,
+  fontWeight: 600,
   whiteSpace: 'nowrap',
-  borderBottom: '2px solid #AED6F1',
+  borderBottom: '1px solid #E5E5E5',
   textAlign: 'center',
+  color: '#666',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
 };
 
 const tdStyle: React.CSSProperties = {
@@ -1289,17 +1239,19 @@ const sheetInputStyle: React.CSSProperties = {
   width: '100%',
   fontSize: 16,
   padding: '10px 12px',
-  borderRadius: 8,
-  border: '1px solid #ddd',
+  borderRadius: 6,
+  border: '1px solid #E5E5E5',
   boxSizing: 'border-box',
+  outline: 'none',
 };
 
 const filterSelectStyle: React.CSSProperties = {
   fontSize: 13,
   padding: '6px 10px',
   borderRadius: 6,
-  border: '1px solid #ddd',
+  border: '1px solid #E5E5E5',
   background: 'white',
   minWidth: 100,
   cursor: 'pointer',
+  outline: 'none',
 };

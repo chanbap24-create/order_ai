@@ -58,7 +58,7 @@ export default function RootLayout({
         className={`${inter.variable} antialiased`}
       >
         <Navigation />
-        <main style={{ paddingTop: '80px', minHeight: '100vh' }}>
+        <main style={{ paddingTop: '48px', minHeight: '100vh' }}>
           {children}
         </main>
       </body>

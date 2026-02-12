@@ -676,7 +676,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
   const cardStyle: React.CSSProperties = {
     padding: 12,
-    border: "1px solid #eee",
+    border: "1px solid rgba(90,21,21,0.06)",
     borderRadius: 10,
     background: "#fff",
   };
@@ -719,7 +719,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         maxWidth: 960,
         margin: "0 auto",
         padding: "0 16px",
-        fontFamily: "system-ui",
+        fontFamily: "'DM Sans', -apple-system, sans-serif",
       }}
     >
 
@@ -759,7 +759,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                 width: "100%",
                 padding: 12,
                 borderRadius: 12,
-                border: "1px solid #ddd",
+                border: "1px solid rgba(90,21,21,0.1)",
                 fontSize: 16, // iOS 확대 방지
               }}
             />
@@ -792,7 +792,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                 width: "100%",
                 padding: 12,
                 borderRadius: 12,
-                border: "1px solid #ddd",
+                border: "1px solid rgba(90,21,21,0.1)",
                 fontSize: 16, // iOS 확대 방지
                 ...monoStyle,
               }}
@@ -809,7 +809,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             borderRadius: 10,
             border: "none",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#ccc" : "#8B1538",
+            background: loading ? "#ccc" : "#5A1515",
             color: "white",
             fontWeight: 600,
             fontSize: 16,
@@ -824,7 +824,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           style={{
             padding: "10px 20px",
             borderRadius: 10,
-            border: "1px solid #ddd",
+            border: "1px solid rgba(90,21,21,0.1)",
             cursor: loading || (!text.trim() && !data) ? "not-allowed" : "pointer",
             background: loading || (!text.trim() && !data) ? "#f5f5f5" : "#fff",
             fontWeight: 600,
@@ -855,9 +855,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           style={{
             padding: "10px 20px",
             borderRadius: 10,
-            border: hasClipboard ? "4px solid #8B1538" : "2px solid #ddd",
+            border: hasClipboard ? "4px solid #5A1515" : "1px solid rgba(90,21,21,0.1)",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : hasClipboard ? "#8B1538" : "#fff",
+            background: loading ? "#f5f5f5" : hasClipboard ? "#5A1515" : "#fff",
             color: hasClipboard ? "#fff" : "#000",
             fontWeight: hasClipboard ? 700 : 600,
             fontSize: 16,
@@ -890,7 +890,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             }}
             style={{ width: 18, height: 18, cursor: "pointer" }}
           />
-          <span style={{ fontSize: 16, fontWeight: 700 }}>신규 사업자</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>신규 사업자</span>
         </label>
         
         {isNewBusiness && (
@@ -908,7 +908,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                   width: "100%",
                   padding: "10px 12px",
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: "1px solid rgba(90,21,21,0.1)",
                   fontSize: 16,
                 }}
               />
@@ -927,7 +927,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                   width: "100%",
                   padding: "10px 12px",
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: "1px solid rgba(90,21,21,0.1)",
                   fontSize: 16,
                 }}
               />
@@ -946,13 +946,13 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                   width: "100%",
                   padding: "10px 12px",
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: "1px solid rgba(90,21,21,0.1)",
                   fontSize: 16,
                 }}
               />
             </div>
             
-            <div style={{ marginTop: 12, fontSize: 13, color: "#856404", background: "#fff9e6", padding: 10, borderRadius: 8 }}>
+            <div style={{ marginTop: 12, fontSize: 12, color: "#856404", background: "#fff9e6", padding: 10, borderRadius: 8 }}>
               💡 신규 사업자는 거래처 DB에 등록되지 않은 사업자입니다. 사업자명과 연락처를 입력하면 주문서가 생성됩니다.
             </div>
           </div>
@@ -966,15 +966,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           style={{
             width: "100%",
             padding: 12,
-            background: "#f8f9fa",
-            border: "1px solid #ddd",
+            background: "#fafaf8",
+            border: "1px solid rgba(90,21,21,0.1)",
             borderRadius: 12,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontSize: 14,
-            fontWeight: 700,
+            fontSize: 13,
+            fontWeight: 600,
           }}
         >
           <span>발주 옵션</span>
@@ -982,7 +982,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         </button>
         
         {showOrderOptions && (
-          <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+          <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
             {/* 배송일 지정 */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>
@@ -997,7 +997,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                   width: "100%",
                   padding: "8px 12px",
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: "1px solid rgba(90,21,21,0.1)",
                   fontSize: 16,
                   marginBottom: 8,
                 }}
@@ -1029,9 +1029,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                       style={{
                         padding: "6px 12px",
                         borderRadius: 6,
-                        border: customDeliveryDate === d.value ? "2px solid #8B1538" : "1px solid #ddd",
-                        background: customDeliveryDate === d.value ? "#FFF5F2" : "#fff",
-                        color: customDeliveryDate === d.value ? "#8B1538" : "#666",
+                        border: customDeliveryDate === d.value ? "2px solid #5A1515" : "1px solid rgba(90,21,21,0.1)",
+                        background: customDeliveryDate === d.value ? "rgba(90,21,21,0.04)" : "#fff",
+                        color: customDeliveryDate === d.value ? "#5A1515" : "#666",
                         fontSize: 12,
                         fontWeight: customDeliveryDate === d.value ? 600 : 400,
                         cursor: "pointer",
@@ -1075,7 +1075,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       ========================= */}
       {data && needsClientPick && (
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
             거래처 선택이 필요합니다
           </div>
 
@@ -1094,7 +1094,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                     textAlign: "left",
                     padding: "10px 12px",
                     borderRadius: 10,
-                    border: "1px solid #ddd",
+                    border: "1px solid rgba(90,21,21,0.1)",
                     cursor: loading ? "not-allowed" : "pointer",
                     background: "#fafafa",
                   }}
@@ -1141,9 +1141,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ fontSize: 16, fontWeight: 800 }}>직원 메시지</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>직원 메시지</div>
                 {data?.status === "resolved" && (
-                  <span style={{ fontSize: 11, padding: "2px 8px", background: "#0a7", color: "white", borderRadius: 10, fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, padding: "2px 8px", background: "#10b981", color: "white", borderRadius: 10, fontWeight: 600 }}>
                     전체 확정
                   </span>
                 )}
@@ -1157,11 +1157,13 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               <button
                 onClick={copyStaffMessage}
                 style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #ddd",
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(90,21,21,0.1)",
                   cursor: "pointer",
-                  background: copied ? "#e8fff1" : "#fff",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: copied ? "rgba(16,185,129,0.06)" : "#fff",
                 }}
               >
                 {copied ? "복사됨 ✅" : "복사하기"}
@@ -1173,7 +1175,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                 whiteSpace: "pre-wrap",
                 padding: 12,
                 borderRadius: 12,
-                border: staffMsgFlash ? "2px solid #0a7" : "1px solid #eee",
+                border: staffMsgFlash ? "2px solid #0a7" : "1px solid rgba(90,21,21,0.06)",
                 background: staffMsgFlash ? "#d4edda" : "#fafafa",
                 marginTop: 10,
                 transition: "all 0.4s ease",
@@ -1187,7 +1189,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
           {/* ---- Summary ---- */}
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
               요약
             </div>
             <div style={cardStyle}>
@@ -1215,15 +1217,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               style={{
                 width: "100%",
                 padding: 12,
-                background: "#f8f9fa",
-                border: "1px solid #ddd",
+                background: "#fafaf8",
+                border: "1px solid rgba(90,21,21,0.1)",
                 borderRadius: 12,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                fontSize: 14,
-                fontWeight: 700,
+                fontSize: 13,
+                fontWeight: 600,
               }}
             >
               <span>품목 결과</span>
@@ -1231,7 +1233,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             </button>
 
             {showItemsPanel && (
-              <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+              <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
                     const resolvedUnit = it?.resolved && it?.item_name ? getGlassUnit(it.item_name) : getGlassUnit(it?.item_name || it?.name || "");
@@ -1276,7 +1278,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                           <div
                             style={{
                               width: 80,
-                              color: it?.resolved ? "#0a7" : isNotInClientHistory ? "#e8a820" : "#b00",
+                              color: it?.resolved ? "#10b981" : isNotInClientHistory ? "#e8a820" : "#b00",
                               fontWeight: 700,
                               fontSize: 14,
                             }}
@@ -1331,7 +1333,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
                             {/* 신규/미입고 품목이 있을 때만 안내 표시 */}
                             {top3.some((s: any) => s.is_new_item || !s.in_client_history) && (
-                              <div style={{ fontSize: 12, color: "#ff6b35", marginBottom: 8, padding: "8px 12px", background: "#fff8f0", borderRadius: 6, border: "1px solid #ffd699" }}>
+                              <div style={{ fontSize: 12, color: "#5A1515", marginBottom: 8, padding: "8px 12px", background: "rgba(90,21,21,0.04)", borderRadius: 6, border: "1px solid rgba(90,21,21,0.15)" }}>
                                 ⚠️ 신규/미입고 품목: 할인율과 공급가를 확인하세요
                               </div>
                             )}
@@ -1348,7 +1350,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                               console.log(`[Glass] Item ${s.code || s.item_no}: isNewItem=${isNewItem}, inClientHistory=${inClientHistory}, needsPriceInput=${needsPriceInput}, price=${s.price || s.supply_price}`);
 
                               return (
-                                <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "#e8fff1" : "#ffffff", borderRadius: 6, border: "1px solid #e0e0e0" }}>
+                                <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "rgba(16,185,129,0.06)" : "#ffffff", borderRadius: 6, border: "1px solid rgba(90,21,21,0.08)" }}>
                                   {/* 품목명 + 배지 + 점수 (한 줄) */}
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
                                     <div style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1357,12 +1359,12 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                         {s.item_name?.split(' / ')[0] || s.item_name}
                                       </span>
                                       {isNewItem && (
-                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#ff6b35", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#5A1515", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
                                           신규
                                         </span>
                                       )}
                                       {!isNewItem && inClientHistory && (
-                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#0a7", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
+                                        <span style={{ marginLeft: 6, padding: "1px 4px", background: "#10b981", color: "white", fontSize: 10, borderRadius: 3, fontWeight: 600 }}>
                                           입고이력
                                         </span>
                                       )}
@@ -1377,7 +1379,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
                                   {/* 🔥 공급가 항상 표시 (있으면) */}
                                   {s.supply_price && (
-                                    <div style={{ marginBottom: 6, fontSize: 11, color: "#0a7", fontWeight: 600 }}>
+                                    <div style={{ marginBottom: 6, fontSize: 11, color: "#10b981", fontWeight: 600 }}>
                                       공급가: {Number(s.supply_price).toLocaleString()}원
                                     </div>
                                   )}
@@ -1396,7 +1398,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                           style={{
                                             flex: "0 0 120px",
                                             padding: "4px 8px",
-                                            border: "1px solid #ddd",
+                                            border: "1px solid rgba(90,21,21,0.1)",
                                             borderRadius: 4,
                                             fontSize: 12,
                                           }}
@@ -1411,13 +1413,13 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                             }}
                                             style={{
                                               padding: "4px 8px",
-                                              border: `1px solid ${newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#ddd'}`,
+                                              border: `1px solid ${newItemDiscounts[itemKey] === discount ? '#5A1515' : '#ddd'}`,
                                               borderRadius: 4,
-                                              background: newItemDiscounts[itemKey] === discount ? '#e8f4ff' : 'white',
+                                              background: newItemDiscounts[itemKey] === discount ? 'rgba(90,21,21,0.06)' : 'white',
                                               cursor: "pointer",
                                               fontSize: 11,
                                               fontWeight: newItemDiscounts[itemKey] === discount ? 600 : 400,
-                                              color: newItemDiscounts[itemKey] === discount ? '#4a90e2' : '#666',
+                                              color: newItemDiscounts[itemKey] === discount ? '#5A1515' : '#666',
                                             }}
                                           >
                                             {discount}%
@@ -1433,7 +1435,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                           }}
                                           style={{
                                             padding: "4px 8px",
-                                            border: "1px solid #ddd",
+                                            border: "1px solid rgba(90,21,21,0.1)",
                                             borderRadius: 4,
                                             background: "white",
                                             cursor: "pointer",
@@ -1466,9 +1468,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                     style={{
                                       width: "100%",
                                       padding: "6px 12px",
-                                      borderRadius: 4,
+                                      borderRadius: 6,
                                       border: "none",
-                                      background: saved ? "#0a7" : "#4a90e2",
+                                      background: saved ? "#10b981" : "#5A1515",
                                       color: "white",
                                       cursor: saving ? "not-allowed" : "pointer",
                                       fontSize: 12,
@@ -1495,9 +1497,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                 padding: "8px 12px",
                                 marginTop: 8,
                                 borderRadius: 6,
-                                border: "1px solid #ddd",
+                                border: "1px solid rgba(90,21,21,0.1)",
                                 background: "white",
-                                color: "#4a90e2",
+                                color: "#5A1515",
                                 cursor: "pointer",
                                 fontSize: 12,
                                 fontWeight: 600,
@@ -1518,7 +1520,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
                         {/* 확정된 아이템에 대한 간단 안내 */}
                         {it?.resolved && wasJustPicked && (
-                          <div style={{ marginLeft: 80, fontSize: 12, color: "#0a7", fontWeight: 600 }}>
+                          <div style={{ marginLeft: 80, fontSize: 12, color: "#10b981", fontWeight: 600 }}>
                             직원 메시지에 반영되었습니다
                           </div>
                         )}
@@ -1532,11 +1534,11 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                                 padding: "6px 12px",
                                 marginTop: 4,
                                 borderRadius: 6,
-                                border: "1px solid #ddd",
+                                border: "1px solid rgba(90,21,21,0.1)",
                                 background: "white",
-                                color: "#4a90e2",
+                                color: "#5A1515",
                                 cursor: "pointer",
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: 600,
                               }}
                             >
@@ -1575,15 +1577,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               style={{
                 width: "100%",
                 padding: 12,
-                background: "#f8f9fa",
-                border: "1px solid #ddd",
+                background: "#fafaf8",
+                border: "1px solid rgba(90,21,21,0.1)",
                 borderRadius: 12,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                fontSize: 14,
-                fontWeight: 700,
+                fontSize: 13,
+                fontWeight: 600,
               }}
             >
               <span>품목 학습</span>
@@ -1591,7 +1593,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             </button>
 
             {showLearnInput && (
-              <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+              <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
                 <div style={{ color: "#777", fontSize: 12, marginBottom: 10 }}>
                   자연어 → 정답(표준 키워드/약어/정확한 품목명) 저장. 저장 즉시
                   resolve에 반영.
@@ -1617,7 +1619,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                           flex: 1,
                           padding: 10,
                           borderRadius: 10,
-                          border: "1px solid #ddd",
+                          border: "1px solid rgba(90,21,21,0.1)",
                         }}
                       />
                       <input
@@ -1630,7 +1632,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                           flex: 1,
                           padding: 10,
                           borderRadius: 10,
-                          border: "1px solid #ddd",
+                          border: "1px solid rgba(90,21,21,0.1)",
                         }}
                       />
                     </div>
@@ -1641,11 +1643,13 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                       onClick={saveLearnInputs}
                       disabled={!canSave}
                       style={{
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        border: "1px solid #ddd",
+                        padding: "8px 16px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(90,21,21,0.1)",
                         cursor: canSave ? "pointer" : "not-allowed",
                         opacity: canSave ? 1 : 0.5,
+                        fontSize: 13,
+                        fontWeight: 600,
                         background: "#fff",
                       }}
                     >
@@ -1655,10 +1659,12 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                     <button
                       onClick={resetLearnInputs}
                       style={{
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        border: "1px solid #ddd",
+                        padding: "8px 16px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(90,21,21,0.1)",
                         cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 600,
                         background: "#fff",
                       }}
                     >
@@ -1688,15 +1694,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               style={{
                 width: "100%",
                 padding: 12,
-                background: "#f8f9fa",
-                border: "1px solid #ddd",
+                background: "#fafaf8",
+                border: "1px solid rgba(90,21,21,0.1)",
                 borderRadius: 12,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                fontSize: 14,
-                fontWeight: 700,
+                fontSize: 13,
+                fontWeight: 600,
               }}
             >
               <span>JSON</span>
@@ -1709,7 +1715,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                   whiteSpace: "pre-wrap",
                   padding: 12,
                   borderRadius: 12,
-                  border: "1px solid #eee",
+                  border: "1px solid rgba(90,21,21,0.06)",
                   background: "#0b1020",
                   color: "#e6e6e6",
                   overflowX: "auto",
@@ -1745,15 +1751,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             style={{
               width: "100%",
               padding: 12,
-              background: "#f8f9fa",
-              border: "1px solid #ddd",
+              background: "#fafaf8",
+              border: "1px solid rgba(90,21,21,0.1)",
               borderRadius: 12,
               cursor: loadingClientItems ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              fontSize: 14,
-              fontWeight: 700,
+              fontSize: 13,
+              fontWeight: 600,
             }}
           >
             <span>거래처 품목 보기 ({data.client.client_name})</span>
@@ -1761,7 +1767,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           </button>
 
           {showClientItems && clientItems.length > 0 && (
-            <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+            <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
               <div
                 style={{
                   maxHeight: 400,
@@ -1819,15 +1825,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           style={{
             width: "100%",
             padding: 12,
-            background: "#f8f9fa",
-            border: "1px solid #ddd",
+            background: "#fafaf8",
+            border: "1px solid rgba(90,21,21,0.1)",
             borderRadius: 12,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontSize: 14,
-            fontWeight: 700,
+            fontSize: 13,
+            fontWeight: 600,
           }}
         >
           <span>학습된 거래처</span>
@@ -1835,7 +1841,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         </button>
 
         {showLearnedClients && (
-          <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+          <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
             <LearnedClientList type="glass" version={learnedClientVersion} />
           </div>
         )}
@@ -1850,15 +1856,15 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           style={{
             width: "100%",
             padding: 12,
-            background: "#f8f9fa",
-            border: "1px solid #ddd",
+            background: "#fafaf8",
+            border: "1px solid rgba(90,21,21,0.1)",
             borderRadius: 12,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontSize: 14,
-            fontWeight: 700,
+            fontSize: 13,
+            fontWeight: 600,
           }}
         >
           <span>학습목록</span>
@@ -1866,7 +1872,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         </button>
 
         {showLearned && (
-          <div style={{ marginTop: 8, padding: 16, background: "#f8f9fa", borderRadius: 12 }}>
+          <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
             <LearnedAliasList
               version={learnedVersion}
               onChanged={() => setLearnedVersion((v) => v + 1)}

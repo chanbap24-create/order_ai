@@ -13,78 +13,43 @@ export default function OrderPage() {
   const [productTab, setProductTab] = useState<ProductTab>('wine');
   const [subTab, setSubTab] = useState<SubTab>('order');
 
-  const pillActive = (active: boolean): React.CSSProperties => ({
-    padding: '7px 14px',
-    borderRadius: 7,
-    border: 'none',
-    background: active ? '#8B1538' : 'transparent',
-    color: active ? '#fff' : '#666',
-    fontWeight: active ? 700 : 500,
-    fontSize: 13,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
-    WebkitTouchCallout: 'none',
-  } as React.CSSProperties);
-
   return (
-    <div>
+    <div style={{ background: '#fafaf8', minHeight: 'calc(100vh - 48px)', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
       {/* Unified Tab Bar */}
-      <div style={{
-        background: '#fff',
-        borderBottom: '1px solid #eee',
-        position: 'sticky',
-        top: 80,
-        zIndex: 100,
-      }}>
-        <div style={{
-          maxWidth: 960,
-          margin: '0 auto',
-          padding: '8px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-        }}>
-          {/* Left: Product tabs (WINE / RIEDEL) */}
-          <div style={{
-            display: 'flex',
-            gap: 3,
-            background: '#f3f4f6',
-            padding: 3,
-            borderRadius: 10,
-          }}>
+      <div className="ds-subheader">
+        <div className="ds-subheader-inner">
+          {/* Left: Product tabs */}
+          <div className="ds-tab-group">
             <div
               role="button"
               tabIndex={-1}
+              className={`ds-tab${productTab === 'wine' ? ' active' : ''}`}
               onPointerDown={(e) => { e.preventDefault(); setProductTab('wine'); }}
-              style={pillActive(productTab === 'wine')}
             >
-              WINE
+              Wine
             </div>
             <div
               role="button"
               tabIndex={-1}
+              className={`ds-tab${productTab === 'riedel' ? ' active' : ''}`}
               onPointerDown={(e) => { e.preventDefault(); setProductTab('riedel'); }}
-              style={pillActive(productTab === 'riedel')}
             >
-              RIEDEL
+              Riedel
             </div>
           </div>
 
-          {/* Right: Sub tabs (발주 입력 / 학습 관리) */}
-          <div style={{
-            display: 'flex',
-            gap: 3,
-            background: '#f3f4f6',
-            padding: 3,
-            borderRadius: 10,
-          }}>
-            <button onClick={() => setSubTab('order')} style={pillActive(subTab === 'order')}>
+          {/* Right: Sub tabs */}
+          <div className="ds-tab-group">
+            <button
+              className={`ds-tab${subTab === 'order' ? ' active' : ''}`}
+              onClick={() => setSubTab('order')}
+            >
               발주 입력
             </button>
-            <button onClick={() => setSubTab('learning')} style={pillActive(subTab === 'learning')}>
+            <button
+              className={`ds-tab${subTab === 'learning' ? ' active' : ''}`}
+              onClick={() => setSubTab('learning')}
+            >
               학습 관리
             </button>
           </div>

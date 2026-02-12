@@ -5,23 +5,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Colors - Wine & Burgundy Theme */
-  --color-background: #F8F9FA;
-  --color-bg: #F8F9FA;
+  /* Colors - Wine & Burgundy Theme (aligned with main page) */
+  --color-background: #fafaf8;
+  --color-bg: #fafaf8;
   --color-card: #FFFFFF;
-  --color-primary: #8B1538;
-  --color-primary-dark: #6B0F2B;
-  --color-primary-light: #A91D47;
-  --color-secondary: #1A1A1A;
-  --color-text: #1A1A1A;
+  --color-primary: #5A1515;
+  --color-primary-dark: #3D0E0E;
+  --color-primary-light: #8B1538;
+  --color-secondary: #1a1a2e;
+  --color-text: #1a1a2e;
   --color-text-light: #8E8E93;
   --color-text-lighter: #C7C7CC;
-  --color-border: #E5E7EB;
-  --color-border-light: #F3F4F6;
-  --color-success: #34C759;
+  --color-border: rgba(90, 21, 21, 0.08);
+  --color-border-light: rgba(90, 21, 21, 0.04);
+  --color-success: #10b981;
   --color-warning: #FF9500;
-  --color-error: #FF3B30;
-  --color-info: #8B1538;
+  --color-error: #ef4444;
+  --color-info: #5A1515;
 
   /* Typography */
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -85,13 +85,13 @@ body {
 /* Card */
 .card {
   background: var(--color-card);
-  border-radius: var(--radius-xl);
+  border-radius: 16px;
   padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
+  border: 1px solid rgba(90, 21, 21, 0.08);
+  box-shadow: none;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.card:hover { border-color: var(--color-border); box-shadow: var(--shadow-md); }
+.card:hover { border-color: rgba(90, 21, 21, 0.15); box-shadow: 0 4px 16px -4px rgba(90, 21, 21, 0.08); }
 .card-sm { padding: var(--space-4); border-radius: var(--radius-lg); }
 .card-lg { padding: var(--space-8); border-radius: var(--radius-2xl); }
 
@@ -118,8 +118,8 @@ body {
   transition: all var(--transition-fast); outline: none;
 }
 .btn:active { transform: scale(0.98); }
-.btn-primary { background: var(--color-primary); color: white; }
-.btn-primary:hover { background: var(--color-primary-dark); }
+.btn-primary { background: #5A1515; color: white; }
+.btn-primary:hover { background: #3D0E0E; }
 .btn-secondary { background: var(--color-secondary); color: white; }
 .btn-secondary:hover { background: rgba(26, 26, 26, 0.8); }
 .btn-outline { background: transparent; border: 2px solid var(--color-border); color: var(--color-text); }
@@ -137,5 +137,5 @@ body {
   font-size: var(--text-sm); font-family: var(--font-body);
   transition: all var(--transition-fast); background: white; color: var(--color-text);
 }
-.input:focus { outline: none; border-color: #8B1538; box-shadow: 0 0 0 3px rgba(139, 21, 56, 0.1); }
+.input:focus { outline: none; border-color: #5A1515; box-shadow: 0 0 0 3px rgba(90, 21, 21, 0.08); }
 .input::placeholder { color: var(--color-text-lighter); }

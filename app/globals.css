@@ -24,3 +24,331 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ========================================
+   Unified Design System (ds-*)
+   ======================================== */
+
+/* ─── Layout ─── */
+.ds-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.ds-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 32px;
+  margin-bottom: 24px;
+}
+
+.ds-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2D2D2D;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Tabs ─── */
+.ds-tab-group {
+  display: flex;
+  gap: 4px;
+  background: rgba(90, 21, 21, 0.04);
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.ds-tab {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+
+.ds-tab:hover {
+  color: #444;
+  background: rgba(90, 21, 21, 0.04);
+}
+
+.ds-tab.active {
+  background: #5A1515;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ─── Buttons ─── */
+.ds-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.ds-btn-primary {
+  background: #5A1515;
+  color: #fff;
+  border: none;
+}
+
+.ds-btn-primary:hover {
+  background: #4a1010;
+}
+
+.ds-btn-secondary {
+  background: #fff;
+  color: #5A1515;
+  border: 1px solid #5A1515;
+}
+
+.ds-btn-secondary:hover {
+  background: rgba(90, 21, 21, 0.04);
+}
+
+.ds-btn-ghost {
+  background: transparent;
+  color: #666;
+  border: 1px solid #E5E5E5;
+}
+
+.ds-btn-ghost:hover {
+  background: #f5f5f5;
+  color: #444;
+}
+
+.ds-btn-danger {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+}
+
+.ds-btn-danger:hover {
+  background: #c82333;
+}
+
+.ds-btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+}
+
+/* ─── Inputs ─── */
+.ds-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: inherit;
+  color: #2D2D2D;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ds-input:focus {
+  border-color: #5A1515;
+}
+
+.ds-input::placeholder {
+  color: #aaa;
+}
+
+.ds-select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #2D2D2D;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.ds-select:focus {
+  border-color: #5A1515;
+}
+
+/* ─── Cards ─── */
+.ds-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+}
+
+.ds-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Empty State ─── */
+.ds-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #999;
+  text-align: center;
+  gap: 12px;
+}
+
+.ds-empty-icon {
+  font-size: 40px;
+  opacity: 0.5;
+}
+
+.ds-empty-text {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.5;
+}
+
+/* ─── Table ─── */
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ds-table th {
+  background: #f5f5f5;
+  color: #666;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.ds-table td {
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  color: #2D2D2D;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ds-table tr:hover td {
+  background: rgba(90, 21, 21, 0.02);
+}
+
+/* ─── Sticky Sub-header Bar ─── */
+.ds-subheader {
+  background: #fafaf8;
+  border-bottom: 1px solid rgba(90, 21, 21, 0.06);
+  position: sticky;
+  top: 48px;
+  z-index: 100;
+}
+
+.ds-subheader-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ─── Section Divider ─── */
+.ds-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2D2D2D;
+  margin-bottom: 12px;
+}
+
+/* ─── Badge ─── */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ds-badge-primary {
+  background: rgba(90, 21, 21, 0.08);
+  color: #5A1515;
+}
+
+.ds-badge-success {
+  background: rgba(52, 199, 89, 0.1);
+  color: #34C759;
+}
+
+.ds-badge-warning {
+  background: rgba(255, 149, 0, 0.1);
+  color: #FF9500;
+}
+
+/* ─── Mobile Responsive ─── */
+@media (max-width: 768px) {
+  .ds-page {
+    padding: 16px;
+  }
+
+  .ds-page-header {
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+
+  .ds-page-title {
+    font-size: 20px;
+  }
+
+  .ds-subheader-inner {
+    padding: 8px 16px;
+  }
+
+  .ds-card {
+    padding: 16px;
+  }
+
+  .ds-card-list {
+    gap: 12px;
+  }
+
+  .ds-btn {
+    height: 34px;
+    font-size: 0.75rem;
+  }
+}

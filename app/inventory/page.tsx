@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
 
 interface InventoryItem {
   item_no: string;
@@ -335,48 +333,22 @@ export default function InventoryPage() {
 
   return (
     <div style={{
-      minHeight: 'calc(100vh - 70px)',
-      padding: 'var(--space-6)',
-      background: 'var(--color-background)'
+      minHeight: 'calc(100vh - 48px)',
+      background: '#fafaf8',
+      wordBreak: 'keep-all' as const,
     }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto'
-      }}>
+      <style>{`
+        .inv-result-card { transition: all 0.25s ease !important; }
+        .inv-result-card:hover { box-shadow: 0 4px 12px -4px rgba(90,21,21,0.12) !important; transform: translateY(-1px); }
+        .inv-filter-check { accent-color: #5A1515; }
+      `}</style>
+      <div className="ds-page">
         {/* Header */}
-        <div style={{
-          marginBottom: '5px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)'
-        }}>
-          <h1 style={{
-            color: '#1a1a1a',
-            fontSize: '1.75rem',
-            fontWeight: 600,
-            margin: 0,
-            marginLeft: 'var(--space-4)',
-            letterSpacing: '0.02em'
-          }}>
-            INVENTORY
-          </h1>
-          
+        <div className="ds-page-header" style={{ marginBottom: 8 }}>
+          <h1 className="ds-page-title">Inventory</h1>
           <button
+            className={`ds-btn ${showColumnSettings ? 'ds-btn-secondary' : 'ds-btn-ghost'}`}
             onClick={() => setShowColumnSettings(!showColumnSettings)}
-            style={{
-              padding: 'var(--space-2) var(--space-4)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              border: '1px solid #E5E7EB',
-              borderRadius: 'var(--radius-md)',
-              background: showColumnSettings ? '#F8F9FA' : 'white',
-              color: '#1a1a1a',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              letterSpacing: '0'
-            }}
           >
             Setting
           </button>
@@ -384,30 +356,27 @@ export default function InventoryPage() {
 
         {/* Column Settings */}
         {showColumnSettings && (
-          <Card style={{ marginBottom: 'var(--space-6)' }}>
+          <div className="ds-card" style={{ marginBottom: 16, padding: '16px 20px' }}>
             <h3 style={{
-              fontSize: 'var(--text-base)',
-              fontWeight: 700,
-              marginBottom: 'var(--space-1)',
-              color: '#1a1a1a',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)'
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              marginBottom: 4,
+              color: '#2D2D2D',
             }}>
-              📊 표시할 컬럼 선택
+              표시할 컬럼 선택
             </h3>
             <p style={{
-              fontSize: 'var(--text-xs)',
+              fontSize: '0.7rem',
               color: '#8E8E93',
-              marginBottom: 'var(--space-4)'
+              marginBottom: 12,
             }}>
-              💡 품번과 품명은 항상 표시됩니다
+              품번과 품명은 항상 표시됩니다
             </p>
-            
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-              gap: 'var(--space-2)'
+              gap: 6,
             }}>
               {availableColumns
                 .filter(col => col.key !== 'item_no' && col.key !== 'item_name')
@@ -417,260 +386,138 @@ export default function InventoryPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 'var(--space-2)',
+                      gap: 8,
                       cursor: 'pointer',
-                      padding: 'var(--space-2) var(--space-3)',
-                      borderRadius: 'var(--radius-sm)',
+                      padding: '6px 10px',
+                      borderRadius: 6,
                       transition: 'all 0.2s',
-                      background: 'transparent',
-                      border: '1px solid transparent'
                     }}
                   >
                     <input
                       type="checkbox"
+                      className="inv-filter-check"
                       checked={visibleColumns.includes(col.key)}
                       onChange={() => toggleColumn(col.key)}
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        cursor: 'pointer',
-                        accentColor: '#8B1538'
-                      }}
+                      style={{ width: 16, height: 16, cursor: 'pointer' }}
                     />
-                    <span style={{
-                      fontSize: 'var(--text-sm)',
-                      color: '#1a1a1a',
-                      fontWeight: 500
-                    }}>
+                    <span style={{ fontSize: '0.8rem', color: '#2D2D2D', fontWeight: 500 }}>
                       {col.label}
                     </span>
                   </label>
                 ))}
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Warehouse Tabs */}
-        <Card style={{ marginBottom: '5px', padding: '4px 6px' }}>
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-            justifyContent: 'flex-end',
-            height: '48px',
-            alignItems: 'center'
-          }}>
+        <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="ds-tab-group">
             <button
+              className={`ds-tab${activeTab === 'CDV' ? ' active' : ''}`}
               onClick={() => {
                 setActiveTab('CDV');
                 setResults([]);
                 setHasSearched(false);
                 setSearchQuery('');
               }}
-              style={{
-                padding: '0 var(--space-5)',
-                height: '40px',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 500,
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
-                background: activeTab === 'CDV' ? '#8B1538' : 'transparent',
-                color: activeTab === 'CDV' ? 'white' : '#6B7280',
-                letterSpacing: '0'
-              }}
             >
-              WINE
+              Wine
             </button>
             <button
+              className={`ds-tab${activeTab === 'DL' ? ' active' : ''}`}
               onClick={() => {
                 setActiveTab('DL');
                 setResults([]);
                 setHasSearched(false);
                 setSearchQuery('');
               }}
-              style={{
-                padding: '0 var(--space-5)',
-                height: '40px',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 500,
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
-                background: activeTab === 'DL' ? '#8B1538' : 'transparent',
-                color: activeTab === 'DL' ? 'white' : '#6B7280',
-                letterSpacing: '0'
-              }}
             >
-              RIEDEL
+              Riedel
             </button>
           </div>
-        </Card>
+        </div>
 
         {/* Search Section */}
-        <Card style={{ marginBottom: '5px', padding: '4px 6px' }}>
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-            alignItems: 'center'
-          }}>
-            <div style={{ flex: 1 }}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder=""
-                disabled={isSearching}
-                style={{
-                  width: '100%',
-                  height: '48px',
-                  padding: '0 var(--space-4)',
-                  fontSize: 'var(--text-base)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  outline: 'none',
-                  transition: 'border-color var(--transition-fast)',
-                  background: 'var(--color-background)'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#8B1538'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--color-border)'}
-              />
-            </div>
-            <button
-              onClick={handleSearch}
+        <div style={{ marginBottom: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              className="ds-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="품목명을 입력하세요..."
               disabled={isSearching}
-              style={{
-                height: '48px',
-                width: '48px',
-                minWidth: '48px',
-                padding: 0,
-                background: '#8B1538',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                cursor: isSearching ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                opacity: isSearching ? 0.6 : 1
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-            </button>
+            />
           </div>
+          <button
+            className="ds-btn ds-btn-primary"
+            onClick={handleSearch}
+            disabled={isSearching}
+            style={{
+              width: 40,
+              minWidth: 40,
+              height: 40,
+              padding: 0,
+              opacity: isSearching ? 0.6 : 1,
+              cursor: isSearching ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </button>
+        </div>
 
-          {error && (
-            <div style={{
-              marginTop: 'var(--space-4)',
-              padding: 'var(--space-4)',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              color: '#ef4444',
-              fontSize: 'var(--text-sm)'
-            }}>
-              {error}
-            </div>
-          )}
-        </Card>
+        {error && (
+          <div style={{
+            marginBottom: 12,
+            padding: '10px 14px',
+            background: 'rgba(239, 68, 68, 0.06)',
+            border: '1px solid rgba(239, 68, 68, 0.15)',
+            borderRadius: 6,
+            color: '#ef4444',
+            fontSize: '0.82rem',
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Filter Checkboxes */}
         {hasSearched && results.length > 0 && (
-          <Card style={{ marginBottom: 'var(--space-4)' }}>
-            <div style={{
-              display: 'flex',
-              gap: 'var(--space-6)',
-              alignItems: 'center',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                color: 'var(--color-text)'
-              }}>
-                필터:
-              </div>
-              
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: 'pointer',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text)'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={hideNoSupplyPrice}
-                  onChange={(e) => setHideNoSupplyPrice(e.target.checked)}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                    accentColor: 'var(--color-primary)'
-                  }}
-                />
-                공급가 없는 품목 숨기기
-              </label>
+          <div style={{
+            marginBottom: 12,
+            padding: '10px 16px',
+            display: 'flex',
+            gap: 20,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            background: 'white',
+            borderRadius: 8,
+            border: '1px solid rgba(90,21,21,0.06)',
+          }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#5A1515' }}>
+              필터
+            </span>
 
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: 'pointer',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text)',
-                opacity: showOnlyBondedStock ? 0.5 : 1,
-                pointerEvents: showOnlyBondedStock ? 'none' : 'auto'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={hideNoStock}
-                  onChange={(e) => setHideNoStock(e.target.checked)}
-                  disabled={showOnlyBondedStock}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: showOnlyBondedStock ? 'not-allowed' : 'pointer',
-                    accentColor: 'var(--color-primary)'
-                  }}
-                />
-                재고 없는 품목 숨기기
-              </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.78rem', color: '#1a1a2e' }}>
+              <input type="checkbox" className="inv-filter-check" checked={hideNoSupplyPrice} onChange={(e) => setHideNoSupplyPrice(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+              공급가 없는 품목 숨기기
+            </label>
 
-              {activeTab === 'CDV' && (
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  cursor: 'pointer',
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--color-text)',
-                  opacity: hideNoStock ? 0.5 : 1,
-                  pointerEvents: hideNoStock ? 'none' : 'auto'
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={showOnlyBondedStock}
-                    onChange={(e) => setShowOnlyBondedStock(e.target.checked)}
-                    disabled={hideNoStock}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      cursor: hideNoStock ? 'not-allowed' : 'pointer',
-                      accentColor: 'var(--color-primary)'
-                    }}
-                  />
-                  보세재고만 있는 품목 보기
-                </label>
-              )}
-            </div>
-          </Card>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.78rem', color: '#1a1a2e', opacity: showOnlyBondedStock ? 0.5 : 1, pointerEvents: showOnlyBondedStock ? 'none' : 'auto' }}>
+              <input type="checkbox" className="inv-filter-check" checked={hideNoStock} onChange={(e) => setHideNoStock(e.target.checked)} disabled={showOnlyBondedStock} style={{ width: 16, height: 16, cursor: showOnlyBondedStock ? 'not-allowed' : 'pointer' }} />
+              재고 없는 품목 숨기기
+            </label>
+
+            {activeTab === 'CDV' && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.78rem', color: '#1a1a2e', opacity: hideNoStock ? 0.5 : 1, pointerEvents: hideNoStock ? 'none' : 'auto' }}>
+                <input type="checkbox" className="inv-filter-check" checked={showOnlyBondedStock} onChange={(e) => setShowOnlyBondedStock(e.target.checked)} disabled={hideNoStock} style={{ width: 16, height: 16, cursor: hideNoStock ? 'not-allowed' : 'pointer' }} />
+                보세재고만 있는 품목 보기
+              </label>
+            )}
+          </div>
         )}
 
         {/* Results Section */}
@@ -679,184 +526,110 @@ export default function InventoryPage() {
             {filteredResults.length > 0 ? (
               <>
                 <div style={{
-                  marginBottom: 'var(--space-4)',
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--color-text-light)',
-                  fontWeight: 600
+                  marginBottom: 12,
+                  fontSize: '0.78rem',
+                  color: '#8E8E93',
+                  fontWeight: 500,
                 }}>
                   검색 결과: {results.length}개 {filteredResults.length < results.length && `(표시: ${filteredResults.length}개)`}
                 </div>
 
-                <div style={{
-                  display: 'grid',
-                  gap: 'var(--space-3)'
-                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {filteredResults.map((item, index) => {
                     return (
-                      <Card key={`${item.item_no}-${index}`} hover style={{ padding: 'var(--space-3)' }}>
-                        {/* 첫 줄: 품번 + 품명 (고정, 수평 배치) */}
+                      <div key={`${item.item_no}-${index}`} className="ds-card inv-result-card" style={{
+                        padding: '14px 18px',
+                        cursor: 'default',
+                      }}>
+                        {/* 첫 줄: 품번 + 품명 */}
                         <div style={{
                           display: 'flex',
-                          gap: 'var(--space-4)',
-                          marginBottom: 'var(--space-3)',
-                          paddingBottom: 'var(--space-3)',
-                          borderBottom: '1px solid var(--color-border)',
-                          flexWrap: 'wrap'
+                          gap: 14,
+                          marginBottom: 10,
+                          paddingBottom: 10,
+                          borderBottom: '1px solid rgba(90,21,21,0.05)',
+                          flexWrap: 'wrap',
                         }}>
-                          {/* 품번 (클릭 가능) */}
-                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                            <span style={{
-                              fontSize: '11px',
-                              color: 'var(--color-text-light)'
-                            }}>
-                              품번
-                            </span>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.68rem', color: '#8E8E93' }}>품번</span>
                             {activeTab === 'CDV' ? (
                               <button
                                 onClick={() => handleTastingNoteClick(item.item_no, item.item_name)}
                                 style={{
-                                  fontSize: '13px',
-                                  fontWeight: 700,
-                                  fontFamily: 'monospace',
-                                  color: tastingNotesAvailable[item.item_no] ? '#10B981' : '#8B1538',
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  textDecoration: 'underline',
-                                  padding: 0
+                                  fontSize: '0.8rem', fontWeight: 700, fontFamily: 'monospace',
+                                  color: tastingNotesAvailable[item.item_no] ? '#10b981' : '#5A1515',
+                                  background: 'none', border: 'none', cursor: 'pointer',
+                                  textDecoration: 'underline', padding: 0,
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#059669' : '#6B0F2B'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#10B981' : '#8B1538'}
+                                onMouseEnter={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#059669' : '#3D0E0E'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = tastingNotesAvailable[item.item_no] ? '#10b981' : '#5A1515'}
                               >
                                 {item.item_no}
                               </button>
                             ) : (
-                              <span style={{
-                                fontSize: '13px',
-                                fontWeight: 700,
-                                fontFamily: 'monospace',
-                                color: 'var(--color-primary)'
-                              }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 700, fontFamily: 'monospace', color: '#5A1515' }}>
                                 {item.item_no}
                               </span>
                             )}
                           </div>
 
-                          {/* 품명 */}
-                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flex: 1 }}>
-                            <span style={{
-                              fontSize: '11px',
-                              color: 'var(--color-text-light)'
-                            }}>
-                              품명
-                            </span>
-                            <span style={{
-                              fontSize: '13px',
-                              fontWeight: 600,
-                              color: 'var(--color-text)'
-                            }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1 }}>
+                            <span style={{ fontSize: '0.68rem', color: '#8E8E93' }}>품명</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1a1a2e' }}>
                               {item.item_name}
                             </span>
                           </div>
                         </div>
 
-                        {/* 둘째 줄: 선택한 컬럼들 (품번/품명 제외, 순차 배치) */}
-                        <div style={{
-                          display: 'flex',
-                          gap: 'var(--space-4)',
-                          flexWrap: 'wrap'
-                        }}>
+                        {/* 둘째 줄: 선택한 컬럼들 */}
+                        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                           {visibleColumns
                             .filter(colKey => colKey !== 'item_no' && colKey !== 'item_name')
                             .map(colKey => {
                               const col = availableColumns.find(c => c.key === colKey);
                               if (!col) return null;
-                              
                               return (
-                                <div key={`${item.item_no}-${colKey}`} style={{
-                                  display: 'flex',
-                                  gap: 'var(--space-2)',
-                                  alignItems: 'center'
-                                }}>
-                                  <span style={{
-                                    fontSize: '11px',
-                                    color: 'var(--color-text-light)'
-                                  }}>
-                                    {col.label}
-                                  </span>
-                                  <span style={{
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    color: 'var(--color-text)'
-                                  }}>
+                                <div key={`${item.item_no}-${colKey}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                  <span style={{ fontSize: '0.68rem', color: '#8E8E93' }}>{col.label}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1a1a2e' }}>
                                     {renderCellValue(item, colKey)}
                                   </span>
                                 </div>
                               );
                             })}
                         </div>
-                      </Card>
+                      </div>
                     );
                   })}
                 </div>
               </>
             ) : (
-              <Card>
-                <div style={{
-                  textAlign: 'center',
-                  padding: 'var(--space-8)',
-                  color: 'var(--color-text-light)'
-                }}>
-                  <div style={{
-                    fontSize: '3rem',
-                    marginBottom: 'var(--space-4)',
-                    opacity: 0.3
-                  }}>
-                    📦
-                  </div>
-                  <div style={{
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: 600,
-                    marginBottom: 'var(--space-2)'
-                  }}>
-                    {results.length === 0 ? '검색 결과가 없습니다' : '필터 조건에 맞는 품목이 없습니다'}
-                  </div>
-                  <div style={{
-                    fontSize: 'var(--text-sm)'
-                  }}>
-                    {results.length === 0 ? '다른 검색어로 시도해보세요' : '필터를 해제하거나 다른 검색어를 시도해보세요'}
-                  </div>
+              <div className="ds-card ds-empty">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#2D2D2D' }}>
+                  {results.length === 0 ? '검색 결과가 없습니다' : '필터 조건에 맞는 품목이 없습니다'}
                 </div>
-              </Card>
+                <div className="ds-empty-text">
+                  {results.length === 0 ? '다른 검색어로 시도해보세요' : '필터를 해제하거나 다른 검색어를 시도해보세요'}
+                </div>
+              </div>
             )}
           </div>
         )}
 
         {/* Initial State */}
         {!hasSearched && (
-          <Card>
-            <div style={{
-              textAlign: 'center',
-              padding: 'var(--space-8)',
-              color: 'var(--color-text-light)'
-            }}>
-              <div style={{
-                fontSize: '4rem',
-                marginBottom: 'var(--space-6)',
-                opacity: 0.3
-              }}>
-                🔍
-              </div>
-              <div style={{
-                fontSize: 'var(--text-xl)',
-                fontWeight: 600,
-                marginBottom: 'var(--space-3)',
-                color: 'var(--color-text)'
-              }}>
-                품목명을 검색하세요
-              </div>
+          <div className="ds-card ds-empty" style={{ padding: '60px 24px' }}>
+            <svg className="ds-empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" strokeWidth="1.5">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#2D2D2D' }}>
+              품목명을 검색하세요
             </div>
-          </Card>
+          </div>
         )}
 
         {/* 테이스팅 노트 모달 */}
@@ -890,36 +663,36 @@ export default function InventoryPage() {
             >
               {/* 모달 헤더 */}
               <div style={{
-                padding: 'var(--space-4)',
-                borderBottom: '1px solid var(--color-border)',
+                padding: '16px 20px',
+                borderBottom: '1px solid rgba(240,236,230,0.1)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                background: '#8B1538',
-                color: 'white'
+                background: '#1a1a2e',
+                color: '#f0ece6',
               }}>
                 <div>
-                  <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>
                     테이스팅 노트
                   </div>
-                  <div style={{ fontSize: 'var(--text-sm)', marginTop: 'var(--space-1)', opacity: 0.9 }}>
+                  <div style={{ fontSize: '0.78rem', marginTop: 4, color: 'rgba(240,236,230,0.6)' }}>
                     {selectedItemNo} - {selectedWineName}
                   </div>
                 </div>
                 <button
                   onClick={() => setShowTastingNote(false)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
+                    background: 'rgba(240,236,230,0.1)',
                     border: 'none',
-                    color: 'white',
-                    fontSize: '24px',
-                    width: '40px',
-                    height: '40px',
+                    color: '#f0ece6',
+                    fontSize: 20,
+                    width: 36,
+                    height: 36,
                     borderRadius: '50%',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                   }}
                 >
                   ×
@@ -952,43 +725,18 @@ export default function InventoryPage() {
                     }}>
                         {/* PDF 다운로드 */}
                         <button
+                          className="ds-btn ds-btn-primary ds-btn-sm"
                           onClick={() => handleDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            background: '#8B1538',
-                            color: 'white',
-                            borderRadius: 'var(--radius-md)',
-                            textDecoration: 'none',
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
                         >
-                          📄 PDF
+                          PDF
                         </button>
                         {/* PPTX 다운로드 */}
                         <button
+                          className="ds-btn ds-btn-sm"
                           onClick={() => handleDownload(originalPdfUrl.replace('.pdf', '.pptx'), `${selectedItemNo}.pptx`)}
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            background: '#FF6B35',
-                            color: 'white',
-                            borderRadius: 'var(--radius-md)',
-                            textDecoration: 'none',
-                            fontWeight: 600,
-                            fontSize: 'var(--text-sm)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
+                          style={{ background: '#1a1a2e', color: 'white', border: 'none' }}
                         >
-                          📊 PPTX
+                          PPTX
                         </button>
                       </div>
                     

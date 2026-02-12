@@ -6,16 +6,8 @@ import { useState, useEffect } from 'react';
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
-
-  // 메뉴 열릴 때 body 스크롤 방지
-  useEffect(() => {
-    if (menuOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [menuOpen]);
 
   const cards = [
     {
@@ -117,54 +109,26 @@ export default function Home() {
         /* ─── Desktop sidebar ─── */
         .home-sidebar { display: flex; }
         .home-mobile-header { display: none; }
-        .home-overlay { display: none; }
         .home-content { padding: 60px 56px; }
         .home-heading { font-size: 1.8rem; }
         .home-sub-text { font-size: 0.85rem; }
 
         /* ─── Mobile ─── */
         @media (max-width: 768px) {
+          /* 사이드바: 완전 숨김 (글로벌 Navigation 드로어가 대체) */
           .home-sidebar {
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            z-index: 2000;
-            transform: translateX(-100%);
-            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            width: 280px !important;
-            min-width: 280px !important;
-          }
-          .home-sidebar.open {
-            transform: translateX(0);
-          }
-          .home-overlay {
-            display: block;
-            position: fixed;
-            inset: 0;
-            z-index: 1999;
-            background: rgba(0,0,0,0.5);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-          }
-          .home-overlay.open {
-            opacity: 1;
-            pointer-events: auto;
+            display: none !important;
           }
           .home-mobile-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            height: 56px;
-            background: #1a1a2e;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            margin: -80px -16px 20px -16px;
+            display: none !important;
           }
+          /* 컨텐츠: 화면 전체 사용 (main paddingTop 48px이 이미 있음) */
           .home-content {
-            padding: 24px 16px;
-            padding-top: 80px;
+            width: 100% !important;
+            margin-left: 0 !important;
+            padding: 24px 16px !important;
+            overflow-x: hidden !important;
+            box-sizing: border-box !important;
           }
           .home-heading {
             font-size: 1.5rem !important;
@@ -177,32 +141,34 @@ export default function Home() {
           .home-card {
             padding: 20px 18px;
             border-radius: 12px;
+            width: 100% !important;
+            box-sizing: border-box !important;
           }
           .home-card p, .home-card h3 {
             word-break: keep-all;
           }
+          /* 전체 페이지 overflow 방지 */
+          .home-page-root {
+            overflow-x: hidden !important;
+            width: 100vw !important;
+            max-width: 100% !important;
+          }
         }
       `}</style>
 
-      {/* ─── Mobile: Overlay ─── */}
-      <div
-        className={`home-overlay${menuOpen ? ' open' : ''}`}
-        onClick={() => setMenuOpen(false)}
-      />
-
-      <div style={{
+      <div className="home-page-root" style={{
         display: 'flex',
-        minHeight: 'calc(100vh - 80px)',
+        minHeight: 'calc(100vh - 48px)',
         fontFamily: "'DM Sans', -apple-system, sans-serif",
         wordBreak: 'keep-all',
       }}>
         {/* ─── Dark Sidebar ─── */}
-        <div className={`home-sidebar${menuOpen ? ' open' : ''}`} style={{
+        <div className="home-sidebar" style={{
           width: 360,
           minWidth: 360,
           background: '#1a1a2e',
-          position: 'relative',
           overflow: 'hidden',
+          display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '60px 40px 40px',
@@ -221,23 +187,6 @@ export default function Home() {
             background: 'radial-gradient(ellipse at 20% 20%, rgba(90, 21, 21, 0.15) 0%, transparent 60%)',
             pointerEvents: 'none',
           }} />
-
-          {/* Mobile close button */}
-          <button
-            onClick={() => setMenuOpen(false)}
-            className="home-mobile-close"
-            style={{
-              display: 'none',
-              position: 'absolute', top: 16, right: 16, zIndex: 10,
-              width: 32, height: 32, borderRadius: '50%',
-              border: '1px solid rgba(240,236,230,0.15)', background: 'transparent',
-              color: 'rgba(240,236,230,0.6)', fontSize: 16, cursor: 'pointer',
-              alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <style>{`@media(max-width:768px){.home-mobile-close{display:flex!important;}}`}</style>
-            ✕
-          </button>
 
           {/* Branding */}
           <div style={{
@@ -281,33 +230,10 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Sidebar nav links (mobile) */}
+          {/* Sidebar footer */}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {cards.map(card => (
-                <Link
-                  key={card.id}
-                  href={card.href}
-                  onClick={() => setMenuOpen(false)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 16px', borderRadius: 10,
-                    textDecoration: 'none', color: 'rgba(240,236,230,0.6)',
-                    fontSize: '0.85rem', fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(240,236,230,0.06)'; e.currentTarget.style.color = '#f0ece6'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(240,236,230,0.6)'; }}
-                >
-                  <span style={{ opacity: 0.5 }}>{card.icon}</span>
-                  <span>{card.title}</span>
-                  <span style={{ fontSize: '0.7rem', opacity: 0.4, marginLeft: 'auto' }}>{card.subtitle}</span>
-                </Link>
-              ))}
-            </div>
-
             <div style={{ borderTop: '1px solid rgba(240,236,230,0.06)', paddingTop: 16 }}>
-              <Link href="/admin" onClick={() => setMenuOpen(false)} style={{
+              <Link href="/admin" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 fontSize: '0.7rem', color: 'rgba(240, 236, 230, 0.25)',
                 textDecoration: 'none', letterSpacing: '0.15em',
@@ -343,31 +269,6 @@ export default function Home() {
           overflowY: 'auto',
           position: 'relative',
         }}>
-          {/* Mobile header bar */}
-          <div className="home-mobile-header">
-            <button
-              onClick={() => setMenuOpen(true)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: '#f0ece6', padding: 4, display: 'flex', alignItems: 'center',
-              }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            <span style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontSize: '1.1rem', fontWeight: 400,
-              color: '#f0ece6', letterSpacing: '0.1em',
-            }}>
-              CAVE DE VIN
-            </span>
-            <div style={{ width: 22 }} />
-          </div>
-
           {/* Subtle top gradient */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: 200,
@@ -491,34 +392,6 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Wine profile link */}
-            <div style={{
-              marginTop: 40,
-              paddingTop: 24,
-              borderTop: '1px solid rgba(26, 26, 46, 0.06)',
-              opacity: mounted ? 1 : 0,
-              transition: 'opacity 0.8s ease 0.7s',
-            }}>
-              <Link href="/wine" style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: '0.78rem',
-                color: '#8E8E93',
-                textDecoration: 'none',
-                fontWeight: 500,
-                transition: 'color 0.2s ease',
-              }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#5A1515')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#8E8E93')}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 8l4 4-4 4" />
-                  <path d="M3 12h18" />
-                </svg>
-                Wine Profiles
-              </Link>
-            </div>
           </div>
         </div>
       </div>
