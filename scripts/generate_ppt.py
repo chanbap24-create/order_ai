@@ -312,8 +312,18 @@ def embed_font_in_pptx(pptx_path):
 
             elif item.filename == 'ppt/presentation.xml':
                 text = data.decode('utf-8')
+                import re as _re
                 embed_xml = f'<p:embeddedFontLst><p:embeddedFont><p:font typeface="Gowun Dodum"/><p:regular r:id="{r_id}"/></p:embeddedFont></p:embeddedFontLst>'
-                text = text.replace('</p:presentation>', f'{embed_xml}</p:presentation>')
+                # OOXML 스키마 순서: notesSz → embeddedFontLst → defaultTextStyle
+                # notesSz는 self-closing (<p:notesSz .../>) 또는 closing (</p:notesSz>) 둘 다 처리
+                if _re.search(r'<p:notesSz[^>]*/>', text):
+                    text = _re.sub(r'(<p:notesSz[^>]*/>)', r'\1' + embed_xml, text)
+                elif '</p:notesSz>' in text:
+                    text = text.replace('</p:notesSz>', f'</p:notesSz>{embed_xml}')
+                elif '<p:defaultTextStyle' in text:
+                    text = text.replace('<p:defaultTextStyle', f'{embed_xml}<p:defaultTextStyle')
+                else:
+                    text = text.replace('</p:presentation>', f'{embed_xml}</p:presentation>')
                 data = text.encode('utf-8')
 
             zout.writestr(item, data)

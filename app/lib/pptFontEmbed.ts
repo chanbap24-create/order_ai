@@ -113,10 +113,28 @@ export async function embedFontsInPptx(pptxBuffer: Buffer): Promise<Buffer> {
       )
       .join("");
 
-    pres = pres.replace(
-      "</p:presentation>",
-      `<p:embeddedFontLst>${fontListXml}</p:embeddedFontLst></p:presentation>`
-    );
+    // OOXML 스키마 순서: sldMasterIdLst → sldIdLst → sldSz → notesSz → embeddedFontLst → defaultTextStyle
+    const embeddedFontXml = `<p:embeddedFontLst>${fontListXml}</p:embeddedFontLst>`;
+
+    // notesSz는 self-closing (<p:notesSz .../>) 또는 closing (</p:notesSz>) 둘 다 처리
+    const notesSzSelfClose = /(<p:notesSz[^>]*\/>)/;
+    const notesSzClose = /<\/p:notesSz>/;
+
+    if (notesSzSelfClose.test(pres)) {
+      pres = pres.replace(notesSzSelfClose, `$1${embeddedFontXml}`);
+    } else if (notesSzClose.test(pres)) {
+      pres = pres.replace(notesSzClose, `</p:notesSz>${embeddedFontXml}`);
+    } else if (pres.includes("<p:defaultTextStyle")) {
+      pres = pres.replace(
+        "<p:defaultTextStyle",
+        `${embeddedFontXml}<p:defaultTextStyle`
+      );
+    } else {
+      pres = pres.replace(
+        "</p:presentation>",
+        `${embeddedFontXml}</p:presentation>`
+      );
+    }
     zip.file("ppt/presentation.xml", pres);
   }
 
