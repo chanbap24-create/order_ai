@@ -1,87 +1,108 @@
-// PPT 생성기 - python-pptx 기반 (child_process로 Python 호출)
-// pptxgenjs 에서 python-pptx로 마이그레이션: PowerPoint 호환성 개선
+// PPT 생성기 - pptxgenjs 기반 (Vercel 서버리스 호환)
+// python-pptx (child_process) → pptxgenjs (pure JS) 마이그레이션
 
-import { execFile } from "child_process";
-import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
-import { join } from "path";
-import { promisify } from "util";
+import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
 
-const execFileAsync = promisify(execFile);
+// ═══════════════════════════════════════════════════
+// 와인 테마 컬러 팔레트
+// ═══════════════════════════════════════════════════
+const C = {
+  BG_BOTTLE_AREA: "F5F0EA",
+  BURGUNDY: "722F37",
+  BURGUNDY_DARK: "5A252C",
+  BURGUNDY_LIGHT: "F2E8EA",
+  GOLD: "B8976A",
+  GOLD_LIGHT: "D4C4A8",
+  TEXT_PRIMARY: "2C2C2C",
+  TEXT_SECONDARY: "5A5A5A",
+  TEXT_MUTED: "8A8A8A",
+  TEXT_ON_DARK: "FFFFFF",
+  CARD_BORDER: "E0D5C8",
+  DIVIDER: "D4C4A8",
+  DIVIDER_LIGHT: "E8DDD0",
+  WHITE: "FFFFFF",
+};
 
-// 임시 디렉토리
-const TMP_DIR = process.env.VERCEL ? "/tmp" : join(process.cwd(), "output", "tmp");
+const FONT_MAIN = "맑은 고딕";
+const FONT_EN = "Georgia";
 
-// Python 실행 경로
-const PYTHON_BIN = process.platform === "win32" ? "python" : "python3";
-const SCRIPT_PATH = join(process.cwd(), "scripts", "generate_ppt.py");
+// 슬라이드 크기 (인치) - 세로 A4
+const SLIDE_W = 7.5;
+const SLIDE_H = 10.0;
 
 // ─── 헬퍼: 빈티지 2자리→4자리 변환 ───
 function formatVintage4(v: string): string {
-  if (!v || v === '-') return '-';
+  if (!v || v === "-") return "-";
   if (/^(NV|MV)$/i.test(v)) return v.toUpperCase();
   if (/^\d{4}$/.test(v)) return v;
   const num = parseInt(v, 10);
   if (!isNaN(num)) {
-    return num >= 50 ? `19${String(num).padStart(2, '0')}` : `20${String(num).padStart(2, '0')}`;
+    return num >= 50
+      ? `19${String(num).padStart(2, "0")}`
+      : `20${String(num).padStart(2, "0")}`;
   }
   return v;
 }
 
-// ─── 헬퍼: 임시 디렉토리 확보 ───
-function ensureTmpDir(): string {
-  if (!existsSync(TMP_DIR)) {
-    mkdirSync(TMP_DIR, { recursive: true });
-  }
-  return TMP_DIR;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Slide = any;
+
+// ─── 수평선 추가 ───
+function addLine(
+  slide: Slide,
+  x: number,
+  y: number,
+  w: number,
+  color: string,
+  widthPt: number = 0.75
+) {
+  slide.addShape("line", {
+    x,
+    y,
+    w,
+    h: 0,
+    line: { color, width: widthPt },
+  });
 }
 
-// ─── 헬퍼: base64 → 임시 파일 저장 ───
-function saveBase64ToTmp(base64: string, filename: string): string {
-  ensureTmpDir();
-  const filePath = join(TMP_DIR, filename);
-  writeFileSync(filePath, Buffer.from(base64, "base64"));
-  return filePath;
+// ─── 라벨 뱃지 (버건디 배경 둥근 사각형 + 흰 텍스트) ───
+function addLabelBadge(
+  slide: Slide,
+  text: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number = 0.22
+) {
+  slide.addShape("roundRect", {
+    x,
+    y,
+    w,
+    h,
+    fill: { color: C.BURGUNDY },
+    rectRadius: 0.05,
+    line: { width: 0 },
+  });
+  slide.addText(text, {
+    x,
+    y,
+    w,
+    h,
+    fontSize: 8.5,
+    fontFace: FONT_MAIN,
+    color: C.TEXT_ON_DARK,
+    bold: true,
+    align: "center",
+    valign: "middle",
+  });
 }
 
-// ─── 헬퍼: 임시 파일 삭제 (조용히) ───
-function cleanupTmp(paths: string[]) {
-  for (const p of paths) {
-    try {
-      if (existsSync(p)) unlinkSync(p);
-    } catch { /* ignore */ }
-  }
-}
-
-// ─── Python 실행 ───
-async function execPython(inputPath: string, outputPath: string): Promise<void> {
-  try {
-    const { stdout, stderr } = await execFileAsync(
-      PYTHON_BIN,
-      [SCRIPT_PATH, inputPath, outputPath],
-      { timeout: 120000, maxBuffer: 10 * 1024 * 1024 }
-    );
-
-    if (stderr) {
-      logger.info(`[PPT Python] ${stderr.trim()}`);
-    }
-
-    // stdout에서 "OK" 확인
-    if (!stdout.includes("OK")) {
-      throw new Error(`Python script did not return OK. stdout: ${stdout}`);
-    }
-  } catch (e: unknown) {
-    const err = e as { stderr?: string; message?: string };
-    const msg = err.stderr || err.message || String(e);
-    logger.error(`[PPT Python] Script failed: ${msg}`);
-    throw new Error(`PPT 생성 Python 스크립트 실패: ${msg}`);
-  }
-}
-
-interface SlidePayload {
+// ─── 슬라이드 데이터 인터페이스 ───
+interface SlideData {
   nameKr: string;
   nameEn: string;
   country: string;
@@ -101,30 +122,409 @@ interface SlidePayload {
   glassPairing: string;
   servingTemp: string;
   awards: string;
-  bottleImagePath?: string;
+  bottleImageBase64?: string;
+  bottleImageMimeType?: string;
 }
 
+// ─── 단일 슬라이드 생성 ───
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addTastingNoteSlide(pptx: any, data: SlideData) {
+  const slide = pptx.addSlide();
+  slide.background = { color: C.WHITE };
+
+  // ════════════════════════════════════════════
+  // 1. 좌측 병 영역 배경 패널
+  // ════════════════════════════════════════════
+  slide.addShape("rect", {
+    x: 0,
+    y: 0.9,
+    w: 2.1,
+    h: 8.1,
+    fill: { color: C.BG_BOTTLE_AREA, transparency: 40 },
+    line: { width: 0 },
+  });
+
+  // ════════════════════════════════════════════
+  // 2. HEADER - 로고
+  // ════════════════════════════════════════════
+  try {
+    slide.addImage({
+      data: "image/jpeg;base64," + LOGO_CAVEDEVIN_BASE64,
+      x: 0.2,
+      y: 0.2,
+      w: 1.49,
+      h: 0.57,
+    });
+  } catch {
+    /* 로고 없으면 무시 */
+  }
+
+  // 3. 와이너리 태그라인
+  const wineryDesc = data.wineryDescription || "";
+  if (wineryDesc) {
+    let tagline = wineryDesc.split(".")[0].trim();
+    if (!tagline) tagline = wineryDesc.split("。")[0].trim();
+    if (tagline) {
+      slide.addText(tagline, {
+        x: 1.76,
+        y: 0.2,
+        w: 5.2,
+        h: 0.24,
+        fontSize: 9,
+        color: C.TEXT_MUTED,
+        italic: true,
+        fontFace: FONT_EN,
+      });
+    }
+  }
+
+  // 4-5. 헤더 구분선 (버건디 + 골드 이중선)
+  addLine(slide, 0.2, 0.84, 7.1, C.BURGUNDY, 1.0);
+  addLine(slide, 0.2, 0.87, 7.1, C.GOLD_LIGHT, 0.75);
+
+  // ════════════════════════════════════════════
+  // 6. 와인명 카드 배경 (둥근 사각형)
+  // ════════════════════════════════════════════
+  slide.addShape("roundRect", {
+    x: 2.05,
+    y: 0.97,
+    w: 5.2,
+    h: 0.76,
+    fill: { color: C.BURGUNDY_LIGHT, transparency: 20 },
+    rectRadius: 0.05,
+    line: { color: C.CARD_BORDER, width: 0.5 },
+  });
+
+  // 7. 와인명 텍스트 (한글 + 영문)
+  const nameKrClean = data.nameKr.replace(/^[A-Za-z]{2}\s+/, "");
+  const nameRuns: PptxGenJS.TextProps[] = [
+    {
+      text: nameKrClean,
+      options: {
+        fontSize: 14.5,
+        fontFace: FONT_MAIN,
+        color: C.BURGUNDY_DARK,
+        bold: true,
+      },
+    },
+  ];
+  if (data.nameEn) {
+    nameRuns.push({
+      text: data.nameEn,
+      options: {
+        fontSize: 10.5,
+        fontFace: FONT_EN,
+        color: C.TEXT_SECONDARY,
+        italic: true,
+        breakLine: true,
+        paraSpaceBefore: 2,
+      },
+    });
+  }
+  slide.addText(nameRuns, {
+    x: 2.2,
+    y: 1.0,
+    w: 4.9,
+    h: 0.72,
+    valign: "top",
+    wrap: true,
+  });
+
+  // 8. 와인명 하단 구분선
+  addLine(slide, 2.2, 1.82, 4.9, C.DIVIDER, 0.75);
+
+  // ════════════════════════════════════════════
+  // 9-10. 지역
+  // ════════════════════════════════════════════
+  addLabelBadge(slide, "지역", 2.12, 1.97, 0.55);
+
+  const countryEn = data.countryEn || data.country || "";
+  const regionText = data.region
+    ? `${countryEn}, ${data.region}`
+    : countryEn || "-";
+  slide.addText(regionText, {
+    x: 2.75,
+    y: 1.96,
+    w: 4.4,
+    h: 0.24,
+    fontSize: 9.5,
+    fontFace: FONT_MAIN,
+    color: C.TEXT_PRIMARY,
+  });
+
+  // 구분선
+  addLine(slide, 2.2, 2.35, 4.9, C.DIVIDER_LIGHT, 0.5);
+
+  // 11-12. 품종
+  addLabelBadge(slide, "품종", 2.12, 2.42, 0.55);
+  slide.addText(data.grapeVarieties || "-", {
+    x: 2.75,
+    y: 2.41,
+    w: 4.4,
+    h: 0.4,
+    fontSize: 9.5,
+    fontFace: FONT_MAIN,
+    color: C.TEXT_PRIMARY,
+    wrap: true,
+  });
+
+  // ════════════════════════════════════════════
+  // 13-14. 빈티지
+  // ════════════════════════════════════════════
+  addLabelBadge(slide, "빈티지", 2.12, 3.02, 0.65);
+
+  const vintage = data.vintage || "-";
+  slide.addText(vintage, {
+    x: 2.85,
+    y: 2.98,
+    w: 0.75,
+    h: 0.28,
+    fontSize: 13,
+    fontFace: FONT_MAIN,
+    color: C.BURGUNDY,
+    bold: true,
+  });
+
+  if (data.vintageNote) {
+    slide.addText(data.vintageNote, {
+      x: 3.65,
+      y: 3.0,
+      w: 3.5,
+      h: 0.4,
+      fontSize: 8,
+      fontFace: FONT_MAIN,
+      color: C.TEXT_SECONDARY,
+      wrap: true,
+    });
+  }
+
+  // ════════════════════════════════════════════
+  // 15-16. 양조
+  // ════════════════════════════════════════════
+  addLabelBadge(slide, "양조", 2.12, 3.62, 0.55);
+
+  let winemakingText = data.winemaking || "-";
+  if (data.alcoholPercentage) {
+    winemakingText += `\n알코올: ${data.alcoholPercentage}`;
+  }
+  slide.addText(winemakingText, {
+    x: 2.15,
+    y: 3.9,
+    w: 5.0,
+    h: 1.23,
+    fontSize: 9,
+    fontFace: FONT_MAIN,
+    color: C.TEXT_PRIMARY,
+    lineSpacing: 12,
+    wrap: true,
+  });
+
+  // ════════════════════════════════════════════
+  // 17-18. 테이스팅 노트 (핵심 영역)
+  // ════════════════════════════════════════════
+  slide.addShape("roundRect", {
+    x: 2.05,
+    y: 5.3,
+    w: 5.2,
+    h: 2.72,
+    fill: { color: C.BURGUNDY_LIGHT, transparency: 30 },
+    rectRadius: 0.05,
+    line: { color: C.CARD_BORDER, width: 0.5 },
+  });
+
+  // TASTING NOTE 라벨
+  addLabelBadge(slide, "TASTING NOTE", 2.12, 5.35, 1.32);
+
+  // 테이스팅 노트 내용
+  const tastingItems: [string, string][] = [
+    ["Color", data.colorNote || ""],
+    ["Nose", data.noseNote || ""],
+    ["Palate", data.palateNote || ""],
+    ["Potential", data.agingPotential || ""],
+  ];
+
+  const tastingRuns: PptxGenJS.TextProps[] = [];
+  let isFirst = true;
+  for (const [label, value] of tastingItems) {
+    if (!value) continue;
+
+    // Label run (Georgia Italic, burgundy)
+    const labelOpts: PptxGenJS.TextPropsOptions = {
+      fontSize: 8.5,
+      fontFace: FONT_EN,
+      color: C.BURGUNDY,
+      italic: true,
+      bold: false,
+    };
+    if (!isFirst) {
+      labelOpts.breakLine = true;
+      labelOpts.paraSpaceBefore = 6;
+    }
+    tastingRuns.push({ text: label, options: labelOpts });
+
+    // Value run (맑은 고딕)
+    tastingRuns.push({
+      text: `\n${value}`,
+      options: {
+        fontSize: 9,
+        fontFace: FONT_MAIN,
+        color: C.TEXT_PRIMARY,
+      },
+    });
+
+    isFirst = false;
+  }
+
+  if (tastingRuns.length === 0) {
+    tastingRuns.push({
+      text: "-",
+      options: { fontSize: 9, fontFace: FONT_MAIN, color: C.TEXT_MUTED },
+    });
+  }
+
+  slide.addText(tastingRuns, {
+    x: 2.15,
+    y: 5.62,
+    w: 5.0,
+    h: 2.32,
+    valign: "top",
+    wrap: true,
+    margin: 0,
+  });
+
+  // ════════════════════════════════════════════
+  // 19. 푸드 페어링
+  // ════════════════════════════════════════════
+  addLabelBadge(slide, "푸드 페어링", 2.12, 8.18, 0.95);
+  slide.addText(data.foodPairing || "-", {
+    x: 2.15,
+    y: 8.42,
+    w: 5.0,
+    h: 0.44,
+    fontSize: 9,
+    fontFace: FONT_MAIN,
+    color: C.TEXT_PRIMARY,
+    lineSpacing: 12,
+    wrap: true,
+  });
+
+  // ════════════════════════════════════════════
+  // 20. 수상내역
+  // ════════════════════════════════════════════
+  addLine(slide, 0.15, 9.04, 7.2, C.GOLD_LIGHT, 0.5);
+
+  const awards = data.awards || "";
+  if (awards && awards !== "N/A") {
+    // 수상 아이콘
+    try {
+      slide.addImage({
+        data: "image/jpeg;base64," + ICON_AWARD_BASE64,
+        x: 0.25,
+        y: 9.08,
+        w: 0.22,
+        h: 0.28,
+      });
+    } catch {
+      /* ignore */
+    }
+
+    slide.addText(
+      [
+        {
+          text: "AWARDS  ",
+          options: {
+            fontSize: 8,
+            fontFace: FONT_MAIN,
+            color: C.GOLD,
+            bold: true,
+          },
+        },
+        {
+          text: awards,
+          options: {
+            fontSize: 9,
+            fontFace: FONT_MAIN,
+            color: C.TEXT_PRIMARY,
+          },
+        },
+      ],
+      {
+        x: 0.52,
+        y: 9.07,
+        w: 6.7,
+        h: 0.3,
+        valign: "middle",
+        wrap: true,
+      }
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // 21-23. FOOTER
+  // ════════════════════════════════════════════
+  addLine(slide, 0.2, 9.52, 7.1, C.BURGUNDY, 2.0);
+  addLine(slide, 0.2, 9.55, 7.1, C.GOLD_LIGHT, 0.75);
+
+  // Footer 로고
+  try {
+    slide.addImage({
+      data: "image/jpeg;base64," + LOGO_CAVEDEVIN_BASE64,
+      x: 0.09,
+      y: 9.68,
+      w: 0.95,
+      h: 0.25,
+    });
+  } catch {
+    /* ignore */
+  }
+
+  // 회사 정보
+  slide.addText("T. 02-786-3136  |  www.cavedevin.co.kr", {
+    x: 1.12,
+    y: 9.69,
+    w: 2.76,
+    h: 0.24,
+    fontSize: 7,
+    fontFace: FONT_MAIN,
+    color: C.TEXT_MUTED,
+    align: "right",
+  });
+
+  // ════════════════════════════════════════════
+  // 24. 병 이미지 (있을 때만)
+  // ════════════════════════════════════════════
+  if (data.bottleImageBase64 && data.bottleImageMimeType) {
+    try {
+      slide.addImage({
+        data: `${data.bottleImageMimeType};base64,${data.bottleImageBase64}`,
+        x: 0.25,
+        y: 2.0,
+        w: 1.6,
+        h: 5.5,
+        sizing: { type: "contain", w: 1.6, h: 5.5 },
+      });
+    } catch (e) {
+      logger.warn(`[PPT] Failed to add bottle image: ${e}`);
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════
+// 공개 API
+// ════════════════════════════════════════════════════
+
 /** 단일 와인 테이스팅 노트 PPT 생성 */
-export async function generateSingleWinePpt(wineId: string): Promise<Buffer> {
+export async function generateSingleWinePpt(
+  wineId: string
+): Promise<Buffer> {
   return generateTastingNotePpt([wineId]);
 }
 
 /** 여러 와인의 테이스팅 노트 PPT 생성 */
-export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer> {
-  ensureTmpDir();
-
-  const timestamp = Date.now();
-  const tmpFiles: string[] = [];
-  const slides: SlidePayload[] = [];
-
-  // 로고/아이콘 base64 → 임시 파일
-  const logoPath = saveBase64ToTmp(LOGO_CAVEDEVIN_BASE64, `logo_${timestamp}.jpg`);
-  tmpFiles.push(logoPath);
-
-  const iconPath = saveBase64ToTmp(ICON_AWARD_BASE64, `icon_${timestamp}.jpg`);
-  tmpFiles.push(iconPath);
-
-  let slideCount = 0;
+export async function generateTastingNotePpt(
+  wineIds: string[]
+): Promise<Buffer> {
+  const slides: SlideData[] = [];
 
   for (const wineId of wineIds) {
     const wine = await getWineByCode(wineId);
@@ -133,7 +533,8 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
     const note = await getTastingNote(wineId);
 
     // 이미지: Vivino 누끼(투명배경) 우선 → 기존 image_url 폴백
-    let bottleImagePath: string | undefined;
+    let bottleImageBase64: string | undefined;
+    let bottleImageMimeType: string | undefined;
 
     // 1순위: Vivino 누끼 보틀샷 검색
     const engName = wine.item_name_en;
@@ -143,10 +544,8 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
         if (vivinoUrl) {
           const imgData = await downloadImageAsBase64(vivinoUrl);
           if (imgData) {
-            const ext = imgData.mimeType.includes('png') ? 'png' : 'jpg';
-            const imgFilename = `bottle_${wineId}_${timestamp}.${ext}`;
-            bottleImagePath = saveBase64ToTmp(imgData.base64, imgFilename);
-            tmpFiles.push(bottleImagePath);
+            bottleImageBase64 = imgData.base64;
+            bottleImageMimeType = imgData.mimeType;
             logger.info(`[PPT] Vivino nukki image for ${wineId}`);
           }
         }
@@ -156,14 +555,12 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
     }
 
     // 2순위: DB에 저장된 image_url
-    if (!bottleImagePath && wine.image_url) {
+    if (!bottleImageBase64 && wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
-          const ext = imgData.mimeType.includes('png') ? 'png' : 'jpg';
-          const imgFilename = `bottle_${wineId}_${timestamp}.${ext}`;
-          bottleImagePath = saveBase64ToTmp(imgData.base64, imgFilename);
-          tmpFiles.push(bottleImagePath);
+          bottleImageBase64 = imgData.base64;
+          bottleImageMimeType = imgData.mimeType;
           logger.info(`[PPT] Fallback image for ${wineId}`);
         }
       } catch {
@@ -173,58 +570,46 @@ export async function generateTastingNotePpt(wineIds: string[]): Promise<Buffer>
 
     slides.push({
       nameKr: wine.item_name_kr,
-      nameEn: wine.item_name_en || '',
-      country: wine.country || '',
-      countryEn: wine.country_en || '',
-      region: wine.region || '',
-      grapeVarieties: wine.grape_varieties || '',
-      vintage: formatVintage4(wine.vintage || ''),
-      vintageNote: note?.vintage_note || '',
-      wineryDescription: note?.winery_description || '',
-      winemaking: note?.winemaking || '',
-      alcoholPercentage: wine.alcohol || '',
-      agingPotential: note?.aging_potential || '',
-      colorNote: note?.color_note || '',
-      noseNote: note?.nose_note || '',
-      palateNote: note?.palate_note || '',
-      foodPairing: note?.food_pairing || '',
-      glassPairing: note?.glass_pairing || '',
-      servingTemp: note?.serving_temp || '',
-      awards: note?.awards || '',
-      bottleImagePath,
+      nameEn: wine.item_name_en || "",
+      country: wine.country || "",
+      countryEn: wine.country_en || "",
+      region: wine.region || "",
+      grapeVarieties: wine.grape_varieties || "",
+      vintage: formatVintage4(wine.vintage || ""),
+      vintageNote: note?.vintage_note || "",
+      wineryDescription: note?.winery_description || "",
+      winemaking: note?.winemaking || "",
+      alcoholPercentage: wine.alcohol || "",
+      agingPotential: note?.aging_potential || "",
+      colorNote: note?.color_note || "",
+      noseNote: note?.nose_note || "",
+      palateNote: note?.palate_note || "",
+      foodPairing: note?.food_pairing || "",
+      glassPairing: note?.glass_pairing || "",
+      servingTemp: note?.serving_temp || "",
+      awards: note?.awards || "",
+      bottleImageBase64,
+      bottleImageMimeType,
     });
-    slideCount++;
   }
 
-  if (slideCount === 0) {
-    cleanupTmp(tmpFiles);
+  if (slides.length === 0) {
     throw new Error("생성할 슬라이드가 없습니다.");
   }
 
-  // JSON 입력 파일 작성
-  const inputPath = join(TMP_DIR, `ppt_input_${timestamp}.json`);
-  const outputPath = join(TMP_DIR, `ppt_output_${timestamp}.pptx`);
-  tmpFiles.push(inputPath, outputPath);
+  // Presentation 생성
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name: "A4_PORTRAIT", width: SLIDE_W, height: SLIDE_H });
+  pptx.layout = "A4_PORTRAIT";
 
-  const payload = {
-    slides,
-    logoPath,
-    iconPath,
-  };
-
-  writeFileSync(inputPath, JSON.stringify(payload, null, 2), "utf-8");
-
-  try {
-    // Python 실행
-    await execPython(inputPath, outputPath);
-
-    // 결과 읽기
-    const pptBuffer = readFileSync(outputPath);
-    logger.info(`PPT generated: ${slideCount} slides (python-pptx)`);
-
-    return pptBuffer;
-  } finally {
-    // 임시 파일 정리
-    cleanupTmp(tmpFiles);
+  // 슬라이드 생성
+  for (const data of slides) {
+    addTastingNoteSlide(pptx, data);
   }
+
+  // Buffer로 출력
+  const output = await pptx.write({ outputType: "nodebuffer" });
+  logger.info(`PPT generated: ${slides.length} slides (pptxgenjs)`);
+
+  return output as Buffer;
 }
