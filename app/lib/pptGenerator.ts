@@ -13,9 +13,13 @@ import { logger } from "@/app/lib/logger";
 // ═══════════════════════════════════════════════════
 const C = {
   BG_BOTTLE_AREA: "F5F0EA",
+  BG_WARM_GRAY: "F8F6F4",
   BURGUNDY: "722F37",
   BURGUNDY_DARK: "5A252C",
   BURGUNDY_LIGHT: "F2E8EA",
+  WINE_ACCENT: "5A1515",
+  HEADER_DARK_L: "3A0C0C",
+  HEADER_DARK_R: "5A1515",
   GOLD: "B8976A",
   GOLD_LIGHT: "D4C4A8",
   TEXT_PRIMARY: "2C2C2C",
@@ -25,6 +29,8 @@ const C = {
   CARD_BORDER: "E0D5C8",
   DIVIDER: "D4C4A8",
   DIVIDER_LIGHT: "E8DDD0",
+  SEPARATOR: "E5E5E5",
+  SHADOW: "D0D0D0",
   WHITE: "FFFFFF",
 };
 
@@ -66,6 +72,24 @@ function addLine(
     y,
     w,
     h: 0,
+    line: { color, width: widthPt },
+  });
+}
+
+// ─── 세로선 추가 ───
+function addVLine(
+  slide: Slide,
+  x: number,
+  yStart: number,
+  yEnd: number,
+  color: string,
+  widthPt: number = 0.75
+) {
+  slide.addShape("line", {
+    x,
+    y: yStart,
+    w: 0,
+    h: yEnd - yStart,
     line: { color, width: widthPt },
   });
 }
@@ -133,9 +157,17 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   const slide = pptx.addSlide();
   slide.background = { color: C.WHITE };
 
-  // ════════════════════════════════════════════
-  // 1. 좌측 병 영역 배경 패널
-  // ════════════════════════════════════════════
+  // 1. 상단 헤더 그라데이션 (solid dark - pptxgenjs)
+  slide.addShape("rect", {
+    x: 0,
+    y: 0,
+    w: SLIDE_W,
+    h: 0.84,
+    fill: { color: C.HEADER_DARK_L },
+    line: { width: 0 },
+  });
+
+  // 2. 좌측 병 영역
   slide.addShape("rect", {
     x: 0,
     y: 0.9,
@@ -145,14 +177,15 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     line: { width: 0 },
   });
 
-  // ════════════════════════════════════════════
-  // 2. HEADER - 로고
-  // ════════════════════════════════════════════
+  // 3. 세로 구분선 (병 | 정보, 위아래 15mm 여백)
+  addVLine(slide, 2.05, 1.5, 8.45, C.SEPARATOR, 0.75);
+
+  // 4. 헤더 로고 (어두운 배경 위)
   try {
     slide.addImage({
       data: "image/jpeg;base64," + LOGO_CAVEDEVIN_BASE64,
       x: 0.2,
-      y: 0.2,
+      y: 0.14,
       w: 1.49,
       h: 0.57,
     });
@@ -160,7 +193,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     /* 로고 없으면 무시 */
   }
 
-  // 3. 와이너리 태그라인
+  // 5. 와이너리 태그라인 (골드 on dark)
   const wineryDesc = data.wineryDescription || "";
   if (wineryDesc) {
     let tagline = wineryDesc.split(".")[0].trim();
@@ -168,20 +201,19 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     if (tagline) {
       slide.addText(tagline, {
         x: 1.76,
-        y: 0.2,
-        w: 5.2,
+        y: 0.18,
+        w: 5.5,
         h: 0.24,
         fontSize: 9,
-        color: C.TEXT_MUTED,
+        color: C.GOLD_LIGHT,
         italic: true,
         fontFace: FONT_EN,
       });
     }
   }
 
-  // 4-5. 헤더 구분선 (버건디 + 골드 이중선)
-  addLine(slide, 0.2, 0.84, 7.1, C.BURGUNDY, 1.0);
-  addLine(slide, 0.2, 0.87, 7.1, C.GOLD_LIGHT, 0.75);
+  // 6. 헤더 하단선
+  addLine(slide, 0, 0.84, SLIDE_W, C.BURGUNDY, 1.5);
 
   // ════════════════════════════════════════════
   // 6. 와인명 카드 배경 (둥근 사각형)
@@ -190,13 +222,13 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     x: 2.05,
     y: 0.97,
     w: 5.2,
-    h: 0.76,
+    h: 0.8,
     fill: { color: C.BURGUNDY_LIGHT, transparency: 20 },
     rectRadius: 0.05,
     line: { color: C.CARD_BORDER, width: 0.5 },
   });
 
-  // 7. 와인명 텍스트 (한글 + 영문)
+  // 와인명 (한글 + 영문 줄바꿈, 간격 확대)
   const nameKrClean = data.nameKr.replace(/^[A-Za-z]{2}\s+/, "");
   const nameRuns: PptxGenJS.TextProps[] = [
     {
@@ -218,7 +250,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
         color: C.TEXT_SECONDARY,
         italic: true,
         breakLine: true,
-        paraSpaceBefore: 2,
+        paraSpaceBefore: 4,
       },
     });
   }
@@ -226,13 +258,12 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     x: 2.2,
     y: 1.0,
     w: 4.9,
-    h: 0.72,
+    h: 0.76,
     valign: "top",
     wrap: true,
   });
 
-  // 8. 와인명 하단 구분선
-  addLine(slide, 2.2, 1.82, 4.9, C.DIVIDER, 0.75);
+  addLine(slide, 2.2, 1.86, 4.9, C.DIVIDER, 0.75);
 
   // ════════════════════════════════════════════
   // 9-10. 지역
@@ -277,10 +308,10 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   const vintage = data.vintage || "-";
   slide.addText(vintage, {
     x: 2.85,
-    y: 2.98,
-    w: 0.75,
-    h: 0.28,
-    fontSize: 13,
+    y: 2.96,
+    w: 0.85,
+    h: 0.34,
+    fontSize: 16,
     fontFace: FONT_MAIN,
     color: C.BURGUNDY,
     bold: true,
@@ -321,83 +352,100 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   });
 
   // ════════════════════════════════════════════
-  // 17-18. 테이스팅 노트 (핵심 영역)
+  // TASTING NOTE (디자인 업그레이드)
   // ════════════════════════════════════════════
+
+  // 배경: 웜 그레이
   slide.addShape("roundRect", {
     x: 2.05,
     y: 5.3,
     w: 5.2,
     h: 2.72,
-    fill: { color: C.BURGUNDY_LIGHT, transparency: 30 },
+    fill: { color: C.BG_WARM_GRAY },
     rectRadius: 0.05,
     line: { color: C.CARD_BORDER, width: 0.5 },
   });
 
-  // TASTING NOTE 라벨
+  // 좌측 세로 포인트 바 (2pt, #5A1515)
+  addVLine(slide, 2.12, 5.62, 7.9, C.WINE_ACCENT, 2.0);
+
   addLabelBadge(slide, "TASTING NOTE", 2.12, 5.35, 1.32);
 
-  // 테이스팅 노트 내용
+  // 테이스팅 노트 (● 도트 + 구분선)
   const tastingItems: [string, string][] = [
     ["Color", data.colorNote || ""],
     ["Nose", data.noseNote || ""],
     ["Palate", data.palateNote || ""],
     ["Potential", data.agingPotential || ""],
   ];
+  const activeItems = tastingItems.filter(([, v]) => v);
 
-  const tastingRuns: PptxGenJS.TextProps[] = [];
-  let isFirst = true;
-  for (const [label, value] of tastingItems) {
-    if (!value) continue;
+  if (activeItems.length > 0) {
+    const noteY = 5.62;
+    const noteH = 2.28;
+    const itemH = noteH / activeItems.length;
 
-    // Label run (Georgia Italic, burgundy)
-    const labelOpts: PptxGenJS.TextPropsOptions = {
-      fontSize: 8.5,
-      fontFace: FONT_EN,
-      color: C.BURGUNDY,
-      italic: true,
-      bold: false,
-    };
-    if (!isFirst) {
-      labelOpts.breakLine = true;
-      labelOpts.paraSpaceBefore = 6;
+    for (let idx = 0; idx < activeItems.length; idx++) {
+      const [label, value] = activeItems[idx];
+      const yPos = noteY + idx * itemH;
+
+      // 항목 사이 구분선 (0.3pt, #E5E5E5)
+      if (idx > 0) {
+        addLine(slide, 2.25, yPos, 4.85, C.SEPARATOR, 0.3);
+      }
+
+      const itemRuns: PptxGenJS.TextProps[] = [
+        {
+          text: "● ",
+          options: { fontSize: 5, color: C.WINE_ACCENT, fontFace: FONT_MAIN },
+        },
+        {
+          text: label,
+          options: {
+            fontSize: 8.5,
+            fontFace: FONT_EN,
+            color: C.BURGUNDY,
+            italic: true,
+          },
+        },
+        {
+          text: `\n${value}`,
+          options: {
+            fontSize: 9,
+            fontFace: FONT_MAIN,
+            color: C.TEXT_PRIMARY,
+            breakLine: true,
+            paraSpaceBefore: 2,
+          },
+        },
+      ];
+
+      slide.addText(itemRuns, {
+        x: 2.25,
+        y: yPos + (idx > 0 ? 0.04 : 0),
+        w: 4.85,
+        h: itemH - (idx > 0 ? 0.04 : 0),
+        valign: "top",
+        wrap: true,
+        margin: 0,
+      });
     }
-    tastingRuns.push({ text: label, options: labelOpts });
-
-    // Value run (맑은 고딕)
-    tastingRuns.push({
-      text: `\n${value}`,
-      options: {
-        fontSize: 9,
-        fontFace: FONT_MAIN,
-        color: C.TEXT_PRIMARY,
-      },
-    });
-
-    isFirst = false;
-  }
-
-  if (tastingRuns.length === 0) {
-    tastingRuns.push({
-      text: "-",
-      options: { fontSize: 9, fontFace: FONT_MAIN, color: C.TEXT_MUTED },
+  } else {
+    slide.addText("-", {
+      x: 2.25,
+      y: 5.62,
+      w: 4.85,
+      h: 2.32,
+      fontSize: 9,
+      fontFace: FONT_MAIN,
+      color: C.TEXT_MUTED,
     });
   }
 
-  slide.addText(tastingRuns, {
-    x: 2.15,
-    y: 5.62,
-    w: 5.0,
-    h: 2.32,
-    valign: "top",
-    wrap: true,
-    margin: 0,
-  });
-
-  // ════════════════════════════════════════════
-  // 19. 푸드 페어링
-  // ════════════════════════════════════════════
+  // 푸드 페어링 (미드도트 구분)
   addLabelBadge(slide, "푸드 페어링", 2.12, 8.18, 0.95);
-  slide.addText(data.foodPairing || "-", {
+  const foodText = (data.foodPairing || "-").replace(/, /g, " · ").replace(/,/g, " · ");
+  slide.addText(foodText, {
     x: 2.15,
     y: 8.42,
     w: 5.0,
@@ -409,55 +457,36 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     wrap: true,
   });
 
-  // ════════════════════════════════════════════
-  // 20. 수상내역
-  // ════════════════════════════════════════════
+  // 수상내역 (배지 스타일)
   addLine(slide, 0.15, 9.04, 7.2, C.GOLD_LIGHT, 0.5);
 
   const awards = data.awards || "";
   if (awards && awards !== "N/A") {
-    // 수상 아이콘
+    addLabelBadge(slide, "AWARDS", 0.2, 9.1, 0.72, 0.2);
+
     try {
       slide.addImage({
         data: "image/jpeg;base64," + ICON_AWARD_BASE64,
-        x: 0.25,
-        y: 9.08,
-        w: 0.22,
-        h: 0.28,
+        x: 0.98,
+        y: 9.09,
+        w: 0.2,
+        h: 0.24,
       });
     } catch {
       /* ignore */
     }
 
-    slide.addText(
-      [
-        {
-          text: "AWARDS  ",
-          options: {
-            fontSize: 8,
-            fontFace: FONT_MAIN,
-            color: C.GOLD,
-            bold: true,
-          },
-        },
-        {
-          text: awards,
-          options: {
-            fontSize: 9,
-            fontFace: FONT_MAIN,
-            color: C.TEXT_PRIMARY,
-          },
-        },
-      ],
-      {
-        x: 0.52,
-        y: 9.07,
-        w: 6.7,
-        h: 0.3,
-        valign: "middle",
-        wrap: true,
-      }
-    );
+    slide.addText(awards, {
+      x: 1.22,
+      y: 9.09,
+      w: 5.9,
+      h: 0.36,
+      fontSize: 9,
+      fontFace: FONT_MAIN,
+      color: C.TEXT_PRIMARY,
+      lineSpacing: 12,
+      wrap: true,
+    });
   }
 
   // ════════════════════════════════════════════
@@ -496,6 +525,16 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   // ════════════════════════════════════════════
   if (data.bottleImageBase64 && data.bottleImageMimeType) {
     try {
+      // 타원형 그림자 (떠있는 느낌)
+      slide.addShape("ellipse", {
+        x: 0.55,
+        y: 7.35,
+        w: 1.0,
+        h: 0.15,
+        fill: { color: C.SHADOW, transparency: 60 },
+        line: { width: 0 },
+      });
+
       slide.addImage({
         data: `${data.bottleImageMimeType};base64,${data.bottleImageBase64}`,
         x: 0.25,
