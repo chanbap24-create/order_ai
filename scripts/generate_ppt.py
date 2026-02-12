@@ -63,7 +63,7 @@ COLORS = {
     'WHITE':           RGBColor(0xFF, 0xFF, 0xFF),
 }
 
-FONT_MAIN = '맑은 고딕'
+FONT_MAIN = 'Gowun Dodum'
 FONT_EN = 'Georgia'        # 영문 세리프 (와인명 영문, 라벨, 와이너리)
 
 # 슬라이드 크기 (인치) - 세로 A4
@@ -251,6 +251,77 @@ def crop_whitespace(img):
             return img.crop(bbox)
 
     return img
+
+
+def embed_font_in_pptx(pptx_path):
+    """PPTX에 Gowun Dodum 폰트 임베딩 (ECMA-376 §13.1)"""
+    import zipfile
+    import uuid
+    import tempfile
+    import shutil
+
+    # 폰트 파일 찾기
+    font_candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'fonts', 'GowunDodum-Regular.ttf'),
+        os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Microsoft', 'Windows', 'Fonts', 'GowunDodum-Regular.ttf'),
+        os.path.join('C:\\', 'Windows', 'Fonts', 'GowunDodum-Regular.ttf'),
+    ]
+    font_path = None
+    for fp in font_candidates:
+        if os.path.exists(fp):
+            font_path = fp
+            break
+
+    if not font_path:
+        print(f"Warning: Gowun Dodum font not found, skipping embed", file=sys.stderr)
+        return
+
+    with open(font_path, 'rb') as f:
+        font_data = bytearray(f.read())
+
+    # GUID 생성 및 난독화
+    guid = uuid.uuid4()
+    guid_hex = guid.hex  # 32 hex chars
+    key = bytes(int(guid_hex[(15 - i) * 2:(15 - i) * 2 + 2], 16) for i in range(16))
+
+    obfuscated = bytearray(font_data)
+    for i in range(32):
+        obfuscated[i] ^= key[i % 16]
+
+    guid_str = str(guid).upper()
+    font_filename = f'{{{guid_str}}}.fntdata'
+    r_id = 'rIdEmbedFont1'
+
+    # PPTX (ZIP) 수정
+    tmp_path = pptx_path + '.tmp'
+    with zipfile.ZipFile(pptx_path, 'r') as zin, zipfile.ZipFile(tmp_path, 'w') as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+
+            if item.filename == '[Content_Types].xml':
+                text = data.decode('utf-8')
+                text = text.replace('</Types>',
+                    f'<Override PartName="/ppt/fonts/{font_filename}" ContentType="application/x-fontdata"/></Types>')
+                data = text.encode('utf-8')
+
+            elif item.filename == 'ppt/_rels/presentation.xml.rels':
+                text = data.decode('utf-8')
+                text = text.replace('</Relationships>',
+                    f'<Relationship Id="{r_id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/{font_filename}"/></Relationships>')
+                data = text.encode('utf-8')
+
+            elif item.filename == 'ppt/presentation.xml':
+                text = data.decode('utf-8')
+                embed_xml = f'<p:embeddedFontLst><p:embeddedFont><p:font typeface="Gowun Dodum"/><p:regular r:id="{r_id}"/></p:embeddedFont></p:embeddedFontLst>'
+                text = text.replace('</p:presentation>', f'{embed_xml}</p:presentation>')
+                data = text.encode('utf-8')
+
+            zout.writestr(item, data)
+
+        # 폰트 파일 추가
+        zout.writestr(f'ppt/fonts/{font_filename}', bytes(obfuscated))
+
+    shutil.move(tmp_path, pptx_path)
 
 
 def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
@@ -619,13 +690,18 @@ def main():
     prs.save(output_path)
     print(f"Saved: {output_path} ({len(slides_data)} slides)", file=sys.stderr)
 
+    # 폰트 임베딩
+    try:
+        embed_font_in_pptx(output_path)
+        print("Font embedded: Gowun Dodum", file=sys.stderr)
+    except Exception as e:
+        print(f"Font embedding warning: {e}", file=sys.stderr)
+
     # 검증: 재오픈 테스트
     try:
         verify_prs = Presentation(output_path)
         assert len(verify_prs.slides) == len(slides_data), \
             f"Slide count mismatch: expected {len(slides_data)}, got {len(verify_prs.slides)}"
-        # 검증 통과 파일로 덮어쓰기 (clean save)
-        verify_prs.save(output_path)
         print("Verification passed", file=sys.stderr)
     except Exception as e:
         print(f"Verification warning: {e}", file=sys.stderr)

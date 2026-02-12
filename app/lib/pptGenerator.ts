@@ -5,6 +5,7 @@ import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
+import { embedFontsInPptx } from "@/app/lib/pptFontEmbed";
 import { logger } from "@/app/lib/logger";
 
 // ═══════════════════════════════════════════════════
@@ -27,7 +28,7 @@ const C = {
   WHITE: "FFFFFF",
 };
 
-const FONT_MAIN = "맑은 고딕";
+const FONT_MAIN = "Gowun Dodum";
 const FONT_EN = "Georgia";
 
 // 슬라이드 크기 (인치) - 세로 A4
@@ -607,9 +608,10 @@ export async function generateTastingNotePpt(
     addTastingNoteSlide(pptx, data);
   }
 
-  // Buffer로 출력
-  const output = await pptx.write({ outputType: "nodebuffer" });
-  logger.info(`PPT generated: ${slides.length} slides (pptxgenjs)`);
+  // Buffer로 출력 후 폰트 임베딩
+  const rawBuffer = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
+  const output = await embedFontsInPptx(rawBuffer);
+  logger.info(`PPT generated: ${slides.length} slides (pptxgenjs, font embedded)`);
 
-  return output as Buffer;
+  return output;
 }
