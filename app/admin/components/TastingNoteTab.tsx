@@ -7,7 +7,7 @@ type NoteFilter = 'all' | 'with' | 'without';
 
 export default function TastingNoteTab() {
   // === 좌측 리스트 ===
-  const [wines, setWines] = useState<(Wine & { tasting_note_id: number | null })[]>([]);
+  const [wines, setWines] = useState<(Wine & { tasting_note_id: number | null; inv_available?: number; inv_bonded?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterNote, setFilterNote] = useState<NoteFilter>('all');
@@ -479,6 +479,11 @@ export default function TastingNoteTab() {
                     </div>
                     <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
                       {w.item_code} {w.item_name_en ? `· ${w.item_name_en}` : ''}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2, display: 'flex', gap: 6 }}>
+                      <span>재고 <b style={{ color: (w.inv_available || 0) > 0 ? '#16a34a' : '#d1d5db' }}>{w.inv_available ?? 0}</b></span>
+                      <span>보세 <b style={{ color: (w.inv_bonded || 0) > 0 ? '#0ea5e9' : '#d1d5db' }}>{w.inv_bonded ?? 0}</b></span>
+                      <span>합계 <b style={{ color: ((w.inv_available || 0) + (w.inv_bonded || 0)) > 0 ? '#1e293b' : '#d1d5db' }}>{(w.inv_available || 0) + (w.inv_bonded || 0)}</b></span>
                     </div>
                   </div>
                   <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: badge.bg, color: badge.color, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
