@@ -6,8 +6,16 @@ import { useState, useEffect } from 'react';
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // 메뉴 열릴 때 body 스크롤 방지
+  useEffect(() => {
+    if (menuOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
 
   const cards = [
     {
@@ -71,18 +79,6 @@ export default function Home() {
           from { opacity: 0; transform: translateX(-20px); }
           to { opacity: 1; transform: translateX(0); }
         }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @keyframes grain {
-          0%, 100% { transform: translate(0, 0); }
-          10% { transform: translate(-5%, -10%); }
-          30% { transform: translate(3%, -15%); }
-          50% { transform: translate(12%, 9%); }
-          70% { transform: translate(9%, 4%); }
-          90% { transform: translate(-1%, 7%); }
-        }
         .home-card-link {
           text-decoration: none;
           display: block;
@@ -110,33 +106,103 @@ export default function Home() {
           box-shadow: 0 8px 32px -8px rgba(90, 21, 21, 0.12), 0 2px 8px -2px rgba(0,0,0,0.04);
           transform: translateY(-3px);
         }
-        .home-card:hover::before {
-          opacity: 1;
-        }
-        .home-card:hover .home-card-arrow {
-          opacity: 1;
-          transform: translateX(0);
-        }
+        .home-card:hover::before { opacity: 1; }
+        .home-card:hover .home-card-arrow { opacity: 1; transform: translateX(0); }
         .home-card-arrow {
           opacity: 0;
           transform: translateX(-6px);
           transition: all 0.3s ease;
         }
+
+        /* ─── Desktop sidebar ─── */
+        .home-sidebar { display: flex; }
+        .home-mobile-header { display: none; }
+        .home-overlay { display: none; }
+        .home-content { padding: 60px 56px; }
+        .home-heading { font-size: 1.8rem; }
+        .home-sub-text { font-size: 0.85rem; }
+
+        /* ─── Mobile ─── */
+        @media (max-width: 768px) {
+          .home-sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 2000;
+            transform: translateX(-100%);
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            width: 280px !important;
+            min-width: 280px !important;
+          }
+          .home-sidebar.open {
+            transform: translateX(0);
+          }
+          .home-overlay {
+            display: block;
+            position: fixed;
+            inset: 0;
+            z-index: 1999;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+          .home-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+          }
+          .home-mobile-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            height: 56px;
+            background: #1a1a2e;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            margin: -80px -16px 20px -16px;
+          }
+          .home-content {
+            padding: 24px 16px;
+            padding-top: 80px;
+          }
+          .home-heading {
+            font-size: 1.5rem !important;
+            word-break: keep-all;
+          }
+          .home-sub-text {
+            font-size: 0.8rem;
+            word-break: keep-all;
+          }
+          .home-card {
+            padding: 20px 18px;
+            border-radius: 12px;
+          }
+          .home-card p, .home-card h3 {
+            word-break: keep-all;
+          }
+        }
       `}</style>
+
+      {/* ─── Mobile: Overlay ─── */}
+      <div
+        className={`home-overlay${menuOpen ? ' open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+      />
 
       <div style={{
         display: 'flex',
         minHeight: 'calc(100vh - 80px)',
         fontFamily: "'DM Sans', -apple-system, sans-serif",
+        wordBreak: 'keep-all',
       }}>
         {/* ─── Dark Sidebar ─── */}
-        <div style={{
+        <div className={`home-sidebar${menuOpen ? ' open' : ''}`} style={{
           width: 360,
           minWidth: 360,
           background: '#1a1a2e',
           position: 'relative',
           overflow: 'hidden',
-          display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '60px 40px 40px',
@@ -156,6 +222,23 @@ export default function Home() {
             pointerEvents: 'none',
           }} />
 
+          {/* Mobile close button */}
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="home-mobile-close"
+            style={{
+              display: 'none',
+              position: 'absolute', top: 16, right: 16, zIndex: 10,
+              width: 32, height: 32, borderRadius: '50%',
+              border: '1px solid rgba(240,236,230,0.15)', background: 'transparent',
+              color: 'rgba(240,236,230,0.6)', fontSize: 16, cursor: 'pointer',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <style>{`@media(max-width:768px){.home-mobile-close{display:flex!important;}}`}</style>
+            ✕
+          </button>
+
           {/* Branding */}
           <div style={{
             position: 'relative', zIndex: 1,
@@ -163,7 +246,6 @@ export default function Home() {
             transform: mounted ? 'translateX(0)' : 'translateX(-20px)',
             transition: 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           }}>
-            {/* Decorative line */}
             <div style={{
               width: 32, height: 1,
               background: 'linear-gradient(90deg, #5A1515, rgba(90,21,21,0.3))',
@@ -199,56 +281,93 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Bottom area */}
-          <div style={{
-            position: 'relative', zIndex: 1,
-            opacity: mounted ? 1 : 0,
-            transition: 'opacity 1s ease 0.4s',
-          }}>
-            <Link href="/admin" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: '0.7rem',
-              color: 'rgba(240, 236, 230, 0.25)',
-              textDecoration: 'none',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              fontWeight: 500,
-              padding: '8px 0',
-              transition: 'color 0.3s ease',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240, 236, 230, 0.6)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240, 236, 230, 0.25)')}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-              </svg>
-              Admin Console
-            </Link>
+          {/* Sidebar nav links (mobile) */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {cards.map(card => (
+                <Link
+                  key={card.id}
+                  href={card.href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 16px', borderRadius: 10,
+                    textDecoration: 'none', color: 'rgba(240,236,230,0.6)',
+                    fontSize: '0.85rem', fontWeight: 500,
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(240,236,230,0.06)'; e.currentTarget.style.color = '#f0ece6'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(240,236,230,0.6)'; }}
+                >
+                  <span style={{ opacity: 0.5 }}>{card.icon}</span>
+                  <span>{card.title}</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.4, marginLeft: 'auto' }}>{card.subtitle}</span>
+                </Link>
+              ))}
+            </div>
 
-            <div style={{
-              marginTop: 20,
-              paddingTop: 20,
-              borderTop: '1px solid rgba(240, 236, 230, 0.06)',
-              fontSize: '0.65rem',
-              color: 'rgba(240, 236, 230, 0.15)',
-              letterSpacing: '0.05em',
-            }}>
-              v2.0 &middot; Powered by AI
+            <div style={{ borderTop: '1px solid rgba(240,236,230,0.06)', paddingTop: 16 }}>
+              <Link href="/admin" onClick={() => setMenuOpen(false)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontSize: '0.7rem', color: 'rgba(240, 236, 230, 0.25)',
+                textDecoration: 'none', letterSpacing: '0.15em',
+                textTransform: 'uppercase', fontWeight: 500, padding: '8px 0',
+                transition: 'color 0.3s ease',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(240, 236, 230, 0.6)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(240, 236, 230, 0.25)')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
+                Admin Console
+              </Link>
+
+              <div style={{
+                marginTop: 20, paddingTop: 20,
+                borderTop: '1px solid rgba(240, 236, 230, 0.06)',
+                fontSize: '0.65rem', color: 'rgba(240, 236, 230, 0.15)',
+                letterSpacing: '0.05em',
+              }}>
+                v2.0 &middot; Powered by AI
+              </div>
             </div>
           </div>
         </div>
 
         {/* ─── Bright Content Area ─── */}
-        <div style={{
+        <div className="home-content" style={{
           flex: 1,
           background: '#fafaf8',
-          padding: '60px 56px',
           overflowY: 'auto',
           position: 'relative',
         }}>
+          {/* Mobile header bar */}
+          <div className="home-mobile-header">
+            <button
+              onClick={() => setMenuOpen(true)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#f0ece6', padding: 4, display: 'flex', alignItems: 'center',
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <span style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: '1.1rem', fontWeight: 400,
+              color: '#f0ece6', letterSpacing: '0.1em',
+            }}>
+              CAVE DE VIN
+            </span>
+            <div style={{ width: 22 }} />
+          </div>
+
           {/* Subtle top gradient */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: 200,
@@ -278,7 +397,7 @@ export default function Home() {
               }}>
                 Dashboard
               </p>
-              <h2 style={{
+              <h2 className="home-heading" style={{
                 fontFamily: "'Cormorant Garamond', serif",
                 fontSize: '1.8rem',
                 fontWeight: 400,
@@ -289,7 +408,7 @@ export default function Home() {
               }}>
                 무엇을 도와드릴까요?
               </h2>
-              <p style={{
+              <p className="home-sub-text" style={{
                 fontSize: '0.85rem',
                 color: '#8E8E93',
                 lineHeight: 1.6,
