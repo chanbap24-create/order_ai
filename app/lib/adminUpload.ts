@@ -454,8 +454,8 @@ async function processDl(buf: Buffer) {
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-  // 동일 구조: 열1, 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
-  //   국가(8), ... 공급가(15)
+  // 동일 구조: 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
+  //   국가(8), ... 가용재고(13), 30일출고(14), 공급가(17), 안성창고(26)
 
   // 기존 inventory_dl 삭제
   await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
@@ -479,7 +479,7 @@ async function processDl(buf: Buffer) {
       item_name: normText(r[2]),
       supply_price: toNumber(r[17]),       // R열: 공급가
       available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
-      anseong_warehouse: 0,
+      anseong_warehouse: toNumber(r[26]),  // AA열: 안성창고(CDV)
       sales_30days: toNumber(r[14]),        // O열: 30일출고
       vintage: normText(r[6]),
       alcohol_content: normText(r[7]),

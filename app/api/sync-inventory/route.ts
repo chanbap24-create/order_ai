@@ -84,15 +84,15 @@ export async function POST() {
       cdvRows.push({
         item_no: itemNo,
         item_name: String(row[2] || ''),         // C: 품명
-        supply_price: Number(row[15]) || 0,       // P: 공급가
-        discount_price: Number(row[16]) || 0,     // Q: 할인공급가
-        wholesale_price: Number(row[17]) || 0,    // R: 도매가
+        supply_price: Number(row[17]) || 0,       // R: 공급가
+        discount_price: Number(row[19]) || 0,     // T: 할인공급가
+        wholesale_price: Number(row[20]) || 0,    // U: 도매장가
         retail_price: Number(row[18]) || 0,       // S: 판매가
-        min_price: Number(row[19]) || 0,          // T: 최저판매가
-        available_stock: Number(row[11]) || 0,    // L: 가용재고
-        bonded_warehouse: Number(row[21]) || 0,   // V: 보세창고
-        incoming_stock: Number(row[20]) || 0,     // U: 미착품
-        sales_30days: Number(row[12]) || 0,       // M: 30일출고
+        min_price: Number(row[21]) || 0,          // V: 최저판매가
+        available_stock: Number(row[13]) || 0,    // N: 가용재고(B-C)
+        bonded_warehouse: Number(row[23]) || 0,   // X: 보세(용마)
+        incoming_stock: Number(row[22]) || 0,     // W: 미착품재고
+        sales_30days: Number(row[14]) || 0,       // O: 30일출고
         vintage: String(row[6] || ''),            // G: 빈티지
         alcohol_content: String(row[7] || ''),    // H: 알콜도수
         country: String(row[8] || ''),            // I: 국가
@@ -137,10 +137,10 @@ export async function POST() {
       dlRows.push({
         item_no: itemNo,
         item_name: String(row[2] || ''),         // C: 품명
-        supply_price: Number(row[15]) || 0,       // P: 공급가
-        available_stock: Number(row[11]) || 0,    // L: 재고
-        anseong_warehouse: Number(row[23]) || 0,  // X: 안성창고
-        sales_30days: Number(row[12]) || 0,       // M: 30일출고
+        supply_price: Number(row[17]) || 0,       // R: 공급가
+        available_stock: Number(row[13]) || 0,    // N: 가용재고(B-C)
+        anseong_warehouse: Number(row[26]) || 0,  // AA: 안성창고(CDV)
+        sales_30days: Number(row[14]) || 0,       // O: 30일출고
         vintage: String(row[6] || ''),            // G: 빈티지
         alcohol_content: String(row[7] || ''),    // H: 알콜도수
         country: String(row[8] || ''),            // I: 국가
