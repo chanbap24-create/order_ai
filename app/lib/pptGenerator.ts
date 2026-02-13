@@ -382,7 +382,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     };
     if (!isFirst) {
       labelOpts.breakLine = true;
-      labelOpts.paraSpaceBefore = 12;
+      labelOpts.paraSpaceBefore = 6;
     }
     tastingRuns.push({ text: label, options: labelOpts });
 
@@ -407,20 +407,20 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
 
   slide.addText(tastingRuns, {
     x: 2.25,
-    y: 5.22,
+    y: 5.35,
     w: 4.85,
-    h: 2.82,
+    h: 2.69,
     valign: "top",
     wrap: true,
     margin: 0,
   });
 
   // 푸드 페어링 (미드도트 구분)
-  addLabelBadge(slide, "푸드 페어링", 2.12, 8.26, 0.95);
+  addLabelBadge(slide, "푸드 페어링", 2.12, 8.36, 0.95);
   const foodText = (data.foodPairing || "-").replace(/, /g, " · ").replace(/,/g, " · ");
   slide.addText(foodText, {
     x: 2.15,
-    y: 8.5,
+    y: 8.6,
     w: 5.0,
     h: 0.36,
     fontSize: 9,

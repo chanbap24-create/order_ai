@@ -530,7 +530,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         ('Potential', data.get('agingPotential', '')),
     ]
 
-    txBox = slide.shapes.add_textbox(inches(2.25), inches(5.22), inches(4.85), inches(2.82))
+    txBox = slide.shapes.add_textbox(inches(2.25), inches(5.35), inches(4.85), inches(2.69))
     tf = txBox.text_frame
     tf.word_wrap = True
 
@@ -543,7 +543,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
             first = False
         else:
             p = tf.add_paragraph()
-            p.space_before = Pt(12)
+            p.space_before = Pt(6)
 
         # Label run (Georgia Italic, burgundy)
         run_label = p.add_run()
@@ -578,10 +578,10 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         bodyPr.set('bIns', '0')
 
     # 푸드 페어링 (미드도트 구분)
-    add_label_badge(slide, '푸드 페어링', 2.12, 8.26, 0.95)
+    add_label_badge(slide, '푸드 페어링', 2.12, 8.36, 0.95)
     food = data.get('foodPairing', '') or '-'
     food = food.replace(', ', ' · ').replace(',', ' · ')
-    add_textbox(slide, 2.15, 8.50, 5.00, 0.36,
+    add_textbox(slide, 2.15, 8.60, 5.00, 0.36,
                 text=food, font_size=9, line_spacing=12)
 
     # 수상내역 (배지 스타일)
