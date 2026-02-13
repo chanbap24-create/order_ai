@@ -41,9 +41,17 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
   // ✅ 클립보드 내용 있는지 체크
   const [hasClipboard, setHasClipboard] = useState(false);
 
+  // ✅ 자동 붙여넣기 ON/OFF (localStorage 저장)
+  const [autoPaste, setAutoPaste] = useState(true);
+  useEffect(() => {
+    const saved = localStorage.getItem('order_auto_paste');
+    if (saved !== null) setAutoPaste(saved === 'true');
+  }, []);
+
   // ✅ 페이지 로드 시 클립보드 내용 자동 붙여넣기
   const [autoLoaded, setAutoLoaded] = useState(false);
   useEffect(() => {
+    if (!autoPaste) return;
     const loadClipboard = async () => {
       try {
         const clip = await navigator.clipboard.readText();
@@ -61,10 +69,11 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       }
     };
     loadClipboard();
-  }, []);
+  }, [autoPaste]);
 
-  // ✅ 클립보드 체크 (주기적)
+  // ✅ 클립보드 체크 (주기적, autoPaste ON일 때만)
   useEffect(() => {
+    if (!autoPaste) return;
     const checkClipboard = async () => {
       try {
         const clip = await navigator.clipboard.readText();
@@ -75,7 +84,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
     };
     const interval = setInterval(checkClipboard, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [autoPaste]);
 
   // ✅ 전체 JSON 토글
   const [showJson, setShowJson] = useState(false);
@@ -767,15 +776,43 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
           {/* ===== 발주 입력칸 ===== */}
           <div style={{ marginTop: 12 }}>
-            <label style={{ 
-              display: "block", 
-              marginBottom: 6, 
-              fontSize: 14, 
-              fontWeight: 600,
-              color: "#666"
-            }}>
-              발주 내용
-            </label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <label style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#666"
+              }}>
+                발주 내용
+              </label>
+              <div
+                role="button"
+                tabIndex={-1}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  const next = !autoPaste;
+                  setAutoPaste(next);
+                  localStorage.setItem('order_auto_paste', String(next));
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  cursor: "pointer", userSelect: "none",
+                  fontSize: 12, color: autoPaste ? "#5A1515" : "#999",
+                }}
+              >
+                <div style={{
+                  width: 32, height: 18, borderRadius: 9,
+                  background: autoPaste ? "#5A1515" : "#ccc",
+                  position: "relative", transition: "background 0.2s",
+                }}>
+                  <div style={{
+                    width: 14, height: 14, borderRadius: 7,
+                    background: "#fff", position: "absolute", top: 2,
+                    left: autoPaste ? 16 : 2, transition: "left 0.2s",
+                  }} />
+                </div>
+                자동 붙여넣기
+              </div>
+            </div>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
