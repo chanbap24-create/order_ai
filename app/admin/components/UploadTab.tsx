@@ -129,23 +129,64 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
 
         const IDX_CLIENT_NAME = 4;
         const IDX_CLIENT_CODE = 5;
+        const IDX_SHIP_DATE = 6;
+        const IDX_BIZ_TYPE = 7;
         const IDX_ITEM_NO = 12;
         const IDX_ITEM_NAME = 13;
+        const IDX_SELLING_PRICE = 16;
+        const IDX_QUANTITY = 18;
+        const IDX_UNIT_PRICE = 19;
+        const IDX_SUPPLY_AMT = 20;
+        const IDX_TAX_AMT = 21;
+        const IDX_TOTAL_AMT = 22;
+        const IDX_WAREHOUSE = 23;
+        const IDX_MANAGER = 37;
+        const IDX_DEPARTMENT = 38;
         const IDX_PRICE = type === 'client' ? 19 : 16;
 
         const clients: Record<string, string> = {};
         const items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number | null }> = [];
         const seen = new Set<string>();
 
+        interface ShipmentRow {
+          client_name: string; client_code: string; ship_date: string | null;
+          item_no: string; item_name: string; quantity: number;
+          unit_price: number | null; selling_price: number | null;
+          supply_amount: number | null; tax_amount: number | null; total_amount: number | null;
+          business_type: string; manager: string; department: string; warehouse: string;
+        }
+        const shipments: ShipmentRow[] = [];
+
+        const toNum = (v: unknown): number | null => {
+          const n = parseFloat(String(v));
+          return isFinite(n) ? n : null;
+        };
+        const toStr = (v: unknown): string => String(v ?? '').trim();
+        const toCode = (v: unknown): string => String(v ?? '').trim().replace(/\.0$/, '');
+        const toDate = (v: unknown): string | null => {
+          if (v == null) return null;
+          // Excel serial number
+          if (typeof v === 'number') {
+            const d = new Date((v - 25569) * 86400000);
+            if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+          }
+          // Date object
+          if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+          // String date
+          const s = String(v).trim();
+          if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) return s.replace(/\//g, '-');
+          return null;
+        };
+
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i] as unknown[];
-          const clientName = String(r[IDX_CLIENT_NAME] || '').trim();
-          const clientCode = String(r[IDX_CLIENT_CODE] || '').trim().replace(/\.0$/, '');
+          const clientName = toStr(r[IDX_CLIENT_NAME]);
+          const clientCode = toCode(r[IDX_CLIENT_CODE]);
           if (!clientName || !clientCode) continue;
           clients[clientCode] = clientName;
 
-          const itemNo = String(r[IDX_ITEM_NO] || '').trim().replace(/\.0$/, '');
-          const itemName = String(r[IDX_ITEM_NAME] || '').trim();
+          const itemNo = toCode(r[IDX_ITEM_NO]);
+          const itemName = toStr(r[IDX_ITEM_NAME]);
           if (!itemNo || !itemName) continue;
 
           const key = `${clientCode}||${itemNo}`;
@@ -154,15 +195,61 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
             const p = parseFloat(String(r[IDX_PRICE]));
             items.push({ client_code: clientCode, item_no: itemNo, item_name: itemName, supply_price: isFinite(p) ? p : null });
           }
+
+          // 출고 트랜잭션 데이터 수집
+          shipments.push({
+            client_name: clientName,
+            client_code: clientCode,
+            ship_date: toDate(r[IDX_SHIP_DATE]),
+            item_no: itemNo,
+            item_name: itemName,
+            quantity: toNum(r[IDX_QUANTITY]) ?? 0,
+            unit_price: toNum(r[IDX_UNIT_PRICE]),
+            selling_price: toNum(r[IDX_SELLING_PRICE]),
+            supply_amount: toNum(r[IDX_SUPPLY_AMT]),
+            tax_amount: toNum(r[IDX_TAX_AMT]),
+            total_amount: toNum(r[IDX_TOTAL_AMT]),
+            business_type: toStr(r[IDX_BIZ_TYPE]),
+            manager: toStr(r[IDX_MANAGER]),
+            department: toStr(r[IDX_DEPARTMENT]),
+            warehouse: toStr(r[IDX_WAREHOUSE]),
+          });
         }
 
         updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중...` });
 
+        // 1) 기존 clients/items 업로드
         res = await fetch(`/api/admin/upload-data/${type}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clients, items }),
         });
+
+        if (res.ok) {
+          // 2) shipments 배치 업로드 (5000행씩)
+          const BATCH_SIZE = 5000;
+          const shipType = type === 'client' ? 'client-shipments' : 'dl-client-shipments';
+          const totalBatches = Math.ceil(shipments.length / BATCH_SIZE);
+
+          for (let b = 0; b < totalBatches; b++) {
+            const batch = shipments.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+            updateCard(type, {
+              status: 'uploading', fileName: file.name,
+              message: `출고 트랜잭션 업로드 중... (${b + 1}/${totalBatches})`,
+            });
+
+            const shipRes = await fetch(`/api/admin/upload-data/${shipType}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ shipments: batch, clear: b === 0 }),
+            });
+
+            if (!shipRes.ok) {
+              const shipJson = await shipRes.json();
+              console.error('Shipment batch error:', shipJson);
+            }
+          }
+        }
       } else {
         // 그 외: 기존 FormData 방식
         const formData = new FormData();

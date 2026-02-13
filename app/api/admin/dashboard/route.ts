@@ -1,5 +1,6 @@
 // app/api/admin/dashboard/route.ts
 import { NextResponse } from "next/server";
+import { supabase } from "@/app/lib/db";
 import { getInventoryValueHistory, recordInventoryValuePartial } from "@/app/lib/inventoryValueDb";
 import { getUploadedFilePath } from "@/app/lib/adminUpload";
 import { handleApiError } from "@/app/lib/errors";
@@ -102,6 +103,98 @@ export async function GET() {
       }
     }
 
+    // ── 브랜드 추출: 와인=영문 2~4자, 글라스=RD 뒤 숫자 4자리 ──
+    function extractBrand(itemName: string, type: 'cdv' | 'dl'): string {
+      const tokens = (itemName || '').split(/[\s]+/);
+      if (type === 'dl') {
+        if (tokens.length >= 2 && /^RD$/i.test(tokens[0])) {
+          const m = tokens[1].match(/^(\d{3,5})/);
+          if (m) return m[1];
+        }
+        return '';
+      }
+      const first = tokens[0].toUpperCase();
+      if (/^[A-Z]{2,4}$/.test(first)) return first;
+      return '';
+    }
+
+    // ── 재고 분석: 국가별 / 브랜드별 / 품목별 ──
+    const INV_PAGE = 1000;
+    type InvItem = { item_no: string; item_name: string; brand: string; country: string; value: number };
+    const cdvItems: InvItem[] = [];
+    const dlItems: InvItem[] = [];
+
+    // CDV 재고
+    let cdvOff = 0;
+    let cdvHas = true;
+    while (cdvHas) {
+      const { data: rows } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, item_name, country, supply_price, bonded_warehouse, yongma_logistics')
+        .range(cdvOff, cdvOff + INV_PAGE - 1);
+      if (!rows || rows.length === 0) { cdvHas = false; break; }
+      for (const r of rows) {
+        const val = ((r.bonded_warehouse || 0) + (r.yongma_logistics || 0)) * (r.supply_price || 0);
+        if (val > 0) {
+          cdvItems.push({
+            item_no: r.item_no, item_name: r.item_name || '',
+            brand: extractBrand(r.item_name || '', 'cdv'), country: r.country || '', value: val,
+          });
+        }
+      }
+      if (rows.length < INV_PAGE) cdvHas = false;
+      else cdvOff += INV_PAGE;
+    }
+
+    // DL 재고
+    let dlOff = 0;
+    let dlHas = true;
+    while (dlHas) {
+      const { data: rows } = await supabase
+        .from('inventory_dl')
+        .select('item_no, item_name, country, supply_price, anseong_warehouse, gig_warehouse, gig_marketing, gig_sales1')
+        .range(dlOff, dlOff + INV_PAGE - 1);
+      if (!rows || rows.length === 0) { dlHas = false; break; }
+      for (const r of rows) {
+        const val = ((r.anseong_warehouse || 0) + (r.gig_warehouse || 0) + (r.gig_marketing || 0) + (r.gig_sales1 || 0)) * (r.supply_price || 0);
+        if (val > 0) {
+          dlItems.push({
+            item_no: r.item_no, item_name: r.item_name || '',
+            brand: extractBrand(r.item_name || '', 'dl'), country: r.country || '', value: val,
+          });
+        }
+      }
+      if (rows.length < INV_PAGE) dlHas = false;
+      else dlOff += INV_PAGE;
+    }
+
+    // 국가별 / 브랜드별 재고가액 — CDV / DL 분리
+    function aggregateBy(items: InvItem[], key: 'country' | 'brand', fallback: string) {
+      const m = new Map<string, number>();
+      for (const it of items) {
+        const k = it[key] || fallback;
+        m.set(k, (m.get(k) || 0) + it.value);
+      }
+      return Array.from(m.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 15);
+    }
+    const inventoryByCountryCdv = aggregateBy(cdvItems, 'country', '(미분류)');
+    const inventoryByCountryDl = aggregateBy(dlItems, 'country', '(미분류)');
+    const inventoryByBrandCdv = aggregateBy(cdvItems, 'brand', '(기타)');
+    const inventoryByBrandDl = aggregateBy(dlItems, 'brand', '(기타)');
+
+    // 품목별 재고가액 — CDV / DL 분리
+    const toItem = (it: InvItem) => ({
+      itemNo: it.item_no, name: it.item_name,
+      brand: it.brand, country: it.country, value: it.value,
+    });
+    const inventoryByItemCdv = cdvItems
+      .sort((a, b) => b.value - a.value).slice(0, 30).map(toItem);
+    const inventoryByItemDl = dlItems
+      .sort((a, b) => b.value - a.value).slice(0, 30).map(toItem);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -110,6 +203,12 @@ export async function GET() {
         cdvChange,
         dlChange,
         inventoryHistory: history,
+        inventoryByCountryCdv,
+        inventoryByCountryDl,
+        inventoryByBrandCdv,
+        inventoryByBrandDl,
+        inventoryByItemCdv,
+        inventoryByItemDl,
       },
     });
   } catch (e) {

@@ -452,6 +452,45 @@ ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS bonded_warehouse REAL DEFAULT 
 ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
+-- ── 14. shipments 테이블 확장 + glass_shipments 신규 ──
+
+-- shipments 확장 (기존: id, client_name, client_code, ship_date, item_no, item_name, unit_price)
+ALTER TABLE shipments ALTER COLUMN ship_date TYPE DATE USING ship_date::date;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 0;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS selling_price REAL;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS supply_amount REAL;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tax_amount REAL;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS total_amount REAL;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS business_type TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS manager TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS department TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS warehouse TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_no TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS order_type TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS sales_type TEXT;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+
+CREATE INDEX IF NOT EXISTS idx_shipments_manager ON shipments(manager);
+CREATE INDEX IF NOT EXISTS idx_shipments_department ON shipments(department);
+CREATE INDEX IF NOT EXISTS idx_shipments_business_type ON shipments(business_type);
+
+-- glass_shipments (DL용, 동일 구조)
+CREATE TABLE IF NOT EXISTS glass_shipments (
+  id SERIAL PRIMARY KEY,
+  client_name TEXT, client_code TEXT, ship_date DATE,
+  item_no TEXT, item_name TEXT,
+  quantity INTEGER DEFAULT 0, unit_price REAL, selling_price REAL,
+  supply_amount REAL, tax_amount REAL, total_amount REAL,
+  business_type TEXT, manager TEXT, department TEXT,
+  warehouse TEXT, shipment_no TEXT, order_type TEXT, sales_type TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_glass_shipments_client_code ON glass_shipments(client_code);
+CREATE INDEX IF NOT EXISTS idx_glass_shipments_ship_date ON glass_shipments(ship_date);
+CREATE INDEX IF NOT EXISTS idx_glass_shipments_manager ON glass_shipments(manager);
+CREATE INDEX IF NOT EXISTS idx_glass_shipments_department ON glass_shipments(department);
+CREATE INDEX IF NOT EXISTS idx_glass_shipments_business_type ON glass_shipments(business_type);
+
 -- ============================================================
 -- 마이그레이션 완료!
 -- ============================================================

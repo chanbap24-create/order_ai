@@ -725,6 +725,54 @@ export async function processDlClientFromData(
   return { clients: Object.keys(clients).length, items: itemsMap.size, clientItems: items.length };
 }
 
+/* ─── Shipment 트랜잭션 데이터 처리 (배치 업로드) ─── */
+
+export interface ShipmentRow {
+  client_name: string;
+  client_code: string;
+  ship_date: string | null;
+  item_no: string;
+  item_name: string;
+  quantity: number;
+  unit_price: number | null;
+  selling_price: number | null;
+  supply_amount: number | null;
+  tax_amount: number | null;
+  total_amount: number | null;
+  business_type: string;
+  manager: string;
+  department: string;
+  warehouse: string;
+  shipment_no?: string;
+  order_type?: string;
+  sales_type?: string;
+}
+
+export async function processShipmentsFromData(
+  shipments: ShipmentRow[],
+  table: 'shipments' | 'glass_shipments',
+  clear: boolean
+) {
+  if (clear) {
+    await supabase.from(table).delete().not('id', 'is', null);
+    logger.info(`[Shipments] Cleared ${table}`);
+  }
+
+  let inserted = 0;
+  for (let i = 0; i < shipments.length; i += 500) {
+    const batch = shipments.slice(i, i + 500);
+    const { error } = await supabase.from(table).insert(batch);
+    if (error) {
+      logger.error(`[Shipments] ${table} insert error at batch ${i}`, { error });
+      throw new Error(`${table} insert failed: ${error.message}`);
+    }
+    inserted += batch.length;
+  }
+
+  logger.info(`[Shipments] Inserted ${inserted} rows into ${table}`);
+  return { inserted };
+}
+
 /* ─── 메인 처리 함수 ─── */
 export async function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);

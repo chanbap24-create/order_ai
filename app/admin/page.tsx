@@ -10,6 +10,7 @@ import AllWinesTab from './components/AllWinesTab';
 import TastingNoteTab from './components/TastingNoteTab';
 import PriceListTab from './components/PriceListTab';
 import ChangeLogTab from './components/ChangeLogTab';
+import ClientAnalysisTab from './components/ClientAnalysisTab';
 import '@/app/styles/design-system.css';
 
 const ADMIN_PIN = '0000';
@@ -152,6 +153,7 @@ export default function AdminPage() {
         {activeTab === 'tasting-note' && <TastingNoteTab />}
         {activeTab === 'price-list' && <PriceListTab />}
         {activeTab === 'change-log' && <ChangeLogTab />}
+        {activeTab === 'client-analysis' && <ClientAnalysisTab />}
       </div>
 
       {/* Toast container */}

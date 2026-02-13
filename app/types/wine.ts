@@ -123,6 +123,12 @@ export interface DashboardStats {
   cdvChange: InventoryChange | null;
   dlChange: InventoryChange | null;
   inventoryHistory: InventoryValueRecord[];
+  inventoryByCountryCdv?: Array<{ name: string; value: number }>;
+  inventoryByCountryDl?: Array<{ name: string; value: number }>;
+  inventoryByBrandCdv?: Array<{ name: string; value: number }>;
+  inventoryByBrandDl?: Array<{ name: string; value: number }>;
+  inventoryByItemCdv?: Array<{ itemNo: string; name: string; brand: string; country: string; value: number }>;
+  inventoryByItemDl?: Array<{ itemNo: string; name: string; brand: string; country: string; value: number }>;
 }
 
-export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log';
+export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis';
