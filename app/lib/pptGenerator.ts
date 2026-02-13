@@ -171,8 +171,8 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   try {
     slide.addImage({
       data: "image/jpeg;base64," + LOGO_CAVEDEVIN_BASE64,
-      x: 0.2,
-      y: 0.2,
+      x: 0.3,
+      y: 0.14,
       w: 1.49,
       h: 0.57,
     });

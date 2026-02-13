@@ -398,7 +398,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     if logo_path and os.path.exists(logo_path):
         try:
             slide.shapes.add_picture(logo_path,
-                                     inches(0.20), inches(0.20),
+                                     inches(0.30), inches(0.14),
                                      inches(1.49), inches(0.57))
         except Exception:
             pass
