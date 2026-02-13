@@ -416,18 +416,18 @@ async function processDownloads(buf: Buffer) {
     if (!item_no) continue;
 
     const item_name = normText(r[2]);
-    const supply_price = toNumber(r[17]);  // R열: 공급가
+    const supply_price = toNumber(r[15]);  // P열: 공급가
 
     inventoryRows.push({
       item_no, item_name, supply_price,
-      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
-      bonded_warehouse: toNumber(r[23]),    // X열: 보세(용마)
-      sales_30days: toNumber(r[14]),        // O열: 30일출고
-      discount_price: toNumber(r[19]),      // T열: 할인공급가
-      wholesale_price: toNumber(r[20]),     // U열: 도매장가
+      available_stock: toNumber(r[11]),     // L열: 가용재고(A-B)
+      bonded_warehouse: toNumber(r[21]),    // V열: 보세(용마)
+      sales_30days: toNumber(r[12]),        // M열: 30일출고
+      discount_price: toNumber(r[16]),      // Q열: 할인공급가
+      wholesale_price: toNumber(r[17]),     // R열: 도매장가
       retail_price: toNumber(r[18]),        // S열: 판매가
-      min_price: toNumber(r[21]),           // V열: 최저판매가
-      incoming_stock: toNumber(r[22]),      // W열: 미착품재고
+      min_price: toNumber(r[19]),           // T열: 최저판매가
+      incoming_stock: toNumber(r[20]),      // U열: 미착품재고
       vintage: normText(r[6]),              // G열: 빈티지
       alcohol_content: normText(r[7]),      // H열: 알콜도수%
       country: normText(r[8]),              // I열: 국가
@@ -454,8 +454,8 @@ async function processDl(buf: Buffer) {
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-  // 동일 구조: 품번(1), 품명(2), 규격(3), 단위(4), IP(5), 빈티지(6), 알콜도수%(7),
-  //   국가(8), ... 가용재고(13), 30일출고(14), 공급가(17), 안성창고(26)
+  // DL 시트 구조: 품번(1), 품명(2), 빈티지(6), 알콜도수%(7), 국가(8),
+  //   가용재고(11), 30일출고(12), 공급가(15), 안성창고(23)
 
   // 기존 inventory_dl 삭제
   await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
@@ -477,10 +477,10 @@ async function processDl(buf: Buffer) {
     dlRows.push({
       item_no,
       item_name: normText(r[2]),
-      supply_price: toNumber(r[17]),       // R열: 공급가
-      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
-      anseong_warehouse: toNumber(r[26]),  // AA열: 안성창고(CDV)
-      sales_30days: toNumber(r[14]),        // O열: 30일출고
+      supply_price: toNumber(r[15]),       // P열: 공급가
+      available_stock: toNumber(r[11]),     // L열: 가용재고(A-B)
+      anseong_warehouse: toNumber(r[23]),  // X열: 안성창고(DL)
+      sales_30days: toNumber(r[12]),        // M열: 30일출고
       vintage: normText(r[6]),
       alcohol_content: normText(r[7]),
       country: normText(r[8]),
