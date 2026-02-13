@@ -384,59 +384,56 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     slide_layout = prs.slide_layouts[6]  # Blank layout
     slide = prs.slides.add_slide(slide_layout)
 
-    # 1. 배경
-    slide.background.fill.solid()
-    slide.background.fill.fore_color.rgb = COLORS['WHITE']
+    # 1. 배경: 흰색
+    bg = slide.background
+    fill = bg.fill
+    fill.solid()
+    fill.fore_color.rgb = COLORS['WHITE']
 
-    # 2. 상단 헤더 그라데이션 (#3A0C0C → #5A1515)
-    add_gradient_rect(slide, 0, 0, SLIDE_W, 0.84, '3A0C0C', '5A1515')
-
-    # 3. 좌측 병 영역
+    # 2. 좌측 병 영역 배경 패널
     add_rect(slide, 0, 0.90, 2.10, 8.10,
              fill_color=COLORS['BG_BOTTLE_AREA'], transparency=40)
 
-    # 4. 세로 구분선 (병 | 정보, 위아래 15mm 여백)
-    add_vline(slide, 2.05, 1.50, 8.45, COLORS['SEPARATOR'], 0.75)
-
-    # 5. 헤더 로고 (어두운 배경 위)
+    # 3. HEADER 영역 - Logo
     if logo_path and os.path.exists(logo_path):
         try:
             slide.shapes.add_picture(logo_path,
-                                     inches(0.20), inches(0.14),
+                                     inches(0.20), inches(0.20),
                                      inches(1.49), inches(0.57))
         except Exception:
             pass
 
-    # 6. 와이너리 태그라인 (골드 on dark)
+    # 와이너리 태그라인
     winery_desc = data.get('wineryDescription', '')
     if winery_desc:
         tagline = winery_desc.split('.')[0].strip()
         if not tagline:
             tagline = winery_desc.split('。')[0].strip()
         if tagline:
-            add_textbox(slide, 1.76, 0.18, 5.50, 0.24,
+            add_textbox(slide, 1.76, 0.20, 5.20, 0.24,
                         text=tagline, font_size=9,
-                        color=COLORS['GOLD_LIGHT'], italic=True,
+                        color=COLORS['TEXT_MUTED'], italic=True,
                         font_name=FONT_EN)
 
-    # 7. 헤더 하단선
-    add_line(slide, 0, 0.84, SLIDE_W, COLORS['BURGUNDY'], 1.5)
+    # 4-5. 헤더 구분선 (버건디 + 골드 이중선)
+    add_line(slide, 0.20, 0.84, 7.10, COLORS['BURGUNDY'], 1.0)
+    add_line(slide, 0.20, 0.87, 7.10, COLORS['GOLD_LIGHT'], 0.75)
 
     # ════════════════════════════════════════════
     # 6. 와인명 카드 배경 (둥근 사각형)
     # ════════════════════════════════════════════
-    add_rounded_rect(slide, 2.05, 0.97, 5.20, 0.80,
+    add_rounded_rect(slide, 2.05, 0.97, 5.20, 0.76,
                      fill_color=COLORS['BURGUNDY_LIGHT'],
                      border_color=COLORS['CARD_BORDER'],
                      transparency=20)
 
-    # 와인명 (한글 + 영문 줄바꿈, 간격 확대)
+    # 7. 와인명 텍스트 (한글 + 영문)
     name_kr = data.get('nameKr', '')
     name_en = data.get('nameEn', '')
     import re
     name_kr_clean = re.sub(r'^[A-Za-z]{2}\s+', '', name_kr)
 
-    txBox = slide.shapes.add_textbox(inches(2.20), inches(1.00), inches(4.90), inches(0.76))
+    txBox = slide.shapes.add_textbox(inches(2.20), inches(1.00), inches(4.90), inches(0.72))
     tf = txBox.text_frame
     tf.word_wrap = True
 
@@ -454,11 +451,13 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         p_en.font.size = Pt(10.5)
         p_en.font.name = FONT_EN
         p_en.font.color.rgb = COLORS['TEXT_SECONDARY']
+        p_en.font.bold = False
         p_en.font.italic = True
         p_en.alignment = PP_ALIGN.LEFT
-        p_en.space_before = Pt(4)
+        p_en.space_before = Pt(2)
 
-    add_line(slide, 2.20, 1.86, 4.90, COLORS['DIVIDER'], 0.75)
+    # 8. 와인명 하단 구분선
+    add_line(slide, 2.20, 1.82, 4.90, COLORS['DIVIDER'], 0.75)
 
     # ════════════════════════════════════════════
     # 9-10. 지역
@@ -486,8 +485,8 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     add_label_badge(slide, '빈티지', 2.12, 3.02, 0.65)
 
     vintage = data.get('vintage', '') or '-'
-    add_textbox(slide, 2.85, 2.96, 0.85, 0.34,
-                text=vintage, font_size=16,
+    add_textbox(slide, 2.85, 2.98, 0.75, 0.28,
+                text=vintage, font_size=13,
                 color=COLORS['BURGUNDY'], bold=True)
 
     vintage_note = data.get('vintageNote', '')
@@ -523,65 +522,60 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
 
     add_label_badge(slide, 'TASTING NOTE', 2.12, 5.35, 1.32, h=0.22)
 
-    # 테이스팅 노트 내용 (● 도트 + 구분선)
+    # 테이스팅 노트 내용
     tasting_items = [
         ('Color', data.get('colorNote', '')),
         ('Nose', data.get('noseNote', '')),
         ('Palate', data.get('palateNote', '')),
         ('Potential', data.get('agingPotential', '')),
     ]
-    active_items = [(l, v) for l, v in tasting_items if v]
+
+    txBox = slide.shapes.add_textbox(inches(2.25), inches(5.62), inches(4.85), inches(2.32))
+    tf = txBox.text_frame
+    tf.word_wrap = True
+
+    first = True
+    for label, value in tasting_items:
+        if not value:
+            continue
+        if first:
+            p = tf.paragraphs[0]
+            first = False
+        else:
+            p = tf.add_paragraph()
+            p.space_before = Pt(12)
+
+        # Label run (Georgia Italic, burgundy)
+        run_label = p.add_run()
+        run_label.text = label
+        run_label.font.size = Pt(8.5)
+        run_label.font.name = FONT_EN
+        run_label.font.color.rgb = COLORS['BURGUNDY']
+        run_label.font.bold = False
+        run_label.font.italic = True
+
+        # Value run
+        run_value = p.add_run()
+        run_value.text = f"\n{value}"
+        run_value.font.size = Pt(9)
+        run_value.font.name = FONT_MAIN
+        run_value.font.color.rgb = COLORS['TEXT_PRIMARY']
+
+    if first:
+        p = tf.paragraphs[0]
+        p.text = '-'
+        p.font.size = Pt(9)
+        p.font.name = FONT_MAIN
+        p.font.color.rgb = COLORS['TEXT_MUTED']
 
     from pptx.oxml.ns import qn
-
-    if active_items:
-        note_y = 5.62
-        note_h = 2.28
-        item_h = note_h / len(active_items)
-
-        for idx, (label, value) in enumerate(active_items):
-            y_pos = note_y + idx * item_h
-
-            # 항목 사이 구분선 (0.3pt, #E5E5E5)
-            if idx > 0:
-                add_line(slide, 2.25, y_pos, 4.85, COLORS['SEPARATOR'], 0.3)
-
-            tb = slide.shapes.add_textbox(
-                inches(2.25), inches(y_pos + (0.04 if idx > 0 else 0)),
-                inches(4.85), inches(item_h - (0.04 if idx > 0 else 0)))
-            tf2 = tb.text_frame
-            tf2.word_wrap = True
-
-            p = tf2.paragraphs[0]
-            # ● 도트
-            rd = p.add_run()
-            rd.text = '● '
-            rd.font.size = Pt(5)
-            rd.font.color.rgb = COLORS['WINE_ACCENT']
-            rd.font.name = FONT_MAIN
-            # 라벨 (Georgia Italic)
-            rl = p.add_run()
-            rl.text = label
-            rl.font.size = Pt(8.5)
-            rl.font.name = FONT_EN
-            rl.font.color.rgb = COLORS['BURGUNDY']
-            rl.font.italic = True
-            # 값
-            pv = tf2.add_paragraph()
-            pv.text = value
-            pv.font.size = Pt(9)
-            pv.font.name = FONT_MAIN
-            pv.font.color.rgb = COLORS['TEXT_PRIMARY']
-            pv.space_before = Pt(2)
-
-            bodyPr = tf2._txBody.find(qn('a:bodyPr'))
-            if bodyPr is not None:
-                bodyPr.set('anchor', 't')
-                for attr in ('lIns', 'tIns', 'rIns', 'bIns'):
-                    bodyPr.set(attr, '0')
-    else:
-        add_textbox(slide, 2.25, 5.62, 4.85, 2.32,
-                    text='-', font_size=9, color=COLORS['TEXT_MUTED'])
+    bodyPr = tf._txBody.find(qn('a:bodyPr'))
+    if bodyPr is not None:
+        bodyPr.set('anchor', 't')
+        bodyPr.set('lIns', '0')
+        bodyPr.set('tIns', '0')
+        bodyPr.set('rIns', '0')
+        bodyPr.set('bIns', '0')
 
     # 푸드 페어링 (미드도트 구분)
     add_label_badge(slide, '푸드 페어링', 2.12, 8.18, 0.95)
@@ -672,18 +666,6 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
             ox = area_x + (area_w - fw) / 2
             oy = area_y + (area_h - fh) * 0.3
 
-            # 타원형 그림자 (떠있는 느낌)
-            sw = fw * 0.6
-            shadow = slide.shapes.add_shape(
-                MSO_SHAPE.OVAL,
-                inches(ox + (fw - sw) / 2), inches(oy + fh - 0.05),
-                inches(sw), inches(0.15))
-            shadow.fill.solid()
-            shadow.fill.fore_color.rgb = COLORS['SHADOW']
-            shadow.line.fill.background()
-            _set_fill_transparency(shadow, 60)
-
-            # 병 이미지
             slide.shapes.add_picture(converted_path,
                                      inches(ox), inches(oy),
                                      inches(fw), inches(fh))
