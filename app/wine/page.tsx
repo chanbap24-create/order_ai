@@ -825,19 +825,22 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           </div>
 
       {/* ===== Controls (입력창 아래로 이동) ===== */}
-      <div style={{ display: "flex", gap: 12, marginTop: 12, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 4, marginTop: 12, alignItems: "center", background: "rgba(90,21,21,0.04)", padding: 3, borderRadius: 8 }}>
         <button
           onClick={run}
           disabled={loading}
           style={{
-            padding: "10px 20px",
-            borderRadius: 10,
+            height: 36,
+            padding: "0 16px",
+            borderRadius: 6,
             border: "none",
             cursor: loading ? "not-allowed" : "pointer",
             background: loading ? "#ccc" : "#5A1515",
             color: "white",
             fontWeight: 600,
-            fontSize: 16,
+            fontSize: "0.8rem",
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap" as const,
           }}
         >
           {loading ? "생성중..." : "생성"}
@@ -847,13 +850,17 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           onClick={clearAll}
           disabled={loading || (!text.trim() && !data)}
           style={{
-            padding: "10px 20px",
-            borderRadius: 10,
-            border: "1px solid rgba(90,21,21,0.1)",
+            height: 36,
+            padding: "0 16px",
+            borderRadius: 6,
+            border: "none",
             cursor: loading || (!text.trim() && !data) ? "not-allowed" : "pointer",
-            background: loading || (!text.trim() && !data) ? "#f5f5f5" : "#fff",
-            fontWeight: 600,
-            fontSize: 16,
+            background: loading || (!text.trim() && !data) ? "transparent" : "rgba(90,21,21,0.06)",
+            color: "#666",
+            fontWeight: 500,
+            fontSize: "0.8rem",
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap" as const,
           }}
           title="입력된 내용을 지우고 결과를 초기화합니다"
         >
@@ -878,20 +885,23 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             }
           }}
           style={{
-            padding: "10px 20px",
-            borderRadius: 10,
-            border: hasClipboard ? "4px solid #5A1515" : "1px solid rgba(90,21,21,0.1)",
+            height: 36,
+            padding: "0 16px",
+            borderRadius: 6,
+            border: hasClipboard ? "2px solid #5A1515" : "none",
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#f5f5f5" : hasClipboard ? "#5A1515" : "#fff",
-            color: hasClipboard ? "#fff" : "#000",
-            fontWeight: hasClipboard ? 700 : 600,
-            fontSize: 16,
+            background: loading ? "transparent" : hasClipboard ? "#5A1515" : "rgba(90,21,21,0.06)",
+            color: hasClipboard ? "#fff" : "#666",
+            fontWeight: hasClipboard ? 600 : 500,
+            fontSize: "0.8rem",
+            letterSpacing: "0.02em",
             marginLeft: "auto",
-            boxShadow: hasClipboard ? "0 0 20px rgba(255, 107, 53, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.2)" : "none",
+            boxShadow: hasClipboard ? "0 0 12px rgba(90,21,21,0.3)" : "none",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: hasClipboard ? "scale(1.1)" : "scale(1)",
+            transform: hasClipboard ? "scale(1.05)" : "scale(1)",
             userSelect: "none",
             WebkitTouchCallout: "none",
+            whiteSpace: "nowrap",
           } as React.CSSProperties}
         >
           붙여넣기
