@@ -99,10 +99,25 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
 }
 
 export async function upsertTastingNote(wineId: string, note: Partial<TastingNote>) {
+  // wines 테이블에서 추천용 속성 스냅샷 가져오기
+  const { data: wine } = await supabase
+    .from('wines')
+    .select('supply_price, wine_type, country, region, grape_varieties')
+    .eq('item_code', wineId)
+    .single();
+
+  const snapshot = {
+    supply_price: wine?.supply_price ?? note.supply_price ?? null,
+    wine_type: wine?.wine_type ?? note.wine_type ?? null,
+    country: wine?.country ?? note.country ?? null,
+    region: wine?.region ?? note.region ?? null,
+    grape_varieties: wine?.grape_varieties ?? note.grape_varieties ?? null,
+  };
+
   const existing = await getTastingNote(wineId);
 
   if (existing) {
-    const updates: Record<string, unknown> = { ...note, updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = { ...note, ...snapshot, updated_at: new Date().toISOString() };
     delete updates.id;
     delete updates.wine_id;
     delete updates.created_at;
@@ -121,6 +136,7 @@ export async function upsertTastingNote(wineId: string, note: Partial<TastingNot
       winery_description: note.winery_description || null,
       vintage_note: note.vintage_note || null,
       aging_potential: note.aging_potential || null,
+      ...snapshot,
       ai_generated: note.ai_generated || 0,
       manually_edited: note.manually_edited || 0,
       approved: note.approved || 0,

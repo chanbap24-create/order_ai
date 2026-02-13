@@ -353,7 +353,15 @@ CREATE TABLE IF NOT EXISTS wine_list_english (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── 11. 재고금액 이력 ──
+-- ── 11. tasting_notes 추천 시스템용 컬럼 ──
+-- (기존 테이블에 ALTER TABLE로 추가)
+-- ALTER TABLE tasting_notes ADD COLUMN IF NOT EXISTS supply_price REAL;
+-- ALTER TABLE tasting_notes ADD COLUMN IF NOT EXISTS wine_type TEXT;
+-- ALTER TABLE tasting_notes ADD COLUMN IF NOT EXISTS country TEXT;
+-- ALTER TABLE tasting_notes ADD COLUMN IF NOT EXISTS region TEXT;
+-- ALTER TABLE tasting_notes ADD COLUMN IF NOT EXISTS grape_varieties TEXT;
+
+-- ── 12. 재고금액 이력 ──
 
 CREATE TABLE IF NOT EXISTS inventory_value_history (
   id SERIAL PRIMARY KEY,

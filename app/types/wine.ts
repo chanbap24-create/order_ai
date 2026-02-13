@@ -37,6 +37,12 @@ export interface TastingNote {
   winery_description: string | null;
   vintage_note: string | null;
   aging_potential: string | null;
+  // 추천 시스템용 와인 속성 스냅샷
+  supply_price: number | null;
+  wine_type: string | null;
+  country: string | null;
+  region: string | null;
+  grape_varieties: string | null;
   ai_generated: number; // 0 or 1
   manually_edited: number; // 0 or 1
   approved: number; // 0 or 1
