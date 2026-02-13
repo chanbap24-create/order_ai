@@ -334,7 +334,66 @@ export function clearMasterSheetCache() {
   cachedDownloadsItems = null;
   cachedDownloadsPriceMap = null;
   cachedDownloadsRetailPriceMap = null;
+  cachedDlRetailPriceMap = null;
   cachedRiedelItems = null;
+}
+
+/* ==================== DL 시트 판매가 (Glass용) ==================== */
+
+let cachedDlRetailPriceMap: Map<string, number> | null = null;
+
+/**
+ * DL 시트(와인잔 재고)를 item_no -> retail_price(판매가) Map으로 로드
+ * DL 시트 S열(index 18) = 판매가
+ */
+export function getDlRetailPriceMap(): Map<string, number> {
+  if (cachedDlRetailPriceMap) {
+    return cachedDlRetailPriceMap;
+  }
+
+  const xlsxPath = path.join(process.cwd(), 'order-ai.xlsx');
+  if (!fs.existsSync(xlsxPath)) {
+    return new Map();
+  }
+
+  try {
+    const buffer = fs.readFileSync(xlsxPath);
+    const wb = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName = wb.SheetNames.find(
+      (name) => name.toLowerCase() === 'dl'
+    );
+
+    if (!sheetName) {
+      console.warn('[masterSheet] DL sheet not found');
+      return new Map();
+    }
+
+    const sheet = wb.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    const retailMap = new Map<string, number>();
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const itemNo = row[1]?.toString().trim();
+      if (!itemNo) continue;
+
+      const retailRaw = row[18]; // S열: 판매가
+      if (retailRaw != null) {
+        const cleaned = String(retailRaw).replace(/[,\s]/g, '').trim();
+        const parsed = Number(cleaned);
+        if (!isNaN(parsed) && parsed > 0) {
+          retailMap.set(itemNo, parsed);
+        }
+      }
+    }
+
+    cachedDlRetailPriceMap = retailMap;
+    console.log(`[masterSheet] DL retail price map created: ${retailMap.size} items`);
+    return retailMap;
+  } catch (error) {
+    console.error('[masterSheet] Error loading DL sheet:', error);
+    return new Map();
+  }
 }
 
 /* ==================== Riedel 시트 (Glass용) ==================== */
