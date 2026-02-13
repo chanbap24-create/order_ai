@@ -422,7 +422,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     # ════════════════════════════════════════════
     # 6. 와인명 카드 배경 (둥근 사각형)
     # ════════════════════════════════════════════
-    add_rounded_rect(slide, 2.05, 0.97, 5.20, 0.76,
+    add_rounded_rect(slide, 2.05, 0.97, 5.20, 0.82,
                      fill_color=COLORS['BURGUNDY_LIGHT'],
                      border_color=COLORS['CARD_BORDER'],
                      transparency=20)
@@ -433,7 +433,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     import re
     name_kr_clean = re.sub(r'^[A-Za-z]{2}\s+', '', name_kr)
 
-    txBox = slide.shapes.add_textbox(inches(2.20), inches(1.00), inches(4.90), inches(0.72))
+    txBox = slide.shapes.add_textbox(inches(2.20), inches(1.00), inches(4.90), inches(0.78))
     tf = txBox.text_frame
     tf.word_wrap = True
 
@@ -454,10 +454,10 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         p_en.font.bold = False
         p_en.font.italic = True
         p_en.alignment = PP_ALIGN.LEFT
-        p_en.space_before = Pt(2)
+        p_en.space_before = Pt(4)
 
     # 8. 와인명 하단 구분선
-    add_line(slide, 2.20, 1.82, 4.90, COLORS['DIVIDER'], 0.75)
+    add_line(slide, 2.20, 1.88, 4.90, COLORS['DIVIDER'], 0.75)
 
     # ════════════════════════════════════════════
     # 9-10. 지역
@@ -504,7 +504,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     alcohol = data.get('alcoholPercentage', '')
     if alcohol:
         winemaking_text += f"\n알코올: {alcohol}"
-    add_textbox(slide, 2.15, 3.90, 5.00, 1.23,
+    add_textbox(slide, 2.15, 3.90, 5.00, 0.85,
                 text=winemaking_text, font_size=9,
                 line_spacing=12)
 
@@ -513,14 +513,14 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     # ════════════════════════════════════════════
 
     # 배경: 웜 그레이 #F8F6F4
-    add_rounded_rect(slide, 2.05, 5.30, 5.20, 2.72,
+    add_rounded_rect(slide, 2.05, 4.90, 5.20, 3.20,
                      fill_color=COLORS['BG_WARM_GRAY'],
                      border_color=COLORS['CARD_BORDER'], transparency=0)
 
     # 좌측 세로 포인트 바 (2pt, #5A1515)
-    add_vline(slide, 2.12, 5.62, 7.90, COLORS['WINE_ACCENT'], 2.0)
+    add_vline(slide, 2.12, 5.22, 8.00, COLORS['WINE_ACCENT'], 2.0)
 
-    add_label_badge(slide, 'TASTING NOTE', 2.12, 5.35, 1.32, h=0.22)
+    add_label_badge(slide, 'TASTING NOTE', 2.12, 4.95, 1.32, h=0.22)
 
     # 테이스팅 노트 내용
     tasting_items = [
@@ -530,7 +530,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         ('Potential', data.get('agingPotential', '')),
     ]
 
-    txBox = slide.shapes.add_textbox(inches(2.25), inches(5.62), inches(4.85), inches(2.32))
+    txBox = slide.shapes.add_textbox(inches(2.25), inches(5.22), inches(4.85), inches(2.82))
     tf = txBox.text_frame
     tf.word_wrap = True
 
@@ -578,10 +578,10 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         bodyPr.set('bIns', '0')
 
     # 푸드 페어링 (미드도트 구분)
-    add_label_badge(slide, '푸드 페어링', 2.12, 8.18, 0.95)
+    add_label_badge(slide, '푸드 페어링', 2.12, 8.26, 0.95)
     food = data.get('foodPairing', '') or '-'
     food = food.replace(', ', ' · ').replace(',', ' · ')
-    add_textbox(slide, 2.15, 8.42, 5.00, 0.44,
+    add_textbox(slide, 2.15, 8.50, 5.00, 0.36,
                 text=food, font_size=9, line_spacing=12)
 
     # 수상내역 (배지 스타일)

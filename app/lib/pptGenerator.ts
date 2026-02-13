@@ -210,7 +210,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     x: 2.05,
     y: 0.97,
     w: 5.2,
-    h: 0.76,
+    h: 0.82,
     fill: { color: C.BURGUNDY_LIGHT, transparency: 20 },
     rectRadius: 0.05,
     line: { color: C.CARD_BORDER, width: 0.5 },
@@ -238,7 +238,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
         color: C.TEXT_SECONDARY,
         italic: true,
         breakLine: true,
-        paraSpaceBefore: 2,
+        paraSpaceBefore: 4,
       },
     });
   }
@@ -246,13 +246,13 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     x: 2.2,
     y: 1.0,
     w: 4.9,
-    h: 0.72,
+    h: 0.78,
     valign: "top",
     wrap: true,
   });
 
   // 8. 와인명 하단 구분선
-  addLine(slide, 2.2, 1.82, 4.9, C.DIVIDER, 0.75);
+  addLine(slide, 2.2, 1.88, 4.9, C.DIVIDER, 0.75);
 
   // ════════════════════════════════════════════
   // 9-10. 지역
@@ -332,7 +332,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     x: 2.15,
     y: 3.9,
     w: 5.0,
-    h: 1.23,
+    h: 0.85,
     fontSize: 9,
     fontFace: FONT_MAIN,
     color: C.TEXT_PRIMARY,
@@ -347,18 +347,18 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   // 배경: 웜 그레이
   slide.addShape("roundRect", {
     x: 2.05,
-    y: 5.3,
+    y: 4.9,
     w: 5.2,
-    h: 2.72,
+    h: 3.2,
     fill: { color: C.BG_WARM_GRAY },
     rectRadius: 0.05,
     line: { color: C.CARD_BORDER, width: 0.5 },
   });
 
   // 좌측 세로 포인트 바 (2pt, #5A1515)
-  addVLine(slide, 2.12, 5.62, 7.9, C.WINE_ACCENT, 2.0);
+  addVLine(slide, 2.12, 5.22, 8.0, C.WINE_ACCENT, 2.0);
 
-  addLabelBadge(slide, "TASTING NOTE", 2.12, 5.35, 1.32);
+  addLabelBadge(slide, "TASTING NOTE", 2.12, 4.95, 1.32);
 
   // 테이스팅 노트 내용
   const tastingItems: [string, string][] = [
@@ -407,22 +407,22 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
 
   slide.addText(tastingRuns, {
     x: 2.25,
-    y: 5.62,
+    y: 5.22,
     w: 4.85,
-    h: 2.32,
+    h: 2.82,
     valign: "top",
     wrap: true,
     margin: 0,
   });
 
   // 푸드 페어링 (미드도트 구분)
-  addLabelBadge(slide, "푸드 페어링", 2.12, 8.18, 0.95);
+  addLabelBadge(slide, "푸드 페어링", 2.12, 8.26, 0.95);
   const foodText = (data.foodPairing || "-").replace(/, /g, " · ").replace(/,/g, " · ");
   slide.addText(foodText, {
     x: 2.15,
-    y: 8.42,
+    y: 8.5,
     w: 5.0,
-    h: 0.44,
+    h: 0.36,
     fontSize: 9,
     fontFace: FONT_MAIN,
     color: C.TEXT_PRIMARY,
