@@ -9,8 +9,12 @@ interface WineRow extends Wine {
   approved: number;
 }
 
+interface WineRowExt extends WineRow {
+  bonded_stock: number | null;
+}
+
 export default function AllWinesTab() {
-  const [wines, setWines] = useState<WineRow[]>([]);
+  const [wines, setWines] = useState<WineRowExt[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [country, setCountry] = useState('');
@@ -20,7 +24,7 @@ export default function AllWinesTab() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
-  const [selectedWine, setSelectedWine] = useState<WineRow | null>(null);
+  const [selectedWine, setSelectedWine] = useState<WineRowExt | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const fetchWines = useCallback(async () => {
@@ -171,7 +175,7 @@ export default function AllWinesTab() {
         <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
           {/* 테이블 헤더 */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '36px 90px 1fr 1fr 100px 80px 50px',
+            display: 'grid', gridTemplateColumns: '36px 90px 1fr 80px 80px 70px 80px 80px 50px',
             padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
             fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
             gap: 8, alignItems: 'center',
@@ -184,7 +188,9 @@ export default function AllWinesTab() {
             />
             <span>품번</span>
             <span>한글명</span>
-            <span>영문명</span>
+            <span style={{ textAlign: 'right' }}>공급가</span>
+            <span style={{ textAlign: 'right' }}>재고</span>
+            <span style={{ textAlign: 'right' }}>보세</span>
             <span>국가</span>
             <span>상태</span>
             <span></span>
@@ -203,7 +209,7 @@ export default function AllWinesTab() {
                   key={w.item_code}
                   onClick={() => setSelectedWine(w)}
                   style={{
-                    display: 'grid', gridTemplateColumns: '36px 90px 1fr 1fr 100px 80px 50px',
+                    display: 'grid', gridTemplateColumns: '36px 90px 1fr 80px 80px 70px 80px 80px 50px',
                     padding: '9px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
                     background: isSelected ? '#eff6ff' : '#fff', gap: 8, alignItems: 'center',
                     borderLeft: isSelected ? '3px solid #2563eb' : '3px solid transparent',
@@ -220,8 +226,14 @@ export default function AllWinesTab() {
                   <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {w.item_name_kr}
                   </span>
-                  <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {w.item_name_en || '-'}
+                  <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+                    {w.supply_price != null ? `${w.supply_price.toLocaleString()}` : '-'}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+                    {w.available_stock != null ? w.available_stock.toLocaleString() : '-'}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+                    {w.bonded_stock != null ? w.bonded_stock.toLocaleString() : '-'}
                   </span>
                   <span style={{ fontSize: 12, color: '#6b7280' }}>{w.country_en || w.country || '-'}</span>
                   <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: sl.bg, color: sl.color, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>

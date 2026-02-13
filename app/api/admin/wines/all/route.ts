@@ -58,6 +58,19 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
+    // ── inventory_cdv에서 보세 수량 조회 ──
+    const itemCodes = (winesRaw || []).map((w: any) => w.item_code as string);
+    const bondedMap = new Map<string, number>();
+    if (itemCodes.length > 0) {
+      const { data: invRows } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, bonded_warehouse')
+        .in('item_no', itemCodes);
+      for (const r of (invRows || [])) {
+        bondedMap.set(r.item_no, r.bonded_warehouse || 0);
+      }
+    }
+
     // ── 결과 변환 (tasting_notes 임베드 → 플랫화) ──
     const wines = (winesRaw || []).map((w: any) => {
       const tn = w.tasting_notes?.[0];
@@ -66,6 +79,7 @@ export async function GET(request: NextRequest) {
         tasting_note_id: tn?.id ?? null,
         ai_generated: tn?.ai_generated ?? null,
         approved: tn?.approved ?? null,
+        bonded_stock: bondedMap.get(w.item_code) ?? null,
         tasting_notes: undefined,
       };
     });
