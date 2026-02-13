@@ -16,6 +16,7 @@ export interface MasterItem {
   producer?: string;   // E열: 생산자
   region?: string;     // F열: 지역
   supplyPrice?: number; // L열: 공급가
+  retailPrice?: number; // S열: 판매가 (소비자가)
 }
 
 let cachedMasterItems: MasterItem[] | null = null;
@@ -173,6 +174,17 @@ export function loadDownloadsSheet(): MasterItem[] {
         }
       }
 
+      // 판매가/소비자가 (S열 = index 18)
+      const retailPriceRaw = row[18];
+      let retailPrice: number | undefined = undefined;
+      if (retailPriceRaw != null) {
+        const cleaned = String(retailPriceRaw).replace(/[,\s]/g, '').trim();
+        const parsed = Number(cleaned);
+        if (!isNaN(parsed) && parsed > 0) {
+          retailPrice = parsed;
+        }
+      }
+
       items.push({
         itemNo,
         englishName, // Downloads 시트에는 영문명 없음 (빈 문자열)
@@ -182,6 +194,7 @@ export function loadDownloadsSheet(): MasterItem[] {
         producer: '', // Downloads 시트에는 생산자 정보 없음
         region: '', // Downloads 시트에는 지역 정보 없음
         supplyPrice,
+        retailPrice,
       });
     }
 
@@ -225,6 +238,30 @@ export function getDownloadsPriceMap(): Map<string, number> {
   });
   
   return priceMap;
+}
+
+/**
+ * Downloads 시트를 item_no -> retail_price(판매가/소비자가) Map으로 로드
+ */
+let cachedDownloadsRetailPriceMap: Map<string, number> | null = null;
+
+export function getDownloadsRetailPriceMap(): Map<string, number> {
+  if (cachedDownloadsRetailPriceMap) {
+    return cachedDownloadsRetailPriceMap;
+  }
+
+  const downloadsItems = loadDownloadsSheet();
+  const retailMap = new Map<string, number>();
+
+  for (const item of downloadsItems) {
+    if (item.retailPrice && item.retailPrice > 0) {
+      retailMap.set(item.itemNo, item.retailPrice);
+    }
+  }
+
+  cachedDownloadsRetailPriceMap = retailMap;
+  console.log(`[masterSheet] Downloads retail price map created: ${retailMap.size} items`);
+  return retailMap;
 }
 
 /**
@@ -296,6 +333,7 @@ export function clearMasterSheetCache() {
   cachedMasterItems = null;
   cachedDownloadsItems = null;
   cachedDownloadsPriceMap = null;
+  cachedDownloadsRetailPriceMap = null;
   cachedRiedelItems = null;
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
-import { loadMasterSheet } from '@/app/lib/masterSheet';
+import { loadMasterSheet, getDownloadsRetailPriceMap } from '@/app/lib/masterSheet';
 
 // ── 유틸: 품목코드에서 빈티지 추출 ──
 // item_code[2:4]가 빈티지. 예: 0018801→18→2018, 2019416→19→2019, 00NV801→NV
@@ -85,6 +85,12 @@ export async function POST(req: Request) {
         }
       } catch (e) {
         console.error('Master sheet lookup error:', e);
+      }
+
+      // 소비자가(판매가): Downloads S열에서 조회
+      if (!retail_price) {
+        const retailPriceMap = getDownloadsRetailPriceMap();
+        retail_price = retailPriceMap.get(item_code) || 0;
       }
 
       // 빈티지: 품목코드 3-4번째 자리에서 추출
