@@ -107,6 +107,8 @@ export interface DashboardStats {
   tastingNotesComplete: number;
   tastingNotesTotal: number;
   recentChanges: ChangeLogEntry[];
+  cdvInventoryValue?: number;
+  dlInventoryValue?: number;
 }
 
 export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log';

@@ -39,6 +39,12 @@ export default function DashboardTab() {
   if (loading) return <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-text-light)' }}>로딩 중...</div>;
   if (!stats) return <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-error)' }}>데이터를 불러올 수 없습니다.</div>;
 
+  const formatKrw = (v: number) => {
+    if (v >= 1_0000_0000) return `${(v / 1_0000_0000).toFixed(1)}억`;
+    if (v >= 1_0000) return `${(v / 1_0000).toFixed(0)}만`;
+    return v.toLocaleString();
+  };
+
   const statCards = [
     { label: '전체 와인', value: stats.totalWines, color: 'var(--color-primary)' },
     { label: '신규 와인 (미처리)', value: stats.newWines, color: stats.newWines > 0 ? 'var(--color-warning)' : 'var(--color-success)' },
@@ -58,6 +64,24 @@ export default function DashboardTab() {
           </Card>
         ))}
       </div>
+
+      {/* 총 재고금액 (공급가 기준) */}
+      {(stats.cdvInventoryValue != null || stats.dlInventoryValue != null) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+          <Card size="sm" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-lighter)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.05em' }}>까브드뱅 (CDV)</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', marginBottom: 4 }}>보세 + 용마로지스</div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: '#5A1515' }}>{formatKrw(stats.cdvInventoryValue || 0)}원</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-lighter)', marginTop: 4 }}>총 재고금액 (공급가 기준)</div>
+          </Card>
+          <Card size="sm" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-lighter)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.05em' }}>대유라이프 (DL)</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', marginBottom: 4 }}>안성+GIG+GIG마케팅+GIG영업1</div>
+            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: '#5A1515' }}>{formatKrw(stats.dlInventoryValue || 0)}원</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-lighter)', marginTop: 4 }}>총 재고금액 (공급가 기준)</div>
+          </Card>
+        </div>
+      )}
 
       {/* 최근 활동 */}
       <Card>
