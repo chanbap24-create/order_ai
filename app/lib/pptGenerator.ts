@@ -365,7 +365,6 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     ["Color", data.colorNote || ""],
     ["Nose", data.noseNote || ""],
     ["Palate", data.palateNote || ""],
-    ["Potential", data.agingPotential || ""],
   ];
 
   const tastingRuns: PptxGenJS.TextProps[] = [];

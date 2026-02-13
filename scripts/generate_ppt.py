@@ -527,7 +527,6 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         ('Color', data.get('colorNote', '')),
         ('Nose', data.get('noseNote', '')),
         ('Palate', data.get('palateNote', '')),
-        ('Potential', data.get('agingPotential', '')),
     ]
 
     txBox = slide.shapes.add_textbox(inches(2.25), inches(5.35), inches(4.85), inches(2.69))
