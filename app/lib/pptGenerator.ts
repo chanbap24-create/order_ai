@@ -187,9 +187,9 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     if (!tagline) tagline = wineryDesc.split("。")[0].trim();
     if (tagline) {
       slide.addText(tagline, {
-        x: 1.76,
+        x: 2.2,
         y: 0.2,
-        w: 5.2,
+        w: 4.9,
         h: 0.24,
         fontSize: 9,
         color: C.TEXT_MUTED,
@@ -222,7 +222,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     {
       text: nameKrClean,
       options: {
-        fontSize: 14.5,
+        fontSize: 18,
         fontFace: FONT_MAIN,
         color: C.BURGUNDY_DARK,
         bold: true,
@@ -233,9 +233,9 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     nameRuns.push({
       text: data.nameEn,
       options: {
-        fontSize: 10.5,
+        fontSize: 12,
         fontFace: FONT_EN,
-        color: C.TEXT_SECONDARY,
+        color: "666666",
         italic: true,
         breakLine: true,
         paraSpaceBefore: 4,

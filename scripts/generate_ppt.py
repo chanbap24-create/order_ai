@@ -410,7 +410,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
         if not tagline:
             tagline = winery_desc.split('。')[0].strip()
         if tagline:
-            add_textbox(slide, 1.76, 0.20, 5.20, 0.24,
+            add_textbox(slide, 2.20, 0.20, 4.90, 0.24,
                         text=tagline, font_size=9,
                         color=COLORS['TEXT_MUTED'], italic=True,
                         font_name=FONT_EN)
@@ -439,7 +439,7 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
 
     p_kr = tf.paragraphs[0]
     p_kr.text = name_kr_clean
-    p_kr.font.size = Pt(14.5)
+    p_kr.font.size = Pt(18)
     p_kr.font.name = FONT_MAIN
     p_kr.font.color.rgb = COLORS['BURGUNDY_DARK']
     p_kr.font.bold = True
@@ -448,9 +448,9 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     if name_en:
         p_en = tf.add_paragraph()
         p_en.text = name_en
-        p_en.font.size = Pt(10.5)
+        p_en.font.size = Pt(12)
         p_en.font.name = FONT_EN
-        p_en.font.color.rgb = COLORS['TEXT_SECONDARY']
+        p_en.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
         p_en.font.bold = False
         p_en.font.italic = True
         p_en.alignment = PP_ALIGN.LEFT
