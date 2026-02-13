@@ -353,6 +353,17 @@ CREATE TABLE IF NOT EXISTS wine_list_english (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- ── 11. 재고금액 이력 ──
+
+CREATE TABLE IF NOT EXISTS inventory_value_history (
+  id SERIAL PRIMARY KEY,
+  recorded_date DATE NOT NULL UNIQUE,
+  cdv_value REAL NOT NULL DEFAULT 0,
+  dl_value REAL NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_inv_value_hist_date ON inventory_value_history(recorded_date);
+
 -- ============================================================
 -- 마이그레이션 완료!
 -- ============================================================

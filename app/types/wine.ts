@@ -99,16 +99,24 @@ export interface WineResearchResult {
   image_url?: string;
 }
 
+export interface InventoryChange {
+  amount: number;
+  rate: number;
+  previousDate: string | null;
+}
+
+export interface InventoryValueRecord {
+  recorded_date: string;
+  cdv_value: number;
+  dl_value: number;
+}
+
 export interface DashboardStats {
-  totalWines: number;
-  newWines: number;
-  lowStock: number;
-  priceChanges: number;
-  tastingNotesComplete: number;
-  tastingNotesTotal: number;
-  recentChanges: ChangeLogEntry[];
-  cdvInventoryValue?: number;
-  dlInventoryValue?: number;
+  cdvInventoryValue: number;
+  dlInventoryValue: number;
+  cdvChange: InventoryChange | null;
+  dlChange: InventoryChange | null;
+  inventoryHistory: InventoryValueRecord[];
 }
 
 export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log';

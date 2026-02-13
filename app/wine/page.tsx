@@ -43,11 +43,13 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
   const [hasClipboard, setHasClipboard] = useState(false);
 
   // ✅ 자동 붙여넣기 ON/OFF (localStorage 저장)
-  const [autoPaste, setAutoPaste] = useState(true);
-  useEffect(() => {
-    const saved = localStorage.getItem('order_auto_paste');
-    if (saved !== null) setAutoPaste(saved === 'true');
-  }, []);
+  const [autoPaste, setAutoPaste] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('order_auto_paste');
+      if (saved !== null) return saved === 'true';
+    }
+    return true;
+  });
 
   // ✅ 페이지 로드 시 클립보드 내용 자동 붙여넣기
   const [autoLoaded, setAutoLoaded] = useState(false);

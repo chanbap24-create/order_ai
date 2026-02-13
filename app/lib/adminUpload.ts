@@ -8,6 +8,7 @@ import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
 import { ensureWineTables } from "@/app/lib/wineDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
+import { recordInventoryValuePartial } from "@/app/lib/inventoryValueDb";
 
 /* ─── 업로드 파일 저장 경로 ─── */
 const UPLOAD_DIR = "/tmp/admin-uploads";
@@ -416,18 +417,18 @@ async function processDownloads(buf: Buffer) {
     if (!item_no) continue;
 
     const item_name = normText(r[2]);
-    const supply_price = toNumber(r[15]);  // P열: 공급가
+    const supply_price = toNumber(r[17]);  // R열: 공급가
 
     inventoryRows.push({
       item_no, item_name, supply_price,
-      available_stock: toNumber(r[11]),     // L열: 가용재고(A-B)
-      bonded_warehouse: toNumber(r[21]),    // V열: 보세(용마)
-      sales_30days: toNumber(r[12]),        // M열: 30일출고
-      discount_price: toNumber(r[16]),      // Q열: 할인공급가
-      wholesale_price: toNumber(r[17]),     // R열: 도매장가
+      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
+      bonded_warehouse: toNumber(r[23]),    // X열: 보세(용마)
+      sales_30days: toNumber(r[14]),        // O열: 30일출고
+      discount_price: toNumber(r[19]),      // T열: 할인공급가
+      wholesale_price: toNumber(r[20]),     // U열: 도매장가
       retail_price: toNumber(r[18]),        // S열: 판매가
-      min_price: toNumber(r[19]),           // T열: 최저판매가
-      incoming_stock: toNumber(r[20]),      // U열: 미착품재고
+      min_price: toNumber(r[21]),           // V열: 최저판매가
+      incoming_stock: toNumber(r[22]),      // W열: 미착품재고
       vintage: normText(r[6]),              // G열: 빈티지
       alcohol_content: normText(r[7]),      // H열: 알콜도수%
       country: normText(r[8]),              // I열: 국가
@@ -445,6 +446,22 @@ async function processDownloads(buf: Buffer) {
     }
   }
 
+  // CDV 재고금액 기록: (보세(용마)[23] + 용마로지스[24]) * 공급가[17]
+  let cdvTotal = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const supply = Number(r[17]) || 0;
+    const bonded = Number(r[23]) || 0;
+    const yongma = Number(r[24]) || 0;
+    cdvTotal += (bonded + yongma) * supply;
+  }
+  try {
+    await recordInventoryValuePartial('cdv', cdvTotal);
+    logger.info(`[Downloads] Recorded CDV inventory value: ${cdvTotal}`);
+  } catch (e) {
+    logger.warn("[Downloads] Failed to record inventory value (non-fatal)", { error: e });
+  }
+
   return { items: count };
 }
 
@@ -455,7 +472,7 @@ async function processDl(buf: Buffer) {
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
   // DL 시트 구조: 품번(1), 품명(2), 빈티지(6), 알콜도수%(7), 국가(8),
-  //   가용재고(11), 30일출고(12), 공급가(15), 안성창고(23)
+  //   가용재고(13), 30일출고(14), 공급가(17), 안성창고(25)
 
   // 기존 inventory_dl 삭제
   await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
@@ -477,10 +494,10 @@ async function processDl(buf: Buffer) {
     dlRows.push({
       item_no,
       item_name: normText(r[2]),
-      supply_price: toNumber(r[15]),       // P열: 공급가
-      available_stock: toNumber(r[11]),     // L열: 가용재고(A-B)
-      anseong_warehouse: toNumber(r[23]),  // X열: 안성창고(DL)
-      sales_30days: toNumber(r[12]),        // M열: 30일출고
+      supply_price: toNumber(r[17]),       // R열: 공급가
+      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
+      anseong_warehouse: toNumber(r[25]),  // Z열: 안성창고(DL)
+      sales_30days: toNumber(r[14]),        // O열: 30일출고
       vintage: normText(r[6]),
       alcohol_content: normText(r[7]),
       country: normText(r[8]),
@@ -491,6 +508,24 @@ async function processDl(buf: Buffer) {
   // Batch upsert inventory_dl
   for (let i = 0; i < dlRows.length; i += 500) {
     await supabase.from('inventory_dl').upsert(dlRows.slice(i, i + 500), { onConflict: 'item_no' });
+  }
+
+  // DL 재고금액 기록: (안성[25] + GIG[26] + GIG마케팅[27] + GIG영업1[28]) * 공급가[17]
+  let dlTotal = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const supply = Number(r[17]) || 0;
+    const anseong = Number(r[25]) || 0;
+    const gig = Number(r[26]) || 0;
+    const gigMkt = Number(r[27]) || 0;
+    const gigSales = Number(r[28]) || 0;
+    dlTotal += (anseong + gig + gigMkt + gigSales) * supply;
+  }
+  try {
+    await recordInventoryValuePartial('dl', dlTotal);
+    logger.info(`[DL] Recorded DL inventory value: ${dlTotal}`);
+  } catch (e) {
+    logger.warn("[DL] Failed to record inventory value (non-fatal)", { error: e });
   }
 
   return { items: count };
