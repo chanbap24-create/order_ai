@@ -292,12 +292,12 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   // ════════════════════════════════════════════
   // 13-14. 빈티지
   // ════════════════════════════════════════════
-  addLabelBadge(slide, "빈티지", 2.12, 3.02, 0.65);
+  addLabelBadge(slide, "빈티지", 2.12, 2.9, 0.65);
 
   const vintage = data.vintage || "-";
   slide.addText(vintage, {
     x: 2.85,
-    y: 2.98,
+    y: 2.86,
     w: 0.75,
     h: 0.28,
     fontSize: 13,
@@ -309,7 +309,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   if (data.vintageNote) {
     slide.addText(data.vintageNote, {
       x: 3.65,
-      y: 3.0,
+      y: 2.88,
       w: 3.5,
       h: 0.4,
       fontSize: 8,
@@ -322,7 +322,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   // ════════════════════════════════════════════
   // 15-16. 양조
   // ════════════════════════════════════════════
-  addLabelBadge(slide, "양조", 2.12, 3.62, 0.55);
+  addLabelBadge(slide, "양조", 2.12, 3.3, 0.55);
 
   let winemakingText = data.winemaking || "-";
   if (data.alcoholPercentage) {
@@ -330,7 +330,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   }
   slide.addText(winemakingText, {
     x: 2.15,
-    y: 3.9,
+    y: 3.56,
     w: 5.0,
     h: 0.85,
     fontSize: 9,

@@ -482,29 +482,29 @@ def add_tasting_note_slide(prs, data, logo_path=None, icon_path=None):
     # ════════════════════════════════════════════
     # 13-14. 빈티지
     # ════════════════════════════════════════════
-    add_label_badge(slide, '빈티지', 2.12, 3.02, 0.65)
+    add_label_badge(slide, '빈티지', 2.12, 2.90, 0.65)
 
     vintage = data.get('vintage', '') or '-'
-    add_textbox(slide, 2.85, 2.98, 0.75, 0.28,
+    add_textbox(slide, 2.85, 2.86, 0.75, 0.28,
                 text=vintage, font_size=13,
                 color=COLORS['BURGUNDY'], bold=True)
 
     vintage_note = data.get('vintageNote', '')
     if vintage_note:
-        add_textbox(slide, 3.65, 3.00, 3.50, 0.40,
+        add_textbox(slide, 3.65, 2.88, 3.50, 0.40,
                     text=vintage_note, font_size=8,
                     color=COLORS['TEXT_SECONDARY'])
 
     # ════════════════════════════════════════════
     # 15-16. 양조
     # ════════════════════════════════════════════
-    add_label_badge(slide, '양조', 2.12, 3.62, 0.55)
+    add_label_badge(slide, '양조', 2.12, 3.30, 0.55)
 
     winemaking_text = data.get('winemaking', '') or '-'
     alcohol = data.get('alcoholPercentage', '')
     if alcohol:
         winemaking_text += f"\n알코올: {alcohol}"
-    add_textbox(slide, 2.15, 3.90, 5.00, 0.85,
+    add_textbox(slide, 2.15, 3.56, 5.00, 0.85,
                 text=winemaking_text, font_size=9,
                 line_spacing=12)
 
