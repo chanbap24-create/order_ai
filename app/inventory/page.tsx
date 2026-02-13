@@ -5,16 +5,29 @@ import { useState, useEffect } from 'react';
 interface InventoryItem {
   item_no: string;
   item_name: string;
+  brand?: string;
+  importer?: string;
+  volume_ml?: string;
+  barcode?: string;
   supply_price: number;
   discount_price: number;
   wholesale_price: number;
   retail_price: number;
   min_price: number;
+  total_stock?: number;
+  stock_excl_available?: number;
+  pending_shipment?: number;
   available_stock: number;
   bonded_warehouse?: number;
   anseong_warehouse?: number;
   incoming_stock: number;
   sales_30days: number;
+  avg_sales_90d?: number;
+  avg_sales_365d?: number;
+  yongma_logistics?: number;
+  gig_warehouse?: number;
+  gig_marketing?: number;
+  gig_sales1?: number;
   vintage: string;
   alcohol_content: string;
   country: string;
@@ -25,16 +38,29 @@ type WarehouseTab = 'CDV' | 'DL';
 type ColumnKey =
   | 'item_no'
   | 'item_name'
+  | 'brand'
+  | 'importer'
+  | 'volume_ml'
+  | 'barcode'
   | 'supply_price'
   | 'discount_price'
   | 'wholesale_price'
   | 'retail_price'
   | 'min_price'
+  | 'total_stock'
+  | 'stock_excl_available'
+  | 'pending_shipment'
   | 'available_stock'
   | 'bonded_warehouse'
   | 'anseong_warehouse'
   | 'incoming_stock'
   | 'sales_30days'
+  | 'avg_sales_90d'
+  | 'avg_sales_365d'
+  | 'yongma_logistics'
+  | 'gig_warehouse'
+  | 'gig_marketing'
+  | 'gig_sales1'
   | 'vintage'
   | 'alcohol_content'
   | 'country';
@@ -49,20 +75,33 @@ interface ColumnConfig {
 const COLUMNS: ColumnConfig[] = [
   { key: 'item_no', label: '품번' },
   { key: 'item_name', label: '품명' },
+  { key: 'brand', label: '브랜드' },
+  { key: 'importer', label: '수입사' },
+  { key: 'volume_ml', label: '용량' },
   { key: 'supply_price', label: '공급가' },
-  { key: 'discount_price', label: '할인공급가', cdvOnly: true },
-  { key: 'wholesale_price', label: '도매가', cdvOnly: true },
-  { key: 'retail_price', label: '판매가', cdvOnly: true },
-  { key: 'min_price', label: '최저판매가', cdvOnly: true },
+  { key: 'discount_price', label: '할인공급가' },
+  { key: 'wholesale_price', label: '도매가' },
+  { key: 'retail_price', label: '판매가' },
+  { key: 'min_price', label: '최저판매가' },
   { key: 'vintage', label: '빈티지' },
   { key: 'alcohol_content', label: '알콜도수' },
   { key: 'country', label: '국가' },
+  { key: 'barcode', label: '바코드' },
+  { key: 'total_stock', label: '재고수량(B)' },
+  { key: 'stock_excl_available', label: '가용재고제외' },
+  { key: 'pending_shipment', label: '출고예정' },
   { key: 'available_stock', label: '가용재고', cdvOnly: true },
   { key: 'available_stock', label: '가용재고', dlOnly: true },
   { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
+  { key: 'yongma_logistics', label: '용마로지스', cdvOnly: true },
   { key: 'anseong_warehouse', label: '안성창고', dlOnly: true },
-  { key: 'incoming_stock', label: '미착품', cdvOnly: true },
+  { key: 'gig_warehouse', label: 'GIG', dlOnly: true },
+  { key: 'gig_marketing', label: 'GIG마케팅', dlOnly: true },
+  { key: 'gig_sales1', label: 'GIG영업1', dlOnly: true },
+  { key: 'incoming_stock', label: '미착품' },
   { key: 'sales_30days', label: '30일출고' },
+  { key: 'avg_sales_90d', label: '90일평균출고' },
+  { key: 'avg_sales_365d', label: '365일평균출고' },
 ];
 
 const DEFAULT_COLUMNS_CDV: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'bonded_warehouse', 'sales_30days'];
@@ -297,6 +336,11 @@ export default function InventoryPage() {
         return item.item_no;
       case 'item_name':
         return item.item_name;
+      case 'brand':
+      case 'importer':
+      case 'volume_ml':
+      case 'barcode':
+        return item[key] || '-';
       case 'supply_price':
       case 'discount_price':
       case 'wholesale_price':
@@ -312,14 +356,20 @@ export default function InventoryPage() {
             {formatNumber(item.available_stock ?? 0)}
           </span>
         );
+      case 'total_stock':
+      case 'stock_excl_available':
+      case 'pending_shipment':
       case 'bonded_warehouse':
-        return formatNumber(item.bonded_warehouse ?? 0);
+      case 'yongma_logistics':
       case 'anseong_warehouse':
-        return formatNumber(item.anseong_warehouse ?? 0);
+      case 'gig_warehouse':
+      case 'gig_marketing':
+      case 'gig_sales1':
       case 'incoming_stock':
-        return formatNumber(item.incoming_stock ?? 0);
       case 'sales_30days':
-        return formatNumber(item.sales_30days ?? 0);
+      case 'avg_sales_90d':
+      case 'avg_sales_365d':
+        return formatNumber(item[key] ?? 0);
       case 'vintage':
         return item.vintage || '-';
       case 'alcohol_content':

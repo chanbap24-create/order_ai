@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import * as path from 'path';
 import * as fs from 'fs';
 import { supabase } from '@/app/lib/db';
-import { getUploadedFilePath, getAllUploadTimestamps } from '@/app/lib/adminUpload';
+import { getUploadedFilePath, getAllUploadTimestamps, parseInventorySheet } from '@/app/lib/adminUpload';
 
 /**
  * 시트 데이터를 가져옴: /tmp에 업로드된 파일이 있으면 우선 사용, 없으면 번들 xlsx에서 읽기
@@ -67,37 +67,8 @@ export async function POST() {
     // Clear existing data
     await supabase.from('inventory_cdv').delete().not('item_no', 'is', null);
 
-    // Insert CDV data in batches
-    const cdvRows: Array<{
-      item_no: string; item_name: string; supply_price: number;
-      discount_price: number; wholesale_price: number; retail_price: number;
-      min_price: number; available_stock: number; bonded_warehouse: number;
-      incoming_stock: number; sales_30days: number; vintage: string;
-      alcohol_content: string; country: string;
-    }> = [];
-
-    for (let i = 1; i < downloadsData.length; i++) {
-      const row = downloadsData[i];
-      const itemNo = String(row[1] || '').trim();
-      if (!itemNo) continue;
-
-      cdvRows.push({
-        item_no: itemNo,
-        item_name: String(row[2] || ''),         // C: 품명
-        supply_price: Number(row[17]) || 0,       // R: 공급가
-        discount_price: Number(row[19]) || 0,     // T: 할인공급가
-        wholesale_price: Number(row[20]) || 0,    // U: 도매장가
-        retail_price: Number(row[18]) || 0,       // S: 판매가
-        min_price: Number(row[21]) || 0,          // V: 최저판매가
-        available_stock: Number(row[13]) || 0,    // N: 가용재고(B-C)
-        bonded_warehouse: Number(row[23]) || 0,   // X: 보세(용마)
-        incoming_stock: Number(row[22]) || 0,     // W: 미착품재고
-        sales_30days: Number(row[14]) || 0,       // O: 30일출고
-        vintage: String(row[6] || ''),            // G: 빈티지
-        alcohol_content: String(row[7] || ''),    // H: 알콜도수
-        country: String(row[8] || ''),            // I: 국가
-      });
-    }
+    // 동적 헤더 기반 파싱 (공유 파서 사용)
+    const cdvRows = parseInventorySheet(downloadsData);
 
     // Batch upsert CDV
     for (let i = 0; i < cdvRows.length; i += 500) {
@@ -122,30 +93,8 @@ export async function POST() {
     // Clear existing data
     await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
 
-    // Insert DL data in batches
-    const dlRows: Array<{
-      item_no: string; item_name: string; supply_price: number;
-      available_stock: number; anseong_warehouse: number;
-      sales_30days: number; vintage: string; alcohol_content: string; country: string;
-    }> = [];
-
-    for (let i = 1; i < dlData.length; i++) {
-      const row = dlData[i];
-      const itemNo = String(row[1] || '').trim();
-      if (!itemNo) continue;
-
-      dlRows.push({
-        item_no: itemNo,
-        item_name: String(row[2] || ''),         // C: 품명
-        supply_price: Number(row[17]) || 0,       // R: 공급가
-        available_stock: Number(row[13]) || 0,    // N: 가용재고(B-C)
-        anseong_warehouse: Number(row[26]) || 0,  // AA: 안성창고(CDV)
-        sales_30days: Number(row[14]) || 0,       // O: 30일출고
-        vintage: String(row[6] || ''),            // G: 빈티지
-        alcohol_content: String(row[7] || ''),    // H: 알콜도수
-        country: String(row[8] || ''),            // I: 국가
-      });
-    }
+    // 동적 헤더 기반 파싱 (공유 파서 사용)
+    const dlRows = parseInventorySheet(dlData);
 
     // Batch upsert DL
     for (let i = 0; i < dlRows.length; i += 500) {

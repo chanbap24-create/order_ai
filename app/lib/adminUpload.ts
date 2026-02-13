@@ -65,6 +65,124 @@ function toNumber(x: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/* ─── 재고 엑셀 헤더 → DB 컬럼 매핑 (동적 파싱) ─── */
+// 관리자 업로드 엑셀 + 번들 엑셀 양쪽 포맷 모두 지원
+const HEADER_MAP: Record<string, string> = {
+  // 기본 정보
+  '품번': 'item_no',
+  '품명': 'item_name',
+  '브랜드': 'brand',
+  '수입사': 'importer',
+  '용량': 'volume_ml',
+  '빈티지': 'vintage',
+  '알콜도수%': 'alcohol_content',
+  '국가': 'country',
+  '표준바코드': 'barcode',
+  // 재고 수량 — 관리자 업로드 형식
+  '재고수량(A)': 'total_stock',
+  '재고수량(가용재고제외)(B)': 'stock_excl_available',
+  '출고예정(C)': 'pending_shipment',
+  '가용재고(B-C)': 'available_stock',
+  // 재고 수량 — 번들 엑셀 형식 (변형 대응)
+  '재고수량(B)': 'total_stock',
+  '재고수량(가용재고제외)': 'stock_excl_available',
+  '출고예정(B)': 'pending_shipment',
+  '가용재고(A-B)': 'available_stock',
+  // 출고 통계
+  '30일출고': 'sales_30days',
+  '90일/3평균출고': 'avg_sales_90d',
+  '365일/12평균출고': 'avg_sales_365d',
+  // 가격
+  '공급가': 'supply_price',
+  '판매가': 'retail_price',
+  '할인공급가': 'discount_price',
+  '도매장가': 'wholesale_price',
+  '최저판매가': 'min_price',
+  '미착품재고': 'incoming_stock',
+  // 창고 — CDV (까브드뱅)
+  '보세(용마)': 'bonded_warehouse',
+  '용마로지스': 'yongma_logistics',
+  '안성창고(CDV)': 'anseong_warehouse',
+  // 창고 — DL (대유라이프)
+  '보세(GIG)': 'bonded_warehouse',
+  '안성창고(DL)': 'anseong_warehouse',
+  'GIG': 'gig_warehouse',
+  'GIG(마케팅부)': 'gig_marketing',
+  'GIG(영업1부)': 'gig_sales1',
+  // 변형 대응 (만일을 위해)
+  '안성창고': 'anseong_warehouse',
+  'GIG마케팅': 'gig_marketing',
+  'GIG영업1': 'gig_sales1',
+};
+
+const TEXT_COLUMNS = new Set([
+  'item_no', 'item_name', 'brand', 'importer', 'volume_ml',
+  'vintage', 'alcohol_content', 'country', 'barcode',
+]);
+
+/**
+ * 재고 엑셀 시트를 동적 헤더 기반으로 파싱
+ * - row[0]에서 헤더를 읽고 HEADER_MAP으로 DB 컬럼명에 매핑
+ * - 매핑되지 않는 컬럼은 extra_data JSONB에 저장
+ */
+export function parseInventorySheet(rows: unknown[][]): Record<string, unknown>[] {
+  if (rows.length < 2) return [];
+
+  // 1. 헤더 행에서 컬럼 인덱스 매핑
+  const headerRow = (rows[0] || []) as unknown[];
+  const colMap: Array<{ idx: number; dbCol: string }> = [];
+  const unmappedHeaders: Array<{ idx: number; header: string }> = [];
+
+  for (let idx = 0; idx < headerRow.length; idx++) {
+    const header = String(headerRow[idx] ?? '').trim();
+    if (!header) continue;
+
+    const dbCol = HEADER_MAP[header];
+    if (dbCol) {
+      colMap.push({ idx, dbCol });
+    } else {
+      unmappedHeaders.push({ idx, header });
+    }
+  }
+
+  // 2. 데이터 행 파싱
+  const results: Record<string, unknown>[] = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = (rows[i] || []) as unknown[];
+    const obj: Record<string, unknown> = {};
+
+    for (const cm of colMap) {
+      const raw = r[cm.idx];
+      if (TEXT_COLUMNS.has(cm.dbCol)) {
+        obj[cm.dbCol] = cm.dbCol === 'item_no' ? normCode(raw) : normText(raw);
+      } else {
+        obj[cm.dbCol] = toNumber(raw);
+      }
+    }
+
+    // item_no 필수
+    if (!obj.item_no) continue;
+
+    // 매핑되지 않은 컬럼 → extra_data
+    const extra: Record<string, unknown> = {};
+    for (const um of unmappedHeaders) {
+      const val = r[um.idx];
+      if (val != null && String(val).trim() !== '') {
+        extra[um.header] = val;
+      }
+    }
+    if (Object.keys(extra).length > 0) {
+      obj.extra_data = extra;
+    }
+
+    obj.updated_at = new Date().toISOString();
+    results.push(obj);
+  }
+
+  return results;
+}
+
 /* ─── 업로드 타입 정의 ─── */
 export const UPLOAD_TYPES = {
   client: {
@@ -351,43 +469,30 @@ async function processDownloads(buf: Buffer) {
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
 
-  // ★ 중요: inventory_cdv를 덮어쓰기 전에 wines 기준선 세팅
-  // Vercel cold start 시 wines 테이블이 비어있으면 기존 inventory_cdv 데이터로 'active' 기준선 생성
-  // 이후 detectNewWines()에서 새 데이터와 비교하여 신규 와인 감지 가능
+  // ★ wines 기준선 세팅 (기존 로직 유지)
   try {
-    ensureWineTables(); // no-op (Supabase migration에서 생성됨)
-
+    ensureWineTables();
     const { count: wineCount } = await supabase.from('wines').select('*', { count: 'exact', head: true });
-
     if ((wineCount ?? 0) === 0) {
-      // inventory_cdv 테이블에서 기존 데이터 조회
       const { data: oldItems, error: oldError } = await supabase
         .from('inventory_cdv')
         .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country')
         .not('item_no', 'is', null)
         .neq('item_no', '');
-
       if (!oldError && oldItems && oldItems.length > 0) {
         const baselineRows = oldItems.map((item: { item_no: string; item_name: string; supply_price: number | null; available_stock: number | null; vintage: string | null; alcohol_content: string | null; country: string | null }) => {
           const { kr, en } = getCountryPair(item.country || '');
           return {
-            item_code: item.item_no,
-            item_name_kr: item.item_name,
-            country: kr || item.country,
-            country_en: en,
-            vintage: item.vintage,
-            alcohol: item.alcohol_content,
-            supply_price: item.supply_price,
-            available_stock: item.available_stock,
+            item_code: item.item_no, item_name_kr: item.item_name,
+            country: kr || item.country, country_en: en,
+            vintage: item.vintage, alcohol: item.alcohol_content,
+            supply_price: item.supply_price, available_stock: item.available_stock,
             status: 'active',
           };
         });
-
-        // Batch insert baseline wines (INSERT ignore conflicts)
         for (let i = 0; i < baselineRows.length; i += 500) {
           await supabase.from('wines').upsert(baselineRows.slice(i, i + 500), {
-            onConflict: 'item_code',
-            ignoreDuplicates: true,
+            onConflict: 'item_code', ignoreDuplicates: true,
           });
         }
         logger.info(`[Downloads] Baseline: ${oldItems.length} wines from old inventory_cdv as 'active'`);
@@ -400,42 +505,8 @@ async function processDownloads(buf: Buffer) {
   // 기존 inventory_cdv 삭제
   await supabase.from('inventory_cdv').delete().not('item_no', 'is', null);
 
-  const inventoryRows: Array<{
-    item_no: string; item_name: string; supply_price: number | null;
-    available_stock: number | null; bonded_warehouse: number;
-    sales_30days: number | null; discount_price: number | null;
-    wholesale_price: number | null; retail_price: number | null;
-    min_price: number | null; incoming_stock: number;
-    vintage: string; alcohol_content: string; country: string;
-  }> = [];
-
-  let count = 0;
-
-  for (let i = 1; i < rows.length; i++) {
-    const r = (rows[i] || []) as unknown[];
-    const item_no = normCode(r[1]);
-    if (!item_no) continue;
-
-    const item_name = normText(r[2]);
-    const supply_price = toNumber(r[17]);  // R열: 공급가
-
-    inventoryRows.push({
-      item_no, item_name, supply_price,
-      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
-      bonded_warehouse: toNumber(r[23]),    // X열: 보세(용마)
-      sales_30days: toNumber(r[14]),        // O열: 30일출고
-      discount_price: toNumber(r[19]),      // T열: 할인공급가
-      wholesale_price: toNumber(r[20]),     // U열: 도매장가
-      retail_price: toNumber(r[18]),        // S열: 판매가
-      min_price: toNumber(r[21]),           // V열: 최저판매가
-      incoming_stock: toNumber(r[22]),      // W열: 미착품재고
-      vintage: normText(r[6]),              // G열: 빈티지
-      alcohol_content: normText(r[7]),      // H열: 알콜도수%
-      country: normText(r[8]),              // I열: 국가
-    });
-
-    count++;
-  }
+  // 동적 헤더 기반 파싱
+  const inventoryRows = parseInventorySheet(rows);
 
   // Batch upsert inventory_cdv
   for (let i = 0; i < inventoryRows.length; i += 500) {
@@ -446,13 +517,12 @@ async function processDownloads(buf: Buffer) {
     }
   }
 
-  // CDV 재고금액 기록: (보세(용마)[23] + 용마로지스[24]) * 공급가[17]
+  // CDV 재고금액 기록: (보세 + 용마로지스) * 공급가
   let cdvTotal = 0;
-  for (let i = 1; i < rows.length; i++) {
-    const r = (rows[i] || []) as unknown[];
-    const supply = Number(r[17]) || 0;
-    const bonded = Number(r[23]) || 0;
-    const yongma = Number(r[24]) || 0;
+  for (const row of inventoryRows) {
+    const supply = Number(row.supply_price) || 0;
+    const bonded = Number(row.bonded_warehouse) || 0;
+    const yongma = Number(row.yongma_logistics) || 0;
     cdvTotal += (bonded + yongma) * supply;
   }
   try {
@@ -462,7 +532,7 @@ async function processDownloads(buf: Buffer) {
     logger.warn("[Downloads] Failed to record inventory value (non-fatal)", { error: e });
   }
 
-  return { items: count };
+  return { items: inventoryRows.length };
 }
 
 async function processDl(buf: Buffer) {
@@ -471,54 +541,26 @@ async function processDl(buf: Buffer) {
   if (!ws) throw new Error("시트를 찾을 수 없습니다.");
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
-  // DL 시트 구조: 품번(1), 품명(2), 빈티지(6), 알콜도수%(7), 국가(8),
-  //   가용재고(13), 30일출고(14), 공급가(17), 안성창고(25)
 
   // 기존 inventory_dl 삭제
   await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
 
-  const dlRows: Array<{
-    item_no: string; item_name: string; supply_price: number | null;
-    available_stock: number | null; anseong_warehouse: number;
-    sales_30days: number | null; vintage: string; alcohol_content: string;
-    country: string;
-  }> = [];
-
-  let count = 0;
-
-  for (let i = 1; i < rows.length; i++) {
-    const r = (rows[i] || []) as unknown[];
-    const item_no = normCode(r[1]);
-    if (!item_no) continue;
-
-    dlRows.push({
-      item_no,
-      item_name: normText(r[2]),
-      supply_price: toNumber(r[17]),       // R열: 공급가
-      available_stock: toNumber(r[13]),     // N열: 가용재고(B-C)
-      anseong_warehouse: toNumber(r[25]),  // Z열: 안성창고(DL)
-      sales_30days: toNumber(r[14]),        // O열: 30일출고
-      vintage: normText(r[6]),
-      alcohol_content: normText(r[7]),
-      country: normText(r[8]),
-    });
-    count++;
-  }
+  // 동적 헤더 기반 파싱
+  const dlRows = parseInventorySheet(rows);
 
   // Batch upsert inventory_dl
   for (let i = 0; i < dlRows.length; i += 500) {
     await supabase.from('inventory_dl').upsert(dlRows.slice(i, i + 500), { onConflict: 'item_no' });
   }
 
-  // DL 재고금액 기록: (안성[25] + GIG[26] + GIG마케팅[27] + GIG영업1[28]) * 공급가[17]
+  // DL 재고금액 기록: (안성 + GIG + GIG마케팅 + GIG영업1) * 공급가
   let dlTotal = 0;
-  for (let i = 1; i < rows.length; i++) {
-    const r = (rows[i] || []) as unknown[];
-    const supply = Number(r[17]) || 0;
-    const anseong = Number(r[25]) || 0;
-    const gig = Number(r[26]) || 0;
-    const gigMkt = Number(r[27]) || 0;
-    const gigSales = Number(r[28]) || 0;
+  for (const row of dlRows) {
+    const supply = Number(row.supply_price) || 0;
+    const anseong = Number(row.anseong_warehouse) || 0;
+    const gig = Number(row.gig_warehouse) || 0;
+    const gigMkt = Number(row.gig_marketing) || 0;
+    const gigSales = Number(row.gig_sales1) || 0;
     dlTotal += (anseong + gig + gigMkt + gigSales) * supply;
   }
   try {
@@ -528,7 +570,7 @@ async function processDl(buf: Buffer) {
     logger.warn("[DL] Failed to record inventory value (non-fatal)", { error: e });
   }
 
-  return { items: count };
+  return { items: dlRows.length };
 }
 
 async function processEnglish(buf: Buffer) {

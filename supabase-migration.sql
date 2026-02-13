@@ -3,35 +3,72 @@
 -- Supabase SQL Editor에서 실행하세요
 -- ============================================================
 
--- ── 1. 재고 테이블 (inventory) ──
+-- ── 1. 재고 테이블 (inventory) ── 통일 스키마
 
 CREATE TABLE IF NOT EXISTS inventory_cdv (
   item_no TEXT PRIMARY KEY,
   item_name TEXT,
-  supply_price REAL,
-  discount_price REAL,
-  wholesale_price REAL,
-  retail_price REAL,
-  min_price REAL,
-  available_stock REAL DEFAULT 0,
-  bonded_warehouse REAL DEFAULT 0,
-  incoming_stock REAL DEFAULT 0,
-  sales_30days REAL DEFAULT 0,
+  brand TEXT,
+  importer TEXT,
+  volume_ml TEXT,
   vintage TEXT,
   alcohol_content TEXT,
-  country TEXT
+  country TEXT,
+  barcode TEXT,
+  total_stock REAL DEFAULT 0,
+  stock_excl_available REAL DEFAULT 0,
+  pending_shipment REAL DEFAULT 0,
+  available_stock REAL DEFAULT 0,
+  sales_30days REAL DEFAULT 0,
+  avg_sales_90d REAL DEFAULT 0,
+  avg_sales_365d REAL DEFAULT 0,
+  supply_price REAL,
+  retail_price REAL,
+  discount_price REAL,
+  wholesale_price REAL,
+  min_price REAL,
+  incoming_stock REAL DEFAULT 0,
+  bonded_warehouse REAL DEFAULT 0,
+  yongma_logistics REAL DEFAULT 0,
+  anseong_warehouse REAL DEFAULT 0,
+  gig_warehouse REAL DEFAULT 0,
+  gig_marketing REAL DEFAULT 0,
+  gig_sales1 REAL DEFAULT 0,
+  extra_data JSONB DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS inventory_dl (
   item_no TEXT PRIMARY KEY,
   item_name TEXT,
-  supply_price REAL,
-  available_stock REAL DEFAULT 0,
-  anseong_warehouse REAL DEFAULT 0,
-  sales_30days REAL DEFAULT 0,
+  brand TEXT,
+  importer TEXT,
+  volume_ml TEXT,
   vintage TEXT,
   alcohol_content TEXT,
-  country TEXT
+  country TEXT,
+  barcode TEXT,
+  total_stock REAL DEFAULT 0,
+  stock_excl_available REAL DEFAULT 0,
+  pending_shipment REAL DEFAULT 0,
+  available_stock REAL DEFAULT 0,
+  sales_30days REAL DEFAULT 0,
+  avg_sales_90d REAL DEFAULT 0,
+  avg_sales_365d REAL DEFAULT 0,
+  supply_price REAL,
+  retail_price REAL,
+  discount_price REAL,
+  wholesale_price REAL,
+  min_price REAL,
+  incoming_stock REAL DEFAULT 0,
+  bonded_warehouse REAL DEFAULT 0,
+  yongma_logistics REAL DEFAULT 0,
+  anseong_warehouse REAL DEFAULT 0,
+  gig_warehouse REAL DEFAULT 0,
+  gig_marketing REAL DEFAULT 0,
+  gig_sales1 REAL DEFAULT 0,
+  extra_data JSONB DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ── 2. 거래처/출고 테이블 ──
@@ -371,6 +408,49 @@ CREATE TABLE IF NOT EXISTS inventory_value_history (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_inv_value_hist_date ON inventory_value_history(recorded_date);
+
+-- ── 13. 재고 테이블 전체 컬럼 확장 (기존 DB용 ALTER TABLE) ──
+
+-- inventory_cdv 신규 컬럼
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS brand TEXT;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS importer TEXT;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS volume_ml TEXT;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS barcode TEXT;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS total_stock REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS stock_excl_available REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS pending_shipment REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS avg_sales_90d REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS avg_sales_365d REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS yongma_logistics REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS anseong_warehouse REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS gig_warehouse REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS gig_marketing REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS gig_sales1 REAL DEFAULT 0;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE inventory_cdv ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- inventory_dl 신규 컬럼
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS brand TEXT;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS importer TEXT;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS volume_ml TEXT;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS barcode TEXT;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS total_stock REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS stock_excl_available REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS pending_shipment REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS avg_sales_90d REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS avg_sales_365d REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS yongma_logistics REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS gig_warehouse REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS gig_marketing REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS gig_sales1 REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS discount_price REAL;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS wholesale_price REAL;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS retail_price REAL;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS min_price REAL;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS incoming_stock REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS bonded_warehouse REAL DEFAULT 0;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE inventory_dl ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- ============================================================
 -- 마이그레이션 완료!

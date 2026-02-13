@@ -56,15 +56,7 @@ export async function GET(request: NextRequest) {
     let results = (data || []).map((row: any) => {
       const wp = wpMap[row.item_no];
       return {
-        item_no: row.item_no,
-        item_name: row.item_name,
-        supply_price: row.supply_price,
-        available_stock: row.available_stock,
-        anseong_warehouse: row.anseong_warehouse,
-        sales_30days: row.sales_30days,
-        vintage: row.vintage,
-        alcohol_content: row.alcohol_content,
-        country: row.country,
+        ...row,
         grape_varieties: wp?.grape_varieties || null,
         wine_type: wp?.wine_type || null,
         wp_region: wp?.region || null,

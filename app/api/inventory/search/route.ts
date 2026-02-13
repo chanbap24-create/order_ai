@@ -55,20 +55,7 @@ export async function GET(request: NextRequest) {
     let results = (data || []).map((row: any) => {
       const wp = wpMap[row.item_no];
       return {
-        item_no: row.item_no,
-        item_name: row.item_name,
-        supply_price: row.supply_price,
-        discount_price: row.discount_price,
-        wholesale_price: row.wholesale_price,
-        retail_price: row.retail_price,
-        min_price: row.min_price,
-        available_stock: row.available_stock,
-        bonded_warehouse: row.bonded_warehouse,
-        incoming_stock: row.incoming_stock,
-        sales_30days: row.sales_30days,
-        vintage: row.vintage,
-        alcohol_content: row.alcohol_content,
-        country: row.country,
+        ...row,
         grape_varieties: wp?.grape_varieties || null,
         wine_type: wp?.wine_type || null,
         wp_region: wp?.region || null,
