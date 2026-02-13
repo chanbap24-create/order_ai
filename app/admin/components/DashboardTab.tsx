@@ -5,14 +5,16 @@ import dynamic from 'next/dynamic';
 import Card from '@/app/components/ui/Card';
 import type { DashboardStats, InventoryChange } from '@/app/types/wine';
 
-const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });
-const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false });
+const BarChart = dynamic(() => import('recharts').then(m => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import('recharts').then(m => m.Bar), { ssr: false });
+const Cell = dynamic(() => import('recharts').then(m => m.Cell), { ssr: false });
 const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
 const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
 const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
 const Legend = dynamic(() => import('recharts').then(m => m.Legend), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
+const ReferenceLine = dynamic(() => import('recharts').then(m => m.ReferenceLine), { ssr: false });
 
 function formatKrw(v: number | null | undefined) {
   const n = v ?? 0;
@@ -62,9 +64,103 @@ function InlineChange({ cur, prev }: { cur: number; prev: number }) {
   );
 }
 
+type ChartPeriod = 'daily' | 'weekly' | 'monthly';
+
+interface CandleItem {
+  date: string;
+  cdvRange: [number, number];
+  dlRange: [number, number];
+  cdvUp: boolean;
+  dlUp: boolean;
+  cdvVal: number;
+  dlVal: number;
+  cdvDiff: number;
+  dlDiff: number;
+}
+
+/** ISO 주차 번호 (월~일 기준) */
+function getWeekKey(dateStr: string) {
+  const d = new Date(dateStr);
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const days = Math.floor((d.getTime() - jan1.getTime()) / 86400000);
+  const week = Math.ceil((days + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function getMonthKey(dateStr: string) {
+  return dateStr.slice(0, 7); // "YYYY-MM"
+}
+
+function aggregateHistory(
+  hist: Array<{ recorded_date: string; cdv_value: number; dl_value: number }>,
+  period: ChartPeriod
+): CandleItem[] {
+  if (period === 'daily') {
+    return hist.map((h, i) => {
+      const prev = i > 0 ? hist[i - 1] : null;
+      const cdvVal = Math.round(h.cdv_value / 1_0000);
+      const dlVal = Math.round(h.dl_value / 1_0000);
+      const cdvPrev = prev ? Math.round(prev.cdv_value / 1_0000) : cdvVal;
+      const dlPrev = prev ? Math.round(prev.dl_value / 1_0000) : dlVal;
+      return {
+        date: h.recorded_date.slice(5),
+        cdvRange: [cdvPrev, cdvVal], dlRange: [dlPrev, dlVal],
+        cdvUp: cdvVal >= cdvPrev, dlUp: dlVal >= dlPrev,
+        cdvVal, dlVal, cdvDiff: cdvVal - cdvPrev, dlDiff: dlVal - dlPrev,
+      };
+    });
+  }
+
+  // 주봉/월봉: 기간별로 그룹핑 → 시가(첫날 전일종가), 종가(마지막날)
+  const keyFn = period === 'weekly' ? getWeekKey : getMonthKey;
+  const groups = new Map<string, typeof hist>();
+  for (const h of hist) {
+    const key = keyFn(h.recorded_date);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(h);
+  }
+
+  const keys = [...groups.keys()];
+  const result: CandleItem[] = [];
+
+  for (let gi = 0; gi < keys.length; gi++) {
+    const items = groups.get(keys[gi])!;
+    const last = items[items.length - 1];
+    const cdvVal = Math.round(last.cdv_value / 1_0000);
+    const dlVal = Math.round(last.dl_value / 1_0000);
+
+    // 시가 = 이전 그룹 마지막 값 (없으면 현재 그룹 첫 값)
+    let cdvOpen = cdvVal;
+    let dlOpen = dlVal;
+    if (gi > 0) {
+      const prevItems = groups.get(keys[gi - 1])!;
+      const prevLast = prevItems[prevItems.length - 1];
+      cdvOpen = Math.round(prevLast.cdv_value / 1_0000);
+      dlOpen = Math.round(prevLast.dl_value / 1_0000);
+    } else {
+      cdvOpen = Math.round(items[0].cdv_value / 1_0000);
+      dlOpen = Math.round(items[0].dl_value / 1_0000);
+    }
+
+    const label = period === 'weekly'
+      ? keys[gi].replace(/^\d{4}-W/, '') + '주'
+      : last.recorded_date.slice(5, 7) + '월';
+
+    result.push({
+      date: label,
+      cdvRange: [cdvOpen, cdvVal], dlRange: [dlOpen, dlVal],
+      cdvUp: cdvVal >= cdvOpen, dlUp: dlVal >= dlOpen,
+      cdvVal, dlVal, cdvDiff: cdvVal - cdvOpen, dlDiff: dlVal - dlOpen,
+    });
+  }
+
+  return result;
+}
+
 export default function DashboardTab() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('daily');
 
   useEffect(() => {
     fetch('/api/admin/dashboard')
@@ -77,12 +173,8 @@ export default function DashboardTab() {
   if (loading) return <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-text-light)' }}>로딩 중...</div>;
   if (!stats) return <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--color-error)' }}>데이터를 불러올 수 없습니다.</div>;
 
-  const chartData = stats.inventoryHistory.map(h => ({
-    date: h.recorded_date.slice(5),
-    CDV: Math.round(h.cdv_value / 10000),
-    DL: Math.round(h.dl_value / 10000),
-  }));
-  const showChart = chartData.length >= 2;
+  const candleData = aggregateHistory(stats.inventoryHistory, chartPeriod);
+  const showChart = candleData.length >= 1;
 
   // 최근 활동: 이력을 최신순으로, 이전 레코드 대비 변동 표시
   const historyDesc = [...stats.inventoryHistory].reverse();
@@ -107,22 +199,109 @@ export default function DashboardTab() {
         </Card>
       </div>
 
-      {/* 재고금액 추이 차트 */}
+      {/* 재고금액 차트 */}
       {showChart && (
         <Card style={{ marginBottom: 'var(--space-6)' }}>
-          <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>재고금액 추이</h3>
-          <div style={{ width: '100%', height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => `${v.toLocaleString()}만`} />
-                <Tooltip formatter={(v: number) => [`${v.toLocaleString()}만원`, '']} labelFormatter={(l: string) => `날짜: ${l}`} />
-                <Legend />
-                <Line type="monotone" dataKey="CDV" stroke="#5A1515" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="DL" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, margin: 0 }}>재고금액 추이</h3>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-lighter)', marginTop: 2 }}>
+                <span style={{ color: '#E53E3E' }}>■</span> 상승 &nbsp;
+                <span style={{ color: '#3182CE' }}>■</span> 하락
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {([['daily', '일봉'], ['weekly', '주봉'], ['monthly', '월봉']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setChartPeriod(key)}
+                  style={{
+                    padding: '4px 12px', fontSize: 12, fontWeight: 600, borderRadius: 4, border: 'none', cursor: 'pointer',
+                    background: chartPeriod === key ? '#5A1515' : '#f0f0f0',
+                    color: chartPeriod === key ? '#fff' : '#666',
+                    transition: 'all 0.15s',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* CDV 일봉 */}
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#5A1515', marginBottom: 4 }}>CDV (까브드뱅)</div>
+            <div style={{ width: '100%', height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={candleData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: number) => `${v.toLocaleString()}만`}
+                    domain={['auto', 'auto']}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: typeof candleData[0] }>; label?: string }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 6, padding: '8px 12px', fontSize: 12 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                          <div style={{ color: '#5A1515' }}>CDV: {d.cdvVal.toLocaleString()}만원</div>
+                          <div style={{ color: d.cdvDiff >= 0 ? '#E53E3E' : '#3182CE', fontWeight: 600 }}>
+                            {d.cdvDiff >= 0 ? '▲' : '▼'} {formatChangeKrw(d.cdvDiff * 10000)}원
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <ReferenceLine y={candleData[0]?.cdvRange[0]} stroke="#ccc" strokeDasharray="3 3" />
+                  <Bar dataKey="cdvRange" barSize={candleData.length > 20 ? 8 : candleData.length > 10 ? 14 : 24} radius={[2, 2, 0, 0]}>
+                    {candleData.map((d, i) => (
+                      <Cell key={i} fill={d.cdvUp ? '#E53E3E' : '#3182CE'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* DL 일봉 */}
+          <div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#2563eb', marginBottom: 4 }}>DL (대유라이프)</div>
+            <div style={{ width: '100%', height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={candleData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: number) => `${v.toLocaleString()}만`}
+                    domain={['auto', 'auto']}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: typeof candleData[0] }>; label?: string }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 6, padding: '8px 12px', fontSize: 12 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                          <div style={{ color: '#2563eb' }}>DL: {d.dlVal.toLocaleString()}만원</div>
+                          <div style={{ color: d.dlDiff >= 0 ? '#E53E3E' : '#3182CE', fontWeight: 600 }}>
+                            {d.dlDiff >= 0 ? '▲' : '▼'} {formatChangeKrw(d.dlDiff * 10000)}원
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <ReferenceLine y={candleData[0]?.dlRange[0]} stroke="#ccc" strokeDasharray="3 3" />
+                  <Bar dataKey="dlRange" barSize={candleData.length > 20 ? 8 : candleData.length > 10 ? 14 : 24} radius={[2, 2, 0, 0]}>
+                    {candleData.map((d, i) => (
+                      <Cell key={i} fill={d.dlUp ? '#E53E3E' : '#3182CE'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </Card>
       )}
