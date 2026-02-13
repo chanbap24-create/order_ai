@@ -5,6 +5,7 @@ import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 import { detectNewWines, detectPriceChanges } from "@/app/lib/wineDetection";
 
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ type: string }> }

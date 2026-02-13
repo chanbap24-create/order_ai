@@ -640,6 +640,91 @@ async function processEnglish(buf: Buffer) {
   return { items: count };
 }
 
+/* ─── 클라이언트 사이드 파싱 데이터 처리 (대용량 파일 대응) ─── */
+
+export async function processClientFromData(
+  clients: Record<string, string>,
+  items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number | null }>
+) {
+  if (Object.keys(clients).length === 0) throw new Error("거래처 데이터가 없습니다.");
+
+  await supabase.from('client_item_stats').delete().not('client_code', 'is', null);
+  await supabase.from('clients').delete().not('client_code', 'is', null);
+  await supabase.from('client_alias').delete().gte('weight', 10);
+
+  const clientRows = Object.entries(clients).map(([code, name]) => ({
+    client_code: code, client_name: name, updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < clientRows.length; i += 500) {
+    await supabase.from('clients').upsert(clientRows.slice(i, i + 500), { onConflict: 'client_code' });
+  }
+
+  const aliasRows = Object.entries(clients).map(([code, name]) => ({
+    client_code: code, alias: name, weight: 10,
+  }));
+  for (let i = 0; i < aliasRows.length; i += 500) {
+    await supabase.from('client_alias').upsert(aliasRows.slice(i, i + 500), { onConflict: 'client_code,alias' });
+  }
+
+  const itemRows = items.map(v => ({
+    client_code: v.client_code, item_no: v.item_no, item_name: v.item_name,
+    supply_price: v.supply_price, buy_count: 0,
+  }));
+  for (let i = 0; i < itemRows.length; i += 500) {
+    await supabase.from('client_item_stats').upsert(itemRows.slice(i, i + 500), { onConflict: 'client_code,item_no' });
+  }
+
+  return { clients: Object.keys(clients).length, items: items.length };
+}
+
+export async function processDlClientFromData(
+  clients: Record<string, string>,
+  items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number }>
+) {
+  if (Object.keys(clients).length === 0) throw new Error("거래처 데이터가 없습니다.");
+
+  await supabase.from('glass_client_item_stats').delete().not('client_code', 'is', null);
+  await supabase.from('glass_client_alias').delete().gte('weight', 10);
+  await supabase.from('glass_items').delete().not('item_no', 'is', null);
+  await supabase.from('glass_clients').delete().not('client_code', 'is', null);
+
+  const clientRows = Object.entries(clients).map(([code, name]) => ({
+    client_code: code, client_name: name,
+  }));
+  for (let i = 0; i < clientRows.length; i += 500) {
+    await supabase.from('glass_clients').upsert(clientRows.slice(i, i + 500), { onConflict: 'client_code' });
+  }
+
+  const aliasRows = Object.entries(clients).map(([code, name]) => ({
+    client_code: code, alias: name, weight: 10,
+  }));
+  for (let i = 0; i < aliasRows.length; i += 500) {
+    await supabase.from('glass_client_alias').upsert(aliasRows.slice(i, i + 500), { onConflict: 'client_code,alias' });
+  }
+
+  // Unique items
+  const itemsMap = new Map<string, string>();
+  for (const item of items) {
+    if (!itemsMap.has(item.item_no)) itemsMap.set(item.item_no, item.item_name);
+  }
+  const glassItemRows = Array.from(itemsMap.entries()).map(([no, name]) => ({
+    item_no: no, item_name: name, supply_price: 0, updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < glassItemRows.length; i += 500) {
+    await supabase.from('glass_items').upsert(glassItemRows.slice(i, i + 500), { onConflict: 'item_no' });
+  }
+
+  const clientItemRows = items.map(item => ({
+    client_code: item.client_code, item_no: item.item_no, item_name: item.item_name,
+    supply_price: item.supply_price, updated_at: new Date().toISOString(),
+  }));
+  for (let i = 0; i < clientItemRows.length; i += 500) {
+    await supabase.from('glass_client_item_stats').upsert(clientItemRows.slice(i, i + 500), { onConflict: 'client_code,item_no' });
+  }
+
+  return { clients: Object.keys(clients).length, items: itemsMap.size, clientItems: items.length };
+}
+
 /* ─── 메인 처리 함수 ─── */
 export async function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);

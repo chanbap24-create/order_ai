@@ -116,10 +116,60 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
     updateCard(type, { status: 'uploading', fileName: file.name, message: '' });
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      let res: Response;
 
-      const res = await fetch(`/api/admin/upload/${type}`, { method: 'POST', body: formData });
+      // client/dl-client: 대용량 파일 → 브라우저에서 파싱 후 JSON 전송
+      if (type === 'client' || type === 'dl-client') {
+        updateCard(type, { status: 'uploading', fileName: file.name, message: '파일 분석 중...' });
+        const XLSX = await import('xlsx');
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+
+        const IDX_CLIENT_NAME = 4;
+        const IDX_CLIENT_CODE = 5;
+        const IDX_ITEM_NO = 12;
+        const IDX_ITEM_NAME = 13;
+        const IDX_PRICE = type === 'client' ? 19 : 16;
+
+        const clients: Record<string, string> = {};
+        const items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number | null }> = [];
+        const seen = new Set<string>();
+
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i] as unknown[];
+          const clientName = String(r[IDX_CLIENT_NAME] || '').trim();
+          const clientCode = String(r[IDX_CLIENT_CODE] || '').trim().replace(/\.0$/, '');
+          if (!clientName || !clientCode) continue;
+          clients[clientCode] = clientName;
+
+          const itemNo = String(r[IDX_ITEM_NO] || '').trim().replace(/\.0$/, '');
+          const itemName = String(r[IDX_ITEM_NAME] || '').trim();
+          if (!itemNo || !itemName) continue;
+
+          const key = `${clientCode}||${itemNo}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            const p = parseFloat(String(r[IDX_PRICE]));
+            items.push({ client_code: clientCode, item_no: itemNo, item_name: itemName, supply_price: isFinite(p) ? p : null });
+          }
+        }
+
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중...` });
+
+        res = await fetch(`/api/admin/upload-data/${type}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clients, items }),
+        });
+      } else {
+        // 그 외: 기존 FormData 방식
+        const formData = new FormData();
+        formData.append('file', file);
+        res = await fetch(`/api/admin/upload/${type}`, { method: 'POST', body: formData });
+      }
+
       const json = await res.json();
 
       if (!res.ok || !json.success) {
