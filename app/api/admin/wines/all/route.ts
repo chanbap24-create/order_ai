@@ -18,23 +18,6 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(200, Math.max(10, parseInt(url.searchParams.get("limit") || "50", 10)));
     const offset = (page - 1) * limit;
 
-    // ── 국가 목록 (필터용) ──
-    // Supabase doesn't support COALESCE in select directly, so fetch all and aggregate in JS
-    const { data: countryData } = await supabase
-      .from('wines')
-      .select('country, country_en');
-
-    const countryMap = new Map<string, number>();
-    for (const row of (countryData || [])) {
-      const name = row.country_en || row.country || '';
-      if (name) {
-        countryMap.set(name, (countryMap.get(name) || 0) + 1);
-      }
-    }
-    const countries = Array.from(countryMap.entries())
-      .map(([name, cnt]) => ({ name, cnt }))
-      .sort((a, b) => b.cnt - a.cnt);
-
     // ── 데이터 쿼리 구성 ──
     let query = supabase
       .from('wines')
@@ -170,6 +153,16 @@ export async function GET(request: NextRequest) {
         return stock > 0;
       });
     }
+
+    // ── 국가 목록 (필터링된 데이터에서 집계) ──
+    const countryMap = new Map<string, number>();
+    for (const w of wines) {
+      const name = w.country_en || w.country || '';
+      if (name) countryMap.set(name, (countryMap.get(name) || 0) + 1);
+    }
+    const countries = Array.from(countryMap.entries())
+      .map(([name, cnt]) => ({ name, cnt }))
+      .sort((a, b) => b.cnt - a.cnt);
 
     const total = hideZero ? wines.length : (totalCount || wines.length);
 
