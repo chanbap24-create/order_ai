@@ -29,6 +29,8 @@ export default function AllWinesTab() {
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [hideZero, setHideZero] = useState(true);
+  const [editFields, setEditFields] = useState<Record<string, string>>({});
+  const [savingField, setSavingField] = useState('');
 
   const handleSort = (col: string) => {
     if (sortBy === col) {
@@ -133,6 +135,44 @@ export default function AllWinesTab() {
       alert(`삭제 오류: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
     }
     setDeleting(false);
+  };
+
+  // 와인 선택 시 편집 필드 동기화
+  useEffect(() => {
+    if (selectedWine) {
+      setEditFields({
+        supplier: selectedWine.supplier || '',
+        item_name_en: selectedWine.item_name_en || '',
+        country_en: selectedWine.country_en || '',
+        region: selectedWine.region || '',
+      });
+    }
+  }, [selectedWine?.item_code]);
+
+  const handleSaveField = async (dbKey: string) => {
+    if (!selectedWine) return;
+    const trimmed = (editFields[dbKey] || '').trim();
+    const original = ((selectedWine as any)[dbKey] || '');
+    if (trimmed === original) return;
+    setSavingField(dbKey);
+    try {
+      const res = await fetch(`/api/admin/wines/${selectedWine.item_code}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wine: { [dbKey]: trimmed || null } }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updated = { ...selectedWine, [dbKey]: trimmed || null } as WineRowExt;
+        setSelectedWine(updated);
+        setWines(prev => prev.map(w => w.item_code === selectedWine.item_code ? { ...w, [dbKey]: trimmed || null } as WineRowExt : w));
+      } else {
+        alert(`저장 실패: ${data.error}`);
+      }
+    } catch (e) {
+      alert(`저장 오류: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
+    }
+    setSavingField('');
   };
 
   const statusLabel = (w: WineRow) => {
@@ -336,9 +376,44 @@ export default function AllWinesTab() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
                 <DetailRow label="품번" value={selectedWine.item_code} />
-                <DetailRow label="영문명" value={selectedWine.item_name_en || '-'} />
-                <DetailRow label="국가" value={selectedWine.country_en || selectedWine.country || '-'} />
-                <DetailRow label="산지" value={selectedWine.region || '-'} />
+                {([
+                  { label: '영문명', dbKey: 'item_name_en', placeholder: '영문명 입력' },
+                  { label: '공급자', dbKey: 'supplier', placeholder: '공급자명(영문) 입력' },
+                  { label: '국가', dbKey: 'country_en', placeholder: '국가(영문) 입력' },
+                  { label: '산지', dbKey: 'region', placeholder: '지역 입력' },
+                ]).map(({ label, dbKey, placeholder }) => {
+                  const val = editFields[dbKey] || '';
+                  const orig = (selectedWine as any)[dbKey] || '';
+                  const changed = val.trim() !== orig;
+                  return (
+                    <div key={dbKey} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ color: '#9ca3af', minWidth: 60, flexShrink: 0 }}>{label}</span>
+                      <input
+                        value={val}
+                        onChange={(e) => setEditFields(f => ({ ...f, [dbKey]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveField(dbKey); }}
+                        placeholder={placeholder}
+                        style={{
+                          flex: 1, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4,
+                          fontSize: 16, fontWeight: 500, color: '#1e293b',
+                          background: val ? '#fff' : '#fef9c3',
+                        }}
+                      />
+                      {changed && (
+                        <button
+                          onClick={() => handleSaveField(dbKey)}
+                          disabled={savingField === dbKey}
+                          style={{
+                            padding: '4px 10px', borderRadius: 4, border: 'none', fontSize: 12, fontWeight: 600,
+                            cursor: 'pointer', background: '#8B1538', color: '#fff',
+                          }}
+                        >
+                          {savingField === dbKey ? '...' : '저장'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
                 <DetailRow label="품종" value={selectedWine.grape_varieties || '-'} />
                 <DetailRow label="타입" value={selectedWine.wine_type || '-'} />
                 <DetailRow label="빈티지" value={selectedWine.vintage || '-'} />
@@ -346,7 +421,6 @@ export default function AllWinesTab() {
                 <DetailRow label="알코올" value={selectedWine.alcohol || '-'} />
                 <DetailRow label="공급가" value={selectedWine.supply_price != null ? `₩${selectedWine.supply_price.toLocaleString()}` : '-'} />
                 <DetailRow label="재고" value={selectedWine.available_stock != null ? String(selectedWine.available_stock) : '-'} />
-                <DetailRow label="공급처" value={selectedWine.supplier_kr || selectedWine.supplier || '-'} />
                 <DetailRow label="상태" value={selectedWine.status} />
                 <DetailRow label="AI조사" value={selectedWine.ai_researched ? '완료' : '미완료'} />
                 <DetailRow label="등록일" value={selectedWine.created_at?.split('T')[0] || '-'} />

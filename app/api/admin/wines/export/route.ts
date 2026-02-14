@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     };
 
     // ── 타이틀 행 ──
-    ws.mergeCells('A1:G1');
+    ws.mergeCells('A1:H1');
     const titleCell = ws.getCell('A1');
     const today = new Date().toISOString().slice(0, 10);
     titleCell.value = `CavedeVin Wine List  —  ${today}`;
@@ -169,6 +169,7 @@ export async function GET(request: NextRequest) {
 
     // ── 컬럼 정의 ──
     const columns = [
+      { header: '품번', key: 'item_code', width: 10 },
       { header: '국가', key: 'country', width: 14 },
       { header: '지역', key: 'region', width: 20 },
       { header: '공급자명', key: 'supplier', width: 24 },
@@ -208,6 +209,7 @@ export async function GET(request: NextRequest) {
       prevCountry = countryName;
 
       const row = ws.addRow({
+        item_code: w.item_code,
         country: countryName,
         region: w.region || '',
         supplier: w.supplier || w.supplier_kr || '',
@@ -227,15 +229,19 @@ export async function GET(request: NextRequest) {
         cell.border = borderThin;
         cell.alignment = { vertical: 'middle' };
 
-        if (colNum === 7) {
+        if (colNum === 1) {
+          cell.font = { ...fontBase, size: 9, color: { argb: C.gray } };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+        if (colNum === 8) {
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
           cell.numFmt = '#,##0';
         }
-        if (colNum === 6) {
+        if (colNum === 7) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
           cell.font = { ...fontBase, size: 10, color: { argb: C.gray } };
         }
-        if (colNum === 1) {
+        if (colNum === 2) {
           cell.font = { ...fontBase, size: 10, bold: isNewCountry, color: { argb: isNewCountry ? C.burgundy : C.gray } };
         }
       });
@@ -253,15 +259,15 @@ export async function GET(request: NextRequest) {
 
     // ── 하단 요약 행 ──
     const summaryRow = ws.addRow({});
-    ws.mergeCells(`A${summaryRow.number}:E${summaryRow.number}`);
+    ws.mergeCells(`A${summaryRow.number}:F${summaryRow.number}`);
     const summaryCell = summaryRow.getCell(1);
     summaryCell.value = `Total: ${allWines.length} wines`;
     summaryCell.font = { ...fontBase, size: 10, bold: true, color: { argb: C.gray } };
     summaryCell.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
-    summaryRow.getCell(7).value = { formula: `SUM(G3:G${summaryRow.number - 1})` } as any;
-    summaryRow.getCell(7).numFmt = '#,##0';
-    summaryRow.getCell(7).font = { ...fontBase, size: 10, bold: true, color: { argb: C.burgundy } };
-    summaryRow.getCell(7).alignment = { vertical: 'middle', horizontal: 'right' };
+    summaryRow.getCell(8).value = { formula: `SUM(H3:H${summaryRow.number - 1})` } as any;
+    summaryRow.getCell(8).numFmt = '#,##0';
+    summaryRow.getCell(8).font = { ...fontBase, size: 10, bold: true, color: { argb: C.burgundy } };
+    summaryRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
     summaryRow.height = 22;
     summaryRow.eachCell({ includeEmpty: true }, (cell) => {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.burgundyLight } };
@@ -282,7 +288,7 @@ export async function GET(request: NextRequest) {
       paperSize: 9,
       margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
     };
-    ws.autoFilter = { from: 'A2', to: `G${allWines.length + 2}` };
+    ws.autoFilter = { from: 'A2', to: `H${allWines.length + 2}` };
 
     const buffer = await wb.xlsx.writeBuffer();
 

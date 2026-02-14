@@ -89,13 +89,13 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     } else {
       const update: any = {
         item_code: item.item_no,
-        item_name_kr: cleanName,
+        item_name_kr: existing.item_name_kr || cleanName,
         supply_price: item.supply_price,
         available_stock: item.available_stock,
         vintage: item.vintage,
         alcohol: item.alcohol,
-        country: kr || item.country,
-        country_en: en,
+        country: existing.country || kr || item.country,
+        country_en: existing.country_en || en,
         status: 'active',
         updated_at: new Date().toISOString(),
       };
@@ -110,10 +110,16 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     if (error) logger.error(`[WineDetection] insert batch error`, { error });
   }
 
-  // 배치 upsert 기존 와인 업데이트
-  for (let i = 0; i < updateRows.length; i += 500) {
-    const { error } = await supabase.from('wines').upsert(updateRows.slice(i, i + 500), { onConflict: 'item_code' });
-    if (error) logger.error(`[WineDetection] upsert batch error`, { error });
+  // 기존 와인 개별 update (수동 편집 필드 보존)
+  for (let i = 0; i < updateRows.length; i += 50) {
+    const batch = updateRows.slice(i, i + 50);
+    await Promise.all(batch.map(async (row: any) => {
+      const code = row.item_code;
+      const updates = { ...row };
+      delete updates.item_code;
+      const { error } = await supabase.from('wines').update(updates).eq('item_code', code);
+      if (error) logger.error(`[WineDetection] update error for ${code}`, { error });
+    }));
   }
 
   // 변동 로그 (신규만 요약 기록)
