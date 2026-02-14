@@ -28,7 +28,7 @@ export default function AllWinesTab() {
   const [deleting, setDeleting] = useState(false);
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [hideZero, setHideZero] = useState(false);
+  const [hideZero, setHideZero] = useState(true);
 
   const handleSort = (col: string) => {
     if (sortBy === col) {

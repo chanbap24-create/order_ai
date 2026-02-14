@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       const term = `%${search}%`;
       query = query.or(
-        `item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},country.ilike.${term},country_en.ilike.${term}`
+        `item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},brand.ilike.${term},country.ilike.${term},country_en.ilike.${term}`
       );
     }
     if (country) {
@@ -102,9 +102,16 @@ export async function GET(request: NextRequest) {
       totalCount = count;
     } else {
       // 커스텀 정렬: 전체 데이터를 배치로 가져옴
-      const { count, error: countErr } = await supabase
-        .from('wines')
-        .select('*', { count: 'exact', head: true });
+      let countQ = supabase.from('wines').select('*', { count: 'exact', head: true });
+      if (search) {
+        const term = `%${search}%`;
+        countQ = countQ.or(
+          `item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},brand.ilike.${term},country.ilike.${term},country_en.ilike.${term}`
+        );
+      }
+      if (country) countQ = countQ.or(`country.eq.${country},country_en.eq.${country}`);
+      if (statusFilter) countQ = countQ.eq('status', statusFilter);
+      const { count, error: countErr } = await countQ;
       if (countErr) throw countErr;
       totalCount = count;
 
@@ -117,7 +124,7 @@ export async function GET(request: NextRequest) {
         if (search) {
           const term = `%${search}%`;
           batchQ = batchQ.or(
-            `item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},country.ilike.${term},country_en.ilike.${term}`
+            `item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},brand.ilike.${term},country.ilike.${term},country_en.ilike.${term}`
           );
         }
         if (country) batchQ = batchQ.or(`country.eq.${country},country_en.eq.${country}`);
