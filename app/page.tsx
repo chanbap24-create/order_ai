@@ -238,7 +238,7 @@ export default function Home() {
               textTransform: 'uppercase',
               fontWeight: 500,
             }}>
-              Sales Automation
+              Sales Support
             </p>
           </div>
 

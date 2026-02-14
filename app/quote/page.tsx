@@ -554,11 +554,11 @@ export default function QuotePage() {
 
   return (
     <div style={{ minHeight: 'calc(100vh - 56px)', background: '#fafaf8', wordBreak: 'keep-all' as const }}>
-      <div className="ds-page">
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px 24px', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
 
         {/* ── 상단 헤더 ── */}
-        <div className="ds-page-header" style={{ marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-          <h1 className="ds-page-title">Quote</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 12px', flexWrap: 'wrap', gap: 12 }}>
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1a1a2e', margin: 0, fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.01em' }}>Quote</h1>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <input
               type="text"
@@ -568,12 +568,40 @@ export default function QuotePage() {
               onChange={e => setClientName(e.target.value)}
               style={{ width: 160 }}
             />
-            <div className="ds-tab-group">
+            <button
+              className={`ds-btn ${showSearch ? 'ds-btn-primary' : 'ds-btn-secondary'}`}
+              onClick={() => {
+                const next = !showSearch;
+                setShowSearch(next);
+                if (next) {
+                  loadFilterOptions(searchSource);
+                }
+              }}
+            >
+              {showSearch ? '닫기' : '+ Add'}
+            </button>
+            <div style={{
+              display: 'flex',
+              background: '#F0EFED',
+              borderRadius: 8,
+              padding: 2,
+            }}>
               {(['CDV', 'DL'] as const).map(c => (
                 <button
                   key={c}
-                  className={`ds-tab${company === c ? ' active' : ''}`}
                   onClick={() => switchCompany(c)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 6,
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    background: company === c ? 'white' : 'transparent',
+                    color: company === c ? '#5A1515' : '#999',
+                    boxShadow: company === c ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  }}
                 >
                   {c}
                 </button>
@@ -589,18 +617,6 @@ export default function QuotePage() {
               }}
             >
               {exporting ? '생성 중...' : 'Excel'}
-            </button>
-            <button
-              className={`ds-btn ${showSearch ? 'ds-btn-primary' : 'ds-btn-secondary'}`}
-              onClick={() => {
-                const next = !showSearch;
-                setShowSearch(next);
-                if (next) {
-                  loadFilterOptions(searchSource);
-                }
-              }}
-            >
-              {showSearch ? '닫기' : '+ Add'}
             </button>
             <button
               className="ds-btn ds-btn-ghost"

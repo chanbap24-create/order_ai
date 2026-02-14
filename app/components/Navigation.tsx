@@ -388,7 +388,7 @@ export default function Navigation() {
             fontWeight: 500,
             margin: 0,
           }}>
-            Sales Automation
+            Sales Support
           </p>
         </div>
 

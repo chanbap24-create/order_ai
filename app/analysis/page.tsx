@@ -144,7 +144,7 @@ export default function AnalysisPage() {
   return (
     <>
       <style>{`
-        .analysis-root { padding: 24px; max-width: 1200px; margin: 0 auto; font-family: 'DM Sans', -apple-system, sans-serif; }
+        .analysis-root { padding: 0 16px 24px; max-width: 960px; margin: 0 auto; font-family: 'DM Sans', -apple-system, sans-serif; }
         .analysis-card { background: #fff; border: 1px solid #E8E8E8; border-radius: 12px; padding: 20px; }
         .analysis-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .analysis-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
@@ -154,7 +154,7 @@ export default function AnalysisPage() {
         .analysis-table td { padding: 10px 8px; border-bottom: 1px solid #F0F0F0; }
         .analysis-table tr:hover td { background: #faf5f5; }
         @media (max-width: 768px) {
-          .analysis-root { padding: 16px 12px; }
+          .analysis-root { padding: 0 16px 24px; }
           .analysis-grid2, .analysis-grid3 { grid-template-columns: 1fr; }
           .analysis-card { padding: 16px; }
           .analysis-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -163,7 +163,7 @@ export default function AnalysisPage() {
 
       <div className="analysis-root" style={{ opacity: mounted ? 1 : 0, transition: 'opacity 0.5s ease' }}>
         {/* Header */}
-        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ marginBottom: 24, marginTop: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1a1a2e', marginBottom: 4, fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.01em' }}>
               Analysis
@@ -171,43 +171,46 @@ export default function AnalysisPage() {
             <p style={{ fontSize: '0.82rem', color: '#8E8E93' }}>담당/부서/거래처별 출고 {isWine ? '와인' : '리델'} 분석</p>
           </div>
           {/* CDV / DL 토글 */}
-          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid #ddd', flexShrink: 0 }}>
-            <button
-              onClick={() => handleTypeChange('wine')}
-              style={{
-                padding: '8px 18px', border: 'none', cursor: 'pointer',
-                fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s',
-                background: isWine ? '#5A1515' : '#fff',
-                color: isWine ? '#fff' : '#666',
-              }}
-            >
-              CDV
-            </button>
-            <button
-              onClick={() => handleTypeChange('glass')}
-              style={{
-                padding: '8px 18px', border: 'none', cursor: 'pointer',
-                fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s',
-                background: !isWine ? '#5A1515' : '#fff',
-                color: !isWine ? '#fff' : '#666',
-                borderLeft: '1px solid #ddd',
-              }}
-            >
-              DL
-            </button>
+          <div style={{
+            display: 'flex',
+            background: '#F0EFED',
+            borderRadius: 8,
+            padding: 2,
+            flexShrink: 0,
+          }}>
+            {(['wine', 'glass'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => handleTypeChange(t)}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: type === t ? 'white' : 'transparent',
+                  color: type === t ? '#5A1515' : '#999',
+                  boxShadow: type === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                }}
+              >
+                {t === 'wine' ? 'CDV' : 'DL'}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Filter Card */}
         <div className="analysis-card" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end' }}>
             {/* 담당 */}
-            <div style={{ flex: '1 1 160px', minWidth: 140 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>담당</label>
+            <div style={{ flex: '1 1 100px', minWidth: 80 }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>담당</label>
               <select
                 value={manager}
                 onChange={e => setManager(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333' }}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333' }}
               >
                 <option value="">전체</option>
                 {filters.managers.map(m => <option key={m} value={m}>{m}</option>)}
@@ -215,12 +218,12 @@ export default function AnalysisPage() {
             </div>
 
             {/* 부서 */}
-            <div style={{ flex: '1 1 160px', minWidth: 140 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>부서</label>
+            <div style={{ flex: '1 1 100px', minWidth: 80 }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>부서</label>
               <select
                 value={department}
                 onChange={e => setDepartment(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333' }}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333' }}
               >
                 <option value="">전체</option>
                 {filters.departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -228,44 +231,44 @@ export default function AnalysisPage() {
             </div>
 
             {/* 기간 */}
-            <div style={{ flex: '1 1 140px', minWidth: 130 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>시작</label>
+            <div style={{ flex: '1 1 110px', minWidth: 100 }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>시작</label>
               <input
                 type="date"
                 value={startDate}
                 min={dateRange?.min || ''}
                 max={endDate || dateRange?.max || ''}
                 onChange={e => setStartDate(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }}
               />
             </div>
-            <div style={{ flex: '1 1 140px', minWidth: 130 }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>종료</label>
+            <div style={{ flex: '1 1 110px', minWidth: 100 }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>종료</label>
               <input
                 type="date"
                 value={endDate}
                 min={startDate || dateRange?.min || ''}
                 max={dateRange?.max || ''}
                 onChange={e => setEndDate(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }}
               />
             </div>
 
             {/* 거래처 */}
-            <div ref={suggestRef} style={{ flex: '1 1 200px', minWidth: 180, position: 'relative' }}>
-              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>거래처</label>
+            <div ref={suggestRef} style={{ flex: '1 1 140px', minWidth: 120, position: 'relative' }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>거래처</label>
               <input
                 type="text"
                 value={clientSearch}
                 onChange={e => handleClientSearch(e.target.value)}
                 onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                placeholder="거래처명 검색..."
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }}
+                placeholder="검색..."
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }}
               />
               {clientCode && (
                 <button
                   onClick={() => { setClientCode(''); setClientName(''); setClientSearch(''); }}
-                  style={{ position: 'absolute', right: 8, top: 26, background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '1rem' }}
+                  style={{ position: 'absolute', right: 6, top: 22, background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem' }}
                 >x</button>
               )}
               {showSuggestions && suggestions.length > 0 && (
@@ -291,18 +294,20 @@ export default function AnalysisPage() {
             </div>
 
             {/* 조회 */}
-            <div style={{ flex: '0 0 auto' }}>
+            <div style={{ flex: '0 0 auto', background: '#F0EFED', borderRadius: 6, padding: 2 }}>
               <button
                 onClick={loadData}
                 disabled={loading}
                 style={{
-                  padding: '9px 20px', borderRadius: 8, border: 'none',
-                  background: '#5A1515', color: '#fff',
-                  fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer',
+                  padding: '5px 12px', borderRadius: 5, border: 'none',
+                  background: 'white', color: '#5A1515',
+                  fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                  transition: 'all 0.2s ease',
                   opacity: loading ? 0.6 : 1,
                 }}
               >
-                {loading ? '조회 중...' : '조회'}
+                {loading ? '조회중' : '조회'}
               </button>
             </div>
           </div>

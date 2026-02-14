@@ -147,13 +147,17 @@ async function loadTastingNoteIndex(): Promise<Set<string>> {
 }
 
 const THIN: Partial<ExcelJS.Borders> = {
-  top: { style: 'thin' }, left: { style: 'thin' },
-  bottom: { style: 'thin' }, right: { style: 'thin' },
+  top: { style: 'thin', color: { argb: 'FFD5CEC8' } },
+  left: { style: 'thin', color: { argb: 'FFD5CEC8' } },
+  bottom: { style: 'thin', color: { argb: 'FFD5CEC8' } },
+  right: { style: 'thin', color: { argb: 'FFD5CEC8' } },
 };
 const CURR = '#,##0';
 const PCT = '0%';
-const BLUE_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6EAF8' } };
-const YELLOW_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
+const HEADER_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3D1C1C' } };
+const ALT_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F7F5' } };
+const SUMMARY_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0EBE6' } };
+const FONT = '맑은 고딕';
 
 function fmtDate(d: Date): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
@@ -176,7 +180,7 @@ function sc(
     vertical: 'middle',
     wrapText: o?.wrap ?? false,
   };
-  const font: Partial<ExcelJS.Font> = { name: '굴림' };
+  const font: Partial<ExcelJS.Font> = { name: FONT };
   if (o?.bold) font.bold = true;
   if (o?.color) font.color = { argb: o.color };
   if (o?.size) font.size = o.size;
@@ -193,7 +197,7 @@ function sf(
   if (o?.border) cell.border = o.border;
   if (o?.fmt) cell.numFmt = o.fmt;
   cell.alignment = { horizontal: 'right', vertical: 'middle' };
-  const font: Partial<ExcelJS.Font> = { name: '굴림' };
+  const font: Partial<ExcelJS.Font> = { name: FONT };
   if (o?.bold) font.bold = true;
   if (o?.color) font.color = { argb: o.color };
   cell.font = font;
@@ -335,26 +339,54 @@ async function buildQuote(
     const imgW = company === 'DL' ? Math.round(231 * (150 / 160)) : Math.round(307 * (100 / 100));
     const rowHeight = imgH + 10;
     ws.getRow(3).height = rowHeight * 0.75;
-    const totalWidthPx = activeCols.reduce((sum, c) => sum + c.width * 7.5, 0);
-    const offsetPx = (totalWidthPx - imgW) / 2;
-    let accPx = 0;
-    let centerCol = 0;
-    for (let i = 0; i < activeCols.length; i++) {
-      const colPx = activeCols[i].width * 7.5;
-      if (accPx + colPx > offsetPx) {
-        centerCol = i + (offsetPx - accPx) / colPx;
-        break;
-      }
-      accPx += colPx;
+
+    // EMU 기반 정밀 중앙 배치
+    const PX_EMU = 9525;
+    const PT_EMU = 12700;
+    const imgWEmu = imgW * PX_EMU;
+    const imgHEmu = imgH * PX_EMU;
+
+    // 전체 시트 폭을 EMU로 계산 (Excel 컬럼 width → px: (width * 7 + 5) px)
+    let totalWEmu = 0;
+    const colOffsets: number[] = [0]; // 각 컬럼 시작점 EMU
+    for (const col of activeCols) {
+      const colPxW = col.width * 7 + 5;
+      totalWEmu += colPxW * PX_EMU;
+      colOffsets.push(totalWEmu);
     }
+
+    // 로고 좌측 시작 EMU 오프셋
+    const logoLeftEmu = Math.round((totalWEmu - imgWEmu) / 2);
+    // 로고 우측 끝 EMU
+    const logoRightEmu = logoLeftEmu + imgWEmu;
+
+    // Row 3의 세로 중앙 (row 2 = 0-indexed)
+    const row3HEmu = rowHeight * 0.75 * PT_EMU;
+    const logoTopEmu = Math.round((row3HEmu - imgHEmu) / 2);
+
+    // EMU → nativeCol + nativeColOff 변환
+    let tlCol = 0, tlOff = logoLeftEmu;
+    for (let i = 0; i < activeCols.length; i++) {
+      if (tlOff < (colOffsets[i + 1] - colOffsets[i])) break;
+      tlOff -= (colOffsets[i + 1] - colOffsets[i]);
+      tlCol = i + 1;
+    }
+    let brCol = 0, brOff = logoRightEmu;
+    for (let i = 0; i < activeCols.length; i++) {
+      if (brOff < (colOffsets[i + 1] - colOffsets[i])) break;
+      brOff -= (colOffsets[i + 1] - colOffsets[i]);
+      brCol = i + 1;
+    }
+
     ws.addImage(logoId, {
-      tl: { col: centerCol, row: 2 } as ExcelJS.Anchor,
-      ext: { width: imgW, height: imgH },
-    });
+      tl: { nativeCol: tlCol, nativeColOff: tlOff, nativeRow: 2, nativeRowOff: Math.max(0, logoTopEmu) } as any,
+      br: { nativeCol: brCol, nativeColOff: brOff, nativeRow: 2, nativeRowOff: Math.max(0, logoTopEmu) + imgHEmu } as any,
+      editAs: 'oneCell',
+    } as any);
   } else {
     const titleCell = ws.getCell('A3');
     titleCell.value = doc.companyName;
-    titleCell.font = { name: '굴림', size: 16, bold: true };
+    titleCell.font = { name: FONT, size: 16, bold: true };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     ws.getRow(3).height = 30;
   }
@@ -362,19 +394,19 @@ async function buildQuote(
   // Row 4: 한글 주소
   ws.mergeCells(`A4:${lastCol}4`);
   ws.getCell('A4').value = doc.address;
-  ws.getCell('A4').font = { name: '굴림', size: 8 };
+  ws.getCell('A4').font = { name: FONT, size: 8 };
   ws.getCell('A4').alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 5: 영문 주소
   ws.mergeCells(`A5:${lastCol}5`);
   ws.getCell('A5').value = doc.addressEn || '';
-  ws.getCell('A5').font = { name: '굴림', size: 7 };
+  ws.getCell('A5').font = { name: FONT, size: 7 };
   ws.getCell('A5').alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 6: 웹사이트/SNS URL
   ws.mergeCells(`A6:${lastCol}6`);
   ws.getCell('A6').value = doc.websiteUrl || '';
-  ws.getCell('A6').font = { name: '굴림', size: 7 };
+  ws.getCell('A6').font = { name: FONT, size: 7 };
   ws.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 7~10: spacer (URL ↔ 수신 여백 4줄)
@@ -385,9 +417,9 @@ async function buildQuote(
 
   // Row 11: 수신 + date
   ws.getCell('A11').value = `수      신 : ${clientName || ''}`;
-  ws.getCell('A11').font = { name: '굴림', size: 11 };
+  ws.getCell('A11').font = { name: FONT, size: 11 };
   ws.getCell(`${lastCol}11`).value = fmtDate(new Date());
-  ws.getCell(`${lastCol}11`).font = { name: '굴림', size: 11 };
+  ws.getCell(`${lastCol}11`).font = { name: FONT, size: 11 };
   ws.getCell(`${lastCol}11`).alignment = { horizontal: 'right', vertical: 'middle' };
 
   // Row 12: spacer (수신↔발신)
@@ -395,28 +427,28 @@ async function buildQuote(
 
   // Row 13: 발신
   ws.getCell('A13').value = `발      신 : ${doc.sender}`;
-  ws.getCell('A13').font = { name: '굴림', size: 11 };
+  ws.getCell('A13').font = { name: FONT, size: 11 };
 
   // Row 14: spacer (발신↔제목)
   ws.getRow(14).height = 12.5;
 
   // Row 15: 제목
   ws.getCell('A15').value = `제    목 : ${doc.title}`;
-  ws.getCell('A15').font = { name: '굴림', size: 11, bold: true };
+  ws.getCell('A15').font = { name: FONT, size: 11, bold: true };
 
   // Row 16: spacer
   ws.getRow(16).height = 8;
 
   // Row 17: 내용 1
   ws.getCell('A17').value = doc.content1;
-  ws.getCell('A17').font = { name: '굴림', size: 11 };
+  ws.getCell('A17').font = { name: FONT, size: 11 };
 
   // Row 18: spacer (내용1↔내용2)
   ws.getRow(18).height = 12.5;
 
   // Row 19: 내용 2
   ws.getCell('A19').value = doc.content2;
-  ws.getCell('A19').font = { name: '굴림', size: 11 };
+  ws.getCell('A19').font = { name: FONT, size: 11 };
 
   // Row 20: spacer
   ws.getRow(20).height = 8;
@@ -424,30 +456,32 @@ async function buildQuote(
   // Row 21: 내용 3 (centered)
   ws.mergeCells(`A21:${lastCol}21`);
   ws.getCell('A21').value = doc.content3;
-  ws.getCell('A21').font = { name: '굴림', size: 11 };
+  ws.getCell('A21').font = { name: FONT, size: 11 };
   ws.getCell('A21').alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Row 22: 제품 및 가격 + 단위
   ws.getCell('A22').value = '1. 제품 및 가격 :';
-  ws.getCell('A22').font = { name: '굴림', size: 10 };
+  ws.getCell('A22').font = { name: FONT, size: 10 };
   const unitStartCol = colLetter(Math.max(1, totalCols - 2));
   if (totalCols > 3) {
     ws.mergeCells(`${unitStartCol}22:${lastCol}22`);
   }
   ws.getCell(`${unitStartCol}22`).value = doc.unit;
-  ws.getCell(`${unitStartCol}22`).font = { name: '굴림', size: 11, bold: true };
+  ws.getCell(`${unitStartCol}22`).font = { name: FONT, size: 11, bold: true };
   ws.getCell(`${unitStartCol}22`).alignment = { horizontal: 'right', vertical: 'middle' };
   ws.getCell(`${unitStartCol}22`).border = { bottom: { style: 'medium' } };
 
   // ── Column headers (Row 23) ──
   const hBorder: Partial<ExcelJS.Borders> = {
-    top: { style: 'medium' }, bottom: { style: 'double' },
-    left: { style: 'thin' }, right: { style: 'thin' },
+    top: { style: 'thin', color: { argb: 'FF2D1A1A' } },
+    bottom: { style: 'thin', color: { argb: 'FF2D1A1A' } },
+    left: { style: 'thin', color: { argb: 'FF5A3030' } },
+    right: { style: 'thin', color: { argb: 'FF5A3030' } },
   };
   const hRow = ws.getRow(23);
   hRow.height = 32;
   activeCols.forEach((col, i) => {
-    sc(hRow, i + 1, col.label, { border: hBorder, fill: BLUE_FILL, bold: true, size: 10, wrap: true });
+    sc(hRow, i + 1, col.label, { border: hBorder, fill: HEADER_FILL, bold: true, size: 10, wrap: true, color: 'FFFFFFFF' });
   });
 
   // ── Data rows (Row 24+) ──
@@ -461,13 +495,15 @@ async function buildQuote(
     const row = ws.getRow(r);
     row.height = hasImageCol ? IMG_ROW_HEIGHT : 24;
 
+    const rowFill = idx % 2 === 1 ? ALT_FILL : undefined;
+
     for (let ci = 0; ci < activeCols.length; ci++) {
       const col = activeCols[ci];
       const c = ci + 1;
 
       // No.
       if (col.type === 'index') {
-        sc(row, c, idx + 1, { border: THIN });
+        sc(row, c, idx + 1, { border: THIN, fill: rowFill });
         continue;
       }
 
@@ -475,12 +511,13 @@ async function buildQuote(
       if (col.type === 'image') {
         const cell = row.getCell(c);
         cell.border = THIN;
+        if (rowFill) cell.fill = rowFill;
         const itemCode = item.item_code || '';
         const imgPath = itemCode ? await getBottleImagePath(itemCode) : null;
         if (imgPath) {
           const rawExt = path.extname(imgPath).replace('.', '').toLowerCase();
           if (rawExt === 'tiff' || rawExt === 'tif') {
-            sc(row, c, itemCode, { border: THIN, size: 8, color: 'FF999999' });
+            sc(row, c, itemCode, { border: THIN, size: 8, color: 'FF999999', fill: rowFill });
           } else {
             const imgBuf = fs.readFileSync(imgPath);
             const ext = (rawExt === 'jpg' ? 'jpeg' : rawExt) as 'png' | 'jpeg' | 'gif';
@@ -531,49 +568,49 @@ async function buildQuote(
           if (pos['supply_price'] && pos['discount_rate']) {
             const sp = colLetter(pos['supply_price']);
             const dr = colLetter(pos['discount_rate']);
-            sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000' });
+            sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
           } else {
-            sc(row, c, Math.round((item.supply_price || 0) * (1 - (item.discount_rate || 0))), { border: THIN, fmt: CURR, color: 'FFFF0000' });
+            sc(row, c, Math.round((item.supply_price || 0) * (1 - (item.discount_rate || 0))), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
           }
         } else if (col.uiKey === 'normal_total') {
           if (pos['supply_price'] && pos['quantity']) {
             const sp = colLetter(pos['supply_price']);
             const qty = colLetter(pos['quantity']);
-            sf(row, c, `IFERROR(${sp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR });
+            sf(row, c, `IFERROR(${sp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill });
           } else {
-            sc(row, c, (item.supply_price || 0) * (item.quantity || 0), { border: THIN, fmt: CURR });
+            sc(row, c, (item.supply_price || 0) * (item.quantity || 0), { border: THIN, fmt: CURR, fill: rowFill });
           }
         } else if (col.uiKey === 'discount_total') {
           if (pos['supply_price'] && pos['discount_rate'] && pos['quantity']) {
             const sp = colLetter(pos['supply_price']);
             const dr = colLetter(pos['discount_rate']);
             const qty = colLetter(pos['quantity']);
-            sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+            sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
           } else if (pos['discounted_price'] && pos['quantity']) {
             const dp = colLetter(pos['discounted_price']);
             const qty = colLetter(pos['quantity']);
-            sf(row, c, `IFERROR(${dp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+            sf(row, c, `IFERROR(${dp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
           } else {
             const dp = Math.round((item.supply_price || 0) * (1 - (item.discount_rate || 0)));
-            sc(row, c, dp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+            sc(row, c, dp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
           }
         } else if (col.uiKey === 'retail_normal_total') {
           if (pos['retail_price'] && pos['quantity']) {
             const rp = colLetter(pos['retail_price']);
             const qty = colLetter(pos['quantity']);
-            sf(row, c, `IFERROR(${rp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR });
+            sf(row, c, `IFERROR(${rp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill });
           } else {
-            sc(row, c, (item.retail_price || 0) * (item.quantity || 0), { border: THIN, fmt: CURR });
+            sc(row, c, (item.retail_price || 0) * (item.quantity || 0), { border: THIN, fmt: CURR, fill: rowFill });
           }
         } else if (col.uiKey === 'retail_discount_total') {
           if (pos['retail_price'] && pos['discount_rate'] && pos['quantity']) {
             const rp = colLetter(pos['retail_price']);
             const dr = colLetter(pos['discount_rate']);
             const qty = colLetter(pos['quantity']);
-            sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+            sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
           } else {
             const rdp = Math.round((item.retail_price || 0) * (1 - (item.discount_rate || 0)));
-            sc(row, c, rdp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: YELLOW_FILL });
+            sc(row, c, rdp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
           }
         }
         continue;
@@ -588,15 +625,16 @@ async function buildQuote(
           const cell = row.getCell(c);
           if (exists) {
             cell.value = { text: '테이스팅노트', hyperlink: pdfUrl } as ExcelJS.CellHyperlinkValue;
-            cell.font = { name: '굴림', size: 9, color: { argb: 'FF27AE60' }, underline: true };
+            cell.font = { name: FONT, size: 9, color: { argb: 'FF27AE60' }, underline: true };
           } else {
             cell.value = '테이스팅노트(없음)';
-            cell.font = { name: '굴림', size: 9, color: { argb: 'FF8B1538' } };
+            cell.font = { name: FONT, size: 9, color: { argb: 'FF8B1538' } };
           }
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = THIN;
+          if (rowFill) cell.fill = rowFill;
         } else {
-          sc(row, c, '', { border: THIN });
+          sc(row, c, '', { border: THIN, fill: rowFill });
         }
         continue;
       }
@@ -605,11 +643,11 @@ async function buildQuote(
       const val = col.dataField ? (item[col.dataField] ?? '') : '';
 
       if (col.type === 'currency') {
-        sc(row, c, Number(val) || 0, { border: THIN, fmt: CURR });
+        sc(row, c, Number(val) || 0, { border: THIN, fmt: CURR, fill: rowFill });
       } else if (col.type === 'percent') {
-        sc(row, c, Number(val) || 0, { border: THIN, fmt: PCT, color: 'FFFF0000', align: 'center' });
+        sc(row, c, Number(val) || 0, { border: THIN, fmt: PCT, color: 'FFFF0000', align: 'center', fill: rowFill });
       } else if (col.type === 'number') {
-        sc(row, c, Number(val) || 0, { border: THIN, align: 'center' });
+        sc(row, c, Number(val) || 0, { border: THIN, align: 'center', fill: rowFill });
       } else {
         const leftAlign = ['product_name', 'english_name', 'korean_name', 'note', 'tasting_note', 'region', 'grape_varieties'].includes(col.uiKey || '');
         const bold = col.uiKey === 'product_name' || col.uiKey === 'korean_name';
@@ -621,6 +659,7 @@ async function buildQuote(
           wrap: true,
           color: isNote ? 'FFFF0000' : undefined,
           size: (col.uiKey === 'tasting_note' || col.uiKey === 'note') ? 9 : undefined,
+          fill: rowFill,
         });
       }
     }
@@ -634,47 +673,47 @@ async function buildQuote(
 
     for (let c = 1; c <= totalCols; c++) {
       row.getCell(c).border = THIN;
-      row.getCell(c).fill = YELLOW_FILL;
+      row.getCell(c).fill = SUMMARY_FILL;
     }
 
     // "합계" label in best column
     const labelCol = pos['product_name'] || pos['korean_name'] || pos['english_name'] || pos['item_code'] || 1;
-    sc(row, labelCol, '합계', { border: THIN, fill: YELLOW_FILL, bold: true, size: 11 });
+    sc(row, labelCol, '합계', { border: THIN, fill: SUMMARY_FILL, bold: true, size: 11 });
 
     // Quantity sum
     if (pos['quantity']) {
       const cl = colLetter(pos['quantity']);
-      sf(row, pos['quantity'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, bold: true, fill: YELLOW_FILL });
+      sf(row, pos['quantity'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, bold: true, fill: SUMMARY_FILL });
     }
 
     // Normal total sum
     if (pos['normal_total']) {
       const cl = colLetter(pos['normal_total']);
-      sf(row, pos['normal_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
+      sf(row, pos['normal_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: SUMMARY_FILL });
     }
 
     // Discount total sum
     if (pos['discount_total']) {
       const cl = colLetter(pos['discount_total']);
-      sf(row, pos['discount_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
+      sf(row, pos['discount_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: SUMMARY_FILL });
     }
 
     // Retail normal total sum
     if (pos['retail_normal_total']) {
       const cl = colLetter(pos['retail_normal_total']);
-      sf(row, pos['retail_normal_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
+      sf(row, pos['retail_normal_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: SUMMARY_FILL });
     }
 
     // Retail discount total sum
     if (pos['retail_discount_total']) {
       const cl = colLetter(pos['retail_discount_total']);
-      sf(row, pos['retail_discount_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: YELLOW_FILL });
+      sf(row, pos['retail_discount_total'], `SUM(${cl}${DS}:${cl}${sumR - 1})`, { border: THIN, fmt: CURR, bold: true, fill: SUMMARY_FILL });
     }
 
     // ── Footer ──
     const endR = sumR + 1;
     ws.getCell(`${lastCol}${endR}`).value = '-끝-';
-    ws.getCell(`${lastCol}${endR}`).font = { name: '굴림', size: 11 };
+    ws.getCell(`${lastCol}${endR}`).font = { name: FONT, size: 11 };
     ws.getCell(`${lastCol}${endR}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
     // Signature block (끝 아래 2줄 여백 추가)
@@ -683,17 +722,17 @@ async function buildQuote(
 
     ws.mergeCells(`${sigStart}${sigR}:${lastCol}${sigR}`);
     ws.getCell(`${sigStart}${sigR}`).value = doc.companyName;
-    ws.getCell(`${sigStart}${sigR}`).font = { name: '굴림', size: 16, bold: true };
+    ws.getCell(`${sigStart}${sigR}`).font = { name: FONT, size: 16, bold: true };
     ws.getCell(`${sigStart}${sigR}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
     ws.mergeCells(`${sigStart}${sigR + 1}:${lastCol}${sigR + 1}`);
     ws.getCell(`${sigStart}${sigR + 1}`).value = doc.representative;
-    ws.getCell(`${sigStart}${sigR + 1}`).font = { name: '굴림', size: 16, bold: true };
+    ws.getCell(`${sigStart}${sigR + 1}`).font = { name: FONT, size: 16, bold: true };
     ws.getCell(`${sigStart}${sigR + 1}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
     ws.mergeCells(`${sigStart}${sigR + 2}:${lastCol}${sigR + 2}`);
     ws.getCell(`${sigStart}${sigR + 2}`).value = doc.sealText;
-    ws.getCell(`${sigStart}${sigR + 2}`).font = { name: '굴림', size: 11 };
+    ws.getCell(`${sigStart}${sigR + 2}`).font = { name: FONT, size: 11 };
     ws.getCell(`${sigStart}${sigR + 2}`).alignment = { horizontal: 'right', vertical: 'middle' };
   }
 

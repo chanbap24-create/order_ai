@@ -827,22 +827,23 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           </div>
 
       {/* ===== Controls (입력창 아래로 이동) ===== */}
-      <div style={{ display: "flex", gap: 4, marginTop: 12, alignItems: "center", background: "rgba(90,21,21,0.04)", padding: 3, borderRadius: 8 }}>
+      <div style={{ display: "flex", gap: 2, marginTop: 12, alignItems: "center", background: "#F0EFED", padding: 2, borderRadius: 8 }}>
         <button
           onClick={run}
           disabled={loading}
           style={{
-            height: 36,
-            padding: "0 16px",
+            padding: "6px 14px",
             borderRadius: 6,
             border: "none",
-            cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "#ccc" : "#5A1515",
-            color: "white",
+            fontSize: "0.75rem",
             fontWeight: 600,
-            fontSize: "0.8rem",
-            letterSpacing: "0.02em",
+            cursor: loading ? "not-allowed" : "pointer",
+            transition: "all 0.2s ease",
+            background: "white",
+            color: "#5A1515",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
             whiteSpace: "nowrap" as const,
+            opacity: loading ? 0.6 : 1,
           }}
         >
           {loading ? "생성중..." : "생성"}
@@ -852,22 +853,24 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           onClick={clearAll}
           disabled={loading || (!text.trim() && !data)}
           style={{
-            height: 36,
-            padding: "0 16px",
+            padding: "6px 14px",
             borderRadius: 6,
             border: "none",
+            fontSize: "0.75rem",
+            fontWeight: 600,
             cursor: loading || (!text.trim() && !data) ? "not-allowed" : "pointer",
-            background: loading || (!text.trim() && !data) ? "transparent" : "rgba(90,21,21,0.06)",
-            color: "#666",
-            fontWeight: 500,
-            fontSize: "0.8rem",
-            letterSpacing: "0.02em",
+            transition: "all 0.2s ease",
+            background: "transparent",
+            color: loading || (!text.trim() && !data) ? "#ccc" : "#999",
+            boxShadow: "none",
             whiteSpace: "nowrap" as const,
           }}
           title="입력된 내용을 지우고 결과를 초기화합니다"
         >
           지우기
         </button>
+
+        <div style={{ flex: 1 }} />
 
         {/* ===== 클립보드 붙여넣기 버튼 ===== */}
         <div
@@ -887,23 +890,16 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
             }
           }}
           style={{
-            height: 36,
-            padding: "0 16px",
+            padding: "6px 14px",
             borderRadius: 6,
-            border: hasClipboard ? "2px solid #5A1515" : "none",
+            border: "none",
+            fontSize: "0.75rem",
+            fontWeight: 600,
             cursor: loading ? "not-allowed" : "pointer",
-            background: loading ? "transparent" : hasClipboard ? "#5A1515" : "rgba(90,21,21,0.06)",
-            color: hasClipboard ? "#fff" : "#666",
-            fontWeight: hasClipboard ? 600 : 500,
-            fontSize: "0.8rem",
-            letterSpacing: "0.02em",
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: hasClipboard ? "0 0 12px rgba(90,21,21,0.3)" : "none",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: hasClipboard ? "scale(1.05)" : "scale(1)",
+            transition: "all 0.2s ease",
+            background: hasClipboard ? "white" : "transparent",
+            color: hasClipboard ? "#5A1515" : "#999",
+            boxShadow: hasClipboard ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             userSelect: "none",
             WebkitTouchCallout: "none",
             whiteSpace: "nowrap",
