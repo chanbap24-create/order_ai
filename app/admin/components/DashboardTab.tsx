@@ -470,39 +470,56 @@ export default function DashboardTab() {
         const showDl = source !== 'cdv' && (stats.inventoryByItemDl?.length ?? 0) > 0;
         if (!showCdv && !showDl) return null;
 
-        const renderTable = (items: NonNullable<DashboardStats['inventoryByItemCdv']>, label: string, color: string) => (
-          <Card>
-            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
-              <span style={{ color }}>{label}</span> 품목별 재고 Top {items.length}
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-xs)' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--color-border)', background: 'var(--color-bg-light, #fafafa)' }}>
-                    <th style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, width: 30 }}>#</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>품번</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>품명</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>브랜드</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>국가</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>재고가액</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it, i) => (
-                    <tr key={it.itemNo} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: '5px 8px', textAlign: 'center', color: 'var(--color-text-lighter)' }}>{i + 1}</td>
-                      <td style={{ padding: '5px 8px', fontFamily: 'monospace', fontSize: 11 }}>{it.itemNo}</td>
-                      <td style={{ padding: '5px 8px', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</td>
-                      <td style={{ padding: '5px 8px' }}>{it.brand}</td>
-                      <td style={{ padding: '5px 8px' }}>{it.country}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{formatKrw(it.value)}원</td>
+        const renderTable = (items: NonNullable<DashboardStats['inventoryByItemCdv']>, label: string, color: string) => {
+          // 회전률 기준: 90일 출고가 재고의 10% 미만이면서 재고가액이 상위 30%
+          const valueThreshold = items.length >= 3 ? items[Math.floor(items.length * 0.3) - 1]?.value ?? 0 : 0;
+          const isSlowMover = (it: typeof items[0]) => {
+            const qty = it.qty || 0;
+            const s90 = it.ship90 || 0;
+            // 90일 출고가 재고의 10% 미만 & 재고가액이 상위 30%
+            return qty > 0 && s90 < qty * 0.1 && it.value >= valueThreshold;
+          };
+
+          return (
+            <Card>
+              <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
+                <span style={{ color }}>{label}</span> 품목별 재고 Top {items.length}
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-xs)' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)', background: 'var(--color-bg-light, #fafafa)' }}>
+                      <th style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, width: 30 }}>#</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>품번</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>품명</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>재고</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>30일</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>90일</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>재고가액</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        );
+                  </thead>
+                  <tbody>
+                    {items.map((it, i) => {
+                      const slow = isSlowMover(it);
+                      const rowColor = slow ? '#E53E3E' : undefined;
+                      return (
+                        <tr key={it.itemNo} style={{ borderBottom: '1px solid var(--color-border)', color: rowColor, fontWeight: slow ? 600 : undefined }}>
+                          <td style={{ padding: '5px 8px', textAlign: 'center', color: slow ? '#E53E3E' : 'var(--color-text-lighter)' }}>{i + 1}</td>
+                          <td style={{ padding: '5px 8px', fontFamily: 'monospace', fontSize: 11 }}>{it.itemNo}</td>
+                          <td style={{ padding: '5px 8px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{it.qty ?? 0}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{it.ship30 ?? 0}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{it.ship90 ?? 0}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600 }}>{formatKrw(it.value)}원</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          );
+        };
 
         return (
           <div style={{ display: 'grid', gridTemplateColumns: showCdv && showDl ? 'repeat(auto-fit, minmax(400px, 1fr))' : '1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>

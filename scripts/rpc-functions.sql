@@ -1,23 +1,4 @@
-// scripts/create-rpc-functions.js
-// Supabase에 집계용 Postgres 함수(RPC) 배포 (pg 직접 연결)
-// 사용법: node scripts/create-rpc-functions.js
-
-const fs = require('fs');
-
-// .env.local 읽기
-const env = fs.readFileSync('.env.local', 'utf8');
-const vars = {};
-env.split('\n').forEach(l => {
-  const idx = l.indexOf('=');
-  if (idx > 0) vars[l.substring(0, idx).trim()] = l.substring(idx + 1).trim();
-});
-
-const accessToken = vars.SUPABASE_ACCESS_TOKEN;
-const projectRef = 'nunuyropsfoaafkustli';
-
-// ── SQL 함수 정의 ──
-
-const fn_shipment_filters = `
+-- ── fn_shipment_filters ──
 CREATE OR REPLACE FUNCTION fn_shipment_filters(p_type TEXT)
 RETURNS JSON AS $$
 DECLARE
@@ -42,9 +23,8 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
 
-const fn_client_analysis = `
+-- ── fn_client_analysis ──
 CREATE OR REPLACE FUNCTION fn_client_analysis(
   p_type TEXT,
   p_manager TEXT DEFAULT '',
@@ -71,8 +51,8 @@ BEGIN
   IF p_manager <> '' THEN where_clause := where_clause || format(' AND manager = %L', p_manager); END IF;
   IF p_department <> '' THEN where_clause := where_clause || format(' AND department = %L', p_department); END IF;
   IF p_business_type <> '' THEN where_clause := where_clause || format(' AND business_type = %L', p_business_type); END IF;
-  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date >= %L::date', p_start_date); END IF;
-  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date <= %L::date', p_end_date); END IF;
+  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date >= %L::date', p_start_date); END IF;
+  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date <= %L::date', p_end_date); END IF;
   IF p_client_search <> '' THEN where_clause := where_clause || format(' AND client_name ILIKE %L', '%%' || p_client_search || '%%'); END IF;
 
   -- 이전 기간 계산
@@ -81,8 +61,8 @@ BEGIN
     prev_end := (p_start_date::date - 1)::TEXT;
     prev_start := (p_start_date::date - 1 - days_diff)::TEXT;
     prev_where := where_clause;
-    prev_where := replace(prev_where, format('ship_date::date >= %L::date', p_start_date), format('ship_date::date >= %L::date', prev_start));
-    prev_where := replace(prev_where, format('ship_date::date <= %L::date', p_end_date), format('ship_date::date <= %L::date', prev_end));
+    prev_where := replace(prev_where, format('ship_date >= %L::date', p_start_date), format('ship_date >= %L::date', prev_start));
+    prev_where := replace(prev_where, format('ship_date <= %L::date', p_end_date), format('ship_date <= %L::date', prev_end));
   END IF;
 
   EXECUTE format(
@@ -119,7 +99,7 @@ BEGIN
      brand_agg AS (
        SELECT CASE
          WHEN %L = ''glass'' AND upper(split_part(item_name, '' '', 1)) = ''RD''
-           THEN (regexp_match(split_part(item_name, '' '', 2), ''(\\d{3,5})''))[1]
+           THEN (regexp_match(split_part(item_name, '' '', 2), ''(\d{3,5})''))[1]
          WHEN %L <> ''glass'' AND split_part(item_name, '' '', 1) ~ ''^[A-Za-z]{2,4}$''
            THEN upper(split_part(item_name, '' '', 1))
          ELSE NULL END AS name,
@@ -127,7 +107,7 @@ BEGIN
        FROM filtered WHERE item_name IS NOT NULL GROUP BY 1
        HAVING CASE
          WHEN %L = ''glass'' AND upper(split_part(item_name, '' '', 1)) = ''RD''
-           THEN (regexp_match(split_part(item_name, '' '', 2), ''(\\d{3,5})''))[1]
+           THEN (regexp_match(split_part(item_name, '' '', 2), ''(\d{3,5})''))[1]
          WHEN %L <> ''glass'' AND split_part(item_name, '' '', 1) ~ ''^[A-Za-z]{2,4}$''
            THEN upper(split_part(item_name, '' '', 1))
          ELSE NULL END IS NOT NULL
@@ -205,9 +185,8 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
 
-const fn_client_detail = `
+-- ── fn_client_detail ──
 CREATE OR REPLACE FUNCTION fn_client_detail(
   p_type TEXT,
   p_client_code TEXT,
@@ -225,8 +204,8 @@ BEGIN
   ELSE tbl := 'shipments'; inv_tbl := 'inventory_cdv'; END IF;
 
   where_clause := format('WHERE client_code = %L', p_client_code);
-  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date >= %L::date', p_start_date); END IF;
-  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date <= %L::date', p_end_date); END IF;
+  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date >= %L::date', p_start_date); END IF;
+  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date <= %L::date', p_end_date); END IF;
 
   EXECUTE format(
     'SELECT COALESCE(json_agg(row_to_json(sub) ORDER BY sub.revenue DESC), ''[]''::json)
@@ -255,9 +234,8 @@ BEGIN
   RETURN json_build_object('clientItems', result);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
 
-const fn_inventory_summary_cdv = `
+-- ── fn_inventory_summary_cdv ──
 CREATE OR REPLACE FUNCTION fn_inventory_summary_cdv()
 RETURNS JSON AS $$
 DECLARE
@@ -311,9 +289,8 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
 
-const fn_inventory_summary_dl = `
+-- ── fn_inventory_summary_dl ──
 CREATE OR REPLACE FUNCTION fn_inventory_summary_dl()
 RETURNS JSON AS $$
 DECLARE
@@ -331,8 +308,8 @@ BEGIN
     ),
     'byBrand', (
       SELECT COALESCE(json_agg(row_to_json(sub)), '[]'::json) FROM (
-        SELECT CASE WHEN upper(split_part(item_name, ' ', 1)) = 'RD' AND (regexp_match(split_part(item_name, ' ', 2), '(\\d{3,5})'))[1] IS NOT NULL
-                    THEN (regexp_match(split_part(item_name, ' ', 2), '(\\d{3,5})'))[1]
+        SELECT CASE WHEN upper(split_part(item_name, ' ', 1)) = 'RD' AND (regexp_match(split_part(item_name, ' ', 2), '(\d{3,5})'))[1] IS NOT NULL
+                    THEN (regexp_match(split_part(item_name, ' ', 2), '(\d{3,5})'))[1]
                     ELSE '(기타)' END AS name,
                SUM((COALESCE(anseong_warehouse,0) + COALESCE(gig_warehouse,0) + COALESCE(gig_marketing,0) + COALESCE(gig_sales1,0)) * COALESCE(supply_price,0)) AS value
         FROM inventory_dl
@@ -367,9 +344,8 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
 
-const fn_manager_brands = `
+-- ── fn_manager_brands ──
 CREATE OR REPLACE FUNCTION fn_manager_brands(
   p_type TEXT,
   p_manager TEXT DEFAULT '',
@@ -390,8 +366,8 @@ BEGIN
   IF p_manager <> '' THEN where_clause := where_clause || format(' AND manager = %L', p_manager); END IF;
   IF p_department <> '' THEN where_clause := where_clause || format(' AND department = %L', p_department); END IF;
   IF p_business_type <> '' THEN where_clause := where_clause || format(' AND business_type = %L', p_business_type); END IF;
-  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date >= %L::date', p_start_date); END IF;
-  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date <= %L::date', p_end_date); END IF;
+  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date >= %L::date', p_start_date); END IF;
+  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date <= %L::date', p_end_date); END IF;
   IF p_client_search <> '' THEN where_clause := where_clause || format(' AND client_name ILIKE %L', '%%' || p_client_search || '%%'); END IF;
 
   EXECUTE format(
@@ -403,7 +379,7 @@ BEGIN
            FROM (
              SELECT CASE
                WHEN %L = ''glass'' AND upper(split_part(item_name, '' '', 1)) = ''RD''
-                 THEN (regexp_match(split_part(item_name, '' '', 2), ''(\\d{3,5})''))[1]
+                 THEN (regexp_match(split_part(item_name, '' '', 2), ''(\d{3,5})''))[1]
                WHEN %L <> ''glass'' AND split_part(item_name, '' '', 1) ~ ''^[A-Za-z]{2,4}$''
                  THEN upper(split_part(item_name, '' '', 1))
                ELSE NULL END AS brand,
@@ -411,7 +387,7 @@ BEGIN
              FROM %I sub2 %s AND COALESCE(NULLIF(sub2.manager,''''),''(미지정)'') = mgr
              GROUP BY 1 HAVING CASE
                WHEN %L = ''glass'' AND upper(split_part(item_name, '' '', 1)) = ''RD''
-                 THEN (regexp_match(split_part(item_name, '' '', 2), ''(\\d{3,5})''))[1]
+                 THEN (regexp_match(split_part(item_name, '' '', 2), ''(\d{3,5})''))[1]
                WHEN %L <> ''glass'' AND split_part(item_name, '' '', 1) ~ ''^[A-Za-z]{2,4}$''
                  THEN upper(split_part(item_name, '' '', 1))
                ELSE NULL END IS NOT NULL
@@ -442,51 +418,3 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-`;
-
-const functions = [
-  { name: 'fn_shipment_filters', sql: fn_shipment_filters },
-  { name: 'fn_client_analysis', sql: fn_client_analysis },
-  { name: 'fn_client_detail', sql: fn_client_detail },
-  { name: 'fn_inventory_summary_cdv', sql: fn_inventory_summary_cdv },
-  { name: 'fn_inventory_summary_dl', sql: fn_inventory_summary_dl },
-  { name: 'fn_manager_brands', sql: fn_manager_brands },
-];
-
-// Supabase Management API로 SQL 실행
-async function runSQL(query) {
-  const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status}: ${text}`);
-  }
-  return res.json();
-}
-
-async function run() {
-  console.log('Supabase Management API로 RPC 함수 배포...\n');
-
-  let ok = 0, fail = 0;
-
-  for (const fn of functions) {
-    try {
-      await runSQL(fn.sql);
-      ok++;
-      console.log('OK:', fn.name);
-    } catch (e) {
-      fail++;
-      console.log('FAIL:', fn.name, '->', (e.message || '').substring(0, 150));
-    }
-  }
-
-  console.log('\n=== Result: ' + ok + ' ok, ' + fail + ' fail ===');
-}
-
-run().catch(console.error);

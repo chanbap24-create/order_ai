@@ -128,8 +128,8 @@ export interface DashboardStats {
   inventoryByCountryDl?: Array<{ name: string; value: number }>;
   inventoryByBrandCdv?: Array<{ name: string; value: number }>;
   inventoryByBrandDl?: Array<{ name: string; value: number }>;
-  inventoryByItemCdv?: Array<{ itemNo: string; name: string; brand: string; country: string; value: number }>;
-  inventoryByItemDl?: Array<{ itemNo: string; name: string; brand: string; country: string; value: number }>;
+  inventoryByItemCdv?: Array<{ itemNo: string; name: string; qty: number; value: number; ship30: number; ship90: number }>;
+  inventoryByItemDl?: Array<{ itemNo: string; name: string; qty: number; value: number; ship30: number; ship90: number }>;
 }
 
 export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis';
