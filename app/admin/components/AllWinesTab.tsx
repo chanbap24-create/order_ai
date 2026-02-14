@@ -163,16 +163,6 @@ export default function AllWinesTab() {
               <option key={c.name} value={c.name}>{c.name} ({c.cnt})</option>
             ))}
           </select>
-          <select
-            style={{ padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, background: '#fff' }}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">전체 상태</option>
-            <option value="new">신규</option>
-            <option value="active">기존</option>
-            <option value="discontinued">단종</option>
-          </select>
           <button
             onClick={() => setHideZero(h => !h)}
             style={{
