@@ -189,6 +189,21 @@ export default function AllWinesTab() {
           >
             {deleting ? '삭제 중...' : `선택 삭제 (${checkedIds.size})`}
           </button>
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (search) params.set('search', search);
+              if (country) params.set('country', country);
+              if (hideZero) params.set('hideZero', '1');
+              window.open(`/api/admin/wines/export?${params}`, '_blank');
+            }}
+            style={{
+              padding: '6px 14px', borderRadius: 6, border: '1px solid #059669', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', background: '#ecfdf5', color: '#059669',
+            }}
+          >
+            Excel
+          </button>
         </div>
       </div>
 
