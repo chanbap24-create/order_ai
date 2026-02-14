@@ -173,9 +173,16 @@ export async function GET(request: NextRequest) {
 
     const total = hideZero ? wines.length : (totalCount || wines.length);
 
-    // 커스텀 정렬: 국가순서 → 브랜드(가격리스트순) → 가격 내림차순
+    // 커스텀 정렬: 검색어가 브랜드 코드면 해당 브랜드 우선 → 국가순서 → 브랜드(가격리스트순) → 가격 내림차순
     if (useCustomSort) {
+      const searchUpper = (search || '').toUpperCase().trim();
+      const isBrandSearch = searchUpper.length >= 2 && searchUpper.length <= 4 && /^[A-Z]+$/.test(searchUpper);
       wines.sort((a: any, b: any) => {
+        if (isBrandSearch) {
+          const aMatch = (a.brand || '').toUpperCase() === searchUpper ? 0 : 1;
+          const bMatch = (b.brand || '').toUpperCase() === searchUpper ? 0 : 1;
+          if (aMatch !== bMatch) return aMatch - bMatch;
+        }
         const co = getCountryOrder(a) - getCountryOrder(b);
         if (co !== 0) return co;
         const br = getBrandOrder(a) - getBrandOrder(b);
