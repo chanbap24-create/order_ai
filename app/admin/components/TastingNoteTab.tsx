@@ -13,6 +13,7 @@ export default function TastingNoteTab() {
   const [filterNote, setFilterNote] = useState<NoteFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [hideZero, setHideZero] = useState(true);
 
   // === GitHub 인덱스 ===
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
@@ -74,6 +75,7 @@ export default function TastingNoteTab() {
     !!(w.tasting_note_id || ghIndex[w.item_code]);
 
   const filteredWines = wines.filter(w => {
+    if (hideZero && ((w.inv_available || 0) + (w.inv_bonded || 0)) <= 0) return false;
     if (filterNote === 'with') return hasNote(w);
     if (filterNote === 'without') return !hasNote(w);
     return true;
@@ -332,10 +334,11 @@ export default function TastingNoteTab() {
   const updateField = (key: string, val: string) => setEditForm(prev => ({ ...prev, [key]: val }));
 
   // ───── 카운트 ─────
+  const stockFiltered = hideZero ? wines.filter(w => ((w.inv_available || 0) + (w.inv_bonded || 0)) > 0) : wines;
   const counts = {
-    all: wines.length,
-    with: wines.filter(w => hasNote(w)).length,
-    without: wines.filter(w => !hasNote(w)).length,
+    all: stockFiltered.length,
+    with: stockFiltered.filter(w => hasNote(w)).length,
+    without: stockFiltered.filter(w => !hasNote(w)).length,
   };
 
   // ───── 상태 배지 ─────
@@ -376,6 +379,18 @@ export default function TastingNoteTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <button
+            onClick={() => setHideZero(h => !h)}
+            style={{
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              border: hideZero ? '1px solid #8B1538' : '1px solid #d1d5db',
+              background: hideZero ? '#8B1538' : '#fff',
+              color: hideZero ? '#fff' : '#6b7280',
+              transition: 'all 0.15s',
+            }}
+          >
+            재고 있는 것만
+          </button>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button
