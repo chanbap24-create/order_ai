@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
       const hasCountry = !!(w.country_en || w.country);
       if (price <= 5000 || !hasCountry) return false;
       if (price <= 50000 && stock < 10) return false;
+      if (price <= 100000 && stock <= 5) return false;
       return true;
     });
 
