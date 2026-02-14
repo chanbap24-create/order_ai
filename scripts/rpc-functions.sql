@@ -272,12 +272,12 @@ BEGIN
         FROM inventory_cdv i
         LEFT JOIN (
           SELECT item_no, COALESCE(SUM(quantity),0) AS qty
-          FROM shipments WHERE ship_date >= CURRENT_DATE - 30
+          FROM shipments WHERE ship_date::date >= CURRENT_DATE - 30
           GROUP BY item_no
         ) s30 ON i.item_no = s30.item_no
         LEFT JOIN (
           SELECT item_no, COALESCE(SUM(quantity),0) AS qty
-          FROM shipments WHERE ship_date >= CURRENT_DATE - 90
+          FROM shipments WHERE ship_date::date >= CURRENT_DATE - 90
           GROUP BY item_no
         ) s90 ON i.item_no = s90.item_no
         WHERE (COALESCE(i.bonded_warehouse,0) + COALESCE(i.yongma_logistics,0)) * COALESCE(i.supply_price,0) > 0
@@ -327,12 +327,12 @@ BEGIN
         FROM inventory_dl i
         LEFT JOIN (
           SELECT item_no, COALESCE(SUM(quantity),0) AS qty
-          FROM glass_shipments WHERE ship_date >= CURRENT_DATE - 30
+          FROM glass_shipments WHERE ship_date::date >= CURRENT_DATE - 30
           GROUP BY item_no
         ) s30 ON i.item_no = s30.item_no
         LEFT JOIN (
           SELECT item_no, COALESCE(SUM(quantity),0) AS qty
-          FROM glass_shipments WHERE ship_date >= CURRENT_DATE - 90
+          FROM glass_shipments WHERE ship_date::date >= CURRENT_DATE - 90
           GROUP BY item_no
         ) s90 ON i.item_no = s90.item_no
         WHERE (COALESCE(i.anseong_warehouse,0) + COALESCE(i.gig_warehouse,0) + COALESCE(i.gig_marketing,0) + COALESCE(i.gig_sales1,0)) * COALESCE(i.supply_price,0) > 0
