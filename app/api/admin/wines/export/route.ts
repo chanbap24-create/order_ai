@@ -94,6 +94,14 @@ export async function GET(request: NextRequest) {
     }
     allWines = kept;
 
+    // 품번 중복 제거
+    const seen = new Set<string>();
+    allWines = allWines.filter(w => {
+      if (seen.has(w.item_code)) return false;
+      seen.add(w.item_code);
+      return true;
+    });
+
     // 커스텀 정렬 (국가 → 브랜드 → 가격)
     const COUNTRY_ORDER: Record<string, number> = {
       'England': 0, '영국': 0, 'France': 1, '프랑스': 1,
