@@ -26,6 +26,25 @@ export default function AllWinesTab() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [selectedWine, setSelectedWine] = useState<WineRowExt | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sortBy, setSortBy] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [hideZero, setHideZero] = useState(false);
+
+  const handleSort = (col: string) => {
+    if (sortBy === col) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortBy(''); setSortDir('asc'); } // 3번째 클릭: 정렬 해제
+    } else {
+      setSortBy(col);
+      setSortDir('asc');
+    }
+    setPage(1);
+  };
+
+  const sortArrow = (col: string) => {
+    if (sortBy !== col) return '';
+    return sortDir === 'asc' ? ' ▲' : ' ▼';
+  };
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
@@ -35,6 +54,8 @@ export default function AllWinesTab() {
     if (search) params.set('search', search);
     if (country) params.set('country', country);
     if (statusFilter) params.set('statusFilter', statusFilter);
+    if (sortBy) { params.set('sortBy', sortBy); params.set('sortDir', sortDir); }
+    if (hideZero) params.set('hideZero', '1');
     try {
       const res = await fetch(`/api/admin/wines/all?${params}`);
       const data = await res.json();
@@ -46,12 +67,12 @@ export default function AllWinesTab() {
       }
     } catch (e) { console.error('[AllWinesTab] fetch error:', e); }
     setLoading(false);
-  }, [search, country, statusFilter, page]);
+  }, [search, country, statusFilter, page, sortBy, sortDir, hideZero]);
 
   useEffect(() => { fetchWines(); }, [fetchWines]);
 
   // 검색 시 페이지 리셋
-  useEffect(() => { setPage(1); }, [search, country, statusFilter]);
+  useEffect(() => { setPage(1); }, [search, country, statusFilter, hideZero]);
 
   const toggleCheck = (id: string) => {
     setCheckedIds(prev => {
@@ -152,6 +173,18 @@ export default function AllWinesTab() {
             <option value="active">기존</option>
             <option value="discontinued">단종</option>
           </select>
+          <button
+            onClick={() => setHideZero(h => !h)}
+            style={{
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              border: hideZero ? '1px solid #8B1538' : '1px solid #d1d5db',
+              background: hideZero ? '#8B1538' : '#fff',
+              color: hideZero ? '#fff' : '#6b7280',
+              transition: 'all 0.15s',
+            }}
+          >
+            재고 있는 것만
+          </button>
           <span style={{ fontSize: 13, color: '#6b7280' }}>총 {total}개</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -175,24 +208,34 @@ export default function AllWinesTab() {
         <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
           {/* 테이블 헤더 */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '36px 90px 1fr 80px 80px 70px 80px 80px 50px',
+            display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
             padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
             fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
-            gap: 8, alignItems: 'center',
+            gap: 6, alignItems: 'center',
           }}>
-            <input
-              type="checkbox"
-              checked={wines.length > 0 && checkedIds.size === wines.length}
-              onChange={toggleAllChecks}
-              style={{ width: 16, height: 16, cursor: 'pointer' }}
-            />
-            <span>품번</span>
-            <span>한글명</span>
-            <span style={{ textAlign: 'right' }}>공급가</span>
-            <span style={{ textAlign: 'right' }}>재고</span>
-            <span style={{ textAlign: 'right' }}>보세</span>
-            <span>국가</span>
-            <span>상태</span>
+            {[
+              { key: 'item_code', label: '품번' },
+              { key: 'country_en', label: '국가' },
+              { key: 'region', label: '지역' },
+              { key: 'brand', label: '브랜드' },
+              { key: 'item_name_kr', label: '한글명' },
+              { key: 'supply_price', label: '공급가', right: true },
+              { key: 'available_stock', label: '재고', right: true },
+              { key: '', label: '보세', right: true },
+            ].map(col => (
+              <span
+                key={col.key || 'bonded'}
+                onClick={col.key ? () => handleSort(col.key) : undefined}
+                style={{
+                  cursor: col.key ? 'pointer' : 'default',
+                  textAlign: col.right ? 'right' : 'left',
+                  userSelect: 'none',
+                  color: sortBy === col.key ? '#8B1538' : '#6b7280',
+                }}
+              >
+                {col.label}{col.key ? sortArrow(col.key) : ''}
+              </span>
+            ))}
             <span></span>
           </div>
 
@@ -209,20 +252,16 @@ export default function AllWinesTab() {
                   key={w.item_code}
                   onClick={() => setSelectedWine(w)}
                   style={{
-                    display: 'grid', gridTemplateColumns: '36px 90px 1fr 80px 80px 70px 80px 80px 50px',
+                    display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
                     padding: '9px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
-                    background: isSelected ? '#eff6ff' : '#fff', gap: 8, alignItems: 'center',
+                    background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
                     borderLeft: isSelected ? '3px solid #2563eb' : '3px solid transparent',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={checkedIds.has(w.item_code)}
-                    onChange={(e) => { e.stopPropagation(); toggleCheck(w.item_code); }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ width: 16, height: 16, cursor: 'pointer' }}
-                  />
                   <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>
+                  <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.country_en || w.country || '-'}</span>
+                  <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.region || '-'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#8B1538' }}>{w.brand || '-'}</span>
                   <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {w.item_name_kr}
                   </span>
@@ -234,10 +273,6 @@ export default function AllWinesTab() {
                   </span>
                   <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
                     {w.bonded_stock != null ? w.bonded_stock.toLocaleString() : '-'}
-                  </span>
-                  <span style={{ fontSize: 12, color: '#6b7280' }}>{w.country_en || w.country || '-'}</span>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: sl.bg, color: sl.color, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>
-                    {sl.text}
                   </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteSingle(w.item_code, w.item_name_kr); }}

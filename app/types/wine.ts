@@ -12,6 +12,7 @@ export interface Wine {
   vintage: string | null;
   volume_ml: number | null;
   alcohol: string | null;
+  brand: string | null;
   supplier: string | null;
   supplier_kr: string | null;
   supply_price: number | null;

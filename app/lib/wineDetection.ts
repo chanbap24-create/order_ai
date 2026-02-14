@@ -64,10 +64,20 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     const { kr, en } = getCountryPair(item.country || '');
     const existing = winesMap.get(item.item_no);
 
+    // 품명에서 브랜드 약어 추출 (예: "CH 찰스 하이직..." → brand=CH, name="찰스 하이직...")
+    let brandCode: string | null = null;
+    let cleanName = item.item_name;
+    const brandMatch = (item.item_name || '').match(/^([A-Z]{2,4})\s+(.+)/);
+    if (brandMatch) {
+      brandCode = brandMatch[1];
+      cleanName = brandMatch[2];
+    }
+
     if (!existing) {
       newRows.push({
         item_code: item.item_no,
-        item_name_kr: item.item_name,
+        item_name_kr: cleanName,
+        brand: brandCode,
         country: kr || item.country,
         country_en: en,
         vintage: item.vintage,
@@ -77,9 +87,9 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         status: 'new',
       });
     } else {
-      updateRows.push({
+      const update: any = {
         item_code: item.item_no,
-        item_name_kr: item.item_name,
+        item_name_kr: cleanName,
         supply_price: item.supply_price,
         available_stock: item.available_stock,
         vintage: item.vintage,
@@ -88,7 +98,9 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         country_en: en,
         status: 'active',
         updated_at: new Date().toISOString(),
-      });
+      };
+      if (brandCode && !existing.brand) update.brand = brandCode;
+      updateRows.push(update);
     }
   }
 
