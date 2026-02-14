@@ -46,8 +46,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 공급가 없는 품목 제외
-    allWines = allWines.filter(w => w.supply_price && w.supply_price > 0);
+    // 공급가 5000원 이하 또는 국가 미표기 품목 제외
+    allWines = allWines.filter(w => {
+      const price = w.supply_price || 0;
+      const hasCountry = !!(w.country_en || w.country);
+      return price > 5000 && hasCountry;
+    });
 
     // 커스텀 정렬 (국가 → 브랜드 → 가격)
     const COUNTRY_ORDER: Record<string, number> = {
