@@ -57,16 +57,43 @@ export async function GET(request: NextRequest) {
       return true;
     });
 
-    // 빈티지 변환: xx→NV, 2자리→4자리 (≤27: 20xx, >27: 19xx)
+    // 빈티지 변환: 공백/xx→NV, 2자리→4자리 (≤27: 20xx, >27: 19xx)
     for (const w of allWines) {
       const v = (w.vintage || '').toString().trim().toLowerCase();
-      if (v === 'xx' || v === 'nv') {
+      if (!v || v === 'xx' || v === 'nv') {
         w.vintage = 'NV';
       } else if (/^\d{2}$/.test(v)) {
         const num = parseInt(v, 10);
         w.vintage = (num <= 27 ? '20' : '19') + v;
       }
     }
+
+    // 10만원 이하 동일 품목명: 최신 빈티지만 유지
+    const nameGroup = new Map<string, any[]>();
+    const kept: any[] = [];
+    for (const w of allWines) {
+      if ((w.supply_price || 0) > 100000) {
+        kept.push(w);
+      } else {
+        const key = w.item_name_kr || w.item_code;
+        if (!nameGroup.has(key)) nameGroup.set(key, []);
+        nameGroup.get(key)!.push(w);
+      }
+    }
+    for (const [, group] of nameGroup) {
+      if (group.length === 1) {
+        kept.push(group[0]);
+      } else {
+        // NV는 가장 낮은 순위, 숫자가 큰(최신)게 우선
+        group.sort((a: any, b: any) => {
+          const va = a.vintage === 'NV' ? 0 : parseInt(a.vintage, 10) || 0;
+          const vb = b.vintage === 'NV' ? 0 : parseInt(b.vintage, 10) || 0;
+          return vb - va;
+        });
+        kept.push(group[0]);
+      }
+    }
+    allWines = kept;
 
     // 커스텀 정렬 (국가 → 브랜드 → 가격)
     const COUNTRY_ORDER: Record<string, number> = {
