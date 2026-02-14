@@ -46,6 +46,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // 공급가 없는 품목 제외
+    allWines = allWines.filter(w => w.supply_price && w.supply_price > 0);
+
     // 커스텀 정렬 (국가 → 브랜드 → 가격)
     const COUNTRY_ORDER: Record<string, number> = {
       'England': 0, '영국': 0, 'France': 1, '프랑스': 1,
