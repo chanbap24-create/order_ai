@@ -258,28 +258,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── 하단 요약 행 ──
-    const summaryRow = ws.addRow({});
-    ws.mergeCells(`A${summaryRow.number}:F${summaryRow.number}`);
-    const summaryCell = summaryRow.getCell(1);
-    summaryCell.value = `Total: ${allWines.length} wines`;
-    summaryCell.font = { ...fontBase, size: 10, bold: true, color: { argb: C.gray } };
-    summaryCell.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
-    summaryRow.getCell(8).value = { formula: `SUM(H3:H${summaryRow.number - 1})` } as any;
-    summaryRow.getCell(8).numFmt = '#,##0';
-    summaryRow.getCell(8).font = { ...fontBase, size: 10, bold: true, color: { argb: C.burgundy } };
-    summaryRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
-    summaryRow.height = 22;
-    summaryRow.eachCell({ includeEmpty: true }, (cell) => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.burgundyLight } };
-      cell.border = {
-        top: { style: 'medium', color: { argb: C.burgundy } },
-        bottom: { style: 'medium', color: { argb: C.burgundy } },
-        left: { style: 'thin', color: { argb: C.border } },
-        right: { style: 'thin', color: { argb: C.border } },
-      };
-    });
-
     // ── 인쇄 설정 ──
     ws.pageSetup = {
       orientation: 'landscape',
@@ -290,6 +268,7 @@ export async function GET(request: NextRequest) {
       margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
     };
     ws.autoFilter = { from: 'A2', to: `H${allWines.length + 2}` };
+    ws.getColumn(1).hidden = true; // 품번 열 숨김 (숨김 해제로 확인 가능)
 
     const buffer = await wb.xlsx.writeBuffer();
 

@@ -453,100 +453,94 @@ export default function NewWineTab() {
       {/* ─── 상단 컨트롤 ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', background: '#F0EFED', borderRadius: 8, padding: 2 }}>
           {(['all', 'detected', 'researched', 'approved'] as StatusFilter[]).map(f => {
             const labels: Record<StatusFilter, string> = { all: '전체', detected: '감지됨', researched: '조사완료', approved: '승인완료' };
-            const icons: Record<StatusFilter, string> = { all: '', detected: '🔵', researched: '🟡', approved: '🟢' };
+            const isActive = statusFilter === f;
             return (
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
                 style={{
-                  padding: '6px 14px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13, cursor: 'pointer',
-                  background: statusFilter === f ? '#1e293b' : '#fff',
-                  color: statusFilter === f ? '#fff' : '#374151',
-                  fontWeight: statusFilter === f ? 600 : 400,
+                  padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: isActive ? 'white' : 'transparent',
+                  color: isActive ? '#5A1515' : '#999',
+                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  fontWeight: 600, whiteSpace: 'nowrap',
                 }}
               >
-                {icons[f]} {labels[f]} ({counts[f]})
+                {labels[f]} ({counts[f]})
               </button>
             );
           })}
+          </div>
           <input
             style={{ padding: '6px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 16, width: 200 }}
             placeholder="와인명/품번 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button
             onClick={handleBatchResearch}
             disabled={batchRunning || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: batchRunning ? '#9ca3af' : '#7c3aed', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: batchRunning ? '#5A1515' : '#F0EFED',
+              color: batchRunning ? '#fff' : '#999',
               opacity: checkedIds.size === 0 && !batchRunning ? 0.5 : 1,
             }}
           >
-            {batchRunning
-              ? `${batchProgress.current}/${batchProgress.total} 조사 중...`
-              : `일괄조사 (${checkedIds.size})`}
+            {batchRunning ? `${batchProgress.current}/${batchProgress.total} 조사 중...` : `일괄조사 (${checkedIds.size})`}
           </button>
           <button
             onClick={handleBatchPptGenerate}
             disabled={batchPptRunning || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: batchPptRunning ? '#9ca3af' : '#0ea5e9', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: batchPptRunning ? '#5A1515' : '#F0EFED',
+              color: batchPptRunning ? '#fff' : '#999',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {batchPptRunning
-              ? `${batchPptProgress.current}/${batchPptProgress.total} PPT 생성...`
-              : `일괄 PPT (${checkedIds.size})`}
-          </button>
-          <button
-            onClick={handleDownloadZip}
-            disabled={downloadingZip || checkedIds.size === 0}
-            style={{
-              padding: '8px 14px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13, cursor: 'pointer',
-              background: downloadingZip ? '#e5e7eb' : '#fff', color: '#374151', fontWeight: 500,
-              opacity: checkedIds.size === 0 ? 0.5 : 1,
-            }}
-          >
-            {downloadingZip ? 'ZIP...' : 'ZIP'}
+            {batchPptRunning ? `${batchPptProgress.current}/${batchPptProgress.total} PPT...` : `일괄PPT (${checkedIds.size})`}
           </button>
           <button
             onClick={() => handleGithubRelease('pptx')}
             disabled={uploadingGithub || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: uploadingGithub ? '#9ca3af' : '#1e293b', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: '#F0EFED', color: '#999',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {uploadingGithub ? '업로드...' : 'PPTX↑'}
+            {uploadingGithub ? '업로드...' : 'PPTX'}
           </button>
           <button
             onClick={() => handleGithubRelease('pdf')}
             disabled={uploadingGithub || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: uploadingGithub ? '#9ca3af' : '#dc2626', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: '#F0EFED', color: '#999',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {uploadingGithub ? '업로드...' : 'PDF↑'}
+            {uploadingGithub ? '업로드...' : 'PDF'}
           </button>
           <button
             onClick={handleDispatchIndex}
             disabled={dispatchingIndex}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: '2px solid #059669', fontSize: 13, cursor: 'pointer',
-              background: dispatchingIndex ? '#d1fae5' : '#ecfdf5', color: '#059669', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: '#F0EFED', color: '#999',
             }}
           >
-            {dispatchingIndex ? '실행 중...' : '인덱스 업데이트'}
+            {dispatchingIndex ? '실행 중...' : '인덱스'}
           </button>
         </div>
       </div>

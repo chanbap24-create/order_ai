@@ -31,6 +31,14 @@ export default function AllWinesTab() {
   const [hideZero, setHideZero] = useState(true);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [savingField, setSavingField] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const handleSort = (col: string) => {
     if (sortBy === col) {
@@ -247,42 +255,70 @@ export default function AllWinesTab() {
         </div>
       </div>
 
-      {/* 좌우 분할 */}
-      <div style={{ display: 'flex', flex: 1, gap: 12, overflow: 'hidden' }}>
+      {/* 좌우 분할 (모바일: 리스트만, 상세는 오버레이) */}
+      <div style={{ display: 'flex', flex: 1, gap: isMobile ? 0 : 12, overflow: 'hidden', position: 'relative' }}>
         {/* 좌측: 와인 리스트 */}
         <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
           {/* 테이블 헤더 */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
-            padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
-            fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
-            gap: 6, alignItems: 'center',
-          }}>
-            {[
-              { key: 'item_code', label: '품번' },
-              { key: 'country_en', label: '국가' },
-              { key: 'region', label: '지역' },
-              { key: 'brand', label: '브랜드' },
-              { key: 'item_name_kr', label: '한글명' },
-              { key: 'supply_price', label: '공급가', right: true },
-              { key: 'available_stock', label: '재고', right: true },
-              { key: '', label: '보세', right: true },
-            ].map(col => (
+          {isMobile ? (
+            <div style={{
+              display: 'grid', gridTemplateColumns: '56px 1fr 56px',
+              padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
+              fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
+              gap: 6, alignItems: 'center',
+            }}>
               <span
-                key={col.key || 'bonded'}
-                onClick={col.key ? () => handleSort(col.key) : undefined}
-                style={{
-                  cursor: col.key ? 'pointer' : 'default',
-                  textAlign: col.right ? 'right' : 'left',
-                  userSelect: 'none',
-                  color: sortBy === col.key ? '#8B1538' : '#6b7280',
-                }}
+                onClick={() => handleSort('item_code')}
+                style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_code' ? '#8B1538' : '#6b7280' }}
               >
-                {col.label}{col.key ? sortArrow(col.key) : ''}
+                품번{sortArrow('item_code')}
               </span>
-            ))}
-            <span></span>
-          </div>
+              <span
+                onClick={() => handleSort('item_name_kr')}
+                style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_name_kr' ? '#8B1538' : '#6b7280' }}
+              >
+                품명{sortArrow('item_name_kr')}
+              </span>
+              <span
+                onClick={() => handleSort('available_stock')}
+                style={{ cursor: 'pointer', userSelect: 'none', textAlign: 'right', color: sortBy === 'available_stock' ? '#8B1538' : '#6b7280' }}
+              >
+                재고{sortArrow('available_stock')}
+              </span>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
+              padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
+              fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
+              gap: 6, alignItems: 'center',
+            }}>
+              {[
+                { key: 'item_code', label: '품번' },
+                { key: 'country_en', label: '국가' },
+                { key: 'region', label: '지역' },
+                { key: 'brand', label: '브랜드' },
+                { key: 'item_name_kr', label: '한글명' },
+                { key: 'supply_price', label: '공급가', right: true },
+                { key: 'available_stock', label: '재고', right: true },
+                { key: '', label: '보세', right: true },
+              ].map(col => (
+                <span
+                  key={col.key || 'bonded'}
+                  onClick={col.key ? () => handleSort(col.key) : undefined}
+                  style={{
+                    cursor: col.key ? 'pointer' : 'default',
+                    textAlign: col.right ? 'right' : 'left',
+                    userSelect: 'none',
+                    color: sortBy === col.key ? '#8B1538' : '#6b7280',
+                  }}
+                >
+                  {col.label}{col.key ? sortArrow(col.key) : ''}
+                </span>
+              ))}
+              <span></span>
+            </div>
+          )}
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>로딩 중...</div>
@@ -292,7 +328,31 @@ export default function AllWinesTab() {
             wines.map(w => {
               const sl = statusLabel(w);
               const isSelected = selectedWine?.item_code === w.item_code;
-              return (
+              return isMobile ? (
+                <div
+                  key={w.item_code}
+                  onClick={() => setSelectedWine(w)}
+                  style={{
+                    display: 'grid', gridTemplateColumns: '56px 1fr 56px',
+                    padding: '10px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
+                    background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
+                    borderLeft: isSelected ? '3px solid #2563eb' : '3px solid transparent',
+                  }}
+                >
+                  <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>
+                  <div style={{ overflow: 'hidden' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {w.item_name_kr}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#999' }}>
+                      {w.country_en || w.country || ''}{w.region ? ` · ${w.region}` : ''}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+                    {w.available_stock != null ? w.available_stock.toLocaleString() : '-'}
+                  </span>
+                </div>
+              ) : (
                 <div
                   key={w.item_code}
                   onClick={() => setSelectedWine(w)}
@@ -356,92 +416,179 @@ export default function AllWinesTab() {
           )}
         </div>
 
-        {/* 우측: 상세 패널 */}
-        <div style={{ width: 380, minWidth: 320, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0 }}>
-          {!selectedWine ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: 14 }}>
-              좌측에서 와인을 선택하세요
-            </div>
-          ) : (
-            <div style={{ padding: 20 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>
-                {selectedWine.item_name_kr}
-              </h3>
-
-              {selectedWine.image_url && (
-                <div style={{ marginBottom: 16, textAlign: 'center' }}>
-                  <img src={selectedWine.image_url} alt="" style={{ maxHeight: 180, borderRadius: 8, border: '1px solid #e5e7eb' }} />
+        {/* 우측: 상세 패널 (데스크톱: 사이드, 모바일: 오버레이) */}
+        {isMobile ? (
+          selectedWine && (
+            <div
+              style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000,
+                background: 'rgba(0,0,0,0.4)',
+                display: 'flex', justifyContent: 'flex-end',
+              }}
+              onClick={() => setSelectedWine(null)}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: '100%', maxWidth: 400, background: '#fff', overflowY: 'auto',
+                  animation: 'slideInRight 0.25s ease',
+                }}
+              >
+                {/* 닫기 헤더 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '14px 16px', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: '#fff', zIndex: 1,
+                }}>
+                  <button
+                    onClick={() => setSelectedWine(null)}
+                    style={{
+                      border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontSize: 14,
+                      color: '#5A1515', fontWeight: 600, padding: '6px 14px', borderRadius: 6,
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                    목록으로
+                  </button>
+                  <span style={{ fontSize: 12, color: '#9ca3af' }}>{selectedWine.item_code}</span>
                 </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
-                <DetailRow label="품번" value={selectedWine.item_code} />
-                {([
-                  { label: '영문명', dbKey: 'item_name_en', placeholder: '영문명 입력' },
-                  { label: '공급자', dbKey: 'supplier', placeholder: '공급자명(영문) 입력' },
-                  { label: '국가', dbKey: 'country_en', placeholder: '국가(영문) 입력' },
-                  { label: '산지', dbKey: 'region', placeholder: '지역 입력' },
-                ]).map(({ label, dbKey, placeholder }) => {
-                  const val = editFields[dbKey] || '';
-                  const orig = (selectedWine as any)[dbKey] || '';
-                  const changed = val.trim() !== orig;
-                  return (
-                    <div key={dbKey} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ color: '#9ca3af', minWidth: 60, flexShrink: 0 }}>{label}</span>
-                      <input
-                        value={val}
-                        onChange={(e) => setEditFields(f => ({ ...f, [dbKey]: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveField(dbKey); }}
-                        placeholder={placeholder}
-                        style={{
-                          flex: 1, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4,
-                          fontSize: 16, fontWeight: 500, color: '#1e293b',
-                          background: val ? '#fff' : '#fef9c3',
-                        }}
-                      />
-                      {changed && (
-                        <button
-                          onClick={() => handleSaveField(dbKey)}
-                          disabled={savingField === dbKey}
-                          style={{
-                            padding: '4px 10px', borderRadius: 4, border: 'none', fontSize: 12, fontWeight: 600,
-                            cursor: 'pointer', background: '#8B1538', color: '#fff',
-                          }}
-                        >
-                          {savingField === dbKey ? '...' : '저장'}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-                <DetailRow label="품종" value={selectedWine.grape_varieties || '-'} />
-                <DetailRow label="타입" value={selectedWine.wine_type || '-'} />
-                <DetailRow label="빈티지" value={selectedWine.vintage || '-'} />
-                <DetailRow label="용량" value={selectedWine.volume_ml ? `${selectedWine.volume_ml}ml` : '-'} />
-                <DetailRow label="알코올" value={selectedWine.alcohol || '-'} />
-                <DetailRow label="공급가" value={selectedWine.supply_price != null ? `₩${selectedWine.supply_price.toLocaleString()}` : '-'} />
-                <DetailRow label="재고" value={selectedWine.available_stock != null ? String(selectedWine.available_stock) : '-'} />
-                <DetailRow label="상태" value={selectedWine.status} />
-                <DetailRow label="AI조사" value={selectedWine.ai_researched ? '완료' : '미완료'} />
-                <DetailRow label="등록일" value={selectedWine.created_at?.split('T')[0] || '-'} />
-                <DetailRow label="수정일" value={selectedWine.updated_at?.split('T')[0] || '-'} />
+                <DetailPanel
+                  selectedWine={selectedWine}
+                  editFields={editFields}
+                  setEditFields={setEditFields}
+                  handleSaveField={handleSaveField}
+                  savingField={savingField}
+                  handleDeleteSingle={handleDeleteSingle}
+                  deleting={deleting}
+                />
               </div>
+            </div>
+          )
+        ) : (
+          <div style={{ width: 380, minWidth: 320, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', flexShrink: 0 }}>
+            {!selectedWine ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: 14 }}>
+                좌측에서 와인을 선택하세요
+              </div>
+            ) : (
+              <DetailPanel
+                selectedWine={selectedWine}
+                editFields={editFields}
+                setEditFields={setEditFields}
+                handleSaveField={handleSaveField}
+                savingField={savingField}
+                handleDeleteSingle={handleDeleteSingle}
+                deleting={deleting}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
+      {/* 모바일 오버레이 애니메이션 */}
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function DetailPanel({
+  selectedWine,
+  editFields,
+  setEditFields,
+  handleSaveField,
+  savingField,
+  handleDeleteSingle,
+  deleting,
+}: {
+  selectedWine: WineRowExt;
+  editFields: Record<string, string>;
+  setEditFields: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  handleSaveField: (dbKey: string) => void;
+  savingField: string;
+  handleDeleteSingle: (id: string, name: string) => Promise<void>;
+  deleting: boolean;
+}) {
+  return (
+    <div style={{ padding: 20 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>
+        {selectedWine.item_name_kr}
+      </h3>
+
+      {selectedWine.image_url && (
+        <div style={{ marginBottom: 16, textAlign: 'center' }}>
+          <img src={selectedWine.image_url} alt="" style={{ maxHeight: 180, borderRadius: 8, border: '1px solid #e5e7eb' }} />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+        <DetailRow label="품번" value={selectedWine.item_code} />
+        {([
+          { label: '영문명', dbKey: 'item_name_en', placeholder: '영문명 입력' },
+          { label: '공급자', dbKey: 'supplier', placeholder: '공급자명(영문) 입력' },
+          { label: '국가', dbKey: 'country_en', placeholder: '국가(영문) 입력' },
+          { label: '산지', dbKey: 'region', placeholder: '지역 입력' },
+        ] as const).map(({ label, dbKey, placeholder }) => {
+          const val = editFields[dbKey] || '';
+          const orig = (selectedWine as any)[dbKey] || '';
+          const changed = val.trim() !== orig;
+          return (
+            <div key={dbKey} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ color: '#9ca3af', minWidth: 60, flexShrink: 0 }}>{label}</span>
+              <input
+                value={val}
+                onChange={(e) => setEditFields(f => ({ ...f, [dbKey]: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveField(dbKey); }}
+                placeholder={placeholder}
+                style={{
+                  flex: 1, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4,
+                  fontSize: 16, fontWeight: 500, color: '#1e293b',
+                  background: val ? '#fff' : '#fef9c3',
+                }}
+              />
+              {changed && (
                 <button
-                  onClick={() => handleDeleteSingle(selectedWine.item_code, selectedWine.item_name_kr)}
-                  disabled={deleting}
+                  onClick={() => handleSaveField(dbKey)}
+                  disabled={savingField === dbKey}
                   style={{
-                    width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #dc2626',
-                    background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    padding: '4px 10px', borderRadius: 4, border: 'none', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', background: '#8B1538', color: '#fff',
                   }}
                 >
-                  🗑️ 이 와인 삭제
+                  {savingField === dbKey ? '...' : '저장'}
                 </button>
-              </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })}
+        <DetailRow label="품종" value={selectedWine.grape_varieties || '-'} />
+        <DetailRow label="타입" value={selectedWine.wine_type || '-'} />
+        <DetailRow label="빈티지" value={selectedWine.vintage || '-'} />
+        <DetailRow label="용량" value={selectedWine.volume_ml ? `${selectedWine.volume_ml}ml` : '-'} />
+        <DetailRow label="알코올" value={selectedWine.alcohol || '-'} />
+        <DetailRow label="공급가" value={selectedWine.supply_price != null ? `₩${selectedWine.supply_price.toLocaleString()}` : '-'} />
+        <DetailRow label="재고" value={selectedWine.available_stock != null ? String(selectedWine.available_stock) : '-'} />
+        <DetailRow label="상태" value={selectedWine.status} />
+        <DetailRow label="AI조사" value={selectedWine.ai_researched ? '완료' : '미완료'} />
+        <DetailRow label="등록일" value={selectedWine.created_at?.split('T')[0] || '-'} />
+        <DetailRow label="수정일" value={selectedWine.updated_at?.split('T')[0] || '-'} />
+      </div>
+
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
+        <button
+          onClick={() => handleDeleteSingle(selectedWine.item_code, selectedWine.item_name_kr)}
+          disabled={deleting}
+          style={{
+            width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #dc2626',
+            background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          이 와인 삭제
+        </button>
       </div>
     </div>
   );

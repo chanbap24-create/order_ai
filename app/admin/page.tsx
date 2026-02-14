@@ -131,11 +131,19 @@ export default function AdminPage() {
     <div style={{
       minHeight: 'calc(100vh - 56px)',
       background: '#fafaf8',
+      fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
-      <div className="ds-page">
+      <div style={{ maxWidth: 1250, margin: '0 auto', padding: '0 16px 24px' }}>
         {/* Header */}
-        <div className="ds-page-header">
-          <h1 className="ds-page-title">관리자</h1>
+        <div style={{ marginTop: 16, marginBottom: 12 }}>
+          <h1 style={{
+            fontSize: '1.4rem',
+            fontWeight: 700,
+            color: '#1a1a2e',
+            margin: 0,
+            fontFamily: "'Cormorant Garamond', serif",
+            letterSpacing: '-0.01em',
+          }}>Admin</h1>
         </div>
 
         {/* 탭 바 */}

@@ -356,49 +356,58 @@ export default function TastingNoteTab() {
       {/* ─── 상단 컨트롤 ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', background: '#F0EFED', borderRadius: 8, padding: 2 }}>
           {(['all', 'with', 'without'] as NoteFilter[]).map(f => {
             const labels: Record<NoteFilter, string> = { all: '전체', with: '작성완료', without: '미작성' };
+            const isActive = filterNote === f;
             return (
               <button
                 key={f}
                 onClick={() => setFilterNote(f)}
                 style={{
-                  padding: '6px 14px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13, cursor: 'pointer',
-                  background: filterNote === f ? '#1e293b' : '#fff',
-                  color: filterNote === f ? '#fff' : '#374151',
-                  fontWeight: filterNote === f ? 600 : 400,
+                  padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: isActive ? 'white' : 'transparent',
+                  color: isActive ? '#5A1515' : '#999',
+                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  fontWeight: 600, whiteSpace: 'nowrap',
                 }}
               >
                 {labels[f]} ({counts[f]})
               </button>
             );
           })}
+          </div>
           <input
             style={{ padding: '6px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 16, width: 200 }}
             placeholder="와인명/품번 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button
-            onClick={() => setHideZero(h => !h)}
-            style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              border: hideZero ? '1px solid #8B1538' : '1px solid #d1d5db',
-              background: hideZero ? '#8B1538' : '#fff',
-              color: hideZero ? '#fff' : '#6b7280',
-              transition: 'all 0.15s',
-            }}
-          >
-            재고 있는 것만
-          </button>
+          <div style={{ display: 'inline-flex', background: '#F0EFED', borderRadius: 8, padding: 2 }}>
+            <button
+              onClick={() => setHideZero(h => !h)}
+              style={{
+                padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+                transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+                background: hideZero ? 'white' : 'transparent',
+                color: hideZero ? '#5A1515' : '#999',
+                boxShadow: hideZero ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}
+            >
+              재고만
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           <button
             onClick={handleBatchResearch}
             disabled={batchRunning || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: batchRunning ? '#9ca3af' : '#7c3aed', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: batchRunning ? '#5A1515' : '#F0EFED',
+              color: batchRunning ? '#fff' : '#999',
               opacity: checkedIds.size === 0 && !batchRunning ? 0.5 : 1,
             }}
           >
@@ -408,33 +417,36 @@ export default function TastingNoteTab() {
             onClick={() => handleGithubRelease('pptx')}
             disabled={uploadingGithub || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: uploadingGithub ? '#9ca3af' : '#1e293b', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: '#F0EFED', color: '#999',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {uploadingGithub ? '업로드...' : 'PPTX↑'}
+            {uploadingGithub ? '업로드...' : 'PPTX'}
           </button>
           <button
             onClick={() => handleGithubRelease('pdf')}
             disabled={uploadingGithub || checkedIds.size === 0}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-              background: uploadingGithub ? '#9ca3af' : '#dc2626', color: '#fff', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: '#F0EFED', color: '#999',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {uploadingGithub ? '업로드...' : 'PDF↑'}
+            {uploadingGithub ? '업로드...' : 'PDF'}
           </button>
           <button
             onClick={handleDispatchIndex}
             disabled={dispatchingIndex}
             style={{
-              padding: '8px 14px', borderRadius: 6, border: '2px solid #059669', fontSize: 13, cursor: 'pointer',
-              background: dispatchingIndex ? '#d1fae5' : '#ecfdf5', color: '#059669', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: '#F0EFED', color: '#999',
             }}
           >
-            {dispatchingIndex ? '실행 중...' : '인덱스 업데이트'}
+            {dispatchingIndex ? '실행 중...' : '인덱스'}
           </button>
         </div>
       </div>
