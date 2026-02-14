@@ -56,10 +56,12 @@ export async function GET(request: NextRequest) {
       return true;
     });
 
-    // 빈티지 2자리 → 4자리 변환 (≤27: 20xx, >27: 19xx)
+    // 빈티지 변환: xx→NV, 2자리→4자리 (≤27: 20xx, >27: 19xx)
     for (const w of allWines) {
-      const v = (w.vintage || '').toString().trim();
-      if (/^\d{2}$/.test(v)) {
+      const v = (w.vintage || '').toString().trim().toLowerCase();
+      if (v === 'xx' || v === 'nv') {
+        w.vintage = 'NV';
+      } else if (/^\d{2}$/.test(v)) {
         const num = parseInt(v, 10);
         w.vintage = (num <= 27 ? '20' : '19') + v;
       }

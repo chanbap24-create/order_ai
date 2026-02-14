@@ -64,10 +64,10 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     const { kr, en } = getCountryPair(item.country || '');
     const existing = winesMap.get(item.item_no);
 
-    // 품명에서 브랜드 약어 추출 (예: "CH 찰스 하이직..." → brand=CH, name="찰스 하이직...")
+    // 품명에서 브랜드 약어 추출 (예: "CH 찰스 하이직..." 또는 "MD마르셀..." → brand 분리)
     let brandCode: string | null = null;
     let cleanName = item.item_name;
-    const brandMatch = (item.item_name || '').match(/^([A-Z]{2,4})\s+(.+)/);
+    const brandMatch = (item.item_name || '').match(/^([A-Z]{2,4})\s*([가-힣].+)/);
     if (brandMatch) {
       brandCode = brandMatch[1];
       cleanName = brandMatch[2];
