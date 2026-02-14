@@ -575,7 +575,7 @@ export default function QuotePage() {
                   className={`ds-tab${company === c ? ' active' : ''}`}
                   onClick={() => switchCompany(c)}
                 >
-                  {c === 'CDV' ? '까브드뱅' : '대유라이프'}
+                  {c}
                 </button>
               ))}
             </div>
@@ -588,7 +588,7 @@ export default function QuotePage() {
                 opacity: exporting ? 0.6 : 1,
               }}
             >
-              {exporting ? '생성 중...' : '엑셀 다운로드'}
+              {exporting ? '생성 중...' : 'Excel'}
             </button>
             <button
               className={`ds-btn ${showSearch ? 'ds-btn-primary' : 'ds-btn-secondary'}`}
@@ -600,7 +600,7 @@ export default function QuotePage() {
                 }
               }}
             >
-              {showSearch ? '검색 닫기' : '+ 품목 추가'}
+              {showSearch ? '닫기' : '+ Add'}
             </button>
             <button
               className="ds-btn ds-btn-ghost"
@@ -869,9 +869,9 @@ export default function QuotePage() {
         {/* ── 빈 상태 ── */}
         {items.length === 0 && (
           <div className="ds-card ds-empty">
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#2D2D2D' }}>견적서가 비어있습니다.</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#2D2D2D' }}>No items yet.</div>
             <div className="ds-empty-text">
-              상단의 &quot;품목 추가&quot; 버튼을 눌러 재고에서 품목을 검색하세요.
+              Press &quot;+ Add&quot; to search and add items.
             </div>
           </div>
         )}

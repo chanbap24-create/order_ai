@@ -46,6 +46,7 @@ body {
 }
 
 .ds-page-title {
+  font-family: 'Cormorant Garamond', serif;
   font-size: 24px;
   font-weight: 700;
   color: #2D2D2D;

@@ -41,6 +41,20 @@ export default function Home() {
       ),
     },
     {
+      id: 'analysis',
+      href: '/analysis',
+      title: 'Analysis',
+      subtitle: '거래처 분석',
+      desc: '담당/부서별 매출 분석, 출고 와인 통계',
+      icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+      ),
+    },
+    {
       id: 'order',
       href: '/order',
       title: 'Order',
@@ -312,7 +326,7 @@ export default function Home() {
                 color: '#8E8E93',
                 lineHeight: 1.6,
               }}>
-                재고 확인, 견적 작성, 발주 생성 중 선택하세요.
+                재고 확인, 견적 작성, 발주 생성, 거래처 분석 중 선택하세요.
               </p>
             </div>
 
@@ -353,10 +367,11 @@ export default function Home() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                           <h3 style={{
-                            fontSize: '1rem',
-                            fontWeight: 600,
+                            fontSize: '1.1rem',
+                            fontWeight: 700,
                             color: '#1a1a2e',
-                            letterSpacing: '0.01em',
+                            fontFamily: "'Cormorant Garamond', serif",
+                            letterSpacing: '-0.01em',
                           }}>
                             {card.title}
                           </h3>
