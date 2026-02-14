@@ -72,46 +72,162 @@ export async function GET(request: NextRequest) {
       return (b.supply_price || 0) - (a.supply_price || 0);
     });
 
-    // 엑셀 생성
+    // ── 엑셀 생성 ──
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('와인리스트');
+    wb.creator = 'CavedeVin';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('와인리스트', {
+      views: [{ state: 'frozen', ySplit: 2 }],
+    });
 
-    ws.columns = [
-      { header: '국가', key: 'country', width: 12 },
-      { header: '지역', key: 'region', width: 18 },
-      { header: '공급자명', key: 'supplier', width: 22 },
-      { header: '영문명', key: 'name_en', width: 40 },
-      { header: '한글명', key: 'name_kr', width: 35 },
-      { header: '빈티지', key: 'vintage', width: 8 },
-      { header: '공급가', key: 'price', width: 12 },
+    // 색상 팔레트
+    const C = {
+      burgundy: 'FF8B1538',
+      burgundyLight: 'FFF2E6EA',
+      white: 'FFFFFFFF',
+      black: 'FF1E293B',
+      gray: 'FF6B7280',
+      grayLight: 'FFF9FAFB',
+      border: 'FFE5E7EB',
+      borderDark: 'FFD1D5DB',
+    };
+
+    const fontBase: Partial<ExcelJS.Font> = { name: 'Arial', size: 10 };
+    const borderThin: Partial<ExcelJS.Borders> = {
+      top: { style: 'thin', color: { argb: C.border } },
+      bottom: { style: 'thin', color: { argb: C.border } },
+      left: { style: 'thin', color: { argb: C.border } },
+      right: { style: 'thin', color: { argb: C.border } },
+    };
+
+    // ── 타이틀 행 ──
+    ws.mergeCells('A1:G1');
+    const titleCell = ws.getCell('A1');
+    const today = new Date().toISOString().slice(0, 10);
+    titleCell.value = `CavedeVin Wine List  —  ${today}`;
+    titleCell.font = { ...fontBase, size: 13, bold: true, color: { argb: C.burgundy } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.burgundyLight } };
+    ws.getRow(1).height = 32;
+
+    // ── 컬럼 정의 ──
+    const columns = [
+      { header: '국가', key: 'country', width: 14 },
+      { header: '지역', key: 'region', width: 20 },
+      { header: '공급자명', key: 'supplier', width: 24 },
+      { header: '영문명', key: 'name_en', width: 42 },
+      { header: '한글명', key: 'name_kr', width: 36 },
+      { header: '빈티지', key: 'vintage', width: 9 },
+      { header: '공급가', key: 'price', width: 13 },
     ];
+    ws.columns = columns.map(c => ({ key: c.key, width: c.width }));
 
-    // 헤더 스타일
-    const headerRow = ws.getRow(1);
-    headerRow.font = { bold: true, size: 11 };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8B1538' } };
-    headerRow.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.height = 24;
+    // ── 헤더 행 (2행) ──
+    const headerRow = ws.getRow(2);
+    columns.forEach((col, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = col.header;
+      cell.font = { ...fontBase, size: 10, bold: true, color: { argb: C.white } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.burgundy } };
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: col.key === 'price' ? 'right' : 'center',
+      };
+      cell.border = {
+        top: { style: 'thin', color: { argb: C.burgundy } },
+        bottom: { style: 'medium', color: { argb: C.burgundy } },
+        left: { style: 'thin', color: { argb: 'FF6B1030' } },
+        right: { style: 'thin', color: { argb: 'FF6B1030' } },
+      };
+    });
+    headerRow.height = 22;
 
-    for (const w of allWines) {
-      ws.addRow({
-        country: w.country_en || w.country || '',
+    // ── 데이터 행 ──
+    let prevCountry = '';
+    for (let i = 0; i < allWines.length; i++) {
+      const w = allWines[i];
+      const countryName = w.country_en || w.country || '';
+      const isNewCountry = countryName !== prevCountry;
+      prevCountry = countryName;
+
+      const row = ws.addRow({
+        country: countryName,
         region: w.region || '',
         supplier: w.supplier || w.supplier_kr || '',
         name_en: w.item_name_en || '',
         name_kr: w.item_name_kr || '',
         vintage: w.vintage || '',
-        price: w.supply_price || '',
+        price: w.supply_price || null,
       });
+
+      const isEven = i % 2 === 0;
+      const bgColor = isEven ? C.white : C.grayLight;
+
+      row.height = 18;
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.font = { ...fontBase, size: 10, color: { argb: C.black } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+        cell.border = borderThin;
+        cell.alignment = { vertical: 'middle' };
+
+        if (colNum === 7) {
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+          cell.numFmt = '#,##0';
+        }
+        if (colNum === 6) {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.font = { ...fontBase, size: 10, color: { argb: C.gray } };
+        }
+        if (colNum === 1) {
+          cell.font = { ...fontBase, size: 10, bold: isNewCountry, color: { argb: isNewCountry ? C.burgundy : C.gray } };
+        }
+      });
+
+      // 국가 구분선
+      if (isNewCountry && i > 0) {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            ...borderThin,
+            top: { style: 'medium', color: { argb: C.borderDark } },
+          };
+        });
+      }
     }
 
-    // 공급가 숫자 포맷
-    ws.getColumn('price').numFmt = '#,##0';
-    ws.getColumn('price').alignment = { horizontal: 'right' };
+    // ── 하단 요약 행 ──
+    const summaryRow = ws.addRow({});
+    ws.mergeCells(`A${summaryRow.number}:E${summaryRow.number}`);
+    const summaryCell = summaryRow.getCell(1);
+    summaryCell.value = `Total: ${allWines.length} wines`;
+    summaryCell.font = { ...fontBase, size: 10, bold: true, color: { argb: C.gray } };
+    summaryCell.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
+    summaryRow.getCell(7).value = { formula: `SUM(G3:G${summaryRow.number - 1})` } as any;
+    summaryRow.getCell(7).numFmt = '#,##0';
+    summaryRow.getCell(7).font = { ...fontBase, size: 10, bold: true, color: { argb: C.burgundy } };
+    summaryRow.getCell(7).alignment = { vertical: 'middle', horizontal: 'right' };
+    summaryRow.height = 22;
+    summaryRow.eachCell({ includeEmpty: true }, (cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.burgundyLight } };
+      cell.border = {
+        top: { style: 'medium', color: { argb: C.burgundy } },
+        bottom: { style: 'medium', color: { argb: C.burgundy } },
+        left: { style: 'thin', color: { argb: C.border } },
+        right: { style: 'thin', color: { argb: C.border } },
+      };
+    });
+
+    // ── 인쇄 설정 ──
+    ws.pageSetup = {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      paperSize: 9,
+      margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 },
+    };
+    ws.autoFilter = { from: 'A2', to: `G${allWines.length + 2}` };
 
     const buffer = await wb.xlsx.writeBuffer();
-    const today = new Date().toISOString().slice(0, 10);
 
     return new NextResponse(buffer as ArrayBuffer, {
       headers: {
