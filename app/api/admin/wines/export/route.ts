@@ -46,12 +46,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 공급가 5000원 이하 또는 국가 미표기 품목 제외
+    // 필터: 공급가 5000원 이하, 국가 미표기, 5만원 이하+재고 10병 미만 제외
     allWines = allWines.filter(w => {
       const price = w.supply_price || 0;
+      const stock = (w.available_stock || 0) + (bondedMap.get(w.item_code) || 0);
       const hasCountry = !!(w.country_en || w.country);
-      return price > 5000 && hasCountry;
+      if (price <= 5000 || !hasCountry) return false;
+      if (price <= 50000 && stock < 10) return false;
+      return true;
     });
+
+    // 빈티지 2자리 → 4자리 변환 (≤27: 20xx, >27: 19xx)
+    for (const w of allWines) {
+      const v = (w.vintage || '').toString().trim();
+      if (/^\d{2}$/.test(v)) {
+        const num = parseInt(v, 10);
+        w.vintage = (num <= 27 ? '20' : '19') + v;
+      }
+    }
 
     // 커스텀 정렬 (국가 → 브랜드 → 가격)
     const COUNTRY_ORDER: Record<string, number> = {
