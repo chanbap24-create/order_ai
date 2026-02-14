@@ -4,6 +4,7 @@ import { supabase } from "@/app/lib/db";
 import { ensureWineTables } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
+import { getSupplierByBrand } from "@/app/lib/brandMapping";
 import { logger } from "@/app/lib/logger";
 
 interface InventoryItem {
@@ -74,10 +75,13 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     }
 
     if (!existing) {
+      const supplierInfo = getSupplierByBrand(brandCode);
       newRows.push({
         item_code: item.item_no,
         item_name_kr: cleanName,
         brand: brandCode,
+        supplier: supplierInfo?.en || null,
+        supplier_kr: supplierInfo?.kr || null,
         country: kr || item.country,
         country_en: en,
         vintage: item.vintage,
@@ -100,6 +104,14 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         updated_at: new Date().toISOString(),
       };
       if (brandCode && !existing.brand) update.brand = brandCode;
+      // 공급자명 비어있으면 브랜드 약어로 자동 기입
+      if (!existing.supplier || !existing.supplier_kr) {
+        const supplierInfo = getSupplierByBrand(brandCode || existing.brand);
+        if (supplierInfo) {
+          if (!existing.supplier) update.supplier = supplierInfo.en;
+          if (!existing.supplier_kr) update.supplier_kr = supplierInfo.kr;
+        }
+      }
       updateRows.push(update);
     }
   }

@@ -1,6 +1,7 @@
 // GET /api/admin/wines/export - 와인리스트 엑셀 다운로드
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/db";
+import { getSupplierByBrand } from "@/app/lib/brandMapping";
 import ExcelJS from "exceljs";
 
 export async function GET(request: NextRequest) {
@@ -212,7 +213,7 @@ export async function GET(request: NextRequest) {
         item_code: w.item_code,
         country: countryName,
         region: w.region || '',
-        supplier: w.supplier || w.supplier_kr || '',
+        supplier: w.supplier || w.supplier_kr || getSupplierByBrand(w.brand)?.en || '',
         name_en: w.item_name_en || '',
         name_kr: w.item_name_kr || '',
         vintage: w.vintage || '',
