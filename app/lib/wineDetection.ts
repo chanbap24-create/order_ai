@@ -5,6 +5,7 @@ import { ensureWineTables } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
 import { getSupplierByBrand } from "@/app/lib/brandMapping";
+import { translateWineName } from "@/app/lib/koreanToEnglish";
 import { logger } from "@/app/lib/logger";
 
 interface InventoryItem {
@@ -76,9 +77,11 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
 
     if (!existing) {
       const supplierInfo = getSupplierByBrand(brandCode);
+      const autoEnName = translateWineName(cleanName);
       newRows.push({
         item_code: item.item_no,
         item_name_kr: cleanName,
+        item_name_en: autoEnName,
         brand: brandCode,
         supplier: supplierInfo?.en || null,
         supplier_kr: supplierInfo?.kr || null,
@@ -104,6 +107,11 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         updated_at: new Date().toISOString(),
       };
       if (brandCode && !existing.brand) update.brand = brandCode;
+      // 영문명 비어있으면 한글명에서 자동 변환
+      if (!existing.item_name_en) {
+        const autoEnName = translateWineName(existing.item_name_kr || cleanName);
+        if (autoEnName) update.item_name_en = autoEnName;
+      }
       // 공급자명 비어있으면 브랜드 약어로 자동 기입
       if (!existing.supplier || !existing.supplier_kr) {
         const supplierInfo = getSupplierByBrand(brandCode || existing.brand);
