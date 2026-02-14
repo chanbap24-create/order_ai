@@ -7,6 +7,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'client-analysis', label: '매출분석', icon: '📈' },
   { id: 'dashboard', label: '재고분석', icon: '📊' },
   { id: 'all-wines', label: '와인리스트', icon: '🗂️' },
+  { id: 'new-wine', label: '신규와인', icon: '🍷' },
   { id: 'tasting-note', label: '테이스팅노트', icon: '📝' },
   { id: 'price-list', label: '가격리스트', icon: '💰' },
   { id: 'change-log', label: '변경이력', icon: '📋' },
@@ -15,9 +16,10 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 interface AdminTabsProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  newWineCount?: number;
 }
 
-export default function AdminTabs({ activeTab, onTabChange }: AdminTabsProps) {
+export default function AdminTabs({ activeTab, onTabChange, newWineCount }: AdminTabsProps) {
   return (
     <div style={{
       marginBottom: 24,
@@ -36,6 +38,20 @@ export default function AdminTabs({ activeTab, onTabChange }: AdminTabsProps) {
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
+              {tab.id === 'new-wine' && newWineCount != null && newWineCount > 0 && (
+                <span style={{
+                  background: '#dc3545',
+                  color: 'white',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  borderRadius: 99,
+                  padding: '1px 7px',
+                  minWidth: 18,
+                  textAlign: 'center',
+                }}>
+                  {newWineCount}
+                </span>
+              )}
             </button>
           );
         })}

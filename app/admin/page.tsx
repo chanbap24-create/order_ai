@@ -5,6 +5,7 @@ import type { TabId } from '@/app/types/wine';
 import AdminTabs from './components/AdminTabs';
 import UploadTab from './components/UploadTab';
 import DashboardTab from './components/DashboardTab';
+import NewWineTab from './components/NewWineTab';
 import AllWinesTab from './components/AllWinesTab';
 import TastingNoteTab from './components/TastingNoteTab';
 import PriceListTab from './components/PriceListTab';
@@ -16,6 +17,7 @@ const ADMIN_PIN = '0000';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
+  const [newWineCount, setNewWineCount] = useState<number>(0);
   const [authenticated, setAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
@@ -39,7 +41,12 @@ export default function AdminPage() {
     }
   };
 
-  const handleUploadComplete = (_type: string, _result: Record<string, unknown>) => {};
+  // Downloads 업로드 완료 시 신규 와인 수 업데이트
+  const handleUploadComplete = (type: string, result: Record<string, unknown>) => {
+    if (type === 'downloads' && typeof result.newWinesDetected === 'number') {
+      setNewWineCount(result.newWinesDetected);
+    }
+  };
 
   if (!authenticated) {
     return (
@@ -135,11 +142,13 @@ export default function AdminPage() {
         <AdminTabs
           activeTab={activeTab}
           onTabChange={setActiveTab}
+          newWineCount={newWineCount}
         />
 
         {/* 탭 콘텐츠 */}
         {activeTab === 'upload' && <UploadTab onUploadComplete={handleUploadComplete} />}
         {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'new-wine' && <NewWineTab />}
         {activeTab === 'all-wines' && <AllWinesTab />}
         {activeTab === 'tasting-note' && <TastingNoteTab />}
         {activeTab === 'price-list' && <PriceListTab />}

@@ -132,4 +132,4 @@ export interface DashboardStats {
   inventoryByItemDl?: Array<{ itemNo: string; name: string; brand: string; country: string; value: number }>;
 }
 
-export type TabId = 'upload' | 'dashboard' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis';
+export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis';
