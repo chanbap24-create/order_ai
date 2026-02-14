@@ -5,7 +5,6 @@ import PptxGenJS from "pptxgenjs";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
-import { embedFontsInPptx } from "@/app/lib/pptFontEmbed";
 import { logger } from "@/app/lib/logger";
 
 // ═══════════════════════════════════════════════════
@@ -34,7 +33,7 @@ const C = {
   WHITE: "FFFFFF",
 };
 
-const FONT_MAIN = "Gowun Dodum";
+const FONT_MAIN = "Malgun Gothic";
 const FONT_EN = "Georgia";
 
 // 슬라이드 크기 (인치) - 세로 A4
@@ -216,11 +215,11 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     line: { color: C.CARD_BORDER, width: 0.5 },
   });
 
-  // 7. 와인명 텍스트 (한글 + 영문)
+  // 7. 와인명 텍스트 (한글 + 영문 - 반드시 줄바꿈 분리)
   const nameKrClean = data.nameKr.replace(/^[A-Za-z]{2}\s+/, "");
   const nameRuns: PptxGenJS.TextProps[] = [
     {
-      text: nameKrClean,
+      text: data.nameEn ? nameKrClean + "\n" : nameKrClean,
       options: {
         fontSize: 18,
         fontFace: FONT_MAIN,
@@ -237,8 +236,6 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
         fontFace: FONT_EN,
         color: "666666",
         italic: true,
-        breakLine: true,
-        paraSpaceBefore: 4,
       },
     });
   }
@@ -609,10 +606,9 @@ export async function generateTastingNotePpt(
     addTastingNoteSlide(pptx, data);
   }
 
-  // Buffer로 출력 후 폰트 임베딩
-  const rawBuffer = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
-  const output = await embedFontsInPptx(rawBuffer);
-  logger.info(`PPT generated: ${slides.length} slides (pptxgenjs, font embedded)`);
+  // Buffer로 출력
+  const output = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
+  logger.info(`PPT generated: ${slides.length} slides (pptxgenjs)`);
 
   return output;
 }
