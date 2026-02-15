@@ -174,7 +174,10 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     }
   }
 
-  logger.info(`[WineDetection] Result: ${newRows.length} new wines, ${updateRows.length} updated`);
+  // inventory_cdv → wines country backfill (빈 값 채우기)
+  const backfilled = await backfillWineCountry();
+
+  logger.info(`[WineDetection] Result: ${newRows.length} new, ${updateRows.length} updated, ${backfilled} country-backfilled`);
   return { newCount: newRows.length, updatedCount: updateRows.length };
 }
 
@@ -232,4 +235,68 @@ export async function detectPriceChanges(): Promise<number> {
   }
 
   return priceChanges.length;
+}
+
+/** wines 테이블 국가 데이터 backfill:
+ *  1) country 비어있으면 → inventory_cdv.country 또는 country_en에서 역변환
+ *  2) country_en 비어있으면 → country에서 변환
+ */
+export async function backfillWineCountry(): Promise<number> {
+  let filled = 0;
+
+  // ── 1. country 비어있는 와인: inventory_cdv 또는 country_en에서 채우기 ──
+  const { data: noCountry } = await supabase
+    .from('wines')
+    .select('item_code, country_en')
+    .or('country.is.null,country.eq.');
+
+  if (noCountry && noCountry.length > 0) {
+    const codes = noCountry.map((w: any) => w.item_code);
+
+    // inventory_cdv에서 country 가져오기
+    const { data: invItems } = await supabase
+      .from('inventory_cdv')
+      .select('item_no, country')
+      .in('item_no', codes)
+      .not('country', 'is', null);
+
+    const invMap = new Map<string, string>();
+    for (const inv of invItems || []) {
+      if (inv.country) invMap.set(inv.item_no, inv.country);
+    }
+
+    for (const w of noCountry) {
+      const source = invMap.get(w.item_code) || w.country_en || '';
+      if (!source) continue;
+      const { kr, en } = getCountryPair(source);
+      const { error } = await supabase.from('wines')
+        .update({ country: kr || source, country_en: en || source, updated_at: new Date().toISOString() })
+        .eq('item_code', w.item_code);
+      if (!error) filled++;
+    }
+  }
+
+  // ── 2. country_en 비어있지만 country는 있는 와인: 영문 국가 채우기 ──
+  const { data: noCountryEn } = await supabase
+    .from('wines')
+    .select('item_code, country')
+    .not('country', 'is', null)
+    .neq('country', '')
+    .or('country_en.is.null,country_en.eq.');
+
+  if (noCountryEn && noCountryEn.length > 0) {
+    for (const w of noCountryEn) {
+      const { en } = getCountryPair(w.country);
+      if (!en) continue;
+      const { error } = await supabase.from('wines')
+        .update({ country_en: en, updated_at: new Date().toISOString() })
+        .eq('item_code', w.item_code);
+      if (!error) filled++;
+    }
+  }
+
+  if (filled > 0) {
+    logger.info(`[WineDetection] backfillWineCountry: ${filled} wines updated`);
+  }
+  return filled;
 }

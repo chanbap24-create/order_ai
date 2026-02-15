@@ -38,8 +38,8 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'item_code', label: '품목코드', width: 11, type: 'text', dataField: 'item_code' },
   { uiKey: 'country', label: '국가', width: 8, type: 'text', dataField: 'country' },
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
-  { uiKey: 'region', label: '지역', width: 10, type: 'text', dataField: 'region' },
-  { uiKey: 'grape_varieties', label: '포도품종', width: 20, type: 'text', dataField: 'grape_varieties' },
+  { uiKey: 'region', label: '지역', width: 16, type: 'text', dataField: 'region' },
+  { uiKey: 'grape_varieties', label: '포도품종', width: 14, type: 'text', dataField: 'grape_varieties' },
   { uiKey: 'image_url', label: '이미지', width: 10, type: 'image' },
   { uiKey: 'vintage', label: '빈티지', width: 8, type: 'text', dataField: 'vintage' },
   { uiKey: 'product_name', label: '상품명', width: 35, type: 'text', dataField: 'product_name' },
@@ -223,17 +223,17 @@ export async function GET(request: NextRequest) {
     if (quoteErr) throw quoteErr;
     const quoteItems = quoteRows || [];
 
-    // Fetch wine_profiles for grape_varieties enrichment
+    // Fetch wines table for grape_varieties enrichment
     const itemCodes = quoteItems.map((q: any) => q.item_code).filter(Boolean);
-    let profileMap: Record<string, string> = {};
+    let grapeMap: Record<string, string> = {};
     if (itemCodes.length > 0) {
-      const { data: profiles } = await supabase
-        .from('wine_profiles')
+      const { data: wineRows } = await supabase
+        .from('wines')
         .select('item_code, grape_varieties')
         .in('item_code', itemCodes);
-      if (profiles) {
-        for (const p of profiles) {
-          if (p.grape_varieties) profileMap[p.item_code] = p.grape_varieties;
+      if (wineRows) {
+        for (const w of wineRows) {
+          if (w.grape_varieties) grapeMap[w.item_code] = w.grape_varieties;
         }
       }
     }
@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
     // Merge grape_varieties into items
     const items = quoteItems.map((q: any) => ({
       ...q,
-      grape_varieties: profileMap[q.item_code] || null,
+      grape_varieties: grapeMap[q.item_code] || null,
     }));
 
     // Parse visible columns
@@ -262,9 +262,10 @@ export async function GET(request: NextRequest) {
     const company = request.nextUrl.searchParams.get('company') || 'CDV';
 
     // Filter active columns based on visibility
-    const activeCols = ALL_EXCEL_COLUMNS.filter(
-      c => c.uiKey === null || visibleColumns.includes(c.uiKey)
-    );
+    // columns 파라미터가 없으면 전체 열 표시 (기본 세트)
+    const activeCols = visibleColumns.length > 0
+      ? ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || visibleColumns.includes(c.uiKey))
+      : ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || !['retail_normal_total', 'retail_discount_total'].includes(c.uiKey || ''));
 
     // Load tasting note index for existence check
     const tastingNoteSet = await loadTastingNoteIndex();
@@ -487,7 +488,7 @@ async function buildQuote(
   // ── Data rows (Row 24+) ──
   const DS = 24;
   const hasImageCol = activeCols.some(c => c.type === 'image');
-  const IMG_ROW_HEIGHT = 75; // points when image column is active
+  const IMG_ROW_HEIGHT = 95; // points when image column is active
 
   for (let idx = 0; idx < items.length; idx++) {
     const item = items[idx];

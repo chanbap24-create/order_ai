@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
-import { loadMasterSheet, getDownloadsRetailPriceMap, getDlRetailPriceMap } from '@/app/lib/masterSheet';
 
 // ── 유틸: 품목코드에서 빈티지 추출 ──
 // item_code[2:4]가 빈티지. 예: 0018801→18→2018, 2019416→19→2019, 00NV801→NV
@@ -16,9 +15,8 @@ function extractVintage(itemCode: string): string {
   // 숫자가 아니면 그대로
   if (!/^\d{2}$/.test(vPart)) return vPart;
 
-  // 현재년도 2026 기준: >26이면 19XX, ≤26이면 20XX
   const num = parseInt(vPart);
-  return num > 26 ? `19${vPart}` : `20${vPart}`;
+  return num >= 50 ? `19${vPart}` : `20${vPart}`;
 }
 
 // ── 유틸: 영어 2글자 약어 제거 ──
@@ -71,30 +69,55 @@ export async function POST(req: Request) {
       tasting_note = '',
     } = body;
 
-    // ── English 시트에서 데이터 보강 ──
+    // ── Supabase에서 데이터 보강 ──
     if (item_code) {
-      try {
-        const masterItems = loadMasterSheet();
-        const masterItem = masterItems.find(m => m.itemNo === item_code);
-        if (masterItem) {
-          brand = masterItem.producer || brand;
-          english_name = masterItem.englishName || english_name;
-          korean_name = masterItem.koreanName || korean_name;
-          region = masterItem.region || region;
-          country = masterItem.country || country;
-        }
-      } catch (e) {
-        console.error('Master sheet lookup error:', e);
+      // 1) wines 테이블: 브랜드, 영문명, 한글명, 지역, 국가, 이미지
+      const { data: wine } = await supabase
+        .from('wines')
+        .select('item_name_en, item_name_kr, country, country_en, region, grape_varieties, wine_type, supplier, supplier_kr, supply_price, brand, image_url')
+        .eq('item_code', item_code)
+        .maybeSingle();
+
+      if (wine) {
+        if (!brand) brand = wine.supplier || wine.brand || '';
+        if (!english_name) english_name = wine.item_name_en || '';
+        if (!korean_name) korean_name = wine.item_name_kr || '';
+        if (!region) region = wine.region || '';
+        if (!country) country = wine.country || wine.country_en || '';
+        if (!image_url && wine.image_url) image_url = wine.image_url;
       }
 
-      // 판매가: Downloads S열 → DL S열 순으로 조회
+      // 2) inventory_cdv에서 판매가 보강
       if (!retail_price) {
-        const retailPriceMap = getDownloadsRetailPriceMap();
-        retail_price = retailPriceMap.get(item_code) || 0;
+        const { data: inv } = await supabase
+          .from('inventory_cdv')
+          .select('retail_price')
+          .eq('item_no', item_code)
+          .maybeSingle();
+        if (inv?.retail_price) retail_price = inv.retail_price;
       }
+
+      // 3) inventory_dl에서 판매가 보강 (CDV에 없으면)
       if (!retail_price) {
-        const dlRetailMap = getDlRetailPriceMap();
-        retail_price = dlRetailMap.get(item_code) || 0;
+        const { data: dlInv } = await supabase
+          .from('inventory_dl')
+          .select('retail_price')
+          .eq('item_no', item_code)
+          .maybeSingle();
+        if (dlInv?.retail_price) retail_price = dlInv.retail_price;
+      }
+
+      // 4) 테이스팅 노트 보강
+      if (!tasting_note) {
+        const { data: tn } = await supabase
+          .from('tasting_notes')
+          .select('color_note, nose_note, palate_note')
+          .eq('wine_id', item_code)
+          .maybeSingle();
+        if (tn) {
+          const parts = [tn.color_note, tn.nose_note, tn.palate_note].filter(Boolean);
+          if (parts.length > 0) tasting_note = parts.join(' / ');
+        }
       }
 
       // 빈티지: 품목코드 3-4번째 자리에서 추출

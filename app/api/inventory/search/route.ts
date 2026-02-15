@@ -37,29 +37,29 @@ export async function GET(request: NextRequest) {
     const { data, error } = await dbQuery;
     if (error) throw error;
 
-    // Fetch wine_profiles for matched item_nos
+    // Fetch wines 테이블에서 추가 정보 조회
     const itemNos = (data || []).map((r: any) => r.item_no);
-    let wpMap: Record<string, any> = {};
+    let wineMap: Record<string, any> = {};
     if (itemNos.length > 0) {
-      const { data: wpData } = await supabase
-        .from('wine_profiles')
-        .select('item_code, grape_varieties, wine_type, region, description_kr, country')
+      const { data: wineData } = await supabase
+        .from('wines')
+        .select('item_code, grape_varieties, wine_type, region, country_en')
         .in('item_code', itemNos);
-      if (wpData) {
-        for (const wp of wpData) {
-          wpMap[wp.item_code] = wp;
+      if (wineData) {
+        for (const w of wineData) {
+          wineMap[w.item_code] = w;
         }
       }
     }
 
     let results = (data || []).map((row: any) => {
-      const wp = wpMap[row.item_no];
+      const w = wineMap[row.item_no];
       return {
         ...row,
-        grape_varieties: wp?.grape_varieties || null,
-        wine_type: wp?.wine_type || null,
-        wp_region: wp?.region || null,
-        description_kr: wp?.description_kr || null,
+        grape_varieties: w?.grape_varieties || null,
+        wine_type: w?.wine_type || null,
+        wp_region: w?.region || null,
+        country_en: w?.country_en || null,
       };
     });
 

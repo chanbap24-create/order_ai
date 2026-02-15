@@ -87,11 +87,9 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'alcohol_content', label: '알콜도수' },
   { key: 'country', label: '국가' },
   { key: 'barcode', label: '바코드' },
-  { key: 'total_stock', label: '재고수량(B)' },
   { key: 'stock_excl_available', label: '가용재고제외' },
   { key: 'pending_shipment', label: '출고예정' },
-  { key: 'available_stock', label: '가용재고', cdvOnly: true },
-  { key: 'available_stock', label: '가용재고', dlOnly: true },
+  { key: 'total_stock', label: '가용재고' },
   { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
   { key: 'yongma_logistics', label: '용마로지스', cdvOnly: true },
   { key: 'anseong_warehouse', label: '안성창고', dlOnly: true },
@@ -104,8 +102,8 @@ const COLUMNS: ColumnConfig[] = [
   { key: 'avg_sales_365d', label: '365일평균출고' },
 ];
 
-const DEFAULT_COLUMNS_CDV: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'bonded_warehouse', 'sales_30days'];
-const DEFAULT_COLUMNS_DL: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'available_stock', 'anseong_warehouse', 'sales_30days'];
+const DEFAULT_COLUMNS_CDV: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'total_stock', 'bonded_warehouse', 'sales_30days'];
+const DEFAULT_COLUMNS_DL: ColumnKey[] = ['item_no', 'item_name', 'supply_price', 'total_stock', 'anseong_warehouse', 'sales_30days'];
 
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<WarehouseTab>('CDV');
@@ -126,6 +124,8 @@ export default function InventoryPage() {
   const [tastingNoteLoading, setTastingNoteLoading] = useState(false);
   const [selectedItemNo, setSelectedItemNo] = useState('');
   const [selectedWineName, setSelectedWineName] = useState('');
+  const [tastingNoteSource, setTastingNoteSource] = useState<'pdf' | 'db' | ''>('');
+  const [dbTastingNote, setDbTastingNote] = useState<any>(null);
 
   // 테이스팅 노트 존재 여부 캐시
   const [tastingNotesAvailable, setTastingNotesAvailable] = useState<Record<string, boolean>>({});
@@ -137,14 +137,21 @@ export default function InventoryPage() {
 
   useEffect(() => {
     try {
+      const migrate = (cols: ColumnKey[]): ColumnKey[] => {
+        // available_stock → total_stock 마이그레이션
+        return cols.map(c => c === 'available_stock' ? 'total_stock' as ColumnKey : c);
+      };
       const savedCDV = localStorage.getItem('inventory_columns_cdv');
       const savedDL = localStorage.getItem('inventory_columns_dl');
-      if (savedCDV) { try { setVisibleColumnsCDV(JSON.parse(savedCDV)); } catch (e) {} }
-      if (savedDL) { try { setVisibleColumnsDL(JSON.parse(savedDL)); } catch (e) {} }
+      if (savedCDV) { try { const cols = migrate(JSON.parse(savedCDV)); setVisibleColumnsCDV(cols); localStorage.setItem('inventory_columns_cdv', JSON.stringify(cols)); } catch (e) {} }
+      if (savedDL) { try { const cols = migrate(JSON.parse(savedDL)); setVisibleColumnsDL(cols); localStorage.setItem('inventory_columns_dl', JSON.stringify(cols)); } catch (e) {} }
     } catch (e) {}
   }, []);
 
-  const visibleColumns = activeTab === 'CDV' ? visibleColumnsCDV : visibleColumnsDL;
+  // COLUMNS 정의 순서대로 정렬
+  const columnOrder = COLUMNS.map(c => c.key);
+  const rawVisible = activeTab === 'CDV' ? visibleColumnsCDV : visibleColumnsDL;
+  const visibleColumns = [...rawVisible].sort((a, b) => columnOrder.indexOf(a) - columnOrder.indexOf(b));
   const setVisibleColumns = activeTab === 'CDV' ? setVisibleColumnsCDV : setVisibleColumnsDL;
 
   const toggleColumn = (key: ColumnKey) => {
@@ -205,15 +212,24 @@ export default function InventoryPage() {
     setSelectedWineName(itemName);
     setTastingNoteLoading(true);
     setShowTastingNote(true);
+    setTastingNoteSource('');
+    setDbTastingNote(null);
+    setTastingNoteUrl('');
+    setOriginalPdfUrl('');
     try {
       const response = await fetch(`/api/tasting-notes?item_no=${itemNo}`, { cache: 'no-store' });
       const data = await response.json();
       if (data.success) {
-        const proxyUrl = `/api/proxy/pdf?url=${encodeURIComponent(data.pdf_url)}`;
-        setTastingNoteUrl(proxyUrl);
-        setOriginalPdfUrl(data.pdf_url);
+        if (data.source === 'db') {
+          setTastingNoteSource('db');
+          setDbTastingNote(data.tasting_note);
+        } else {
+          setTastingNoteSource('pdf');
+          const proxyUrl = `/api/proxy/pdf?url=${encodeURIComponent(data.pdf_url)}`;
+          setTastingNoteUrl(proxyUrl);
+          setOriginalPdfUrl(data.pdf_url);
+        }
       } else {
-        setTastingNoteUrl('');
         alert(data.error || '테이스팅 노트를 찾을 수 없습니다.');
         setShowTastingNote(false);
       }
@@ -256,11 +272,11 @@ export default function InventoryPage() {
   const filteredResults = results.filter(item => {
     if (hideNoSupplyPrice && (!item.supply_price || item.supply_price <= 0)) return false;
     if (activeTab === 'CDV' && showOnlyBondedStock) {
-      const hasNoAvailableStock = !item.available_stock || item.available_stock <= 0;
+      const hasNoStock = !item.total_stock || item.total_stock <= 0;
       const hasBondedStock = item.bonded_warehouse && item.bonded_warehouse > 0;
-      return hasNoAvailableStock && hasBondedStock;
+      return hasNoStock && hasBondedStock;
     }
-    if (hideNoStock && (!item.available_stock || item.available_stock <= 0)) return false;
+    if (hideNoStock && (!item.total_stock || item.total_stock <= 0)) return false;
     return true;
   });
 
@@ -279,16 +295,16 @@ export default function InventoryPage() {
       case 'supply_price': case 'discount_price': case 'wholesale_price':
       case 'retail_price': case 'min_price':
         return formatPrice(item[key]);
-      case 'available_stock':
+      case 'total_stock':
         return (
           <span style={{
-            color: (item.available_stock ?? 0) > 0 ? '#10b981' : '#ef4444',
+            color: (item.total_stock ?? 0) > 0 ? '#10b981' : '#ef4444',
             fontWeight: 700
           }}>
-            {formatNumber(item.available_stock ?? 0)}
+            {formatNumber(item.total_stock ?? 0)}
           </span>
         );
-      case 'total_stock': case 'stock_excl_available': case 'pending_shipment':
+      case 'stock_excl_available': case 'pending_shipment':
       case 'bonded_warehouse': case 'yongma_logistics': case 'anseong_warehouse':
       case 'gig_warehouse': case 'gig_marketing': case 'gig_sales1':
       case 'incoming_stock': case 'sales_30days': case 'avg_sales_90d':
@@ -708,7 +724,7 @@ export default function InventoryPage() {
                         gap: 6,
                       }}>
                         {visibleColumns
-                          .filter(colKey => colKey !== 'item_no' && colKey !== 'item_name' && colKey !== 'available_stock')
+                          .filter(colKey => colKey !== 'item_no' && colKey !== 'item_name')
                           .map(colKey => {
                             const col = availableColumns.find(c => c.key === colKey);
                             if (!col) return null;
@@ -836,10 +852,59 @@ export default function InventoryPage() {
               }}>
                 {tastingNoteLoading ? (
                   <div style={{ textAlign: 'center', color: '#999' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>⏳</div>
+                    <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>...</div>
                     <div>테이스팅 노트를 불러오는 중...</div>
                   </div>
-                ) : tastingNoteUrl ? (
+                ) : tastingNoteSource === 'db' && dbTastingNote ? (
+                  <div style={{ width: '100%', height: '100%', overflow: 'auto', padding: '8px 0' }}>
+                    <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                      {[
+                        { label: 'Color', value: dbTastingNote.color_note },
+                        { label: 'Nose', value: dbTastingNote.nose_note },
+                        { label: 'Palate', value: dbTastingNote.palate_note },
+                        { label: 'Food Pairing', value: dbTastingNote.food_pairing },
+                        { label: 'Glass', value: dbTastingNote.glass_pairing },
+                        { label: 'Serving Temp', value: dbTastingNote.serving_temp },
+                        { label: 'Awards', value: dbTastingNote.awards },
+                        { label: 'Winemaking', value: dbTastingNote.winemaking },
+                        { label: 'Winery', value: dbTastingNote.winery_description },
+                        { label: 'Vintage', value: dbTastingNote.vintage_note },
+                        { label: 'Aging', value: dbTastingNote.aging_potential },
+                      ].filter(item => item.value).map((item, idx) => (
+                        <div key={idx} style={{
+                          marginBottom: 16,
+                          padding: '12px 16px',
+                          background: '#fafaf8',
+                          borderRadius: 8,
+                          border: '1px solid #eee',
+                        }}>
+                          <div style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#8B1538',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            marginBottom: 6,
+                          }}>{item.label}</div>
+                          <div style={{
+                            fontSize: 14,
+                            color: '#333',
+                            lineHeight: 1.6,
+                            whiteSpace: 'pre-wrap',
+                          }}>{item.value}</div>
+                        </div>
+                      ))}
+                      {dbTastingNote.grape_varieties && (
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8, fontSize: 12, color: '#666' }}>
+                          <span>Grape: {dbTastingNote.grape_varieties}</span>
+                          {dbTastingNote.wine_type && <span>Type: {dbTastingNote.wine_type}</span>}
+                          {dbTastingNote.country && <span>Country: {dbTastingNote.country}</span>}
+                          {dbTastingNote.region && <span>Region: {dbTastingNote.region}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : tastingNoteSource === 'pdf' && tastingNoteUrl ? (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                     <div style={{
                       marginBottom: 12,
@@ -880,7 +945,7 @@ export default function InventoryPage() {
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', color: '#999' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>❌</div>
+                    <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>-</div>
                     <div>테이스팅 노트를 찾을 수 없습니다.</div>
                   </div>
                 )}

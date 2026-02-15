@@ -754,31 +754,20 @@ export default function NewWineTab() {
                       >
                         {saving ? '저장 중...' : '저장'}
                       </button>
-                      <button
-                        onClick={handleApprove}
-                        disabled={approving || tastingNote?.approved === 1 || !tastingNote}
-                        style={{
-                          flex: 1, padding: '10px', borderRadius: 6, border: 'none', fontSize: 14, cursor: 'pointer',
-                          background: tastingNote?.approved === 1 ? '#86efac' : !tastingNote ? '#d1d5db' : approving ? '#9ca3af' : '#16a34a',
-                          color: '#fff', fontWeight: 600,
-                        }}
-                      >
-                        {tastingNote?.approved === 1 ? 'V 승인됨' : !tastingNote ? '승인 (조사 필요)' : approving ? '승인 중...' : '승인'}
-                      </button>
                     </div>
                     {/* PPT/다운로드 행 */}
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         onClick={() => handleGeneratePpt()}
-                        disabled={generatingPpt || !tastingNote || tastingNote?.approved !== 1}
+                        disabled={generatingPpt || !tastingNote}
                         style={{
                           flex: 1, padding: '10px', borderRadius: 6, border: '1px solid #d1d5db',
-                          background: generatingPpt ? '#fef3c7' : tastingNote?.approved === 1 ? '#fff' : '#f3f4f6',
-                          fontSize: 13, cursor: tastingNote?.approved === 1 && !generatingPpt ? 'pointer' : 'not-allowed',
-                          color: tastingNote?.approved === 1 ? '#374151' : '#d1d5db', fontWeight: 600,
+                          background: generatingPpt ? '#fef3c7' : tastingNote ? '#fff' : '#f3f4f6',
+                          fontSize: 13, cursor: tastingNote && !generatingPpt ? 'pointer' : 'not-allowed',
+                          color: tastingNote ? '#374151' : '#d1d5db', fontWeight: 600,
                         }}
                       >
-                        {generatingPpt ? 'PPT 생성중...' : !tastingNote ? 'PPT (조사 필요)' : tastingNote?.approved !== 1 ? 'PPT (승인 후)' : 'PPT 다운로드'}
+                        {generatingPpt ? 'PPT 생성중...' : !tastingNote ? 'PPT (조사 필요)' : 'PPT 다운로드'}
                       </button>
                     </div>
                   </div>

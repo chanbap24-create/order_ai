@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateSingleWinePpt } from "@/app/lib/pptGenerator";
 import { generateSingleWinePdf } from "@/app/lib/pdfGenerator";
 import { readOutputFile, savePptx } from "@/app/lib/fileOutput";
-import { uploadToRelease } from "@/app/lib/githubRelease";
+import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
 import { getWineByCode } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
@@ -72,12 +72,26 @@ export async function POST(request: NextRequest) {
       });
     } catch { /* ignore */ }
 
+    // PDF 업로드 성공 시 인덱스 자동 갱신
+    const uploadedCount = results.filter((r) => !r.error).length;
+    let indexTotal = 0;
+    if (uploadedCount > 0 && format === "pdf") {
+      try {
+        const indexResult = await refreshReleaseIndex();
+        indexTotal = indexResult.total;
+        logger.info(`[GitHub] Index refreshed after upload: ${indexTotal} items`);
+      } catch (e) {
+        logger.warn(`[GitHub] Index refresh failed: ${e instanceof Error ? e.message : e}`);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       format,
       results,
-      uploaded: results.filter((r) => !r.error).length,
+      uploaded: uploadedCount,
       failed: results.filter((r) => r.error).length,
+      indexTotal,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

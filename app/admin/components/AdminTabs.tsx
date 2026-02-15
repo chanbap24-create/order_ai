@@ -11,6 +11,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'tasting-note', label: '테이스팅노트' },
   { id: 'price-list', label: '가격리스트' },
   { id: 'change-log', label: '변경이력' },
+  { id: 'recommend-settings', label: 'AI추천설정' },
 ];
 
 interface AdminTabsProps {

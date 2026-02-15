@@ -2,6 +2,8 @@
 
 import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
+import { getCountryPair } from "@/app/lib/countryMapping";
+import { extractGrapesFromName, extractTypeFromName } from "@/app/lib/wineNameExtract";
 import type { Wine, TastingNote, AdminSetting } from "@/app/types/wine";
 
 /* ─── 테이블 생성 (no-op) ─── */
@@ -42,13 +44,24 @@ export async function getWineByCode(itemCode: string): Promise<Wine | undefined>
 export async function upsertWine(wine: Partial<Wine> & { item_code: string }) {
   const existing = await getWineByCode(wine.item_code);
 
+  // country ↔ country_en 자동 동기화 (한쪽이 변경되면 반대쪽도 항상 갱신)
+  const syncedWine = { ...wine };
+  if ('country_en' in syncedWine && syncedWine.country_en && !('country' in syncedWine)) {
+    const { kr } = getCountryPair(syncedWine.country_en);
+    if (kr) syncedWine.country = kr;
+  }
+  if ('country' in syncedWine && syncedWine.country && !('country_en' in syncedWine)) {
+    const { en } = getCountryPair(syncedWine.country);
+    if (en) syncedWine.country_en = en;
+  }
+
   if (existing) {
-    const updates: Record<string, unknown> = { ...wine, updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = { ...syncedWine, updated_at: new Date().toISOString() };
     delete updates.item_code;
     delete updates.created_at;
     await supabase.from('wines').update(updates).eq('item_code', wine.item_code);
   } else {
-    await supabase.from('wines').insert(wine);
+    await supabase.from('wines').insert(syncedWine);
   }
 }
 
@@ -102,17 +115,57 @@ export async function upsertTastingNote(wineId: string, note: Partial<TastingNot
   // wines 테이블에서 추천용 속성 스냅샷 가져오기
   const { data: wine } = await supabase
     .from('wines')
-    .select('supply_price, wine_type, country, region, grape_varieties')
+    .select('supply_price, wine_type, country, region, grape_varieties, item_name_kr')
     .eq('item_code', wineId)
     .single();
 
   const snapshot = {
     supply_price: wine?.supply_price ?? note.supply_price ?? null,
-    wine_type: wine?.wine_type ?? note.wine_type ?? null,
-    country: wine?.country ?? note.country ?? null,
-    region: wine?.region ?? note.region ?? null,
-    grape_varieties: wine?.grape_varieties ?? note.grape_varieties ?? null,
+    wine_type: note.wine_type || wine?.wine_type || null,
+    country: note.country || wine?.country || null,
+    region: note.region || wine?.region || null,
+    grape_varieties: note.grape_varieties || wine?.grape_varieties || null,
   };
+
+  // AI 리서치 → wines 역반영
+  // 우선순위: 수동입력 > AI 리서치 > 이름 추출 backfill
+  // 현재 값이 이름 추출 결과와 같으면 = backfill 데이터 → AI 덮어쓰기 허용
+  // 현재 값이 이름 추출 결과와 다르면 = 수동 입력 → 보존
+  const wineName = wine?.item_name_kr || '';
+  const autoGrape = extractGrapesFromName(wineName);
+  const autoType = extractTypeFromName(wineName);
+
+  const wineUpdates: Record<string, unknown> = {};
+
+  if (note.grape_varieties) {
+    const cur = wine?.grape_varieties || '';
+    // 비어있거나, 이름 자동추출 값이면 → AI로 덮어쓰기
+    if (!cur || cur === autoGrape) {
+      wineUpdates.grape_varieties = note.grape_varieties;
+    }
+    // 그 외(수동 입력)은 보존
+  }
+  if (note.wine_type) {
+    const cur = wine?.wine_type || '';
+    if (!cur || cur === autoType) {
+      wineUpdates.wine_type = note.wine_type;
+    }
+  }
+  if (note.country) {
+    if (!wine?.country) {
+      wineUpdates.country = note.country;
+    }
+  }
+  if (note.region) {
+    if (!wine?.region) {
+      wineUpdates.region = note.region;
+    }
+  }
+
+  if (Object.keys(wineUpdates).length > 0) {
+    wineUpdates.updated_at = new Date().toISOString();
+    await supabase.from('wines').update(wineUpdates).eq('item_code', wineId);
+  }
 
   const existing = await getTastingNote(wineId);
 

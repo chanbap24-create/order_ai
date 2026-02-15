@@ -81,6 +81,14 @@ export default function AllWinesTab() {
 
   useEffect(() => { fetchWines(); }, [fetchWines]);
 
+  // wines 갱신 시 selectedWine 동기화
+  useEffect(() => {
+    if (selectedWine) {
+      const updated = wines.find(w => w.item_code === selectedWine.item_code);
+      if (updated) setSelectedWine(updated);
+    }
+  }, [wines]);
+
   // 검색 시 페이지 리셋
   useEffect(() => { setPage(1); }, [search, country, statusFilter, hideZero]);
 
@@ -145,7 +153,7 @@ export default function AllWinesTab() {
     setDeleting(false);
   };
 
-  // 와인 선택 시 편집 필드 동기화
+  // 와인 선택/갱신 시 편집 필드 동기화
   useEffect(() => {
     if (selectedWine) {
       setEditFields({
@@ -153,9 +161,11 @@ export default function AllWinesTab() {
         item_name_en: selectedWine.item_name_en || '',
         country_en: selectedWine.country_en || '',
         region: selectedWine.region || '',
+        grape_varieties: selectedWine.grape_varieties || '',
+        wine_type: selectedWine.wine_type || '',
       });
     }
-  }, [selectedWine?.item_code]);
+  }, [selectedWine]);
 
   const handleSaveField = async (dbKey: string) => {
     if (!selectedWine) return;
@@ -460,6 +470,7 @@ export default function AllWinesTab() {
                   savingField={savingField}
                   handleDeleteSingle={handleDeleteSingle}
                   deleting={deleting}
+                  onRefresh={fetchWines}
                 />
               </div>
             </div>
@@ -504,6 +515,7 @@ function DetailPanel({
   savingField,
   handleDeleteSingle,
   deleting,
+  onRefresh,
 }: {
   selectedWine: WineRowExt;
   editFields: Record<string, string>;
@@ -512,7 +524,46 @@ function DetailPanel({
   savingField: string;
   handleDeleteSingle: (id: string, name: string) => Promise<void>;
   deleting: boolean;
+  onRefresh?: () => void;
 }) {
+  const [researching, setResearching] = useState(false);
+  const [researchMsg, setResearchMsg] = useState('');
+
+  const handleResearch = async () => {
+    const engName = editFields['item_name_en'] || (selectedWine as any).item_name_en || '';
+    if (!engName.trim()) {
+      setResearchMsg('영문명을 먼저 입력해주세요');
+      setTimeout(() => setResearchMsg(''), 3000);
+      return;
+    }
+    setResearching(true);
+    setResearchMsg('');
+    try {
+      const res = await fetch('/api/admin/wine-research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wine_id: selectedWine.item_code,
+          product_name_eng: engName.trim(),
+          item_name_kr: selectedWine.item_name_kr,
+          vintage: selectedWine.vintage || '',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setResearchMsg('AI 조사 완료');
+        onRefresh?.();
+      } else {
+        setResearchMsg('오류: ' + (json.error || '실패'));
+      }
+    } catch {
+      setResearchMsg('AI 조사 요청 실패');
+    } finally {
+      setResearching(false);
+      setTimeout(() => setResearchMsg(''), 4000);
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>
@@ -532,6 +583,8 @@ function DetailPanel({
           { label: '공급자', dbKey: 'supplier', placeholder: '공급자명(영문) 입력' },
           { label: '국가', dbKey: 'country_en', placeholder: '국가(영문) 입력' },
           { label: '산지', dbKey: 'region', placeholder: '지역 입력' },
+          { label: '품종', dbKey: 'grape_varieties', placeholder: '예: Cabernet Sauvignon, Merlot' },
+          { label: '타입', dbKey: 'wine_type', placeholder: '예: Red, White, 레드, 화이트' },
         ] as const).map(({ label, dbKey, placeholder }) => {
           const val = editFields[dbKey] || '';
           const orig = (selectedWine as any)[dbKey] || '';
@@ -565,8 +618,6 @@ function DetailPanel({
             </div>
           );
         })}
-        <DetailRow label="품종" value={selectedWine.grape_varieties || '-'} />
-        <DetailRow label="타입" value={selectedWine.wine_type || '-'} />
         <DetailRow label="빈티지" value={selectedWine.vintage || '-'} />
         <DetailRow label="용량" value={selectedWine.volume_ml ? `${selectedWine.volume_ml}ml` : '-'} />
         <DetailRow label="알코올" value={selectedWine.alcohol || '-'} />
@@ -578,7 +629,25 @@ function DetailPanel({
         <DetailRow label="수정일" value={selectedWine.updated_at?.split('T')[0] || '-'} />
       </div>
 
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button
+          onClick={handleResearch}
+          disabled={researching}
+          style={{
+            width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #1a237e',
+            background: researching ? '#e8eaf6' : '#e8eaf6', color: '#1a237e',
+            fontWeight: 600, fontSize: 13, cursor: researching ? 'default' : 'pointer',
+            opacity: researching ? 0.7 : 1,
+          }}
+        >
+          {researching ? 'AI 조사 중...' : 'AI 조사'}
+        </button>
+        {researchMsg && (
+          <div style={{
+            fontSize: 12, textAlign: 'center', fontWeight: 500,
+            color: researchMsg.startsWith('오류') || researchMsg.includes('실패') ? '#dc2626' : '#2e7d32',
+          }}>{researchMsg}</div>
+        )}
         <button
           onClick={() => handleDeleteSingle(selectedWine.item_code, selectedWine.item_name_kr)}
           disabled={deleting}
@@ -587,7 +656,7 @@ function DetailPanel({
             background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer',
           }}
         >
-          이 와인 삭제
+          삭제
         </button>
       </div>
     </div>

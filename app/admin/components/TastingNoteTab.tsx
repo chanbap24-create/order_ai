@@ -630,17 +630,6 @@ export default function TastingNoteTab() {
                       >
                         {saving ? '저장 중...' : '저장'}
                       </button>
-                      <button
-                        onClick={handleApprove}
-                        disabled={approving || tastingNote?.approved === 1 || !tastingNote}
-                        style={{
-                          flex: 1, padding: '10px', borderRadius: 6, border: 'none', fontSize: 14, cursor: 'pointer',
-                          background: tastingNote?.approved === 1 ? '#86efac' : !tastingNote ? '#d1d5db' : approving ? '#9ca3af' : '#16a34a',
-                          color: '#fff', fontWeight: 600,
-                        }}
-                      >
-                        {tastingNote?.approved === 1 ? 'V 승인됨' : !tastingNote ? '승인 (조사 필요)' : approving ? '승인 중...' : '승인'}
-                      </button>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button

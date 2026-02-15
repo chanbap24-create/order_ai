@@ -32,12 +32,37 @@ export async function GET(request: NextRequest) {
       if (codes.length === 0) {
         return NextResponse.json({ success: true, profiles: [] });
       }
-      const { data: rows, error } = await supabase
+
+      // wine_profiles 먼저 조회
+      const { data: rows } = await supabase
         .from('wine_profiles')
         .select('*')
         .in('item_code', codes);
-      if (error) throw error;
-      return NextResponse.json({ success: true, profiles: rows || [] });
+
+      const profileMap = new Map((rows || []).map((r: any) => [r.item_code, r]));
+
+      // wine_profiles에 없는 코드는 wines 테이블에서 fallback
+      const missingCodes = codes.filter(c => !profileMap.has(c));
+      if (missingCodes.length > 0) {
+        const { data: wineRows } = await supabase
+          .from('wines')
+          .select('item_code, country, country_en, region, grape_varieties, wine_type, alcohol, image_url, supplier, supplier_kr')
+          .in('item_code', missingCodes);
+
+        for (const w of (wineRows || [])) {
+          profileMap.set(w.item_code, {
+            item_code: w.item_code,
+            country: w.country || w.country_en || '',
+            region: w.region || '',
+            grape_varieties: w.grape_varieties || '',
+            wine_type: w.wine_type || '',
+            alcohol: w.alcohol || '',
+            description_kr: '',
+          });
+        }
+      }
+
+      return NextResponse.json({ success: true, profiles: Array.from(profileMap.values()) });
     }
 
     const { data: rows, error } = await supabase
