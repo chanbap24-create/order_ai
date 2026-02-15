@@ -46,6 +46,8 @@ interface AlertsResponse {
 }
 
 interface AlertTabProps {
+  currentManager: string;
+  isAdmin: boolean;
   onCountChange?: (count: number) => void;
 }
 
@@ -66,10 +68,10 @@ function fmt(n: number) {
 
 type FilterType = 'all' | 'low_stock' | 'out_of_stock';
 
-export default function AlertTab({ onCountChange }: AlertTabProps) {
+export default function AlertTab({ currentManager, isAdmin, onCountChange }: AlertTabProps) {
   // 담당자
   const [managers, setManagers] = useState<string[]>([]);
-  const [selectedManager, setSelectedManager] = useState('');
+  const [selectedManager, setSelectedManager] = useState(isAdmin ? '' : currentManager);
 
   // 알림 데이터
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -92,8 +94,9 @@ export default function AlertTab({ onCountChange }: AlertTabProps) {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteMsg, setQuoteMsg] = useState<string | null>(null);
 
-  // ── 담당자 목록 로드 ──
+  // ── 담당자 목록 로드 — admin만 ──
   useEffect(() => {
+    if (!isAdmin) return;
     (async () => {
       try {
         const res = await fetch('/api/sales/clients/managers');
@@ -101,7 +104,7 @@ export default function AlertTab({ onCountChange }: AlertTabProps) {
         setManagers(data.managers || []);
       } catch { /* ignore */ }
     })();
-  }, []);
+  }, [isAdmin]);
 
   // ── 스캔 ──
   const handleScan = useCallback(async () => {
@@ -239,20 +242,24 @@ export default function AlertTab({ onCountChange }: AlertTabProps) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap',
       }}>
-        <select
-          value={selectedManager}
-          onChange={e => setSelectedManager(e.target.value)}
-          style={{
-            padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd',
-            fontSize: 16, background: 'white', color: '#333',
-            flex: '1 1 auto', minWidth: 120, maxWidth: 200,
-          }}
-        >
-          <option value="">담당자 선택</option>
-          {managers.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+        {isAdmin ? (
+          <select
+            value={selectedManager}
+            onChange={e => setSelectedManager(e.target.value)}
+            style={{
+              padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd',
+              fontSize: 16, background: 'white', color: '#333',
+              flex: '1 1 auto', minWidth: 120, maxWidth: 200,
+            }}
+          >
+            <option value="">담당자 선택</option>
+            {managers.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        ) : (
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{currentManager}</span>
+        )}
 
         <button
           onClick={handleScan}

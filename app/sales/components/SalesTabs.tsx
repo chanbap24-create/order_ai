@@ -1,13 +1,14 @@
 'use client';
 
-export type SalesTabId = 'clients' | 'recommend' | 'meetings' | 'briefing' | 'alerts';
+export type SalesTabId = 'clients' | 'recommend' | 'meetings' | 'briefing' | 'analysis' | 'alerts';
 
 const TABS: { id: SalesTabId; label: string; icon: string }[] = [
-  { id: 'clients', label: '거래처', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
-  { id: 'recommend', label: 'AI 추천', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' },
   { id: 'meetings', label: '미팅', icon: 'M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM16 2v4M8 2v4M3 10h18' },
   { id: 'briefing', label: '브리핑', icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },
   { id: 'alerts', label: '알림', icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
+  { id: 'analysis', label: '분석', icon: 'M18 20V10M12 20V4M6 20v-6' },
+  { id: 'recommend', label: 'AI 추천', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' },
+  { id: 'clients', label: '거래처', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
 ];
 
 interface SalesTabsProps {

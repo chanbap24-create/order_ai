@@ -78,13 +78,13 @@ function scoreColor(score: number): string {
   return '#757575';
 }
 
-export default function RecommendTab() {
+export default function RecommendTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const [clientSearch, setClientSearch] = useState('');
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [clientLoading, setClientLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
-  const [filterManager, setFilterManager] = useState('');
+  const [filterManager, setFilterManager] = useState(isAdmin ? '' : currentManager);
   const [managers, setManagers] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,13 +96,14 @@ export default function RecommendTab() {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteResult, setQuoteResult] = useState<string | null>(null);
 
-  // 담당자 목록
+  // 담당자 목록 — admin만
   useEffect(() => {
+    if (!isAdmin) return;
     fetch('/api/sales/clients/managers')
       .then(r => r.json())
       .then(d => { if (d.managers) setManagers(d.managers); })
       .catch(() => {});
-  }, []);
+  }, [isAdmin]);
 
   // 거래처 검색
   const searchClients = useCallback(async (q: string) => {
@@ -257,7 +258,7 @@ export default function RecommendTab() {
           거래처 선택
         </div>
 
-        {managers.length > 0 && (
+        {isAdmin && managers.length > 0 && (
           <div style={{ marginBottom: 10 }}>
             <select
               value={filterManager}

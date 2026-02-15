@@ -75,7 +75,7 @@ function fmt(n: number) {
   return n.toLocaleString();
 }
 
-export default function BriefingTab() {
+export default function BriefingTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatingId, setGeneratingId] = useState<number | null>(null);
@@ -90,6 +90,7 @@ export default function BriefingTab() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ date_from: todayStr, date_to: todayStr });
+      if (!isAdmin) params.set('manager', currentManager);
       const res = await fetch(`/api/sales/meetings?${params}`);
       const json = await res.json();
       setMeetings(json.meetings || []);
@@ -98,7 +99,7 @@ export default function BriefingTab() {
     } finally {
       setLoading(false);
     }
-  }, [todayStr]);
+  }, [todayStr, isAdmin, currentManager]);
 
   useEffect(() => { loadToday(); }, [loadToday]);
 

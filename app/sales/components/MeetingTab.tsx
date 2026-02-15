@@ -103,9 +103,9 @@ function getWeekRange(baseDate: Date): { start: Date; end: Date } {
   const d = new Date(baseDate);
   const day = d.getDay();
   const start = new Date(d);
-  start.setDate(d.getDate() - day + 1); // 월요일
+  start.setDate(d.getDate() - day); // 일요일
   const end = new Date(start);
-  end.setDate(start.getDate() + 6); // 일요일
+  end.setDate(start.getDate() + 6); // 토요일
   return { start, end };
 }
 
@@ -124,14 +124,15 @@ function formatDateKR(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}(${DAYS_KR[d.getDay()]})`;
 }
 
-export default function MeetingTab() {
+export default function MeetingTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   // ── 상태 ──
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('month');
   const [weekBase, setWeekBase] = useState(new Date());
-  const [filterManager, setFilterManager] = useState('');
+  const [filterManager, setFilterManager] = useState(isAdmin ? '' : currentManager);
   const [managers, setManagers] = useState<string[]>([]);
+  const [holidays, setHolidays] = useState<Record<string, string>>({});
 
   // 생성 모달
   const [showModal, setShowModal] = useState(false);
@@ -165,13 +166,23 @@ export default function MeetingTab() {
     ? `${weekStart.getMonth() + 1}/${weekStart.getDate()} ~ ${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`
     : `${weekBase.getFullYear()}년 ${weekBase.getMonth() + 1}월`;
 
-  // ── 담당자 로드 ──
+  // ── 담당자 로드 — admin만 ──
   useEffect(() => {
+    if (!isAdmin) return;
     fetch('/api/sales/clients/managers')
       .then(r => r.json())
       .then(d => { if (d.managers) setManagers(d.managers); })
       .catch(() => {});
-  }, []);
+  }, [isAdmin]);
+
+  // ── 공휴일 로드 ──
+  useEffect(() => {
+    const year = weekBase.getFullYear();
+    fetch(`/api/sales/holidays?year=${year}`)
+      .then(r => r.json())
+      .then(d => { if (d.holidays) setHolidays(prev => ({ ...prev, ...d.holidays })); })
+      .catch(() => {});
+  }, [weekBase.getFullYear()]);
 
   // ── 미팅 로드 ──
   const loadMeetings = useCallback(async () => {
@@ -217,7 +228,7 @@ export default function MeetingTab() {
     let currentWeek: string[] = [];
     for (const dateStr of rangeDates) {
       const d = new Date(dateStr + 'T00:00:00');
-      if (currentWeek.length > 0 && d.getDay() === 1) {
+      if (currentWeek.length > 0 && d.getDay() === 0) {
         weekGroups.push(currentWeek);
         currentWeek = [];
       }
@@ -245,6 +256,7 @@ export default function MeetingTab() {
   const searchClients = useCallback(async (q: string) => {
     try {
       const params = new URLSearchParams({ search: q, limit: '30', type: 'wine' });
+      if (filterManager) params.set('manager', filterManager);
       const res = await fetch(`/api/sales/clients?${params}`);
       const json = await res.json();
       setModalClientOptions(json.clients || []);
@@ -252,7 +264,7 @@ export default function MeetingTab() {
     } catch {
       setModalClientOptions([]);
     }
-  }, []);
+  }, [filterManager]);
 
   useEffect(() => {
     if (modalSearchTimer.current) clearTimeout(modalSearchTimer.current);
@@ -478,7 +490,7 @@ export default function MeetingTab() {
           ))}
         </div>
 
-        {managers.length > 0 && (
+        {isAdmin && managers.length > 0 && (
           <select
             value={filterManager}
             onChange={e => setFilterManager(e.target.value)}
@@ -528,7 +540,7 @@ export default function MeetingTab() {
             display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
             borderBottom: '1px solid #f0ece4', background: '#faf8f2',
           }}>
-            {DAYS_KR.slice(1).concat(DAYS_KR[0]).map(day => (
+            {DAYS_KR.map(day => (
               <div key={day} style={{
                 textAlign: 'center', padding: '8px 0',
                 fontSize: 11, fontWeight: 600,
@@ -546,7 +558,7 @@ export default function MeetingTab() {
               {/* 첫 주 빈칸 채우기 */}
               {wi === 0 && (() => {
                 const firstDay = new Date(week[0] + 'T00:00:00').getDay();
-                const emptyCount = firstDay === 0 ? 6 : firstDay - 1; // 월=0, 화=1 ... 일=6
+                const emptyCount = firstDay; // 일=0, 월=1 ... 토=6
                 return Array.from({ length: emptyCount }).map((_, i) => (
                   <div key={`e${i}`} style={{ borderRight: '1px solid #f8f6f0', minHeight: 102, background: '#fcfcfb' }} />
                 ));
@@ -560,19 +572,21 @@ export default function MeetingTab() {
                 const dayNum = d.getDate();
                 const isSun = d.getDay() === 0;
                 const isSat = d.getDay() === 6;
+                const holidayName = holidays[dateStr];
+                const isHoliday = !!holidayName;
 
                 return (
                   <div key={dateStr} style={{
                     borderRight: '1px solid #f8f6f0',
                     minHeight: 102, padding: '4px',
-                    background: isToday ? '#faf0f2' : isPast ? '#fdfcfa' : '#fff',
+                    background: isToday ? '#faf0f2' : isHoliday ? '#fff5f5' : isPast ? '#fdfcfa' : '#fff',
                     cursor: 'pointer',
                     overflow: 'hidden',
                     minWidth: 0,
                   }} onClick={() => openCreateModal(dateStr)}>
                     <div style={{
                       fontSize: 12, fontWeight: isToday ? 800 : 500,
-                      color: isToday ? '#fff' : isSun ? '#c62828' : isSat ? '#1565C0' : isPast ? '#bbb' : '#1a1a2e',
+                      color: isToday ? '#fff' : (isSun || isHoliday) ? '#c62828' : isSat ? '#1565C0' : isPast ? '#bbb' : '#1a1a2e',
                       textAlign: 'center', marginBottom: 2,
                       ...(isToday ? {
                         background: '#5A1515', borderRadius: '50%',
@@ -580,6 +594,13 @@ export default function MeetingTab() {
                         margin: '0 auto 2px',
                       } : {}),
                     }}>{dayNum}</div>
+                    {isHoliday && (
+                      <div style={{
+                        fontSize: 8, color: '#c62828', textAlign: 'center',
+                        fontWeight: 600, lineHeight: 1.1, marginBottom: 1,
+                        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                      }}>{holidayName}</div>
+                    )}
 
                     {dayMeetings.slice(0, 3).map(m => {
                       const mt = MEETING_TYPES[m.meeting_type] || MEETING_TYPES.visit;
@@ -608,7 +629,7 @@ export default function MeetingTab() {
               {/* 마지막 주 빈칸 채우기 */}
               {wi === weekGroups.length - 1 && (() => {
                 const lastDay = new Date(week[week.length - 1] + 'T00:00:00').getDay();
-                const emptyCount = lastDay === 0 ? 0 : 7 - lastDay;
+                const emptyCount = 6 - lastDay; // 토=6이면 0, 일=0이면 6
                 return Array.from({ length: emptyCount }).map((_, i) => (
                   <div key={`le${i}`} style={{ borderRight: '1px solid #f8f6f0', minHeight: 102, background: '#fcfcfb' }} />
                 ));
@@ -637,11 +658,13 @@ export default function MeetingTab() {
             const dayMeetings = meetingsByDate[dateStr] || [];
             const isToday = dateStr === todayStr;
             const isPast = dateStr < todayStr;
+            const holidayName = holidays[dateStr];
+            const isHoliday = !!holidayName;
 
             return (
               <div key={dateStr} style={{
                 background: '#fff', borderRadius: 12,
-                border: isToday ? '2px solid #5A1515' : '1px solid #f0ece4',
+                border: isToday ? '2px solid #5A1515' : isHoliday ? '1px solid #ffcdd2' : '1px solid #f0ece4',
                 boxShadow: isToday ? '0 2px 8px rgba(90,21,21,0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
                 overflow: 'hidden',
               }}>
@@ -649,16 +672,22 @@ export default function MeetingTab() {
                 <div style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '10px 14px',
-                  background: isToday ? '#faf0f2' : isPast ? '#fafafa' : '#fff',
+                  background: isToday ? '#faf0f2' : isHoliday ? '#fff5f5' : isPast ? '#fafafa' : '#fff',
                   borderBottom: '1px solid #f0ece4',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                       fontSize: 14, fontWeight: 700,
-                      color: isToday ? '#5A1515' : isPast ? '#aaa' : '#1a1a2e',
+                      color: isToday ? '#5A1515' : isHoliday ? '#c62828' : isPast ? '#aaa' : '#1a1a2e',
                     }}>
                       {formatDateKR(dateStr)}
                     </span>
+                    {isHoliday && (
+                      <span style={{
+                        fontSize: 10, padding: '2px 6px', borderRadius: 8,
+                        background: '#ffebee', color: '#c62828', fontWeight: 600,
+                      }}>{holidayName}</span>
+                    )}
                     {isToday && (
                       <span style={{
                         fontSize: 10, padding: '2px 6px', borderRadius: 8,

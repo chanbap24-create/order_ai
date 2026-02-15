@@ -92,16 +92,16 @@ function fmtThreshold(n: number) {
   return n.toLocaleString();
 }
 
-export default function ClientTab() {
+export default function ClientTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const [clientType, setClientType] = useState<'wine' | 'glass'>('wine');
   const [clients, setClients] = useState<ClientDetail[]>([]);
   const [stats, setStats] = useState<Record<string, ClientStats>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterImportance, setFilterImportance] = useState<number | null>(null);
-  const [filterManager, setFilterManager] = useState('');
+  const [filterManager, setFilterManager] = useState(isAdmin ? '' : currentManager);
   const [managers, setManagers] = useState<string[]>([]);
-  const [managersLoading, setManagersLoading] = useState(true);
+  const [managersLoading, setManagersLoading] = useState(isAdmin);
   const [selectedClient, setSelectedClient] = useState<ClientDetail | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<ClientDetail>>({});
@@ -170,8 +170,9 @@ export default function ClientTab() {
     }
   }, [clientType, debouncedSearch, filterImportance, filterManager]);
 
-  // 담당자 목록은 shipments에서 직접 조회 (정확한 담당자 목록)
+  // 담당자 목록은 shipments에서 직접 조회 (정확한 담당자 목록) — admin만
   const fetchManagers = useCallback(async () => {
+    if (!isAdmin) { setManagersLoading(false); return; }
     setManagersLoading(true);
     try {
       const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
@@ -185,7 +186,7 @@ export default function ClientTab() {
     } finally {
       setManagersLoading(false);
     }
-  }, [clientType]);
+  }, [clientType, isAdmin]);
 
   // 통계 조회 — 타입별
   const fetchStats = useCallback(async () => {
@@ -709,20 +710,22 @@ export default function ClientTab() {
           ))}
         </select>
 
-        {/* 담당자 필터 */}
-        <select
-          value={filterManager}
-          onChange={e => {
-            setFilterManager(e.target.value);
-          }}
-          style={{
-            padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
-            fontSize: 13, background: 'white', color: '#666',
-          }}
-        >
-          <option value="">{managersLoading ? '담당 로딩...' : '담당 선택'}</option>
-          {managers.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+        {/* 담당자 필터 — admin만 표시 */}
+        {isAdmin && (
+          <select
+            value={filterManager}
+            onChange={e => {
+              setFilterManager(e.target.value);
+            }}
+            style={{
+              padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
+              fontSize: 13, background: 'white', color: '#666',
+            }}
+          >
+            <option value="">{managersLoading ? '담당 로딩...' : '담당 선택'}</option>
+            {managers.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        )}
 
         {/* 등급 기준 설정 버튼 */}
         {filterManager && (

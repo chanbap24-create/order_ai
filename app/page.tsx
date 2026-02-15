@@ -41,11 +41,11 @@ export default function Home() {
       ),
     },
     {
-      id: 'analysis',
-      href: '/analysis',
-      title: 'Analysis',
-      subtitle: '거래처 분석',
-      desc: '담당/부서별 매출 분석, 출고 와인 통계',
+      id: 'sales',
+      href: '/sales',
+      title: 'Sales',
+      subtitle: '영업 지원',
+      desc: '미팅 관리, AI 브리핑, 매출 분석, 거래처 추천',
       icon: (
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="20" x2="18" y2="10" />
