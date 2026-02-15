@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-02-05",
+  "updated_at": "2026-02-15",
   "base_url": "https://github.com/chanbap24-create/order_ai/releases/download/note",
   "notes": {
     "1124001": {
@@ -245,6 +245,13 @@
       "exists": true,
       "filename": "2023004.pdf",
       "size_kb": 186,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2023011": {
+      "exists": true,
+      "filename": "2023011.pdf",
+      "size_kb": 162,
       "pages": 1,
       "wine_name": ""
     },
@@ -514,6 +521,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2421018": {
+      "exists": true,
+      "filename": "2421018.pdf",
+      "size_kb": 191,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2421023": {
       "exists": true,
       "filename": "2421023.pdf",
@@ -717,6 +731,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "3020047": {
+      "exists": true,
+      "filename": "3020047.pdf",
+      "size_kb": 241,
+      "pages": 1,
+      "wine_name": ""
+    },
     "3020050": {
       "exists": true,
       "filename": "3020050.pdf",
@@ -854,6 +875,27 @@
       "exists": true,
       "filename": "3023042.pdf",
       "size_kb": 173,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3023440": {
+      "exists": true,
+      "filename": "3023440.pdf",
+      "size_kb": 155,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3023501": {
+      "exists": true,
+      "filename": "3023501.pdf",
+      "size_kb": 162,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3023541": {
+      "exists": true,
+      "filename": "3023541.pdf",
+      "size_kb": 170,
       "pages": 1,
       "wine_name": ""
     },
