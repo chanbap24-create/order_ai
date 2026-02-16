@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
+// ═══ Supabase 전체 행 가져오기 (1000행 제한 우회) ═══
+async function fetchAll<T>(table: string, select: string): Promise<T[]> {
+  const all: T[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase.from(table).select(select).range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 // ── 와인 이름에서 품종 추출 ──
 const GRAPE_PATTERNS: { pattern: RegExp; grape: string }[] = [
   { pattern: /카베르네\s?소비뇽|cabernet\s?sauvignon/i, grape: 'Cabernet Sauvignon' },
@@ -86,25 +101,100 @@ function getSeasonInfo(month: number): { season: string; types: string[]; grapes
   return { season: '겨울', types: [], grapes: ['Syrah', '시라', 'Shiraz', '쉬라즈', 'Cabernet Sauvignon', '카베르네 소비뇽', '카베르네소비뇽'], bodyPref: ['풀바디', 'full'] };
 }
 
+// ═══ wine_regions 계층 매칭 유틸 ═══
+const SUPER_REGION_MAP: Record<string, string> = {
+  '메독 Médoc': 'Bordeaux', '그라브 Graves': 'Bordeaux', '우안 Right Bank': 'Bordeaux',
+  '소테른 Sauternes': 'Bordeaux', '기타 보르도': 'Bordeaux',
+  '샤블리 Chablis': 'Burgundy', '코트 드 뉘 Côte de Nuits': 'Burgundy',
+  '코트 드 본 Côte de Beaune': 'Burgundy', '코트 샬로네즈 Côte Chalonnaise': 'Burgundy',
+  '마코네 Mâconnais': 'Burgundy', '광역 Régionale': 'Burgundy',
+  '북부 론 Northern Rhône': 'Rhône', '남부 론 Southern Rhône': 'Rhône',
+  '상부 루아르 Upper Loire': 'Loire', '투렌 Touraine': 'Loire',
+  '앙주소뮈르 Anjou-Saumur': 'Loire', '낭트 Nantais': 'Loire',
+  '알자스 Alsace': 'Alsace', '샴페인 Champagne': 'Champagne',
+  '랑그독 Languedoc': 'Languedoc-Roussillon', '루시용 Roussillon': 'Languedoc-Roussillon',
+  '프로방스 Provence': 'Provence', '쥐라 Jura': 'Jura-Savoie', '사부아 Savoie': 'Jura-Savoie',
+  '남서부 Sud-Ouest': 'Sud-Ouest', '코르시카 Corsica': 'Corsica',
+};
+
+function extractEnglish(bilingual: string): string {
+  const parts = bilingual.split(/\s+/);
+  const enIdx = parts.findIndex(p => /^[A-ZÀ-ÿ]/.test(p));
+  if (enIdx >= 0) return parts.slice(enIdx).join(' ');
+  return bilingual;
+}
+
+interface RegionHierarchy {
+  sub_region: string;
+  major_region: string;
+  super_region: string;
+  classification: string;
+}
+
+interface WineRegionRow {
+  sub_region: string | null;
+  major_region: string;
+  appellation: string | null;
+  cru_vineyard: string | null;
+  classification: string | null;
+}
+
+function findHierarchy(wineRegion: string, wineName: string, regionRows: WineRegionRow[]): RegionHierarchy | null {
+  if (!wineRegion && !wineName) return null;
+  const regionLower = (wineRegion || '').toLowerCase();
+  const nameLower = (wineName || '').toLowerCase();
+  const parts = regionLower.split(',').map(p => p.trim()).filter(Boolean);
+  const specific = parts[0] || '';
+
+  let bestMatch: WineRegionRow | null = null;
+  let bestScore = 0;
+
+  for (const row of regionRows) {
+    const subEn = extractEnglish(row.sub_region || '').toLowerCase();
+    const appEn = extractEnglish(row.appellation || '').toLowerCase();
+    const cruEn = (row.cru_vineyard || '').toLowerCase();
+    let score = 0;
+
+    if (cruEn && (nameLower.includes(cruEn) || regionLower.includes(cruEn))) score = 100;
+    else if (appEn && specific.includes(appEn.replace(' aoc', '').replace(' 1er cru', ''))) score = 80;
+    else if (subEn && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
+    else if (subEn && regionLower.includes(subEn)) score = 40;
+    else if (subEn && nameLower.includes(subEn)) score = 30;
+
+    if (score > bestScore) { bestScore = score; bestMatch = row; }
+  }
+
+  if (!bestMatch || bestScore < 30) return null;
+
+  const subRegion = bestMatch.sub_region || bestMatch.major_region;
+  const majorRegion = bestMatch.major_region;
+  const superRegion = SUPER_REGION_MAP[majorRegion] || '';
+
+  let classification = bestMatch.classification || '';
+  const text = `${wineName} ${wineRegion}`.toLowerCase();
+  const hasGrandCru = /grand\s*cru/.test(text) || text.includes('그랑 크뤼');
+  if (hasGrandCru && !/classé|classe/.test(text)) classification = 'Grand Cru';
+  else if (/1er\s*cru|premier\s*cru/.test(text) || text.includes('프리미에 크뤼')) classification = 'Premier Cru';
+
+  return { sub_region: subRegion, major_region: majorRegion, super_region: superRegion, classification };
+}
+
 // ── 기본 가중치 (총 100점 만점) ──
 const DEFAULT_W = {
   REORDER: 35,
-  COUNTRY_MATCH: 12,
+  REGION_MATCH: 15,  // 산지 계층 매칭 (NEW)
+  COUNTRY_MATCH: 5,  // 국가 매칭 (산지 매칭 불가 시 fallback)
   GRAPE_MATCH: 12,
   TYPE_MATCH: 8,
   PRICE_FIT: 10,
-  SALES_VELOCITY: 8,
-  SEASONAL: 10,
-  UPSELL: 5,
+  SALES_VELOCITY: 5,
+  SEASONAL: 7,
+  UPSELL: 3,
 };
 
 const DEFAULT_STOCK_RULES = {
-  price_300k: 6,
-  price_200k: 12,
-  price_100k: 60,
-  price_50k: 120,
-  price_20k: 180,
-  price_under_20k: 300,
+  price_300k: 6, price_200k: 12, price_100k: 60,
+  price_50k: 120, price_20k: 180, price_under_20k: 300,
   months_supply: 3,
 };
 
@@ -141,24 +231,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
 
-    // ── admin_settings에서 가중치/재고기준 로드 ──
-    const { W, SR } = await loadSettings();
+    // ── 병렬 데이터 로드 ──
+    const [{ W, SR }, { data: clientDetail }, { data: clientBasic }, { data: shipments }, rawInventory, wines, regionRows] = await Promise.all([
+      loadSettings(),
+      supabase.from('client_details').select('*').eq('client_code', client_code).maybeSingle(),
+      supabase.from('clients').select('*').eq('client_code', client_code).maybeSingle(),
+      supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', client_code),
+      fetchAll('inventory_cdv', 'item_no, item_name, country, supply_price, available_stock, bonded_warehouse, sales_30days, avg_sales_90d, avg_sales_365d'),
+      fetchAll('wines', 'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en'),
+      fetchAll('wine_regions', 'sub_region, major_region, appellation, cru_vineyard, classification'),
+    ]);
 
-    // ── 거래처 정보 ──
-    const { data: clientDetail } = await supabase
-      .from('client_details').select('*').eq('client_code', client_code).maybeSingle();
-    const { data: clientBasic } = await supabase
-      .from('clients').select('*').eq('client_code', client_code).maybeSingle();
-
+    const allRegionRows = (regionRows || []) as WineRegionRow[];
     const clientName = clientDetail?.client_name || clientBasic?.client_name || client_code;
-    const inventoryTable = 'inventory_cdv';
 
     // ── shipments에서 직접 구매 이력 집계 ──
-    const { data: shipments } = await supabase
-      .from('shipments')
-      .select('item_no, item_name, unit_price, ship_date')
-      .eq('client_code', client_code);
-
     const purchaseAgg: Record<string, { count: number; lastDate: string; totalPrice: number; name: string }> = {};
     for (const s of shipments || []) {
       if (!s.item_no) continue;
@@ -173,14 +260,8 @@ export async function POST(req: Request) {
 
     const purchasedItemNos = new Set(Object.keys(purchaseAgg));
 
-    // ── 현재 재고 (추천 가능 기준 필터) ──
-    // 가격대별 최소 재고 + 90일 출고 대비 여유분 확인
-    const { data: rawInventory } = await supabase
-      .from(inventoryTable)
-      .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, sales_30days, avg_sales_90d, avg_sales_365d');
-
-    // 가격대별 최소 재고 기준 (admin_settings에서 로드)
-    function minStockForPrice(price: number): number {
+    // ── 재고 필터 ──
+    const minStockForPrice = (price: number): number => {
       if (price >= 300000) return SR.price_300k;
       if (price >= 200000) return SR.price_200k;
       if (price >= 100000) return SR.price_100k;
@@ -191,54 +272,46 @@ export async function POST(req: Request) {
 
     const inventory = (rawInventory || []).filter(inv => {
       const price = inv.supply_price || 0;
-      // 가용재고 + 보세재고
       const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0);
       if (stock <= 0) return false;
       const sales90d = inv.avg_sales_90d || 0;
-
-      // 1) 가격대별 최소 재고
       if (stock < minStockForPrice(price)) return false;
-
-      // 2) 출고 대비: N개월분 여유 없으면 제외
       if (sales90d > 0) {
         const demandDays = sales90d * (SR.months_supply * 30);
         if (stock < demandDays) return false;
       }
-
-      // stock 값을 inv에 반영 (이후 표시용)
       inv._totalStock = stock;
       return true;
     });
 
     const inventoryMap = new Map<string, any>();
-    for (const inv of inventory) {
-      inventoryMap.set(inv.item_no, inv);
-    }
+    for (const inv of inventory) inventoryMap.set(inv.item_no, inv);
 
-    // ── wines 테이블에서 메타데이터 조회 ──
-    const { data: wines } = await supabase
-      .from('wines')
-      .select('item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr');
-
+    // ── wines 테이블 메타데이터 ──
     const wineMap = new Map<string, any>();
     for (const w of wines || []) {
-      // wines 테이블에 grape/type 없으면 이름에서 추출
       if (!w.grape_varieties) {
-        const name = w.item_name_kr || '';
-        const extracted = extractGrapesFromName(name);
+        const extracted = extractGrapesFromName(w.item_name_kr || '');
         if (extracted.length > 0) w.grape_varieties = extracted.join(', ');
       }
       if (!w.wine_type) {
-        const name = w.item_name_kr || '';
-        w.wine_type = extractTypeFromName(name);
+        w.wine_type = extractTypeFromName(w.item_name_kr || '');
       }
+      // 산지 계층 매칭
+      const fullName = `${w.item_name_kr || ''} ${w.item_name_en || ''}`;
+      w._hierarchy = findHierarchy(w.region || '', fullName, allRegionRows);
       wineMap.set(w.item_code, w);
     }
 
-    // ── 거래처 선호도 분석 (shipments 기반) ──
+    // ═══ 거래처 선호도 분석 ═══
     const countryBuyCount: Record<string, number> = {};
     const grapeBuyCount: Record<string, number> = {};
     const typeBuyCount: Record<string, number> = {};
+    // ★ 산지 선호도
+    const subRegionBuyCount: Record<string, number> = {};
+    const majorRegionBuyCount: Record<string, number> = {};
+    const superRegionBuyCount: Record<string, number> = {};
+
     let totalPurchases = 0;
     const priceList: number[] = [];
 
@@ -247,13 +320,20 @@ export async function POST(req: Request) {
       const avgPrice = agg.totalPrice / agg.count;
       if (avgPrice > 0) priceList.push(avgPrice);
 
-      // 국가: wines 테이블 → inventory 순으로 조회
       const wine = wineMap.get(itemNo);
       const inv = inventoryMap.get(itemNo);
       const country = wine?.country || wine?.country_en || inv?.country || '';
       if (country) countryBuyCount[country] = (countryBuyCount[country] || 0) + agg.count;
 
-      // 품종: wines 테이블 → 이름에서 추출
+      // ★ 산지 선호도 집계
+      const h: RegionHierarchy | null = wine?._hierarchy || null;
+      if (h) {
+        if (h.sub_region) subRegionBuyCount[h.sub_region] = (subRegionBuyCount[h.sub_region] || 0) + agg.count;
+        if (h.major_region) majorRegionBuyCount[h.major_region] = (majorRegionBuyCount[h.major_region] || 0) + agg.count;
+        if (h.super_region) superRegionBuyCount[h.super_region] = (superRegionBuyCount[h.super_region] || 0) + agg.count;
+      }
+
+      // 품종
       let grapeStr = wine?.grape_varieties || '';
       if (!grapeStr && (inv?.item_name || agg.name)) {
         const extracted = extractGrapesFromName(inv?.item_name || agg.name);
@@ -264,7 +344,7 @@ export async function POST(req: Request) {
         for (const g of grapes) grapeBuyCount[g] = (grapeBuyCount[g] || 0) + agg.count;
       }
 
-      // 와인 타입: wines 테이블 → 이름에서 추출
+      // 와인 타입
       let wt = wine?.wine_type || '';
       if (!wt && (inv?.item_name || agg.name)) {
         wt = extractTypeFromName(inv?.item_name || agg.name);
@@ -285,6 +365,12 @@ export async function POST(req: Request) {
     const maxGrapeBuy = topGrapes[0]?.[1] || 1;
     const maxTypeBuy = topTypes[0]?.[1] || 1;
 
+    // ★ 산지 선호도 최대값
+    const maxSubRegionBuy = Math.max(...Object.values(subRegionBuyCount), 1);
+    const maxMajorRegionBuy = Math.max(...Object.values(majorRegionBuyCount), 1);
+    const maxSuperRegionBuy = Math.max(...Object.values(superRegionBuyCount), 1);
+    const hasRegionPrefs = Object.keys(subRegionBuyCount).length > 0;
+
     // 시즌
     const currentMonth = new Date().getMonth() + 1;
     const seasonInfo = getSeasonInfo(currentMonth);
@@ -302,16 +388,13 @@ export async function POST(req: Request) {
 
     const hasHistory = totalPurchases > 0;
 
-    // ═══════════════════════════════════════
-    // 통합 스코어링
-    // ═══════════════════════════════════════
+    // ═══ 통합 스코어링 ═══
     const scored: ScoredItem[] = [];
 
     for (const inv of inventory || []) {
       const itemNo = inv.item_no;
       const wine = wineMap.get(itemNo);
       const invCountry = wine?.country || wine?.country_en || inv.country || '';
-      // 품종/타입: wines → 이름 추출 fallback
       let invGrapes = wine?.grape_varieties || '';
       if (!invGrapes && inv.item_name) {
         const extracted = extractGrapesFromName(inv.item_name);
@@ -322,6 +405,7 @@ export async function POST(req: Request) {
         wineType = extractTypeFromName(inv.item_name);
       }
       const invPrice = inv.supply_price || 0;
+      const candidateH: RegionHierarchy | null = wine?._hierarchy || null;
 
       let score = 0;
       const tags: string[] = [];
@@ -338,21 +422,49 @@ export async function POST(req: Request) {
           tags.push('재주문');
           reasons.push(`${purchase.count}회 구매, ${purchase.lastDate || '날짜미상'} 이후 미발주`);
         }
-        // 이미 구매한 와인은 재주문 대상 아니면 스킵
         if (!tags.includes('재주문')) continue;
       }
 
       // ── 미구매 와인 점수 ──
       if (!purchase) {
-        // B. 국가 매치
-        if (invCountry && countryBuyCount[invCountry]) {
+        // ★ B. 산지 계층 매칭 (REGION_MATCH) ──
+        let regionMatched = false;
+        if (candidateH && hasRegionPrefs && W.REGION_MATCH > 0) {
+          // 같은 서브리전 (뫼르소 → 뫼르소)
+          if (candidateH.sub_region && subRegionBuyCount[candidateH.sub_region]) {
+            const ratio = subRegionBuyCount[candidateH.sub_region] / maxSubRegionBuy;
+            score += W.REGION_MATCH * ratio;
+            tags.push('선호산지');
+            reasons.push(extractEnglish(candidateH.sub_region));
+            regionMatched = true;
+          }
+          // 같은 대지역 (뫼르소 → 코트 드 본)
+          else if (candidateH.major_region && majorRegionBuyCount[candidateH.major_region]) {
+            const ratio = majorRegionBuyCount[candidateH.major_region] / maxMajorRegionBuy;
+            score += W.REGION_MATCH * ratio * 0.6;
+            tags.push('인근산지');
+            reasons.push(extractEnglish(candidateH.major_region));
+            regionMatched = true;
+          }
+          // 같은 슈퍼리전 (코트 드 본 → 부르고뉴)
+          else if (candidateH.super_region && superRegionBuyCount[candidateH.super_region]) {
+            const ratio = superRegionBuyCount[candidateH.super_region] / maxSuperRegionBuy;
+            score += W.REGION_MATCH * ratio * 0.3;
+            tags.push('같은지역');
+            reasons.push(candidateH.super_region);
+            regionMatched = true;
+          }
+        }
+
+        // C. 국가 매치 (산지 매칭이 안 된 경우 fallback)
+        if (!regionMatched && invCountry && countryBuyCount[invCountry]) {
           const ratio = countryBuyCount[invCountry] / maxCountryBuy;
           score += W.COUNTRY_MATCH * ratio;
           tags.push('선호국가');
           reasons.push(invCountry);
         }
 
-        // C. 품종 매치
+        // D. 품종 매치
         if (invGrapes && topGrapes.length > 0) {
           let bestRatio = 0;
           let matchedGrape = '';
@@ -369,7 +481,7 @@ export async function POST(req: Request) {
           }
         }
 
-        // D. 와인 타입 매치 (레드/화이트/스파클링/로제/주정강화 등)
+        // E. 와인 타입 매치
         if (wineType && topTypes.length > 0) {
           let bestTypeRatio = 0;
           let matchedType = '';
@@ -387,7 +499,7 @@ export async function POST(req: Request) {
           }
         }
 
-        // E-1. 가격 적합도
+        // F-1. 가격 적합도
         if (clientAvgPrice > 0 && invPrice > 0) {
           const priceDiff = Math.abs(invPrice - clientAvgPrice) / clientAvgPrice;
           if (priceDiff <= 0.2) {
@@ -401,7 +513,7 @@ export async function POST(req: Request) {
           }
         }
 
-        // E-2. 시즌 매치
+        // F-2. 시즌 매치
         let seasonMatched = false;
         for (const t of seasonInfo.types) {
           if (wineType.toLowerCase().includes(t.toLowerCase())) { seasonMatched = true; break; }
@@ -417,7 +529,7 @@ export async function POST(req: Request) {
           reasons.push(`${seasonInfo.season} 시즌`);
         }
 
-        // E-3. 판매속도 (인기도)
+        // F-3. 판매속도 (인기도)
         const sales90d = inv.avg_sales_90d || 0;
         if (sales90d > 0) {
           const velocityScore = W.SALES_VELOCITY * (sales90d / maxSales90d);
@@ -427,9 +539,8 @@ export async function POST(req: Request) {
           }
         }
 
-        // 이력 없는 거래처: 인기도+시즌만으로도 추천 가능
         // 이력 있는 거래처: 최소 1개 선호 매치 필요
-        if (hasHistory && !tags.some(t => ['선호국가', '선호품종', '선호타입', '적정가격'].includes(t))) continue;
+        if (hasHistory && !tags.some(t => ['선호산지', '인근산지', '같은지역', '선호국가', '선호품종', '선호타입', '적정가격'].includes(t))) continue;
         if (!hasHistory && tags.length === 0) continue;
       }
 
@@ -471,7 +582,7 @@ export async function POST(req: Request) {
       await supabase.from('recommendations').insert({
         client_code,
         item_codes: recommendations.map(i => i.item_no),
-        reason: `AI 추천 ${recommendations.length}개 (점수 기반)`,
+        reason: `AI 추천 ${recommendations.length}개 (산지+점수 기반)`,
         recommendation_type: 'ai_score',
         status: 'pending',
       });
@@ -493,6 +604,10 @@ export async function POST(req: Request) {
         top_countries: topCountries.slice(0, 3).map(e => e[0]),
         top_grapes: topGrapes.slice(0, 3).map(e => e[0]),
         top_types: topTypes.slice(0, 3).map(e => e[0]),
+        top_regions: Object.entries(subRegionBuyCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([r]) => extractEnglish(r)),
       },
     });
 

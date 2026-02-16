@@ -17,6 +17,18 @@ interface Meeting {
   client_manager: string;
 }
 
+interface PurchasedItem {
+  item_no: string;
+  item_name: string;
+  buy_count: number;
+  last_date: string;
+  avg_unit_price: number;
+  supply_price: number;
+  grade: string;
+  country?: string;
+  wine_type?: string;
+}
+
 interface BriefingData {
   generated_at: string;
   client_summary: {
@@ -27,7 +39,11 @@ interface BriefingData {
     top_types: string[];
     last_order_date: string | null;
     trend: string;
+    yearly_revenue?: number;
+    importance?: number | null;
   };
+  avg_discount_rate?: number | null;
+  purchased_items?: PurchasedItem[];
   recommendations: {
     item_no: string;
     item_name: string;
@@ -67,6 +83,14 @@ const TAG_COLORS: Record<string, string> = {
   '선호타입': '#00897B', '적정가격': '#4CAF50', '프리미엄': '#FF9800',
   '인기': '#FF5722', '통관필요': '#795548',
   '봄': '#66BB6A', '여름': '#29B6F6', '가을': '#FF7043', '겨울': '#5C6BC0',
+};
+
+const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'VIP', color: '#b71c1c' },
+  2: { label: '중요', color: '#e65100' },
+  3: { label: '보통', color: '#1565c0' },
+  4: { label: '소규모', color: '#616161' },
+  5: { label: '일반', color: '#9e9e9e' },
 };
 
 function fmt(n: number) {
@@ -229,8 +253,17 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
                 {/* 정보 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 3 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {m.client_name}
+                    {m.client_importance && IMPORTANCE_LABELS[m.client_importance] && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6,
+                        background: `${IMPORTANCE_LABELS[m.client_importance].color}18`,
+                        color: IMPORTANCE_LABELS[m.client_importance].color,
+                      }}>
+                        {IMPORTANCE_LABELS[m.client_importance].label}
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                     <span style={{
@@ -277,8 +310,36 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                   borderTop: '1px solid #f0ece4', padding: '14px',
                   background: '#fafaf8',
                 }}>
+                  {/* 거래처 등급 & 올해 매출 */}
+                  <div style={{
+                    display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap',
+                  }}>
+                    {briefing.client_summary.importance && IMPORTANCE_LABELS[briefing.client_summary.importance] && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                        background: `${IMPORTANCE_LABELS[briefing.client_summary.importance].color}18`,
+                        color: IMPORTANCE_LABELS[briefing.client_summary.importance].color,
+                      }}>
+                        {IMPORTANCE_LABELS[briefing.client_summary.importance].label}
+                      </span>
+                    )}
+                    {(briefing.client_summary.yearly_revenue ?? 0) > 0 && (
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>
+                        올해 매출 {fmt(briefing.client_summary.yearly_revenue!)}원
+                      </span>
+                    )}
+                    {briefing.avg_discount_rate != null && (
+                      <span style={{
+                        fontSize: 11, padding: '2px 8px', borderRadius: 6,
+                        background: '#fff3e0', color: '#e65100', fontWeight: 600,
+                      }}>
+                        평균 할인 {briefing.avg_discount_rate}%
+                      </span>
+                    )}
+                  </div>
+
                   {/* 매출 요약 */}
-                  <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 12, flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ color: '#999' }}>총 구매</div>
                       <div style={{ fontWeight: 700 }}>{briefing.client_summary.total_purchases}건</div>
@@ -314,6 +375,35 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                       ))}
                       {briefing.client_summary.top_grapes.slice(0, 3).map(g => (
                         <span key={g} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 8, background: '#fce4ec', color: '#c2185b', fontWeight: 600 }}>{g}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 구매 품목 (등급 포함) */}
+                  {briefing.purchased_items && briefing.purchased_items.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 6 }}>
+                        구매 품목 ({briefing.purchased_items.length}건)
+                      </div>
+                      {briefing.purchased_items.slice(0, 10).map((it, i) => (
+                          <div key={it.item_no} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '5px 0',
+                            borderBottom: i < Math.min(9, briefing.purchased_items!.length - 1) ? '1px solid #f0ece4' : 'none',
+                            fontSize: 11,
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
+                                {it.item_name}
+                              </span>
+                            </div>
+                            <div style={{ flexShrink: 0, textAlign: 'right', display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <span style={{ color: '#999', fontSize: 10 }}>{it.buy_count}회</span>
+                              <span style={{ fontWeight: 600, color: '#333', minWidth: 50, textAlign: 'right' }}>
+                                {it.supply_price ? fmt(it.supply_price) + '원' : '-'}
+                              </span>
+                            </div>
+                          </div>
                       ))}
                     </div>
                   )}

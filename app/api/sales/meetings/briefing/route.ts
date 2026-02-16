@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
+// ═══ Supabase 전체 행 가져오기 (1000행 제한 우회) ═══
+async function fetchAll<T>(table: string, select: string): Promise<T[]> {
+  const all: T[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase.from(table).select(select).range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 // ── 와인 이름에서 품종 추출 ──
 const GRAPE_PATTERNS: { pattern: RegExp; grape: string }[] = [
   { pattern: /카베르네\s?소비뇽|cabernet\s?sauvignon/i, grape: 'Cabernet Sauvignon' },
@@ -138,9 +153,9 @@ export async function POST(req: NextRequest) {
     const purchaseAgg: Record<string, { count: number; lastDate: string; totalPrice: number; name: string }> = {};
 
     // wines 메타데이터 (region 포함)
-    const { data: wines } = await supabase.from('wines').select('item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr');
+    const wines = await fetchAll('wines', 'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr');
     const wineMap = new Map<string, any>();
-    for (const w of wines || []) {
+    for (const w of wines) {
       if (!w.grape_varieties) {
         const extracted = extractGrapesFromName(w.item_name_kr || '');
         if (extracted.length > 0) w.grape_varieties = extracted.join(', ');
@@ -151,11 +166,20 @@ export async function POST(req: NextRequest) {
       wineMap.set(w.item_code, w);
     }
 
+    const now = new Date();
+    const currentYear = now.getFullYear().toString();
+    let yearlyRevenue = 0;
+
     for (const s of shipments) {
       if (!s.item_no) continue;
       totalPurchases++;
       if (s.unit_price) priceList.push(s.unit_price);
       if (s.ship_date && (!lastOrderDate || s.ship_date > lastOrderDate)) lastOrderDate = s.ship_date;
+
+      // 올해 매출 합산
+      if (s.ship_date?.toString().startsWith(currentYear)) {
+        yearlyRevenue += (s.total_amount || 0);
+      }
 
       if (!purchaseAgg[s.item_no]) {
         purchaseAgg[s.item_no] = { count: 0, lastDate: '', totalPrice: 0, name: s.item_name || '' };
@@ -193,7 +217,6 @@ export async function POST(req: NextRequest) {
     const topTypes = Object.entries(typeCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
 
     // 최근 3개월 vs 이전 3개월 트렌드
-    const now = new Date();
     const threeMonthsAgo = new Date(now); threeMonthsAgo.setMonth(now.getMonth() - 3);
     const sixMonthsAgo = new Date(now); sixMonthsAgo.setMonth(now.getMonth() - 6);
     const threeStr = threeMonthsAgo.toISOString().slice(0, 10);
@@ -216,6 +239,8 @@ export async function POST(req: NextRequest) {
       top_types: topTypes,
       last_order_date: lastOrderDate,
       trend,
+      yearly_revenue: yearlyRevenue,
+      importance: clientDetail?.importance || null,
     };
 
     // ── 2. 추천 와인 Top 10 (recommend 로직 간소화) ──
@@ -243,6 +268,45 @@ export async function POST(req: NextRequest) {
       inv._totalStock = stock;
       return true;
     });
+
+    // ── 할인률 & 구매 품목 등급 ──
+    const invPriceMap: Record<string, { supply: number; retail: number }> = {};
+    for (const inv of rawInventory || []) {
+      invPriceMap[inv.item_no] = { supply: inv.supply_price || 0, retail: 0 };
+    }
+
+    let discountSum = 0, discountCount = 0;
+    for (const s of shipments) {
+      if (s.unit_price && s.item_no && invPriceMap[s.item_no]?.supply) {
+        const sp = invPriceMap[s.item_no].supply;
+        const disc = ((sp - s.unit_price) / sp) * 100;
+        if (disc > 0 && disc <= 100) { discountSum += disc; discountCount++; }
+      }
+    }
+    const avgDiscountRate = discountCount > 0 ? Math.round(discountSum / discountCount * 10) / 10 : null;
+
+    const purchasedItems = Object.entries(purchaseAgg)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 20)
+      .map(([itemNo, agg]) => {
+        const sp = invPriceMap[itemNo]?.supply || 0;
+        let grade = 'C';
+        if (sp >= 300000) grade = 'S';
+        else if (sp >= 100000) grade = 'A';
+        else if (sp >= 50000) grade = 'B';
+        const wine = wineMap.get(itemNo);
+        return {
+          item_no: itemNo,
+          item_name: agg.name,
+          buy_count: agg.count,
+          last_date: agg.lastDate,
+          avg_unit_price: agg.count > 0 ? Math.round(agg.totalPrice / agg.count) : 0,
+          supply_price: sp,
+          grade,
+          country: wine?.country || '',
+          wine_type: wine?.wine_type || extractTypeFromName(agg.name),
+        };
+      });
 
     const purchasedItemNos = new Set(Object.keys(purchaseAgg));
     const maxCountryBuy = Math.max(...Object.values(countryCount), 1);
@@ -355,6 +419,8 @@ export async function POST(req: NextRequest) {
     const aiBriefing = {
       generated_at: new Date().toISOString(),
       client_summary: clientSummary,
+      avg_discount_rate: avgDiscountRate,
+      purchased_items: purchasedItems,
       recommendations,
       recent_orders: recentOrders,
     };

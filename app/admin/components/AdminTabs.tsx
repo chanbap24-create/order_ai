@@ -12,6 +12,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'price-list', label: '가격리스트' },
   { id: 'change-log', label: '변경이력' },
   { id: 'recommend-settings', label: 'AI추천설정' },
+  { id: 'wine-regions', label: '와인산지DB' },
 ];
 
 interface AdminTabsProps {

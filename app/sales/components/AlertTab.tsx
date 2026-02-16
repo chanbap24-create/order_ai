@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import DismissedTab from './DismissedTab';
 
 interface ClientDetail {
   client_code: string;
@@ -51,13 +52,16 @@ interface AlertTabProps {
   onCountChange?: (count: number) => void;
 }
 
+// Level 0: 다른 빈티지, 1: 같은 서브리전+동급, 2: 같은 서브리전, 3: 같은 대지역
+// Level 4: 같은 슈퍼리전, 5: 같은 국가, 6: 같은 품종(글로벌)
 const LEVEL_COLORS: Record<number, string> = {
-  1: '#2e7d32',
-  2: '#388e3c',
-  3: '#1976d2',
-  4: '#1565c0',
-  5: '#e65100',
-  6: '#bf360c',
+  0: '#6A1B9A',  // 다른 빈티지 (보라)
+  1: '#1B5E20',  // 동일 산지 동급 (초록)
+  2: '#2e7d32',  // 동일 산지 (연초록)
+  3: '#1565c0',  // 같은 대지역 (파랑)
+  4: '#5C6BC0',  // 같은 슈퍼리전 (인디고)
+  5: '#e65100',  // 같은 국가 (오렌지)
+  6: '#bf360c',  // 같은 품종 (갈색)
 };
 
 function fmt(n: number) {
@@ -82,6 +86,10 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
 
   // dismiss 체크
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [dismissMsg, setDismissMsg] = useState<string | null>(null);
+
+  // 제외관리 뷰
+  const [showDismissed, setShowDismissed] = useState(false);
 
   // 펼침
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -167,12 +175,21 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
   const handleDismiss = async () => {
     if (checked.size === 0) return;
     const itemNos = Array.from(checked);
+    const items = alerts
+      .filter(a => checked.has(a.item_no))
+      .map(a => ({ item_no: a.item_no, item_name: a.item_name }));
     try {
-      await fetch('/api/sales/alerts', {
+      const res = await fetch('/api/sales/alerts', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ item_nos: itemNos, action: 'dismiss' }),
+        body: JSON.stringify({ item_nos: itemNos, action: 'dismiss', items }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setDismissMsg(`제외 실패: ${data.error || '서버 오류'}`);
+        setTimeout(() => setDismissMsg(null), 3000);
+        return;
+      }
       // 로컬에서 제거
       setAlerts(prev => prev.filter(a => !checked.has(a.item_no)));
       const newTotal = alerts.length - checked.size;
@@ -182,8 +199,14 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
         out: prev.out - alerts.filter(a => checked.has(a.item_no) && a.alert_type === 'out_of_stock').length,
       }));
       onCountChange?.(newTotal);
+      setDismissMsg(`${checked.size}개 와인이 제외되었습니다.`);
+      setTimeout(() => setDismissMsg(null), 3000);
       setChecked(new Set());
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error('Dismiss error:', err);
+      setDismissMsg('제외 처리 중 오류가 발생했습니다.');
+      setTimeout(() => setDismissMsg(null), 3000);
+    }
   };
 
   // ── 대체 추천 ──
@@ -236,6 +259,29 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
     }
   };
 
+  // 제외관리 뷰
+  if (showDismissed) {
+    return (
+      <div>
+        <button
+          onClick={() => setShowDismissed(false)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', marginBottom: 16, borderRadius: 8,
+            border: '1px solid #ddd', background: 'white', color: '#555',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          알림으로 돌아가기
+        </button>
+        <DismissedTab />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* ── 담당자 선택 + 스캔 ── */}
@@ -284,6 +330,23 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
             {new Date(lastScanned).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={() => setShowDismissed(true)}
+          style={{
+            padding: '6px 12px', borderRadius: 8,
+            border: '1px solid #ddd', background: 'white', color: '#888',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+          제외 관리
+        </button>
       </div>
 
       {/* 담당자 미선택 */}
@@ -646,6 +709,19 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
       {scanning && (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999', fontSize: 13 }}>
           재고를 스캔하는 중...
+        </div>
+      )}
+
+      {/* dismiss 토스트 */}
+      {dismissMsg && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+          background: dismissMsg.includes('실패') || dismissMsg.includes('오류') ? '#dc3545' : '#2e7d32',
+          color: 'white', padding: '10px 20px',
+          borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        }}>
+          {dismissMsg}
         </div>
       )}
 

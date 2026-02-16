@@ -229,51 +229,82 @@ export async function POST(req: Request) {
 }
 
 // ── PATCH: 품목 dismiss/restore ──
-// body: { item_nos: string[], action: 'dismiss' | 'restore' }
+// body: { item_nos: string[], action: 'dismiss' | 'restore', items?: {item_no, item_name}[] }
 export async function PATCH(req: Request) {
   try {
-    const { item_nos, action } = await req.json();
+    const { item_nos, action, items } = await req.json();
     if (!item_nos || !Array.isArray(item_nos) || item_nos.length === 0) {
       return NextResponse.json({ error: 'item_nos 배열이 필요합니다.' }, { status: 400 });
     }
 
     if (action === 'dismiss') {
-      // 기존에 있으면 status를 dismissed로 업데이트, 없으면 insert
+      const nameMap = new Map<string, string>();
+      if (items && Array.isArray(items)) {
+        for (const it of items) nameMap.set(it.item_no, it.item_name || '');
+      }
+
+      const now = new Date().toISOString();
+      const errors: string[] = [];
       for (const itemNo of item_nos) {
-        const { data: existing } = await supabase
+        const itemName = nameMap.get(itemNo) || '';
+
+        // 기존 레코드 조회 (중복 대비 limit 없이 전체 조회)
+        const { data: existingRows, error: findErr } = await supabase
           .from('inventory_alerts')
           .select('id')
-          .eq('item_no', itemNo)
-          .maybeSingle();
+          .eq('item_no', itemNo);
 
-        if (existing) {
-          await supabase
+        if (findErr) {
+          console.error(`Dismiss find error for ${itemNo}:`, findErr);
+          errors.push(`${itemNo}: ${findErr.message}`);
+          continue;
+        }
+
+        if (existingRows && existingRows.length > 0) {
+          // 모든 중복 레코드를 한번에 dismissed로 업데이트
+          const { error: updErr } = await supabase
             .from('inventory_alerts')
-            .update({ status: 'dismissed' })
-            .eq('id', existing.id);
+            .update({ status: 'dismissed', dismissed_at: now, ...(itemName ? { item_name: itemName } : {}) })
+            .eq('item_no', itemNo);
+          if (updErr) {
+            console.error(`Dismiss update error for ${itemNo}:`, updErr);
+            errors.push(`${itemNo}: ${updErr.message}`);
+          }
         } else {
-          await supabase
+          const { error: insErr } = await supabase
             .from('inventory_alerts')
             .insert({
               item_no: itemNo,
-              item_name: '',
+              item_name: itemName,
               alert_type: 'out_of_stock',
               current_stock: 0,
               threshold: 0,
               affected_clients: [],
               status: 'dismissed',
+              dismissed_at: now,
             });
+          if (insErr) {
+            console.error(`Dismiss insert error for ${itemNo}:`, insErr);
+            errors.push(`${itemNo}: ${insErr.message}`);
+          }
         }
+      }
+      if (errors.length > 0) {
+        return NextResponse.json({ success: false, error: errors.join('; '), dismissed: item_nos.length - errors.length }, { status: 500 });
       }
       return NextResponse.json({ success: true, dismissed: item_nos.length });
     }
 
     if (action === 'restore') {
-      await supabase
+      const { error: delErr } = await supabase
         .from('inventory_alerts')
         .delete()
         .in('item_no', item_nos)
         .eq('status', 'dismissed');
+      if (delErr) {
+        console.error('Restore delete error:', delErr);
+        return NextResponse.json({ success: false, error: delErr.message }, { status: 500 });
+      }
       return NextResponse.json({ success: true, restored: item_nos.length });
     }
 
@@ -282,6 +313,57 @@ export async function PATCH(req: Request) {
     console.error('Alerts PATCH error:', error);
     return NextResponse.json(
       { error: '처리 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+// ── GET: 제외된 품목 목록 조회 ──
+export async function GET() {
+  try {
+    const { data: dismissed } = await supabase
+      .from('inventory_alerts')
+      .select('id, item_no, item_name, dismissed_at, created_at')
+      .eq('status', 'dismissed')
+      .order('dismissed_at', { ascending: false });
+
+    if (!dismissed || dismissed.length === 0) {
+      return NextResponse.json({ items: [], total: 0 });
+    }
+
+    // 재고 및 와인 정보 조회
+    const itemNos = dismissed.map(d => d.item_no);
+    const [{ data: invData }, { data: wineData }] = await Promise.all([
+      supabase.from('inventory_cdv').select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse').in('item_no', itemNos),
+      supabase.from('wines').select('item_code, item_name_kr, country, wine_type, region').in('item_code', itemNos),
+    ]);
+
+    const invMap = new Map<string, any>();
+    for (const inv of invData || []) invMap.set(inv.item_no, inv);
+    const wineMap = new Map<string, any>();
+    for (const w of wineData || []) wineMap.set(w.item_code, w);
+
+    const items = dismissed.map(d => {
+      const inv = invMap.get(d.item_no);
+      const wine = wineMap.get(d.item_no);
+      const totalStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) : 0;
+      return {
+        id: d.id,
+        item_no: d.item_no,
+        item_name: wine?.item_name_kr || inv?.item_name || d.item_name || d.item_no,
+        country: wine?.country || inv?.country || '',
+        wine_type: wine?.wine_type || '',
+        supply_price: inv?.supply_price || 0,
+        current_stock: totalStock,
+        dismissed_at: d.dismissed_at || d.created_at,
+      };
+    });
+
+    return NextResponse.json({ items, total: items.length });
+  } catch (error) {
+    console.error('Alerts GET error:', error);
+    return NextResponse.json(
+      { error: '제외 목록 조회 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
