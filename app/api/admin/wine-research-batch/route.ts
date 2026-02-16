@@ -57,8 +57,6 @@ export async function POST(request: NextRequest) {
           serving_temp: result.serving_temp,
           awards: result.awards,
           ai_generated: 1,
-          manually_edited: 0,
-          approved: 1,
         });
 
         await logChange('claude_batch_research', 'wine', wineId, { item_name_en: result.item_name_en });

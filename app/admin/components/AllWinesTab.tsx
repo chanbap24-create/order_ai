@@ -490,6 +490,7 @@ export default function AllWinesTab() {
                 savingField={savingField}
                 handleDeleteSingle={handleDeleteSingle}
                 deleting={deleting}
+                onRefresh={fetchWines}
               />
             )}
           </div>

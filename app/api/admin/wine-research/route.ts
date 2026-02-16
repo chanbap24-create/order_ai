@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
     // tasting_notes 테이블 업데이트
+    // approved, manually_edited는 전달하지 않아 기존 값 보존 (신규는 0)
     await upsertTastingNote(wine_id, {
       winemaking: result.winemaking,
       winery_description: result.winery_description,
@@ -50,8 +51,6 @@ export async function POST(request: NextRequest) {
       serving_temp: result.serving_temp,
       awards: result.awards,
       ai_generated: 1,
-      manually_edited: 0,
-      approved: 1,
     });
 
     await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en });
