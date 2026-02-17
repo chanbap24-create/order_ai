@@ -146,6 +146,10 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   const [modalShowDropdown, setModalShowDropdown] = useState(false);
   const [modalSaving, setModalSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [newClientMode, setNewClientMode] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientCode, setNewClientCode] = useState('');
+  const [newClientCodeError, setNewClientCodeError] = useState('');
   const modalDropdownRef = useRef<HTMLDivElement>(null);
   const modalSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -303,15 +307,45 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     setModalPurpose('');
     setModalClient(null);
     setModalClientSearch('');
+    setNewClientMode(false);
+    setNewClientName('');
+    setNewClientCode('');
     setShowModal(true);
   };
 
   const saveMeeting = async () => {
-    if (!modalClient) return;
+    let clientToUse = modalClient;
+
+    // 신규 거래처 모드: 먼저 client_details에 등록
+    if (newClientMode) {
+      if (!newClientName.trim()) { setToast('거래처명을 입력해주세요.'); return; }
+      if (!newClientCode.trim()) { setNewClientCodeError('거래처 코드를 입력해주세요.'); return; }
+      const code = newClientCode.trim();
+      setModalSaving(true);
+      try {
+        const createRes = await fetch('/api/sales/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_code: code,
+            client_name: newClientName.trim(),
+            client_type: 'wine',
+            manager: currentManager || '',
+          }),
+        });
+        const createJson = await createRes.json();
+        if (createJson.error) { setToast('거래처 등록 실패: ' + createJson.error); setModalSaving(false); return; }
+        clientToUse = { client_code: code, client_name: newClientName.trim() };
+      } catch {
+        setToast('거래처 등록에 실패했습니다.'); setModalSaving(false); return;
+      }
+    }
+
+    if (!clientToUse) return;
     setModalSaving(true);
     try {
       const body: any = {
-        client_code: modalClient.client_code,
+        client_code: clientToUse.client_code,
         meeting_date: modalDate,
         meeting_time: modalTime,
         meeting_type: modalType,
@@ -801,51 +835,101 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             </div>
 
             {/* 거래처 검색 */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>거래처</label>
-            <div ref={modalDropdownRef} style={{ position: 'relative', marginBottom: 14 }}>
-              <input
-                type="text"
-                placeholder="거래처명으로 검색..."
-                value={modalClientSearch}
-                onChange={e => { setModalClientSearch(e.target.value); setModalClient(null); }}
-                onFocus={() => { if (modalClientOptions.length > 0) setModalShowDropdown(true); }}
-                style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 8,
-                  border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
-                  boxSizing: 'border-box', background: modalClient ? '#f8f6f0' : '#fff',
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>거래처</label>
+              <button
+                onClick={() => {
+                  setNewClientMode(!newClientMode);
+                  setModalClient(null); setModalClientSearch('');
+                  setNewClientName(''); setNewClientCode(''); setNewClientCodeError('');
+                  setModalShowDropdown(false);
                 }}
-              />
-              {modalClient && (
-                <button onClick={() => { setModalClient(null); setModalClientSearch(''); }} style={{
-                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#999',
-                }}>×</button>
-              )}
-              {modalShowDropdown && modalClientOptions.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0,
-                  background: '#fff', border: '1px solid #e0dcd4',
-                  borderRadius: '0 0 8px 8px', maxHeight: 200, overflowY: 'auto',
-                  zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}>
-                  {modalClientOptions.map(c => (
-                    <div key={c.client_code} onClick={() => {
-                      setModalClient(c); setModalClientSearch(c.client_name); setModalShowDropdown(false);
-                    }} style={{
-                      padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f5f3ed',
-                    }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#faf8f2')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
-                    >
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>{c.client_name}</div>
-                      <div style={{ fontSize: 11, color: '#999' }}>
-                        {c.client_code}{c.manager && ` · ${c.manager}`}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 12, color: newClientMode ? '#dc3545' : '#5A1515', fontWeight: 600,
+                }}
+              >
+                {newClientMode ? '기존 거래처 선택' : '+ 신규 거래처'}
+              </button>
             </div>
+
+            {newClientMode ? (
+              <div style={{ marginBottom: 14 }}>
+                <input
+                  type="text"
+                  placeholder="거래처명 (필수)"
+                  value={newClientName}
+                  onChange={e => setNewClientName(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: 8,
+                    border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                    boxSizing: 'border-box', marginBottom: 8,
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="거래처 코드 (필수)"
+                  value={newClientCode}
+                  onChange={e => { setNewClientCode(e.target.value); setNewClientCodeError(''); }}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: 8,
+                    border: `1px solid ${newClientCodeError ? '#dc3545' : '#e0dcd4'}`, fontSize: 16, outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {newClientCodeError && (
+                  <div style={{ fontSize: 11, color: '#dc3545', marginTop: 2 }}>{newClientCodeError}</div>
+                )}
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
+                  담당자: {currentManager || '-'} · 신규 거래처로 등록됩니다
+                </div>
+              </div>
+            ) : (
+              <div ref={modalDropdownRef} style={{ position: 'relative', marginBottom: 14 }}>
+                <input
+                  type="text"
+                  placeholder="거래처명으로 검색..."
+                  value={modalClientSearch}
+                  onChange={e => { setModalClientSearch(e.target.value); setModalClient(null); }}
+                  onFocus={() => { if (modalClientOptions.length > 0) setModalShowDropdown(true); }}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: 8,
+                    border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                    boxSizing: 'border-box', background: modalClient ? '#f8f6f0' : '#fff',
+                  }}
+                />
+                {modalClient && (
+                  <button onClick={() => { setModalClient(null); setModalClientSearch(''); }} style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#999',
+                  }}>×</button>
+                )}
+                {modalShowDropdown && modalClientOptions.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0,
+                    background: '#fff', border: '1px solid #e0dcd4',
+                    borderRadius: '0 0 8px 8px', maxHeight: 200, overflowY: 'auto',
+                    zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  }}>
+                    {modalClientOptions.map(c => (
+                      <div key={c.client_code} onClick={() => {
+                        setModalClient(c); setModalClientSearch(c.client_name); setModalShowDropdown(false);
+                      }} style={{
+                        padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f5f3ed',
+                      }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#faf8f2')}
+                        onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                      >
+                        <div style={{ fontSize: 14, fontWeight: 500 }}>{c.client_name}</div>
+                        <div style={{ fontSize: 11, color: '#999' }}>
+                          {c.client_code}{c.manager && ` · ${c.manager}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 날짜 */}
             <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>날짜</label>
@@ -899,11 +983,11 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 flex: 1, padding: '12px', borderRadius: 8, border: '1px solid #e0dcd4',
                 background: '#fff', color: '#666', fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>취소</button>
-              <button onClick={saveMeeting} disabled={!modalClient || modalSaving} style={{
+              <button onClick={saveMeeting} disabled={(!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving} style={{
                 flex: 1, padding: '12px', borderRadius: 8, border: 'none',
-                background: !modalClient || modalSaving ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+                background: ((!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
                 color: '#fff', fontSize: 14, fontWeight: 600,
-                cursor: !modalClient || modalSaving ? 'default' : 'pointer',
+                cursor: ((!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? 'default' : 'pointer',
               }}>{modalSaving ? '저장 중...' : '저장'}</button>
             </div>
           </div>

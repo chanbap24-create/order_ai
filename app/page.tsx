@@ -13,30 +13,14 @@ export default function Home() {
     {
       id: 'inventory',
       href: '/inventory',
-      title: 'Inventory',
-      subtitle: '재고 및 공급가 확인',
-      desc: 'CDV · DL 실시간 재고 조회, 공급가/소비자가 확인',
+      title: 'Inventory & Quote',
+      subtitle: '재고 조회 + 견적서 작성',
+      desc: 'CDV · DL 재고 검색, 견적 바스켓에 추가, 엑셀 출력까지 한번에',
       icon: (
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
           <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
           <line x1="12" y1="22.08" x2="12" y2="12" />
-        </svg>
-      ),
-    },
-    {
-      id: 'quote',
-      href: '/quote',
-      title: 'Quote',
-      subtitle: '견적서 작성',
-      desc: '거래처별 맞춤 견적서 생성 및 엑셀 출력',
-      icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <polyline points="10 9 9 9 8 9" />
         </svg>
       ),
     },

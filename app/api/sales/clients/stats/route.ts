@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
         .single();
 
       const table = detail?.client_type === 'glass' ? 'glass_shipments' : 'shipments';
-      const statsTable = detail?.client_type === 'glass' ? 'glass_client_item_stats' : 'client_item_stats';
 
       const { data: recentShipments } = await supabase
         .from(table)
@@ -42,29 +41,69 @@ export async function GET(req: NextRequest) {
         .order('ship_date', { ascending: false })
         .limit(20);
 
-      const { data: itemStats } = await supabase
-        .from(statsTable)
-        .select('*')
-        .eq('client_code', code)
-        .order('buy_count' as string, { ascending: false });
-
-      // 최근 1년 매출
-      const { data: salesData } = await supabase
-        .from(table)
-        .select('total_amount, ship_date')
-        .eq('client_code', code)
-        .gte('ship_date', twelveStr);
+      // 최근 1년 전체 출고 조회 (매출 통계 + 품목별 통계 동시 계산)
+      const allShipments: any[] = [];
+      let shipFrom = 0;
+      const shipBatch = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from(table)
+          .select('item_no, item_name, quantity, selling_price, total_amount, ship_date')
+          .eq('client_code', code)
+          .gte('ship_date', twelveStr)
+          .range(shipFrom, shipFrom + shipBatch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allShipments.push(...data);
+        if (data.length < shipBatch) break;
+        shipFrom += shipBatch;
+      }
 
       let totalSales = 0;
       let recentQtr = 0;   // 최근 3개월
       let prevQtr = 0;     // 이전 3개월 (3~6개월 전)
-      for (const s of (salesData || [])) {
+
+      // 품목별 집계
+      const itemAgg = new Map<string, {
+        item_name: string; buy_count: number; total_qty: number;
+        total_amount: number; last_ship_date: string; supply_price: number;
+      }>();
+
+      for (const s of allShipments) {
         const amt = s.total_amount || 0;
         totalSales += amt;
         const d = s.ship_date?.toString().slice(0, 10) || '';
         if (d >= threeStr) recentQtr += amt;
         else if (d >= sixStr) prevQtr += amt;
+
+        if (s.item_no) {
+          if (!itemAgg.has(s.item_no)) {
+            itemAgg.set(s.item_no, {
+              item_name: s.item_name || '', buy_count: 0, total_qty: 0,
+              total_amount: 0, last_ship_date: '', supply_price: s.selling_price || 0,
+            });
+          }
+          const agg = itemAgg.get(s.item_no)!;
+          agg.buy_count += 1;
+          agg.total_qty += (s.quantity || 0);
+          agg.total_amount += amt;
+          if (d > agg.last_ship_date) agg.last_ship_date = d;
+          if (!agg.item_name && s.item_name) agg.item_name = s.item_name;
+        }
       }
+
+      const itemStats = Array.from(itemAgg.entries())
+        .map(([item_no, agg]) => ({
+          client_code: code,
+          item_no,
+          item_name: agg.item_name,
+          buy_count: agg.buy_count,
+          total_qty: agg.total_qty,
+          avg_price: agg.buy_count > 0 ? Math.round(agg.total_amount / agg.total_qty) : null,
+          supply_price: agg.supply_price,
+          last_ship_date: agg.last_ship_date || null,
+        }))
+        .sort((a, b) => b.buy_count - a.buy_count);
 
       const changeRate = prevQtr > 0 ? ((recentQtr - prevQtr) / prevQtr * 100) : (recentQtr > 0 ? 100 : 0);
       const lastShipDate = recentShipments?.[0]?.ship_date || null;

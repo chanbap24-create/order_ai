@@ -78,12 +78,12 @@ function scoreColor(score: number): string {
   return '#757575';
 }
 
-export default function RecommendTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
-  const [clientSearch, setClientSearch] = useState('');
+export default function RecommendTab({ currentManager, isAdmin, preselectedClient }: { currentManager: string; isAdmin: boolean; preselectedClient?: ClientOption | null }) {
+  const [clientSearch, setClientSearch] = useState(preselectedClient?.client_name || '');
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [clientLoading, setClientLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(preselectedClient || null);
   const [filterManager, setFilterManager] = useState(isAdmin ? '' : currentManager);
   const [managers, setManagers] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);

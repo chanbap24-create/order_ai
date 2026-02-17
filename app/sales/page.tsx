@@ -3,8 +3,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import SalesTabs from './components/SalesTabs';
 import type { SalesTabId } from './components/SalesTabs';
-import ClientTab from './components/ClientTab';
-import RecommendTab from './components/RecommendTab';
 import MeetingTab from './components/MeetingTab';
 import BriefingTab from './components/BriefingTab';
 import AlertTab from './components/AlertTab';
@@ -106,7 +104,7 @@ export default function SalesPage() {
     setIsAdmin(false);
     setLoginManager('');
     setLoginPassword('');
-    setActiveTab('clients');
+    setActiveTab('meetings');
     setAlertCount(0);
   };
 
@@ -426,8 +424,6 @@ export default function SalesPage() {
         <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} />
 
         {/* 탭 콘텐츠 */}
-        {activeTab === 'clients' && <ClientTab currentManager={currentManager} isAdmin={isAdmin} />}
-        {activeTab === 'recommend' && <RecommendTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'briefing' && <BriefingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}

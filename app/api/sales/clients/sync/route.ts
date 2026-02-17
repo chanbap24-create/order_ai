@@ -97,18 +97,33 @@ export async function POST() {
       }
     }
 
-    // 배치 업데이트 (담당자 + 업종)
+    // 배치 업데이트 (담당자 + 업종) — 동일 값 그룹별 bulk update
     let bizUpdated = 0;
+
+    // (manager, business_type) 조합별로 client_code 그룹핑
+    const groupMap = new Map<string, string[]>(); // key: "manager|business_type" → codes[]
     for (const [code, info] of clientInfo) {
+      if (!info.manager && !info.business_type) continue;
+      const key = `${info.manager || ''}|${info.business_type || ''}`;
+      if (!groupMap.has(key)) groupMap.set(key, []);
+      groupMap.get(key)!.push(code);
+      if (info.business_type) bizUpdated++;
+    }
+
+    // 각 그룹마다 단일 UPDATE (동일 manager+business_type를 공유하는 코드들을 .in()으로 일괄)
+    for (const [key, codes] of groupMap) {
+      const [manager, business_type] = key.split('|');
       const updates: Record<string, string> = {};
-      if (info.manager) updates.manager = info.manager;
-      if (info.business_type) updates.business_type = info.business_type;
-      if (Object.keys(updates).length > 0) {
-        const { error } = await supabase
+      if (manager) updates.manager = manager;
+      if (business_type) updates.business_type = business_type;
+
+      // Supabase .in()은 최대 크기 제한이 있으므로 200개씩 나눠서
+      for (let j = 0; j < codes.length; j += 200) {
+        const chunk = codes.slice(j, j + 200);
+        await supabase
           .from('client_details')
           .update(updates)
-          .eq('client_code', code);
-        if (!error && info.business_type) bizUpdated++;
+          .in('client_code', chunk);
       }
     }
 
