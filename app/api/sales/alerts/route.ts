@@ -110,14 +110,52 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. DB에서 dismissed 목록 로드
+    // 4. DB에서 dismissed 목록 로드 + 재입고 자동 복원
     const { data: dbDismissed } = await supabase
       .from('inventory_alerts')
-      .select('item_no')
+      .select('item_no, current_stock')
       .eq('status', 'dismissed');
+
+    // 재입고 감지: 삭제 시점 재고보다 현재 재고가 늘었으면 자동 복원
+    const autoRestoreItems: string[] = [];
+    if (dbDismissed && dbDismissed.length > 0) {
+      const dismissedNos = dbDismissed.map(d => d.item_no);
+      // 삭제된 품목의 현재 재고 조회
+      const dismissedInvMap = new Map<string, number>();
+      for (let i = 0; i < dismissedNos.length; i += 500) {
+        const batch = dismissedNos.slice(i, i + 500);
+        const { data: invData } = await supabase
+          .from('inventory_cdv')
+          .select('item_no, available_stock, bonded_warehouse')
+          .in('item_no', batch);
+        for (const inv of invData || []) {
+          dismissedInvMap.set(inv.item_no, (inv.available_stock || 0) + (inv.bonded_warehouse || 0));
+        }
+      }
+
+      for (const d of dbDismissed) {
+        const currentStock = dismissedInvMap.get(d.item_no) ?? 0;
+        const dismissedStock = d.current_stock ?? 0;
+        if (currentStock > dismissedStock) {
+          autoRestoreItems.push(d.item_no);
+        }
+      }
+
+      // 자동 복원 실행
+      if (autoRestoreItems.length > 0) {
+        await supabase
+          .from('inventory_alerts')
+          .delete()
+          .in('item_no', autoRestoreItems)
+          .eq('status', 'dismissed');
+      }
+    }
+
     const dismissedSet = new Set([
       ...dismissedItems,
-      ...(dbDismissed || []).map(d => d.item_no),
+      ...(dbDismissed || [])
+        .filter(d => !autoRestoreItems.includes(d.item_no))
+        .map(d => d.item_no),
     ]);
 
     // 5. 부족 판별
@@ -217,6 +255,7 @@ export async function POST(req: Request) {
       total: alerts.length,
       out_of_stock_count: alerts.filter(a => a.alert_type === 'out_of_stock').length,
       low_stock_count: alerts.filter(a => a.alert_type === 'low_stock').length,
+      auto_restored: autoRestoreItems.length,
       scanned_at: new Date().toISOString(),
     });
   } catch (error) {
@@ -243,10 +282,24 @@ export async function PATCH(req: Request) {
         for (const it of items) nameMap.set(it.item_no, it.item_name || '');
       }
 
+      // 삭제 시점의 실제 재고량 조회 (재입고 감지용)
+      const stockAtDismiss = new Map<string, number>();
+      for (let i = 0; i < item_nos.length; i += 500) {
+        const batch = item_nos.slice(i, i + 500);
+        const { data: invData } = await supabase
+          .from('inventory_cdv')
+          .select('item_no, available_stock, bonded_warehouse')
+          .in('item_no', batch);
+        for (const inv of invData || []) {
+          stockAtDismiss.set(inv.item_no, (inv.available_stock || 0) + (inv.bonded_warehouse || 0));
+        }
+      }
+
       const now = new Date().toISOString();
       const errors: string[] = [];
       for (const itemNo of item_nos) {
         const itemName = nameMap.get(itemNo) || '';
+        const currentStock = stockAtDismiss.get(itemNo) ?? 0;
 
         // 기존 레코드 조회 (중복 대비 limit 없이 전체 조회)
         const { data: existingRows, error: findErr } = await supabase
@@ -261,10 +314,15 @@ export async function PATCH(req: Request) {
         }
 
         if (existingRows && existingRows.length > 0) {
-          // 모든 중복 레코드를 한번에 dismissed로 업데이트
+          // 모든 중복 레코드를 한번에 dismissed로 업데이트 + 재고 스냅샷 저장
           const { error: updErr } = await supabase
             .from('inventory_alerts')
-            .update({ status: 'dismissed', dismissed_at: now, ...(itemName ? { item_name: itemName } : {}) })
+            .update({
+              status: 'dismissed',
+              dismissed_at: now,
+              current_stock: currentStock,
+              ...(itemName ? { item_name: itemName } : {}),
+            })
             .eq('item_no', itemNo);
           if (updErr) {
             console.error(`Dismiss update error for ${itemNo}:`, updErr);
@@ -277,7 +335,7 @@ export async function PATCH(req: Request) {
               item_no: itemNo,
               item_name: itemName,
               alert_type: 'out_of_stock',
-              current_stock: 0,
+              current_stock: currentStock,
               threshold: 0,
               affected_clients: [],
               status: 'dismissed',

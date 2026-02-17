@@ -43,6 +43,7 @@ interface AlertsResponse {
   total: number;
   out_of_stock_count: number;
   low_stock_count: number;
+  auto_restored: number;
   scanned_at: string;
 }
 
@@ -133,6 +134,11 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
       setCounts({ total: data.total, low: data.low_stock_count, out: data.out_of_stock_count });
       if (data.scanned_at) setLastScanned(data.scanned_at);
       onCountChange?.(data.total);
+      // 재입고 자동 복원 알림
+      if (data.auto_restored > 0) {
+        setDismissMsg(`재입고 감지: ${data.auto_restored}개 품목이 자동 복원되었습니다.`);
+        setTimeout(() => setDismissMsg(null), 4000);
+      }
     } catch { /* ignore */ }
     finally { setScanning(false); }
   }, [selectedManager, onCountChange]);
@@ -716,7 +722,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
       {dismissMsg && (
         <div style={{
           position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-          background: dismissMsg.includes('실패') || dismissMsg.includes('오류') ? '#dc3545' : '#2e7d32',
+          background: dismissMsg.includes('실패') || dismissMsg.includes('오류') ? '#dc3545' : dismissMsg.includes('자동 복원') ? '#1565c0' : '#2e7d32',
           color: 'white', padding: '10px 20px',
           borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999,
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
