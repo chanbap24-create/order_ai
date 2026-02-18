@@ -48,6 +48,16 @@ export const learnSearchSchema = z.object({
   selectedItemName: z.string().min(1, "selectedItemName이 필요합니다"),
 });
 
+// ==================== PostgREST 필터 보안 ====================
+
+/**
+ * PostgREST .or() 필터에 사용되는 값에서 위험한 문자를 제거
+ * `,` `.` `(` `)` 등은 필터 구문을 조작할 수 있음
+ */
+export function sanitizeFilterValue(value: string): string {
+  return String(value || '').replace(/[,.()"\\]/g, '');
+}
+
 // ==================== 검증 헬퍼 ====================
 
 /**
