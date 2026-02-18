@@ -5,6 +5,10 @@ import { searchMasterSheet } from '@/app/lib/masterMatcher';
 export const runtime = 'nodejs';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+
   const items = loadMasterSheet();
   const itemsWithPrice = items.filter(i => i.supplyPrice);
   

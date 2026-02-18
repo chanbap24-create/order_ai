@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { sanitizeFilterValue } from '@/app/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,8 +49,8 @@ export async function GET(request: NextRequest) {
 
     // Apply search filter
     if (search) {
-      const searchPattern = `%${search}%`;
-      const searchFilter = `item_no.ilike.${searchPattern},item_name.ilike.${searchPattern}`;
+      const safe = sanitizeFilterValue(search);
+      const searchFilter = `item_no.ilike.%${safe}%,item_name.ilike.%${safe}%`;
       countQuery = countQuery.or(searchFilter);
       dataQuery = dataQuery.or(searchFilter);
       statsQuery = statsQuery.or(searchFilter);

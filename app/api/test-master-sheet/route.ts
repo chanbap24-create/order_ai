@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { loadAllMasterItems, getDownloadsPriceMap } from '@/app/lib/masterSheet';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+
   try {
     console.log('[TEST] Loading master sheet...');
     

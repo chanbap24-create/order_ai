@@ -51,8 +51,8 @@ BEGIN
   IF p_manager <> '' THEN where_clause := where_clause || format(' AND manager = %L', p_manager); END IF;
   IF p_department <> '' THEN where_clause := where_clause || format(' AND department = %L', p_department); END IF;
   IF p_business_type <> '' THEN where_clause := where_clause || format(' AND business_type = %L', p_business_type); END IF;
-  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date >= %L::date', p_start_date); END IF;
-  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date <= %L::date', p_end_date); END IF;
+  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date >= %L::date', p_start_date); END IF;
+  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date <= %L::date', p_end_date); END IF;
   IF p_client_search <> '' THEN where_clause := where_clause || format(' AND client_name ILIKE %L', '%%' || p_client_search || '%%'); END IF;
 
   -- 이전 기간 계산
@@ -61,8 +61,8 @@ BEGIN
     prev_end := (p_start_date::date - 1)::TEXT;
     prev_start := (p_start_date::date - 1 - days_diff)::TEXT;
     prev_where := where_clause;
-    prev_where := replace(prev_where, format('ship_date >= %L::date', p_start_date), format('ship_date >= %L::date', prev_start));
-    prev_where := replace(prev_where, format('ship_date <= %L::date', p_end_date), format('ship_date <= %L::date', prev_end));
+    prev_where := replace(prev_where, format('ship_date::date >= %L::date', p_start_date), format('ship_date::date >= %L::date', prev_start));
+    prev_where := replace(prev_where, format('ship_date::date <= %L::date', p_end_date), format('ship_date::date <= %L::date', prev_end));
   END IF;
 
   EXECUTE format(
@@ -70,8 +70,31 @@ BEGIN
      summary AS (
        SELECT COALESCE(SUM(supply_amount),0) AS total_revenue,
               COALESCE(SUM(quantity),0) AS total_quantity,
-              COUNT(*) AS total_count
+              COUNT(*) AS total_count,
+              COUNT(DISTINCT client_code) AS distinct_clients,
+              COALESCE(SUM(CASE WHEN quantity < 0 THEN ABS(supply_amount) ELSE 0 END), 0) AS return_amount,
+              COALESCE(SUM(CASE WHEN quantity > 0 THEN supply_amount ELSE 0 END), 0) AS positive_revenue
        FROM filtered
+     ),
+     top10_calc AS (
+       SELECT CASE WHEN SUM(rev) > 0
+         THEN ROUND((SUM(CASE WHEN rn <= GREATEST(CEIL(total_cnt * 0.1), 1) THEN rev ELSE 0 END) / NULLIF(SUM(rev),0) * 100)::numeric, 1)
+         ELSE 0 END AS top10_pct
+       FROM (
+         SELECT SUM(supply_amount) as rev,
+                ROW_NUMBER() OVER (ORDER BY SUM(supply_amount) DESC) as rn,
+                COUNT(*) OVER () as total_cnt
+         FROM filtered WHERE supply_amount > 0 GROUP BY client_code
+       ) ranked
+     ),
+     loyalty_calc AS (
+       SELECT CASE WHEN COUNT(*) > 0
+         THEN ROUND((COUNT(*) FILTER (WHERE order_months >= 2)::numeric / NULLIF(COUNT(*),0) * 100)::numeric, 1)
+         ELSE 0 END AS repeat_rate
+       FROM (
+         SELECT client_code, COUNT(DISTINCT substring(ship_date::text from 1 for 7)) as order_months
+         FROM filtered WHERE supply_amount > 0 GROUP BY client_code
+       ) cl
      ),
      client_agg AS (
        SELECT client_code, client_name,
@@ -85,9 +108,14 @@ BEGIN
        FROM client_agg ORDER BY revenue DESC LIMIT 30
      ),
      daily AS (
-       SELECT ship_date::TEXT AS date, COALESCE(SUM(supply_amount),0) AS revenue
-       FROM filtered WHERE ship_date IS NOT NULL
-       GROUP BY ship_date ORDER BY ship_date
+       SELECT f.ship_date::TEXT AS date, COALESCE(SUM(f.supply_amount),0) AS revenue,
+              COALESCE(SUM(CASE WHEN i.supply_price > 0 AND f.selling_price > 0 AND f.quantity > 0
+                THEN i.supply_price * f.quantity ELSE 0 END),0) AS normal_total,
+              COALESCE(SUM(CASE WHEN i.supply_price > 0 AND f.selling_price > 0 AND f.quantity > 0
+                THEN f.selling_price * f.quantity ELSE 0 END),0) AS selling_total
+       FROM filtered f LEFT JOIN %I i ON f.item_no = i.item_no
+       WHERE f.ship_date IS NOT NULL
+       GROUP BY f.ship_date ORDER BY f.ship_date
      ),
      biz AS (
        SELECT CASE WHEN business_type IS NULL OR business_type = '''' THEN ''(미분류)''
@@ -145,7 +173,7 @@ BEGIN
        GROUP BY f.client_code
      )
      SELECT json_build_object(
-       ''summary'', (SELECT row_to_json(s) FROM summary s),
+       ''summary'', (SELECT row_to_json(r) FROM (SELECT s.*, t.top10_pct, l.repeat_rate FROM summary s, top10_calc t, loyalty_calc l) r),
        ''clientRanking'', (SELECT COALESCE(json_agg(row_to_json(c) ORDER BY c.rn), ''[]''::json) FROM (
          SELECT cr.client_code AS code, cr.client_name AS name, cr.revenue, cr.quantity,
                 cr.item_count AS "itemCount", cr.rn,
@@ -159,6 +187,7 @@ BEGIN
        ''countryAnalysis'', (SELECT COALESCE(json_agg(row_to_json(ca)), ''[]''::json) FROM country_agg ca)
      )',
     tbl, where_clause,
+    inv_tbl,
     p_type, p_type, p_type, p_type,
     inv_tbl, inv_tbl, inv_tbl
   ) INTO result;
@@ -204,8 +233,8 @@ BEGIN
   ELSE tbl := 'shipments'; inv_tbl := 'inventory_cdv'; END IF;
 
   where_clause := format('WHERE client_code = %L', p_client_code);
-  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date >= %L::date', p_start_date); END IF;
-  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date <= %L::date', p_end_date); END IF;
+  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date >= %L::date', p_start_date); END IF;
+  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date <= %L::date', p_end_date); END IF;
 
   EXECUTE format(
     'SELECT COALESCE(json_agg(row_to_json(sub) ORDER BY sub.revenue DESC), ''[]''::json)
@@ -366,8 +395,8 @@ BEGIN
   IF p_manager <> '' THEN where_clause := where_clause || format(' AND manager = %L', p_manager); END IF;
   IF p_department <> '' THEN where_clause := where_clause || format(' AND department = %L', p_department); END IF;
   IF p_business_type <> '' THEN where_clause := where_clause || format(' AND business_type = %L', p_business_type); END IF;
-  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date >= %L::date', p_start_date); END IF;
-  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date <= %L::date', p_end_date); END IF;
+  IF p_start_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date >= %L::date', p_start_date); END IF;
+  IF p_end_date <> '' THEN where_clause := where_clause || format(' AND ship_date::date <= %L::date', p_end_date); END IF;
   IF p_client_search <> '' THEN where_clause := where_clause || format(' AND client_name ILIKE %L', '%%' || p_client_search || '%%'); END IF;
 
   EXECUTE format(

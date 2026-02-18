@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { hashPassword, verifyPassword, createSession, COOKIE_NAME } from '@/app/lib/auth';
+import { hashPassword, verifyPassword, isLegacyHash, verifyLegacyPassword, createSession, COOKIE_NAME } from '@/app/lib/auth';
 
 export async function POST(req: Request) {
   try {
@@ -21,8 +21,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '등록되지 않은 담당자입니다.' }, { status: 401 });
     }
 
-    // 비밀번호 확인
-    if (!verifyPassword(password, user.password_hash)) {
+    // 비밀번호 확인 (레거시 SHA-256 해시 자동 마이그레이션)
+    let passwordValid = false;
+    if (isLegacyHash(user.password_hash)) {
+      passwordValid = verifyLegacyPassword(password, user.password_hash);
+      if (passwordValid) {
+        // 로그인 성공 시 bcrypt로 자동 업그레이드
+        const newHash = await hashPassword(password);
+        await supabase
+          .from('sales_users')
+          .update({ password_hash: newHash, updated_at: new Date().toISOString() })
+          .eq('manager', manager);
+      }
+    } else {
+      passwordValid = await verifyPassword(password, user.password_hash);
+    }
+
+    if (!passwordValid) {
       return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 401 });
     }
 

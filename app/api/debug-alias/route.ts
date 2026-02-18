@@ -6,8 +6,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/db";
 import { expandAliases } from "@/app/lib/naturalLanguagePreprocessor";
+import { sanitizeFilterValue } from "@/app/lib/validation";
 
 export async function GET(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+
   try {
     const searchParams = req.nextUrl.searchParams;
     const query = searchParams.get("q") || "";
@@ -23,7 +28,7 @@ export async function GET(req: NextRequest) {
     const { data: allAliases } = await supabase
       .from('item_alias')
       .select('alias, canonical, count')
-      .or(`alias.ilike.%${query}%,canonical.ilike.%${query}%`)
+      .or(`alias.ilike.%${sanitizeFilterValue(query)}%,canonical.ilike.%${sanitizeFilterValue(query)}%`)
       .order('count', { ascending: false })
       .limit(20);
 

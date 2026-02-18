@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { getSession, hashPassword, verifyPassword } from '@/app/lib/auth';
+import { getSession, hashPassword, verifyPassword, isLegacyHash, verifyLegacyPassword } from '@/app/lib/auth';
 
 export async function PATCH(req: Request) {
   try {
@@ -28,8 +28,13 @@ export async function PATCH(req: Request) {
         .eq('manager', manager)
         .maybeSingle();
 
-      if (user && !verifyPassword(current_password, user.password_hash)) {
-        return NextResponse.json({ error: '현재 비밀번호가 틀렸습니다.' }, { status: 400 });
+      if (user) {
+        const valid = isLegacyHash(user.password_hash)
+          ? verifyLegacyPassword(current_password, user.password_hash)
+          : await verifyPassword(current_password, user.password_hash);
+        if (!valid) {
+          return NextResponse.json({ error: '현재 비밀번호가 틀렸습니다.' }, { status: 400 });
+        }
       }
     }
 
@@ -38,7 +43,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
-    const newHash = hashPassword(new_password);
+    const newHash = await hashPassword(new_password);
     const { error } = await supabase
       .from('sales_users')
       .update({ password_hash: newHash, updated_at: new Date().toISOString() })

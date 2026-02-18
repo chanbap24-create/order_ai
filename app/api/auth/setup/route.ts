@@ -41,7 +41,7 @@ export async function POST() {
     const EXCLUDE = ['윤영란', '정진경', '편지은', '경영지원부'];
     const managers = [...allManagers].filter(m => !EXCLUDE.includes(m)).sort();
 
-    const defaultHash = hashPassword('0000');
+    const defaultHash = await hashPassword('0000');
     const users = managers.map(m => ({
       manager: m,
       password_hash: defaultHash,

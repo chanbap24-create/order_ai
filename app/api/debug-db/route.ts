@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/app/lib/db";
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+
   try {
     // 테이블 목록 (Supabase에서는 hardcoded or information_schema)
     const knownTables = [

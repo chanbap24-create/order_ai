@@ -10,9 +10,30 @@ import { jsonResponse } from "@/app/lib/api-response";
 import type { ParseFullOrderResponse } from "@/app/types/api";
 import { hierarchicalSearch } from "@/app/lib/brandMatcher";
 import { logger } from "@/app/lib/logger";
+import { rerankWithLLM, needsReranking, expandQueryWithLLM, expandFromDict } from "@/app/lib/llmReranker";
 
 
 import { isHolidayKST } from "@/app/lib/holidays";
+
+/**
+ * 번역 전 약어 사전 확장: 메시지 내 와인 약어를 한국어로 미리 확장
+ * → 한국어 비율 높아져서 불필요한 GPT 번역 방지 (at, bs 등 브랜드코드 보호)
+ * 예: "at rdm 6" → "at 로쏘 디 몬탈치노 6" (rdm만 확장, at는 유지)
+ */
+function preExpandAbbreviationsInMessage(text: string): string {
+  return text.replace(/\S+/g, (token) => {
+    // 숫자/한글만으로 된 토큰은 스킵
+    if (/^\d+$/.test(token) || /^[가-힣]+$/.test(token)) return token;
+    // 후행 구두점 분리
+    const match = token.match(/^(.+?)([.,;:!?병]+)?$/);
+    if (!match) return token;
+    const core = match[1];
+    const suffix = match[2] || '';
+    const result = expandFromDict(core);
+    if (result) return result.wineName + suffix;
+    return token;
+  });
+}
 
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
@@ -309,9 +330,16 @@ async function getDeliveryDateKST(now = new Date()) {
   });
 
   // "01/07/2025, 16:31" → 파싱
-  const [datePart, timePart] = kstString.split(", ");
-  const [month, day, year] = datePart.split("/");
-  const [hour, minute] = timePart.split(":");
+  const parts = kstString.split(", ");
+  const datePart = parts[0] || "";
+  const timePart = parts[1] || "00:00";
+  const dateParts = datePart.split("/");
+  const month = dateParts[0] || "01";
+  const day = dateParts[1] || "01";
+  const year = dateParts[2] || "2025";
+  const timeParts = timePart.split(":");
+  const hour = timeParts[0] || "00";
+  const minute = timeParts[1] || "00";
 
   const kst = new Date(`${year}-${month}-${day}T${hour}:${minute}:00+09:00`);
 
@@ -627,8 +655,9 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
       // 품목만 파싱
       const pre0 = preprocessMessage(body?.message ?? "");
-      const trMsg = await translateOrderToKoreanIfNeeded(pre0);
-      const preMessage = trMsg.translated ? trMsg.text : pre0;
+      const pre0Expanded = preExpandAbbreviationsInMessage(pre0);
+      const trMsg = await translateOrderToKoreanIfNeeded(pre0Expanded);
+      const preMessage = trMsg.translated ? trMsg.text : pre0Expanded;
       const parsedItems = parseItemsFromMessage(preMessage)
         // ✅ "undefined" 필터링
         .filter(item => {
@@ -687,7 +716,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             const existing = itemMap.get(key);
             if (existing) {
               // 같은 품목이 여러 번 확정된 경우 수량 합산
-              existing.quantity = (existing.quantity || 0) + (item.quantity || 0);
+              existing.qty = (existing.qty || 0) + (item.qty || 0);
             } else {
               itemMap.set(key, { ...item });
             }
@@ -730,10 +759,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
     // ✅ 0) 전체 메시지 전처리 먼저
     const pre0 = preprocessMessage(body?.message ?? "");
+    const pre0Expanded = preExpandAbbreviationsInMessage(pre0);
 
     // ✅ 0-1) 번역(영어 비중 높을 때만). 기존 데이터/로직 영향 없음.
-    const trMsg = await translateOrderToKoreanIfNeeded(pre0);
-    const preMessage = trMsg.translated ? trMsg.text : pre0;
+    const trMsg = await translateOrderToKoreanIfNeeded(pre0Expanded);
+    const preMessage = trMsg.translated ? trMsg.text : pre0Expanded;
 
     // ✅ 전처리된 message로 split 수행
     const { rawMessage, clientText, orderText } = splitClientAndOrder({
@@ -780,9 +810,10 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       body?.resolvedClientCode ? rawMessage : (orderText || rawMessage)
     );
 
-    // ✅ 2-1) 번역(영어 비중 높을 때만)
-    const trOrder = await translateOrderToKoreanIfNeeded(order0);
-    const orderPre = trOrder.translated ? trOrder.text : order0;
+    // ✅ 2-1) 번역(영어 비중 높을 때만) — 사전 약어 확장으로 브랜드코드 보호
+    const order0Expanded = preExpandAbbreviationsInMessage(order0);
+    const trOrder = await translateOrderToKoreanIfNeeded(order0Expanded);
+    const orderPre = trOrder.translated ? trOrder.text : order0Expanded;
 
     const parsedItems = parseItemsFromMessage(orderPre)
       // ✅ "undefined" 필터링: 프론트에서 빈 입력을 "undefined"로 보낼 때 제거
@@ -806,6 +837,76 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       } as any);
     }
 
+    // ✅ 2-2) LLM 사전 확장: 짧은 약어 → 정식 와인명으로 변환 (매칭 전에 실행)
+    if (pageType === "wine" && process.env.ANTHROPIC_API_KEY) {
+      console.log(`[LLM PreExpand] 시작: ${parsedItems.length}개 품목`);
+      const expandPromises: Promise<void>[] = [];
+      for (const item of parsedItems) {
+        const name = String(item.name || "").trim();
+        // 짧은 이름(4글자 이하) 또는 한글 2~3글자 약어 → 전체 이름 확장
+        const isShort = name.length <= 4;
+        const isKoreanAbbrev = /^[가-힣]{2,3}$/.test(name);
+        if (isShort || isKoreanAbbrev) {
+          expandPromises.push((async () => {
+            try {
+              const expanded = await expandQueryWithLLM(name);
+              if (expanded && expanded.confidence >= 0.4 && expanded.expandedQueries.length > 0) {
+                console.log(`[LLM PreExpand] "${name}" → "${expanded.wineName}" (conf=${expanded.confidence})`);
+                (item as any)._llmExpanded = expanded;
+                (item as any)._originalName = name;
+                item.name = expanded.wineName;
+              } else {
+                console.log(`[LLM PreExpand] "${name}" → 확장 실패 또는 낮은 신뢰도`);
+              }
+            } catch (err) {
+              console.error(`[LLM PreExpand] "${name}" 오류:`, err);
+            }
+          })());
+        } else {
+          // 전체 이름이 길어도 개별 토큰에 약어가 있으면 확장
+          // 단, 한국어 와인명이 이미 포함된 경우(사전 확장 완료) 스킵
+          const tokens = name.split(/\s+/);
+          const koreanCharCount = (name.match(/[가-힣]/g) || []).length;
+          if (tokens.length >= 2 && koreanCharCount < 3) {
+            expandPromises.push((async () => {
+              try {
+                let anyExpanded = false;
+                const expandedTokens = await Promise.all(tokens.map(async (token) => {
+                  if (token.length <= 4 || /^[가-힣]{2,3}$/.test(token)) {
+                    const expanded = await expandQueryWithLLM(token);
+                    if (expanded && expanded.confidence >= 0.4 && expanded.expandedQueries.length > 0) {
+                      anyExpanded = true;
+                      return expanded.wineName;
+                    }
+                  }
+                  return token;
+                }));
+                if (anyExpanded) {
+                  const newName = expandedTokens.join(' ');
+                  console.log(`[LLM PreExpand] "${name}" → "${newName}" (토큰별 확장)`);
+                  (item as any)._llmExpanded = { originalQuery: name, expandedQueries: [newName], wineName: newName, confidence: 0.95 };
+                  (item as any)._originalName = name;
+                  item.name = newName;
+                }
+              } catch (err) {
+                console.error(`[LLM PreExpand] "${name}" 토큰 확장 오류:`, err);
+              }
+            })());
+          } else if (koreanCharCount >= 3) {
+            // 사전 확장으로 한국어 와인명이 이미 포함됨 (예: "at 로쏘 디 몬탈치노")
+            // expandAliases 역방향 매핑에 의한 오염 방지를 위해 플래그 설정
+            console.log(`[LLM PreExpand] "${name}" → 사전 확장 완료 (전처리 스킵 플래그)`);
+            (item as any)._llmExpanded = true;
+            (item as any)._originalName = name;
+          }
+        }
+      }
+      if (expandPromises.length > 0) {
+        await Promise.all(expandPromises);
+        console.log(`[LLM PreExpand] 완료: ${expandPromises.length}개 확장 시도`);
+      }
+    }
+
     // ✅ 3-0) 브랜드 우선 매칭 시도 (새로운 2단계 계층적 검색)
     // Wine 페이지에서만 활성화
     let brandMatchedItems: any[] = [];
@@ -817,7 +918,21 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         if (!inputName) continue;
 
         try {
-          const brandResults = await hierarchicalSearch(inputName, 0.5, 0.5, 2);
+          let brandResults = await hierarchicalSearch(inputName, 0.5, 0.5, 2);
+
+          // LLM 확장 키워드로도 브랜드 매칭 시도 (primary 실패 시)
+          const llmExpanded = (item as any)._llmExpanded;
+          if (brandResults.length === 0 && llmExpanded?.expandedQueries) {
+            for (const eq of llmExpanded.expandedQueries) {
+              if (eq === inputName) continue; // 이미 시도한 것 스킵
+              const altResults = await hierarchicalSearch(eq, 0.4, 0.4, 2);
+              if (altResults.length > 0 && altResults[0].wines.length > 0) {
+                console.log(`[BrandMatch+LLM] "${(item as any)._originalName}" → "${eq}" 로 브랜드 매칭 성공`);
+                brandResults = altResults;
+                break;
+              }
+            }
+          }
 
           if (brandResults.length > 0 && brandResults[0].wines.length > 0) {
             const topBrand = brandResults[0];
@@ -829,9 +944,11 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
             brandMatchedItems.push({
               _originalIndex: i,
               raw: item.raw,
-              name: item.name,
+              name: (item as any)._originalName || item.name,
               qty: item.qty,
               normalized_query: inputName,
+              _originalName: (item as any)._originalName,
+              _llmExpanded: (item as any)._llmExpanded,
               // ✅ item_no가 유효하고 점수가 0.7 이상일 때만 자동 확정
               resolved: !!(topWine.item_no) && topWine.score >= 0.7,
               item_no: topWine.item_no,
@@ -872,13 +989,94 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
     logger.debug(`[품목 resolve]`, { total: parsedItems.length, brandMatched: brandMatchedItems.length, fallback: itemsToResolve.length });
 
-    const resolvedItems = itemsToResolve.length > 0
+    let resolvedItems = itemsToResolve.length > 0
       ? await resolveItemsByClientWeighted(clientCode, itemsToResolve, {
           minScore: 0.55,
           minGap: 0.05,
           topN: 5,
         })
       : [];
+
+    // ✅ LLM 쿼리 확장 (사후): 사전 확장 안 된 품목만 → Claude가 와인명 해석 → 재검색
+    if (resolvedItems.length > 0 && process.env.ANTHROPIC_API_KEY) {
+      const expandedResults: any[] = [];
+      for (const item of resolvedItems) {
+        // 이미 사전 확장된 항목은 스킵 (중복 LLM 호출 방지)
+        if (item._llmExpanded || item._originalName) {
+          expandedResults.push(item);
+          continue;
+        }
+        const topScore = item?.score ?? (item?.candidates?.[0]?.score ?? 0);
+        if (topScore < 0.5 && item.name) {
+          try {
+            const expanded = await expandQueryWithLLM(String(item.name));
+            if (expanded && expanded.expandedQueries.length > 0 && expanded.confidence >= 0.5) {
+              logger.debug(`[LLM Expand] "${item.name}" → "${expanded.wineName}" (${expanded.expandedQueries.join(", ")})`);
+
+              // 확장된 키워드로 브랜드 매칭 재시도
+              let bestResult: any = null;
+              for (const eq of expanded.expandedQueries) {
+                try {
+                  const brandResults = await hierarchicalSearch(eq, 0.4, 0.3, 3);
+                  if (brandResults.length > 0 && brandResults[0].wines.length > 0) {
+                    const topBrand = brandResults[0];
+                    const topWine = topBrand.wines[0];
+                    if (!bestResult || topWine.score > (bestResult.score ?? 0)) {
+                      bestResult = {
+                        ...item,
+                        resolved: !!(topWine.item_no) && topWine.score >= 0.6,
+                        item_no: topWine.item_no,
+                        item_name: topWine.wine_kr,
+                        score: topWine.score,
+                        method: 'llm_expand_brand',
+                        supply_price: topWine.price,
+                        llm_expanded: expanded.wineName,
+                        candidates: topBrand.wines.slice(0, 8).map((w: any) => ({
+                          item_no: w.item_no,
+                          item_name: w.wine_kr,
+                          score: w.score,
+                          method: 'llm_expand_brand',
+                          supply_price: w.price,
+                        })),
+                      };
+                    }
+                  }
+                } catch { /* skip */ }
+              }
+
+              // 브랜드 매칭 실패 시 가중치 매칭 재시도
+              if (!bestResult || (bestResult.score ?? 0) < 0.4) {
+                for (const eq of expanded.expandedQueries.slice(0, 2)) {
+                  try {
+                    const reResolved = await resolveItemsByClientWeighted(clientCode,
+                      [{ ...item, name: eq, _originalIndex: item._originalIndex }],
+                      { minScore: 0.4, minGap: 0.03, topN: 5 }
+                    );
+                    if (reResolved.length > 0) {
+                      const rr = reResolved[0];
+                      const rrScore = rr?.score ?? (rr?.candidates?.[0]?.score ?? 0);
+                      if (!bestResult || rrScore > (bestResult.score ?? 0)) {
+                        bestResult = { ...rr, llm_expanded: expanded.wineName, method: 'llm_expand_weighted' };
+                      }
+                    }
+                  } catch { /* skip */ }
+                }
+              }
+
+              if (bestResult && (bestResult.score ?? 0) > topScore) {
+                logger.debug(`[LLM Expand] 개선됨`, { name: item.name, before: topScore, after: bestResult.score });
+                expandedResults.push(bestResult);
+                continue;
+              }
+            }
+          } catch (err) {
+            logger.error(`[LLM Expand] 오류`, err);
+          }
+        }
+        expandedResults.push(item);
+      }
+      resolvedItems = expandedResults;
+    }
 
     // 브랜드 매칭 결과와 기존 방식 결과 병합 후 원본 순서로 정렬
     const allResolvedItems = [...brandMatchedItems, ...resolvedItems]
@@ -933,7 +1131,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         if (!grouped.has(baseName)) {
           grouped.set(baseName, []);
         }
-        grouped.get(baseName)!.push(c);
+        grouped.get(baseName)?.push(c);
       }
 
       const dedupedCandidates: any[] = [];
@@ -983,8 +1181,8 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
       // ⭐ 1단계: 기존 입고 품목에 점수 부스트 적용 (검색 결과에 포함되도록)
       const boostedCandidates = sortedCandidates.map((c: any) => {
         const isInClientHistory = clientItemSet.has(String(c.item_no));
-        // 기존 입고 품목은 점수에 +0.15 부스트 (top 결과에 포함되도록)
-        const boostedScore = isInClientHistory ? (c.score ?? 0) + 0.15 : (c.score ?? 0);
+        // 기존 입고 품목은 점수 5% 부스트 (가중 스코어링에서 이미 이력 반영됨, 이중 부스트 방지)
+        const boostedScore = isInClientHistory ? (c.score ?? 0) * 1.05 : (c.score ?? 0);
         logger.debug(`[점수부스트]`, { itemNo: c.item_no, original: (c.score ?? 0), boosted: boostedScore, isExisting: isInClientHistory });
         return {
           ...c,
@@ -1069,7 +1267,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 if (!groupByItemNo.has(itemNo)) {
                   groupByItemNo.set(itemNo, []);
                 }
-                groupByItemNo.get(itemNo)!.push(s);
+                groupByItemNo.get(itemNo)?.push(s);
               }
 
               const dedupedByItemNo: any[] = [];
@@ -1101,7 +1299,7 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
                 if (!groupByName.has(baseNameWithoutVintage)) {
                   groupByName.set(baseNameWithoutVintage, []);
                 }
-                groupByName.get(baseNameWithoutVintage)!.push(s);
+                groupByName.get(baseNameWithoutVintage)?.push(s);
               }
 
               // 3단계: 각 그룹에서 빈티지 선택 (기존 + 신규 빈티지 모두 표시)
@@ -1199,6 +1397,31 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
         }
       }
 
+      // ✅ LLM 리랭킹: 비활성화 (사전 확장으로 대부분 해결, 속도 우선)
+      // 사전 확장 실패 + 점수 애매한 경우에만 리랭킹 (미래 활성화 가능)
+      if (false && suggestions.length >= 2 && needsReranking(suggestions)) {
+        try {
+          const rerankResult = await rerankWithLLM(
+            String(x.name || x.raw || ""),
+            suggestions,
+            {
+              clientName: client?.client_name,
+            }
+          );
+          if (rerankResult && rerankResult.confidence >= 0.5) {
+            suggestions = rerankResult.reranked;
+            logger.debug(`[LLM Rerank] 리랭킹 완료`, {
+              name: x.name,
+              best: suggestions[0]?.item_name,
+              confidence: rerankResult.confidence,
+              reason: rerankResult.reasoning,
+            });
+          }
+        } catch (err) {
+          logger.error(`[LLM Rerank] 오류 (무시)`, err);
+        }
+      }
+
       // ✅ 중복 제거 후 resolved 재판단
       let resolved = x?.resolved ?? false;
 
@@ -1272,15 +1495,15 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     const mergedItems = (() => {
       const itemMap = new Map<string, any>();
       for (const item of itemsWithSuggestions) {
-        logger.debug(`[MERGE DEBUG] Processing item`, { resolved: item.resolved, item_no: item.item_no, quantity: item.quantity });
+        logger.debug(`[MERGE DEBUG] Processing item`, { resolved: item.resolved, item_no: item.item_no, qty: item.qty });
 
         if (item.resolved && item.item_no) {
           const key = String(item.item_no);
           const existing = itemMap.get(key);
           if (existing) {
             // 같은 품목이 여러 번 확정된 경우 수량 합산
-            logger.debug(`[MERGE DEBUG] 중복 발견 - 수량 합산`, { key, prev: existing.quantity, add: item.quantity });
-            existing.quantity = (existing.quantity || 0) + (item.quantity || 0);
+            logger.debug(`[MERGE DEBUG] 중복 발견 - 수량 합산`, { key, prev: existing.qty, add: item.qty });
+            existing.qty = (existing.qty || 0) + (item.qty || 0);
           } else {
             logger.debug(`[MERGE DEBUG] 새 아이템 추가`, { key });
             itemMap.set(key, { ...item });

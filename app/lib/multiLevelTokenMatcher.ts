@@ -167,18 +167,21 @@ function wordLevelMatch(query: string, target: string): number {
   const targetSet = new Set(targetWords);
   
   let matchedQuery = 0;
-  
+  const exactMatched = new Set<string>();
+
   // 완전 일치 체크
   for (const qw of queryWords) {
     if (targetSet.has(qw)) {
       matchedQuery++;
+      exactMatched.add(qw);
     }
   }
-  
-  // 부분 일치 체크 (한 단어가 다른 단어를 포함)
+
+  // 부분 일치 체크 (완전 일치된 단어는 스킵 — 이중 카운트 방지)
   for (const qw of queryWords) {
     if (matchedQuery >= queryWords.length) break;
-    
+    if (exactMatched.has(qw)) continue;
+
     let found = false;
     for (const tw of targetWords) {
       if (!found && tw.includes(qw) && qw.length >= 2) {

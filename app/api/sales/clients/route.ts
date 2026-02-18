@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { sanitizeFilterValue } from '@/app/lib/validation';
 
 // GET: 거래처 목록 조회 (검색, 필터, 정렬)
 export async function GET(req: NextRequest) {
@@ -55,7 +56,8 @@ export async function GET(req: NextRequest) {
 
     // 검색
     if (search) {
-      query = query.or(`client_name.ilike.%${search}%,client_code.ilike.%${search}%,contact_name.ilike.%${search}%`);
+      const safe = sanitizeFilterValue(search);
+      query = query.or(`client_name.ilike.%${safe}%,client_code.ilike.%${safe}%,contact_name.ilike.%${safe}%`);
     }
 
     // 필터

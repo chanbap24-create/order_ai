@@ -71,7 +71,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       }
     };
     loadClipboard();
-  }, [autoPaste]);
+  }, [autoPaste, autoLoaded]);
 
   // ✅ 클립보드 체크 (주기적, autoPaste ON일 때만)
   useEffect(() => {
@@ -154,10 +154,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
     if (st === "resolved") {
       setShowItemsPanel(false); // 모두 확정되면 자동으로 닫기
-      // ✅ 모든 품목 확정 시 자동 복사 → 카톡 열기
+      // ✅ 모든 품목 확정 시 자동 복사
       setTimeout(async () => {
         await copyStaffMessage();
-        setTimeout(() => { window.location.href = 'kakaotalk://'; }, 500);
       }, 300);
       return;
     }
@@ -189,7 +188,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
     
     if (Object.keys(newPrices).length > 0) {
       setNewItemPrices(prev => ({ ...prev, ...newPrices }));
-      console.log('[Glass] 신규/미입고 품목 공급가 자동 설정:', newPrices);
     }
   }, [data?.items]);
 
@@ -307,14 +305,24 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
     }
   }
 
-  // ✅ 품목 직접 추가
-  function addItemManually(item: any) {
-    const qty = prompt(`${item.item_name}\n\n수량을 입력하세요:`, "1");
-    if (!qty || isNaN(Number(qty))) return;
+  // ✅ 품목 직접 추가 (수량 입력 상태 관리)
+  const [addingItem, setAddingItem] = useState<any>(null);
+  const [addingQty, setAddingQty] = useState("1");
 
-    const newText = text + `\n${item.item_name} ${qty}`;
+  function addItemManually(item: any) {
+    setAddingItem(item);
+    setAddingQty("1");
+  }
+
+  function confirmAddItem() {
+    if (!addingItem) return;
+    const qty = Number(addingQty);
+    if (!qty || isNaN(qty) || qty <= 0) return;
+
+    const newText = text + `\n${addingItem.item_name} ${qty}`;
     setText(newText);
-    alert(`추가되었습니다!\n\n${item.item_name} ${qty}잔`);
+    setAddingItem(null);
+    setAddingQty("1");
   }
 
   // ✅ 거래처 후보 클릭 → 선택한 거래처로 재파싱
@@ -338,7 +346,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               type: "glass",
             }),
           });
-          console.log("✅ 거래처 학습:", firstLineText, "→", clientName);
           // ✅ 학습 후 목록 갱신
           setLearnedClientVersion((v) => v + 1);
         } catch (err) {
@@ -527,8 +534,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
     // ✅ 직원 메시지 업데이트 플래시
     setStaffMsgFlash(true);
     setTimeout(() => setStaffMsgFlash(false), 1200);
-    console.log(`[Glass applySuggestionToResult] itemIndex=${itemIndex}, s.code=${s.code}, price=${price}, s.is_new_item=${s.is_new_item}`);
-    
     setData((prev: any) => {
       if (!prev) return prev;
 
@@ -538,12 +543,10 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       if (!target) return prev;
 
       const qty = target.qty;
-      const isNewItem = !!s.is_new_item; // ✅ s에서 직접 가져오기
-      
+      const isNewItem = !!s.is_new_item;
+
       // ✅ 올바른 단위 결정 (품목명에서 RD 코드 추출)
       const unit = getGlassUnit(s.item_name || "");
-      
-      console.log(`[Glass applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, price=${price}, unit=${unit}`);
 
       // 1) items 확정 처리(override 가능)
       items[itemIndex] = {
@@ -596,18 +599,10 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         ? `- ${s.code || s.item_no} / ${koreanName} / ${qty}${unit} / ${parseInt(price, 10).toLocaleString()}원`
         : `- ${s.code || s.item_no} / ${koreanName} / ${qty}${unit}`;
 
-      console.log(`[Glass applySuggestionToResult] oldLineUnresolved="${oldLineUnresolved}"`);
-      console.log(`[Glass applySuggestionToResult] oldLineResolved="${oldLineResolved}"`);
-      console.log(`[Glass applySuggestionToResult] newLine="${newLine}"`);
-      console.log(`[Glass applySuggestionToResult] staff includes unresolved: ${staff.includes(oldLineUnresolved)}`);
-      console.log(`[Glass applySuggestionToResult] staff includes resolved: ${staff.includes(oldLineResolved)}`);
-
       if (staff.includes(oldLineUnresolved)) {
         next.staff_message = staff.replace(oldLineUnresolved, newLine);
-        console.log(`[Glass] Replaced unresolved line`);
       } else if (oldLineResolved && staff.includes(oldLineResolved)) {
         next.staff_message = staff.replace(oldLineResolved, newLine);
-        console.log(`[Glass] Replaced resolved line`);
       } else {
         // fallback: 모든 단위 검색
         next.staff_message = staff
@@ -1395,7 +1390,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                               const inClientHistory = !!s.in_client_history;
                               // ✅ 신규품목 OR 미입고 품목 → 할인율/공급가 입력 UI 표시 (와인처럼)
                               const needsPriceInput = isNewItem || !inClientHistory;
-                              console.log(`[Glass] Item ${s.code || s.item_no}: isNewItem=${isNewItem}, inClientHistory=${inClientHistory}, needsPriceInput=${needsPriceInput}, price=${s.price || s.supply_price}`);
 
                               return (
                                 <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "rgba(16,185,129,0.06)" : "#ffffff", borderRadius: 6, border: "1px solid rgba(90,21,21,0.08)" }}>
@@ -1828,25 +1822,76 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                 {clientItems.map((item, idx) => (
                   <div
                     key={idx}
-                    onClick={() => addItemManually(item)}
                     style={{
                       padding: "12px 16px",
                       borderBottom: idx < clientItems.length - 1 ? "1px solid #f0f0f0" : "none",
-                      cursor: "pointer",
-                      transition: "background 0.2s",
+                      background: addingItem?.item_no === item.item_no ? "#f0fdf4" : "#fff",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>{item.item_name}</div>
-                        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                          품목코드: {item.item_no}
+                    {addingItem?.item_no === item.item_no ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>
+                          {item.item_name}
                         </div>
+                        <input
+                          type="number"
+                          value={addingQty}
+                          onChange={(e) => setAddingQty(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') confirmAddItem(); }}
+                          autoFocus
+                          style={{
+                            width: 60,
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #d1d5db",
+                            fontSize: 16,
+                            textAlign: "center",
+                          }}
+                          min="1"
+                        />
+                        <button
+                          onClick={confirmAddItem}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "none",
+                            background: "#10b981",
+                            color: "white",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          추가
+                        </button>
+                        <button
+                          onClick={() => setAddingItem(null)}
+                          style={{
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #d1d5db",
+                            background: "white",
+                            fontSize: 13,
+                            cursor: "pointer",
+                          }}
+                        >
+                          취소
+                        </button>
                       </div>
-                      <div style={{ fontSize: 20, color: "#9ca3af" }}>+</div>
-                    </div>
+                    ) : (
+                      <div
+                        onClick={() => addItemManually(item)}
+                        style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{item.item_name}</div>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                            품목코드: {item.item_no}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 20, color: "#9ca3af" }}>+</div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

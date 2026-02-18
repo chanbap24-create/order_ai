@@ -1585,20 +1585,124 @@ export default function InventoryPage() {
                     </span>
                   )}
                 </div>
-                <input
-                  type="text"
-                  placeholder="거래처명"
-                  value={clientName}
-                  onChange={e => setClientName(e.target.value)}
-                  style={{
-                    width: '100%', fontSize: 16, padding: '10px 12px',
-                    borderRadius: 8, border: '1px solid #E5E5E5',
-                    boxSizing: 'border-box', outline: 'none',
-                  }}
-                />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="거래처명"
+                    value={clientName}
+                    onChange={e => setClientName(e.target.value)}
+                    style={{
+                      flex: 1, fontSize: 16, padding: '10px 12px',
+                      borderRadius: 8, border: '1px solid #E5E5E5',
+                      boxSizing: 'border-box', outline: 'none', minWidth: 0,
+                    }}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowDocSettings(!showDocSettings); }}
+                    style={{
+                      width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E5E5',
+                      background: showDocSettings ? '#f0f0f0' : 'white',
+                      cursor: 'pointer', fontSize: 15, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    title="문서 설정"
+                  >
+                    📄
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowQuoteColumnSettings(!showQuoteColumnSettings); }}
+                    style={{
+                      width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E5E5',
+                      background: showQuoteColumnSettings ? '#f0f0f0' : 'white',
+                      cursor: 'pointer', fontSize: 15, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                    title="컬럼 설정"
+                  >
+                    ⚙
+                  </button>
+                </div>
               </div>
 
               {/* Panel body */}
+              <div style={{ padding: 16 }}>
+
+                {/* Mobile Doc settings */}
+                {showDocSettings && (
+                  <div style={{
+                    marginBottom: 12, padding: 14, background: '#fafaf8',
+                    borderRadius: 8, border: '1px solid #F0EFED',
+                  }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 10, color: '#2D2D2D' }}>문서 설정</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {([
+                        ['companyName', '회사명'], ['address', '주소/연락처'], ['addressEn', '영문주소'],
+                        ['websiteUrl', '웹사이트/SNS'], ['sender', '발신'], ['title', '제목'],
+                        ['content1', '내용 1'], ['content2', '내용 2'], ['content3', '내용 3'],
+                        ['unit', '단위'], ['representative', '대표자'], ['sealText', '직인'],
+                      ] as [string, string][]).map(([key, label]) => (
+                        <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: '#555', minWidth: 72, flexShrink: 0 }}>{label}</label>
+                          <input
+                            type="text"
+                            value={(docSettings as any)[key] || ''}
+                            onChange={e => setDocSettings(prev => ({ ...prev, [key]: e.target.value }))}
+                            style={{
+                              flex: 1, fontSize: 16, padding: '5px 8px', borderRadius: 4,
+                              border: '1px solid #E5E5E5', minWidth: 0, outline: 'none',
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setDocSettings(activeTab === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)}
+                      style={{
+                        marginTop: 8, padding: '4px 10px', borderRadius: 4,
+                        border: '1px solid #E5E5E5', background: 'white',
+                        fontSize: '0.72rem', cursor: 'pointer', color: '#666',
+                      }}
+                    >
+                      기본값 초기화
+                    </button>
+                  </div>
+                )}
+
+                {/* Mobile Quote column settings */}
+                {showQuoteColumnSettings && (
+                  <div style={{
+                    marginBottom: 12, padding: 14, background: '#fafaf8',
+                    borderRadius: 8, border: '1px solid #F0EFED',
+                  }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 8, color: '#2D2D2D' }}>견적 컬럼</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {QUOTE_COLUMNS.map(col => (
+                        <label key={col.key} style={{
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          fontSize: 12, cursor: 'pointer', padding: '4px 8px',
+                          borderRadius: 6,
+                          background: visibleQuoteColumns.includes(col.key) ? 'rgba(90,21,21,0.06)' : '#fff',
+                          border: `1px solid ${visibleQuoteColumns.includes(col.key) ? 'rgba(90,21,21,0.2)' : '#E5E5E5'}`,
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={visibleQuoteColumns.includes(col.key)}
+                            onChange={() => {
+                              setVisibleQuoteColumns(prev =>
+                                prev.includes(col.key) ? prev.filter(k => k !== col.key) : [...prev, col.key]
+                              );
+                            }}
+                            style={{ width: 14, height: 14 }}
+                          />
+                          {col.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Panel body content */}
               <div style={{ padding: 16 }}>
                 {quoteItems.length === 0 ? (
                   <div style={{ padding: '48px 24px', textAlign: 'center', color: '#999' }}>

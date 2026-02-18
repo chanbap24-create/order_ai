@@ -72,7 +72,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       }
     };
     loadClipboard();
-  }, [autoPaste]);
+  }, [autoPaste, autoLoaded]);
 
   // ✅ 클립보드 체크 (주기적, autoPaste ON일 때만)
   useEffect(() => {
@@ -152,10 +152,9 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
     if (st === "resolved") {
       setShowItemsPanel(false); // 모두 확정되면 자동으로 닫기
-      // ✅ 모든 품목 확정 시 자동 복사 → 카톡 열기
+      // ✅ 모든 품목 확정 시 자동 복사
       setTimeout(async () => {
         await copyStaffMessage();
-        setTimeout(() => { window.location.href = 'kakaotalk://'; }, 500);
       }, 300);
       return;
     }
@@ -183,36 +182,25 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
     
     if (Object.keys(newPrices).length > 0) {
       setNewItemPrices(prev => ({ ...prev, ...newPrices }));
-      console.log('[Wine] 신규품목 공급가 자동 설정:', newPrices);
     }
   }, [data?.parsed_items]);
 
   async function callParse(payload: any) {
-    console.log("[DEBUG] Calling parse-full-order API with payload:", payload);
     const res = await fetch("/api/parse-full-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    console.log("[DEBUG] Response status:", res.status, res.statusText);
-    
-    // body를 한 번만 읽기
+
     const text = await res.text();
-    console.log("[DEBUG] Response body:", text);
-    
+
     let json;
     try {
       json = JSON.parse(text);
-    } catch (e) {
-      console.error("[DEBUG] Failed to parse JSON:", e);
+    } catch {
       json = { success: false, error: "Invalid JSON response: " + text };
     }
-    
-    if (!res.ok) {
-      console.error("[DEBUG] Response not OK:", res.status, res.statusText, json);
-    }
-    
-    console.log("[DEBUG] Response JSON:", json);
+
     return { res, json };
   }
 
@@ -320,16 +308,25 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
     }
   }
 
-  // ✅ 품목 직접 추가
+  // ✅ 품목 직접 추가 (수량 입력 상태 관리)
+  const [addingItem, setAddingItem] = useState<any>(null);
+  const [addingQty, setAddingQty] = useState("1");
+
   function addItemManually(item: any) {
-    // ✅ 한글명만 추출
-    const koreanName = item.item_name?.split(' / ')[0] || item.item_name;
-    const qty = prompt(`${koreanName}\n\n수량을 입력하세요:`, "1");
-    if (!qty || isNaN(Number(qty))) return;
+    setAddingItem(item);
+    setAddingQty("1");
+  }
+
+  function confirmAddItem() {
+    if (!addingItem) return;
+    const koreanName = addingItem.item_name?.split(' / ')[0] || addingItem.item_name;
+    const qty = Number(addingQty);
+    if (!qty || isNaN(qty) || qty <= 0) return;
 
     const newText = text + `\n${koreanName} ${qty}`;
     setText(newText);
-    alert(`추가되었습니다!\n\n${koreanName} ${qty}개`);
+    setAddingItem(null);
+    setAddingQty("1");
   }
 
   // ✅ 거래처 후보 클릭 → 선택한 거래처로 재파싱
@@ -353,7 +350,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
               type: "wine",
             }),
           });
-          console.log("✅ 거래처 학습:", firstLineText, "→", clientName);
           // ✅ 학습 후 목록 갱신
           setLearnedClientVersion((v) => v + 1);
         } catch (err) {
@@ -510,8 +506,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
 
   // ✅ 선택 즉시 화면 반영(직원메시지 + items)
   function applySuggestionToResult(itemIndex: number, s: any, supplyPrice?: string) {
-    console.log(`[applySuggestionToResult] itemIndex=${itemIndex}, s.item_no=${s.item_no}, supplyPrice=${supplyPrice}, s.is_new_item=${s.is_new_item}`);
-    
     setData((prev: any) => {
       if (!prev) return prev;
 
@@ -521,9 +515,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       if (!target) return prev;
 
       const qty = target.qty;
-      const isNewItem = !!s.is_new_item; // ✅ s에서 직접 가져오기
-      
-      console.log(`[applySuggestionToResult] isNewItem=${isNewItem}, qty=${qty}, supplyPrice=${supplyPrice}`);
+      const isNewItem = !!s.is_new_item;
 
       // 1) items 확정 처리(override 가능)
       items[itemIndex] = {
@@ -692,12 +684,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       // 2순위: 같은 그룹 내에서는 점수 내림차순
       return (b.score ?? 0) - (a.score ?? 0);
     });
-    
-    // Debug: Log array length for verification
-    if (arr.length > 0 && typeof window !== 'undefined') {
-      console.log(`[getSuggestions] Item has ${arr.length} suggestions/candidates (sorted: existing first)`);
-      console.log(`[getSuggestions] First item: ${arr[0]?.item_no} (existing: ${!arr[0]?.is_new_item})`);
-    }
     
     // ✅ 확정된 품목: 기본 2개만 (스크롤 줄이기)
     // ✅ 미확정 품목: 기본 10개 (더 많은 선택지 제공)
@@ -1271,14 +1257,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                     const showMore = !!showMoreSuggestions[idx];
                     const suggestions = getSuggestions(it, showMore);
                     
-                    // 🔍 디버깅: suggestions의 supply_price 확인
-                    if (suggestions.length > 0 && typeof window !== 'undefined') {
-                      console.log(`[Wine Suggestions] Item ${idx}: ${it.name}`);
-                      suggestions.slice(0, 3).forEach((s, i) => {
-                        console.log(`  [${i+1}] ${s.item_no}: supply_price =`, s.supply_price);
-                      });
-                    }
-                    
                     const allSuggestions = (Array.isArray(it?.suggestions) && it.suggestions.length > 0)
                       ? it.suggestions
                       : Array.isArray(it?.candidates)
@@ -1353,17 +1331,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                               const saved = !!savedPick[idx];
                               const isNewItem = !!s.is_new_item;
                               
-                              // 🔍 디버깅: supply_price 확인
-                              if (sidx === 0 && typeof window !== 'undefined') {
-                                console.log(`[Wine Render] Item ${idx}, Suggestion ${sidx}:`, {
-                                  item_no: s.item_no,
-                                  item_name: s.item_name?.substring(0, 30),
-                                  is_new_item: s.is_new_item,
-                                  supply_price: s.supply_price,
-                                  has_supply_price: !!s.supply_price
-                                });
-                              }
-
                               return (
                                 <div key={sidx} style={{ marginBottom: 6, padding: "8px", background: saving ? "#f5f5f5" : saved ? "rgba(16,185,129,0.06)" : "#ffffff", borderRadius: 6, border: "1px solid rgba(90,21,21,0.08)" }}>
                                   {/* 품목명 + 배지 + 점수 (한 줄) */}
@@ -1760,28 +1727,78 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                 {clientItems.map((item, idx) => (
                   <div
                     key={idx}
-                    onClick={() => addItemManually(item)}
                     style={{
                       padding: "12px 16px",
                       borderBottom: idx < clientItems.length - 1 ? "1px solid #f0f0f0" : "none",
-                      cursor: "pointer",
-                      transition: "background 0.2s",
+                      background: addingItem?.item_no === item.item_no ? "#f0fdf4" : "#fff",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        {/* ✅ 한글명만 표시 */}
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    {addingItem?.item_no === item.item_no ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>
                           {item.item_name?.split(' / ')[0] || item.item_name}
                         </div>
-                        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                          품목코드: {item.item_no}
-                        </div>
+                        <input
+                          type="number"
+                          value={addingQty}
+                          onChange={(e) => setAddingQty(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') confirmAddItem(); }}
+                          autoFocus
+                          style={{
+                            width: 60,
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #d1d5db",
+                            fontSize: 16,
+                            textAlign: "center",
+                          }}
+                          min="1"
+                        />
+                        <button
+                          onClick={confirmAddItem}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "none",
+                            background: "#10b981",
+                            color: "white",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          추가
+                        </button>
+                        <button
+                          onClick={() => setAddingItem(null)}
+                          style={{
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #d1d5db",
+                            background: "white",
+                            fontSize: 13,
+                            cursor: "pointer",
+                          }}
+                        >
+                          취소
+                        </button>
                       </div>
-                      <div style={{ fontSize: 20, color: "#9ca3af" }}>+</div>
-                    </div>
+                    ) : (
+                      <div
+                        onClick={() => addItemManually(item)}
+                        style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>
+                            {item.item_name?.split(' / ')[0] || item.item_name}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                            품목코드: {item.item_no}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 20, color: "#9ca3af" }}>+</div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

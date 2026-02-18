@@ -333,7 +333,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                         fontSize: 11, padding: '2px 8px', borderRadius: 6,
                         background: '#fff3e0', color: '#e65100', fontWeight: 600,
                       }}>
-                        평균 할인 {briefing.avg_discount_rate}%
+                        평균 지원 {briefing.avg_discount_rate}%
                       </span>
                     )}
                   </div>

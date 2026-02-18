@@ -18,10 +18,39 @@ import { calculateWeightedScoreCached, preloadScoringData, type PreloadedScoring
 import { searchMasterSheet } from "@/app/lib/masterMatcher";
 import { ITEM_MATCH_CONFIG } from "@/app/lib/itemMatchConfig";
 import { expandQuery, logQueryExpansion, generateQueryVariations } from "@/app/lib/queryExpander";
-import { preprocessNaturalLanguage } from "@/app/lib/naturalLanguagePreprocessor";
+import { preprocessNaturalLanguage, normalizeProducers } from "@/app/lib/naturalLanguagePreprocessor";
 import { loadAllMasterItems, getDownloadsPriceMap } from "@/app/lib/masterSheet";
 import { multiLevelTokenMatch } from "@/app/lib/multiLevelTokenMatcher";
 import { findItemCodeFromEnglish, findMultipleFromEnglish } from "@/app/lib/englishSheetMatcher";
+
+/* ================= 와인 토큰 동의어 (스코어링 전용) ================= */
+// 다국어 와인 용어를 그룹화 — 같은 그룹의 토큰은 매칭 시 동일하게 취급
+const WINE_TOKEN_SYNONYM_GROUPS: string[][] = [
+  ["블랑", "브랑코", "blanc", "branco", "bianco", "blanco"],  // 화이트
+  ["루즈", "틴토", "로쏘", "rouge", "tinto", "rosso"],        // 레드
+  ["로제", "로사도", "rosé", "rosado", "rosato"],             // 로제
+  ["리저브", "리제르바", "레세르바", "reserve", "reserva", "riserva"],
+  ["크뤼", "크루", "cru"],
+  ["그랑", "그란", "grand", "gran", "grande"],
+];
+
+// 빠른 조회용 맵: 토큰 → 그룹 내 모든 동의어
+const _tokenSynonymMap = new Map<string, Set<string>>();
+for (const group of WINE_TOKEN_SYNONYM_GROUPS) {
+  const allNorm = group.map(t => t.toLowerCase());
+  for (const t of allNorm) {
+    _tokenSynonymMap.set(t, new Set(allNorm));
+  }
+}
+
+/** 두 토큰이 와인 동의어인지 확인 */
+function areTokenSynonyms(a: string, b: string): boolean {
+  const aLow = a.toLowerCase();
+  const bLow = b.toLowerCase();
+  if (aLow === bLow) return true;
+  const group = _tokenSynonymMap.get(aLow);
+  return !!group && group.has(bLow);
+}
 
 /* ================= 정규화 함수 ================= */
 
@@ -489,6 +518,17 @@ function scoreItem(q: string, name: string, options?: { producer?: string }) {
         continue;
       }
 
+      // 와인 동의어 매칭 체크 (블랑↔브랑코, 루즈↔틴토 등)
+      for (const nt of nameTokens) {
+        if (areTokenSynonyms(qt, nt)) {
+          matchedQTokens += 0.95;
+          matchedNameTokens += 0.95;
+          found = true;
+          break;
+        }
+      }
+      if (found) continue;
+
       // 부분 매칭 체크
       const qtNorm = normTight(qt);
       let combined = "";
@@ -593,13 +633,34 @@ function getAllTokens(rawName: string): string[] {
  * 3. OR 검색: 하나라도 포함 (넓은 범위)
  */
 async function fetchFromMasterByTail(rawName: string, limit = 80): Promise<Array<{ item_no: string; item_name: string }>> {
-  // Hardcoded: items table with item_no, item_name columns
-  const table = 'items';
+  // inventory_cdv 테이블 사용 (기존 'items' 테이블은 Supabase에 없음)
+  const table = 'inventory_cdv';
   const itemNoCol = 'item_no';
   const itemNameCol = 'item_name';
 
   const tokens = getAllTokens(rawName);
   if (tokens.length === 0) return [] as Array<{ item_no: string; item_name: string }>;
+
+  // 와인 동의어 확장: 각 토큰의 동의어를 SQL 검색에 포함
+  function getTokenWithSynonyms(token: string): string[] {
+    const synonyms = _tokenSynonymMap.get(token.toLowerCase());
+    return synonyms ? Array.from(synonyms) : [token];
+  }
+
+  // 동의어 포함 AND 매칭: 각 토큰이 원본 또는 동의어로 매칭되는지 확인
+  function matchesAllTokensWithSynonyms(itemName: string, checkTokens: string[]): boolean {
+    const nameLower = itemName.toLowerCase();
+    return checkTokens.every(t => {
+      if (nameLower.includes(t.toLowerCase())) return true;
+      const syns = _tokenSynonymMap.get(t.toLowerCase());
+      if (syns) {
+        for (const syn of syns) {
+          if (nameLower.includes(syn)) return true;
+        }
+      }
+      return false;
+    });
+  }
 
   try {
     const results = new Map<string, { item_no: string; item_name: string; priority: number }>();
@@ -607,15 +668,18 @@ async function fetchFromMasterByTail(rawName: string, limit = 80): Promise<Array
     // 전략 1: AND 검색 (모든 토큰 포함) - 최고 우선순위
     if (tokens.length >= 2) {
       try {
-        const orFilter = tokens.map(t => `${itemNameCol}.ilike.%${t}%`).join(',');
+        // 동의어 확장된 OR 필터 (SQL에서 더 넓은 범위 검색)
+        const expandedTokens = tokens.flatMap(t => getTokenWithSynonyms(t));
+        const uniqueTokens = [...new Set(expandedTokens)];
+        const orFilter = uniqueTokens.map(t => `${itemNameCol}.ilike.%${t}%`).join(',');
         const { data } = await supabase
           .from(table)
           .select(`${itemNoCol}, ${itemNameCol}`)
           .or(orFilter)
           .limit(500);
-        // Filter in JS to enforce AND (all tokens must match)
+        // Filter in JS: 각 원본 토큰이 (원본 또는 동의어로) 매칭되는지 확인
         const andResults = (data || []).filter((r: any) =>
-          tokens.every(t => String(r[itemNameCol]).toLowerCase().includes(t.toLowerCase()))
+          matchesAllTokensWithSynonyms(String(r[itemNameCol]), tokens)
         ).slice(0, 30);
 
         for (const r of andResults) {
@@ -637,14 +701,16 @@ async function fetchFromMasterByTail(rawName: string, limit = 80): Promise<Array
       try {
         const halfCount = Math.ceil(tokens.length / 2);
         const halfTokens = tokens.slice(0, halfCount);
-        const halfOrFilter = halfTokens.map(t => `${itemNameCol}.ilike.%${t}%`).join(',');
+        const halfExpanded = halfTokens.flatMap(t => getTokenWithSynonyms(t));
+        const halfUnique = [...new Set(halfExpanded)];
+        const halfOrFilter = halfUnique.map(t => `${itemNameCol}.ilike.%${t}%`).join(',');
         const { data } = await supabase
           .from(table)
           .select(`${itemNoCol}, ${itemNameCol}`)
           .or(halfOrFilter)
           .limit(500);
         const halfResults = (data || []).filter((r: any) =>
-          halfTokens.every(t => String(r[itemNameCol]).toLowerCase().includes(t.toLowerCase()))
+          matchesAllTokensWithSynonyms(String(r[itemNameCol]), halfTokens)
         ).slice(0, 40);
 
         for (const r of halfResults) {
@@ -661,14 +727,16 @@ async function fetchFromMasterByTail(rawName: string, limit = 80): Promise<Array
       }
     }
 
-    // 전략 3: OR 검색 (하나라도 포함) - 낮은 우선순위
+    // 전략 3: OR 검색 (하나라도 포함) - 낮은 우선순위 (동의어 확장)
     try {
-      const orFilter = tokens.map(t => `${itemNameCol}.ilike.%${t}%`).join(',');
+      const orExpanded = tokens.flatMap(t => getTokenWithSynonyms(t));
+      const orUnique = [...new Set(orExpanded)];
+      const orFilter = orUnique.map(t => `${itemNameCol}.ilike.%${t}%`).join(',');
       const { data } = await supabase
         .from(table)
         .select(`${itemNoCol}, ${itemNameCol}`)
         .or(orFilter)
-        .limit(30);
+        .limit(50);
       const orResults = (data || []);
 
       for (const r of orResults) {
@@ -986,10 +1054,18 @@ export async function resolveItemsByClientWeighted(
   for (const it of items) {
     try {
     // ✨ 1단계: 자연어 전처리 (별칭 확장, 수량/와인용어 정규화)
-    const preprocessed = await preprocessNaturalLanguage(it.name);
-    const searchName = preprocessed !== it.name ? preprocessed : it.name;
-
-    console.log(`[resolveItemsWeighted] 입력: "${it.name}" → 전처리: "${searchName}"`);
+    // ⚠️ LLM 사전 확장된 품목은 전처리 건너뛰기 (역방향 매핑으로 원래 약어로 되돌아가는 버그 방지)
+    let searchName: string;
+    if ((it as any)._llmExpanded || (it as any)._originalName) {
+      // LLM/사전 확장된 품목: expandAliases 스킵 (역방향 매핑 오염 방지)
+      // normalizeProducers만 적용 (at→알테시노, bs→비온디산티 등 브랜드코드 변환)
+      searchName = normalizeProducers(it.name);
+      console.log(`[resolveItemsWeighted] 입력: "${it.name}" → 생산자정규화: "${searchName}" (확장됨, expandAliases 스킵)`);
+    } else {
+      const preprocessed = await preprocessNaturalLanguage(it.name);
+      searchName = preprocessed !== it.name ? preprocessed : it.name;
+      console.log(`[resolveItemsWeighted] 입력: "${it.name}" → 전처리: "${searchName}"`);
+    }
 
     // 🔍 0단계: 품목번호 정확 매칭 (최우선)
     // 예: "0884/33", "D701049" 같은 품목번호 직접 입력 케이스
@@ -1337,7 +1413,11 @@ export async function resolveItemsByClientWeighted(
     }
 
     // 3) 🎯 조합 가중치 시스템으로 점수 계산
-    const synonymApplied = applyItemSynonym(searchName);
+    // ⚠️ LLM 확장된 품목은 이미 정확한 이름이므로 synonym 재적용 스킵
+    // (이중 확장 방지: "카베르네 소비뇽" → "카베르네 소비뇽 블랑 소비뇽 블랑")
+    const synonymApplied = ((it as any)._llmExpanded || (it as any)._originalName)
+      ? searchName
+      : applyItemSynonym(searchName);
     const q = normalizeItemName(synonymApplied);
     const qExpanded = expansion.hasExpansion ? normalizeItemName(expansion.expanded) : q;
 

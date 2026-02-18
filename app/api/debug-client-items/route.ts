@@ -7,6 +7,10 @@ function stripDotZero(x: any) {
 }
 
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+
   const { clientCode } = await req.json();
   const code = stripDotZero(clientCode);
 

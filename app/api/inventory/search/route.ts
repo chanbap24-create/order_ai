@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { sanitizeFilterValue } from '@/app/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
       .select('*');
 
     if (query.trim()) {
-      const searchQuery = `%${query.toLowerCase()}%`;
-      dbQuery = dbQuery.or(`item_name.ilike.${searchQuery},item_no.ilike.${searchQuery}`);
+      const safe = sanitizeFilterValue(query.toLowerCase());
+      dbQuery = dbQuery.or(`item_name.ilike.%${safe}%,item_no.ilike.%${safe}%`);
     }
 
     if (filterCountry) {

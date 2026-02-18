@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { sanitizeFilterValue } from '@/app/lib/validation';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -19,8 +20,9 @@ export async function GET(req: NextRequest) {
   }
 
   if (search) {
+    const safe = sanitizeFilterValue(search);
     query = query.or(
-      `country.ilike.%${search}%,major_region.ilike.%${search}%,sub_region.ilike.%${search}%,appellation.ilike.%${search}%,cru_vineyard.ilike.%${search}%,classification.ilike.%${search}%,grape_varieties.ilike.%${search}%,notes.ilike.%${search}%`
+      `country.ilike.%${safe}%,major_region.ilike.%${safe}%,sub_region.ilike.%${safe}%,appellation.ilike.%${safe}%,cru_vineyard.ilike.%${safe}%,classification.ilike.%${safe}%,grape_varieties.ilike.%${safe}%,notes.ilike.%${safe}%`
     );
   }
 

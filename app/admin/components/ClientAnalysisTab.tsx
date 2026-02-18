@@ -10,6 +10,7 @@ const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false 
 const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
 const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
+const Legend = dynamic(() => import('recharts').then(m => m.Legend), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 
 // PieChart는 Cell이 dynamic import 시 자식 인식 안 되므로 통째로 래핑
@@ -65,7 +66,11 @@ interface Filters {
 }
 
 interface AnalysisData {
-  summary: { totalRevenue: number; totalQuantity: number; totalCount: number };
+  summary: {
+    totalRevenue: number; totalQuantity: number; totalCount: number;
+    distinctClients: number; returnAmount: number; positiveRevenue: number;
+    top10Pct: number; repeatRate: number;
+  };
   clientRanking: Array<{ code: string; name: string; revenue: number; quantity: number; itemCount: number; rankChange: number | null; isNew: boolean; discountRate: number | null }>;
   managerAnalysis: Array<{
     manager: string; clientCount: number; revenue: number; discountRate: number | null;
@@ -74,7 +79,7 @@ interface AnalysisData {
   }>;
   businessAnalysis: Array<{ name: string; revenue: number }>;
   brandAnalysis: Array<{ name: string; revenue: number }>;
-  dailyTrend: Array<{ date: string; revenue: number }>;
+  dailyTrend: Array<{ date: string; revenue: number; normal_total: number; selling_total: number }>;
 }
 
 export default function ClientAnalysisTab() {
@@ -260,32 +265,40 @@ export default function ClientAnalysisTab() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-            <Card>
-              <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', marginBottom: 4 }}>총 매출</div>
-                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: '#8B1538' }}>
-                  {formatKrw(data.summary.totalRevenue)}
-                </div>
+          {(() => {
+            const s = data.summary;
+            const avgPerClient = s.distinctClients > 0 ? Math.round(s.totalRevenue / s.distinctClients) : 0;
+            const returnRate = s.positiveRevenue > 0 ? Math.round(s.returnAmount / s.positiveRevenue * 1000) / 10 : 0;
+            const discountRate = (() => {
+              const matched = data.clientRanking.filter(c => c.discountRate != null && c.discountRate > 0);
+              if (matched.length === 0) return null;
+              const totalRev = matched.reduce((sum, c) => sum + c.revenue, 0);
+              if (totalRev === 0) return null;
+              return Math.round(matched.reduce((sum, c) => sum + (c.discountRate ?? 0) * c.revenue, 0) / totalRev * 10) / 10;
+            })();
+            const cards: Array<{ label: string; value: string; sub?: string; color: string }> = [
+              { label: '총 매출', value: formatKrw(s.totalRevenue), color: '#8B1538' },
+              { label: '활동 거래처', value: `${s.distinctClients.toLocaleString()}곳`, color: '#1565C0' },
+              { label: '객단가', value: formatKrw(avgPerClient), sub: '거래처당 평균', color: '#2E7D32' },
+              { label: '매출 집중도', value: `${s.top10Pct}%`, sub: '상위 10%', color: '#E65100' },
+              { label: '재주문율', value: `${s.repeatRate}%`, sub: '2개월↑ 주문', color: '#6A1B9A' },
+              { label: '반품률', value: `${returnRate}%`, sub: formatKrw(s.returnAmount), color: returnRate > 10 ? '#C62828' : '#546E7A' },
+              { label: '평균 지원률', value: discountRate != null ? `${discountRate}%` : '-', sub: '가중평균', color: 'var(--color-text)' },
+            ];
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 24 }}>
+                {cards.map((c, i) => (
+                  <Card key={i}>
+                    <div style={{ textAlign: 'center', padding: '6px 4px' }}>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-light)', marginBottom: 2, fontWeight: 600 }}>{c.label}</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: c.color, lineHeight: 1.2 }}>{c.value}</div>
+                      {c.sub && <div style={{ fontSize: 10, color: 'var(--color-text-lighter)', marginTop: 2 }}>{c.sub}</div>}
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </Card>
-            <Card>
-              <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', marginBottom: 4 }}>출고 건수</div>
-                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--color-text)' }}>
-                  {data.summary.totalCount.toLocaleString()}
-                </div>
-              </div>
-            </Card>
-            <Card>
-              <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', marginBottom: 4 }}>총 수량</div>
-                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--color-text)' }}>
-                  {data.summary.totalQuantity.toLocaleString()}
-                </div>
-              </div>
-            </Card>
-          </div>
+            );
+          })()}
 
           {/* Manager Analysis + Business Analysis (side by side on desktop) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20, marginBottom: 24 }}>
@@ -296,7 +309,7 @@ export default function ClientAnalysisTab() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                      {['담당자', '거래처', '업종별', '할인율', '매출'].map(h => (
+                      {['담당자', '거래처', '업종별', '지원률', '매출'].map(h => (
                         <th key={h} style={{
                           padding: '8px 10px',
                           textAlign: h === '담당자' || h === '업종별' ? 'left' : 'right',
@@ -409,7 +422,7 @@ export default function ClientAnalysisTab() {
           {data.dailyTrend.length > 0 && (
             <Card style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>매출 추이</h3>
+                <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>매출 · 지원률 추이</h3>
                 <div style={{ display: 'flex', gap: 4 }}>
                   {([['daily', '일간'], ['weekly', '주간'], ['monthly', '월간']] as const).map(([v, label]) => (
                     <button
@@ -429,31 +442,51 @@ export default function ClientAnalysisTab() {
                 </div>
               </div>
               {(() => {
-                let trendData = data.dailyTrend;
+                type TrendItem = { date: string; revenue: number; normal_total: number; selling_total: number };
+                let trendData: TrendItem[] = data.dailyTrend;
 
                 if (trendPeriod === 'weekly') {
-                  const weekMap = new Map<string, number>();
+                  const weekMap = new Map<string, { revenue: number; normal_total: number; selling_total: number }>();
                   for (const d of data.dailyTrend) {
                     const dt = new Date(d.date);
                     const day = dt.getDay();
                     const mon = new Date(dt);
                     mon.setDate(dt.getDate() - (day === 0 ? 6 : day - 1));
                     const key = mon.toISOString().slice(0, 10);
-                    weekMap.set(key, (weekMap.get(key) || 0) + d.revenue);
+                    const prev = weekMap.get(key) || { revenue: 0, normal_total: 0, selling_total: 0 };
+                    weekMap.set(key, {
+                      revenue: prev.revenue + d.revenue,
+                      normal_total: prev.normal_total + (d.normal_total || 0),
+                      selling_total: prev.selling_total + (d.selling_total || 0),
+                    });
                   }
                   trendData = Array.from(weekMap.entries())
-                    .map(([date, revenue]) => ({ date, revenue }))
+                    .map(([date, v]) => ({ date, ...v }))
                     .sort((a, b) => a.date.localeCompare(b.date));
                 } else if (trendPeriod === 'monthly') {
-                  const monthMap = new Map<string, number>();
+                  const monthMap = new Map<string, { revenue: number; normal_total: number; selling_total: number }>();
                   for (const d of data.dailyTrend) {
                     const key = d.date.slice(0, 7);
-                    monthMap.set(key, (monthMap.get(key) || 0) + d.revenue);
+                    const prev = monthMap.get(key) || { revenue: 0, normal_total: 0, selling_total: 0 };
+                    monthMap.set(key, {
+                      revenue: prev.revenue + d.revenue,
+                      normal_total: prev.normal_total + (d.normal_total || 0),
+                      selling_total: prev.selling_total + (d.selling_total || 0),
+                    });
                   }
                   trendData = Array.from(monthMap.entries())
-                    .map(([date, revenue]) => ({ date, revenue }))
+                    .map(([date, v]) => ({ date, ...v }))
                     .sort((a, b) => a.date.localeCompare(b.date));
                 }
+
+                // Compute discount rate from raw totals
+                const chartData = trendData.map(d => ({
+                  date: d.date,
+                  revenue: d.revenue,
+                  discountRate: d.normal_total > 0
+                    ? Math.round((d.normal_total - d.selling_total) / d.normal_total * 1000) / 10
+                    : null,
+                }));
 
                 const tickFmt = (d: string) => {
                   if (trendPeriod === 'monthly') return d.slice(2).replace('-', '/');
@@ -466,17 +499,24 @@ export default function ClientAnalysisTab() {
                 };
 
                 return (
-                  <div style={{ width: '100%', height: 280 }}>
+                  <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trendData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <LineChart data={chartData} margin={{ top: 5, right: 50, left: 10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                         <XAxis dataKey="date" tickFormatter={tickFmt} tick={{ fontSize: 11 }} />
-                        <YAxis tickFormatter={(v: number) => formatKrw(v)} tick={{ fontSize: 11 }} width={60} />
+                        <YAxis yAxisId="left" tickFormatter={(v: number) => formatKrw(v)} tick={{ fontSize: 11 }} width={60} />
+                        <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11 }} width={45} domain={[0, 'auto']} />
                         <Tooltip
-                          formatter={(value: number) => [`${value.toLocaleString()}원`, '매출']}
+                          formatter={(value: number | null, name: string) => {
+                            if (name === 'revenue') return [`${(value ?? 0).toLocaleString()}원`, '매출'];
+                            if (name === 'discountRate') return [value != null ? `${value}%` : '-', '지원률'];
+                            return [value, name];
+                          }}
                           labelFormatter={labelFmt}
                         />
-                        <Line type="monotone" dataKey="revenue" stroke="#8B1538" strokeWidth={2} dot={trendData.length < 40} />
+                        <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률'} />
+                        <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8B1538" strokeWidth={2} dot={chartData.length < 40} name="revenue" />
+                        <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" strokeDasharray="5 3" connectNulls />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -495,7 +535,7 @@ export default function ClientAnalysisTab() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                      {['#', '변동', '코드', '거래처명', '매출', '할인율', '수량', '품목수'].map(h => (
+                      {['#', '변동', '코드', '거래처명', '매출', '지원률', '수량', '품목수'].map(h => (
                         <th key={h} style={{ padding: '8px 12px', textAlign: h === '거래처명' ? 'left' : h === '변동' ? 'center' : 'right', fontWeight: 600, fontSize: 'var(--text-xs)', color: 'var(--color-text-light)' }}>
                           {h}
                         </th>
@@ -613,7 +653,7 @@ export default function ClientAnalysisTab() {
                           <span style={{
                             color: avgDiscount > 15 ? '#E53E3E' : avgDiscount > 5 ? '#DD6B20' : '#38A169',
                           }}>
-                            평균 할인율 {avgDiscount}%
+                            평균 지원률 {avgDiscount}%
                           </span>
                         )}
                       </div>
@@ -622,7 +662,7 @@ export default function ClientAnalysisTab() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                        {['#', '품번', '품명', '공급가', '판매가', '할인율', '수량', '매출'].map(h => (
+                        {['#', '품번', '품명', '공급가', '판매가', '지원률', '수량', '매출'].map(h => (
                           <th key={h} style={{
                             padding: '8px 10px', fontWeight: 600, fontSize: 'var(--text-xs)',
                             color: 'var(--color-text-light)',

@@ -7,6 +7,10 @@ export const runtime = 'nodejs';
  * GET /api/test-github
  */
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+
   const results: any = {
     timestamp: new Date().toISOString(),
     tests: []

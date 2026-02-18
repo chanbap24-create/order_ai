@@ -316,13 +316,13 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
         {data && !loading && (
           <>
             {filterLabel && <p style={{ fontSize: '0.75rem', color: '#8E8E93', marginBottom: 16 }}>{filterLabel}</p>}
-            <div className="analysis-grid2" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
               <div className="analysis-card">
                 <div style={{ fontSize: '0.72rem', color: '#999', fontWeight: 500, marginBottom: 8 }}>총 매출</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e' }}>{fmtFull(data.summary?.totalRevenue || 0)}</div>
               </div>
               <div className="analysis-card">
-                <div style={{ fontSize: '0.72rem', color: '#999', fontWeight: 500, marginBottom: 8 }}>평균 할인률</div>
+                <div style={{ fontSize: '0.72rem', color: '#999', fontWeight: 500, marginBottom: 8 }}>평균 지원률</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e' }}>{(data.summary?.avgDiscount || 0).toFixed(1)}%</div>
               </div>
             </div>
@@ -404,7 +404,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                       <th style={{ width: 80 }}>코드</th>
                       <th>품목명</th>
                       <th style={{ textAlign: 'right' }}>매출</th>
-                      <th style={{ textAlign: 'right', width: 65 }}>할인률</th>
+                      <th style={{ textAlign: 'right', width: 65 }}>지원률</th>
                       <th style={{ textAlign: 'right', width: 50 }}>수량</th>
                       <th style={{ textAlign: 'right', width: 60 }}>재고</th>
                     </tr>

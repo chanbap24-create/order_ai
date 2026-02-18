@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/db";
 import { getSupplierByBrand } from "@/app/lib/brandMapping";
+import { sanitizeFilterValue } from "@/app/lib/validation";
 import ExcelJS from "exceljs";
 
 export async function GET(request: NextRequest) {
@@ -21,10 +22,13 @@ export async function GET(request: NextRequest) {
       let q = supabase.from('wines')
         .select('item_code, item_name_kr, item_name_en, country, country_en, region, brand, supplier, supplier_kr, vintage, supply_price, available_stock');
       if (search) {
-        const term = `%${search}%`;
-        q = q.or(`item_code.ilike.${term},item_name_kr.ilike.${term},item_name_en.ilike.${term},brand.ilike.${term},country.ilike.${term},country_en.ilike.${term}`);
+        const safe = sanitizeFilterValue(search);
+        q = q.or(`item_code.ilike.%${safe}%,item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,brand.ilike.%${safe}%,country.ilike.%${safe}%,country_en.ilike.%${safe}%`);
       }
-      if (country) q = q.or(`country.eq.${country},country_en.eq.${country}`);
+      if (country) {
+        const safeCountry = sanitizeFilterValue(country);
+        q = q.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
+      }
       q = q.range(off, off + PAGE_SIZE - 1);
       const { data } = await q;
       allWines.push(...(data || []));

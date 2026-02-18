@@ -117,11 +117,7 @@ export async function POST() {
   } catch (error: any) {
     console.error('Sync error:', error);
     return NextResponse.json(
-      {
-        error: '동기화 중 오류가 발생했습니다.',
-        details: error.message,
-        stack: error.stack
-      },
+      { error: '동기화 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
