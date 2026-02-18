@@ -488,6 +488,11 @@ export default function ClientAnalysisTab() {
                     : null,
                 }));
 
+                // 지원률 축 반전을 위한 domain 계산
+                const rates = chartData.map(d => d.discountRate).filter((v): v is number => v != null);
+                const rateMax = rates.length > 0 ? Math.ceil(Math.max(...rates) / 5) * 5 + 5 : 30;
+                const rateMin = rates.length > 0 ? Math.max(0, Math.floor(Math.min(...rates) / 5) * 5 - 5) : 0;
+
                 const tickFmt = (d: string) => {
                   if (trendPeriod === 'monthly') return d.slice(2).replace('-', '/');
                   return formatDateShort(d);
@@ -505,7 +510,7 @@ export default function ClientAnalysisTab() {
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                         <XAxis dataKey="date" tickFormatter={tickFmt} tick={{ fontSize: 11 }} />
                         <YAxis yAxisId="left" tickFormatter={(v: number) => formatKrw(v)} tick={{ fontSize: 11 }} width={60} />
-                        <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11 }} width={45} domain={[0, 'auto']} />
+                        <YAxis yAxisId="right" orientation="right" reversed tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11 }} width={45} domain={[rateMin, rateMax]} />
                         <Tooltip
                           formatter={(value: number | null, name: string) => {
                             if (name === 'revenue') return [`${(value ?? 0).toLocaleString()}원`, '매출'];
@@ -514,9 +519,9 @@ export default function ClientAnalysisTab() {
                           }}
                           labelFormatter={labelFmt}
                         />
-                        <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률'} />
+                        <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률 (↑마진↓)'} />
                         <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8B1538" strokeWidth={2} dot={chartData.length < 40} name="revenue" />
-                        <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" strokeDasharray="5 3" connectNulls />
+                        <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" connectNulls />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
