@@ -4,6 +4,7 @@ import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
 import { getCountryPair } from "@/app/lib/countryMapping";
 import { extractGrapesFromName, extractTypeFromName } from "@/app/lib/wineNameExtract";
+import { sanitizeFilterValue } from "@/app/lib/validation";
 import type { Wine, TastingNote, AdminSetting } from "@/app/types/wine";
 
 /* ─── 테이블 생성 (no-op) ─── */
@@ -20,11 +21,12 @@ export async function getWines(filters?: { status?: string; search?: string; cou
     query = query.eq('status', filters.status);
   }
   if (filters?.search) {
-    const term = `%${filters.search}%`;
-    query = query.or(`item_name_kr.ilike.${term},item_name_en.ilike.${term},item_code.ilike.${term}`);
+    const safe = sanitizeFilterValue(filters.search);
+    query = query.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
   }
   if (filters?.country) {
-    query = query.or(`country.eq.${filters.country},country_en.eq.${filters.country}`);
+    const safeCountry = sanitizeFilterValue(filters.country);
+    query = query.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
   }
 
   const { data, error } = await query.order('updated_at', { ascending: false });
@@ -87,11 +89,12 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
   let query = supabase.from('wines').select('*, tasting_notes(id)');
 
   if (filters?.search) {
-    const term = `%${filters.search}%`;
-    query = query.or(`item_name_kr.ilike.${term},item_name_en.ilike.${term}`);
+    const safe = sanitizeFilterValue(filters.search);
+    query = query.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
   }
   if (filters?.country) {
-    query = query.or(`country.eq.${filters.country},country_en.eq.${filters.country}`);
+    const safeCountry = sanitizeFilterValue(filters.country);
+    query = query.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
   }
 
   const { data, error } = await query.order('updated_at', { ascending: false });
@@ -264,8 +267,8 @@ export async function getNewWinesWithStatus(filters?: { status?: string; search?
     query = query.eq('status', filters.status);
   }
   if (filters?.search) {
-    const term = `%${filters.search}%`;
-    query = query.or(`item_name_kr.ilike.${term},item_name_en.ilike.${term},item_code.ilike.${term}`);
+    const safe = sanitizeFilterValue(filters.search);
+    query = query.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
   }
 
   const { data, error } = await query.order('updated_at', { ascending: false });

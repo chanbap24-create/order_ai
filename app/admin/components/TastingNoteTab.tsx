@@ -10,6 +10,7 @@ export default function TastingNoteTab() {
   const [wines, setWines] = useState<(Wine & { tasting_note_id: number | null; inv_available?: number; inv_bonded?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterNote, setFilterNote] = useState<NoteFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
@@ -36,8 +37,15 @@ export default function TastingNoteTab() {
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, currentName: '' });
   const [uploadingGithub, setUploadingGithub] = useState(false);
   const [dispatchingIndex, setDispatchingIndex] = useState(false);
+  const [batchDownloading, setBatchDownloading] = useState<'pptx' | 'pdf' | null>(null);
 
   const listRef = useRef<HTMLDivElement>(null);
+
+  // ───── 검색 디바운스 ─────
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // ───── GitHub 인덱스 로드 ─────
   useEffect(() => {
@@ -59,14 +67,14 @@ export default function TastingNoteTab() {
   const fetchWines = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (search) params.set('search', search);
+    if (debouncedSearch) params.set('search', debouncedSearch);
     try {
       const res = await fetch(`/api/admin/tasting-notes?${params}`);
       const data = await res.json();
       if (data.success) setWines(data.data);
     } catch { /* ignore */ }
     setLoading(false);
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => { fetchWines(); }, [fetchWines]);
 
@@ -316,6 +324,36 @@ export default function TastingNoteTab() {
     setUploadingGithub(false);
   };
 
+  // ───── 일괄 PPTX/PDF ZIP 다운로드 ─────
+  const handleBatchDownload = async (format: 'pptx' | 'pdf') => {
+    const ids = Array.from(checkedIds);
+    if (ids.length === 0) { alert('다운로드할 와인을 선택하세요.'); return; }
+    setBatchDownloading(format);
+    try {
+      const res = await fetch('/api/admin/tasting-notes/download-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wineIds: ids, format }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        alert(`다운로드 실패: ${err.error || res.statusText}`);
+        setBatchDownloading(null);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tasting-notes-${ids.length}wines-${format}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(`다운로드 오류: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
+    }
+    setBatchDownloading(null);
+  };
+
   // ───── 인덱스 업데이트 ─────
   const handleDispatchIndex = async () => {
     if (!confirm('GitHub Actions로 인덱스를 업데이트하시겠습니까?')) return;
@@ -413,6 +451,34 @@ export default function TastingNoteTab() {
           >
             {batchRunning ? `${batchProgress.current}/${batchProgress.total} 조사 중...` : `일괄조사 (${checkedIds.size})`}
           </button>
+          <div style={{ width: 1, height: 20, background: '#d1d5db', margin: '0 2px' }} />
+          <button
+            onClick={() => handleBatchDownload('pptx')}
+            disabled={!!batchDownloading || checkedIds.size === 0}
+            style={{
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: batchDownloading === 'pptx' ? '#2563eb' : '#F0EFED',
+              color: batchDownloading === 'pptx' ? '#fff' : '#999',
+              opacity: checkedIds.size === 0 && !batchDownloading ? 0.5 : 1,
+            }}
+          >
+            {batchDownloading === 'pptx' ? '생성중...' : 'PPTX'}
+          </button>
+          <button
+            onClick={() => handleBatchDownload('pdf')}
+            disabled={!!batchDownloading || checkedIds.size === 0}
+            style={{
+              padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
+              transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
+              background: batchDownloading === 'pdf' ? '#2563eb' : '#F0EFED',
+              color: batchDownloading === 'pdf' ? '#fff' : '#999',
+              opacity: checkedIds.size === 0 && !batchDownloading ? 0.5 : 1,
+            }}
+          >
+            {batchDownloading === 'pdf' ? '생성중...' : 'PDF'}
+          </button>
+          <div style={{ width: 1, height: 20, background: '#d1d5db', margin: '0 2px' }} />
           <button
             onClick={() => handleGithubRelease('pptx')}
             disabled={uploadingGithub || checkedIds.size === 0}
@@ -423,7 +489,7 @@ export default function TastingNoteTab() {
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {uploadingGithub ? '업로드...' : 'PPTX'}
+            {uploadingGithub ? '업로드...' : 'GH PPTX'}
           </button>
           <button
             onClick={() => handleGithubRelease('pdf')}
@@ -435,7 +501,7 @@ export default function TastingNoteTab() {
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
-            {uploadingGithub ? '업로드...' : 'PDF'}
+            {uploadingGithub ? '업로드...' : 'GH PDF'}
           </button>
           <button
             onClick={handleDispatchIndex}
