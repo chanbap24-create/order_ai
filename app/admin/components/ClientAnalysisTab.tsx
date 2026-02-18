@@ -510,7 +510,7 @@ export default function ClientAnalysisTab() {
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                         <XAxis dataKey="date" tickFormatter={tickFmt} tick={{ fontSize: 11 }} />
                         <YAxis yAxisId="left" tickFormatter={(v: number) => formatKrw(v)} tick={{ fontSize: 11 }} width={60} />
-                        <YAxis yAxisId="right" orientation="right" reversed tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11 }} width={45} domain={[rateMin, rateMax]} />
+                        <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => `${v}%`} tick={{ fontSize: 11 }} width={45} domain={[rateMin, rateMax]} />
                         <Tooltip
                           formatter={(value: number | null, name: string) => {
                             if (name === 'revenue') return [`${(value ?? 0).toLocaleString()}원`, '매출'];
@@ -519,7 +519,7 @@ export default function ClientAnalysisTab() {
                           }}
                           labelFormatter={labelFmt}
                         />
-                        <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률 (↑마진↓)'} />
+                        <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률'} />
                         <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8B1538" strokeWidth={2} dot={chartData.length < 40} name="revenue" />
                         <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" connectNulls />
                       </LineChart>
