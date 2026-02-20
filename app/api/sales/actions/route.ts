@@ -57,6 +57,20 @@ function extractTypeFromName(name: string): string {
   return '';
 }
 
+// ── 시즌 매핑 ──
+function getSeasonInfo(month: number): { season: string; types: string[]; grapes: string[] } {
+  if (month >= 3 && month <= 5) {
+    return { season: '봄', types: ['로제'], grapes: ['Sauvignon Blanc', 'Riesling'] };
+  }
+  if (month >= 6 && month <= 8) {
+    return { season: '여름', types: ['스파클링', '화이트', '로제'], grapes: [] };
+  }
+  if (month >= 9 && month <= 11) {
+    return { season: '가을', types: [], grapes: ['Pinot Noir'] };
+  }
+  return { season: '겨울', types: [], grapes: ['Syrah', 'Cabernet Sauvignon'] };
+}
+
 // ── GET: 이탈 위험 + 재주문 + 미팅 + 재고소진 + 업셀 스캔 ──
 // ?manager=XXX
 export async function GET(req: NextRequest) {
@@ -155,17 +169,45 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. client_details에서 importance 조회
+    // 3. client_details에서 importance + visit_cycle_days + last_visit_date 조회
     const clientCodes = Array.from(clientMap.keys());
     const importanceMap = new Map<string, number | null>();
-    for (let i = 0; i < clientCodes.length; i += 500) {
-      const batch = clientCodes.slice(i, i + 500);
+    const visitCycleMap = new Map<string, number>();
+    const lastVisitDateMap = new Map<string, string | null>();
+
+    // manager의 전체 거래처 목록도 가져온다 (shipments 없는 거래처 포함 → visit_schedules용)
+    const allClientDetails: { client_code: string; client_name: string; importance: number | null; visit_cycle_days: number; last_visit_date: string | null }[] = [];
+    {
+      const { data: allDetails } = await supabase
+        .from('client_details')
+        .select('client_code, client_name, importance, visit_cycle_days, last_visit_date')
+        .eq('manager', manager);
+      for (const d of allDetails || []) {
+        allClientDetails.push({
+          client_code: d.client_code,
+          client_name: d.client_name || d.client_code,
+          importance: d.importance,
+          visit_cycle_days: d.visit_cycle_days || 30,
+          last_visit_date: d.last_visit_date || null,
+        });
+        importanceMap.set(d.client_code, d.importance);
+        visitCycleMap.set(d.client_code, d.visit_cycle_days || 30);
+        lastVisitDateMap.set(d.client_code, d.last_visit_date || null);
+      }
+    }
+
+    // shipments에는 있지만 client_details에는 없는 거래처도 importance 조회
+    const missingCodes = clientCodes.filter(c => !importanceMap.has(c));
+    for (let i = 0; i < missingCodes.length; i += 500) {
+      const batch = missingCodes.slice(i, i + 500);
       const { data: detailData } = await supabase
         .from('client_details')
-        .select('client_code, importance')
+        .select('client_code, importance, visit_cycle_days, last_visit_date')
         .in('client_code', batch);
       for (const d of detailData || []) {
         importanceMap.set(d.client_code, d.importance);
+        visitCycleMap.set(d.client_code, d.visit_cycle_days || 30);
+        lastVisitDateMap.set(d.client_code, d.last_visit_date || null);
       }
     }
 
@@ -631,6 +673,103 @@ export async function GET(req: NextRequest) {
       available_stock: number;
     }
 
+    // ── wines 메타 맵 (upsell + new_arrival 공용) ──
+    const wineMetaMap = new Map<string, { country: string; grapes: string[]; wineType: string }>();
+    try {
+      const allWines: any[] = [];
+      let wFrom = 0;
+      while (true) {
+        const { data: wData } = await supabase
+          .from('wines')
+          .select('item_code, item_name_kr, country, grape_varieties, wine_type')
+          .range(wFrom, wFrom + 999);
+        if (!wData || wData.length === 0) break;
+        allWines.push(...wData);
+        if (wData.length < 1000) break;
+        wFrom += 1000;
+      }
+      for (const w of allWines) {
+        const grapes = w.grape_varieties
+          ? w.grape_varieties.split(/[,\/]/).map((g: string) => g.trim()).filter(Boolean)
+          : extractGrapesFromName(w.item_name_kr || '');
+        const wType = w.wine_type || extractTypeFromName(w.item_name_kr || '');
+        wineMetaMap.set(w.item_code, { country: w.country || '', grapes, wineType: wType });
+      }
+    } catch (wineMetaErr) {
+      console.error('Wine meta map build error:', wineMetaErr);
+    }
+
+    // ── fullInvMap: inventory_cdv 재고+가격 전체 맵 (upsell + season 공유) ──
+    const fullInvMap = new Map<string, { item_name: string; supply_price: number; available_stock: number }>();
+    try {
+      let invFrom = 0;
+      while (true) {
+        const { data: invData } = await supabase
+          .from('inventory_cdv')
+          .select('item_no, item_name, supply_price, available_stock')
+          .gt('available_stock', 0)
+          .range(invFrom, invFrom + 999);
+        if (!invData || invData.length === 0) break;
+        for (const d of invData) fullInvMap.set(d.item_no, { item_name: d.item_name || d.item_no, supply_price: d.supply_price || 0, available_stock: d.available_stock || 0 });
+        if (invData.length < 1000) break;
+        invFrom += 1000;
+      }
+    } catch (invErr) {
+      console.error('fullInvMap build error:', invErr);
+    }
+
+    // ── clientPrefs: 거래처별 취향 프로필 (new_arrival + season 공유) ──
+    interface ClientPreference {
+      countryCount: Map<string, number>;
+      grapeCount: Map<string, number>;
+      typeCount: Map<string, number>;
+      totalAmount: number;
+      totalOrders: number;
+    }
+
+    const clientPrefs = new Map<string, ClientPreference>();
+
+    for (const s of allShipments) {
+      const code = s.client_code;
+      if (!code) continue;
+      if (!clientPrefs.has(code)) {
+        clientPrefs.set(code, {
+          countryCount: new Map(),
+          grapeCount: new Map(),
+          typeCount: new Map(),
+          totalAmount: 0,
+          totalOrders: 0,
+        });
+      }
+      const pref = clientPrefs.get(code)!;
+      pref.totalAmount += (s.total_amount || 0);
+      pref.totalOrders += 1;
+
+      if (s.item_no) {
+        const meta = wineMetaMap.get(s.item_no);
+        if (meta) {
+          if (meta.country) {
+            pref.countryCount.set(meta.country, (pref.countryCount.get(meta.country) || 0) + 1);
+          }
+          for (const g of meta.grapes) {
+            pref.grapeCount.set(g, (pref.grapeCount.get(g) || 0) + 1);
+          }
+          if (meta.wineType) {
+            pref.typeCount.set(meta.wineType, (pref.typeCount.get(meta.wineType) || 0) + 1);
+          }
+        } else {
+          const grapes = extractGrapesFromName(s.item_name || '');
+          for (const g of grapes) {
+            pref.grapeCount.set(g, (pref.grapeCount.get(g) || 0) + 1);
+          }
+          const t = extractTypeFromName(s.item_name || '');
+          if (t) {
+            pref.typeCount.set(t, (pref.typeCount.get(t) || 0) + 1);
+          }
+        }
+      }
+    }
+
     const upsellSuggestions: UpsellSuggestion[] = [];
     try {
       // 대상 거래처: 이탈 critical/high + 재주문 in_stock
@@ -643,44 +782,7 @@ export async function GET(req: NextRequest) {
       }
 
       if (targetClientCodes.size > 0) {
-        // wines 테이블에서 country, grape_varieties, wine_type 메타 조회
-        const wineMetaMap = new Map<string, { country: string; grapes: string[]; wineType: string }>();
-        const allWines: any[] = [];
-        let wFrom = 0;
-        while (true) {
-          const { data: wData } = await supabase
-            .from('wines')
-            .select('item_code, item_name_kr, country, grape_varieties, wine_type')
-            .range(wFrom, wFrom + 999);
-          if (!wData || wData.length === 0) break;
-          allWines.push(...wData);
-          if (wData.length < 1000) break;
-          wFrom += 1000;
-        }
-        for (const w of allWines) {
-          const grapes = w.grape_varieties
-            ? w.grape_varieties.split(/[,\/]/).map((g: string) => g.trim()).filter(Boolean)
-            : extractGrapesFromName(w.item_name_kr || '');
-          const wType = w.wine_type || extractTypeFromName(w.item_name_kr || '');
-          wineMetaMap.set(w.item_code, { country: w.country || '', grapes, wineType: wType });
-        }
-
-        // inventory_cdv 재고+가격 맵 (이미 stockMap 있지만 전체 필요)
-        const fullInvMap = new Map<string, { item_name: string; supply_price: number; available_stock: number }>();
-        let invFrom = 0;
-        while (true) {
-          const { data: invData } = await supabase
-            .from('inventory_cdv')
-            .select('item_no, item_name, supply_price, available_stock')
-            .gt('available_stock', 0)
-            .range(invFrom, invFrom + 999);
-          if (!invData || invData.length === 0) break;
-          for (const d of invData) fullInvMap.set(d.item_no, { item_name: d.item_name || d.item_no, supply_price: d.supply_price || 0, available_stock: d.available_stock || 0 });
-          if (invData.length < 1000) break;
-          invFrom += 1000;
-        }
-
-        // 거래처별 Top 구매 품목에서 패턴 추출 → 업셀 매칭
+        // 거래처별 Top 구매 품목에서 패턴 추출 → 업셀 매칭 (fullInvMap 상위 스코프)
         for (const tCode of targetClientCodes) {
           const clientAgg = clientMap.get(tCode);
           if (!clientAgg) continue;
@@ -757,6 +859,578 @@ export async function GET(req: NextRequest) {
       console.error('Upsell suggestion scan error:', upsellErr);
     }
 
+    // ═══════════════════════════════════════════
+    // 9. 신규 입고 매칭 (New Arrival Match)
+    //    새 와인 → 거래처 취향 매칭 Top 5
+    // ═══════════════════════════════════════════
+    interface NewArrivalMatch {
+      type: 'new_arrival_match';
+      item_no: string;
+      item_name: string;
+      country: string;
+      wine_type: string;
+      grape: string;
+      supply_price: number;
+      incoming_stock: number;
+      available_stock: number;
+      matched_clients: {
+        client_code: string;
+        client_name: string;
+        importance: number | null;
+        match_score: number;
+        match_reasons: string[];
+        avg_purchase_price: number;
+      }[];
+    }
+
+    const newArrivalMatches: NewArrivalMatch[] = [];
+    try {
+      // 9-A: 신규 와인 목록 조회
+      // 1) wines 테이블: status='new' 최대 20건 (최신순)
+      const { data: newWines } = await supabase
+        .from('wines')
+        .select('item_code, item_name_kr, country, grape_varieties, wine_type, supply_price, available_stock')
+        .eq('status', 'new')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      const newWineMap = new Map<string, {
+        item_name: string; country: string; grapes: string[];
+        wine_type: string; supply_price: number; available_stock: number; incoming_stock: number;
+      }>();
+
+      for (const w of newWines || []) {
+        const grapes = w.grape_varieties
+          ? w.grape_varieties.split(/[,\/]/).map((g: string) => g.trim()).filter(Boolean)
+          : extractGrapesFromName(w.item_name_kr || '');
+        const wType = w.wine_type || extractTypeFromName(w.item_name_kr || '');
+        newWineMap.set(w.item_code, {
+          item_name: w.item_name_kr || w.item_code,
+          country: w.country || '',
+          grapes,
+          wine_type: wType,
+          supply_price: w.supply_price || 0,
+          available_stock: w.available_stock || 0,
+          incoming_stock: 0,
+        });
+      }
+
+      // 2) inventory_cdv에서 incoming_stock > 0 인 품목 추가 (wines에 없는 것만, 최대 20건 채움)
+      if (newWineMap.size < 20) {
+        const remaining = 20 - newWineMap.size;
+        const { data: incomingItems } = await supabase
+          .from('inventory_cdv')
+          .select('item_no, item_name, supply_price, available_stock, incoming_stock')
+          .gt('incoming_stock', 0)
+          .limit(remaining + 50); // 여유 확보
+
+        for (const inv of incomingItems || []) {
+          if (newWineMap.size >= 20) break;
+          if (newWineMap.has(inv.item_no)) {
+            // 이미 있으면 incoming_stock만 업데이트
+            const existing = newWineMap.get(inv.item_no)!;
+            existing.incoming_stock = inv.incoming_stock || 0;
+            continue;
+          }
+          // wines 메타 조회 (wineMetaMap 재사용 가능하면 사용)
+          const meta = wineMetaMap.get(inv.item_no);
+          const grapes = meta?.grapes || extractGrapesFromName(inv.item_name || '');
+          const wType = meta?.wineType || extractTypeFromName(inv.item_name || '');
+          newWineMap.set(inv.item_no, {
+            item_name: inv.item_name || inv.item_no,
+            country: meta?.country || '',
+            grapes: Array.isArray(grapes) ? grapes : [],
+            wine_type: wType,
+            supply_price: inv.supply_price || 0,
+            available_stock: inv.available_stock || 0,
+            incoming_stock: inv.incoming_stock || 0,
+          });
+        }
+      }
+
+      // incoming_stock 업데이트: newWineMap의 wines 항목에도 inventory_cdv 값 반영
+      if (newWineMap.size > 0) {
+        const wineItemCodes = Array.from(newWineMap.keys());
+        for (let i = 0; i < wineItemCodes.length; i += 500) {
+          const batch = wineItemCodes.slice(i, i + 500);
+          const { data: invData } = await supabase
+            .from('inventory_cdv')
+            .select('item_no, incoming_stock, available_stock')
+            .in('item_no', batch);
+          for (const d of invData || []) {
+            const w = newWineMap.get(d.item_no);
+            if (w) {
+              if (d.incoming_stock > 0) w.incoming_stock = d.incoming_stock;
+              if (d.available_stock > 0) w.available_stock = d.available_stock;
+            }
+          }
+        }
+      }
+
+      // 9-B: clientPrefs는 상위 스코프에서 이미 구축됨
+
+      // 9-C: 매칭 스코어링 (와인별 × 거래처별)
+      for (const [itemNo, wine] of newWineMap) {
+        const matchedClients: NewArrivalMatch['matched_clients'] = [];
+
+        for (const [clientCode, pref] of clientPrefs) {
+          if (pref.totalOrders < 3) continue; // 최소 3건 이상 거래처만
+
+          let score = 0;
+          const reasons: string[] = [];
+          const totalOrders = pref.totalOrders;
+
+          // 국가 매칭 (max 30)
+          if (wine.country) {
+            const countryHits = pref.countryCount.get(wine.country) || 0;
+            if (countryHits > 0) {
+              const countryScore = 30 * (countryHits / totalOrders);
+              score += countryScore;
+              reasons.push('같은 국가');
+            }
+          }
+
+          // 품종 매칭 (max 30)
+          if (wine.grapes.length > 0) {
+            let grapeHits = 0;
+            for (const g of wine.grapes) {
+              grapeHits += (pref.grapeCount.get(g) || 0);
+            }
+            if (grapeHits > 0) {
+              const grapeScore = 30 * (grapeHits / totalOrders);
+              score += grapeScore;
+              reasons.push('같은 품종');
+            }
+          }
+
+          // 타입 매칭 (max 20)
+          if (wine.wine_type) {
+            const typeHits = pref.typeCount.get(wine.wine_type) || 0;
+            if (typeHits > 0) {
+              const typeScore = 20 * (typeHits / totalOrders);
+              score += typeScore;
+              reasons.push('같은 타입');
+            }
+          }
+
+          // 가격 적합도 (max 20)
+          if (wine.supply_price > 0 && pref.totalAmount > 0 && pref.totalOrders > 0) {
+            const avgPrice = pref.totalAmount / pref.totalOrders;
+            if (avgPrice > 0) {
+              const priceDiffRatio = Math.abs(wine.supply_price - avgPrice) / avgPrice;
+              if (priceDiffRatio <= 0.5) {
+                const priceScore = 20 * (1 - priceDiffRatio);
+                score += priceScore;
+                reasons.push('가격대 적합');
+              }
+            }
+          }
+
+          const finalScore = Math.round(score);
+          if (finalScore < 20) continue;
+
+          const clientAgg = clientMap.get(clientCode);
+          matchedClients.push({
+            client_code: clientCode,
+            client_name: clientAgg?.client_name || clientCode,
+            importance: importanceMap.get(clientCode) ?? null,
+            match_score: finalScore,
+            match_reasons: reasons,
+            avg_purchase_price: pref.totalOrders > 0 ? Math.round(pref.totalAmount / pref.totalOrders) : 0,
+          });
+        }
+
+        // 상위 5개 거래처 (score 내림차순)
+        matchedClients.sort((a, b) => b.match_score - a.match_score);
+        matchedClients.splice(5);
+
+        if (matchedClients.length === 0) continue;
+
+        newArrivalMatches.push({
+          type: 'new_arrival_match',
+          item_no: itemNo,
+          item_name: wine.item_name,
+          country: wine.country,
+          wine_type: wine.wine_type,
+          grape: wine.grapes.join(', '),
+          supply_price: wine.supply_price,
+          incoming_stock: wine.incoming_stock,
+          available_stock: wine.available_stock,
+          matched_clients: matchedClients,
+        });
+      }
+
+      // 매칭 클라이언트 수 기준 내림차순
+      newArrivalMatches.sort((a, b) => {
+        const maxA = a.matched_clients[0]?.match_score || 0;
+        const maxB = b.matched_clients[0]?.match_score || 0;
+        return maxB - maxA;
+      });
+      newArrivalMatches.splice(20);
+    } catch (arrivalErr) {
+      console.error('New arrival match scan error:', arrivalErr);
+    }
+
+    // ═══════════════════════════════════════════
+    // 10. 스마트 방문 스케줄링 (Visit Schedule)
+    //     경과일 + 중요도 기반 방문 우선순위 산출
+    // ═══════════════════════════════════════════
+    interface VisitSchedule {
+      type: 'visit_schedule';
+      client_code: string;
+      client_name: string;
+      importance: number | null;
+      visit_urgency: 'critical' | 'high' | 'medium';
+      visit_score: number;
+      days_since_contact: number;
+      last_contact_date: string;
+      last_contact_type: string;
+      visit_cycle_days: number;
+      days_overdue: number;
+      suggested_type: 'visit' | 'call';
+      top_items: string[];
+    }
+
+    const visitSchedules: VisitSchedule[] = [];
+    try {
+      // 10-A: completed 미팅의 거래처별 최종 meeting_date 조회
+      const completedMeetingMap = new Map<string, string>();
+      {
+        const { data: completedMeetings } = await supabase
+          .from('meetings')
+          .select('client_code, meeting_date')
+          .eq('status', 'completed')
+          .order('meeting_date', { ascending: false });
+        for (const m of completedMeetings || []) {
+          if (!m.client_code) continue;
+          const mDate = m.meeting_date?.toString().slice(0, 10) || '';
+          if (!completedMeetingMap.has(m.client_code) || mDate > completedMeetingMap.get(m.client_code)!) {
+            completedMeetingMap.set(m.client_code, mDate);
+          }
+        }
+      }
+
+      // 10-B: planned 미팅이 있는 거래처 (제외 대상)
+      const plannedMeetingClients = new Set<string>();
+      {
+        const { data: plannedMeetings } = await supabase
+          .from('meetings')
+          .select('client_code')
+          .eq('status', 'planned')
+          .gte('meeting_date', today);
+        for (const m of plannedMeetings || []) {
+          if (m.client_code) plannedMeetingClients.add(m.client_code);
+        }
+      }
+
+      // 10-C: 거래처별 마지막 접촉일 계산 및 스코어링
+      // allClientDetails (manager의 전체 거래처) 순회
+      const processedCodes = new Set<string>();
+
+      for (const cd of allClientDetails) {
+        const code = cd.client_code;
+        if (processedCodes.has(code)) continue;
+        processedCodes.add(code);
+
+        // planned 미팅 있으면 제외
+        if (plannedMeetingClients.has(code)) continue;
+
+        // 마지막 접촉일 산출: MAX(shipment, meeting_completed, last_visit_date)
+        const candidates: { date: string; type: string }[] = [];
+
+        // shipments에서 마지막 출고일
+        const clientAgg = clientMap.get(code);
+        if (clientAgg) {
+          const shipDates = clientAgg.shipments.map(s => s.date).filter(d => d.length > 0).sort();
+          if (shipDates.length > 0) {
+            candidates.push({ date: shipDates[shipDates.length - 1], type: 'shipment' });
+          }
+        }
+
+        // completed 미팅
+        const meetingDate = completedMeetingMap.get(code);
+        if (meetingDate) {
+          candidates.push({ date: meetingDate, type: 'meeting' });
+        }
+
+        // last_visit_date
+        const visitDate = lastVisitDateMap.get(code);
+        if (visitDate) {
+          candidates.push({ date: visitDate, type: 'visit_record' });
+        }
+
+        if (candidates.length === 0) continue;
+
+        // 가장 최근 날짜
+        candidates.sort((a, b) => b.date.localeCompare(a.date));
+        const lastContactDate = candidates[0].date;
+        const lastContactType = candidates[0].type;
+
+        const daysSinceContact = Math.floor((todayMs - new Date(lastContactDate).getTime()) / DAY_MS);
+        if (daysSinceContact < 0) continue;
+
+        const visitCycleDays = visitCycleMap.get(code) || 30;
+        const daysOverdue = daysSinceContact - visitCycleDays;
+
+        // 방문 우선순위 점수 (0~100)
+        // 초과일 비율: min(daysOverdue / visitCycleDays * 40, 40) — max 40
+        const overdueScore = daysOverdue > 0 ? Math.min((daysOverdue / visitCycleDays) * 40, 40) : 0;
+
+        // 중요도 가중: importance=1→30, 2→24, 3→15, 4→8, 5→3 — max 30
+        const importance = importanceMap.get(code) ?? null;
+        let impScore = 0;
+        if (importance === 1) impScore = 30;
+        else if (importance === 2) impScore = 24;
+        else if (importance === 3) impScore = 15;
+        else if (importance === 4) impScore = 8;
+        else if (importance === 5) impScore = 3;
+
+        // 비활동 보너스: >60일 → +15, >90일 → +30 — max 30
+        let inactivityBonus = 0;
+        if (daysSinceContact > 90) inactivityBonus = 30;
+        else if (daysSinceContact > 60) inactivityBonus = 15;
+
+        const visitScore = Math.round(overdueScore + impScore + inactivityBonus);
+
+        if (visitScore < 30) continue;
+
+        // visit_urgency
+        let visitUrgency: 'critical' | 'high' | 'medium';
+        if (visitScore >= 70) visitUrgency = 'critical';
+        else if (visitScore >= 50) visitUrgency = 'high';
+        else visitUrgency = 'medium';
+
+        // 추천 방문 유형
+        let suggestedType: 'visit' | 'call' = 'call';
+        if (importance !== null && importance <= 2) {
+          suggestedType = 'visit';
+        } else if (daysOverdue >= 30) {
+          suggestedType = 'visit';
+        } else if (daysOverdue >= 14) {
+          suggestedType = 'visit';
+        }
+        // daysOverdue < 14 → 'call' (default)
+
+        // top 3 품목
+        const topItems: string[] = [];
+        if (clientAgg) {
+          const sorted = Array.from(clientAgg.items.entries())
+            .sort((a, b) => b[1].qty - a[1].qty)
+            .slice(0, 3);
+          for (const [, v] of sorted) topItems.push(v.name);
+        }
+
+        visitSchedules.push({
+          type: 'visit_schedule',
+          client_code: code,
+          client_name: cd.client_name || clientAgg?.client_name || code,
+          importance,
+          visit_urgency: visitUrgency,
+          visit_score: visitScore,
+          days_since_contact: daysSinceContact,
+          last_contact_date: lastContactDate,
+          last_contact_type: lastContactType,
+          visit_cycle_days: visitCycleDays,
+          days_overdue: daysOverdue,
+          suggested_type: suggestedType,
+          top_items: topItems,
+        });
+      }
+
+      // score 내림차순, 최대 30건
+      visitSchedules.sort((a, b) => b.visit_score - a.visit_score);
+      visitSchedules.splice(30);
+    } catch (visitErr) {
+      console.error('Visit schedule scan error:', visitErr);
+    }
+
+    // ═══════════════════════════════════════════
+    // 11. 시즌 선제 추천 (Season Recommendation)
+    //     다음달 시즌에 맞는 와인을 거래처별 취향 기반으로 추천
+    // ═══════════════════════════════════════════
+    interface SeasonRecommendation {
+      type: 'season_recommendation';
+      season_name: string;
+      target_month: number;
+      season_change: boolean;
+      item_no: string;
+      item_name: string;
+      country: string;
+      wine_type: string;
+      grape: string;
+      supply_price: number;
+      available_stock: number;
+      season_fit_score: number;
+      matched_clients: {
+        client_code: string;
+        client_name: string;
+        importance: number | null;
+        match_score: number;
+        match_reasons: string[];
+      }[];
+    }
+
+    const seasonRecommendations: SeasonRecommendation[] = [];
+    let seasonName = '';
+    let targetMonth = 0;
+    let seasonChange = false;
+
+    try {
+      // 11-A: 다음달 시즌 판단
+      const currentMonth = now.getMonth() + 1;
+      targetMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+
+      const currentSeason = getSeasonInfo(currentMonth);
+      const nextSeason = getSeasonInfo(targetMonth);
+      seasonName = nextSeason.season;
+      seasonChange = currentSeason.season !== nextSeason.season;
+
+      // 11-B: 시즌 적합 와인 선별 (fullInvMap + wineMetaMap 재사용)
+      const seasonWines: {
+        item_no: string; item_name: string; country: string;
+        wine_type: string; grape: string; supply_price: number;
+        available_stock: number; season_fit_score: number;
+      }[] = [];
+
+      for (const [itemNo, inv] of fullInvMap) {
+        const meta = wineMetaMap.get(itemNo);
+        const wType = meta?.wineType || extractTypeFromName(inv.item_name);
+        const grapes = meta?.grapes || extractGrapesFromName(inv.item_name);
+        const country = meta?.country || '';
+
+        let score = 0;
+
+        // 타입 일치: +40
+        if (nextSeason.types.length > 0 && wType) {
+          const typeMatch = nextSeason.types.some(t =>
+            wType === t || t === wType
+          );
+          if (typeMatch) score += 40;
+        }
+
+        // 품종 일치: +30
+        if (nextSeason.grapes.length > 0 && grapes.length > 0) {
+          const grapeMatch = grapes.some(g =>
+            nextSeason.grapes.some(sg => g === sg)
+          );
+          if (grapeMatch) score += 30;
+        }
+
+        if (score < 30) continue;
+
+        seasonWines.push({
+          item_no: itemNo,
+          item_name: inv.item_name,
+          country,
+          wine_type: wType,
+          grape: grapes.join(', '),
+          supply_price: inv.supply_price,
+          available_stock: inv.available_stock,
+          season_fit_score: score,
+        });
+      }
+
+      // 시즌 적합도 내림차순, 최대 50개
+      seasonWines.sort((a, b) => b.season_fit_score - a.season_fit_score);
+      seasonWines.splice(50);
+
+      // 11-C: 거래처별 매칭 (clientPrefs 재사용)
+      for (const wine of seasonWines) {
+        const matchedClients: SeasonRecommendation['matched_clients'] = [];
+
+        for (const [clientCode, pref] of clientPrefs) {
+          if (pref.totalOrders < 3) continue;
+
+          let clientScore = 0;
+          const reasons: string[] = [];
+          const totalOrders = pref.totalOrders;
+
+          // 국가 매칭 (max 20)
+          if (wine.country) {
+            const countryHits = pref.countryCount.get(wine.country) || 0;
+            if (countryHits > 0) {
+              clientScore += Math.min(20 * (countryHits / totalOrders), 20);
+              reasons.push('같은 국가');
+            }
+          }
+
+          // 품종 매칭 (max 20)
+          if (wine.grape) {
+            const wineGrapes = wine.grape.split(', ').filter(Boolean);
+            let grapeHits = 0;
+            for (const g of wineGrapes) {
+              grapeHits += (pref.grapeCount.get(g) || 0);
+            }
+            if (grapeHits > 0) {
+              clientScore += Math.min(20 * (grapeHits / totalOrders), 20);
+              reasons.push('같은 품종');
+            }
+          }
+
+          // 가격대 적합 (max 10)
+          if (wine.supply_price > 0 && pref.totalAmount > 0 && pref.totalOrders > 0) {
+            const avgPrice = pref.totalAmount / pref.totalOrders;
+            if (avgPrice > 0) {
+              const priceDiffRatio = Math.abs(wine.supply_price - avgPrice) / avgPrice;
+              if (priceDiffRatio <= 0.5) {
+                clientScore += Math.round(10 * (1 - priceDiffRatio));
+                reasons.push('가격대 적합');
+              }
+            }
+          }
+
+          if (clientScore < 5) continue;
+
+          // 최종 추천 점수: season_fit + client_match → normalize 0~100
+          const totalScore = wine.season_fit_score + clientScore; // max 70 + 50 = 120
+          const normalizedScore = Math.round((totalScore / 120) * 100);
+
+          if (normalizedScore < 50) continue;
+
+          const clientAgg = clientMap.get(clientCode);
+          matchedClients.push({
+            client_code: clientCode,
+            client_name: clientAgg?.client_name || clientCode,
+            importance: importanceMap.get(clientCode) ?? null,
+            match_score: normalizedScore,
+            match_reasons: reasons,
+          });
+        }
+
+        // 상위 5개 거래처
+        matchedClients.sort((a, b) => b.match_score - a.match_score);
+        matchedClients.splice(5);
+
+        if (matchedClients.length === 0) continue;
+
+        seasonRecommendations.push({
+          type: 'season_recommendation',
+          season_name: seasonName,
+          target_month: targetMonth,
+          season_change: seasonChange,
+          item_no: wine.item_no,
+          item_name: wine.item_name,
+          country: wine.country,
+          wine_type: wine.wine_type,
+          grape: wine.grape,
+          supply_price: wine.supply_price,
+          available_stock: wine.available_stock,
+          season_fit_score: wine.season_fit_score,
+          matched_clients: matchedClients,
+        });
+      }
+
+      // 매칭 점수 기준 내림차순, 최대 20건
+      seasonRecommendations.sort((a, b) => {
+        const maxA = a.matched_clients[0]?.match_score || 0;
+        const maxB = b.matched_clients[0]?.match_score || 0;
+        return maxB - maxA;
+      });
+      seasonRecommendations.splice(20);
+    } catch (seasonErr) {
+      console.error('Season recommendation scan error:', seasonErr);
+    }
+
     // ═══ 최종 summary ═══
     const summary = {
       critical_count: actions.filter(a => a.risk_level === 'critical').length,
@@ -770,6 +1444,11 @@ export async function GET(req: NextRequest) {
       meetings_upcoming: meetingReminders.length,
       stock_alerts: stockDepletions.filter(s => s.alert_type === 'out_of_stock').length + stockDepletions.filter(s => s.alert_type === 'low_stock').length,
       upsell_count: upsellSuggestions.length,
+      new_arrivals_count: newArrivalMatches.length,
+      visit_critical: visitSchedules.filter(v => v.visit_urgency === 'critical').length,
+      visit_total: visitSchedules.length,
+      season_name: seasonName,
+      season_reco_count: seasonRecommendations.length,
     };
 
     return NextResponse.json({
@@ -778,6 +1457,9 @@ export async function GET(req: NextRequest) {
       meeting_reminders: meetingReminders,
       stock_depletions: stockDepletions,
       upsell_suggestions: upsellSuggestions,
+      new_arrival_matches: newArrivalMatches,
+      visit_schedules: visitSchedules,
+      season_recommendations: seasonRecommendations,
       summary,
       scanned_at: new Date().toISOString(),
     });

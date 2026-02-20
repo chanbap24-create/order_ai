@@ -77,6 +77,64 @@ interface UpsellSuggestion {
   available_stock: number;
 }
 
+interface NewArrivalMatch {
+  type: 'new_arrival_match';
+  item_no: string;
+  item_name: string;
+  country: string;
+  wine_type: string;
+  grape: string;
+  supply_price: number;
+  incoming_stock: number;
+  available_stock: number;
+  matched_clients: {
+    client_code: string;
+    client_name: string;
+    importance: number | null;
+    match_score: number;
+    match_reasons: string[];
+    avg_purchase_price: number;
+  }[];
+}
+
+interface SeasonRecommendation {
+  type: 'season_recommendation';
+  season_name: string;
+  target_month: number;
+  season_change: boolean;
+  item_no: string;
+  item_name: string;
+  country: string;
+  wine_type: string;
+  grape: string;
+  supply_price: number;
+  available_stock: number;
+  season_fit_score: number;
+  matched_clients: {
+    client_code: string;
+    client_name: string;
+    importance: number | null;
+    match_score: number;
+    match_reasons: string[];
+  }[];
+}
+
+interface VisitSchedule {
+  type: 'visit_schedule';
+  client_code: string;
+  client_name: string;
+  importance: number | null;
+  visit_urgency: 'critical' | 'high' | 'medium';
+  visit_score: number;
+  days_since_contact: number;
+  last_contact_date: string;
+  last_contact_type: string;
+  visit_cycle_days: number;
+  days_overdue: number;
+  suggested_type: 'visit' | 'call';
+  top_items: string[];
+}
+
 interface ActionSummary {
   critical_count: number;
   high_count: number;
@@ -89,6 +147,11 @@ interface ActionSummary {
   meetings_upcoming: number;
   stock_alerts: number;
   upsell_count: number;
+  new_arrivals_count: number;
+  visit_critical: number;
+  visit_total: number;
+  season_name: string;
+  season_reco_count: number;
 }
 
 interface ActionTabProps {
@@ -115,8 +178,33 @@ const RISK_LABELS: Record<string, string> = {
   medium: '관찰',
 };
 
+const VISIT_URGENCY_COLORS: Record<string, string> = {
+  critical: '#4E342E',
+  high: '#6D4C41',
+  medium: '#8D6E63',
+};
+
+const VISIT_URGENCY_BG: Record<string, string> = {
+  critical: '#D7CCC8',
+  high: '#EFEBE9',
+  medium: '#FBF8F6',
+};
+
+const VISIT_URGENCY_LABELS: Record<string, string> = {
+  critical: '긴급',
+  high: '주의',
+  medium: '관찰',
+};
+
+const CONTACT_TYPE_LABELS: Record<string, string> = {
+  shipment: '출고',
+  meeting: '미팅',
+  visit_record: '방문기록',
+};
+
 type ChurnFilter = 'all' | 'critical' | 'high' | 'medium';
 type ReorderFilter = 'all' | 'in_stock' | 'out_of_stock';
+type VisitFilter = 'all' | 'critical' | 'high' | 'medium';
 
 function fmt(n: number) {
   if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
@@ -144,10 +232,14 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
   const [meetings, setMeetings] = useState<MeetingReminder[]>([]);
   const [stockDepletions, setStockDepletions] = useState<StockDepletion[]>([]);
   const [upsells, setUpsells] = useState<UpsellSuggestion[]>([]);
+  const [newArrivals, setNewArrivals] = useState<NewArrivalMatch[]>([]);
+  const [visitSchedules, setVisitSchedules] = useState<VisitSchedule[]>([]);
+  const [seasonRecos, setSeasonRecos] = useState<SeasonRecommendation[]>([]);
   const [summary, setSummary] = useState<ActionSummary>({
     critical_count: 0, high_count: 0, medium_count: 0, total_clients: 0,
     reorder_high: 0, reorder_medium: 0, reorder_in_stock: 0, reorder_out_of_stock: 0,
-    meetings_upcoming: 0, stock_alerts: 0, upsell_count: 0,
+    meetings_upcoming: 0, stock_alerts: 0, upsell_count: 0, new_arrivals_count: 0,
+    visit_critical: 0, visit_total: 0, season_name: '', season_reco_count: 0,
   });
   const [scanning, setScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
@@ -161,6 +253,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
   const [meetingCollapsed, setMeetingCollapsed] = useState(false);
   const [stockCollapsed, setStockCollapsed] = useState(false);
   const [upsellCollapsed, setUpsellCollapsed] = useState(false);
+  const [newArrivalCollapsed, setNewArrivalCollapsed] = useState(false);
+  const [visitCollapsed, setVisitCollapsed] = useState(false);
+  const [seasonCollapsed, setSeasonCollapsed] = useState(false);
+  const [visitFilter, setVisitFilter] = useState<VisitFilter>('all');
 
   // 담당자 목록 (관리자용)
   useEffect(() => {
@@ -189,10 +285,14 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       setMeetings(data.meeting_reminders || []);
       setStockDepletions(data.stock_depletions || []);
       setUpsells(data.upsell_suggestions || []);
+      setNewArrivals(data.new_arrival_matches || []);
+      setVisitSchedules(data.visit_schedules || []);
+      setSeasonRecos(data.season_recommendations || []);
       const s = data.summary || {
         critical_count: 0, high_count: 0, medium_count: 0, total_clients: 0,
         reorder_high: 0, reorder_medium: 0, reorder_in_stock: 0, reorder_out_of_stock: 0,
-        meetings_upcoming: 0, stock_alerts: 0, upsell_count: 0,
+        meetings_upcoming: 0, stock_alerts: 0, upsell_count: 0, new_arrivals_count: 0,
+        visit_critical: 0, visit_total: 0, season_name: '', season_reco_count: 0,
       };
       setSummary(s);
       setLastScanned(data.scanned_at || new Date().toISOString());
@@ -201,7 +301,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       const reorderBadge = (s.reorder_in_stock || 0);
       const meetingBadge = (data.meeting_reminders || []).filter((m: MeetingReminder) => m.days_until <= 2).length;
       const stockBadge = (data.stock_depletions || []).filter((d: StockDepletion) => d.alert_type === 'out_of_stock').length;
-      onCountChange?.(churnBadge + reorderBadge + meetingBadge + stockBadge);
+      const arrivalBadge = (data.new_arrival_matches || []).length;
+      const visitBadge = (data.visit_schedules || []).filter((v: VisitSchedule) => v.visit_urgency === 'critical').length;
+      const seasonBadge = (data.season_recommendations || []).length;
+      onCountChange?.(churnBadge + reorderBadge + meetingBadge + stockBadge + arrivalBadge + visitBadge + seasonBadge);
     } catch (err) {
       console.error('Action scan failed:', err);
     } finally {
@@ -242,13 +345,18 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       ? nudges.filter(n => n.stock_status === 'in_stock' || n.stock_status === 'low_stock')
       : nudges.filter(n => n.stock_status === 'out_of_stock' || n.stock_status === 'unknown');
 
+  const filteredVisits = visitFilter === 'all' ? visitSchedules : visitSchedules.filter(v => v.visit_urgency === visitFilter);
+
   const mgr = isAdmin ? selectedManager : currentManager;
   const churnCount = actions.length;
   const nudgeCount = nudges.length;
   const meetingCount = meetings.length;
   const stockCount = stockDepletions.length;
   const upsellCount = upsells.length;
-  const hasAnyData = churnCount > 0 || nudgeCount > 0 || meetingCount > 0 || stockCount > 0 || upsellCount > 0;
+  const newArrivalCount = newArrivals.length;
+  const visitCount = visitSchedules.length;
+  const seasonCount = seasonRecos.length;
+  const hasAnyData = churnCount > 0 || nudgeCount > 0 || meetingCount > 0 || stockCount > 0 || upsellCount > 0 || newArrivalCount > 0 || visitCount > 0 || seasonCount > 0;
 
   return (
     <div>
@@ -346,9 +454,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
           { label: '미팅 예정', count: summary.meetings_upcoming, color: '#6A1B9A', bg: '#F3E5F5' },
           { label: '재고 부족', count: summary.stock_alerts, color: '#B71C1C', bg: '#FFEBEE' },
           { label: '업셀 추천', count: summary.upsell_count, color: '#2E7D32', bg: '#E8F5E9' },
+          { label: '신규 입고', count: summary.new_arrivals_count, color: '#00838F', bg: '#E0F7FA' },
+          { label: '방문 추천', count: summary.visit_total, color: '#795548', bg: '#EFEBE9' },
         ].map(s => (
           <div key={s.label} style={{
-            flex: '1 1 90px',
+            flex: '1 1 70px',
             background: s.bg,
             borderRadius: 10,
             padding: '10px 8px',
@@ -363,6 +473,23 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
             </div>
           </div>
         ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{
+          flex: '1 1 120px',
+          background: '#E8EAF6',
+          borderRadius: 10,
+          padding: '10px 8px',
+          textAlign: 'center',
+          minWidth: 120,
+        }}>
+          <div style={{ fontSize: 10, color: '#283593', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap' }}>
+            시즌 추천 {summary.season_name ? `(${summary.season_name})` : ''}
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#283593' }}>
+            {summary.season_reco_count}
+          </div>
+        </div>
       </div>
 
       {/* 스캔 중 */}
@@ -1203,6 +1330,550 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         재고 {u.available_stock}병
                       </span>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══ 신규 입고 매칭 섹션 ═══ */}
+      {mgr && !scanning && (
+        <div style={{ marginBottom: 24 }}>
+          <button
+            onClick={() => setNewArrivalCollapsed(!newArrivalCollapsed)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '10px 0',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: '1px solid #e8e6e1',
+              marginBottom: newArrivalCollapsed ? 0 : 12,
+            }}
+          >
+            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: newArrivalCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#00838F' }}>
+              신규 입고 매칭
+            </span>
+            <span style={{
+              fontSize: 11,
+              color: 'white',
+              background: newArrivalCount > 0 ? '#00838F' : '#ccc',
+              borderRadius: 99,
+              padding: '1px 8px',
+              fontWeight: 600,
+            }}>
+              {newArrivalCount}
+            </span>
+          </button>
+
+          {!newArrivalCollapsed && (
+            <>
+              {newArrivalCount === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#bbb', fontSize: 13 }}>
+                  신규 입고 와인이 없습니다.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {newArrivals.map((wine, idx) => (
+                  <div
+                    key={`${wine.item_no}-${idx}`}
+                    style={{
+                      background: 'white',
+                      borderRadius: 12,
+                      borderLeft: '4px solid #00838F',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    {/* 와인 헤더 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: '#E0F7FA',
+                        color: '#00838F',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}>
+                        NEW
+                      </span>
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#1a1a2e',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {wine.item_name}
+                      </span>
+                    </div>
+
+                    {/* 와인 메타 정보 */}
+                    <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+                      {[wine.country, wine.grape, wine.wine_type, wine.supply_price > 0 ? `₩${fmt(wine.supply_price)}` : ''].filter(Boolean).join(' · ')}
+                    </div>
+
+                    {/* 재고 정보 */}
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>
+                      재고: <strong style={{ color: '#00838F' }}>{wine.available_stock}병</strong>
+                      {wine.incoming_stock > 0 && (
+                        <>
+                          <span style={{ margin: '0 6px', color: '#ddd' }}>|</span>
+                          입고예정: <strong style={{ color: '#00838F' }}>{wine.incoming_stock}병</strong>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 추천 거래처 */}
+                    {wine.matched_clients.length > 0 && (
+                      <div style={{
+                        borderTop: '1px solid #f0ece4',
+                        paddingTop: 10,
+                      }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 8 }}>
+                          추천 거래처
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {wine.matched_clients.map((c, ci) => (
+                            <div key={c.client_code} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              fontSize: 12,
+                              color: '#444',
+                              padding: '6px 8px',
+                              background: ci === 0 ? '#F0FAFB' : '#FAFAFA',
+                              borderRadius: 8,
+                            }}>
+                              <span style={{
+                                fontWeight: 700,
+                                color: '#00838F',
+                                fontSize: 13,
+                                minWidth: 18,
+                                textAlign: 'center',
+                                flexShrink: 0,
+                              }}>
+                                {ci + 1}.
+                              </span>
+                              {c.importance != null && c.importance >= 1 && c.importance <= 5 && (
+                                <span style={{ fontSize: 11, color: '#F59E0B', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {importanceStars(c.importance)}
+                                </span>
+                              )}
+                              <span style={{
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                flex: 1,
+                                minWidth: 0,
+                              }}>
+                                {c.client_name}
+                              </span>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                background: c.match_score >= 60 ? '#E0F7FA' : '#F5F5F5',
+                                color: c.match_score >= 60 ? '#00838F' : '#888',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}>
+                                {c.match_score}점
+                              </span>
+                              <span style={{
+                                fontSize: 10,
+                                color: '#999',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}>
+                                {c.match_reasons.join('·')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══ 방문 추천 섹션 ═══ */}
+      {mgr && !scanning && (
+        <div style={{ marginBottom: 24 }}>
+          <button
+            onClick={() => setVisitCollapsed(!visitCollapsed)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '10px 0',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: '1px solid #e8e6e1',
+              marginBottom: visitCollapsed ? 0 : 12,
+            }}
+          >
+            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: visitCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#795548' }}>
+              방문 추천
+            </span>
+            <span style={{
+              fontSize: 11,
+              color: 'white',
+              background: visitCount > 0 ? '#795548' : '#ccc',
+              borderRadius: 99,
+              padding: '1px 8px',
+              fontWeight: 600,
+            }}>
+              {visitCount}
+            </span>
+          </button>
+
+          {!visitCollapsed && (
+            <>
+              {visitCount > 0 && (
+                <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {([
+                    { id: 'all' as VisitFilter, label: '전체', count: visitCount },
+                    { id: 'critical' as VisitFilter, label: '긴급', count: visitSchedules.filter(v => v.visit_urgency === 'critical').length },
+                    { id: 'high' as VisitFilter, label: '주의', count: visitSchedules.filter(v => v.visit_urgency === 'high').length },
+                    { id: 'medium' as VisitFilter, label: '관찰', count: visitSchedules.filter(v => v.visit_urgency === 'medium').length },
+                  ]).map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => setVisitFilter(f.id)}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        border: visitFilter === f.id ? `1.5px solid ${f.id === 'all' ? '#795548' : VISIT_URGENCY_COLORS[f.id] || '#795548'}` : '1px solid #e0dcd4',
+                        background: visitFilter === f.id ? (f.id === 'all' ? '#EFEBE9' : VISIT_URGENCY_BG[f.id] || '#EFEBE9') : 'white',
+                        fontSize: 11,
+                        fontWeight: visitFilter === f.id ? 600 : 400,
+                        color: visitFilter === f.id ? (f.id === 'all' ? '#795548' : VISIT_URGENCY_COLORS[f.id] || '#795548') : '#999',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {f.label} ({f.count})
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {visitCount === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#bbb', fontSize: 13 }}>
+                  방문이 필요한 거래처가 없습니다.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filteredVisits.map(v => (
+                  <div
+                    key={v.client_code}
+                    style={{
+                      background: 'white',
+                      borderRadius: 12,
+                      borderLeft: `4px solid ${VISIT_URGENCY_COLORS[v.visit_urgency] || '#795548'}`,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    {/* 헤더: 긴급도 + 점수 + 중요도 + 거래처명 */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          background: VISIT_URGENCY_BG[v.visit_urgency],
+                          color: VISIT_URGENCY_COLORS[v.visit_urgency],
+                          fontSize: 11,
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}>
+                          {VISIT_URGENCY_LABELS[v.visit_urgency]} {v.visit_score}
+                        </span>
+                        {v.importance != null && v.importance >= 1 && v.importance <= 5 && (
+                          <span style={{ fontSize: 12, color: '#F59E0B', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {importanceStars(v.importance)}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: '#1a1a2e',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {v.client_name}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 마지막 접촉 */}
+                    <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                      마지막 접촉: <strong style={{ color: v.days_since_contact >= 60 ? '#4E342E' : '#333' }}>
+                        {v.days_since_contact}일 전
+                      </strong>
+                      <span style={{ color: '#bbb', marginLeft: 6 }}>({v.last_contact_date})</span>
+                      <span style={{
+                        display: 'inline-block',
+                        marginLeft: 6,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                        background: '#F5F5F5',
+                        color: '#888',
+                        fontSize: 10,
+                        fontWeight: 500,
+                      }}>
+                        {CONTACT_TYPE_LABELS[v.last_contact_type] || v.last_contact_type}
+                      </span>
+                    </div>
+
+                    {/* 방문주기 + 초과일 */}
+                    <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+                      방문주기: <strong>{v.visit_cycle_days}일</strong>
+                      {v.days_overdue > 0 && (
+                        <span style={{ marginLeft: 8, color: '#4E342E', fontWeight: 600 }}>
+                          → {v.days_overdue}일 초과
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 태그들 */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: v.suggested_type === 'visit' ? '#EFEBE9' : '#F3E5F5',
+                        color: v.suggested_type === 'visit' ? '#4E342E' : '#6A1B9A',
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}>
+                        {v.suggested_type === 'visit' ? '방문 권장' : '전화 권장'}
+                      </span>
+                      {v.importance !== null && v.importance <= 2 && (
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          background: '#FFF8E1',
+                          color: '#F57F17',
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}>
+                          {v.importance === 1 ? 'VIP' : '주요거래처'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 주요 품목 */}
+                    {v.top_items.length > 0 && (
+                      <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+                        주요 품목: {v.top_items.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══ 시즌 선제 추천 섹션 ═══ */}
+      {mgr && !scanning && (
+        <div style={{ marginBottom: 24 }}>
+          <button
+            onClick={() => setSeasonCollapsed(!seasonCollapsed)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '10px 0',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: '1px solid #e8e6e1',
+              marginBottom: seasonCollapsed ? 0 : 12,
+            }}
+          >
+            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: seasonCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#283593' }}>
+              시즌 선제 추천
+            </span>
+            {summary.season_name && (
+              <span style={{ fontSize: 11, color: '#5C6BC0', fontWeight: 500 }}>
+                다음달 {summary.season_reco_count > 0 ? seasonRecos[0]?.target_month : ''}월 · {summary.season_name}
+                {seasonRecos[0]?.season_change ? ' (시즌 전환)' : ''}
+              </span>
+            )}
+            <span style={{
+              fontSize: 11,
+              color: 'white',
+              background: seasonCount > 0 ? '#283593' : '#ccc',
+              borderRadius: 99,
+              padding: '1px 8px',
+              fontWeight: 600,
+              marginLeft: 'auto',
+            }}>
+              {seasonCount}
+            </span>
+          </button>
+
+          {!seasonCollapsed && (
+            <>
+              {seasonCount === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#bbb', fontSize: 13 }}>
+                  시즌 추천 와인이 없습니다.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {seasonRecos.slice(0, 20).map((wine, idx) => (
+                  <div
+                    key={`${wine.item_no}-${idx}`}
+                    style={{
+                      background: 'white',
+                      borderRadius: 12,
+                      borderLeft: `4px solid ${wine.season_change ? '#1A237E' : '#283593'}`,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    {/* 와인 헤더 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: '#E8EAF6',
+                        color: '#283593',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}>
+                        {wine.season_name}
+                      </span>
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#1a1a2e',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {wine.item_name}
+                      </span>
+                    </div>
+
+                    {/* 와인 메타 정보 */}
+                    <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+                      {[wine.country, wine.wine_type, wine.grape, wine.supply_price > 0 ? `₩${fmt(wine.supply_price)}` : '', `재고 ${wine.available_stock}병`].filter(Boolean).join(' · ')}
+                    </div>
+
+                    {/* 추천 거래처 */}
+                    {wine.matched_clients.length > 0 && (
+                      <div style={{
+                        borderTop: '1px solid #f0ece4',
+                        paddingTop: 10,
+                      }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 8 }}>
+                          추천 거래처
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {wine.matched_clients.map((c, ci) => (
+                            <div key={c.client_code} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              fontSize: 12,
+                              color: '#444',
+                              padding: '6px 8px',
+                              background: ci === 0 ? '#EDE7F6' : '#FAFAFA',
+                              borderRadius: 8,
+                            }}>
+                              <span style={{
+                                fontWeight: 700,
+                                color: '#283593',
+                                fontSize: 13,
+                                minWidth: 18,
+                                textAlign: 'center',
+                                flexShrink: 0,
+                              }}>
+                                {ci + 1}.
+                              </span>
+                              {c.importance != null && c.importance >= 1 && c.importance <= 5 && (
+                                <span style={{ fontSize: 11, color: '#F59E0B', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {importanceStars(c.importance)}
+                                </span>
+                              )}
+                              <span style={{
+                                fontWeight: 600,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                flex: 1,
+                                minWidth: 0,
+                              }}>
+                                {c.client_name}
+                              </span>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                background: c.match_score >= 70 ? '#E8EAF6' : '#F5F5F5',
+                                color: c.match_score >= 70 ? '#283593' : '#888',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}>
+                                {c.match_score}점
+                              </span>
+                              <span style={{
+                                fontSize: 10,
+                                color: '#999',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}>
+                                {c.match_reasons.join('·')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
