@@ -259,6 +259,7 @@ export default function InventoryPage() {
   const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<InvColumnKey[]>(DEFAULT_INV_CDV);
   const [visibleColumnsDL, setVisibleColumnsDL] = useState<InvColumnKey[]>(DEFAULT_INV_DL);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [clientNameFocused, setClientNameFocused] = useState(false);
 
   // ── Tasting note modal ──
   const [showTastingNote, setShowTastingNote] = useState(false);
@@ -1201,7 +1202,8 @@ export default function InventoryPage() {
           }}>
             <div style={{
               background: 'white', borderRadius: 12,
-              border: '1px solid #F0EFED',
+              border: '1.5px solid #E5E5E5',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               maxHeight: 'calc(100vh - 88px)',
               overflowY: 'auto',
               display: 'flex', flexDirection: 'column',
@@ -1229,16 +1231,20 @@ export default function InventoryPage() {
                     placeholder="거래처명"
                     value={clientName}
                     onChange={e => setClientName(e.target.value)}
+                    onFocus={() => setClientNameFocused(true)}
+                    onBlur={() => setClientNameFocused(false)}
                     style={{
-                      width: 120, fontSize: 16, padding: '4px 8px',
-                      borderRadius: 5, border: '1px solid #E5E5E5', outline: 'none',
+                      width: 120, fontSize: 16, padding: '5px 10px',
+                      borderRadius: 8, border: `1.5px solid ${clientNameFocused ? '#5A1515' : '#E5E5E5'}`, outline: 'none',
+                      boxShadow: clientNameFocused ? '0 0 0 3px rgba(90,21,21,0.06)' : 'none',
+                      transition: 'border-color 0.15s, box-shadow 0.15s',
                     }}
                   />
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowDocSettings(!showDocSettings); }}
                     style={{
-                      width: 28, height: 28, borderRadius: 5, border: '1px solid #E5E5E5',
-                      background: showDocSettings ? '#f0f0f0' : 'white',
+                      width: 28, height: 28, borderRadius: 8, border: '1px solid #E5E5E5',
+                      background: showDocSettings ? 'rgba(90,21,21,0.08)' : 'white',
                       cursor: 'pointer', fontSize: 13,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -1249,8 +1255,8 @@ export default function InventoryPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowQuoteColumnSettings(!showQuoteColumnSettings); }}
                     style={{
-                      width: 28, height: 28, borderRadius: 5, border: '1px solid #E5E5E5',
-                      background: showQuoteColumnSettings ? '#f0f0f0' : 'white',
+                      width: 28, height: 28, borderRadius: 8, border: '1px solid #E5E5E5',
+                      background: showQuoteColumnSettings ? 'rgba(90,21,21,0.08)' : 'white',
                       cursor: 'pointer', fontSize: 13,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -1262,7 +1268,7 @@ export default function InventoryPage() {
                     <button
                       onClick={clearAllQuote}
                       style={{
-                        padding: '3px 8px', borderRadius: 5,
+                        padding: '3px 8px', borderRadius: 8,
                         border: '1px solid #e74c3c', background: 'white',
                         color: '#e74c3c', fontSize: '0.68rem', fontWeight: 600,
                         cursor: 'pointer',
@@ -1298,7 +1304,7 @@ export default function InventoryPage() {
                             value={(docSettings as any)[key] || ''}
                             onChange={e => setDocSettings(prev => ({ ...prev, [key]: e.target.value }))}
                             style={{
-                              flex: 1, fontSize: 13, padding: '5px 8px', borderRadius: 4,
+                              flex: 1, fontSize: 13, padding: '5px 8px', borderRadius: 6,
                               border: '1px solid #E5E5E5', minWidth: 0, outline: 'none',
                             }}
                           />
@@ -1308,7 +1314,7 @@ export default function InventoryPage() {
                     <button
                       onClick={() => setDocSettings(activeTab === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)}
                       style={{
-                        marginTop: 8, padding: '4px 10px', borderRadius: 4,
+                        marginTop: 8, padding: '4px 10px', borderRadius: 6,
                         border: '1px solid #E5E5E5', background: 'white',
                         fontSize: '0.72rem', cursor: 'pointer', color: '#666',
                       }}
@@ -1363,7 +1369,7 @@ export default function InventoryPage() {
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
-                        <tr style={{ background: '#f5f5f5' }}>
+                        <tr style={{ background: '#fafaf8' }}>
                           <th style={{ ...qThStyle, width: 36 }}>No.</th>
                           {visibleQuoteCols.map(col => (
                             <th key={col.key} style={{
@@ -1601,7 +1607,7 @@ export default function InventoryPage() {
                     onClick={(e) => { e.stopPropagation(); setShowDocSettings(!showDocSettings); }}
                     style={{
                       width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E5E5',
-                      background: showDocSettings ? '#f0f0f0' : 'white',
+                      background: showDocSettings ? 'rgba(90,21,21,0.08)' : 'white',
                       cursor: 'pointer', fontSize: 15, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -1613,7 +1619,7 @@ export default function InventoryPage() {
                     onClick={(e) => { e.stopPropagation(); setShowQuoteColumnSettings(!showQuoteColumnSettings); }}
                     style={{
                       width: 36, height: 36, borderRadius: 8, border: '1px solid #E5E5E5',
-                      background: showQuoteColumnSettings ? '#f0f0f0' : 'white',
+                      background: showQuoteColumnSettings ? 'rgba(90,21,21,0.08)' : 'white',
                       cursor: 'pointer', fontSize: 15, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -1648,7 +1654,7 @@ export default function InventoryPage() {
                             value={(docSettings as any)[key] || ''}
                             onChange={e => setDocSettings(prev => ({ ...prev, [key]: e.target.value }))}
                             style={{
-                              flex: 1, fontSize: 16, padding: '5px 8px', borderRadius: 4,
+                              flex: 1, fontSize: 16, padding: '5px 8px', borderRadius: 6,
                               border: '1px solid #E5E5E5', minWidth: 0, outline: 'none',
                             }}
                           />
@@ -1658,7 +1664,7 @@ export default function InventoryPage() {
                     <button
                       onClick={() => setDocSettings(activeTab === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)}
                       style={{
-                        marginTop: 8, padding: '4px 10px', borderRadius: 4,
+                        marginTop: 8, padding: '4px 10px', borderRadius: 6,
                         border: '1px solid #E5E5E5', background: 'white',
                         fontSize: '0.72rem', cursor: 'pointer', color: '#666',
                       }}

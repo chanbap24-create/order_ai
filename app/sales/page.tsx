@@ -5,6 +5,7 @@ import SalesTabs from './components/SalesTabs';
 import type { SalesTabId } from './components/SalesTabs';
 import MeetingTab from './components/MeetingTab';
 import BriefingTab from './components/BriefingTab';
+import ActionTab from './components/ActionTab';
 import AlertTab from './components/AlertTab';
 import AnalysisTab from './components/AnalysisTab';
 
@@ -34,9 +35,14 @@ export default function SalesPage() {
   // ── 탭 ──
   const [activeTab, setActiveTab] = useState<SalesTabId>('meetings');
   const [alertCount, setAlertCount] = useState<number>(0);
+  const [actionCount, setActionCount] = useState<number>(0);
 
   const handleAlertCountChange = useCallback((count: number) => {
     setAlertCount(count);
+  }, []);
+
+  const handleActionCountChange = useCallback((count: number) => {
+    setActionCount(count);
   }, []);
 
   // ── 세션 확인 ──
@@ -106,6 +112,7 @@ export default function SalesPage() {
     setLoginPassword('');
     setActiveTab('meetings');
     setAlertCount(0);
+    setActionCount(0);
   };
 
   // ── 비밀번호 변경 ──
@@ -421,11 +428,12 @@ export default function SalesPage() {
         )}
 
         {/* 탭 */}
-        <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} />
+        <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} actionCount={actionCount} />
 
         {/* 탭 콘텐츠 */}
         {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'briefing' && <BriefingTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'actions' && <ActionTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleActionCountChange} />}
         {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'alerts' && <AlertTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleAlertCountChange} />}
       </div>

@@ -86,8 +86,8 @@ function getSeasonInfo(month: number): { season: string; types: string[]; grapes
 }
 
 const DEFAULT_W = {
-  REORDER: 35, COUNTRY_MATCH: 12, GRAPE_MATCH: 12, TYPE_MATCH: 8,
-  PRICE_FIT: 10, SALES_VELOCITY: 8, SEASONAL: 10, UPSELL: 5,
+  REORDER: 35, COUNTRY_MATCH: 5, GRAPE_MATCH: 12, TYPE_MATCH: 8,
+  PRICE_FIT: 10, SALES_VELOCITY: 5, SEASONAL: 7, UPSELL: 3,
 };
 
 const DEFAULT_STOCK_RULES = {
@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
 
     const { data: rawInventory } = await supabase
       .from('inventory_cdv')
-      .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d');
+      .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d, brand');
 
     function minStockForPrice(price: number): number {
       if (price >= 300000) return SR.price_300k;
@@ -320,10 +320,16 @@ export async function POST(req: NextRequest) {
 
     const threeMonthsAgoStr = threeStr;
 
+    // ── 가격대 필터링 범위 계산 ──
+    const hasPurchaseHistory = totalPurchases > 0 && avgPrice > 0;
+    const priceFloor = hasPurchaseHistory ? Math.max(avgPrice * 0.3, 10000) : 15000;
+    const priceCeiling = hasPurchaseHistory ? avgPrice * 3.0 : 500000;
+
     interface ScoredItem {
       item_no: string; item_name: string; score: number;
       tags: string[]; reason: string; price: number; stock: number;
       country: string; region: string; grape: string; wine_type: string;
+      brand: string;
     }
 
     const scored: ScoredItem[] = [];
@@ -345,6 +351,7 @@ export async function POST(req: NextRequest) {
       const reasons: string[] = [];
       const purchase = purchaseAgg[itemNo];
 
+      // ── 재주문 아이템 처리 ──
       if (purchase) {
         const isStale = !purchase.lastDate || purchase.lastDate <= threeMonthsAgoStr;
         if (purchase.count >= 2 && isStale) {
@@ -356,7 +363,11 @@ export async function POST(req: NextRequest) {
         if (!tags.includes('재주문')) continue;
       }
 
+      // ── 신규 추천 아이템 처리 ──
       if (!purchase) {
+        // 가격대 필터: 범위 밖이면 skip (재주문은 위에서 이미 처리)
+        if (invPrice > 0 && (invPrice < priceFloor || invPrice > priceCeiling)) continue;
+
         if (invCountry && countryCount[invCountry]) {
           score += W.COUNTRY_MATCH * (countryCount[invCountry] / maxCountryBuy);
           tags.push('선호국가');
@@ -374,11 +385,24 @@ export async function POST(req: NextRequest) {
           score += W.TYPE_MATCH * (typeCount[wineType] / maxTypeBuy);
           tags.push('선호타입');
         }
+
+        // ── 개선된 가격 적합도 스코어링 ──
         if (clientAvgPrice > 0 && invPrice > 0) {
-          const priceDiff = Math.abs(invPrice - clientAvgPrice) / clientAvgPrice;
-          if (priceDiff <= 0.2) { score += W.PRICE_FIT * (1 - priceDiff / 0.2); tags.push('적정가격'); }
-          else if (invPrice > clientAvgPrice && priceDiff <= 0.5) { score += W.UPSELL * (1 - (priceDiff - 0.2) / 0.3); tags.push('프리미엄'); }
+          const ratio = invPrice / clientAvgPrice;
+          if (ratio >= 0.7 && ratio <= 1.3) {
+            // ±30% 이내: 슬라이딩 보너스 (중심=1.0에서 멀수록 감소)
+            const dist = Math.abs(1 - ratio) / 0.3; // 0~1
+            score += W.PRICE_FIT * (1 - dist * 0.7); // 최소 30% 보너스
+            tags.push('적정가격');
+          } else if (ratio > 1.3 && ratio <= 2.0) {
+            // 30~100% 비쌈: 약한 프리미엄 보너스
+            const fit = 1 - (ratio - 1.3) / 0.7; // 1→0
+            score += W.UPSELL * fit;
+            tags.push('프리미엄');
+          }
+          // 30% 이상 저렴: 보너스 없음 → 자연스럽게 하위 랭크
         }
+
         let seasonMatched = false;
         for (const t of seasonInfo.types) { if (wineType.toLowerCase().includes(t.toLowerCase())) { seasonMatched = true; break; } }
         if (!seasonMatched) { for (const g of seasonInfo.grapes) { if (invGrapes.toLowerCase().includes(g.toLowerCase())) { seasonMatched = true; break; } } }
@@ -402,11 +426,46 @@ export async function POST(req: NextRequest) {
         region: wine?.region || '',
         grape: invGrapes,
         wine_type: wineType,
+        brand: inv.brand || '',
       });
     }
 
+    // ── Step 1: 점수순 상위 15개 후보 선정 ──
     scored.sort((a, b) => b.score - a.score);
-    const recommendations = scored.slice(0, 10);
+    const candidates = scored.slice(0, 15);
+
+    // ── Step 2: brand 중복 제한 (같은 brand 최대 2개) ──
+    const brandCount: Record<string, number> = {};
+    const diversified: ScoredItem[] = [];
+    for (const item of candidates) {
+      const b = item.brand;
+      if (b) {
+        brandCount[b] = (brandCount[b] || 0) + 1;
+        if (brandCount[b] > 2) continue;
+      }
+      diversified.push(item);
+    }
+
+    // ── Step 3: 최종 정렬 ──
+    const typeOrder: Record<string, number> = { '레드': 0, '화이트': 1, '스파클링': 2, '로제': 3 };
+    diversified.sort((a, b) => {
+      // 재주문 우선
+      const aReorder = a.tags.includes('재주문') ? 0 : 1;
+      const bReorder = b.tags.includes('재주문') ? 0 : 1;
+      if (aReorder !== bReorder) return aReorder - bReorder;
+      // 점수대 그룹 (5점 단위)
+      const aGroup = Math.floor(a.score / 5);
+      const bGroup = Math.floor(b.score / 5);
+      if (aGroup !== bGroup) return bGroup - aGroup;
+      // 같은 점수대 내 타입 그룹
+      const aType = typeOrder[a.wine_type] ?? 4;
+      const bType = typeOrder[b.wine_type] ?? 4;
+      if (aType !== bType) return aType - bType;
+      // 같은 타입 내 가격 내림차순
+      return b.price - a.price;
+    });
+
+    const recommendations = diversified.slice(0, 10);
 
     // ── 3. 최근 주문 5건 ──
     const recentOrders = shipments.slice(0, 5).map(s => ({

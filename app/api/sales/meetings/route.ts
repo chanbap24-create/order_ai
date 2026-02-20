@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus } = body;
+    const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus, reminder_minutes } = body;
 
     if (!client_code || !meeting_date) {
       return NextResponse.json({ error: 'client_code, meeting_date는 필수입니다.' }, { status: 400 });
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         notes: notes || null,
       };
       if (meetingStatus) updateData.status = meetingStatus;
+      if (reminder_minutes !== undefined) updateData.reminder_minutes = reminder_minutes;
 
       const { data, error } = await supabase
         .from('meetings')
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
           status: 'planned',
           purpose: purpose || null,
           notes: notes || null,
+          reminder_minutes: reminder_minutes !== undefined ? reminder_minutes : null,
         })
         .select()
         .single();
@@ -140,7 +142,7 @@ export async function DELETE(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, status: newStatus, notes } = body;
+    const { id, status: newStatus, notes, reminder_minutes } = body;
 
     if (!id || !newStatus) {
       return NextResponse.json({ error: 'id, status는 필수입니다.' }, { status: 400 });
@@ -148,6 +150,7 @@ export async function PATCH(req: NextRequest) {
 
     const updateData: any = { status: newStatus };
     if (notes !== undefined) updateData.notes = notes;
+    if (reminder_minutes !== undefined) updateData.reminder_minutes = reminder_minutes;
 
     const { data, error } = await supabase
       .from('meetings')

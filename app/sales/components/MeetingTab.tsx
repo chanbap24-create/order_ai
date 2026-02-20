@@ -26,6 +26,7 @@ interface Meeting {
   client_business_type: string;
   client_manager: string;
   client_contact: string;
+  reminder_minutes: number | null;
 }
 
 interface BriefingData {
@@ -93,6 +94,18 @@ const TAG_COLORS: Record<string, string> = {
 
 const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
 
+const REMINDER_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null, label: '기본값(30분)' },
+  { value: 0, label: '없음' },
+  { value: 5, label: '5분 전' },
+  { value: 10, label: '10분 전' },
+  { value: 15, label: '15분 전' },
+  { value: 30, label: '30분 전' },
+  { value: 60, label: '1시간 전' },
+];
+
+const DEFAULT_REMINDER_MINUTES = 30;
+
 function fmt(n: number) {
   if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
   if (n >= 1e4) return Math.round(n / 1e4).toLocaleString() + '만';
@@ -150,8 +163,13 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   const [newClientName, setNewClientName] = useState('');
   const [newClientCode, setNewClientCode] = useState('');
   const [newClientCodeError, setNewClientCodeError] = useState('');
+  const [modalReminder, setModalReminder] = useState<number | null>(null);
   const modalDropdownRef = useRef<HTMLDivElement>(null);
   const modalSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 알림 관련
+  const notifiedIdsRef = useRef<Set<number>>(new Set());
+  const [reminderToast, setReminderToast] = useState<{ text: string; meetingId: number } | null>(null);
 
   // 상세 패널
   const [detailMeeting, setDetailMeeting] = useState<Meeting | null>(null);
@@ -298,6 +316,59 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     return () => clearTimeout(t);
   }, [toast]);
 
+  // ── 브라우저 알림 권한 요청 ──
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // ── 리마인더 폴링 (60초) ──
+  useEffect(() => {
+    const checkReminders = () => {
+      const now = new Date();
+      const todayStr = formatDate(now);
+      const defaultMin = DEFAULT_REMINDER_MINUTES;
+
+      for (const m of meetings) {
+        if (m.meeting_date?.slice(0, 10) !== todayStr) continue;
+        if (!m.meeting_time) continue;
+        if (m.status === 'completed' || m.status === 'cancelled') continue;
+
+        const reminderMin = m.reminder_minutes !== null && m.reminder_minutes !== undefined ? m.reminder_minutes : defaultMin;
+        if (reminderMin === 0) continue;
+        if (notifiedIdsRef.current.has(m.id)) continue;
+
+        const [hh, mm] = m.meeting_time.split(':').map(Number);
+        const meetingTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0);
+        const alertTime = new Date(meetingTime.getTime() - reminderMin * 60 * 1000);
+
+        if (now >= alertTime && now < meetingTime) {
+          notifiedIdsRef.current.add(m.id);
+          const mt = MEETING_TYPES[m.meeting_type] || MEETING_TYPES.visit;
+          const title = `🔔 ${mt.label} · ${m.client_name}`;
+          const body = `${m.meeting_time} · ${m.purpose || ''}`;
+
+          // 브라우저 알림
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            const n = new Notification(title, { body, icon: '/favicon.ico' });
+            n.onclick = () => {
+              window.focus();
+              openDetail(m);
+            };
+          }
+
+          // 인앱 토스트
+          setReminderToast({ text: `🔔 ${m.meeting_time} ${mt.label} - ${m.client_name}`, meetingId: m.id });
+        }
+      }
+    };
+
+    checkReminders();
+    const interval = setInterval(checkReminders, 60000);
+    return () => clearInterval(interval);
+  }, [meetings]);
+
   // ── 미팅 생성/수정 ──
   const openCreateModal = (date?: string) => {
     setEditingId(null);
@@ -310,6 +381,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     setNewClientMode(false);
     setNewClientName('');
     setNewClientCode('');
+    setModalReminder(null);
     setShowModal(true);
   };
 
@@ -350,6 +422,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
         meeting_time: modalTime,
         meeting_type: modalType,
         purpose: modalPurpose,
+        reminder_minutes: modalReminder,
       };
       if (editingId) body.id = editingId;
 
@@ -638,6 +711,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
                     {dayMeetings.slice(0, 3).map(m => {
                       const mt = MEETING_TYPES[m.meeting_type] || MEETING_TYPES.visit;
+                      const hasReminder = m.meeting_time && m.reminder_minutes !== 0;
                       return (
                         <div key={m.id} onClick={e => { e.stopPropagation(); openDetail(m); }} style={{
                           fontSize: 9, padding: '1px 3px', marginBottom: 1,
@@ -647,7 +721,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                           fontWeight: 600, cursor: 'pointer',
                           maxWidth: '100%',
                         }}>
-                          {m.meeting_time?.slice(0, 5) || ''} {m.client_name}
+                          {hasReminder && <span style={{ fontSize: 8, marginRight: 1 }}>🔔</span>}{m.meeting_time?.slice(0, 5) || ''} {m.client_name}
                         </div>
                       );
                     })}
@@ -752,6 +826,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                       const mt = MEETING_TYPES[m.meeting_type] || MEETING_TYPES.visit;
                       const st = STATUS_MAP[m.status] || STATUS_MAP.planned;
                       const imp = IMPORTANCE_LABELS[m.client_importance] || IMPORTANCE_LABELS[3];
+                      const hasReminder = m.meeting_time && m.reminder_minutes !== 0;
 
                       return (
                         <div key={m.id} onClick={() => openDetail(m)} style={{
@@ -768,7 +843,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                             width: 48, flexShrink: 0, textAlign: 'center',
                             fontSize: 13, fontWeight: 600, color: '#5A1515',
                           }}>
-                            {m.meeting_time || '--:--'}
+                            {hasReminder && <span style={{ fontSize: 10 }}>🔔</span>}{m.meeting_time || '--:--'}
                           </div>
 
                           {/* 내용 */}
@@ -972,10 +1047,32 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8,
                 border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
-                marginBottom: 20, boxSizing: 'border-box', resize: 'vertical',
+                marginBottom: 14, boxSizing: 'border-box', resize: 'vertical',
                 fontFamily: 'inherit',
               }}
             />
+
+            {/* 알람 */}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>알람</label>
+            <select
+              value={modalReminder === null ? 'default' : String(modalReminder)}
+              onChange={e => {
+                const v = e.target.value;
+                setModalReminder(v === 'default' ? null : Number(v));
+              }}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8,
+                border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                marginBottom: 20, boxSizing: 'border-box', background: '#fff',
+                color: '#1a1a2e',
+              }}
+            >
+              {REMINDER_OPTIONS.map(opt => (
+                <option key={opt.value === null ? 'default' : opt.value} value={opt.value === null ? 'default' : opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
 
             {/* 버튼 */}
             <div style={{ display: 'flex', gap: 10 }}>
@@ -1265,10 +1362,38 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
         </div>
       )}
 
+      {/* ── 알람 토스트 (자동 소멸 안 함) ── */}
+      {reminderToast && (
+        <div
+          onClick={() => {
+            const m = meetings.find(mt => mt.id === reminderToast.meetingId);
+            if (m) openDetail(m);
+            setReminderToast(null);
+          }}
+          style={{
+            position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+            background: '#5A1515', color: '#fff', padding: '12px 20px', borderRadius: 10,
+            fontSize: 14, fontWeight: 600, zIndex: 2100,
+            boxShadow: '0 4px 16px rgba(90,21,21,0.3)',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+            maxWidth: 'calc(100% - 32px)',
+          }}
+        >
+          <span style={{ flex: 1 }}>{reminderToast.text}</span>
+          <button
+            onClick={e => { e.stopPropagation(); setReminderToast(null); }}
+            style={{
+              background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
+              fontSize: 18, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
+            }}
+          >×</button>
+        </div>
+      )}
+
       {/* ── 토스트 ── */}
       {toast && (
         <div style={{
-          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', top: reminderToast ? 130 : 80, left: '50%', transform: 'translateX(-50%)',
           background: toast.startsWith('오류') ? '#c53030' : '#38a169',
           color: '#fff', padding: '12px 24px', borderRadius: 8,
           fontSize: 14, fontWeight: 500, zIndex: 2000,
