@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Wine, TastingNote } from '@/app/types/wine';
 
-type NoteFilter = 'all' | 'with' | 'without';
+type NoteFilter = 'all' | 'with' | 'without' | 'db-only';
 
 export default function TastingNoteTab() {
   // === 좌측 리스트 ===
@@ -86,6 +86,7 @@ export default function TastingNoteTab() {
     if (hideZero && ((w.inv_available || 0) + (w.inv_bonded || 0)) <= 0) return false;
     if (filterNote === 'with') return hasNote(w);
     if (filterNote === 'without') return !hasNote(w);
+    if (filterNote === 'db-only') return !!w.tasting_note_id && !ghIndex[w.item_code];
     return true;
   });
 
@@ -377,6 +378,7 @@ export default function TastingNoteTab() {
     all: stockFiltered.length,
     with: stockFiltered.filter(w => hasNote(w)).length,
     without: stockFiltered.filter(w => !hasNote(w)).length,
+    'db-only': stockFiltered.filter(w => !!w.tasting_note_id && !ghIndex[w.item_code]).length,
   };
 
   // ───── 상태 배지 ─────
@@ -395,8 +397,8 @@ export default function TastingNoteTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'inline-flex', background: 'rgba(90,21,21,0.05)', borderRadius: 8, padding: 2 }}>
-          {(['all', 'with', 'without'] as NoteFilter[]).map(f => {
-            const labels: Record<NoteFilter, string> = { all: '전체', with: '작성완료', without: '미작성' };
+          {(['all', 'with', 'without', 'db-only'] as NoteFilter[]).map(f => {
+            const labels: Record<NoteFilter, string> = { all: '전체', with: '작성완료', without: '미작성', 'db-only': 'DB만' };
             const isActive = filterNote === f;
             return (
               <button
