@@ -106,6 +106,45 @@ const REMINDER_OPTIONS: { value: number | null; label: string }[] = [
 
 const DEFAULT_REMINDER_MINUTES = 30;
 
+function buildGoogleCalendarUrl(meeting: Meeting): string {
+  const base = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+  const mt = MEETING_TYPES[meeting.meeting_type] || MEETING_TYPES.visit;
+  const title = `[${mt.label}] ${meeting.client_name}`;
+
+  let dates: string;
+  const dateOnly = meeting.meeting_date.slice(0, 10).replace(/-/g, '');
+  if (meeting.meeting_time) {
+    const timeStr = meeting.meeting_time.replace(/:/g, '');
+    const startDT = `${dateOnly}T${timeStr}00`;
+    // +1시간
+    const [hh, mm] = meeting.meeting_time.split(':').map(Number);
+    const endH = hh + 1;
+    const endDT = `${dateOnly}T${String(endH).padStart(2, '0')}${String(mm).padStart(2, '0')}00`;
+    dates = `${startDT}/${endDT}`;
+  } else {
+    // 종일 이벤트: yyyyMMdd/yyyyMMdd+1
+    const d = new Date(meeting.meeting_date + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    const nextDate = d.toISOString().slice(0, 10).replace(/-/g, '');
+    dates = `${dateOnly}/${nextDate}`;
+  }
+
+  const details = [
+    meeting.purpose && `목적: ${meeting.purpose}`,
+    `타입: ${mt.label}`,
+    `상태: ${STATUS_MAP[meeting.status]?.label || meeting.status}`,
+  ].filter(Boolean).join('\n');
+
+  const params = new URLSearchParams();
+  params.set('action', 'TEMPLATE');
+  params.set('text', title);
+  params.set('dates', dates);
+  params.set('details', details);
+  params.set('location', meeting.client_name);
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 function fmt(n: number) {
   if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
   if (n >= 1e4) return Math.round(n / 1e4).toLocaleString() + '만';
@@ -1172,6 +1211,22 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 background: '#fff', color: '#c62828', fontSize: 12, cursor: 'pointer',
               }}>삭제</button>
             </div>
+
+            {/* 구글 캘린더 추가 버튼 */}
+            <button onClick={() => window.open(buildGoogleCalendarUrl(detailMeeting), '_blank')} style={{
+              width: '100%', padding: '10px', borderRadius: 8, border: 'none',
+              background: '#4285F4', color: '#fff', fontSize: 13, fontWeight: 600,
+              marginBottom: 12, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/>
+                <path d="M3 10h18" stroke="#fff" strokeWidth="2"/>
+                <path d="M8 2v4M16 2v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                <rect x="7" y="13" width="4" height="4" rx="0.5" fill="#fff"/>
+              </svg>
+              캘린더에 추가
+            </button>
 
             {/* 브리핑 생성 버튼 */}
             <button onClick={() => generateBriefing(detailMeeting)} disabled={briefingLoading} style={{
