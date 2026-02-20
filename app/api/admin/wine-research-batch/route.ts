@@ -6,6 +6,76 @@ import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 
+const CONCURRENCY = 2;
+
+async function processOneWine(wineId: string): Promise<{
+  wine_id: string;
+  success: boolean;
+  error?: string;
+  item_name_en?: string;
+  validation?: { confidence: number; issues: string[] };
+}> {
+  const wine = await getWineByCode(wineId);
+  if (!wine) {
+    return { wine_id: wineId, success: false, error: "와인을 찾을 수 없음" };
+  }
+
+  const englishName = wine.item_name_en?.trim();
+  if (!englishName) {
+    return { wine_id: wineId, success: false, error: "영문명 없음" };
+  }
+
+  const { result, validation } = await researchWineWithClaude(wineId, wine.item_name_kr, englishName);
+
+  // confidence < 50 → 저장하지 않음
+  if (validation.confidence < 50) {
+    return {
+      wine_id: wineId,
+      success: false,
+      error: `다른 와인 조사됨 (confidence: ${validation.confidence})`,
+      validation,
+    };
+  }
+
+  if (validation.confidence < 80) {
+    await logChange('claude_batch_research_warning', 'wine', wineId, {
+      item_name_en: result.item_name_en,
+      validation_confidence: validation.confidence,
+      validation_issues: validation.issues,
+    });
+  }
+
+  await upsertWine({
+    item_code: wineId,
+    item_name_en: result.item_name_en,
+    country_en: result.country_en,
+    region: result.region,
+    grape_varieties: result.grape_varieties,
+    wine_type: result.wine_type,
+    alcohol: result.alcohol_percentage || null,
+    ai_researched: 1,
+    ...(result.image_url ? { image_url: result.image_url } : {}),
+  });
+
+  await upsertTastingNote(wineId, {
+    winemaking: result.winemaking,
+    winery_description: result.winery_description,
+    vintage_note: result.vintage_note,
+    aging_potential: result.aging_potential,
+    color_note: result.color_note,
+    nose_note: result.nose_note,
+    palate_note: result.palate_note,
+    food_pairing: result.food_pairing,
+    glass_pairing: result.glass_pairing,
+    serving_temp: result.serving_temp,
+    awards: result.awards,
+    ai_generated: 1,
+  });
+
+  await logChange('claude_batch_research', 'wine', wineId, { item_name_en: result.item_name_en });
+  return { wine_id: wineId, success: true, item_name_en: result.item_name_en, validation };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { wine_ids } = await request.json();
@@ -14,58 +84,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "wine_ids 배열이 필요합니다." }, { status: 400 });
     }
 
-    const results: { wine_id: string; success: boolean; error?: string; item_name_en?: string }[] = [];
+    const results: Awaited<ReturnType<typeof processOneWine>>[] = [];
 
-    for (const wineId of wine_ids) {
-      try {
-        const wine = await getWineByCode(wineId);
-        if (!wine) {
-          results.push({ wine_id: wineId, success: false, error: "와인을 찾을 수 없음" });
-          continue;
+    // 동시 2개씩 처리 (Claude API rate limit 고려)
+    for (let i = 0; i < wine_ids.length; i += CONCURRENCY) {
+      const batch = wine_ids.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.allSettled(batch.map(processOneWine));
+
+      for (let j = 0; j < batchResults.length; j++) {
+        const settled = batchResults[j];
+        if (settled.status === 'fulfilled') {
+          results.push(settled.value);
+        } else {
+          const msg = settled.reason instanceof Error ? settled.reason.message : String(settled.reason);
+          logger.error(`[BatchResearch] Failed for ${batch[j]}: ${msg}`);
+          results.push({ wine_id: batch[j], success: false, error: msg });
         }
-
-        const englishName = wine.item_name_en?.trim();
-        if (!englishName) {
-          results.push({ wine_id: wineId, success: false, error: "영문명 없음" });
-          continue;
-        }
-
-        const result = await researchWineWithClaude(wineId, wine.item_name_kr, englishName);
-
-        await upsertWine({
-          item_code: wineId,
-          item_name_en: result.item_name_en,
-          country_en: result.country_en,
-          region: result.region,
-          grape_varieties: result.grape_varieties,
-          wine_type: result.wine_type,
-          alcohol: result.alcohol_percentage || null,
-          ai_researched: 1,
-          ...(result.image_url ? { image_url: result.image_url } : {}),
-        });
-
-        await upsertTastingNote(wineId, {
-          winemaking: result.winemaking,
-          winery_description: result.winery_description,
-          vintage_note: result.vintage_note,
-          aging_potential: result.aging_potential,
-          color_note: result.color_note,
-          nose_note: result.nose_note,
-          palate_note: result.palate_note,
-          food_pairing: result.food_pairing,
-          glass_pairing: result.glass_pairing,
-          serving_temp: result.serving_temp,
-          awards: result.awards,
-          ai_generated: 1,
-        });
-
-        await logChange('claude_batch_research', 'wine', wineId, { item_name_en: result.item_name_en });
-        results.push({ wine_id: wineId, success: true, item_name_en: result.item_name_en });
-
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        logger.error(`[BatchResearch] Failed for ${wineId}: ${msg}`);
-        results.push({ wine_id: wineId, success: false, error: msg });
       }
     }
 

@@ -3,9 +3,10 @@
 import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
 import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
-import type { WineResearchResult } from "@/app/types/wine";
+import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
 사용자가 제공한 와인 정보와 Wine-Searcher 실제 데이터를 기반으로 와인을 분석하세요.
@@ -52,12 +53,68 @@ function parseVintage(raw: string | undefined | null): string {
   return trimmed;
 }
 
+/** Haiku 모델로 조사 결과가 원본 와인과 동일한지 빠르게 검증 */
+async function validateWineResult(
+  originalNameKr: string,
+  originalNameEn: string,
+  result: WineResearchResult
+): Promise<WineValidation> {
+  try {
+    const client = getClaudeClient();
+
+    const prompt = `당신은 와인 전문가입니다. 아래 원본 와인과 조사 결과가 같은 와인인지 판단하세요.
+
+원본 와인:
+- 한글명: ${originalNameKr}
+- 영문명: ${originalNameEn}
+
+조사 결과:
+- 영문명: ${result.item_name_en}
+- 국가: ${result.country_en}
+- 타입: ${result.wine_type}
+- 품종: ${result.grape_varieties}
+
+판단 기준:
+1. 와인명이 같은 와인을 가리키는지 (약간의 표기 차이는 허용)
+2. 국가/지역이 합리적인지
+3. 품종과 타입이 서로 맞는지 (예: Cabernet Sauvignon → Red)
+
+반드시 아래 JSON 형식으로만 응답하세요:
+{"same_wine": true/false, "confidence": 0-100, "issues": ["문제점1", "문제점2"]}`;
+
+    const response = await client.messages.create({
+      model: HAIKU_MODEL,
+      max_tokens: 300,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const textBlock = response.content.find(b => b.type === 'text');
+    const text = textBlock && 'text' in textBlock ? textBlock.text : '';
+    if (!text) return { confidence: 50, issues: ["검증 응답 없음"] };
+
+    let jsonStr = text.trim();
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    const parsed = JSON.parse(jsonStr) as { same_wine: boolean; confidence: number; issues: string[] };
+    return {
+      confidence: parsed.confidence,
+      issues: parsed.issues || [],
+    };
+  } catch (e) {
+    logger.error(`[Validation] Failed: ${e instanceof Error ? e.message : String(e)}`);
+    // 검증 실패 시 통과 처리 (조사 자체를 막지 않음)
+    return { confidence: 75, issues: ["검증 실행 실패 - 기본 통과"] };
+  }
+}
+
 export async function researchWineWithClaude(
   itemCode: string,
   itemNameKr: string,
   itemNameEn: string,
   vintage?: string
-): Promise<WineResearchResult> {
+): Promise<{ result: WineResearchResult; validation: WineValidation }> {
   const client = getClaudeClient();
 
   if (!itemNameEn?.trim()) {
@@ -66,11 +123,14 @@ export async function researchWineWithClaude(
 
   logger.info(`[Claude] Researching wine: ${itemCode} - ${itemNameKr} (en: ${itemNameEn})`);
 
-  // Step 1: Wine-Searcher에서 실제 데이터 검색
-  let wsContext = "";
-  let imageUrl: string | null = null;
+  // Step 1: Wine-Searcher + Vivino 병렬 실행
+  const [wsData, vivinoImageUrl] = await Promise.all([
+    scrapeWineSearcher(itemNameEn),
+    searchVivinoBottleImage(itemNameEn).catch(() => null),
+  ]);
 
-  const wsData = await scrapeWineSearcher(itemNameEn);
+  let wsContext = "";
+  let imageUrl: string | null = vivinoImageUrl;
 
   if (wsData) {
     wsContext = `\n\n=== Wine-Searcher 실제 데이터 ===\n`;
@@ -82,7 +142,10 @@ export async function researchWineWithClaude(
     if (wsData.reviews && wsData.reviews.length > 0) {
       wsContext += `리뷰:\n${wsData.reviews.map(r => `- ${r}`).join('\n')}\n`;
     }
-    imageUrl = wsData.imageUrl || null;
+    // Vivino가 없으면 WS 이미지 사용
+    if (!imageUrl) {
+      imageUrl = wsData.imageUrl || null;
+    }
     logger.info(`[Claude][WineSearcher] Got data for ${itemCode}`, {
       name: wsData.name,
       varietal: wsData.varietal,
@@ -119,21 +182,24 @@ export async function researchWineWithClaude(
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // Step 3: 이미지 URL 설정 (Vivino 풀 보틀샷 우선)
-  if (!imageUrl) {
-    // Vivino에서 보틀 이미지 우선 검색
-    imageUrl = await searchVivinoBottleImage(result.item_name_en || itemNameEn);
-  }
-  if (!imageUrl && result.item_name_en) {
-    // fallback: searchWineImage (Vivino → Wine-Searcher)
-    imageUrl = await searchWineImage(result.item_name_en);
+  // Step 3: 검증 (Haiku) + 이미지 보완 병렬
+  const [validation, fallbackImage] = await Promise.all([
+    validateWineResult(itemNameKr, itemNameEn, result),
+    // Vivino/WS 이미지 둘 다 없으면 fallback 검색
+    (!imageUrl && result.item_name_en)
+      ? searchWineImage(result.item_name_en).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  if (!imageUrl && fallbackImage) {
+    imageUrl = fallbackImage;
   }
   if (imageUrl) {
     result.image_url = imageUrl;
     logger.info(`[Claude][WineImage] Image found for ${itemCode}: ${imageUrl}`);
   }
 
-  logger.info(`[Claude] Wine research complete for ${itemCode} (WS data: ${wsData ? 'yes' : 'no'}, image: ${imageUrl ? 'yes' : 'no'})`);
+  logger.info(`[Claude] Wine research complete for ${itemCode} (WS: ${wsData ? 'yes' : 'no'}, image: ${imageUrl ? 'yes' : 'no'}, validation: ${validation.confidence})`);
 
-  return result;
+  return { result, validation };
 }

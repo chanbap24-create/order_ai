@@ -85,6 +85,11 @@ export interface AdminSetting {
   updated_at: string;
 }
 
+export interface WineValidation {
+  confidence: number;
+  issues: string[];
+}
+
 export interface WineResearchResult {
   item_name_en: string;
   country_en: string;

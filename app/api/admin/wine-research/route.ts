@@ -16,12 +16,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "영문명(product_name_eng)이 필요합니다." }, { status: 400 });
     }
 
-    const result = await researchWineWithClaude(
+    const { result, validation } = await researchWineWithClaude(
       wine_id,
       item_name_kr || '',
       product_name_eng.trim(),
       vintage || undefined
     );
+
+    // confidence < 50 → 저장 안함, 에러 반환
+    if (validation.confidence < 50) {
+      return NextResponse.json({
+        success: false,
+        error: "다른 와인이 조사되었습니다",
+        validation,
+        data: result,
+      });
+    }
+
+    // confidence 50~79 → 저장하되 warning 로그
+    if (validation.confidence < 80) {
+      await logChange('claude_research_warning', 'wine', wine_id, {
+        item_name_en: result.item_name_en,
+        validation_confidence: validation.confidence,
+        validation_issues: validation.issues,
+      });
+    }
 
     // wines 테이블 업데이트
     await upsertWine({
@@ -37,7 +56,6 @@ export async function POST(request: NextRequest) {
     });
 
     // tasting_notes 테이블 업데이트
-    // approved, manually_edited는 전달하지 않아 기존 값 보존 (신규는 0)
     await upsertTastingNote(wine_id, {
       winemaking: result.winemaking,
       winery_description: result.winery_description,
@@ -55,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result, validation });
   } catch (e) {
     return handleApiError(e);
   }
