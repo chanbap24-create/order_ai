@@ -109,14 +109,14 @@ export default function DismissedTab() {
         marginBottom: 16, flexWrap: 'wrap', gap: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a8a098" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#333' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#2c1810' }}>
             제외된 와인
           </span>
           <span style={{
-            fontSize: 12, color: '#999', fontWeight: 500,
+            fontSize: 12, color: '#a8a098', fontWeight: 500,
           }}>
             {items.length}건
           </span>
@@ -125,7 +125,7 @@ export default function DismissedTab() {
 
       {/* 검색 */}
       <div style={{ position: 'relative', marginBottom: 12 }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a8a098" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
         >
           <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -137,8 +137,8 @@ export default function DismissedTab() {
           onChange={e => setSearch(e.target.value)}
           style={{
             width: '100%', padding: '10px 12px 10px 36px', borderRadius: 8,
-            border: '1px solid #e0e0e0', fontSize: 16, boxSizing: 'border-box',
-            background: '#fafafa', outline: 'none',
+            border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, boxSizing: 'border-box',
+            background: '#faf9f7', outline: 'none',
           }}
         />
       </div>
@@ -147,7 +147,7 @@ export default function DismissedTab() {
       {items.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 12, padding: '8px 12px', background: '#f8f8f6', borderRadius: 8,
+          marginBottom: 12, padding: '8px 12px', background: '#faf9f7', borderRadius: 8,
         }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
             <input
@@ -156,7 +156,7 @@ export default function DismissedTab() {
               onChange={toggleAll}
               style={{ width: 16, height: 16, accentColor: '#5A1515' }}
             />
-            <span style={{ fontWeight: 500, color: '#333' }}>
+            <span style={{ fontWeight: 500, color: '#2c1810' }}>
               전체 선택 {checked.size > 0 && `(${checked.size}개)`}
             </span>
           </label>
@@ -188,15 +188,15 @@ export default function DismissedTab() {
 
       {/* 로딩 */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 13 }}>
           불러오는 중...
         </div>
       )}
 
       {/* 빈 상태 */}
       {!loading && items.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '50px 20px', color: '#999', fontSize: 13 }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
+        <div style={{ textAlign: 'center', padding: '50px 20px', color: '#a8a098', fontSize: 13 }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a8a098" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
             <path d="M22 4L12 14.01l-3-3" />
           </svg>
@@ -206,7 +206,7 @@ export default function DismissedTab() {
 
       {/* 검색 결과 없음 */}
       {!loading && items.length > 0 && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '30px 20px', color: '#999', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '30px 20px', color: '#a8a098', fontSize: 13 }}>
           검색 결과가 없습니다.
         </div>
       )}
@@ -218,7 +218,7 @@ export default function DismissedTab() {
             <div key={item.item_no} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '10px 12px', borderRadius: 10,
-              border: checked.has(item.item_no) ? '1.5px solid #5A1515' : '1px solid #e8e8e8',
+              border: checked.has(item.item_no) ? '1.5px solid #5A1515' : '1px solid rgba(90,21,21,0.08)',
               background: checked.has(item.item_no) ? '#fdf8f8' : 'white',
               cursor: 'pointer', transition: 'all 0.15s',
             }}
@@ -236,16 +236,16 @@ export default function DismissedTab() {
               {/* 정보 */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: 13, fontWeight: 600, color: '#333',
+                  fontSize: 13, fontWeight: 600, color: '#2c1810',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {item.item_name}
                 </div>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
-                  fontSize: 11, color: '#999', flexWrap: 'wrap',
+                  fontSize: 11, color: '#a8a098', flexWrap: 'wrap',
                 }}>
-                  <span style={{ color: '#bbb' }}>{item.item_no}</span>
+                  <span style={{ color: '#a8a098' }}>{item.item_no}</span>
                   {item.country && <span>{item.country}</span>}
                   {item.wine_type && (
                     <span style={{
@@ -277,7 +277,7 @@ export default function DismissedTab() {
                   {item.current_stock > 0 ? `${item.current_stock}병` : '품절'}
                 </div>
                 <div style={{
-                  fontSize: 10, color: '#bbb', marginTop: 2,
+                  fontSize: 10, color: '#a8a098', marginTop: 2,
                 }}>
                   {formatDate(item.dismissed_at)} 제외
                 </div>
@@ -293,7 +293,7 @@ export default function DismissedTab() {
           position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
           background: '#2e7d32', color: 'white', padding: '10px 20px',
           borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
         }}>
           {toast}
         </div>

@@ -354,7 +354,7 @@ export default function AllWinesTab() {
                     <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {w.item_name_kr}
                     </span>
-                    <span style={{ fontSize: 11, color: '#999' }}>
+                    <span style={{ fontSize: 11, color: '#a8a098' }}>
                       {w.country_en || w.country || ''}{w.region ? ` · ${w.region}` : ''}
                     </span>
                   </div>
@@ -432,7 +432,7 @@ export default function AllWinesTab() {
             <div
               style={{
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000,
-                background: 'rgba(0,0,0,0.4)',
+                background: 'rgba(90,21,21,0.4)',
                 display: 'flex', justifyContent: 'flex-end',
               }}
               onClick={() => setSelectedWine(null)}

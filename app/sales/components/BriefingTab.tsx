@@ -170,18 +170,18 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
   const completedCount = meetings.filter(m => !!m.ai_briefing).length;
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '60px', color: '#999' }}>로딩 중...</div>;
+    return <div style={{ textAlign: 'center', padding: '60px', color: '#a8a098' }}>로딩 중...</div>;
   }
 
   if (meetings.length === 0) {
     return (
       <div style={{
-        textAlign: 'center', padding: '60px 20px', color: '#999', fontSize: 14,
+        textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14,
       }}>
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8" />
         </svg>
-        <div style={{ fontWeight: 600, color: '#666', marginBottom: 4 }}>오늘 미팅 없음</div>
+        <div style={{ fontWeight: 600, color: '#8a8580', marginBottom: 4 }}>오늘 미팅 없음</div>
         <div>{todayLabel} 예정된 미팅이 없습니다</div>
       </div>
     );
@@ -234,8 +234,8 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
           return (
             <div key={m.id} style={{
               background: '#fff', borderRadius: 12,
-              border: hasBriefing(m) ? '1px solid #c8e6c9' : '1px solid #f0ece4',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              border: hasBriefing(m) ? '1px solid #c8e6c9' : '1px solid rgba(90,21,21,0.06)',
+              boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
               overflow: 'hidden',
             }}>
               {/* 미팅 헤더 */}
@@ -253,7 +253,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
                 {/* 정보 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {m.client_name}
                     {m.client_importance && IMPORTANCE_LABELS[m.client_importance] && (
                       <span style={{
@@ -275,7 +275,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                       background: st.bg, color: st.color, fontWeight: 600,
                     }}>{st.label}</span>
                     {m.purpose && (
-                      <span style={{ fontSize: 11, color: '#999' }}>{m.purpose}</span>
+                      <span style={{ fontSize: 11, color: '#a8a098' }}>{m.purpose}</span>
                     )}
                   </div>
                 </div>
@@ -307,7 +307,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
               {/* 확장: 브리핑 요약 */}
               {isExpanded && briefing && (
                 <div style={{
-                  borderTop: '1px solid #f0ece4', padding: '14px',
+                  borderTop: '1px solid rgba(90,21,21,0.06)', padding: '14px',
                   background: '#fafaf8',
                 }}>
                   {/* 거래처 등급 & 올해 매출 */}
@@ -324,7 +324,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                       </span>
                     )}
                     {(briefing.client_summary.yearly_revenue ?? 0) > 0 && (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#2c1810' }}>
                         올해 매출 {fmt(briefing.client_summary.yearly_revenue!)}원
                       </span>
                     )}
@@ -341,19 +341,19 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                   {/* 매출 요약 */}
                   <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 12, flexWrap: 'wrap' }}>
                     <div>
-                      <div style={{ color: '#999' }}>총 구매</div>
+                      <div style={{ color: '#a8a098' }}>총 구매</div>
                       <div style={{ fontWeight: 700 }}>{briefing.client_summary.total_purchases}건</div>
                     </div>
                     <div>
-                      <div style={{ color: '#999' }}>평균 단가</div>
+                      <div style={{ color: '#a8a098' }}>평균 단가</div>
                       <div style={{ fontWeight: 700 }}>{fmt(briefing.client_summary.avg_price)}원</div>
                     </div>
                     <div>
-                      <div style={{ color: '#999' }}>최근 주문</div>
+                      <div style={{ color: '#a8a098' }}>최근 주문</div>
                       <div style={{ fontWeight: 700 }}>{briefing.client_summary.last_order_date || '-'}</div>
                     </div>
                     <div>
-                      <div style={{ color: '#999' }}>추세</div>
+                      <div style={{ color: '#a8a098' }}>추세</div>
                       <div style={{
                         fontWeight: 700,
                         color: briefing.client_summary.trend === 'up' ? '#2E7D32'
@@ -382,23 +382,23 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                   {/* 구매 품목 (등급 포함) */}
                   {briefing.purchased_items && briefing.purchased_items.length > 0 && (
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>
                         구매 품목 ({briefing.purchased_items.length}건)
                       </div>
                       {briefing.purchased_items.slice(0, 10).map((it, i) => (
                           <div key={it.item_no} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             padding: '5px 0',
-                            borderBottom: i < Math.min(9, briefing.purchased_items!.length - 1) ? '1px solid #f0ece4' : 'none',
+                            borderBottom: i < Math.min(9, briefing.purchased_items!.length - 1) ? '1px solid rgba(90,21,21,0.06)' : 'none',
                             fontSize: 11,
                           }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#2c1810' }}>
                                 {it.item_name}
                               </span>
                             </div>
                             <div style={{ flexShrink: 0, textAlign: 'right', display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <span style={{ color: '#999', fontSize: 10 }}>{it.buy_count}회</span>
+                              <span style={{ color: '#a8a098', fontSize: 10 }}>{it.buy_count}회</span>
                               <span style={{ fontWeight: 600, color: '#333', minWidth: 50, textAlign: 'right' }}>
                                 {it.supply_price ? fmt(it.supply_price) + '원' : '-'}
                               </span>
@@ -411,22 +411,22 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                   {/* 추천 와인 Top 5 */}
                   {briefing.recommendations.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>
                         추천 와인 Top {Math.min(5, briefing.recommendations.length)}
                       </div>
                       {briefing.recommendations.slice(0, 5).map((r, i) => (
                         <div key={r.item_no} style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '6px 0', borderBottom: i < Math.min(4, briefing.recommendations.length - 1) ? '1px solid #f0ece4' : 'none',
+                          padding: '6px 0', borderBottom: i < Math.min(4, briefing.recommendations.length - 1) ? '1px solid rgba(90,21,21,0.06)' : 'none',
                           fontSize: 12,
                         }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span style={{ color: r.score >= 20 ? '#c62828' : '#888', fontWeight: 600, fontSize: 11 }}>{r.score}점</span>
-                              <span style={{ color: '#1a1a2e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.item_name}</span>
+                              <span style={{ color: '#2c1810', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.item_name}</span>
                             </div>
                             {(r.country || r.grape) && (
-                              <div style={{ fontSize: 10, color: '#999', marginTop: 1 }}>
+                              <div style={{ fontSize: 10, color: '#a8a098', marginTop: 1 }}>
                                 {[r.country, r.grape].filter(Boolean).join(' · ')}
                               </div>
                             )}
@@ -451,13 +451,13 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                   {/* 최근 주문 */}
                   {briefing.recent_orders.length > 0 && (
                     <div style={{ marginTop: 10 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>
                         최근 주문
                       </div>
                       {briefing.recent_orders.slice(0, 3).map((o, i) => (
                         <div key={i} style={{
                           display: 'flex', justifyContent: 'space-between',
-                          padding: '4px 0', fontSize: 11, color: '#666',
+                          padding: '4px 0', fontSize: 11, color: '#8a8580',
                         }}>
                           <span>{o.item_name}</span>
                           <span>{o.ship_date?.slice(5)}</span>
@@ -470,8 +470,8 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
               {isExpanded && !briefing && (
                 <div style={{
-                  borderTop: '1px solid #f0ece4', padding: '20px 14px',
-                  textAlign: 'center', color: '#999', fontSize: 13,
+                  borderTop: '1px solid rgba(90,21,21,0.06)', padding: '20px 14px',
+                  textAlign: 'center', color: '#a8a098', fontSize: 13,
                 }}>
                   브리핑이 아직 생성되지 않았습니다
                 </div>
@@ -487,7 +487,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
           position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
           background: '#38a169', color: '#fff', padding: '12px 24px', borderRadius: 8,
           fontSize: 14, fontWeight: 500, zIndex: 2000,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
         }}>{toast}</div>
       )}
     </div>

@@ -120,7 +120,7 @@ export default function RecommendSettingsTab() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#999', fontSize: 14 }}>
+      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
         설정을 불러오는 중...
       </div>
     );
@@ -151,11 +151,11 @@ export default function RecommendSettingsTab() {
       {/* ── 가중치 설정 ── */}
       <div style={{
         background: '#fff', borderRadius: 12, padding: '20px 16px',
-        marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        border: '1px solid #f0ece4',
+        marginBottom: 16, boxShadow: '0 1px 3px rgba(90,21,21,0.06)',
+        border: '1px solid rgba(90,21,21,0.06)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>추천 점수 가중치</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#2c1810' }}>추천 점수 가중치</div>
           <div style={{
             fontSize: 13, fontWeight: 700, color: totalColor,
             padding: '4px 12px', borderRadius: 20,
@@ -168,7 +168,7 @@ export default function RecommendSettingsTab() {
         {/* 비주얼 바 */}
         <div style={{
           display: 'flex', borderRadius: 8, overflow: 'hidden',
-          height: 28, marginBottom: 20, border: '1px solid #f0ece4',
+          height: 28, marginBottom: 20, border: '1px solid rgba(90,21,21,0.06)',
         }}>
           {(Object.keys(WEIGHT_LABELS) as (keyof WeightConfig)[]).map(key => {
             const w = weights[key];
@@ -205,8 +205,8 @@ export default function RecommendSettingsTab() {
                       width: 10, height: 10, borderRadius: 3,
                       background: info.color, display: 'inline-block', flexShrink: 0,
                     }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>{info.label}</span>
-                    <span style={{ fontSize: 11, color: '#999' }}>{info.desc}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>{info.label}</span>
+                    <span style={{ fontSize: 11, color: '#a8a098' }}>{info.desc}</span>
                   </div>
                   <input
                     type="number"
@@ -216,7 +216,7 @@ export default function RecommendSettingsTab() {
                     max={100}
                     style={{
                       width: 52, textAlign: 'center', fontSize: 14, fontWeight: 700,
-                      border: '1px solid #e0dcd4', borderRadius: 6, padding: '4px 0',
+                      border: '1.5px solid rgba(90,21,21,0.08)', borderRadius: 6, padding: '4px 0',
                       color: info.color, outline: 'none',
                     }}
                   />
@@ -242,13 +242,13 @@ export default function RecommendSettingsTab() {
       {/* ── 재고 기준 설정 ── */}
       <div style={{
         background: '#fff', borderRadius: 12, padding: '20px 16px',
-        marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        border: '1px solid #f0ece4',
+        marginBottom: 16, boxShadow: '0 1px 3px rgba(90,21,21,0.06)',
+        border: '1px solid rgba(90,21,21,0.06)',
       }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#2c1810', marginBottom: 4 }}>
           추천 가능 재고 기준
         </div>
-        <div style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 16 }}>
           가격대별 최소 재고가 이 기준 미만이면 추천에서 제외됩니다.
         </div>
 
@@ -264,9 +264,9 @@ export default function RecommendSettingsTab() {
               <div key={key} style={{
                 background: isSpecial ? '#faf5ff' : '#fafaf8',
                 borderRadius: 8, padding: '12px 14px',
-                border: isSpecial ? '1px solid #e8d5f5' : '1px solid #f0ece4',
+                border: isSpecial ? '1px solid #e8d5f5' : '1px solid rgba(90,21,21,0.06)',
               }}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 6, fontWeight: 500 }}>
+                <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6, fontWeight: 500 }}>
                   {info.label}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -277,11 +277,11 @@ export default function RecommendSettingsTab() {
                     min={0}
                     style={{
                       width: 70, fontSize: 16, fontWeight: 700,
-                      border: '1px solid #e0dcd4', borderRadius: 6, padding: '6px 8px',
-                      color: '#1a1a2e', outline: 'none', textAlign: 'right',
+                      border: '1.5px solid rgba(90,21,21,0.08)', borderRadius: 6, padding: '6px 8px',
+                      color: '#2c1810', outline: 'none', textAlign: 'right',
                     }}
                   />
-                  <span style={{ fontSize: 13, color: '#888' }}>{info.unit}</span>
+                  <span style={{ fontSize: 13, color: '#8a8580' }}>{info.unit}</span>
                 </div>
               </div>
             );
@@ -292,18 +292,18 @@ export default function RecommendSettingsTab() {
       {/* ── 하단 액션 ── */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#fff', borderTop: '1px solid #e0dcd4',
+        background: '#fff', borderTop: '1.5px solid rgba(90,21,21,0.08)',
         padding: '12px 16px', zIndex: 200,
-        boxShadow: '0 -2px 10px rgba(0,0,0,0.08)',
+        boxShadow: '0 -2px 10px rgba(90,21,21,0.08)',
       }}>
         <div style={{ maxWidth: 1250, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 12, color: '#888' }}>
+          <div style={{ flex: 1, fontSize: 12, color: '#8a8580' }}>
             가중치 합계: <span style={{ fontWeight: 700, color: totalColor }}>{totalWeight}점</span>
             {totalWeight !== 100 && <span style={{ color: '#FF9800', marginLeft: 8 }}>(권장: 100점)</span>}
           </div>
           <button onClick={handleReset} style={{
-            padding: '10px 20px', borderRadius: 8, border: '1px solid #e0dcd4',
-            background: '#fff', color: '#666', fontSize: 13, fontWeight: 600,
+            padding: '10px 20px', borderRadius: 8, border: '1.5px solid rgba(90,21,21,0.08)',
+            background: '#fff', color: '#8a8580', fontSize: 13, fontWeight: 600,
             cursor: 'pointer',
           }}>초기화</button>
           <button onClick={handleSave} disabled={saving} style={{
@@ -322,7 +322,7 @@ export default function RecommendSettingsTab() {
           background: toast.type === 'error' ? '#c53030' : '#38a169',
           color: '#fff', padding: '12px 24px', borderRadius: 8,
           fontSize: 14, fontWeight: 500, zIndex: 300,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 12px rgba(90,21,21,0.15)',
         }}>{toast.msg}</div>
       )}
     </div>

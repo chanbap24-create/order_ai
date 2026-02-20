@@ -274,7 +274,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 12px', marginBottom: 16, borderRadius: 8,
-            border: '1px solid #ddd', background: 'white', color: '#555',
+            border: '1.5px solid rgba(90,21,21,0.08)', background: 'white', color: '#555',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}
         >
@@ -299,8 +299,8 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
             value={selectedManager}
             onChange={e => setSelectedManager(e.target.value)}
             style={{
-              padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd',
-              fontSize: 16, background: 'white', color: '#333',
+              padding: '8px 12px', borderRadius: 8, border: '1.5px solid rgba(90,21,21,0.08)',
+              fontSize: 16, background: 'white', color: '#2c1810',
               flex: '1 1 auto', minWidth: 120, maxWidth: 200,
             }}
           >
@@ -310,7 +310,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
             ))}
           </select>
         ) : (
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{currentManager}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#2c1810' }}>{currentManager}</span>
         )}
 
         <button
@@ -332,7 +332,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
         </button>
 
         {lastScanned && (
-          <span style={{ fontSize: 11, color: '#999' }}>
+          <span style={{ fontSize: 11, color: '#a8a098' }}>
             {new Date(lastScanned).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
@@ -343,7 +343,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
           onClick={() => setShowDismissed(true)}
           style={{
             padding: '6px 12px', borderRadius: 8,
-            border: '1px solid #ddd', background: 'white', color: '#888',
+            border: '1.5px solid rgba(90,21,21,0.08)', background: 'white', color: '#8a8580',
             fontSize: 12, fontWeight: 500, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
           }}
@@ -357,7 +357,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
 
       {/* 담당자 미선택 */}
       {!selectedManager && (
-        <div style={{ textAlign: 'center', padding: '50px 20px', color: '#999', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '50px 20px', color: '#a8a098', fontSize: 13 }}>
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" />
           </svg>
@@ -377,7 +377,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
             <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
               {counts.out > 0 && <span style={{ color: '#dc3545', fontWeight: 600 }}>품절 {counts.out}</span>}
               {counts.low > 0 && <span style={{ color: '#e65100', fontWeight: 600 }}>부족 {counts.low}</span>}
-              <span style={{ color: '#666' }}>총 {counts.total}건</span>
+              <span style={{ color: '#8a8580' }}>총 {counts.total}건</span>
             </div>
 
             {/* 필터 */}
@@ -406,7 +406,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
           {/* 전체선택 + dismiss */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 12, padding: '8px 12px', background: '#f8f8f6', borderRadius: 8,
+            marginBottom: 12, padding: '8px 12px', background: '#faf9f7', borderRadius: 8,
           }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
               <input
@@ -415,7 +415,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                 onChange={toggleAll}
                 style={{ width: 16, height: 16, accentColor: '#5A1515' }}
               />
-              <span style={{ fontWeight: 500, color: '#333' }}>
+              <span style={{ fontWeight: 500, color: '#2c1810' }}>
                 전체 선택 {checked.size > 0 && `(${checked.size}개)`}
               </span>
             </label>
@@ -483,10 +483,10 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
 
                     {/* 와인 정보 */}
                     <div style={{ marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', lineHeight: 1.4 }}>
                         {alert.item_name || alert.item_no}
                       </div>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 3, fontSize: 12, color: '#888', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 3, fontSize: 12, color: '#8a8580', flexWrap: 'wrap' }}>
                         <span>{alert.item_no}</span>
                         {alert.country && <span>{alert.country}</span>}
                         {alert.supply_price > 0 && <span>{fmt(alert.supply_price)}원</span>}
@@ -496,12 +496,12 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                     {/* 재고 바 */}
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                        <span style={{ color: '#666' }}>
+                        <span style={{ color: '#8a8580' }}>
                           재고 <span style={{ fontWeight: 700, color: alert.current_stock <= 0 ? '#dc3545' : '#e65100' }}>{alert.current_stock}</span>병
                         </span>
-                        <span style={{ color: '#999', fontSize: 11 }}>기준 {alert.threshold}병</span>
+                        <span style={{ color: '#a8a098', fontSize: 11 }}>기준 {alert.threshold}병</span>
                       </div>
-                      <div style={{ height: 5, background: '#f5f5f5', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ height: 5, background: '#faf9f7', borderRadius: 3, overflow: 'hidden' }}>
                         <div style={{
                           height: '100%', borderRadius: 3,
                           width: `${Math.min((alert.current_stock / Math.max(alert.threshold, 1)) * 100, 100)}%`,
@@ -554,7 +554,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                       {/* 헤더 */}
                       <div style={{
                         display: 'flex', padding: '8px 14px',
-                        fontSize: 11, color: '#999', fontWeight: 600, borderBottom: '1px solid #f0f0f0',
+                        fontSize: 11, color: '#a8a098', fontWeight: 600, borderBottom: '1px solid #f0f0f0',
                       }}>
                         <span style={{ flex: 1 }}>거래처명</span>
                         <span style={{ width: 60, textAlign: 'right' }}>수량</span>
@@ -563,19 +563,19 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                       {alert.clients.map(c => (
                         <div key={c.client_code} style={{
                           display: 'flex', alignItems: 'center', padding: '7px 14px',
-                          fontSize: 12, borderBottom: '1px solid #f8f8f8',
+                          fontSize: 12, borderBottom: '1px solid rgba(90,21,21,0.06)',
                         }}>
-                          <span style={{ flex: 1, fontWeight: 500, color: '#333' }}>{c.client_name}</span>
+                          <span style={{ flex: 1, fontWeight: 500, color: '#2c1810' }}>{c.client_name}</span>
                           <span style={{ width: 60, textAlign: 'right', fontWeight: 600, color: '#5A1515' }}>
                             {c.total_qty}병
                           </span>
-                          <span style={{ width: 90, textAlign: 'right', color: '#999', fontSize: 11 }}>
+                          <span style={{ width: 90, textAlign: 'right', color: '#a8a098', fontSize: 11 }}>
                             {c.last_date || '-'}
                           </span>
                         </div>
                       ))}
                       {alert.clients.length === 0 && (
-                        <div style={{ padding: '12px 14px', fontSize: 12, color: '#999' }}>
+                        <div style={{ padding: '12px 14px', fontSize: 12, color: '#a8a098' }}>
                           출고 기록이 없습니다.
                         </div>
                       )}
@@ -586,11 +586,11 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                   {isAltOpen && (
                     <div style={{ borderTop: '1px solid #f0f0f0', padding: '14px', background: '#f9f6f2' }}>
                       {altLoading ? (
-                        <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#999' }}>
+                        <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#a8a098' }}>
                           대체 와인을 찾는 중...
                         </div>
                       ) : alternatives.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#999' }}>
+                        <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#a8a098' }}>
                           유사한 대체 와인을 찾을 수 없습니다.
                         </div>
                       ) : (
@@ -613,16 +613,16 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                                   }}
                                   style={{
                                     background: 'white', borderRadius: 8, padding: '10px 12px',
-                                    border: isAltChecked ? '2px solid #5A1515' : '1px solid #e8e8e8',
+                                    border: isAltChecked ? '2px solid #5A1515' : '1px solid rgba(90,21,21,0.08)',
                                     cursor: 'pointer',
                                   }}
                                 >
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div style={{ flex: 1 }}>
-                                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', lineHeight: 1.3 }}>
+                                      <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810', lineHeight: 1.3 }}>
                                         {alt.item_name || alt.item_no}
                                       </div>
-                                      <div style={{ display: 'flex', gap: 6, marginTop: 3, fontSize: 11, color: '#888' }}>
+                                      <div style={{ display: 'flex', gap: 6, marginTop: 3, fontSize: 11, color: '#8a8580' }}>
                                         <span>{alt.item_no}</span>
                                         {alt.country && <span>{alt.country}</span>}
                                         {alt.region && <span>{alt.region}</span>}
@@ -649,7 +649,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
                                       </div>
                                     </div>
                                     <div style={{ textAlign: 'right', marginLeft: 12, flexShrink: 0 }}>
-                                      <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>
+                                      <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>
                                         {fmt(alt.price)}원
                                       </div>
                                       <div style={{ fontSize: 11, color: '#4CAF50', marginTop: 2 }}>
@@ -702,7 +702,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
 
       {/* 스캔 후 결과 없음 */}
       {selectedManager && !scanning && lastScanned && alerts.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 13 }}>
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
             <polyline points="22 4 12 14.01 9 11.01" />
@@ -713,7 +713,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
 
       {/* 스캔 중 */}
       {scanning && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 13 }}>
           재고를 스캔하는 중...
         </div>
       )}
@@ -725,7 +725,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
           background: dismissMsg.includes('실패') || dismissMsg.includes('오류') ? '#dc3545' : dismissMsg.includes('자동 복원') ? '#1565c0' : '#2e7d32',
           color: 'white', padding: '10px 20px',
           borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
         }}>
           {dismissMsg}
         </div>

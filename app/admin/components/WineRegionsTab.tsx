@@ -179,7 +179,7 @@ export default function WineRegionsTab() {
   };
 
   const classColor = (cls: string | null) => {
-    if (!cls) return '#999';
+    if (!cls) return '#a8a098';
     const c = cls.toLowerCase();
     if (c.includes('grand cru') && !c.includes('classé')) return '#8B1538';
     if (c.includes('1er') || c.includes('premier')) return '#B8860B';
@@ -202,7 +202,7 @@ export default function WineRegionsTab() {
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {r.appellation && <span style={{ fontWeight: 600, color: '#2D2D2D' }}>{r.appellation}</span>}
+          {r.appellation && <span style={{ fontWeight: 600, color: '#2c1810' }}>{r.appellation}</span>}
           {r.cru_vineyard && <span style={{ color: '#8B1538', fontWeight: 500 }}>{r.cru_vineyard}</span>}
           {r.classification && (
             <span style={{
@@ -212,7 +212,7 @@ export default function WineRegionsTab() {
             }}>{r.classification}</span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 12, color: '#888' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 12, color: '#8a8580' }}>
           {r.grape_varieties && <span>{r.grape_varieties}</span>}
           {r.notes && <span style={{ color: '#B8860B' }}>{r.notes}</span>}
         </div>
@@ -255,7 +255,7 @@ export default function WineRegionsTab() {
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 12px',
                     background: isMajorOpen ? '#5A1515' : '#F5F4F2',
-                    color: isMajorOpen ? '#fff' : '#2D2D2D',
+                    color: isMajorOpen ? '#fff' : '#2c1810',
                     borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14,
                     transition: 'all 0.15s',
                   }}>
@@ -282,7 +282,7 @@ export default function WineRegionsTab() {
                         <span style={{
                           display: 'inline-block',
                           transform: isSubOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.15s', fontSize: 10, color: '#999',
+                          transition: 'transform 0.15s', fontSize: 10, color: '#a8a098',
                         }}>▶</span>
                         <span style={{ flex: 1 }}>{sub}</span>
                         <span style={{ fontSize: 11, color: '#aaa' }}>{items.length}</span>
@@ -307,8 +307,8 @@ export default function WineRegionsTab() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '10px 14px',
-                  background: isCountryOpen ? '#2D2D2D' : '#E8E6E3',
-                  color: isCountryOpen ? '#fff' : '#2D2D2D',
+                  background: isCountryOpen ? '#2c1810' : 'rgba(90,21,21,0.06)',
+                  color: isCountryOpen ? '#fff' : '#2c1810',
                   borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 15,
                   transition: 'all 0.15s',
                 }}>
@@ -347,7 +347,7 @@ export default function WineRegionsTab() {
             <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
               <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                 <span style={{ marginRight: 4 }}>{getCountryFlag(r.country)}</span>
-                <span style={{ fontSize: 11, color: '#888' }}>{r.country?.split(' ')[0]}</span>
+                <span style={{ fontSize: 11, color: '#8a8580' }}>{r.country?.split(' ')[0]}</span>
               </td>
               <td style={{ padding: '6px', fontWeight: 500, color: '#5A1515' }}>{r.major_region}</td>
               <td style={{ padding: '6px', color: '#444' }}>{r.sub_region || '-'}</td>
@@ -361,7 +361,7 @@ export default function WineRegionsTab() {
                   }}>{r.classification}</span>
                 ) : '-'}
               </td>
-              <td style={{ padding: '6px', color: '#666', fontSize: 11 }}>{r.grape_varieties || '-'}</td>
+              <td style={{ padding: '6px', color: '#8a8580', fontSize: 11 }}>{r.grape_varieties || '-'}</td>
               <td style={{ padding: '6px', color: '#B8860B', fontSize: 11 }}>{r.notes || '-'}</td>
               <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                 <button onClick={() => { setEditItem({ ...r }); setIsNew(false); }}
@@ -395,20 +395,20 @@ export default function WineRegionsTab() {
     return (
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0,0,0,0.4)', zIndex: 9999,
+        background: 'rgba(90,21,21,0.4)', zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }} onClick={() => setEditItem(null)}>
         <div onClick={e => e.stopPropagation()} style={{
           background: '#fff', borderRadius: 10, padding: 24,
           width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          boxShadow: '0 8px 32px rgba(90,21,21,0.15)',
         }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#2D2D2D' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#2c1810' }}>
             {isNew ? '새 산지 추가' : '산지 수정'}
           </h3>
           {fields.map(f => (
             <div key={f.key} style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#666', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 4 }}>
                 {f.label} {f.required && <span style={{ color: '#c44' }}>*</span>}
               </label>
               {f.type === 'select' ? (
@@ -438,7 +438,7 @@ export default function WineRegionsTab() {
           ))}
           <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
             <button onClick={() => setEditItem(null)}
-              style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#666' }}>
+              style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#8a8580' }}>
               취소
             </button>
             <button onClick={handleSave} disabled={saving}
@@ -456,7 +456,7 @@ export default function WineRegionsTab() {
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>데이터 로딩 중...</div>;
+    return <div style={{ textAlign: 'center', padding: 60, color: '#a8a098' }}>데이터 로딩 중...</div>;
   }
 
   return (
@@ -473,8 +473,8 @@ export default function WineRegionsTab() {
               style={{
                 padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 600,
                 cursor: 'pointer', transition: 'all 0.15s',
-                background: isActive ? '#5A1515' : '#F0EFED',
-                color: isActive ? '#fff' : '#666',
+                background: isActive ? '#5A1515' : 'rgba(90,21,21,0.05)',
+                color: isActive ? '#fff' : '#8a8580',
               }}>
               {c.flag && <span style={{ marginRight: 4 }}>{c.flag}</span>}
               {c.label}
@@ -491,8 +491,8 @@ export default function WineRegionsTab() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 16, flexWrap: 'wrap', gap: 8,
       }}>
-        <div style={{ fontSize: 13, color: '#888' }}>
-          전체 <strong style={{ color: '#2D2D2D' }}>{regions.length}</strong>개 산지
+        <div style={{ fontSize: 13, color: '#8a8580' }}>
+          전체 <strong style={{ color: '#2c1810' }}>{regions.length}</strong>개 산지
           {search && ` / 검색결과 ${filtered.length}개`}
         </div>
         <button onClick={() => { setEditItem({ ...EMPTY, country: selectedCountry || '프랑스 France' }); setIsNew(true); }}
@@ -522,18 +522,18 @@ export default function WineRegionsTab() {
             <button onClick={() => setSearch('')}
               style={{
                 position: 'absolute', right: 8, top: 8,
-                background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: 16, lineHeight: 1,
+                background: 'none', border: 'none', cursor: 'pointer', color: '#a8a098', fontSize: 16, lineHeight: 1,
               }}>x</button>
           )}
         </div>
-        <div style={{ display: 'flex', background: '#F0EFED', borderRadius: 6, padding: 2 }}>
+        <div style={{ display: 'flex', background: 'rgba(90,21,21,0.05)', borderRadius: 6, padding: 2 }}>
           {(['tree', 'table'] as const).map(mode => (
             <button key={mode} onClick={() => setViewMode(mode)}
               style={{
                 padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 4, cursor: 'pointer',
                 background: viewMode === mode ? '#fff' : 'transparent',
-                color: viewMode === mode ? '#5A1515' : '#999',
-                boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                color: viewMode === mode ? '#5A1515' : '#a8a098',
+                boxShadow: viewMode === mode ? '0 1px 3px rgba(90,21,21,0.08)' : 'none',
               }}>
               {mode === 'tree' ? '트리' : '테이블'}
             </button>
@@ -546,11 +546,11 @@ export default function WineRegionsTab() {
         <div style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
           <button onClick={expandAll} style={{
             padding: '3px 10px', fontSize: 11, border: '1px solid #ddd',
-            borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#666',
+            borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#8a8580',
           }}>모두 펼치기</button>
           <button onClick={collapseAll} style={{
             padding: '3px 10px', fontSize: 11, border: '1px solid #ddd',
-            borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#666',
+            borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#8a8580',
           }}>모두 접기</button>
         </div>
       )}
@@ -560,7 +560,7 @@ export default function WineRegionsTab() {
         background: '#fff', borderRadius: 8, padding: 16, border: '1px solid #E5E5E5',
       }}>
         {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+          <div style={{ textAlign: 'center', padding: 40, color: '#a8a098' }}>
             {search ? '검색 결과가 없습니다' : '데이터가 없습니다'}
           </div>
         ) : viewMode === 'tree' ? renderTree() : renderTable()}
@@ -573,8 +573,8 @@ export default function WineRegionsTab() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: '#333', color: '#fff', padding: '8px 20px', borderRadius: 8,
-          fontSize: 13, fontWeight: 500, zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          background: '#2c1810', color: '#fff', padding: '8px 20px', borderRadius: 8,
+          fontSize: 13, fontWeight: 500, zIndex: 10000, boxShadow: '0 4px 12px rgba(90,21,21,0.15)',
         }}>{toast}</div>
       )}
     </div>

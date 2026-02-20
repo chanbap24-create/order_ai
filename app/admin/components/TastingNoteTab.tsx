@@ -394,7 +394,7 @@ export default function TastingNoteTab() {
       {/* ─── 상단 컨트롤 ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'inline-flex', background: '#F0EFED', borderRadius: 8, padding: 2 }}>
+          <div style={{ display: 'inline-flex', background: 'rgba(90,21,21,0.05)', borderRadius: 8, padding: 2 }}>
           {(['all', 'with', 'without'] as NoteFilter[]).map(f => {
             const labels: Record<NoteFilter, string> = { all: '전체', with: '작성완료', without: '미작성' };
             const isActive = filterNote === f;
@@ -406,8 +406,8 @@ export default function TastingNoteTab() {
                   padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   background: isActive ? 'white' : 'transparent',
-                  color: isActive ? '#5A1515' : '#999',
-                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  color: isActive ? '#5A1515' : '#a8a098',
+                  boxShadow: isActive ? '0 1px 3px rgba(90,21,21,0.08)' : 'none',
                   fontWeight: 600, whiteSpace: 'nowrap',
                 }}
               >
@@ -422,15 +422,15 @@ export default function TastingNoteTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <div style={{ display: 'inline-flex', background: '#F0EFED', borderRadius: 8, padding: 2 }}>
+          <div style={{ display: 'inline-flex', background: 'rgba(90,21,21,0.05)', borderRadius: 8, padding: 2 }}>
             <button
               onClick={() => setHideZero(h => !h)}
               style={{
                 padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
                 transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
                 background: hideZero ? 'white' : 'transparent',
-                color: hideZero ? '#5A1515' : '#999',
-                boxShadow: hideZero ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                color: hideZero ? '#5A1515' : '#a8a098',
+                boxShadow: hideZero ? '0 1px 3px rgba(90,21,21,0.08)' : 'none',
               }}
             >
               재고만
@@ -444,8 +444,8 @@ export default function TastingNoteTab() {
             style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
               transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
-              background: batchRunning ? '#5A1515' : '#F0EFED',
-              color: batchRunning ? '#fff' : '#999',
+              background: batchRunning ? '#5A1515' : 'rgba(90,21,21,0.05)',
+              color: batchRunning ? '#fff' : '#a8a098',
               opacity: checkedIds.size === 0 && !batchRunning ? 0.5 : 1,
             }}
           >
@@ -458,8 +458,8 @@ export default function TastingNoteTab() {
             style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
               transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
-              background: batchDownloading === 'pptx' ? '#2563eb' : '#F0EFED',
-              color: batchDownloading === 'pptx' ? '#fff' : '#999',
+              background: batchDownloading === 'pptx' ? '#2563eb' : 'rgba(90,21,21,0.05)',
+              color: batchDownloading === 'pptx' ? '#fff' : '#a8a098',
               opacity: checkedIds.size === 0 && !batchDownloading ? 0.5 : 1,
             }}
           >
@@ -471,8 +471,8 @@ export default function TastingNoteTab() {
             style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
               transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
-              background: batchDownloading === 'pdf' ? '#2563eb' : '#F0EFED',
-              color: batchDownloading === 'pdf' ? '#fff' : '#999',
+              background: batchDownloading === 'pdf' ? '#2563eb' : 'rgba(90,21,21,0.05)',
+              color: batchDownloading === 'pdf' ? '#fff' : '#a8a098',
               opacity: checkedIds.size === 0 && !batchDownloading ? 0.5 : 1,
             }}
           >
@@ -485,7 +485,7 @@ export default function TastingNoteTab() {
             style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
               transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
-              background: '#F0EFED', color: '#999',
+              background: 'rgba(90,21,21,0.05)', color: '#a8a098',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
@@ -497,7 +497,7 @@ export default function TastingNoteTab() {
             style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
               transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
-              background: '#F0EFED', color: '#999',
+              background: 'rgba(90,21,21,0.05)', color: '#a8a098',
               opacity: checkedIds.size === 0 ? 0.5 : 1,
             }}
           >
@@ -509,7 +509,7 @@ export default function TastingNoteTab() {
             style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: '0.75rem', cursor: 'pointer',
               transition: 'all 0.2s ease', fontWeight: 600, whiteSpace: 'nowrap',
-              background: '#F0EFED', color: '#999',
+              background: 'rgba(90,21,21,0.05)', color: '#a8a098',
             }}
           >
             {dispatchingIndex ? '실행 중...' : '인덱스'}

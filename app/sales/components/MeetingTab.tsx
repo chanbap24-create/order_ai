@@ -625,8 +625,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       {/* ── 상단: 뷰 토글 + 담당자 + 네비게이션 ── */}
       <div style={{
         background: '#fff', borderRadius: 12, padding: '16px',
-        marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        border: '1px solid #f0ece4',
+        marginBottom: 16, boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+        border: '1px solid rgba(90,21,21,0.06)',
       }}>
         {/* 주간/월간 토글 */}
         <div style={{
@@ -640,7 +640,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               color: viewMode === mode ? '#5A1515' : '#999',
               fontWeight: viewMode === mode ? 700 : 500,
               fontSize: 13, cursor: 'pointer',
-              boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              boxShadow: viewMode === mode ? '0 1px 3px rgba(90,21,21,0.05)' : 'none',
               transition: 'all 0.2s',
             }}>
               {mode === 'week' ? '주간' : '월간'}
@@ -653,8 +653,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             value={filterManager}
             onChange={e => setFilterManager(e.target.value)}
             style={{
-              padding: '8px 12px', borderRadius: 6, border: '1px solid #e0dcd4',
-              fontSize: 16, background: '#fff', color: filterManager ? '#1a1a2e' : '#999',
+              padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.08)',
+              fontSize: 16, background: '#fff', color: filterManager ? '#2c1810' : '#999',
               outline: 'none', width: '100%', marginBottom: 12, boxSizing: 'border-box',
             }}
           >
@@ -665,38 +665,38 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button onClick={prevPeriod} style={{
-            background: 'none', border: '1px solid #e0dcd4', borderRadius: 6,
-            padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#666',
+            background: 'none', border: '1px solid rgba(90,21,21,0.08)', borderRadius: 6,
+            padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#8a8580',
           }}>←</button>
           <div style={{ textAlign: 'center' }}>
             <button onClick={goToday} style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 15, fontWeight: 700, color: '#1a1a2e',
+              fontSize: 15, fontWeight: 700, color: '#2c1810',
             }}>{rangeLabel}</button>
-            {viewMode === 'week' && <div style={{ fontSize: 11, color: '#999' }}>{weekStart.getFullYear()}</div>}
+            {viewMode === 'week' && <div style={{ fontSize: 11, color: '#a8a098' }}>{weekStart.getFullYear()}</div>}
           </div>
           <button onClick={nextPeriod} style={{
-            background: 'none', border: '1px solid #e0dcd4', borderRadius: 6,
-            padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#666',
+            background: 'none', border: '1px solid rgba(90,21,21,0.08)', borderRadius: 6,
+            padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#8a8580',
           }}>→</button>
         </div>
       </div>
 
       {/* ── 미팅 리스트 ── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>로딩 중...</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: '#a8a098' }}>로딩 중...</div>
       ) : viewMode === 'month' ? (
         /* ── 월간 뷰: 캘린더 그리드 ── */
         <div style={{
           background: '#fff', borderRadius: 12,
-          border: '1px solid #f0ece4',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          border: '1px solid rgba(90,21,21,0.06)',
+          boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
           overflow: 'hidden',
         }}>
           {/* 요일 헤더 */}
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-            borderBottom: '1px solid #f0ece4', background: '#faf8f2',
+            borderBottom: '1px solid rgba(90,21,21,0.06)', background: '#faf8f2',
           }}>
             {DAYS_KR.map(day => (
               <div key={day} style={{
@@ -711,7 +711,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
           {weekGroups.map((week, wi) => (
             <div key={wi} style={{
               display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-              borderBottom: wi < weekGroups.length - 1 ? '1px solid #f0ece4' : 'none',
+              borderBottom: wi < weekGroups.length - 1 ? '1px solid rgba(90,21,21,0.06)' : 'none',
             }}>
               {/* 첫 주 빈칸 채우기 */}
               {wi === 0 && (() => {
@@ -744,7 +744,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                   }} onClick={() => openCreateModal(dateStr)}>
                     <div style={{
                       fontSize: 12, fontWeight: isToday ? 800 : 500,
-                      color: isToday ? '#fff' : (isSun || isHoliday) ? '#c62828' : isSat ? '#1565C0' : isPast ? '#bbb' : '#1a1a2e',
+                      color: isToday ? '#fff' : (isSun || isHoliday) ? '#c62828' : isSat ? '#1565C0' : isPast ? '#bbb' : '#2c1810',
                       textAlign: 'center', marginBottom: 2,
                       ...(isToday ? {
                         background: '#5A1515', borderRadius: '50%',
@@ -777,7 +777,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                       );
                     })}
                     {dayMeetings.length > 3 && (
-                      <div style={{ fontSize: 9, color: '#999', textAlign: 'center' }}>
+                      <div style={{ fontSize: 9, color: '#a8a098', textAlign: 'center' }}>
                         +{dayMeetings.length - 3}건
                       </div>
                     )}
@@ -798,8 +798,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
           {/* 월간 요약 */}
           <div style={{
-            padding: '10px 14px', background: '#faf8f2', borderTop: '1px solid #f0ece4',
-            fontSize: 12, color: '#666', display: 'flex', justifyContent: 'space-between',
+            padding: '10px 14px', background: '#faf8f2', borderTop: '1px solid rgba(90,21,21,0.06)',
+            fontSize: 12, color: '#8a8580', display: 'flex', justifyContent: 'space-between',
           }}>
             <span>총 {meetings.length}건의 미팅</span>
             <span>
@@ -823,8 +823,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             return (
               <div key={dateStr} style={{
                 background: '#fff', borderRadius: 12,
-                border: isToday ? '2px solid #5A1515' : isHoliday ? '1px solid #ffcdd2' : '1px solid #f0ece4',
-                boxShadow: isToday ? '0 2px 8px rgba(90,21,21,0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
+                border: isToday ? '2px solid #5A1515' : isHoliday ? '1px solid #ffcdd2' : '1px solid rgba(90,21,21,0.06)',
+                boxShadow: isToday ? '0 2px 8px rgba(90,21,21,0.12)' : '0 1px 3px rgba(90,21,21,0.03)',
                 overflow: 'hidden',
               }}>
                 {/* 날짜 헤더 */}
@@ -832,12 +832,12 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '10px 14px',
                   background: isToday ? '#faf0f2' : isHoliday ? '#fff5f5' : isPast ? '#fafafa' : '#fff',
-                  borderBottom: '1px solid #f0ece4',
+                  borderBottom: '1px solid rgba(90,21,21,0.06)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                       fontSize: 14, fontWeight: 700,
-                      color: isToday ? '#5A1515' : isHoliday ? '#c62828' : isPast ? '#aaa' : '#1a1a2e',
+                      color: isToday ? '#5A1515' : isHoliday ? '#c62828' : isPast ? '#aaa' : '#2c1810',
                     }}>
                       {formatDateKR(dateStr)}
                     </span>
@@ -854,7 +854,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                       }}>TODAY</span>
                     )}
                     {dayMeetings.length > 0 && (
-                      <span style={{ fontSize: 11, color: '#999' }}>{dayMeetings.length}건</span>
+                      <span style={{ fontSize: 11, color: '#a8a098' }}>{dayMeetings.length}건</span>
                     )}
                   </div>
                   <button onClick={() => openCreateModal(dateStr)} style={{
@@ -900,7 +900,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                           {/* 내용 */}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                              <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: '#2c1810' }}>
                                 {m.client_name}
                               </span>
                               <span style={{
@@ -918,7 +918,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                                 background: st.bg, color: st.color, fontWeight: 600,
                               }}>{st.label}</span>
                               {m.purpose && (
-                                <span style={{ fontSize: 11, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontSize: 11, color: '#a8a098', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {m.purpose}
                                 </span>
                               )}
@@ -956,13 +956,13 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             background: '#fff', borderRadius: 16, padding: '24px 20px',
             width: '100%', maxWidth: 400, maxHeight: '90vh', overflowY: 'auto',
           }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 20 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#2c1810', marginBottom: 20 }}>
               {editingId ? '미팅 수정' : '미팅 추가'}
             </div>
 
             {/* 거래처 검색 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>거래처</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580' }}>거래처</label>
               <button
                 onClick={() => {
                   setNewClientMode(!newClientMode);
@@ -988,7 +988,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                   onChange={e => setNewClientName(e.target.value)}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: 8,
-                    border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                    border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
                     boxSizing: 'border-box', marginBottom: 8,
                   }}
                 />
@@ -999,7 +999,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                   onChange={e => { setNewClientCode(e.target.value); setNewClientCodeError(''); }}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: 8,
-                    border: `1px solid ${newClientCodeError ? '#dc3545' : '#e0dcd4'}`, fontSize: 16, outline: 'none',
+                    border: `1px solid ${newClientCodeError ? '#dc3545' : 'rgba(90,21,21,0.08)'}`, fontSize: 16, outline: 'none',
                     boxSizing: 'border-box',
                   }}
                 />
@@ -1020,22 +1020,22 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                   onFocus={() => { if (modalClientOptions.length > 0) setModalShowDropdown(true); }}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: 8,
-                    border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                    border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
                     boxSizing: 'border-box', background: modalClient ? '#f8f6f0' : '#fff',
                   }}
                 />
                 {modalClient && (
                   <button onClick={() => { setModalClient(null); setModalClientSearch(''); }} style={{
                     position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#999',
+                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#a8a098',
                   }}>×</button>
                 )}
                 {modalShowDropdown && modalClientOptions.length > 0 && (
                   <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0,
-                    background: '#fff', border: '1px solid #e0dcd4',
+                    background: '#fff', border: '1px solid rgba(90,21,21,0.08)',
                     borderRadius: '0 0 8px 8px', maxHeight: 200, overflowY: 'auto',
-                    zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    zIndex: 100, boxShadow: '0 4px 12px rgba(90,21,21,0.08)',
                   }}>
                     {modalClientOptions.map(c => (
                       <div key={c.client_code} onClick={() => {
@@ -1047,7 +1047,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                         onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
                       >
                         <div style={{ fontSize: 14, fontWeight: 500 }}>{c.client_name}</div>
-                        <div style={{ fontSize: 11, color: '#999' }}>
+                        <div style={{ fontSize: 11, color: '#a8a098' }}>
                           {c.client_code}{c.manager && ` · ${c.manager}`}
                         </div>
                       </div>
@@ -1058,23 +1058,23 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             )}
 
             {/* 날짜 */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>날짜</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>날짜</label>
             <input type="date" value={modalDate} onChange={e => setModalDate(e.target.value)} style={{
               width: '100%', padding: '10px 12px', borderRadius: 8,
-              border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+              border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
               marginBottom: 14, boxSizing: 'border-box',
             }} />
 
             {/* 시간 */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>시간</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>시간</label>
             <input type="time" value={modalTime} onChange={e => setModalTime(e.target.value)} style={{
               width: '100%', padding: '10px 12px', borderRadius: 8,
-              border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+              border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
               marginBottom: 14, boxSizing: 'border-box',
             }} />
 
             {/* 미팅 타입 */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>미팅 타입</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>미팅 타입</label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
               {Object.entries(MEETING_TYPES).map(([key, { label, color }]) => (
                 <button key={key} onClick={() => setModalType(key)} style={{
@@ -1089,7 +1089,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             </div>
 
             {/* 목적 */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>목적/메모</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>목적/메모</label>
             <textarea
               value={modalPurpose}
               onChange={e => setModalPurpose(e.target.value)}
@@ -1097,14 +1097,14 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               rows={3}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
                 marginBottom: 14, boxSizing: 'border-box', resize: 'vertical',
                 fontFamily: 'inherit',
               }}
             />
 
             {/* 알람 */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>알람</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>알람</label>
             <select
               value={modalReminder === null ? 'default' : String(modalReminder)}
               onChange={e => {
@@ -1113,9 +1113,9 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               }}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
                 marginBottom: 20, boxSizing: 'border-box', background: '#fff',
-                color: '#1a1a2e',
+                color: '#2c1810',
               }}
             >
               {REMINDER_OPTIONS.map(opt => (
@@ -1128,8 +1128,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             {/* 버튼 */}
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setShowModal(false)} style={{
-                flex: 1, padding: '12px', borderRadius: 8, border: '1px solid #e0dcd4',
-                background: '#fff', color: '#666', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                flex: 1, padding: '12px', borderRadius: 8, border: '1px solid rgba(90,21,21,0.08)',
+                background: '#fff', color: '#8a8580', fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>취소</button>
               <button onClick={saveMeeting} disabled={(!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving} style={{
                 flex: 1, padding: '12px', borderRadius: 8, border: 'none',
@@ -1210,7 +1210,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 return (
                   <button key={s} onClick={() => !isCurrent && changeStatus(detailMeeting, s)} style={{
                     flex: 1, padding: '8px', borderRadius: 8,
-                    border: isCurrent ? `2px solid ${sm.color}` : '1px solid #e0dcd4',
+                    border: isCurrent ? `2px solid ${sm.color}` : '1px solid rgba(90,21,21,0.08)',
                     background: isCurrent ? sm.bg : '#fff',
                     color: isCurrent ? sm.color : '#999',
                     fontWeight: isCurrent ? 700 : 500,
@@ -1257,24 +1257,24 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 <div style={{
                   background: '#f8f6f0', borderRadius: 10, padding: 14, marginBottom: 12,
                 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#2c1810', marginBottom: 10 }}>
                     거래처 매출 요약
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12 }}>
                     <div>
-                      <div style={{ color: '#999', marginBottom: 2 }}>총 구매</div>
-                      <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{briefing.client_summary.total_purchases}건</div>
+                      <div style={{ color: '#a8a098', marginBottom: 2 }}>총 구매</div>
+                      <div style={{ fontWeight: 700, color: '#2c1810' }}>{briefing.client_summary.total_purchases}건</div>
                     </div>
                     <div>
-                      <div style={{ color: '#999', marginBottom: 2 }}>평균 단가</div>
-                      <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{fmt(briefing.client_summary.avg_price)}원</div>
+                      <div style={{ color: '#a8a098', marginBottom: 2 }}>평균 단가</div>
+                      <div style={{ fontWeight: 700, color: '#2c1810' }}>{fmt(briefing.client_summary.avg_price)}원</div>
                     </div>
                     <div>
-                      <div style={{ color: '#999', marginBottom: 2 }}>최근 주문</div>
-                      <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{briefing.client_summary.last_order_date || '-'}</div>
+                      <div style={{ color: '#a8a098', marginBottom: 2 }}>최근 주문</div>
+                      <div style={{ fontWeight: 700, color: '#2c1810' }}>{briefing.client_summary.last_order_date || '-'}</div>
                     </div>
                     <div>
-                      <div style={{ color: '#999', marginBottom: 2 }}>추세</div>
+                      <div style={{ color: '#a8a098', marginBottom: 2 }}>추세</div>
                       <div style={{
                         fontWeight: 700,
                         color: briefing.client_summary.trend === 'up' ? '#2E7D32'
@@ -1303,9 +1303,9 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 {briefing.recent_orders.length > 0 && (
                   <div style={{
                     background: '#fff', borderRadius: 10, padding: 14, marginBottom: 12,
-                    border: '1px solid #f0ece4',
+                    border: '1px solid rgba(90,21,21,0.06)',
                   }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#2c1810', marginBottom: 10 }}>
                       최근 주문 내역
                     </div>
                     {briefing.recent_orders.map((o, i) => (
@@ -1314,8 +1314,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                         padding: '6px 0', borderBottom: i < briefing.recent_orders.length - 1 ? '1px solid #f5f3ed' : 'none',
                         fontSize: 12,
                       }}>
-                        <span style={{ color: '#1a1a2e', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.item_name}</span>
-                        <span style={{ color: '#999', flexShrink: 0, marginLeft: 8 }}>{o.quantity}개 · {o.ship_date?.slice(5)}</span>
+                        <span style={{ color: '#2c1810', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.item_name}</span>
+                        <span style={{ color: '#a8a098', flexShrink: 0, marginLeft: 8 }}>{o.quantity}개 · {o.ship_date?.slice(5)}</span>
                       </div>
                     ))}
                   </div>
@@ -1323,7 +1323,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
                 {/* 추천 와인 */}
                 <div style={{
-                  fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginBottom: 8,
+                  fontSize: 13, fontWeight: 700, color: '#2c1810', marginBottom: 8,
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
                   <span>추천 와인 {briefing.recommendations.length}개</span>
@@ -1338,7 +1338,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                     return (
                       <div key={r.item_no} onClick={() => toggleRec(r.item_no)} style={{
                         background: '#fff', borderRadius: 8, padding: '10px 12px',
-                        border: isSelected ? '2px solid #5A1515' : '1px solid #f0ece4',
+                        border: isSelected ? '2px solid #5A1515' : '1px solid rgba(90,21,21,0.06)',
                         cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center',
                       }}>
                         <div style={{
@@ -1354,12 +1354,12 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', marginBottom: 3 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810', marginBottom: 3 }}>
                             <span style={{ color: r.score >= 20 ? '#c62828' : '#888', marginRight: 6, fontSize: 11 }}>{r.score}점</span>
                             {r.item_name}
                           </div>
                           {(r.country || r.grape) && (
-                            <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>
+                            <div style={{ fontSize: 11, color: '#8a8580', marginBottom: 2 }}>
                               {[r.country, r.region, r.grape].filter(Boolean).join(' · ')}
                             </div>
                           )}
@@ -1374,8 +1374,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0, fontSize: 12 }}>
-                          <div style={{ fontWeight: 700, color: '#1a1a2e' }}>{r.price ? fmt(r.price) + '원' : '-'}</div>
-                          <div style={{ color: '#999', fontSize: 11 }}>재고 {r.stock}</div>
+                          <div style={{ fontWeight: 700, color: '#2c1810' }}>{r.price ? fmt(r.price) + '원' : '-'}</div>
+                          <div style={{ color: '#a8a098', fontSize: 11 }}>재고 {r.stock}</div>
                         </div>
                       </div>
                     );
@@ -1398,7 +1398,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
             {/* 메모 */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#666', display: 'block', marginBottom: 6 }}>메모</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>메모</label>
               <textarea
                 value={detailNotes}
                 onChange={e => setDetailNotes(e.target.value)}
@@ -1406,7 +1406,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 rows={3}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: 8,
-                  border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
+                  border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
                   boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit',
                 }}
               />
@@ -1464,7 +1464,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
           background: toast.startsWith('오류') ? '#c53030' : '#38a169',
           color: '#fff', padding: '12px 24px', borderRadius: 8,
           fontSize: 14, fontWeight: 500, zIndex: 2000,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
         }}>{toast}</div>
       )}
     </div>

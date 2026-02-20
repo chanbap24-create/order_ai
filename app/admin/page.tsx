@@ -54,7 +54,7 @@ export default function AdminPage() {
     return (
       <div style={{
         minHeight: 'calc(100vh - 56px)',
-        background: '#fafaf8',
+        background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -62,20 +62,21 @@ export default function AdminPage() {
       }}>
         <div style={{
           background: '#fff',
-          borderRadius: 8,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          borderRadius: 14,
+          boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+          border: '1px solid rgba(90,21,21,0.06)',
           padding: '40px 32px',
           width: 320,
           textAlign: 'center',
         }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a8a098" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#2D2D2D', marginBottom: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#2c1810', marginBottom: 4 }}>
             관리자 인증
           </div>
-          <div style={{ fontSize: 13, color: '#999', marginBottom: 24 }}>
+          <div style={{ fontSize: 13, color: '#a8a098', marginBottom: 24 }}>
             비밀번호를 입력하세요
           </div>
           <input
@@ -93,7 +94,7 @@ export default function AdminPage() {
               fontSize: 24,
               textAlign: 'center',
               letterSpacing: '0.3em',
-              border: `1px solid ${error ? '#e74c3c' : '#E5E5E5'}`,
+              border: `1.5px solid ${error ? '#e74c3c' : 'rgba(90,21,21,0.08)'}`,
               borderRadius: 6,
               outline: 'none',
               boxSizing: 'border-box',
@@ -132,7 +133,7 @@ export default function AdminPage() {
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: '#fafaf8',
+      background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
       fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
       <div style={{ maxWidth: 1250, margin: '0 auto', padding: '0 16px 24px' }}>
@@ -141,7 +142,7 @@ export default function AdminPage() {
           <h1 style={{
             fontSize: '1.4rem',
             fontWeight: 700,
-            color: '#1a1a2e',
+            color: '#2c1810',
             margin: 0,
             fontFamily: "'Cormorant Garamond', serif",
             letterSpacing: '-0.01em',

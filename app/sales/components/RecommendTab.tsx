@@ -251,10 +251,10 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
       {/* ── 거래처 선택 ── */}
       <div style={{
         background: '#fff', borderRadius: 12, padding: '20px 16px',
-        marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        border: '1px solid #f0ece4',
+        marginBottom: 16, boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+        border: '1px solid rgba(90,21,21,0.06)',
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 12 }}>
           거래처 선택
         </div>
 
@@ -264,8 +264,8 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
               value={filterManager}
               onChange={e => { setFilterManager(e.target.value); setSelectedClient(null); setClientSearch(''); setResult(null); }}
               style={{
-                padding: '8px 12px', borderRadius: 6, border: '1px solid #e0dcd4',
-                fontSize: 16, background: '#fff', color: filterManager ? '#1a1a2e' : '#999',
+                padding: '8px 12px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)',
+                fontSize: 16, background: '#fff', color: filterManager ? '#2c1810' : '#999',
                 outline: 'none', width: '100%', boxSizing: 'border-box',
               }}
             >
@@ -284,8 +284,8 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
             onFocus={() => { if (clientOptions.length > 0) setShowDropdown(true); }}
             style={{
               width: '100%', padding: '10px 12px', borderRadius: 8,
-              border: '1px solid #e0dcd4', fontSize: 16, outline: 'none',
-              boxSizing: 'border-box', background: selectedClient ? '#f8f6f0' : '#fff',
+              border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+              boxSizing: 'border-box', background: selectedClient ? '#faf9f7' : '#fff',
             }}
           />
           {selectedClient && (
@@ -295,30 +295,30 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
                 background: IMPORTANCE_LABELS[selectedClient.importance || 3]?.color || '#6c757d', color: '#fff',
               }}>{IMPORTANCE_LABELS[selectedClient.importance || 3]?.label || '일반'}</span>
               <button onClick={() => { setSelectedClient(null); setClientSearch(''); setResult(null); }} style={{
-                background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#999', padding: 0,
+                background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#a8a098', padding: 0,
               }}>×</button>
             </div>
           )}
           {showDropdown && clientOptions.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0,
-              background: '#fff', border: '1px solid #e0dcd4',
+              background: '#fff', border: '1.5px solid rgba(90,21,21,0.08)',
               borderRadius: '0 0 8px 8px', maxHeight: 240, overflowY: 'auto',
-              zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              zIndex: 100, boxShadow: '0 4px 12px rgba(90,21,21,0.08)',
             }}>
               {clientOptions.map(c => (
                 <div key={c.client_code} onClick={() => {
                   setSelectedClient(c); setClientSearch(c.client_name); setShowDropdown(false); setResult(null);
                 }} style={{
-                  padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f5f3ed',
+                  padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(90,21,21,0.06)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#faf8f2')}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#faf9f7')}
                   onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
                 >
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#1a1a2e' }}>{c.client_name}</div>
-                    <div style={{ fontSize: 11, color: '#999' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#2c1810' }}>{c.client_name}</div>
+                    <div style={{ fontSize: 11, color: '#a8a098' }}>
                       {c.client_code}{c.manager && ` · ${c.manager}`}{c.business_type && ` · ${c.business_type}`}
                     </div>
                   </div>
@@ -334,9 +334,9 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
           {showDropdown && clientSearch && clientOptions.length === 0 && !clientLoading && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0,
-              background: '#fff', border: '1px solid #e0dcd4',
+              background: '#fff', border: '1.5px solid rgba(90,21,21,0.08)',
               borderRadius: '0 0 8px 8px', padding: '16px', textAlign: 'center',
-              color: '#999', fontSize: 13, zIndex: 100,
+              color: '#a8a098', fontSize: 13, zIndex: 100,
             }}>검색 결과가 없습니다</div>
           )}
         </div>
@@ -413,7 +413,7 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             marginBottom: 8, padding: '0 4px',
           }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>
               AI 추천 {items.length}개
             </div>
             {items.length > 0 && (
@@ -429,8 +429,8 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
           {/* 추천 리스트 */}
           {items.length === 0 ? (
             <div style={{
-              textAlign: 'center', padding: '40px 20px', color: '#999', fontSize: 13,
-              background: '#fff', borderRadius: 12, border: '1px solid #f0ece4',
+              textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 13,
+              background: '#fff', borderRadius: 12, border: '1px solid rgba(90,21,21,0.06)',
             }}>
               추천할 와인이 없습니다
             </div>
@@ -442,15 +442,15 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
                 return (
                   <div key={item.item_no} onClick={() => toggleSelect(item.item_no)} style={{
                     background: '#fff', borderRadius: 10, padding: '14px',
-                    border: isSelected ? '2px solid #5A1515' : '1px solid #f0ece4',
-                    boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(0,0,0,0.04)',
+                    border: isSelected ? '2px solid #5A1515' : '1px solid rgba(90,21,21,0.06)',
+                    boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(90,21,21,0.03)',
                     cursor: 'pointer', transition: 'all 0.15s',
                     display: 'flex', gap: 12, alignItems: 'flex-start',
                   }}>
                     {/* 체크박스 */}
                     <div style={{
                       width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                      border: isSelected ? '2px solid #5A1515' : '2px solid #ddd',
+                      border: isSelected ? '2px solid #5A1515' : '2px solid rgba(90,21,21,0.12)',
                       background: isSelected ? '#5A1515' : '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       marginTop: 2,
@@ -469,7 +469,7 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
                           {item.score}점
                         </span>
                         <span style={{
-                          fontSize: 14, fontWeight: 600, color: '#1a1a2e',
+                          fontSize: 14, fontWeight: 600, color: '#2c1810',
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {item.item_name}
@@ -486,22 +486,22 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
                           }}>{tag}</span>
                         ))}
                         {(item.country || item.grape) && (
-                          <span style={{ fontSize: 10, color: '#888', background: '#f5f3ed', padding: '1px 6px', borderRadius: 4 }}>
+                          <span style={{ fontSize: 10, color: '#8a8580', background: '#faf9f7', padding: '1px 6px', borderRadius: 4 }}>
                             {[item.country, item.region, item.grape].filter(Boolean).join(' · ')}
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: '#888' }}>
+                      <div style={{ fontSize: 12, color: '#8a8580' }}>
                         {item.reason}
                       </div>
                     </div>
 
                     {/* 가격/재고 */}
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810' }}>
                         {item.price ? fmt(item.price) + '원' : '-'}
                       </div>
-                      <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>
                         재고 {item.stock || 0}
                       </div>
                       {item.buy_count !== undefined && (
@@ -522,14 +522,14 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
       {result && selected.size > 0 && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          background: '#fff', borderTop: '1px solid #e0dcd4',
+          background: '#fff', borderTop: '1.5px solid rgba(90,21,21,0.08)',
           padding: '12px 16px', zIndex: 200,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.08)',
+          boxShadow: '0 -2px 10px rgba(90,21,21,0.05)',
         }}>
           <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{selected.size}개 선택</div>
-              <div style={{ fontSize: 12, color: '#888' }}>예상 합계: {fmt(selectedTotal)}원</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810' }}>{selected.size}개 선택</div>
+              <div style={{ fontSize: 12, color: '#8a8580' }}>예상 합계: {fmt(selectedTotal)}원</div>
             </div>
             <button onClick={() => createQuote('add')} disabled={quoteLoading} style={{
               padding: '10px 16px', borderRadius: 8, border: '1px solid #5A1515',
@@ -552,17 +552,17 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
           position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
           background: quoteResult.startsWith('오류') ? '#c53030' : '#38a169',
           color: '#fff', padding: '12px 24px', borderRadius: 8,
-          fontSize: 14, fontWeight: 500, zIndex: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          fontSize: 14, fontWeight: 500, zIndex: 300, boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
         }}>{quoteResult}</div>
       )}
 
       {/* ── 초기 상태 ── */}
       {!result && !loading && !error && !selectedClient && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#999', fontSize: 14 }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#a8a098" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
-          <div style={{ fontWeight: 600, color: '#666', marginBottom: 4 }}>AI 추천 엔진</div>
+          <div style={{ fontWeight: 600, color: '#8a8580', marginBottom: 4 }}>AI 추천 엔진</div>
           <div>거래처를 검색하고 선택하면<br />맞춤 와인 추천을 생성합니다</div>
         </div>
       )}

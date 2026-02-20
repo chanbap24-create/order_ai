@@ -422,11 +422,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         gap: 8,
       }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#2c1810', margin: 0 }}>
             오늘의 액션
           </h2>
           {lastScanned && (
-            <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>
+            <p style={{ fontSize: 11, color: '#a8a098', margin: '4px 0 0' }}>
               마지막 스캔: {new Date(lastScanned).toLocaleString('ko-KR')}
             </p>
           )}
@@ -439,10 +439,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               style={{
                 padding: '6px 10px',
                 borderRadius: 6,
-                border: '1px solid #e0dcd4',
+                border: '1px solid rgba(90,21,21,0.08)',
                 fontSize: 16,
                 background: '#fff',
-                color: selectedManager ? '#1a1a2e' : '#999',
+                color: selectedManager ? '#2c1810' : '#999',
                 outline: 'none',
               }}
             >
@@ -455,11 +455,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
             style={{
               padding: '5px 10px',
               borderRadius: 6,
-              border: `1.5px solid ${compactMode ? '#283593' : '#e0dcd4'}`,
-              background: compactMode ? '#E8EAF6' : 'white',
+              border: `1.5px solid ${compactMode ? '#5A1515' : 'rgba(90,21,21,0.08)'}`,
+              background: compactMode ? 'rgba(90,21,21,0.06)' : 'white',
               fontSize: 11,
               fontWeight: 600,
-              color: compactMode ? '#283593' : '#999',
+              color: compactMode ? '#5A1515' : '#999',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
@@ -472,11 +472,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
             style={{
               padding: '6px 14px',
               borderRadius: 6,
-              border: '1px solid #e0dcd4',
-              background: scanning ? '#f5f5f0' : 'white',
+              border: '1px solid rgba(90,21,21,0.08)',
+              background: scanning ? '#faf9f7' : 'white',
               fontSize: 12,
               fontWeight: 600,
-              color: '#666',
+              color: '#8a8580',
               cursor: scanning || !mgr ? 'default' : 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -498,7 +498,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
           { label: '이탈 긴급', count: summary.critical_count, color: '#c62828', bg: '#FFEBEE' },
           { label: '이탈 주의', count: summary.high_count, color: '#E65100', bg: '#FFF3E0' },
           { label: '재주문(재고有)', count: summary.reorder_in_stock, color: '#1565C0', bg: '#E3F2FD' },
-          { label: '재주문(품절)', count: summary.reorder_out_of_stock, color: '#9E9E9E', bg: '#F5F5F5' },
+          { label: '재주문(품절)', count: summary.reorder_out_of_stock, color: '#9E9E9E', bg: '#faf9f7' },
         ].map(s => (
           <div key={s.label} style={{
             flex: '1 1 70px',
@@ -545,16 +545,16 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{
           flex: '1 1 120px',
-          background: '#E8EAF6',
+          background: 'rgba(90,21,21,0.06)',
           borderRadius: 10,
           padding: '10px 8px',
           textAlign: 'center',
           minWidth: 120,
         }}>
-          <div style={{ fontSize: 10, color: '#283593', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 10, color: '#5A1515', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap' }}>
             시즌 추천 {summary.season_name ? `(${summary.season_name})` : ''}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#283593' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#5A1515' }}>
             {summary.season_reco_count}
           </div>
         </div>
@@ -565,7 +565,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         <div style={{
           background: '#FAFAF8',
           borderRadius: 12,
-          border: '1px solid #e8e6e1',
+          border: '1px solid rgba(90,21,21,0.06)',
           padding: '16px',
           marginBottom: 16,
           fontSize: 13,
@@ -574,11 +574,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         }}>
           {/* 확인 처리 표시 */}
           {dismissedTotal > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #e8e6e1' }}>
-              <span style={{ fontSize: 11, color: '#999' }}>{dismissedTotal}건 확인 처리됨</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid rgba(90,21,21,0.06)' }}>
+              <span style={{ fontSize: 11, color: '#a8a098' }}>{dismissedTotal}건 확인 처리됨</span>
               <button
                 onClick={clearDismissed}
-                style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ fontSize: 11, color: '#a8a098', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 초기화
               </button>
@@ -596,10 +596,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     {a.client_name} — {a.days_since_last}일 미구매
                     {a.revenue_change_pct < 0 && <span style={{ color: '#c62828' }}> ({Math.abs(a.revenue_change_pct)}%↓)</span>}
                   </span>
-                  <button onClick={(e) => dismissItem(`churn_${a.client_code}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
+                  <button onClick={(e) => dismissItem(`churn_${a.client_code}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1.5px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
-              {va.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {va.length - 3}건</div>}
+              {va.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#a8a098' }}>외 {va.length - 3}건</div>}
             </div>
           )}
 
@@ -607,16 +607,16 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
           {vn.length > 0 && (
             <div style={{ marginBottom: 8 }}>
               <span style={{ color: '#1565C0', fontWeight: 700 }}>재주문 {vn.length}건</span>
-              <span style={{ color: '#888', fontSize: 11 }}> (재고有 {vn.filter(n => n.stock_status !== 'out_of_stock').length} / 품절 {vn.filter(n => n.stock_status === 'out_of_stock').length})</span>
+              <span style={{ color: '#8a8580', fontSize: 11 }}> (재고有 {vn.filter(n => n.stock_status !== 'out_of_stock').length} / 품절 {vn.filter(n => n.stock_status === 'out_of_stock').length})</span>
               {vn.filter(n => n.stock_status !== 'out_of_stock').slice(0, 3).map(n => (
                 <div key={`${n.client_code}-${n.item_no}`} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12, fontSize: 12, color: '#555' }}>
                   <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {n.client_name} × {n.item_name.length > 18 ? n.item_name.slice(0, 18) + '…' : n.item_name} — {n.overdue_days}일 초과
                   </span>
-                  <button onClick={(e) => dismissItem(`reorder_${n.client_code}_${n.item_no}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
+                  <button onClick={(e) => dismissItem(`reorder_${n.client_code}_${n.item_no}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1.5px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
-              {vn.filter(n => n.stock_status !== 'out_of_stock').length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {vn.filter(n => n.stock_status !== 'out_of_stock').length - 3}건</div>}
+              {vn.filter(n => n.stock_status !== 'out_of_stock').length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#a8a098' }}>외 {vn.filter(n => n.stock_status !== 'out_of_stock').length - 3}건</div>}
             </div>
           )}
 
@@ -630,7 +630,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     D-{m.days_until} {m.client_name} {MEETING_TYPE_LABEL[m.meeting_type] || m.meeting_type}
                     {m.meeting_time ? ` ${m.meeting_time}` : ''}
                   </span>
-                  <button onClick={(e) => dismissItem(`meeting_${m.meeting_id}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
+                  <button onClick={(e) => dismissItem(`meeting_${m.meeting_id}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1.5px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
             </div>
@@ -646,23 +646,23 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     {sd.alert_type === 'out_of_stock' ? '품절' : `잔여 ${sd.current_stock}병`} {sd.item_name.length > 22 ? sd.item_name.slice(0, 22) + '…' : sd.item_name}
                     {sd.affected_clients.length > 0 && ` (${sd.affected_clients.length}곳)`}
                   </span>
-                  <button onClick={(e) => dismissItem(`stock_${sd.item_no}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
+                  <button onClick={(e) => dismissItem(`stock_${sd.item_no}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1.5px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
-              {vsd.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {vsd.length - 3}건</div>}
+              {vsd.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#a8a098' }}>외 {vsd.length - 3}건</div>}
             </div>
           )}
 
           {/* 업셀 / 신규입고 / 방문 / 시즌 — 한줄 요약 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: '#666', marginTop: 4 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: '#8a8580', marginTop: 4 }}>
             {vu.length > 0 && <span><span style={{ color: '#2E7D32', fontWeight: 600 }}>업셀</span> {vu.length}건</span>}
             {vna.length > 0 && <span><span style={{ color: '#00838F', fontWeight: 600 }}>신규입고</span> {vna.length}건</span>}
             {vvs.length > 0 && <span><span style={{ color: '#795548', fontWeight: 600 }}>방문</span> {vvs.length}건</span>}
-            {vsr.length > 0 && <span><span style={{ color: '#283593', fontWeight: 600 }}>시즌({summary.season_name})</span> {vsr.length}건</span>}
+            {vsr.length > 0 && <span><span style={{ color: '#5A1515', fontWeight: 600 }}>시즌({summary.season_name})</span> {vsr.length}건</span>}
           </div>
 
           {!hasAnyData && dismissedTotal > 0 && (
-            <div style={{ textAlign: 'center', padding: '12px 0', color: '#999', fontSize: 13 }}>
+            <div style={{ textAlign: 'center', padding: '12px 0', color: '#a8a098', fontSize: 13 }}>
               모든 항목을 확인 처리했습니다.
             </div>
           )}
@@ -673,11 +673,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               style={{
                 padding: '6px 16px',
                 borderRadius: 20,
-                border: '1px solid #e0dcd4',
+                border: '1px solid rgba(90,21,21,0.08)',
                 background: 'white',
                 fontSize: 12,
                 fontWeight: 600,
-                color: '#666',
+                color: '#8a8580',
                 cursor: 'pointer',
               }}
             >
@@ -692,7 +692,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         <div style={{
           textAlign: 'center',
           padding: '60px 20px',
-          color: '#999',
+          color: '#a8a098',
           fontSize: 14,
         }}>
           거래처를 분석하고 있습니다...
@@ -704,7 +704,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         <div style={{
           textAlign: 'center',
           padding: '60px 20px',
-          color: '#999',
+          color: '#a8a098',
           fontSize: 14,
         }}>
           담당자를 선택해주세요.
@@ -725,11 +725,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: churnCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: churnCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: churnCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#c62828' }}>
@@ -763,7 +763,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       style={{
                         padding: '4px 12px',
                         borderRadius: 20,
-                        border: churnFilter === f.id ? `1.5px solid ${f.id === 'all' ? '#5A1515' : RISK_COLORS[f.id] || '#5A1515'}` : '1px solid #e0dcd4',
+                        border: churnFilter === f.id ? `1.5px solid ${f.id === 'all' ? '#5A1515' : RISK_COLORS[f.id] || '#5A1515'}` : '1px solid rgba(90,21,21,0.08)',
                         background: churnFilter === f.id ? (f.id === 'all' ? '#faf5f5' : RISK_BG[f.id] || '#faf5f5') : 'white',
                         fontSize: 11,
                         fontWeight: churnFilter === f.id ? 600 : 400,
@@ -795,14 +795,14 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         background: 'white',
                         borderRadius: 12,
                         borderLeft: `4px solid ${RISK_COLORS[item.risk_level]}`,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                        boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                         padding: '14px 16px',
                         cursor: 'pointer',
                         transition: 'box-shadow 0.15s',
                         position: 'relative',
                       }}
                     >
-                      <button onClick={(e) => dismissItem(`churn_${item.client_code}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', zIndex: 1 }} title="확인 처리">✓</button>
+                      <button onClick={(e) => dismissItem(`churn_${item.client_code}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', zIndex: 1 }} title="확인 처리">✓</button>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                           <span style={{
@@ -821,7 +821,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           <span style={{
                             fontSize: 14,
                             fontWeight: 600,
-                            color: '#1a1a2e',
+                            color: '#2c1810',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -836,14 +836,14 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         )}
                       </div>
 
-                      <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, color: '#8a8580', marginBottom: 6 }}>
                         마지막 구매: <strong style={{ color: item.days_since_last >= 60 ? '#c62828' : '#333' }}>
                           {item.days_since_last}일 전
                         </strong>
                         <span style={{ color: '#bbb', marginLeft: 6 }}>({item.last_purchase_date})</span>
                       </div>
 
-                      <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, color: '#8a8580', marginBottom: 8 }}>
                         매출 추이: {fmt(item.prev_revenue)} → {fmt(item.recent_revenue)}
                         {item.revenue_change_pct !== 0 && (
                           <span style={{
@@ -863,8 +863,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                               display: 'inline-block',
                               padding: '2px 8px',
                               borderRadius: 4,
-                              background: '#f5f5f0',
-                              color: '#666',
+                              background: '#faf9f7',
+                              color: '#8a8580',
                               fontSize: 11,
                               fontWeight: 500,
                             }}>
@@ -875,7 +875,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       )}
 
                       {item.top_items.length > 0 && (
-                        <div style={{ fontSize: 12, color: '#999' }}>
+                        <div style={{ fontSize: 12, color: '#a8a098' }}>
                           주요 품목: {item.top_items.join(', ')}
                         </div>
                       )}
@@ -884,9 +884,9 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         <div style={{
                           marginTop: 12,
                           paddingTop: 12,
-                          borderTop: '1px solid #f0ece4',
+                          borderTop: '1px solid rgba(90,21,21,0.06)',
                         }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#666', marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>
                             최근 주문 내역
                           </div>
                           {loadingOrders === item.client_code && (
@@ -905,15 +905,15 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                                   fontSize: 12,
                                   color: '#555',
                                   padding: '4px 0',
-                                  borderBottom: idx < orders.length - 1 ? '1px solid #f9f7f3' : 'none',
+                                  borderBottom: idx < orders.length - 1 ? '1px solid rgba(90,21,21,0.06)' : 'none',
                                 }}>
                                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {o.item_name || o.item_no}
                                   </span>
-                                  <span style={{ marginLeft: 8, color: '#999', whiteSpace: 'nowrap' }}>
+                                  <span style={{ marginLeft: 8, color: '#a8a098', whiteSpace: 'nowrap' }}>
                                     {o.quantity || '-'}병
                                   </span>
-                                  <span style={{ marginLeft: 8, color: '#999', whiteSpace: 'nowrap' }}>
+                                  <span style={{ marginLeft: 8, color: '#a8a098', whiteSpace: 'nowrap' }}>
                                     {o.ship_date?.slice(0, 10) || ''}
                                   </span>
                                 </div>
@@ -945,11 +945,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: reorderCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: reorderCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: reorderCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#1565C0' }}>
@@ -974,7 +974,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                   {([
                     { id: 'all' as ReorderFilter, label: '전체', count: nudgeCount, activeColor: '#1565C0', activeBg: '#E3F2FD' },
                     { id: 'in_stock' as ReorderFilter, label: '재고有', count: summary.reorder_in_stock, activeColor: '#2E7D32', activeBg: '#E8F5E9' },
-                    { id: 'out_of_stock' as ReorderFilter, label: '품절', count: summary.reorder_out_of_stock, activeColor: '#9E9E9E', activeBg: '#F5F5F5' },
+                    { id: 'out_of_stock' as ReorderFilter, label: '품절', count: summary.reorder_out_of_stock, activeColor: '#9E9E9E', activeBg: '#faf9f7' },
                   ]).map(f => (
                     <button
                       key={f.id}
@@ -982,7 +982,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       style={{
                         padding: '4px 12px',
                         borderRadius: 20,
-                        border: reorderFilter === f.id ? `1.5px solid ${f.activeColor}` : '1px solid #e0dcd4',
+                        border: reorderFilter === f.id ? `1.5px solid ${f.activeColor}` : '1px solid rgba(90,21,21,0.08)',
                         background: reorderFilter === f.id ? f.activeBg : 'white',
                         fontSize: 11,
                         fontWeight: reorderFilter === f.id ? 600 : 400,
@@ -1007,7 +1007,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                   const isOos = nudge.stock_status === 'out_of_stock';
                   const isLow = nudge.stock_status === 'low_stock';
                   const stockColor = isOos ? '#9E9E9E' : isLow ? '#E65100' : '#2E7D32';
-                  const stockBg = isOos ? '#F5F5F5' : isLow ? '#FFF3E0' : '#E8F5E9';
+                  const stockBg = isOos ? '#faf9f7' : isLow ? '#FFF3E0' : '#E8F5E9';
                   const stockLabel = isOos ? '품절' : isLow ? `재고 ${nudge.available_stock}병` : `재고 ${nudge.available_stock}병`;
 
                   return (
@@ -1017,20 +1017,20 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         background: isOos ? '#FAFAFA' : 'white',
                         borderRadius: 12,
                         borderLeft: `4px solid ${isOos ? '#E0E0E0' : nudge.urgency === 'high' ? '#1565C0' : '#64B5F6'}`,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                        boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                         padding: '14px 16px',
                         opacity: isOos ? 0.65 : 1,
                         position: 'relative',
                       }}
                     >
-                      <button onClick={(e) => dismissItem(`reorder_${nudge.client_code}_${nudge.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', zIndex: 1 }} title="확인 처리">✓</button>
+                      <button onClick={(e) => dismissItem(`reorder_${nudge.client_code}_${nudge.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', zIndex: 1 }} title="확인 처리">✓</button>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                           <span style={{
                             display: 'inline-block',
                             padding: '2px 8px',
                             borderRadius: 4,
-                            background: isOos ? '#F5F5F5' : nudge.urgency === 'high' ? '#E3F2FD' : '#F3F8FF',
+                            background: isOos ? '#faf9f7' : nudge.urgency === 'high' ? '#E3F2FD' : '#F3F8FF',
                             color: isOos ? '#9E9E9E' : nudge.urgency === 'high' ? '#1565C0' : '#64B5F6',
                             fontSize: 11,
                             fontWeight: 700,
@@ -1042,7 +1042,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           <span style={{
                             fontSize: 14,
                             fontWeight: 600,
-                            color: isOos ? '#999' : '#1a1a2e',
+                            color: isOos ? '#999' : '#2c1810',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -1075,7 +1075,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         {nudge.item_name}
                       </div>
 
-                      <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
+                      <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 4 }}>
                         평균 주기: <strong>{nudge.avg_interval_days}일</strong>
                         <span style={{ margin: '0 6px', color: '#ddd' }}>|</span>
                         마지막 구매: <strong style={{ color: nudge.days_since_last >= nudge.avg_interval_days * 1.5 ? '#c62828' : '#1565C0' }}>
@@ -1100,8 +1100,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           display: 'inline-block',
                           padding: '2px 8px',
                           borderRadius: 4,
-                          background: '#f5f5f0',
-                          color: '#666',
+                          background: '#faf9f7',
+                          color: '#8a8580',
                           fontSize: 11,
                         }}>
                           {nudge.purchase_count}회 구매 ({nudge.total_qty}병)
@@ -1130,11 +1130,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: meetingCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: meetingCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: meetingCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#6A1B9A' }}>
@@ -1173,12 +1173,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         background: isToday ? '#FFF8E1' : 'white',
                         borderRadius: 12,
                         borderLeft: `4px solid ${isToday ? '#c62828' : '#6A1B9A'}`,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                        boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                         padding: '14px 16px',
                         position: 'relative',
                       }}
                     >
-                      <button onClick={(e) => dismissItem(`meeting_${m.meeting_id}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                      <button onClick={(e) => dismissItem(`meeting_${m.meeting_id}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                           <span style={{
@@ -1197,7 +1197,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           <span style={{
                             fontSize: 14,
                             fontWeight: 600,
-                            color: '#1a1a2e',
+                            color: '#2c1810',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -1212,7 +1212,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         )}
                       </div>
 
-                      <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, color: '#8a8580', marginBottom: 6 }}>
                         {m.meeting_date} {m.meeting_time ? m.meeting_time : ''}
                         <span style={{ margin: '0 6px', color: '#ddd' }}>|</span>
                         <span style={{
@@ -1229,7 +1229,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       </div>
 
                       {m.purpose && (
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6 }}>
                           {m.purpose}
                         </div>
                       )}
@@ -1239,7 +1239,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           display: 'inline-block',
                           padding: '2px 8px',
                           borderRadius: 4,
-                          background: m.briefing_ready ? '#E8F5E9' : '#F5F5F5',
+                          background: m.briefing_ready ? '#E8F5E9' : '#faf9f7',
                           color: m.briefing_ready ? '#2E7D32' : '#999',
                           fontSize: 11,
                           fontWeight: 600,
@@ -1270,11 +1270,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: stockCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: stockCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: stockCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#B71C1C' }}>
@@ -1311,12 +1311,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         background: isOos ? '#FAFAFA' : 'white',
                         borderRadius: 12,
                         borderLeft: `4px solid ${isOos ? '#B71C1C' : '#E65100'}`,
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                        boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                         padding: '14px 16px',
                         position: 'relative',
                       }}
                     >
-                      <button onClick={(e) => dismissItem(`stock_${sd.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                      <button onClick={(e) => dismissItem(`stock_${sd.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                           <span style={{
@@ -1335,7 +1335,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           <span style={{
                             fontSize: 14,
                             fontWeight: 600,
-                            color: '#1a1a2e',
+                            color: '#2c1810',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -1345,7 +1345,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         </div>
                       </div>
 
-                      <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6 }}>
                         현재 재고: <strong style={{ color: isOos ? '#B71C1C' : '#E65100' }}>{sd.current_stock}병</strong>
                         <span style={{ margin: '0 6px', color: '#ddd' }}>|</span>
                         임계치: {sd.threshold}병
@@ -1362,8 +1362,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           display: 'inline-block',
                           padding: '2px 8px',
                           borderRadius: 4,
-                          background: '#f5f5f0',
-                          color: '#666',
+                          background: '#faf9f7',
+                          color: '#8a8580',
                           fontSize: 11,
                         }}>
                           12개월 출고: {sd.total_shipped}병
@@ -1372,8 +1372,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                           display: 'inline-block',
                           padding: '2px 8px',
                           borderRadius: 4,
-                          background: '#f5f5f0',
-                          color: '#666',
+                          background: '#faf9f7',
+                          color: '#8a8580',
                           fontSize: 11,
                         }}>
                           공급가: {fmt(sd.supply_price)}원
@@ -1394,7 +1394,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       </div>
 
                       {sd.affected_clients.length > 0 && (
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 6 }}>
+                        <div style={{ fontSize: 11, color: '#a8a098', marginTop: 6 }}>
                           {sd.affected_clients.map(c => c.client_name).join(', ')}
                         </div>
                       )}
@@ -1421,11 +1421,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: upsellCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: upsellCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: upsellCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#2E7D32' }}>
@@ -1459,12 +1459,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       background: 'white',
                       borderRadius: 12,
                       borderLeft: '4px solid #2E7D32',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                       padding: '14px 16px',
                       position: 'relative',
                     }}
                   >
-                    <button onClick={(e) => dismissItem(`upsell_${u.client_code}_${u.suggested_item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                    <button onClick={(e) => dismissItem(`upsell_${u.client_code}_${u.suggested_item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{
                         display: 'inline-block',
@@ -1482,7 +1482,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       <span style={{
                         fontSize: 14,
                         fontWeight: 600,
-                        color: '#1a1a2e',
+                        color: '#2c1810',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -1492,7 +1492,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     </div>
 
                     {/* 현재 → 추천 화살표 */}
-                    <div style={{ fontSize: 12, color: '#666', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }}>
                         {u.current_item_name}
                       </span>
@@ -1503,7 +1503,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     </div>
 
                     {/* 가격 차이 */}
-                    <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6 }}>
                       <span style={{ color: '#2E7D32', fontWeight: 600 }}>+{u.price_diff_pct}%</span>
                       <span style={{ marginLeft: 4 }}>
                         ({fmt(u.current_price)}원 → {fmt(u.suggested_price)}원)
@@ -1528,8 +1528,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         display: 'inline-block',
                         padding: '2px 8px',
                         borderRadius: 4,
-                        background: '#f5f5f0',
-                        color: '#666',
+                        background: '#faf9f7',
+                        color: '#8a8580',
                         fontSize: 11,
                       }}>
                         재고 {u.available_stock}병
@@ -1557,11 +1557,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: newArrivalCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: newArrivalCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: newArrivalCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#00838F' }}>
@@ -1595,12 +1595,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       background: 'white',
                       borderRadius: 12,
                       borderLeft: '4px solid #00838F',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                       padding: '14px 16px',
                       position: 'relative',
                     }}
                   >
-                    <button onClick={(e) => dismissItem(`arrival_${wine.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                    <button onClick={(e) => dismissItem(`arrival_${wine.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     {/* 와인 헤더 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{
@@ -1619,7 +1619,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       <span style={{
                         fontSize: 14,
                         fontWeight: 600,
-                        color: '#1a1a2e',
+                        color: '#2c1810',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -1629,12 +1629,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     </div>
 
                     {/* 와인 메타 정보 */}
-                    <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6 }}>
                       {[wine.country, wine.grape, wine.wine_type, wine.supply_price > 0 ? `₩${fmt(wine.supply_price)}` : ''].filter(Boolean).join(' · ')}
                     </div>
 
                     {/* 재고 정보 */}
-                    <div style={{ fontSize: 12, color: '#888', marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 10 }}>
                       재고: <strong style={{ color: '#00838F' }}>{wine.available_stock}병</strong>
                       {wine.incoming_stock > 0 && (
                         <>
@@ -1647,10 +1647,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     {/* 추천 거래처 */}
                     {wine.matched_clients.length > 0 && (
                       <div style={{
-                        borderTop: '1px solid #f0ece4',
+                        borderTop: '1px solid rgba(90,21,21,0.06)',
                         paddingTop: 10,
                       }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>
                           추천 거래처
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1694,7 +1694,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                                 display: 'inline-block',
                                 padding: '1px 6px',
                                 borderRadius: 4,
-                                background: c.match_score >= 60 ? '#E0F7FA' : '#F5F5F5',
+                                background: c.match_score >= 60 ? '#E0F7FA' : '#faf9f7',
                                 color: c.match_score >= 60 ? '#00838F' : '#888',
                                 fontSize: 11,
                                 fontWeight: 700,
@@ -1705,7 +1705,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                               </span>
                               <span style={{
                                 fontSize: 10,
-                                color: '#999',
+                                color: '#a8a098',
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0,
                               }}>
@@ -1738,11 +1738,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: visitCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: visitCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: visitCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#795548' }}>
@@ -1776,7 +1776,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       style={{
                         padding: '4px 12px',
                         borderRadius: 20,
-                        border: visitFilter === f.id ? `1.5px solid ${f.id === 'all' ? '#795548' : VISIT_URGENCY_COLORS[f.id] || '#795548'}` : '1px solid #e0dcd4',
+                        border: visitFilter === f.id ? `1.5px solid ${f.id === 'all' ? '#795548' : VISIT_URGENCY_COLORS[f.id] || '#795548'}` : '1px solid rgba(90,21,21,0.08)',
                         background: visitFilter === f.id ? (f.id === 'all' ? '#EFEBE9' : VISIT_URGENCY_BG[f.id] || '#EFEBE9') : 'white',
                         fontSize: 11,
                         fontWeight: visitFilter === f.id ? 600 : 400,
@@ -1804,12 +1804,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       background: 'white',
                       borderRadius: 12,
                       borderLeft: `4px solid ${VISIT_URGENCY_COLORS[v.visit_urgency] || '#795548'}`,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                       padding: '14px 16px',
                       position: 'relative',
                     }}
                   >
-                    <button onClick={(e) => dismissItem(`visit_${v.client_code}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                    <button onClick={(e) => dismissItem(`visit_${v.client_code}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     {/* 헤더: 긴급도 + 점수 + 중요도 + 거래처명 */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingRight: 28 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
@@ -1834,7 +1834,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         <span style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: '#1a1a2e',
+                          color: '#2c1810',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -1845,7 +1845,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     </div>
 
                     {/* 마지막 접촉 */}
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>
+                    <div style={{ fontSize: 13, color: '#8a8580', marginBottom: 6 }}>
                       마지막 접촉: <strong style={{ color: v.days_since_contact >= 60 ? '#4E342E' : '#333' }}>
                         {v.days_since_contact}일 전
                       </strong>
@@ -1855,8 +1855,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         marginLeft: 6,
                         padding: '1px 6px',
                         borderRadius: 4,
-                        background: '#F5F5F5',
-                        color: '#888',
+                        background: '#faf9f7',
+                        color: '#8a8580',
                         fontSize: 10,
                         fontWeight: 500,
                       }}>
@@ -1865,7 +1865,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     </div>
 
                     {/* 방문주기 + 초과일 */}
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, color: '#8a8580', marginBottom: 8 }}>
                       방문주기: <strong>{v.visit_cycle_days}일</strong>
                       {v.days_overdue > 0 && (
                         <span style={{ marginLeft: 8, color: '#4E342E', fontWeight: 600 }}>
@@ -1904,7 +1904,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
 
                     {/* 주요 품목 */}
                     {v.top_items.length > 0 && (
-                      <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+                      <div style={{ fontSize: 12, color: '#a8a098', marginTop: 8 }}>
                         주요 품목: {v.top_items.join(', ')}
                       </div>
                     )}
@@ -1930,14 +1930,14 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: '1px solid #e8e6e1',
+              borderBottom: '1px solid rgba(90,21,21,0.06)',
               marginBottom: seasonCollapsed ? 0 : 12,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999', transition: 'transform 0.2s', transform: seasonCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+            <span style={{ fontSize: 12, color: '#a8a098', transition: 'transform 0.2s', transform: seasonCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
               ▼
             </span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#283593' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#5A1515' }}>
               시즌 선제 추천
             </span>
             {summary.season_name && (
@@ -1949,7 +1949,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
             <span style={{
               fontSize: 11,
               color: 'white',
-              background: seasonCount > 0 ? '#283593' : '#ccc',
+              background: seasonCount > 0 ? '#5A1515' : '#ccc',
               borderRadius: 99,
               padding: '1px 8px',
               fontWeight: 600,
@@ -1974,21 +1974,21 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     style={{
                       background: 'white',
                       borderRadius: 12,
-                      borderLeft: `4px solid ${wine.season_change ? '#1A237E' : '#283593'}`,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                      borderLeft: `4px solid ${wine.season_change ? '#3d0e0e' : '#5A1515'}`,
+                      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
                       padding: '14px 16px',
                       position: 'relative',
                     }}
                   >
-                    <button onClick={(e) => dismissItem(`season_${wine.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                    <button onClick={(e) => dismissItem(`season_${wine.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid rgba(90,21,21,0.08)', background: '#faf9f7', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     {/* 와인 헤더 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{
                         display: 'inline-block',
                         padding: '2px 8px',
                         borderRadius: 4,
-                        background: '#E8EAF6',
-                        color: '#283593',
+                        background: 'rgba(90,21,21,0.06)',
+                        color: '#5A1515',
                         fontSize: 11,
                         fontWeight: 700,
                         whiteSpace: 'nowrap',
@@ -1999,7 +1999,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       <span style={{
                         fontSize: 14,
                         fontWeight: 600,
-                        color: '#1a1a2e',
+                        color: '#2c1810',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -2009,17 +2009,17 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                     </div>
 
                     {/* 와인 메타 정보 */}
-                    <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: '#8a8580', marginBottom: 6 }}>
                       {[wine.country, wine.wine_type, wine.grape, wine.supply_price > 0 ? `₩${fmt(wine.supply_price)}` : '', `재고 ${wine.available_stock}병`].filter(Boolean).join(' · ')}
                     </div>
 
                     {/* 추천 거래처 */}
                     {wine.matched_clients.length > 0 && (
                       <div style={{
-                        borderTop: '1px solid #f0ece4',
+                        borderTop: '1px solid rgba(90,21,21,0.06)',
                         paddingTop: 10,
                       }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>
                           추천 거래처
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -2036,7 +2036,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                             }}>
                               <span style={{
                                 fontWeight: 700,
-                                color: '#283593',
+                                color: '#5A1515',
                                 fontSize: 13,
                                 minWidth: 18,
                                 textAlign: 'center',
@@ -2063,8 +2063,8 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                                 display: 'inline-block',
                                 padding: '1px 6px',
                                 borderRadius: 4,
-                                background: c.match_score >= 70 ? '#E8EAF6' : '#F5F5F5',
-                                color: c.match_score >= 70 ? '#283593' : '#888',
+                                background: c.match_score >= 70 ? 'rgba(90,21,21,0.06)' : '#faf9f7',
+                                color: c.match_score >= 70 ? '#5A1515' : '#888',
                                 fontSize: 11,
                                 fontWeight: 700,
                                 whiteSpace: 'nowrap',
@@ -2074,7 +2074,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                               </span>
                               <span style={{
                                 fontSize: 10,
-                                color: '#999',
+                                color: '#a8a098',
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0,
                               }}>
@@ -2098,7 +2098,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         <div style={{
           textAlign: 'center',
           padding: '40px 20px',
-          color: '#999',
+          color: '#a8a098',
           fontSize: 14,
         }}>
           모든 거래처가 정상 상태입니다.
@@ -2108,7 +2108,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       {/* 상세모드 확인 처리 표시 */}
       {!compactMode && dismissedTotal > 0 && (
         <div style={{ textAlign: 'center', padding: '8px 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#999' }}>{dismissedTotal}건 확인 처리됨</span>
+          <span style={{ fontSize: 11, color: '#a8a098' }}>{dismissedTotal}건 확인 처리됨</span>
           <button
             onClick={clearDismissed}
             style={{ fontSize: 11, color: '#8B1538', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}

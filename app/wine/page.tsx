@@ -654,10 +654,11 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
   }
 
   const cardStyle: React.CSSProperties = {
-    padding: 12,
+    padding: 14,
     border: "1px solid rgba(90,21,21,0.06)",
-    borderRadius: 10,
+    borderRadius: 14,
     background: "#fff",
+    boxShadow: "0 1px 3px rgba(90,21,21,0.03)",
   };
   const monoStyle: React.CSSProperties = {
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
@@ -703,7 +704,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       style={{
         maxWidth: 960,
         margin: "0 auto",
-        padding: "0 16px",
+        padding: "0 16px 32px",
         fontFamily: "'DM Sans', -apple-system, sans-serif",
       }}
     >
@@ -711,402 +712,511 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       {/* ===== 발주 입력 탭 ===== */}
       {activeTab === "order" && (
         <>
-          {/* ===== 거래처 입력칸 (선택 사항) ===== */}
-          <div style={{ marginTop: 12 }}>
-            <label style={{ 
-              display: "block", 
-              marginBottom: 6, 
-              fontSize: 14, 
-              fontWeight: 600,
-              color: "#666"
-            }}>
-              거래처
-            </label>
-            <input
-              type="text"
-              value={clientInput}
-              onChange={(e) => setClientInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !loading) {
-                  e.preventDefault();
-                  run();
-                }
-              }}
-              onKeyUp={(e) => {
-                // 모바일 완료 버튼 폴백
-                if (e.key === 'Enter' && !loading) {
-                  e.preventDefault();
-                  run();
-                }
-              }}
-              placeholder="거래처를 입력하세요"
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 12,
-                border: "1px solid rgba(90,21,21,0.1)",
-                fontSize: 16, // iOS 확대 방지
-              }}
-            />
-          </div>
-
-          {/* ===== 발주 입력칸 ===== */}
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          {/* ===== 입력 카드 ===== */}
+          <div style={{
+            marginTop: 16,
+            background: "#fff",
+            borderRadius: 16,
+            border: "1px solid rgba(90,21,21,0.06)",
+            boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+            padding: "20px 18px 18px",
+          }}>
+            {/* 거래처 입력칸 */}
+            <div>
               <label style={{
-                fontSize: 14,
+                display: "block",
+                marginBottom: 8,
+                fontSize: 13,
                 fontWeight: 600,
-                color: "#666"
+                color: "#8a8580",
+                letterSpacing: "0.03em",
+                textTransform: "uppercase" as const,
               }}>
-                발주 내용
+                거래처
               </label>
+              <input
+                type="text"
+                value={clientInput}
+                onChange={(e) => setClientInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !loading) {
+                    e.preventDefault();
+                    run();
+                  }
+                }}
+                onKeyUp={(e) => {
+                  if (e.key === 'Enter' && !loading) {
+                    e.preventDefault();
+                    run();
+                  }
+                }}
+                placeholder="거래처를 입력하세요"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "1.5px solid rgba(90,21,21,0.08)",
+                  fontSize: 16,
+                  background: "#faf9f7",
+                  transition: "border-color 0.2s, box-shadow 0.2s",
+                  outline: "none",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(90,21,21,0.25)";
+                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(90,21,21,0.06)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(90,21,21,0.08)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            {/* 구분선 */}
+            <div style={{ height: 1, background: "rgba(90,21,21,0.05)", margin: "16px 0" }} />
+
+            {/* 발주 내용 입력칸 */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <label style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#8a8580",
+                  letterSpacing: "0.03em",
+                  textTransform: "uppercase" as const,
+                }}>
+                  발주 내용
+                </label>
+                <div
+                  role="button"
+                  tabIndex={-1}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    const next = !autoPaste;
+                    setAutoPaste(next);
+                    localStorage.setItem('order_auto_paste', String(next));
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    cursor: "pointer", userSelect: "none",
+                    fontSize: 12, color: autoPaste ? "#5A1515" : "#aaa",
+                    fontWeight: 500,
+                  }}
+                >
+                  <div style={{
+                    width: 34, height: 20, borderRadius: 10,
+                    background: autoPaste ? "#5A1515" : "#d4d0cc",
+                    position: "relative", transition: "background 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  }}>
+                    <div style={{
+                      width: 16, height: 16, borderRadius: 8,
+                      background: "#fff", position: "absolute", top: 2,
+                      left: autoPaste ? 16 : 2,
+                      transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+                    }} />
+                  </div>
+                  자동 붙여넣기
+                </div>
+              </div>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !loading) {
+                    e.preventDefault();
+                    run();
+                  }
+                }}
+                rows={8}
+                placeholder="품목과 수량을 입력하세요"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "1.5px solid rgba(90,21,21,0.08)",
+                  fontSize: 16,
+                  background: "#faf9f7",
+                  transition: "border-color 0.2s, box-shadow 0.2s",
+                  outline: "none",
+                  resize: "vertical",
+                  lineHeight: 1.6,
+                  ...monoStyle,
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(90,21,21,0.25)";
+                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(90,21,21,0.06)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(90,21,21,0.08)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            {/* ===== Action Bar ===== */}
+            <div style={{
+              display: "flex",
+              gap: 6,
+              marginTop: 14,
+              alignItems: "center",
+            }}>
+              <button
+                onClick={run}
+                disabled={loading}
+                style={{
+                  padding: "9px 22px",
+                  borderRadius: 10,
+                  border: "none",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  background: loading ? "rgba(90,21,21,0.6)" : "#5A1515",
+                  color: "#fff",
+                  boxShadow: loading ? "none" : "0 2px 8px rgba(90,21,21,0.2)",
+                  whiteSpace: "nowrap" as const,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {loading ? "생성중..." : "생성"}
+              </button>
+
+              <button
+                onClick={clearAll}
+                disabled={loading || (!text.trim() && !data)}
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: 10,
+                  border: "1.5px solid rgba(90,21,21,0.08)",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: loading || (!text.trim() && !data) ? "not-allowed" : "pointer",
+                  transition: "all 0.2s ease",
+                  background: "transparent",
+                  color: loading || (!text.trim() && !data) ? "#ccc" : "#8a8580",
+                  whiteSpace: "nowrap" as const,
+                }}
+                title="입력된 내용을 지우고 결과를 초기화합니다"
+              >
+                지우기
+              </button>
+
+              <div style={{ flex: 1 }} />
+
+              {/* 클립보드 붙여넣기 */}
               <div
                 role="button"
                 tabIndex={-1}
-                onPointerDown={(e) => {
+                onPointerDown={async (e) => {
                   e.preventDefault();
-                  const next = !autoPaste;
-                  setAutoPaste(next);
-                  localStorage.setItem('order_auto_paste', String(next));
+                  if (loading) return;
+                  try {
+                    const clipText = await navigator.clipboard.readText();
+                    if (clipText) {
+                      setText(clipText);
+                      setHasClipboard(false);
+                    }
+                  } catch (err) {
+                    alert("클립보드 접근 권한이 필요합니다.");
+                  }
                 }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  cursor: "pointer", userSelect: "none",
-                  fontSize: 12, color: autoPaste ? "#5A1515" : "#999",
-                }}
+                  padding: "9px 18px",
+                  borderRadius: 10,
+                  border: hasClipboard ? "1.5px solid rgba(90,21,21,0.15)" : "1.5px solid rgba(90,21,21,0.08)",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  background: hasClipboard ? "rgba(90,21,21,0.04)" : "transparent",
+                  color: hasClipboard ? "#5A1515" : "#8a8580",
+                  userSelect: "none",
+                  WebkitTouchCallout: "none",
+                  whiteSpace: "nowrap",
+                } as React.CSSProperties}
               >
-                <div style={{
-                  width: 32, height: 18, borderRadius: 9,
-                  background: autoPaste ? "#5A1515" : "#ccc",
-                  position: "relative", transition: "background 0.2s",
-                }}>
-                  <div style={{
-                    width: 14, height: 14, borderRadius: 7,
-                    background: "#fff", position: "absolute", top: 2,
-                    left: autoPaste ? 16 : 2, transition: "left 0.2s",
-                  }} />
-                </div>
-                자동 붙여넣기
+                붙여넣기
               </div>
             </div>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                // Ctrl+Enter 또는 Cmd+Enter로 생성
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !loading) {
-                  e.preventDefault();
-                  run();
-                }
-              }}
-              rows={10}
-              placeholder="품목과 수량을 입력하세요"
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 12,
-                border: "1px solid rgba(90,21,21,0.1)",
-                fontSize: 16, // iOS 확대 방지
-                ...monoStyle,
-              }}
-            />
           </div>
 
-      {/* ===== Controls (입력창 아래로 이동) ===== */}
-      <div style={{ display: "flex", gap: 2, marginTop: 12, alignItems: "center", background: "#F0EFED", padding: 2, borderRadius: 8 }}>
-        <button
-          onClick={run}
-          disabled={loading}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 6,
-            border: "none",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            transition: "all 0.2s ease",
-            background: "white",
-            color: "#5A1515",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            whiteSpace: "nowrap" as const,
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "생성중..." : "생성"}
-        </button>
+      {/* ===== 신규 사업자 + 발주 옵션 ===== */}
+      <div style={{
+        marginTop: 12,
+        background: "#fff",
+        borderRadius: 16,
+        border: "1px solid rgba(90,21,21,0.06)",
+        boxShadow: "0 1px 4px rgba(90,21,21,0.02)",
+        overflow: "hidden",
+      }}>
+        {/* 신규 사업자 */}
+        <div style={{ padding: "14px 18px", borderBottom: isNewBusiness ? "1px solid rgba(90,21,21,0.06)" : "none" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: 6,
+              border: isNewBusiness ? "none" : "1.5px solid rgba(90,21,21,0.15)",
+              background: isNewBusiness ? "#5A1515" : "#fff",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.2s ease",
+              flexShrink: 0,
+            }}>
+              {isNewBusiness && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
+            </div>
+            <input
+              type="checkbox"
+              checked={isNewBusiness}
+              onChange={(e) => {
+                setIsNewBusiness(e.target.checked);
+                if (!e.target.checked) {
+                  setNewBusinessName("");
+                  setNewBusinessPhone("");
+                  setNewBusinessEmail("");
+                }
+              }}
+              style={{ display: "none" }}
+            />
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#2c1810" }}>신규 사업자</span>
+          </label>
+        </div>
 
-        <button
-          onClick={clearAll}
-          disabled={loading || (!text.trim() && !data)}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 6,
-            border: "none",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            cursor: loading || (!text.trim() && !data) ? "not-allowed" : "pointer",
-            transition: "all 0.2s ease",
-            background: "transparent",
-            color: loading || (!text.trim() && !data) ? "#ccc" : "#999",
-            boxShadow: "none",
-            whiteSpace: "nowrap" as const,
-          }}
-          title="입력된 내용을 지우고 결과를 초기화합니다"
-        >
-          지우기
-        </button>
+        {isNewBusiness && (
+          <div style={{ padding: "16px 18px", background: "rgba(90,21,21,0.02)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#8a8580", display: "block", marginBottom: 6, letterSpacing: "0.03em" }}>
+                  사업자명 <span style={{ color: "#c0392b" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newBusinessName}
+                  onChange={(e) => setNewBusinessName(e.target.value)}
+                  placeholder="예: 홍길동 레스토랑"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1.5px solid rgba(90,21,21,0.08)",
+                    fontSize: 16,
+                    background: "#fff",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#8a8580", display: "block", marginBottom: 6, letterSpacing: "0.03em" }}>
+                  연락처 <span style={{ color: "#c0392b" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newBusinessPhone}
+                  onChange={(e) => setNewBusinessPhone(e.target.value)}
+                  placeholder="예: 010-1234-5678"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1.5px solid rgba(90,21,21,0.08)",
+                    fontSize: 16,
+                    background: "#fff",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#8a8580", display: "block", marginBottom: 6, letterSpacing: "0.03em" }}>
+                  세금계산서 이메일 (선택)
+                </label>
+                <input
+                  type="email"
+                  value={newBusinessEmail}
+                  onChange={(e) => setNewBusinessEmail(e.target.value)}
+                  placeholder="예: admin@company.com"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1.5px solid rgba(90,21,21,0.08)",
+                    fontSize: 16,
+                    background: "#fff",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ marginTop: 14, fontSize: 12, color: "#8a7a6e", background: "rgba(90,21,21,0.03)", padding: "10px 12px", borderRadius: 10, lineHeight: 1.5 }}>
+              신규 사업자는 거래처 DB에 등록되지 않은 사업자입니다. 사업자명과 연락처를 입력하면 주문서가 생성됩니다.
+            </div>
+          </div>
+        )}
 
-        <div style={{ flex: 1 }} />
+        {/* 발주 옵션 */}
+        <div style={{ borderTop: "1px solid rgba(90,21,21,0.06)" }}>
+          <button
+            onClick={() => setShowOrderOptions(!showOrderOptions)}
+            style={{
+              width: "100%",
+              padding: "14px 18px",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#2c1810",
+            }}
+          >
+            <span>발주 옵션</span>
+            <span style={{
+              fontSize: 11,
+              color: "#8a8580",
+              transition: "transform 0.2s ease",
+              transform: showOrderOptions ? "rotate(180deg)" : "rotate(0deg)",
+            }}>&#9660;</span>
+          </button>
 
-        {/* ===== 클립보드 붙여넣기 버튼 ===== */}
-        <div
-          role="button"
-          tabIndex={-1}
-          onPointerDown={async (e) => {
-            e.preventDefault();
-            if (loading) return;
-            try {
-              const clipText = await navigator.clipboard.readText();
-              if (clipText) {
-                setText(clipText);
-                setHasClipboard(false);
-              }
-            } catch (err) {
-              alert("클립보드 접근 권한이 필요합니다.");
-            }
-          }}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 6,
-            border: "none",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            transition: "all 0.2s ease",
-            background: hasClipboard ? "white" : "transparent",
-            color: hasClipboard ? "#5A1515" : "#999",
-            boxShadow: hasClipboard ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-            userSelect: "none",
-            WebkitTouchCallout: "none",
-            whiteSpace: "nowrap",
-          } as React.CSSProperties}
-        >
-          붙여넣기
+          {showOrderOptions && (
+            <div style={{ padding: "0 18px 18px" }}>
+              {/* 배송일 지정 */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#8a8580", display: "block", marginBottom: 8, letterSpacing: "0.03em" }}>
+                  배송일 지정 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={customDeliveryDate}
+                  onChange={(e) => setCustomDeliveryDate(e.target.value)}
+                  placeholder="예: 1/10(금), 내일, 1월 10일"
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1.5px solid rgba(90,21,21,0.08)",
+                    fontSize: 16,
+                    background: "#faf9f7",
+                    marginBottom: 10,
+                    outline: "none",
+                  }}
+                />
+
+                {/* 날짜 빠른 선택 */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {(() => {
+                    const dates = [];
+                    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+                    const today = new Date();
+
+                    for (let i = 0; i < 7; i++) {
+                      const date = new Date(today);
+                      date.setDate(today.getDate() + i);
+                      const month = date.getMonth() + 1;
+                      const day = date.getDate();
+                      const weekday = weekdays[date.getDay()];
+                      const label = i === 0 ? "오늘" : i === 1 ? "내일" : `${month}/${day}(${weekday})`;
+                      const value = `${month}/${day}(${weekday})`;
+                      dates.push({ label, value });
+                    }
+
+                    return dates.map((d, idx) => {
+                      const isSelected = customDeliveryDate === d.value;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setCustomDeliveryDate(d.value)}
+                          style={{
+                            padding: "6px 14px",
+                            borderRadius: 8,
+                            border: isSelected ? "1.5px solid #5A1515" : "1.5px solid rgba(90,21,21,0.08)",
+                            background: isSelected ? "rgba(90,21,21,0.06)" : "#fff",
+                            color: isSelected ? "#5A1515" : "#8a8580",
+                            fontSize: 12,
+                            fontWeight: isSelected ? 700 : 500,
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {d.label}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* 추가 문구 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 6,
+                    border: requirePaymentConfirm ? "none" : "1.5px solid rgba(90,21,21,0.15)",
+                    background: requirePaymentConfirm ? "#5A1515" : "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.2s ease",
+                    flexShrink: 0,
+                  }}>
+                    {requirePaymentConfirm && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={requirePaymentConfirm}
+                    onChange={(e) => setRequirePaymentConfirm(e.target.checked)}
+                    style={{ display: "none" }}
+                  />
+                  <span style={{ fontSize: 14, color: "#2c1810" }}>입금확인후 출고</span>
+                </label>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 6,
+                    border: requireInvoice ? "none" : "1.5px solid rgba(90,21,21,0.15)",
+                    background: requireInvoice ? "#5A1515" : "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.2s ease",
+                    flexShrink: 0,
+                  }}>
+                    {requireInvoice && <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1 }}>&#10003;</span>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={requireInvoice}
+                    onChange={(e) => setRequireInvoice(e.target.checked)}
+                    style={{ display: "none" }}
+                  />
+                  <span style={{ fontSize: 14, color: "#2c1810" }}>거래명세표 부탁드립니다</span>
+                </label>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ===== 신규 사업자 ===== */}
-      <div style={{ marginTop: 16 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={isNewBusiness}
-            onChange={(e) => {
-              setIsNewBusiness(e.target.checked);
-              if (!e.target.checked) {
-                // 체크 해제 시 입력 초기화
-                setNewBusinessName("");
-                setNewBusinessPhone("");
-                setNewBusinessEmail(""); // 이메일로 변경
-              }
-            }}
-            style={{ width: 18, height: 18, cursor: "pointer" }}
-          />
-          <span style={{ fontSize: 14, fontWeight: 600 }}>신규 사업자</span>
-        </label>
-        
-        {isNewBusiness && (
-          <div style={{ marginTop: 12, padding: 16, background: "#fff3cd", borderRadius: 12, border: "2px solid #ffc107" }}>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
-                사업자명 <span style={{ color: "red" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={newBusinessName}
-                onChange={(e) => setNewBusinessName(e.target.value)}
-                placeholder="예: 홍길동 레스토랑"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(90,21,21,0.1)",
-                  fontSize: 16,
-                }}
-              />
-            </div>
-            
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
-                연락처 <span style={{ color: "red" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={newBusinessPhone}
-                onChange={(e) => setNewBusinessPhone(e.target.value)}
-                placeholder="예: 010-1234-5678"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(90,21,21,0.1)",
-                  fontSize: 16,
-                }}
-              />
-            </div>
-            
-            <div>
-              <label style={{ fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>
-                세금계산서 이메일 (선택)
-              </label>
-              <input
-                type="email"
-                value={newBusinessEmail}
-                onChange={(e) => setNewBusinessEmail(e.target.value)}
-                placeholder="예: admin@company.com"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(90,21,21,0.1)",
-                  fontSize: 16,
-                }}
-              />
-            </div>
-            
-            <div style={{ marginTop: 12, fontSize: 12, color: "#856404", background: "#fff9e6", padding: 10, borderRadius: 8 }}>
-              💡 신규 사업자는 거래처 DB에 등록되지 않은 사업자입니다. 사업자명과 연락처를 입력하면 주문서가 생성됩니다.
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ===== 발주 옵션 (접기/펼치기) ===== */}
-      <div style={{ marginTop: 16 }}>
-        <button
-          onClick={() => setShowOrderOptions(!showOrderOptions)}
-          style={{
-            width: "100%",
-            padding: 12,
-            background: "#fafaf8",
-            border: "1px solid rgba(90,21,21,0.1)",
-            borderRadius: 12,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          <span>발주 옵션</span>
-          <span>{showOrderOptions ? "▲" : "▼"}</span>
-        </button>
-        
-        {showOrderOptions && (
-          <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
-            {/* 배송일 지정 */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>
-                배송일 지정 (선택)
-              </label>
-              <input
-                type="text"
-                value={customDeliveryDate}
-                onChange={(e) => setCustomDeliveryDate(e.target.value)}
-                placeholder="예: 1/10(금), 내일, 1월 10일"
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(90,21,21,0.1)",
-                  fontSize: 16,
-                  marginBottom: 8,
-                }}
-              />
-              
-              {/* ✅ 날짜 빠른 선택 버튼 (1주일) */}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {(() => {
-                  const dates = [];
-                  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-                  const today = new Date();
-                  
-                  for (let i = 0; i < 7; i++) {
-                    const date = new Date(today);
-                    date.setDate(today.getDate() + i);
-                    const month = date.getMonth() + 1;
-                    const day = date.getDate();
-                    const weekday = weekdays[date.getDay()];
-                    const label = i === 0 ? "오늘" : i === 1 ? "내일" : `${month}/${day}(${weekday})`;
-                    const value = `${month}/${day}(${weekday})`;
-                    
-                    dates.push({ label, value });
-                  }
-                  
-                  return dates.map((d, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCustomDeliveryDate(d.value)}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: 6,
-                        border: customDeliveryDate === d.value ? "2px solid #5A1515" : "1px solid rgba(90,21,21,0.1)",
-                        background: customDeliveryDate === d.value ? "rgba(90,21,21,0.04)" : "#fff",
-                        color: customDeliveryDate === d.value ? "#5A1515" : "#666",
-                        fontSize: 12,
-                        fontWeight: customDeliveryDate === d.value ? 600 : 400,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {d.label}
-                    </button>
-                  ));
-                })()}
+      {/* =========================
+          거래처 선택 패널
+      ========================= */}
+      {data && needsClientPick && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: 16,
+            border: "1px solid rgba(90,21,21,0.06)",
+            boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "16px 18px 12px",
+              borderBottom: "1px solid rgba(90,21,21,0.06)",
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#2c1810" }}>
+                거래처 선택이 필요합니다
+              </div>
+              <div style={{ color: "#8a8580", fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>
+                입력된 거래처가 여러 후보로 매칭되었습니다. 아래에서 선택하세요.
               </div>
             </div>
 
-            {/* 추가 문구 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={requirePaymentConfirm}
-                  onChange={(e) => setRequirePaymentConfirm(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: 14 }}>입금확인후 출고</span>
-              </label>
-              
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={requireInvoice}
-                  onChange={(e) => setRequireInvoice(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: 14 }}>거래명세표 부탁드립니다</span>
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* =========================
-          ✅ 거래처 선택 패널
-      ========================= */}
-      {data && needsClientPick && (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
-            거래처 선택이 필요합니다
-          </div>
-
-          <div style={{ ...cardStyle, background: "#fff" }}>
-            <div style={{ color: "#666", fontSize: 12, marginBottom: 10 }}>
-              입력된 거래처가 여러 후보로 동점/애매하게 매칭되어 자동확정이 보류되었습니다. 아래에서 선택하세요.
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ padding: "12px 18px 18px", display: "flex", flexDirection: "column", gap: 8 }}>
               {(clientCandidates ?? []).map((c, idx) => (
                 <button
                   key={`${c.client_code}-${idx}`}
@@ -1114,80 +1224,87 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
                   disabled={loading}
                   style={{
                     textAlign: "left",
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(90,21,21,0.1)",
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: "1.5px solid rgba(90,21,21,0.08)",
                     cursor: loading ? "not-allowed" : "pointer",
-                    background: "#fafafa",
+                    background: "#faf9f7",
+                    transition: "all 0.2s ease",
                   }}
                 >
-                  <div style={{ fontWeight: 800 }}>{c.client_name}</div>
-                  <div style={{ fontSize: 12, color: "#777", marginTop: 4 }}>
+                  <div style={{ fontWeight: 700, color: "#2c1810" }}>{c.client_name}</div>
+                  <div style={{ fontSize: 12, color: "#8a8580", marginTop: 4 }}>
                     코드: {c.client_code} · 점수: {c.score}
                   </div>
                 </button>
               ))}
 
               {(clientCandidates ?? []).length === 0 && (
-                <div style={{ color: "#888", fontSize: 12 }}>
-                  후보가 비어 있습니다. (client.candidates가 내려오지 않는 케이스)
+                <div style={{ color: "#8a8580", fontSize: 12, padding: 8 }}>
+                  후보가 비어 있습니다.
                 </div>
               )}
-            </div>
 
-            <div style={{ marginTop: 12, fontSize: 12, color: "#888" }}>
-              힌트: <b>{String(data?.client?.hint_used ?? "")}</b>
-              {pendingOrderText ? (
-                <>
-                  <br />
-                  주문 라인: <span style={monoStyle}>{pendingOrderText}</span>
-                </>
-              ) : null}
+              <div style={{ marginTop: 4, fontSize: 12, color: "#a8a098" }}>
+                힌트: <b>{String(data?.client?.hint_used ?? "")}</b>
+                {pendingOrderText ? (
+                  <>
+                    <br />
+                    주문 라인: <span style={monoStyle}>{pendingOrderText}</span>
+                  </>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* =========================
-          ✅ 거래처 선택이 아닌 경우에만 기존 출력 표시
+          결과 출력
       ========================= */}
       {data && !needsClientPick && (
-        <div style={{ marginTop: 18 }}>
+        <div style={{ marginTop: 16 }}>
           {/* ---- Staff Message ---- */}
-          <div style={{ marginTop: 14 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ fontSize: 15, fontWeight: 700 }}>직원 메시지</div>
-
+          <div style={{
+            background: "#fff",
+            borderRadius: 16,
+            border: "1px solid rgba(90,21,21,0.06)",
+            boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "14px 18px",
+              borderBottom: "1px solid rgba(90,21,21,0.06)",
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#2c1810" }}>직원 메시지</div>
               <button
                 onClick={copyStaffMessage}
                 style={{
-                  padding: "8px 16px",
+                  padding: "7px 16px",
                   borderRadius: 8,
-                  border: "1px solid rgba(90,21,21,0.1)",
+                  border: copied ? "1.5px solid rgba(16,185,129,0.3)" : "1.5px solid rgba(90,21,21,0.08)",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: 600,
-                  background: copied ? "rgba(16,185,129,0.06)" : "#fff",
+                  background: copied ? "rgba(16,185,129,0.06)" : "transparent",
+                  color: copied ? "#10b981" : "#5A1515",
+                  transition: "all 0.25s ease",
                 }}
               >
-                {copied ? "복사됨 ✅" : "복사하기"}
+                {copied ? "복사됨 ✓" : "복사하기"}
               </button>
             </div>
 
             <pre
               style={{
                 whiteSpace: "pre-wrap",
-                padding: 12,
-                borderRadius: 12,
-                border: "1px solid rgba(90,21,21,0.06)",
-                background: "#fafafa",
-                marginTop: 10,
+                padding: "14px 18px",
+                margin: 0,
+                background: "transparent",
+                lineHeight: 1.7,
                 ...monoStyle,
               }}
             >
@@ -1196,20 +1313,28 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           </div>
 
           {/* ---- Summary ---- */}
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
-              요약
-            </div>
-            <div style={cardStyle}>
-              <div style={{ marginBottom: 8 }}>
-                거래처: <b>{String(data?.client?.client_name ?? "")}</b> (
-                {String(data?.client?.client_code ?? "")})
+          <div style={{ marginTop: 12 }}>
+            <div style={{
+              background: "#fff",
+              borderRadius: 16,
+              border: "1px solid rgba(90,21,21,0.06)",
+              boxShadow: "0 1px 4px rgba(90,21,21,0.02)",
+              padding: "14px 18px",
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#2c1810", marginBottom: 10 }}>
+                요약
+              </div>
+              <div style={{ marginBottom: 10, fontSize: 14 }}>
+                거래처: <b style={{ color: "#5A1515" }}>{String(data?.client?.client_name ?? "")}</b>
+                <span style={{ color: "#a8a098", marginLeft: 6, fontSize: 12 }}>
+                  {String(data?.client?.client_code ?? "")}
+                </span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {(Array.isArray(data?.parsed_items) ? data.parsed_items : []).map(
                   (p: any, idx: number) => (
-                    <div key={idx} style={{ ...monoStyle }}>
+                    <div key={idx} style={{ ...monoStyle, color: "#4a4540", fontSize: 13 }}>
                       {String(p?.raw ?? "")}
                     </div>
                   )
@@ -1219,29 +1344,44 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
           </div>
 
           {/* ---- Items (toggle) ---- */}
-          <div style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 12 }}>
             <button
               onClick={() => setShowItemsPanel((v) => !v)}
               style={{
                 width: "100%",
-                padding: 12,
-                background: "#fafaf8",
-                border: "1px solid rgba(90,21,21,0.1)",
-                borderRadius: 12,
+                padding: "14px 18px",
+                background: "#fff",
+                border: "1px solid rgba(90,21,21,0.06)",
+                borderRadius: showItemsPanel ? "16px 16px 0 0" : 16,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#2c1810",
+                boxShadow: "0 1px 4px rgba(90,21,21,0.02)",
+                transition: "border-radius 0.2s ease",
               }}
             >
               <span>품목 결과</span>
-              <span>{showItemsPanel ? "▲" : "▼"}</span>
+              <span style={{
+                fontSize: 11,
+                color: "#8a8580",
+                transition: "transform 0.2s ease",
+                transform: showItemsPanel ? "rotate(180deg)" : "rotate(0deg)",
+              }}>&#9660;</span>
             </button>
 
             {showItemsPanel && (
-              <div style={{ marginTop: 8, padding: 16, background: "#fafaf8", borderRadius: 12 }}>
+              <div style={{
+                padding: "16px 18px",
+                background: "#fff",
+                borderRadius: "0 0 16px 16px",
+                border: "1px solid rgba(90,21,21,0.06)",
+                borderTop: "none",
+                boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+              }}>
                 {(Array.isArray(data?.items) ? data.items : []).map(
                   (it: any, idx: number) => {
                     // ✅ 한글명만 추출 (영어명 제거)

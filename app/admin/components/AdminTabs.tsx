@@ -30,9 +30,9 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
     }}>
       <div style={{
         display: 'inline-flex',
-        background: '#F0EFED',
-        borderRadius: 8,
-        padding: 2,
+        background: 'rgba(90,21,21,0.05)',
+        borderRadius: 10,
+        padding: 3,
         gap: 2,
       }}>
         {TABS.map((tab) => {
@@ -43,15 +43,15 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
               onClick={() => onTabChange(tab.id)}
               style={{
                 padding: '5px 14px',
-                borderRadius: 6,
+                borderRadius: 8,
                 border: 'none',
                 fontSize: '0.75rem',
-                fontWeight: 600,
+                fontWeight: isActive ? 700 : 500,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 background: isActive ? 'white' : 'transparent',
-                color: isActive ? '#5A1515' : '#999',
-                boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                color: isActive ? '#5A1515' : '#8a8580',
+                boxShadow: isActive ? '0 1px 4px rgba(90,21,21,0.1), 0 0 0 1px rgba(90,21,21,0.04)' : 'none',
                 whiteSpace: 'nowrap',
                 display: 'flex',
                 alignItems: 'center',

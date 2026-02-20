@@ -208,12 +208,12 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
   return (
     <>
       <style>{`
-        .analysis-card { background: #fff; border: 1px solid #E8E8E8; border-radius: 12px; padding: 20px; }
+        .analysis-card { background: #fff; border: 1px solid rgba(90,21,21,0.06); border-radius: 14px; padding: 20px; }
         .analysis-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .analysis-chart-title { font-size: 0.82rem; font-weight: 600; color: #333; margin-bottom: 12px; }
+        .analysis-chart-title { font-size: 0.82rem; font-weight: 600; color: #2c1810; margin-bottom: 12px; }
         .analysis-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
         .analysis-table th { background: #faf5f5; color: #5A1515; font-weight: 600; padding: 10px 8px; text-align: left; border-bottom: 2px solid #E8E8E8; white-space: nowrap; }
-        .analysis-table td { padding: 10px 8px; border-bottom: 1px solid #F0F0F0; }
+        .analysis-table td { padding: 10px 8px; border-bottom: 1px solid rgba(90,21,21,0.06); }
         .analysis-table tr:hover td { background: #faf5f5; }
         @media (max-width: 768px) {
           .analysis-grid2 { grid-template-columns: 1fr; }
@@ -225,7 +225,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
       <div style={{ opacity: mounted ? 1 : 0, transition: 'opacity 0.5s ease' }}>
         {/* CDV / DL 토글 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: '0.82rem', color: '#8E8E93' }}>
+          <div style={{ fontSize: '0.82rem', color: '#8a8580' }}>
             {isAdmin ? '담당/부서/거래처별' : `${currentManager} 담당`} 출고 {isWine ? '와인' : '리델'} 분석
           </div>
           <div style={{ display: 'flex', background: '#F0EFED', borderRadius: 8, padding: 2, flexShrink: 0 }}>
@@ -239,7 +239,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                   transition: 'all 0.2s ease',
                   background: type === t ? 'white' : 'transparent',
                   color: type === t ? '#5A1515' : '#999',
-                  boxShadow: type === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  boxShadow: type === t ? '0 1px 3px rgba(90,21,21,0.05)' : 'none',
                 }}
               >
                 {t === 'wine' ? 'CDV' : 'DL'}
@@ -253,11 +253,11 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end' }}>
             {isAdmin && (
               <div style={{ flex: '1 1 100px', minWidth: 80 }}>
-                <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>담당</label>
+                <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>담당</label>
                 <select
                   value={manager}
                   onChange={e => setManager(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810' }}
                 >
                   <option value="">전체</option>
                   {filters.managers.map(m => <option key={m} value={m}>{m}</option>)}
@@ -265,32 +265,32 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
               </div>
             )}
             <div style={{ flex: '1 1 110px', minWidth: 100 }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>시작</label>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>시작</label>
               <input type="date" value={startDate} min={dateRange?.min || ''} max={endDate || dateRange?.max || ''} onChange={e => setStartDate(e.target.value)}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810', boxSizing: 'border-box' }} />
             </div>
             <div style={{ flex: '1 1 110px', minWidth: 100 }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>종료</label>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>종료</label>
               <input type="date" value={endDate} min={startDate || dateRange?.min || ''} max={dateRange?.max || ''} onChange={e => setEndDate(e.target.value)}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810', boxSizing: 'border-box' }} />
             </div>
             <div ref={suggestRef} style={{ flex: '1 1 140px', minWidth: 120, position: 'relative' }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', display: 'block', marginBottom: 3 }}>거래처</label>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>거래처</label>
               <input type="text" value={clientSearch} onChange={e => handleClientSearch(e.target.value)} onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                placeholder="검색..." style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: '#fff', color: '#333', boxSizing: 'border-box' }} />
+                placeholder="검색..." style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810', boxSizing: 'border-box' }} />
               {clientCode && (
                 <button onClick={() => { setClientCode(''); setClientName(''); setClientSearch(''); }}
-                  style={{ position: 'absolute', right: 6, top: 22, background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '0.85rem' }}>x</button>
+                  style={{ position: 'absolute', right: 6, top: 22, background: 'none', border: 'none', cursor: 'pointer', color: '#a8a098', fontSize: '0.85rem' }}>x</button>
               )}
               {showSuggestions && suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: '#fff', border: '1px solid #ddd', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', maxHeight: 240, overflowY: 'auto' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: '#fff', border: '1.5px solid rgba(90,21,21,0.08)', borderRadius: 8, boxShadow: '0 4px 16px rgba(90,21,21,0.08)', maxHeight: 240, overflowY: 'auto' }}>
                   {suggestions.map(s => (
                     <div key={s.code} onClick={() => selectClient(s)}
                       style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.82rem', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between' }}
                       onMouseEnter={e => (e.currentTarget.style.background = '#faf5f5')}
                       onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                      <span style={{ color: '#333' }}>{s.name}</span>
-                      <span style={{ color: '#999', fontSize: '0.72rem' }}>{s.code}</span>
+                      <span style={{ color: '#2c1810' }}>{s.name}</span>
+                      <span style={{ color: '#a8a098', fontSize: '0.72rem' }}>{s.code}</span>
                     </div>
                   ))}
                 </div>
@@ -298,7 +298,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
             </div>
             <div style={{ flex: '0 0 auto', background: '#F0EFED', borderRadius: 6, padding: 2 }}>
               <button onClick={loadData} disabled={loading}
-                style={{ padding: '5px 12px', borderRadius: 5, border: 'none', background: 'white', color: '#5A1515', fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', transition: 'all 0.2s ease', opacity: loading ? 0.6 : 1 }}>
+                style={{ padding: '5px 12px', borderRadius: 5, border: 'none', background: 'white', color: '#5A1515', fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer', boxShadow: '0 1px 3px rgba(90,21,21,0.05)', transition: 'all 0.2s ease', opacity: loading ? 0.6 : 1 }}>
                 {loading ? '조회중' : '조회'}
               </button>
             </div>
@@ -306,7 +306,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
         </div>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+          <div style={{ textAlign: 'center', padding: 40, color: '#a8a098' }}>
             <div style={{ width: 32, height: 32, border: '3px solid #eee', borderTopColor: '#5A1515', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             <p style={{ fontSize: '0.82rem' }}>데이터 분석 중...</p>
@@ -315,18 +315,18 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
 
         {data && !loading && (
           <>
-            {filterLabel && <p style={{ fontSize: '0.75rem', color: '#8E8E93', marginBottom: 16 }}>{filterLabel}</p>}
+            {filterLabel && <p style={{ fontSize: '0.75rem', color: '#8a8580', marginBottom: 16 }}>{filterLabel}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
               <div className="analysis-card">
-                <div style={{ fontSize: '0.72rem', color: '#999', fontWeight: 500, marginBottom: 8 }}>총 매출</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e' }}>{fmtFull(data.summary?.totalRevenue || 0)}</div>
+                <div style={{ fontSize: '0.72rem', color: '#a8a098', fontWeight: 500, marginBottom: 8 }}>총 매출</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2c1810' }}>{fmtFull(data.summary?.totalRevenue || 0)}</div>
               </div>
               <div className="analysis-card">
-                <div style={{ fontSize: '0.72rem', color: '#999', fontWeight: 500, marginBottom: 8 }}>평균 지원률</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e' }}>{(data.summary?.avgDiscount || 0).toFixed(1)}%</div>
+                <div style={{ fontSize: '0.72rem', color: '#a8a098', fontWeight: 500, marginBottom: 8 }}>평균 지원률</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2c1810' }}>{(data.summary?.avgDiscount || 0).toFixed(1)}%</div>
               </div>
             </div>
-            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#1a1a2e', marginBottom: 12 }}>출고 {isWine ? '와인' : '리델'} 분석</div>
+            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#2c1810', marginBottom: 12 }}>출고 {isWine ? '와인' : '리델'} 분석</div>
             <div className="analysis-grid2" style={{ marginBottom: 20 }}>
               {isWine && (
                 <div className="analysis-card">
@@ -412,12 +412,12 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                   <tbody>
                     {(data.itemRanking || []).map((item: { rn: number; code: string; name: string; revenue: number; discount: number; quantity: number; stock: number }, idx: number) => {
                       const prevRank = data.prevRanking?.[item.code];
-                      let changeEl: React.ReactNode = <span style={{ color: '#999' }}>-</span>;
+                      let changeEl: React.ReactNode = <span style={{ color: '#a8a098' }}>-</span>;
                       if (prevRank) {
                         const diff = prevRank - item.rn;
                         if (diff > 0) changeEl = <span style={{ color: '#059669', fontWeight: 600 }}>{'\u25B2'}{diff}</span>;
                         else if (diff < 0) changeEl = <span style={{ color: '#DC2626', fontWeight: 600 }}>{'\u25BC'}{Math.abs(diff)}</span>;
-                        else changeEl = <span style={{ color: '#999' }}>-</span>;
+                        else changeEl = <span style={{ color: '#a8a098' }}>-</span>;
                       } else if (data.prevRanking && !prevRank) {
                         changeEl = <span style={{ color: '#2563eb', fontWeight: 600, fontSize: '0.7rem' }}>NEW</span>;
                       }
@@ -425,7 +425,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                         <tr key={item.code || idx}>
                           <td style={{ textAlign: 'center', fontWeight: 600, color: item.rn <= 3 ? '#5A1515' : '#666' }}>{item.rn}</td>
                           <td>{changeEl}</td>
-                          <td style={{ fontSize: '0.72rem', color: '#999' }}>{item.code}</td>
+                          <td style={{ fontSize: '0.72rem', color: '#a8a098' }}>{item.code}</td>
                           <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</td>
                           <td style={{ textAlign: 'right', fontWeight: 500 }}>{fmt(item.revenue)}</td>
                           <td style={{ textAlign: 'right', color: item.discount > 0 ? '#DC2626' : '#333' }}>{item.discount ? `${item.discount}%` : '-'}</td>
@@ -435,7 +435,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                       );
                     })}
                     {(!data.itemRanking || data.itemRanking.length === 0) && (
-                      <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: '#999' }}>데이터 없음</td></tr>
+                      <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: '#a8a098' }}>데이터 없음</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -446,7 +446,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
             <div className="analysis-card" style={{ marginTop: 20 }}>
               <div className="analysis-chart-title" style={{ marginBottom: 16 }}>거래처 매출 순위</div>
               {rankLoading ? (
-                <div style={{ textAlign: 'center', padding: 24, color: '#999', fontSize: 13 }}>거래처 데이터 로딩 중...</div>
+                <div style={{ textAlign: 'center', padding: 24, color: '#a8a098', fontSize: 13 }}>거래처 데이터 로딩 중...</div>
               ) : (() => {
                 const RANK_IMP: Record<number, { label: string; color: string }> = {
                   1: { label: 'VIP', color: '#dc3545' },
@@ -460,7 +460,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                   .sort((a, b) => (b.st?.totalSales || 0) - (a.st?.totalSales || 0))
                   .slice(0, 30);
                 if (sorted.length === 0) return (
-                  <div style={{ textAlign: 'center', padding: 32, color: '#999', fontSize: 13 }}>데이터 없음</div>
+                  <div style={{ textAlign: 'center', padding: 32, color: '#a8a098', fontSize: 13 }}>데이터 없음</div>
                 );
                 return (
                   <div className="analysis-table-wrap">
@@ -492,7 +492,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                                 </span>
                               </td>
                               <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.client_name}</td>
-                              <td style={{ fontSize: '0.72rem', color: '#999' }}>{c.manager || '-'}</td>
+                              <td style={{ fontSize: '0.72rem', color: '#a8a098' }}>{c.manager || '-'}</td>
                               <td style={{ textAlign: 'right', fontWeight: 500 }}>{c.st ? fmt(c.st.totalSales) : '-'}</td>
                               <td style={{ textAlign: 'right' }}>{c.st?.orderCount || 0}</td>
                               <td style={{ textAlign: 'right', fontWeight: 600, color: cr > 0 ? '#059669' : cr < 0 ? '#DC2626' : '#999' }}>
@@ -643,16 +643,16 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#666', display: 'flex' }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#8a8580', display: 'flex' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>{client.client_name}</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#2c1810' }}>{client.client_name}</span>
             <span style={{ fontSize: 11, fontWeight: 600, color: imp.color, background: imp.color + '15', padding: '2px 8px', borderRadius: 4 }}>{imp.label}</span>
-            <span style={{ fontSize: 12, color: '#999' }}>{client.client_code}</span>
+            <span style={{ fontSize: 12, color: '#a8a098' }}>{client.client_code}</span>
           </div>
-          <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#a8a098', marginTop: 2 }}>
             {client.manager && `담당: ${client.manager}`}
             {client.business_type && ` · ${client.business_type}`}
           </div>
@@ -689,16 +689,16 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
       {subTab === 'info' && (
         <>
           {detailLoading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>로딩 중...</div>
+            <div style={{ textAlign: 'center', padding: 40, color: '#a8a098' }}>로딩 중...</div>
           ) : (
             <>
               {/* 연락처 정보 */}
               {c && (
-                <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
+                <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 2px 8px rgba(90,21,21,0.03)', marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>연락처 정보</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810' }}>연락처 정보</div>
                     <button onClick={() => { setEditMode(!editMode); setEditData({}); }}
-                      style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #ddd', background: editMode ? '#5A1515' : 'white', color: editMode ? 'white' : '#666', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                      style={{ padding: '4px 12px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', background: editMode ? '#5A1515' : 'white', color: editMode ? 'white' : '#666', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                       {editMode ? '취소' : '편집'}
                     </button>
                   </div>
@@ -709,18 +709,18 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
                       {renderEditField('이메일', 'contact_email', c.contact_email)}
                       {renderEditField('주소', 'address', c.address)}
                       <div>
-                        <label style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 4 }}>업종</label>
+                        <label style={{ fontSize: 11, color: '#a8a098', display: 'block', marginBottom: 4 }}>업종</label>
                         <select value={editData.business_type ?? c.business_type ?? ''} onChange={e => setEditData({ ...editData, business_type: e.target.value })}
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, background: 'white' }}>
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: 'white' }}>
                           <option value="">선택</option>
                           {BUSINESS_TYPES.map(bt => <option key={bt} value={bt}>{bt}</option>)}
                         </select>
                       </div>
                       {renderEditField('담당자(우리)', 'manager', c.manager)}
                       <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 4 }}>메모</label>
+                        <label style={{ fontSize: 11, color: '#a8a098', display: 'block', marginBottom: 4 }}>메모</label>
                         <textarea value={editData.memo ?? c.memo ?? ''} onChange={e => setEditData({ ...editData, memo: e.target.value })} rows={3}
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16, resize: 'vertical' }} />
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, resize: 'vertical' }} />
                       </div>
                       <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <button onClick={handleSave}
@@ -744,32 +744,32 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
               )}
 
               {/* 매출 현황 */}
-              <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 12 }}>매출 현황 (최근 1년)</div>
+              <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 2px 8px rgba(90,21,21,0.03)', marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 12 }}>매출 현황 (최근 1년)</div>
                 {detailStats ? (
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                       <div style={{ textAlign: 'center', padding: '12px 0', background: '#f8f7f5', borderRadius: 6 }}>
                         <div style={{ fontSize: 20, fontWeight: 700, color: '#5A1515' }}>{fmt(detailStats.totalSales)}</div>
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>총 매출</div>
+                        <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>총 매출</div>
                       </div>
                       <div style={{ textAlign: 'center', padding: '12px 0', background: '#f8f7f5', borderRadius: 6 }}>
-                        <div style={{ fontSize: 20, fontWeight: 700, color: '#1a1a2e' }}>{detailStats.itemStats?.length || 0}</div>
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>구매 품목 수</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: '#2c1810' }}>{detailStats.itemStats?.length || 0}</div>
+                        <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>구매 품목 수</div>
                       </div>
                       <div style={{ textAlign: 'center', padding: '12px 0', background: '#f8f7f5', borderRadius: 6 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e' }}>{detailStats.lastShipDate || '-'}</div>
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>최근 출고일</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810' }}>{detailStats.lastShipDate || '-'}</div>
+                        <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>최근 출고일</div>
                       </div>
                     </div>
                     {detailStats.itemStats && detailStats.itemStats.length > 0 && (
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', marginBottom: 8 }}>주요 구매 품목</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810', marginBottom: 8 }}>주요 구매 품목</div>
                         <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                           {detailStats.itemStats.slice(0, 10).map((item: { item_no: string; item_name: string; buy_count: number; avg_price: number }) => (
                             <div key={item.item_no} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
-                              <span style={{ flex: 1, color: '#333' }}>{item.item_name}</span>
-                              <span style={{ color: '#999', fontSize: 12 }}>{item.buy_count}회</span>
+                              <span style={{ flex: 1, color: '#2c1810' }}>{item.item_name}</span>
+                              <span style={{ color: '#a8a098', fontSize: 12 }}>{item.buy_count}회</span>
                               <span style={{ color: '#5A1515', fontWeight: 600, fontSize: 12 }}>{item.avg_price ? fmt(item.avg_price) : '-'}</span>
                             </div>
                           ))}
@@ -778,13 +778,13 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
                     )}
                     {detailStats.recentShipments && detailStats.recentShipments.length > 0 && (
                       <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', marginBottom: 8 }}>최근 출고</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810', marginBottom: 8 }}>최근 출고</div>
                         <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                           {detailStats.recentShipments.slice(0, 10).map((s: { item_name: string; quantity: number; total_amount: number; ship_date: string }, i: number) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13 }}>
                               <span style={{ fontSize: 11, color: '#aaa', width: 72 }}>{s.ship_date?.toString().slice(0, 10)}</span>
-                              <span style={{ flex: 1, color: '#333' }}>{s.item_name}</span>
-                              <span style={{ color: '#999', fontSize: 12 }}>{s.quantity}개</span>
+                              <span style={{ flex: 1, color: '#2c1810' }}>{s.item_name}</span>
+                              <span style={{ color: '#a8a098', fontSize: 12 }}>{s.quantity}개</span>
                               <span style={{ color: '#5A1515', fontWeight: 600, fontSize: 12 }}>{s.total_amount ? fmt(s.total_amount) : '-'}</span>
                             </div>
                           ))}
@@ -793,7 +793,7 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
                     )}
                   </>
                 ) : (
-                  <div style={{ color: '#999', fontSize: 13 }}>출고 이력 없음</div>
+                  <div style={{ color: '#a8a098', fontSize: 13 }}>출고 이력 없음</div>
                 )}
               </div>
 
@@ -802,8 +802,8 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
 
               {/* 태그 */}
               {c && (
-                <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 12 }}>태그</div>
+                <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 2px 8px rgba(90,21,21,0.03)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 12 }}>태그</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {(c.tags || []).map((tag, i) => (
                       <span key={i} style={{ padding: '4px 10px', borderRadius: 12, background: '#f0ece6', color: '#5A1515', fontSize: 12, fontWeight: 500 }}>{tag}</span>
@@ -830,7 +830,7 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
   function renderInfoField(label: string, value: string | null | undefined) {
     return (
       <div>
-        <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>{label}</div>
+        <div style={{ fontSize: 11, color: '#a8a098', marginBottom: 2 }}>{label}</div>
         <div style={{ fontSize: 14, color: value ? '#333' : '#ccc' }}>{value || '-'}</div>
       </div>
     );
@@ -839,9 +839,9 @@ function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: {
   function renderEditField(label: string, field: keyof ClientDetail, currentValue: string | null | undefined) {
     return (
       <div>
-        <label style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 4 }}>{label}</label>
+        <label style={{ fontSize: 11, color: '#a8a098', display: 'block', marginBottom: 4 }}>{label}</label>
         <input type="text" value={(editData[field] as string) ?? currentValue ?? ''} onChange={e => setEditData({ ...editData, [field]: e.target.value })}
-          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #ddd', fontSize: 16 }} />
+          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16 }} />
       </div>
     );
   }
@@ -856,14 +856,14 @@ const TASTE_COLORS: Record<string, string> = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function PreferenceCharts({ prefs, loading }: { prefs: any | null; loading: boolean }) {
-  if (loading) return <div style={{ textAlign: 'center', padding: 30, color: '#999', fontSize: 13 }}>선호 분석 로딩 중...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 30, color: '#a8a098', fontSize: 13 }}>선호 분석 로딩 중...</div>;
   if (!prefs) return null;
   const hasData = prefs.priceRanges?.length || prefs.regions?.length || prefs.brands?.length || prefs.grapes?.length || prefs.tastes?.length;
   if (!hasData) return null;
 
   return (
-    <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', marginBottom: 16 }}>선호 분석 (최근 1년)</div>
+    <div style={{ background: 'white', borderRadius: 8, padding: 20, boxShadow: '0 2px 8px rgba(90,21,21,0.03)', marginBottom: 16 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 16 }}>선호 분석 (최근 1년)</div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
         {/* 가격대별 */}
@@ -887,7 +887,7 @@ function PreferenceCharts({ prefs, loading }: { prefs: any | null; loading: bool
       {/* 테이스트 프로필 - 레이더 스타일 바 */}
       {prefs.tastes?.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', marginBottom: 12 }}>선호 테이스트 프로필</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810', marginBottom: 12 }}>선호 테이스트 프로필</div>
           <TasteProfile tastes={prefs.tastes} />
         </div>
       )}
@@ -917,7 +917,7 @@ function PrefBarSection({ title, data, nameKey, valueKey }: { title: string; dat
                   borderRadius: 4, transition: 'width 0.5s ease',
                 }} />
               </div>
-              <div style={{ width: 56, fontSize: 11, color: '#888', textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ width: 56, fontSize: 11, color: '#8a8580', textAlign: 'right', flexShrink: 0 }}>
                 {val >= 1e8 ? (val / 1e8).toFixed(1) + '억' : val >= 1e4 ? Math.round(val / 1e4) + '만' : val.toLocaleString()}
               </div>
             </div>

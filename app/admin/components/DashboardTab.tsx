@@ -33,7 +33,7 @@ function BizPieChart({ data: chartData, colors, label = '매출' }: { data: Arra
   );
 }
 
-const PIE_COLORS = ['#8B1538', '#4D96FF', '#6BCB77', '#FF6B6B', '#FFD93D', '#9B59B6', '#FF8C42', '#00BCD4', '#34495E', '#E91E63'];
+const PIE_COLORS = ['#8B1538', '#4D96FF', '#6BCB77', '#FF6B6B', '#FFD93D', '#9B59B6', '#FF8C42', '#00BCD4', '#2c1810', '#E91E63'];
 
 function formatKrw(v: number | null | undefined) {
   const n = v ?? 0;
@@ -212,7 +212,7 @@ export default function DashboardTab() {
             <div style={{ width: '100%', height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={invChangeData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0ece4" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={invChangeData.length > 15 ? Math.floor(invChangeData.length / 12) : 0} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v > 0 ? '+' : ''}${v.toLocaleString()}만`} width={65} />
                   <Tooltip
@@ -242,7 +242,7 @@ export default function DashboardTab() {
                     onClick={() => setInvPeriod(k)}
                     style={{
                       padding: '3px 10px', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-                      background: invPeriod === k ? '#34495E' : 'transparent',
+                      background: invPeriod === k ? '#2c1810' : 'transparent',
                       color: invPeriod === k ? '#fff' : 'var(--color-text-light)',
                       transition: 'all 0.15s',
                     }}
@@ -255,7 +255,7 @@ export default function DashboardTab() {
             <div style={{ width: '100%', height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={inventoryLineData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0ece4" />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={invPeriod === 'daily' && inventoryLineData.length > 15 ? Math.floor(inventoryLineData.length / 12) : 0} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v.toLocaleString()}만`} width={60} domain={[
                     (dataMin: number) => Math.floor(dataMin * 0.95),
@@ -489,7 +489,7 @@ export default function DashboardTab() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-xs)' }}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--color-border)', background: 'var(--color-bg-light, #fafafa)' }}>
+                    <tr style={{ borderBottom: '2px solid var(--color-border)', background: 'var(--color-bg-light, #faf9f7)' }}>
                       <th style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, width: 30 }}>#</th>
                       <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>품명</th>
                       <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>재고</th>
