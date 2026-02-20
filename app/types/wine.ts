@@ -137,4 +137,60 @@ export interface DashboardStats {
   inventoryByItemDl?: Array<{ itemNo: string; name: string; qty: number; value: number; ship30: number; ship90: number }>;
 }
 
-export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis' | 'recommend-settings' | 'wine-regions';
+export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis' | 'recommend-settings' | 'wine-regions' | 'brand-library';
+
+export interface Brand {
+  id: number;
+  brand_code: string | null;
+  brand_name_kr: string;
+  brand_name_en: string | null;
+  country: string | null;
+  region: string | null;
+  website: string | null;
+  logo_url: string | null;
+  image_url: string | null;
+  description: string | null;
+  history: string | null;
+  winemaking_philosophy: string | null;
+  certifications: string | null;
+  founded_year: number | null;
+  owner: string | null;
+  winemaker: string | null;
+  vineyard_info: string | null;
+  annual_production: string | null;
+  key_wines: string | null;
+  awards: string | null;
+  notes: string | null;
+  ai_researched: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BrandWithWineCount extends Brand {
+  wine_count: number;
+}
+
+export interface BrandResearchResult {
+  brand_name_en: string;
+  country: string;
+  region: string;
+  website: string;
+  description: string;
+  history: string;
+  winemaking_philosophy: string;
+  certifications: string;
+  founded_year: number | null;
+  owner: string;
+  winemaker: string;
+  vineyard_info: string;
+  annual_production: string;
+  key_wines: string;
+  awards: string;
+  logo_url?: string;
+  image_url?: string;
+}
+
+export interface BrandValidation {
+  confidence: number;
+  issues: string[];
+}
