@@ -26,7 +26,7 @@ export async function POST(
 
     // Shipments 배치 업로드
     if (type === 'client-shipments' || type === 'dl-client-shipments') {
-      const { shipments, clear } = body as { shipments: ShipmentRow[]; clear: boolean };
+      const { shipments, clear, minDate } = body as { shipments: ShipmentRow[]; clear: boolean; minDate?: string };
 
       if (!shipments || !Array.isArray(shipments)) {
         return NextResponse.json(
@@ -36,14 +36,15 @@ export async function POST(
       }
 
       const table = type === 'client-shipments' ? 'shipments' : 'glass_shipments';
-      logger.info(`Admin upload-data: type=${type}, rows=${shipments.length}, clear=${clear}`);
+      logger.info(`Admin upload-data: type=${type}, rows=${shipments.length}, clear=${clear}, minDate=${minDate || 'none'}`);
 
-      const result = await processShipmentsFromData(shipments, table, !!clear);
+      const result = await processShipmentsFromData(shipments, table, !!clear, minDate);
       return NextResponse.json({ success: true, type, ...result });
     }
 
     // 기존 client/dl-client 처리
-    const { clients, items } = body;
+    const { clients, items, mode } = body;
+    const append = mode === 'append';
 
     if (!clients || !items) {
       return NextResponse.json(
@@ -56,9 +57,9 @@ export async function POST(
 
     let result;
     if (type === 'client') {
-      result = await processClientFromData(clients, items);
+      result = await processClientFromData(clients, items, append);
     } else {
-      result = await processDlClientFromData(clients, items);
+      result = await processDlClientFromData(clients, items, append);
     }
 
     return NextResponse.json({ success: true, type, ...result });

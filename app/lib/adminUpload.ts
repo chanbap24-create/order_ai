@@ -644,13 +644,16 @@ async function processEnglish(buf: Buffer) {
 
 export async function processClientFromData(
   clients: Record<string, string>,
-  items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number | null }>
+  items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number | null }>,
+  append?: boolean
 ) {
   if (Object.keys(clients).length === 0) throw new Error("거래처 데이터가 없습니다.");
 
-  await supabase.from('client_item_stats').delete().not('client_code', 'is', null);
-  await supabase.from('clients').delete().not('client_code', 'is', null);
-  await supabase.from('client_alias').delete().gte('weight', 10);
+  if (!append) {
+    await supabase.from('client_item_stats').delete().not('client_code', 'is', null);
+    await supabase.from('clients').delete().not('client_code', 'is', null);
+    await supabase.from('client_alias').delete().gte('weight', 10);
+  }
 
   const clientRows = Object.entries(clients).map(([code, name]) => ({
     client_code: code, client_name: name, updated_at: new Date().toISOString(),
@@ -679,14 +682,17 @@ export async function processClientFromData(
 
 export async function processDlClientFromData(
   clients: Record<string, string>,
-  items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number }>
+  items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number }>,
+  append?: boolean
 ) {
   if (Object.keys(clients).length === 0) throw new Error("거래처 데이터가 없습니다.");
 
-  await supabase.from('glass_client_item_stats').delete().not('client_code', 'is', null);
-  await supabase.from('glass_client_alias').delete().gte('weight', 10);
-  await supabase.from('glass_items').delete().not('item_no', 'is', null);
-  await supabase.from('glass_clients').delete().not('client_code', 'is', null);
+  if (!append) {
+    await supabase.from('glass_client_item_stats').delete().not('client_code', 'is', null);
+    await supabase.from('glass_client_alias').delete().gte('weight', 10);
+    await supabase.from('glass_items').delete().not('item_no', 'is', null);
+    await supabase.from('glass_clients').delete().not('client_code', 'is', null);
+  }
 
   const clientRows = Object.entries(clients).map(([code, name]) => ({
     client_code: code, client_name: name,
@@ -751,11 +757,20 @@ export interface ShipmentRow {
 export async function processShipmentsFromData(
   shipments: ShipmentRow[],
   table: 'shipments' | 'glass_shipments',
-  clear: boolean
+  clear: boolean,
+  minDate?: string
 ) {
   if (clear) {
     await supabase.from(table).delete().not('id', 'is', null);
     logger.info(`[Shipments] Cleared ${table}`);
+  } else if (minDate) {
+    // append 모드: minDate 이후 기존 행만 삭제 (중복 방지)
+    const { error } = await supabase.from(table).delete().gte('ship_date', minDate);
+    if (error) {
+      logger.error(`[Shipments] ${table} partial delete error`, { error });
+    } else {
+      logger.info(`[Shipments] Deleted ${table} rows where ship_date >= ${minDate}`);
+    }
   }
 
   let inserted = 0;

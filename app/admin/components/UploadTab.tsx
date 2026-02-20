@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Card from '@/app/components/ui/Card';
 
 /* ─── 업로드 영역 정의 ─── */
@@ -90,6 +90,16 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       ])
     )
   );
+  // 누적/교체 모드: client, dl-client만 해당
+  const [uploadMode, setUploadMode] = useState<Record<string, 'append' | 'replace'>>({
+    client: 'append',
+    'dl-client': 'append',
+  });
+  // shipment 마지막 날짜
+  const [shipmentLastDates, setShipmentLastDates] = useState<Record<string, string | null>>({
+    client: null,
+    'dl-client': null,
+  });
 
   const checkStatus = async () => {
     setIsChecking(true);
@@ -98,12 +108,21 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       const response = await fetch('/api/sync-inventory');
       const data = await response.json();
       setStatusResult(data);
+      if (data.shipmentLastDates) {
+        setShipmentLastDates(data.shipmentLastDates);
+      }
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : '상태 확인 실패');
     } finally {
       setIsChecking(false);
     }
   };
+
+  // 마운트 시 자동으로 shipment 날짜 조회
+  useEffect(() => {
+    checkStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function updateCard(type: string, patch: Partial<UploadCardState>) {
     setCards((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
@@ -216,13 +235,14 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           });
         }
 
-        updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중...` });
+        const currentMode = uploadMode[type] || 'replace';
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중... (${currentMode === 'append' ? '누적' : '교체'})` });
 
-        // 1) 기존 clients/items 업로드
+        // 1) clients/items 업로드 (mode 전달)
         res = await fetch(`/api/admin/upload-data/${type}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clients, items }),
+          body: JSON.stringify({ clients, items, mode: currentMode }),
         });
 
         if (res.ok) {
@@ -231,6 +251,15 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           const shipType = type === 'client' ? 'client-shipments' : 'dl-client-shipments';
           const totalBatches = Math.ceil(shipments.length / BATCH_SIZE);
 
+          // append 모드: 엑셀 데이터의 최소 ship_date 계산
+          let minDate: string | undefined;
+          if (currentMode === 'append') {
+            const dates = shipments.map(s => s.ship_date).filter(Boolean) as string[];
+            if (dates.length > 0) {
+              minDate = dates.sort()[0];
+            }
+          }
+
           for (let b = 0; b < totalBatches; b++) {
             const batch = shipments.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
             updateCard(type, {
@@ -238,10 +267,19 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
               message: `출고 트랜잭션 업로드 중... (${b + 1}/${totalBatches})`,
             });
 
+            const shipBody: Record<string, unknown> = {
+              shipments: batch,
+              clear: currentMode === 'replace' && b === 0,
+            };
+            // append 모드: 첫 배치에서만 minDate 전달 (부분 삭제 트리거)
+            if (currentMode === 'append' && b === 0 && minDate) {
+              shipBody.minDate = minDate;
+            }
+
             const shipRes = await fetch(`/api/admin/upload-data/${shipType}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ shipments: batch, clear: b === 0 }),
+              body: JSON.stringify(shipBody),
             });
 
             if (!shipRes.ok) {
@@ -249,6 +287,9 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
               console.error('Shipment batch error:', shipJson);
             }
           }
+
+          // 업로드 완료 후 날짜 갱신
+          checkStatus();
         }
       } else {
         // 그 외: 기존 FormData 방식
@@ -334,7 +375,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           각 시트별 엑셀 파일을 업로드하여 DB 데이터를 교체합니다.
         </p>
         <div style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-md)', background: '#FFF8E1', border: '1px solid #FFE082', fontSize: 'var(--text-sm)', color: '#7C6800', marginBottom: 'var(--space-5)' }}>
-          업로드 시 해당 테이블의 기존 데이터가 새 데이터로 교체됩니다. 트랜잭션으로 처리되어 오류 발생 시 자동 롤백됩니다.
+          출고현황(Client/DL-Client)은 누적 추가/전체 교체 모드를 선택할 수 있습니다. 그 외 시트는 업로드 시 기존 데이터가 교체됩니다.
         </div>
       </div>
 
@@ -346,6 +387,9 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
             state={cards[area.type]}
             onUpload={handleUpload}
             onDragState={(over) => updateCard(area.type, { isDragOver: over })}
+            uploadMode={(area.type === 'client' || area.type === 'dl-client') ? uploadMode[area.type] : undefined}
+            onModeChange={(area.type === 'client' || area.type === 'dl-client') ? (mode) => setUploadMode(prev => ({ ...prev, [area.type]: mode })) : undefined}
+            lastDate={(area.type === 'client' || area.type === 'dl-client') ? shipmentLastDates[area.type] : undefined}
           />
         ))}
       </div>
@@ -355,12 +399,15 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
 
 /* ─── Upload Card Component ─── */
 function UploadCard({
-  area, state, onUpload, onDragState,
+  area, state, onUpload, onDragState, uploadMode, onModeChange, lastDate,
 }: {
   area: (typeof UPLOAD_AREAS)[number];
   state: UploadCardState;
   onUpload: (type: string, file: File) => void;
   onDragState: (over: boolean) => void;
+  uploadMode?: 'append' | 'replace';
+  onModeChange?: (mode: 'append' | 'replace') => void;
+  lastDate?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -382,20 +429,66 @@ function UploadCard({
   const isOver = state.isDragOver;
   const borderColor = isOver ? 'var(--color-primary)' : state.status === 'success' ? 'var(--color-success)' : state.status === 'error' ? 'var(--color-error)' : 'var(--color-border)';
 
+  const hasMode = uploadMode !== undefined && onModeChange;
+
   return (
     <Card style={{
       border: `2px dashed ${borderColor}`,
       background: isOver ? 'rgba(139,21,56,0.04)' : state.status === 'success' ? 'rgba(52,199,89,0.04)' : state.status === 'error' ? 'rgba(255,59,48,0.04)' : 'var(--color-card)',
       transition: 'all var(--transition-fast)',
-      cursor: isUploading ? 'not-allowed' : 'pointer',
+      cursor: isUploading ? 'not-allowed' : 'default',
       opacity: isUploading ? 0.7 : 1,
     }}>
+      {/* 모드 토글 + 마지막 날짜 (client/dl-client만) */}
+      {hasMode && (
+        <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
+          {lastDate && (
+            <div style={{
+              display: 'inline-block', padding: '2px 10px', borderRadius: 'var(--radius-sm)',
+              background: '#E3F2FD', color: '#1565C0', fontSize: '12px', fontWeight: 600,
+              marginBottom: 'var(--space-2)',
+            }}>
+              {lastDate}까지 업데이트됨
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); onModeChange('append'); }}
+              style={{
+                padding: '4px 12px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
+                background: uploadMode === 'append' ? '#1565C0' : 'var(--color-background)',
+                color: uploadMode === 'append' ? '#fff' : 'var(--color-text-light)',
+              }}
+            >
+              누적 추가
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onModeChange('replace'); }}
+              style={{
+                padding: '4px 12px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
+                background: uploadMode === 'replace' ? '#C62828' : 'var(--color-background)',
+                color: uploadMode === 'replace' ? '#fff' : 'var(--color-text-light)',
+              }}
+            >
+              전체 교체
+            </button>
+          </div>
+          {uploadMode === 'replace' && (
+            <div style={{ marginTop: 'var(--space-1)', fontSize: '11px', color: '#C62828' }}>
+              전체 교체 시 기존 데이터가 삭제됩니다
+            </div>
+          )}
+        </div>
+      )}
+
       <div
         onDrop={isUploading ? undefined : handleDrop}
         onDragOver={isUploading ? undefined : handleDragOver}
         onDragLeave={isUploading ? undefined : handleDragLeave}
         onClick={() => !isUploading && inputRef.current?.click()}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-3)', padding: 'var(--space-6)', minHeight: 200 }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-3)', padding: 'var(--space-6)', minHeight: 200, cursor: isUploading ? 'not-allowed' : 'pointer' }}
       >
         <input ref={inputRef} type="file" accept={ACCEPT} style={{ display: 'none' }} onChange={handleFileChange} disabled={isUploading} />
         <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-xl)', background: 'rgba(139,21,56,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

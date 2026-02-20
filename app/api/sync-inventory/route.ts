@@ -149,6 +149,21 @@ export async function GET() {
 
     const uploadTimestamps = getAllUploadTimestamps();
 
+    // shipment 마지막 날짜 조회
+    const { data: shipMaxDate } = await supabase
+      .from('shipments')
+      .select('ship_date')
+      .order('ship_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    const { data: glassShipMaxDate } = await supabase
+      .from('glass_shipments')
+      .select('ship_date')
+      .order('ship_date', { ascending: false })
+      .limit(1)
+      .single();
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -160,7 +175,11 @@ export async function GET() {
         cdv: cdvSample || [],
         dl: dlSample || []
       },
-      uploadTimestamps
+      uploadTimestamps,
+      shipmentLastDates: {
+        client: shipMaxDate?.ship_date || null,
+        'dl-client': glassShipMaxDate?.ship_date || null,
+      }
     });
   } catch (error: any) {
     return NextResponse.json(
