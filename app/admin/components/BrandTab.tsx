@@ -62,29 +62,25 @@ export default function BrandTab() {
     setValidation(null);
     setViewMode('detail');
     // 연결된 와인 로드
-    if (brand.brand_code) {
-      const res = await fetch(`/api/admin/brands/${brand.id}`);
-      if (res.ok) {
-        const full = await res.json();
-        setSelectedBrand(full);
-        setEditForm({ ...full });
-      }
-      // 와인 목록은 brand_code로 직접 조회
-      loadLinkedWines(brand.brand_code);
+    const res = await fetch(`/api/admin/brands/${brand.id}`);
+    if (res.ok) {
+      const full = await res.json();
+      setSelectedBrand(full);
+      setEditForm({ ...full });
+    }
+    if (brand.brand_code && brand.id) {
+      loadLinkedWines(brand.id);
     } else {
       setLinkedWines([]);
     }
   };
 
-  const loadLinkedWines = async (brandCode: string) => {
+  const loadLinkedWines = async (brandId: number) => {
     try {
-      const res = await fetch(`/api/admin/wines?search=${encodeURIComponent(brandCode)}`);
+      const res = await fetch(`/api/admin/brands/${brandId}/wines`);
       if (res.ok) {
-        const json = await res.json();
-        const wines = json.data || json || [];
-        // brand 코드가 정확히 일치하는 것만 필터
-        const filtered = (wines as LinkedWine[]).filter((w: any) => w.brand === brandCode);
-        setLinkedWines(filtered);
+        const wines = await res.json();
+        setLinkedWines(wines as LinkedWine[]);
       } else {
         setLinkedWines([]);
       }
