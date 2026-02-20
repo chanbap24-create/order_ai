@@ -473,6 +473,18 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       const json = await res.json();
       if (json.error) { setToast('오류: ' + json.error); return; }
       setShowModal(false);
+      // 신규 생성 시 구글 캘린더 자동 열기
+      if (!editingId && clientToUse) {
+        const calUrl = buildGoogleCalendarUrl({
+          meeting_date: modalDate,
+          meeting_time: modalTime,
+          meeting_type: modalType,
+          purpose: modalPurpose,
+          status: 'planned',
+          client_name: clientToUse.client_name,
+        } as Meeting);
+        window.open(calUrl, '_blank');
+      }
       setToast(editingId ? '미팅이 수정되었습니다.' : '미팅이 생성되었습니다.');
       loadMeetings();
     } catch {
