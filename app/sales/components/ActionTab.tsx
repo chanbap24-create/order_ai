@@ -259,6 +259,41 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
   const [compactMode, setCompactMode] = useState(true);
   const [visitFilter, setVisitFilter] = useState<VisitFilter>('all');
 
+  // ── 확인 처리 (dismiss) ──
+  const [dismissed, setDismissed] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('action_dismissed');
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, string>;
+        const now = Date.now();
+        const valid: Record<string, string> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (now - new Date(v).getTime() < 7 * 86400000) valid[k] = v;
+        }
+        setDismissed(valid);
+        if (Object.keys(valid).length !== Object.keys(parsed).length) {
+          localStorage.setItem('action_dismissed', JSON.stringify(valid));
+        }
+      }
+    } catch {}
+  }, []);
+
+  const dismissItem = useCallback((key: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDismissed(prev => {
+      const next = { ...prev, [key]: new Date().toISOString() };
+      try { localStorage.setItem('action_dismissed', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const clearDismissed = useCallback(() => {
+    setDismissed({});
+    try { localStorage.removeItem('action_dismissed'); } catch {}
+  }, []);
+
   // 담당자 목록 (관리자용)
   useEffect(() => {
     if (!isAdmin) return;
@@ -339,25 +374,41 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
     finally { setLoadingOrders(null); }
   }, [expandedClient, recentOrders]);
 
-  const filteredChurn = churnFilter === 'all' ? actions : actions.filter(a => a.risk_level === churnFilter);
-  const filteredNudges = reorderFilter === 'all'
-    ? nudges
-    : reorderFilter === 'in_stock'
-      ? nudges.filter(n => n.stock_status === 'in_stock' || n.stock_status === 'low_stock')
-      : nudges.filter(n => n.stock_status === 'out_of_stock' || n.stock_status === 'unknown');
+  // ── dismissed 필터링 ──
+  const va = actions.filter(a => !dismissed[`churn_${a.client_code}`]);
+  const vn = nudges.filter(n => !dismissed[`reorder_${n.client_code}_${n.item_no}`]);
+  const vm = meetings.filter(m => !dismissed[`meeting_${m.meeting_id}`]);
+  const vsd = stockDepletions.filter(s => !dismissed[`stock_${s.item_no}`]);
+  const vu = upsells.filter(u => !dismissed[`upsell_${u.client_code}_${u.suggested_item_no}`]);
+  const vna = newArrivals.filter(n => !dismissed[`arrival_${n.item_no}`]);
+  const vvs = visitSchedules.filter(v => !dismissed[`visit_${v.client_code}`]);
+  const vsr = seasonRecos.filter(s => !dismissed[`season_${s.item_no}`]);
 
-  const filteredVisits = visitFilter === 'all' ? visitSchedules : visitSchedules.filter(v => v.visit_urgency === visitFilter);
+  const dismissedTotal = (actions.length - va.length) + (nudges.length - vn.length) +
+    (meetings.length - vm.length) + (stockDepletions.length - vsd.length) +
+    (upsells.length - vu.length) + (newArrivals.length - vna.length) +
+    (visitSchedules.length - vvs.length) + (seasonRecos.length - vsr.length);
+
+  const filteredChurn = churnFilter === 'all' ? va : va.filter(a => a.risk_level === churnFilter);
+  const filteredNudges = reorderFilter === 'all'
+    ? vn
+    : reorderFilter === 'in_stock'
+      ? vn.filter(n => n.stock_status === 'in_stock' || n.stock_status === 'low_stock')
+      : vn.filter(n => n.stock_status === 'out_of_stock' || n.stock_status === 'unknown');
+
+  const filteredVisits = visitFilter === 'all' ? vvs : vvs.filter(v => v.visit_urgency === visitFilter);
 
   const mgr = isAdmin ? selectedManager : currentManager;
-  const churnCount = actions.length;
-  const nudgeCount = nudges.length;
-  const meetingCount = meetings.length;
-  const stockCount = stockDepletions.length;
-  const upsellCount = upsells.length;
-  const newArrivalCount = newArrivals.length;
-  const visitCount = visitSchedules.length;
-  const seasonCount = seasonRecos.length;
+  const churnCount = va.length;
+  const nudgeCount = vn.length;
+  const meetingCount = vm.length;
+  const stockCount = vsd.length;
+  const upsellCount = vu.length;
+  const newArrivalCount = vna.length;
+  const visitCount = vvs.length;
+  const seasonCount = vsr.length;
   const hasAnyData = churnCount > 0 || nudgeCount > 0 || meetingCount > 0 || stockCount > 0 || upsellCount > 0 || newArrivalCount > 0 || visitCount > 0 || seasonCount > 0;
+  const hasAnyRawData = actions.length > 0 || nudges.length > 0 || meetings.length > 0 || stockDepletions.length > 0 || upsells.length > 0 || newArrivals.length > 0 || visitSchedules.length > 0 || seasonRecos.length > 0;
 
   return (
     <div>
@@ -510,7 +561,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       </div>
 
       {/* ═══ 간략 브리핑 모드 ═══ */}
-      {compactMode && mgr && !scanning && hasAnyData && (
+      {compactMode && mgr && !scanning && hasAnyRawData && (
         <div style={{
           background: '#FAFAF8',
           borderRadius: 12,
@@ -521,69 +572,100 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
           color: '#333',
           lineHeight: 1.8,
         }}>
+          {/* 확인 처리 표시 */}
+          {dismissedTotal > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #e8e6e1' }}>
+              <span style={{ fontSize: 11, color: '#999' }}>{dismissedTotal}건 확인 처리됨</span>
+              <button
+                onClick={clearDismissed}
+                style={{ fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                초기화
+              </button>
+            </div>
+          )}
+
           {/* 이탈 */}
-          {actions.length > 0 && (
+          {va.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              <span style={{ color: '#c62828', fontWeight: 700 }}>이탈 위험 {actions.length}건</span>
-              {actions.slice(0, 3).map((a, i) => (
-                <div key={a.client_code} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
-                  <span style={{ color: RISK_COLORS[a.risk_level], fontWeight: 600 }}>{RISK_LABELS[a.risk_level]}</span>{' '}
-                  {a.client_name} — {a.days_since_last}일 미구매
-                  {a.revenue_change_pct < 0 && <span style={{ color: '#c62828' }}> (매출 {Math.abs(a.revenue_change_pct)}%↓)</span>}
+              <span style={{ color: '#c62828', fontWeight: 700 }}>이탈 위험 {va.length}건</span>
+              {va.slice(0, 3).map(a => (
+                <div key={a.client_code} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ color: RISK_COLORS[a.risk_level], fontWeight: 600 }}>{RISK_LABELS[a.risk_level]}</span>{' '}
+                    {a.client_name} — {a.days_since_last}일 미구매
+                    {a.revenue_change_pct < 0 && <span style={{ color: '#c62828' }}> ({Math.abs(a.revenue_change_pct)}%↓)</span>}
+                  </span>
+                  <button onClick={(e) => dismissItem(`churn_${a.client_code}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
-              {actions.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {actions.length - 3}건</div>}
+              {va.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {va.length - 3}건</div>}
             </div>
           )}
 
           {/* 재주문 */}
-          {nudges.length > 0 && (
+          {vn.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              <span style={{ color: '#1565C0', fontWeight: 700 }}>재주문 {nudges.length}건</span>
-              <span style={{ color: '#888', fontSize: 11 }}> (재고有 {summary.reorder_in_stock} / 품절 {summary.reorder_out_of_stock})</span>
-              {nudges.filter(n => n.stock_status !== 'out_of_stock').slice(0, 3).map(n => (
-                <div key={`${n.client_code}-${n.item_no}`} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
-                  {n.client_name} × {n.item_name.length > 20 ? n.item_name.slice(0, 20) + '…' : n.item_name} — {n.overdue_days}일 초과
+              <span style={{ color: '#1565C0', fontWeight: 700 }}>재주문 {vn.length}건</span>
+              <span style={{ color: '#888', fontSize: 11 }}> (재고有 {vn.filter(n => n.stock_status !== 'out_of_stock').length} / 품절 {vn.filter(n => n.stock_status === 'out_of_stock').length})</span>
+              {vn.filter(n => n.stock_status !== 'out_of_stock').slice(0, 3).map(n => (
+                <div key={`${n.client_code}-${n.item_no}`} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {n.client_name} × {n.item_name.length > 18 ? n.item_name.slice(0, 18) + '…' : n.item_name} — {n.overdue_days}일 초과
+                  </span>
+                  <button onClick={(e) => dismissItem(`reorder_${n.client_code}_${n.item_no}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
-              {nudges.filter(n => n.stock_status !== 'out_of_stock').length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {nudges.filter(n => n.stock_status !== 'out_of_stock').length - 3}건</div>}
+              {vn.filter(n => n.stock_status !== 'out_of_stock').length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {vn.filter(n => n.stock_status !== 'out_of_stock').length - 3}건</div>}
             </div>
           )}
 
           {/* 미팅 */}
-          {meetings.length > 0 && (
+          {vm.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              <span style={{ color: '#6A1B9A', fontWeight: 700 }}>미팅 {meetings.length}건</span>
-              {meetings.slice(0, 3).map(m => (
-                <div key={m.meeting_id} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
-                  D-{m.days_until} {m.client_name} {MEETING_TYPE_LABEL[m.meeting_type] || m.meeting_type}
-                  {m.meeting_time ? ` ${m.meeting_time}` : ''}
+              <span style={{ color: '#6A1B9A', fontWeight: 700 }}>미팅 {vm.length}건</span>
+              {vm.slice(0, 3).map(m => (
+                <div key={m.meeting_id} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    D-{m.days_until} {m.client_name} {MEETING_TYPE_LABEL[m.meeting_type] || m.meeting_type}
+                    {m.meeting_time ? ` ${m.meeting_time}` : ''}
+                  </span>
+                  <button onClick={(e) => dismissItem(`meeting_${m.meeting_id}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
             </div>
           )}
 
           {/* 재고 위험 */}
-          {stockDepletions.length > 0 && (
+          {vsd.length > 0 && (
             <div style={{ marginBottom: 8 }}>
-              <span style={{ color: '#B71C1C', fontWeight: 700 }}>재고 위험 {stockDepletions.length}건</span>
-              {stockDepletions.slice(0, 3).map(sd => (
-                <div key={sd.item_no} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
-                  {sd.alert_type === 'out_of_stock' ? '품절' : `잔여 ${sd.current_stock}병`} {sd.item_name.length > 25 ? sd.item_name.slice(0, 25) + '…' : sd.item_name}
-                  {sd.affected_clients.length > 0 && <span style={{ color: '#999' }}> (거래처 {sd.affected_clients.length}곳)</span>}
+              <span style={{ color: '#B71C1C', fontWeight: 700 }}>재고 위험 {vsd.length}건</span>
+              {vsd.slice(0, 3).map(sd => (
+                <div key={sd.item_no} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sd.alert_type === 'out_of_stock' ? '품절' : `잔여 ${sd.current_stock}병`} {sd.item_name.length > 22 ? sd.item_name.slice(0, 22) + '…' : sd.item_name}
+                    {sd.affected_clients.length > 0 && ` (${sd.affected_clients.length}곳)`}
+                  </span>
+                  <button onClick={(e) => dismissItem(`stock_${sd.item_no}`, e)} style={{ width: 20, height: 20, borderRadius: 99, border: '1px solid #ddd', background: '#f5f5f0', color: '#bbb', fontSize: 10, cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: '18px' }} title="확인 처리">✓</button>
                 </div>
               ))}
-              {stockDepletions.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {stockDepletions.length - 3}건</div>}
+              {vsd.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {vsd.length - 3}건</div>}
             </div>
           )}
 
           {/* 업셀 / 신규입고 / 방문 / 시즌 — 한줄 요약 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: '#666', marginTop: 4 }}>
-            {upsells.length > 0 && <span><span style={{ color: '#2E7D32', fontWeight: 600 }}>업셀</span> {upsells.length}건</span>}
-            {newArrivals.length > 0 && <span><span style={{ color: '#00838F', fontWeight: 600 }}>신규입고</span> {newArrivals.length}건</span>}
-            {visitSchedules.length > 0 && <span><span style={{ color: '#795548', fontWeight: 600 }}>방문</span> {visitSchedules.length}건</span>}
-            {seasonRecos.length > 0 && <span><span style={{ color: '#283593', fontWeight: 600 }}>시즌({summary.season_name})</span> {seasonRecos.length}건</span>}
+            {vu.length > 0 && <span><span style={{ color: '#2E7D32', fontWeight: 600 }}>업셀</span> {vu.length}건</span>}
+            {vna.length > 0 && <span><span style={{ color: '#00838F', fontWeight: 600 }}>신규입고</span> {vna.length}건</span>}
+            {vvs.length > 0 && <span><span style={{ color: '#795548', fontWeight: 600 }}>방문</span> {vvs.length}건</span>}
+            {vsr.length > 0 && <span><span style={{ color: '#283593', fontWeight: 600 }}>시즌({summary.season_name})</span> {vsr.length}건</span>}
           </div>
+
+          {!hasAnyData && dismissedTotal > 0 && (
+            <div style={{ textAlign: 'center', padding: '12px 0', color: '#999', fontSize: 13 }}>
+              모든 항목을 확인 처리했습니다.
+            </div>
+          )}
 
           <div style={{ textAlign: 'center', marginTop: 12 }}>
             <button
@@ -606,7 +688,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* 스캔 중 */}
-      {scanning && !hasAnyData && (
+      {scanning && !hasAnyRawData && (
         <div style={{
           textAlign: 'center',
           padding: '60px 20px',
@@ -717,9 +799,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         padding: '14px 16px',
                         cursor: 'pointer',
                         transition: 'box-shadow 0.15s',
+                        position: 'relative',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <button onClick={(e) => dismissItem(`churn_${item.client_code}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', zIndex: 1 }} title="확인 처리">✓</button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                           <span style={{
                             display: 'inline-block',
@@ -936,9 +1020,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                         padding: '14px 16px',
                         opacity: isOos ? 0.65 : 1,
+                        position: 'relative',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <button onClick={(e) => dismissItem(`reorder_${nudge.client_code}_${nudge.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px', zIndex: 1 }} title="확인 처리">✓</button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                           <span style={{
                             display: 'inline-block',
@@ -1075,7 +1161,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {meetings.map(m => {
+                {vm.map(m => {
                   const isToday = m.days_until === 0;
                   const isTomorrow = m.days_until === 1;
                   const dLabel = isToday ? 'D-0 오늘' : isTomorrow ? 'D-1 내일' : `D-${m.days_until}`;
@@ -1089,9 +1175,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         borderLeft: `4px solid ${isToday ? '#c62828' : '#6A1B9A'}`,
                         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                         padding: '14px 16px',
+                        position: 'relative',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <button onClick={(e) => dismissItem(`meeting_${m.meeting_id}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                           <span style={{
                             display: 'inline-block',
@@ -1213,7 +1301,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {stockDepletions.map((sd, idx) => {
+                {vsd.map((sd, idx) => {
                   const isOos = sd.alert_type === 'out_of_stock';
 
                   return (
@@ -1225,9 +1313,11 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                         borderLeft: `4px solid ${isOos ? '#B71C1C' : '#E65100'}`,
                         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                         padding: '14px 16px',
+                        position: 'relative',
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <button onClick={(e) => dismissItem(`stock_${sd.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, paddingRight: 28 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                           <span style={{
                             display: 'inline-block',
@@ -1362,7 +1452,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {upsells.map((u, idx) => (
+                {vu.map((u, idx) => (
                   <div
                     key={`${u.client_code}-${u.suggested_item_no}-${idx}`}
                     style={{
@@ -1371,8 +1461,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       borderLeft: '4px solid #2E7D32',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                       padding: '14px 16px',
+                      position: 'relative',
                     }}
                   >
+                    <button onClick={(e) => dismissItem(`upsell_${u.client_code}_${u.suggested_item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{
                         display: 'inline-block',
@@ -1496,7 +1588,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {newArrivals.map((wine, idx) => (
+                {vna.map((wine, idx) => (
                   <div
                     key={`${wine.item_no}-${idx}`}
                     style={{
@@ -1505,8 +1597,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       borderLeft: '4px solid #00838F',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                       padding: '14px 16px',
+                      position: 'relative',
                     }}
                   >
+                    <button onClick={(e) => dismissItem(`arrival_${wine.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     {/* 와인 헤더 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{
@@ -1672,9 +1766,9 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                 <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
                   {([
                     { id: 'all' as VisitFilter, label: '전체', count: visitCount },
-                    { id: 'critical' as VisitFilter, label: '긴급', count: visitSchedules.filter(v => v.visit_urgency === 'critical').length },
-                    { id: 'high' as VisitFilter, label: '주의', count: visitSchedules.filter(v => v.visit_urgency === 'high').length },
-                    { id: 'medium' as VisitFilter, label: '관찰', count: visitSchedules.filter(v => v.visit_urgency === 'medium').length },
+                    { id: 'critical' as VisitFilter, label: '긴급', count: vvs.filter(v => v.visit_urgency === 'critical').length },
+                    { id: 'high' as VisitFilter, label: '주의', count: vvs.filter(v => v.visit_urgency === 'high').length },
+                    { id: 'medium' as VisitFilter, label: '관찰', count: vvs.filter(v => v.visit_urgency === 'medium').length },
                   ]).map(f => (
                     <button
                       key={f.id}
@@ -1712,10 +1806,12 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       borderLeft: `4px solid ${VISIT_URGENCY_COLORS[v.visit_urgency] || '#795548'}`,
                       boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                       padding: '14px 16px',
+                      position: 'relative',
                     }}
                   >
+                    <button onClick={(e) => dismissItem(`visit_${v.client_code}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     {/* 헤더: 긴급도 + 점수 + 중요도 + 거래처명 */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, paddingRight: 28 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                         <span style={{
                           display: 'inline-block',
@@ -1872,7 +1968,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {seasonRecos.slice(0, 20).map((wine, idx) => (
+                {vsr.slice(0, 20).map((wine, idx) => (
                   <div
                     key={`${wine.item_no}-${idx}`}
                     style={{
@@ -1881,8 +1977,10 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
                       borderLeft: `4px solid ${wine.season_change ? '#1A237E' : '#283593'}`,
                       boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                       padding: '14px 16px',
+                      position: 'relative',
                     }}
                   >
+                    <button onClick={(e) => dismissItem(`season_${wine.item_no}`, e)} style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: 99, border: '1px solid #e0dcd4', background: '#f5f5f0', color: '#bbb', fontSize: 11, cursor: 'pointer', padding: 0, lineHeight: '20px' }} title="확인 처리">✓</button>
                     {/* 와인 헤더 */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <span style={{
@@ -2004,6 +2102,19 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
           fontSize: 14,
         }}>
           모든 거래처가 정상 상태입니다.
+        </div>
+      )}
+
+      {/* 상세모드 확인 처리 표시 */}
+      {!compactMode && dismissedTotal > 0 && (
+        <div style={{ textAlign: 'center', padding: '8px 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: '#999' }}>{dismissedTotal}건 확인 처리됨</span>
+          <button
+            onClick={clearDismissed}
+            style={{ fontSize: 11, color: '#8B1538', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+          >
+            초기화
+          </button>
         </div>
       )}
 
