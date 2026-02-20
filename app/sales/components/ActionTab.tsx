@@ -256,6 +256,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
   const [newArrivalCollapsed, setNewArrivalCollapsed] = useState(false);
   const [visitCollapsed, setVisitCollapsed] = useState(false);
   const [seasonCollapsed, setSeasonCollapsed] = useState(false);
+  const [compactMode, setCompactMode] = useState(true);
   const [visitFilter, setVisitFilter] = useState<VisitFilter>('all');
 
   // 담당자 목록 (관리자용)
@@ -399,6 +400,22 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
             </select>
           )}
           <button
+            onClick={() => setCompactMode(!compactMode)}
+            style={{
+              padding: '5px 10px',
+              borderRadius: 6,
+              border: `1.5px solid ${compactMode ? '#283593' : '#e0dcd4'}`,
+              background: compactMode ? '#E8EAF6' : 'white',
+              fontSize: 11,
+              fontWeight: 600,
+              color: compactMode ? '#283593' : '#999',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {compactMode ? '간략' : '상세'}
+          </button>
+          <button
             onClick={() => doScan(mgr)}
             disabled={scanning || !mgr}
             style={{
@@ -492,6 +509,102 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
         </div>
       </div>
 
+      {/* ═══ 간략 브리핑 모드 ═══ */}
+      {compactMode && mgr && !scanning && hasAnyData && (
+        <div style={{
+          background: '#FAFAF8',
+          borderRadius: 12,
+          border: '1px solid #e8e6e1',
+          padding: '16px',
+          marginBottom: 16,
+          fontSize: 13,
+          color: '#333',
+          lineHeight: 1.8,
+        }}>
+          {/* 이탈 */}
+          {actions.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: '#c62828', fontWeight: 700 }}>이탈 위험 {actions.length}건</span>
+              {actions.slice(0, 3).map((a, i) => (
+                <div key={a.client_code} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  <span style={{ color: RISK_COLORS[a.risk_level], fontWeight: 600 }}>{RISK_LABELS[a.risk_level]}</span>{' '}
+                  {a.client_name} — {a.days_since_last}일 미구매
+                  {a.revenue_change_pct < 0 && <span style={{ color: '#c62828' }}> (매출 {Math.abs(a.revenue_change_pct)}%↓)</span>}
+                </div>
+              ))}
+              {actions.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {actions.length - 3}건</div>}
+            </div>
+          )}
+
+          {/* 재주문 */}
+          {nudges.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: '#1565C0', fontWeight: 700 }}>재주문 {nudges.length}건</span>
+              <span style={{ color: '#888', fontSize: 11 }}> (재고有 {summary.reorder_in_stock} / 품절 {summary.reorder_out_of_stock})</span>
+              {nudges.filter(n => n.stock_status !== 'out_of_stock').slice(0, 3).map(n => (
+                <div key={`${n.client_code}-${n.item_no}`} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  {n.client_name} × {n.item_name.length > 20 ? n.item_name.slice(0, 20) + '…' : n.item_name} — {n.overdue_days}일 초과
+                </div>
+              ))}
+              {nudges.filter(n => n.stock_status !== 'out_of_stock').length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {nudges.filter(n => n.stock_status !== 'out_of_stock').length - 3}건</div>}
+            </div>
+          )}
+
+          {/* 미팅 */}
+          {meetings.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: '#6A1B9A', fontWeight: 700 }}>미팅 {meetings.length}건</span>
+              {meetings.slice(0, 3).map(m => (
+                <div key={m.meeting_id} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  D-{m.days_until} {m.client_name} {MEETING_TYPE_LABEL[m.meeting_type] || m.meeting_type}
+                  {m.meeting_time ? ` ${m.meeting_time}` : ''}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 재고 위험 */}
+          {stockDepletions.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ color: '#B71C1C', fontWeight: 700 }}>재고 위험 {stockDepletions.length}건</span>
+              {stockDepletions.slice(0, 3).map(sd => (
+                <div key={sd.item_no} style={{ paddingLeft: 12, fontSize: 12, color: '#555' }}>
+                  {sd.alert_type === 'out_of_stock' ? '품절' : `잔여 ${sd.current_stock}병`} {sd.item_name.length > 25 ? sd.item_name.slice(0, 25) + '…' : sd.item_name}
+                  {sd.affected_clients.length > 0 && <span style={{ color: '#999' }}> (거래처 {sd.affected_clients.length}곳)</span>}
+                </div>
+              ))}
+              {stockDepletions.length > 3 && <div style={{ paddingLeft: 12, fontSize: 11, color: '#999' }}>외 {stockDepletions.length - 3}건</div>}
+            </div>
+          )}
+
+          {/* 업셀 / 신규입고 / 방문 / 시즌 — 한줄 요약 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: '#666', marginTop: 4 }}>
+            {upsells.length > 0 && <span><span style={{ color: '#2E7D32', fontWeight: 600 }}>업셀</span> {upsells.length}건</span>}
+            {newArrivals.length > 0 && <span><span style={{ color: '#00838F', fontWeight: 600 }}>신규입고</span> {newArrivals.length}건</span>}
+            {visitSchedules.length > 0 && <span><span style={{ color: '#795548', fontWeight: 600 }}>방문</span> {visitSchedules.length}건</span>}
+            {seasonRecos.length > 0 && <span><span style={{ color: '#283593', fontWeight: 600 }}>시즌({summary.season_name})</span> {seasonRecos.length}건</span>}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <button
+              onClick={() => setCompactMode(false)}
+              style={{
+                padding: '6px 16px',
+                borderRadius: 20,
+                border: '1px solid #e0dcd4',
+                background: 'white',
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#666',
+                cursor: 'pointer',
+              }}
+            >
+              상세 보기
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 스캔 중 */}
       {scanning && !hasAnyData && (
         <div style={{
@@ -517,7 +630,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 이탈 위험 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setChurnCollapsed(!churnCollapsed)}
@@ -735,7 +848,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 재주문 타이밍 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setReorderCollapsed(!reorderCollapsed)}
@@ -918,7 +1031,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 미팅 리마인더 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setMeetingCollapsed(!meetingCollapsed)}
@@ -1056,7 +1169,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 재고 소진 위험 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setStockCollapsed(!stockCollapsed)}
@@ -1205,7 +1318,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 업셀 추천 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setUpsellCollapsed(!upsellCollapsed)}
@@ -1339,7 +1452,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 신규 입고 매칭 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setNewArrivalCollapsed(!newArrivalCollapsed)}
@@ -1518,7 +1631,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 방문 추천 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setVisitCollapsed(!visitCollapsed)}
@@ -1708,7 +1821,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* ═══ 시즌 선제 추천 섹션 ═══ */}
-      {mgr && !scanning && (
+      {!compactMode && mgr && !scanning && (
         <div style={{ marginBottom: 24 }}>
           <button
             onClick={() => setSeasonCollapsed(!seasonCollapsed)}
@@ -1883,7 +1996,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {/* 모든 데이터 없음 */}
-      {!scanning && mgr && !hasAnyData && (
+      {!compactMode && !scanning && mgr && !hasAnyData && (
         <div style={{
           textAlign: 'center',
           padding: '40px 20px',
