@@ -257,7 +257,10 @@ export default function DashboardTab() {
                 <LineChart data={inventoryLineData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={invPeriod === 'daily' && inventoryLineData.length > 15 ? Math.floor(inventoryLineData.length / 12) : 0} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v.toLocaleString()}만`} width={60} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v.toLocaleString()}만`} width={60} domain={[
+                    (dataMin: number) => Math.floor(dataMin * 0.95),
+                    (dataMax: number) => Math.ceil(dataMax * 1.02),
+                  ]} />
                   <Tooltip
                     formatter={(value: number, name: string) => [`${value.toLocaleString()}만원`, name === 'cdv' ? 'CDV' : 'DL']}
                   />
