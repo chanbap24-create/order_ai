@@ -99,17 +99,28 @@ export async function deleteBrand(id: number): Promise<boolean> {
 /* ─── brand별 와인 수 집계 ─── */
 
 export async function getWineCountsByBrand(): Promise<Record<string, number>> {
+  // SQL GROUP BY로 집계 (전체 행 fetch 대신 집계 결과만)
   const { data, error } = await supabase
-    .from('wines')
-    .select('brand')
-    .not('brand', 'is', null);
+    .rpc('get_wine_counts_by_brand');
 
-  if (error || !data) return {};
+  if (error || !data) {
+    // fallback: rpc 없으면 기존 방식
+    const { data: rows, error: e2 } = await supabase
+      .from('wines')
+      .select('brand')
+      .not('brand', 'is', null);
+    if (e2 || !rows) return {};
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      const b = (row as { brand: string }).brand;
+      if (b) counts[b] = (counts[b] || 0) + 1;
+    }
+    return counts;
+  }
 
   const counts: Record<string, number> = {};
-  for (const row of data) {
-    const b = (row as { brand: string }).brand;
-    if (b) counts[b] = (counts[b] || 0) + 1;
+  for (const row of data as { brand: string; cnt: number }[]) {
+    if (row.brand) counts[row.brand] = row.cnt;
   }
   return counts;
 }

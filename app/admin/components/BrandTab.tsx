@@ -30,6 +30,7 @@ export default function BrandTab() {
   const [toast, setToast] = useState<string | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [validation, setValidation] = useState<BrandValidation | null>(null);
+  const [listDirty, setListDirty] = useState(false); // 목록 리로드 필요 여부
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -54,20 +55,13 @@ export default function BrandTab() {
   // 국가 목록
   const countries = [...new Set(brands.map(b => b.country).filter(Boolean))] as string[];
 
-  // 상세 보기
-  const openDetail = async (brand: Brand) => {
+  // 상세 보기 (목록에서 이미 full data 보유 → 추가 API 호출 불필요)
+  const openDetail = (brand: Brand) => {
     setSelectedBrand(brand);
     setEditForm({ ...brand });
     setIsNew(false);
     setValidation(null);
     setViewMode('detail');
-    // 연결된 와인 로드
-    const res = await fetch(`/api/admin/brands/${brand.id}`);
-    if (res.ok) {
-      const full = await res.json();
-      setSelectedBrand(full);
-      setEditForm({ ...full });
-    }
     if (brand.brand_code && brand.id) {
       loadLinkedWines(brand.id);
     } else {
@@ -118,6 +112,7 @@ export default function BrandTab() {
           setSelectedBrand(created);
           setEditForm({ ...created });
           setIsNew(false);
+          setListDirty(true);
         } else {
           showToast('생성 실패');
         }
@@ -132,6 +127,7 @@ export default function BrandTab() {
           showToast('저장되었습니다');
           setSelectedBrand(updated);
           setEditForm({ ...updated });
+          setListDirty(true);
         } else {
           showToast('저장 실패');
         }
@@ -149,7 +145,7 @@ export default function BrandTab() {
     if (res.ok) {
       showToast('삭제되었습니다');
       setViewMode('list');
-      loadBrands();
+      loadBrands(); // 삭제 시에는 즉시 리로드
     }
   };
 
@@ -465,7 +461,7 @@ export default function BrandTab() {
       {/* 상단 바 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <button
-          onClick={() => { setViewMode('list'); loadBrands(); }}
+          onClick={() => { setViewMode('list'); if (listDirty) { loadBrands(); setListDirty(false); } }}
           style={{
             background: 'none',
             border: 'none',

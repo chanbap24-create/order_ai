@@ -11,12 +11,10 @@ const SONNET_MODEL = "claude-sonnet-4-20250514";
 /* ─── 구조화 프롬프트 ─── */
 const BRAND_RESEARCH_PROMPT = `You are an expert wine industry researcher. Search the web thoroughly for information about the given wine producer/winery, then compile the results into structured JSON.
 
-SEARCH STRATEGY (use all available web searches):
+SEARCH STRATEGY (use web searches efficiently, max 5):
 1. Search for the official winery website — extract history, philosophy, vineyard info
 2. Search Wine-Searcher (wine-searcher.com) for the producer profile and scores
-3. Search Vivino (vivino.com) for user ratings and top wines
-4. Search for recent news, awards, and Korean import information (한국 수입사)
-5. Search Wikipedia if available for historical background
+3. Search for awards, ratings, and additional details as needed
 
 IMPORTANT RULES:
 - Cross-reference information from multiple sources for accuracy
@@ -60,8 +58,8 @@ async function researchWithSonnet(
 
   const response = await client.messages.create({
     model: SONNET_MODEL,
-    max_tokens: 4000,
-    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 10 }],
+    max_tokens: 2500,
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
     messages: [{
       role: "user",
       content: `${BRAND_RESEARCH_PROMPT}
