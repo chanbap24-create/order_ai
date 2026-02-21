@@ -8,6 +8,11 @@ import type { BrandResearchResult, BrandValidation } from "@/app/types/wine";
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const SONNET_MODEL = "claude-sonnet-4-20250514";
 
+/** web_search 응답의 <cite> 태그 제거 */
+function stripCitations(text: string): string {
+  return text.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '');
+}
+
 /* ─── 구조화 프롬프트 ─── */
 const BRAND_RESEARCH_PROMPT = `You are an expert wine industry researcher. Search the web thoroughly for information about the given wine producer/winery, then compile the results into structured JSON.
 
@@ -77,7 +82,7 @@ Please search thoroughly for "${searchTarget}"${countryHint} winery and compile 
   for (const block of response.content) {
     if (block.type === 'text' && block.text) texts.push(block.text);
   }
-  const text = texts.join('\n').trim();
+  const text = stripCitations(texts.join('\n').trim());
 
   if (!text) {
     throw new Error("Claude API 응답에 텍스트가 없습니다.");

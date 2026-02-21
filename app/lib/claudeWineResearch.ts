@@ -8,6 +8,11 @@ import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
+/** web_search 응답의 <cite> 태그 제거 */
+function stripCitations(text: string): string {
+  return text.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '');
+}
+
 const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
 사용자가 제공한 와인 정보와 Wine-Searcher 실제 데이터를 기반으로 와인을 분석하세요.
 
@@ -194,7 +199,7 @@ export async function researchWineWithClaude(
   for (const block of response.content) {
     if (block.type === 'text' && 'text' in block) texts.push(block.text);
   }
-  const text = texts.join('\n').trim();
+  const text = stripCitations(texts.join('\n').trim());
   if (!text) {
     throw new Error("Claude API 응답에 텍스트가 없습니다.");
   }
