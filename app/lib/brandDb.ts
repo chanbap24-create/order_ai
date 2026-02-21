@@ -114,6 +114,48 @@ export async function getWineCountsByBrand(): Promise<Record<string, number>> {
   return counts;
 }
 
+/* ─── 와인 품번으로 브랜드 컨텍스트 가져오기 (AI 조사용) ─── */
+
+export async function getBrandContextForWine(itemCode: string): Promise<string> {
+  // 1. wines 테이블에서 brand 코드 조회
+  const { data: wine } = await supabase
+    .from('wines')
+    .select('brand')
+    .eq('item_code', itemCode)
+    .maybeSingle();
+
+  if (!wine?.brand) return '';
+
+  // 2. brands 테이블에서 브랜드 정보 조회
+  const { data: brand } = await supabase
+    .from('brands')
+    .select('*')
+    .eq('brand_code', wine.brand)
+    .maybeSingle();
+
+  if (!brand || !brand.ai_researched) return '';
+
+  // 3. 컨텍스트 문자열 구성
+  const parts: string[] = [];
+  if (brand.brand_name_en) parts.push(`Producer: ${brand.brand_name_en}`);
+  if (brand.country) parts.push(`Country: ${brand.country}`);
+  if (brand.region) parts.push(`Region: ${brand.region}`);
+  if (brand.founded_year) parts.push(`Founded: ${brand.founded_year}`);
+  if (brand.owner) parts.push(`Owner: ${brand.owner}`);
+  if (brand.winemaker) parts.push(`Winemaker: ${brand.winemaker}`);
+  if (brand.description) parts.push(`About: ${brand.description}`);
+  if (brand.winemaking_philosophy) parts.push(`Winemaking: ${brand.winemaking_philosophy}`);
+  if (brand.vineyard_info) parts.push(`Vineyards: ${brand.vineyard_info}`);
+  if (brand.certifications) parts.push(`Certifications: ${brand.certifications}`);
+  if (brand.key_wines) parts.push(`Key wines: ${brand.key_wines}`);
+  if (brand.awards) parts.push(`Awards: ${brand.awards}`);
+
+  if (parts.length === 0) return '';
+
+  logger.info(`[BrandContext] Found brand "${brand.brand_name_en}" for wine ${itemCode}`);
+  return parts.join('\n');
+}
+
 /* ─── brand_code로 연결된 와인 목록 ─── */
 
 export async function getWinesByBrandCode(brandCode: string) {
