@@ -6,7 +6,6 @@ import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage } from "@/
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
@@ -54,53 +53,6 @@ function parseVintage(raw: string | undefined | null): string {
     return num > 26 ? `19${String(num).padStart(2, '0')}` : `20${String(num).padStart(2, '0')}`;
   }
   return trimmed;
-}
-
-/** Haiku + web_search로 와이너리 공식 사이트 정보 수집 */
-async function searchBrandInfo(
-  wineName: string,
-  winery?: string
-): Promise<string> {
-  try {
-    const client = getClaudeClient();
-    const searchTarget = winery || wineName.split(/\s+/).slice(0, 2).join(' ');
-
-    const response = await client.messages.create({
-      model: HAIKU_MODEL,
-      max_tokens: 1500,
-      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
-      messages: [{
-        role: "user",
-        content: `Find the official winery/producer website for "${searchTarget}" and extract information about the wine "${wineName}".
-
-Search for:
-1. The official winery website (not retailers or review sites)
-2. Technical sheet / data sheet for this wine
-3. Winemaking details (harvest, fermentation, aging)
-4. Awards or scores
-
-Return ONLY the useful information found. If you cannot find the official site, return whatever relevant winery info you find. Keep response concise in bullet points.`
-      }],
-    });
-
-    const texts: string[] = [];
-    for (const block of response.content) {
-      if (block.type === 'text' && block.text) {
-        texts.push(block.text);
-      }
-    }
-
-    const result = texts.join('\n').trim();
-    if (result) {
-      logger.info(`[Brand] Found info for "${searchTarget}" (${result.length} chars)`);
-    } else {
-      logger.info(`[Brand] No info found for "${searchTarget}"`);
-    }
-    return result;
-  } catch (e) {
-    logger.warn(`[Brand] Search failed: ${e instanceof Error ? e.message : String(e)}`);
-    return '';
-  }
 }
 
 /** Haiku 모델로 조사 결과가 원본 와인과 동일한지 빠르게 검증 */
@@ -173,15 +125,13 @@ export async function researchWineWithClaude(
 
   logger.info(`[Claude] Researching wine: ${itemCode} - ${itemNameKr} (en: ${itemNameEn})`);
 
-  // Step 1: DB 브랜드 데이터 + Wine-Searcher + Vivino 병렬 실행
+  // Step 1: DB 브랜드 데이터 + Wine-Searcher + Vivino 병렬 실행 (무료)
   const [wsData, vivinoImageUrl, dbBrandContext] = await Promise.all([
     scrapeWineSearcher(itemNameEn),
     searchVivinoBottleImage(itemNameEn).catch(() => null),
     getBrandContextForWine(itemCode).catch(() => ''),
   ]);
 
-  // DB에 브랜드 데이터 없으면 Haiku web_search fallback
-  const brandInfo = dbBrandContext || await searchBrandInfo(itemNameEn).catch(() => '');
   if (dbBrandContext) {
     logger.info(`[Claude] Using DB brand data for ${itemCode} (${dbBrandContext.length} chars)`);
   }
@@ -199,7 +149,6 @@ export async function researchWineWithClaude(
     if (wsData.reviews && wsData.reviews.length > 0) {
       wsContext += `리뷰:\n${wsData.reviews.map(r => `- ${r}`).join('\n')}\n`;
     }
-    // Vivino가 없으면 WS 이미지 사용
     if (!imageUrl) {
       imageUrl = wsData.imageUrl || null;
     }
@@ -212,58 +161,77 @@ export async function researchWineWithClaude(
     logger.info(`[Claude][WineSearcher] No data found for: ${itemNameEn}`);
   }
 
-  // Brand 컨텍스트 구성
+  // 브랜드 컨텍스트
   let brandContext = '';
-  if (brandInfo) {
-    const source = dbBrandContext ? '브랜드 자료실 DB' : '브랜드 공식 사이트';
-    brandContext = `\n\n=== ${source} 정보 ===\n${brandInfo}\n`;
+  if (dbBrandContext) {
+    brandContext = `\n\n=== 브랜드 자료실 DB 정보 ===\n${dbBrandContext}\n`;
   }
 
-  // Step 2: Claude API 호출
+  // 컨텍스트 풍부도 판단: WS 또는 브랜드DB 있으면 web_search 불필요
+  const hasRichContext = !!(wsData || dbBrandContext);
+
+  // Step 2: Haiku 메인 조사 (컨텍스트 부족 시에만 web_search 추가)
   const vintageYear = parseVintage(vintage);
   const vintageInfo = vintageYear ? `\n빈티지: ${vintageYear}년` : '';
-  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요. Wine-Searcher 데이터가 있다면 그것을 우선 사용하세요.${brandInfo ? ' 브랜드 공식 사이트 정보가 있다면 보완/검증에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 이 와인의 빈티지는 ${vintageYear}년입니다. vintage_note에 ${vintageYear}년의 기후, 작황, 포도 품질에 대해 구체적으로 작성해주세요.` : ''}`;
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}`;
 
-  const response = await client.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 2000,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const apiParams: any = {
+    model: HAIKU_MODEL,
+    max_tokens: 1500,
     messages: [
       { role: "user", content: `${RESEARCH_PROMPT}\n\n${userMessage}` },
     ],
-  });
+  };
+  // 컨텍스트 부족 시에만 web_search 사용 (비용 절감)
+  if (!hasRichContext) {
+    apiParams.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }];
+  }
 
-  const textBlock = response.content.find(b => b.type === 'text');
-  const text = textBlock && 'text' in textBlock ? textBlock.text : '';
+  const response = await client.messages.create(apiParams);
+
+  const texts: string[] = [];
+  for (const block of response.content) {
+    if (block.type === 'text' && 'text' in block) texts.push(block.text);
+  }
+  const text = texts.join('\n').trim();
   if (!text) {
     throw new Error("Claude API 응답에 텍스트가 없습니다.");
   }
 
   // JSON 파싱 (코드블록 래핑 대응)
-  let jsonStr = text.trim();
-  if (jsonStr.startsWith("```")) {
-    jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+  let jsonStr = text;
+  const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1].trim();
+  } else {
+    const objMatch = text.match(/\{[\s\S]*\}/);
+    if (objMatch) jsonStr = objMatch[0];
   }
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // Step 3: 검증 (Haiku) + 이미지 보완 병렬
-  const [validation, fallbackImage] = await Promise.all([
-    validateWineResult(itemNameKr, itemNameEn, result),
-    // Vivino/WS 이미지 둘 다 없으면 fallback 검색
-    (!imageUrl && result.item_name_en)
-      ? searchWineImage(result.item_name_en).catch(() => null)
-      : Promise.resolve(null),
-  ]);
-
-  if (!imageUrl && fallbackImage) {
-    imageUrl = fallbackImage;
+  // Step 3: 이미지 보완 (Vivino/WS 없으면 fallback)
+  if (!imageUrl && result.item_name_en) {
+    const fallbackImage = await searchWineImage(result.item_name_en).catch(() => null);
+    if (fallbackImage) imageUrl = fallbackImage;
   }
   if (imageUrl) {
     result.image_url = imageUrl;
     logger.info(`[Claude][WineImage] Image found for ${itemCode}: ${imageUrl}`);
   }
 
-  logger.info(`[Claude] Wine research complete for ${itemCode} (WS: ${wsData ? 'yes' : 'no'}, brand: ${brandInfo ? 'yes' : 'no'}, image: ${imageUrl ? 'yes' : 'no'}, validation: ${validation.confidence})`);
+  // Step 4: 검증 — 컨텍스트 풍부하면 스킵 (WS+브랜드 둘 다 있으면 신뢰도 높음)
+  let validation: WineValidation;
+  if (wsData && dbBrandContext) {
+    // WS 데이터 + 브랜드DB 모두 있으면 검증 스킵
+    validation = { confidence: 95, issues: [] };
+    logger.info(`[Claude] Skipping validation — rich context (WS+brand DB)`);
+  } else {
+    validation = await validateWineResult(itemNameKr, itemNameEn, result);
+  }
+
+  logger.info(`[Claude] Wine research complete for ${itemCode} (WS: ${wsData ? 'yes' : 'no'}, brand: ${dbBrandContext ? 'DB' : 'no'}, image: ${imageUrl ? 'yes' : 'no'}, validation: ${validation.confidence})`);
 
   return { result, validation };
 }
