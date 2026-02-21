@@ -10,7 +10,7 @@ import { jsonResponse } from "@/app/lib/api-response";
 import type { ParseFullOrderResponse } from "@/app/types/api";
 import { hierarchicalSearch } from "@/app/lib/brandMatcher";
 import { logger } from "@/app/lib/logger";
-import { rerankWithLLM, needsReranking, expandQueryWithLLM, expandFromDict } from "@/app/lib/llmReranker";
+import { rerankWithLLM, needsReranking, expandQueryWithLLM, expandFromDict, expandQueriesBatch } from "@/app/lib/llmReranker";
 
 
 import { isHolidayKST } from "@/app/lib/holidays";
@@ -838,72 +838,80 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
     }
 
     // ✅ 2-2) LLM 사전 확장: 짧은 약어 → 정식 와인명으로 변환 (매칭 전에 실행)
+    // v2: 배치 호출로 API 비용 절감 (개별 N회 → 1회)
     if (pageType === "wine" && process.env.ANTHROPIC_API_KEY) {
       console.log(`[LLM PreExpand] 시작: ${parsedItems.length}개 품목`);
-      const expandPromises: Promise<void>[] = [];
-      for (const item of parsedItems) {
+
+      // 확장 필요한 쿼리 수집
+      const expandTargets: { itemIdx: number; query: string; isToken?: boolean; tokenIdx?: number; tokens?: string[] }[] = [];
+
+      for (let i = 0; i < parsedItems.length; i++) {
+        const item = parsedItems[i];
         const name = String(item.name || "").trim();
-        // 짧은 이름(4글자 이하) 또는 한글 2~3글자 약어 → 전체 이름 확장
         const isShort = name.length <= 4;
         const isKoreanAbbrev = /^[가-힣]{2,3}$/.test(name);
+        const koreanCharCount = (name.match(/[가-힣]/g) || []).length;
+
         if (isShort || isKoreanAbbrev) {
-          expandPromises.push((async () => {
-            try {
-              const expanded = await expandQueryWithLLM(name);
-              if (expanded && expanded.confidence >= 0.4 && expanded.expandedQueries.length > 0) {
-                console.log(`[LLM PreExpand] "${name}" → "${expanded.wineName}" (conf=${expanded.confidence})`);
-                (item as any)._llmExpanded = expanded;
-                (item as any)._originalName = name;
-                item.name = expanded.wineName;
-              } else {
-                console.log(`[LLM PreExpand] "${name}" → 확장 실패 또는 낮은 신뢰도`);
-              }
-            } catch (err) {
-              console.error(`[LLM PreExpand] "${name}" 오류:`, err);
-            }
-          })());
+          expandTargets.push({ itemIdx: i, query: name });
         } else {
-          // 전체 이름이 길어도 개별 토큰에 약어가 있으면 확장
-          // 단, 한국어 와인명이 이미 포함된 경우(사전 확장 완료) 스킵
           const tokens = name.split(/\s+/);
-          const koreanCharCount = (name.match(/[가-힣]/g) || []).length;
           if (tokens.length >= 2 && koreanCharCount < 3) {
-            expandPromises.push((async () => {
-              try {
-                let anyExpanded = false;
-                const expandedTokens = await Promise.all(tokens.map(async (token) => {
-                  if (token.length <= 4 || /^[가-힣]{2,3}$/.test(token)) {
-                    const expanded = await expandQueryWithLLM(token);
-                    if (expanded && expanded.confidence >= 0.4 && expanded.expandedQueries.length > 0) {
-                      anyExpanded = true;
-                      return expanded.wineName;
-                    }
-                  }
-                  return token;
-                }));
-                if (anyExpanded) {
-                  const newName = expandedTokens.join(' ');
-                  console.log(`[LLM PreExpand] "${name}" → "${newName}" (토큰별 확장)`);
-                  (item as any)._llmExpanded = { originalQuery: name, expandedQueries: [newName], wineName: newName, confidence: 0.95 };
-                  (item as any)._originalName = name;
-                  item.name = newName;
-                }
-              } catch (err) {
-                console.error(`[LLM PreExpand] "${name}" 토큰 확장 오류:`, err);
+            for (let t = 0; t < tokens.length; t++) {
+              if (tokens[t].length <= 4 || /^[가-힣]{2,3}$/.test(tokens[t])) {
+                expandTargets.push({ itemIdx: i, query: tokens[t], isToken: true, tokenIdx: t, tokens });
               }
-            })());
+            }
           } else if (koreanCharCount >= 3) {
-            // 사전 확장으로 한국어 와인명이 이미 포함됨 (예: "at 로쏘 디 몬탈치노")
-            // expandAliases 역방향 매핑에 의한 오염 방지를 위해 플래그 설정
-            console.log(`[LLM PreExpand] "${name}" → 사전 확장 완료 (전처리 스킵 플래그)`);
             (item as any)._llmExpanded = true;
             (item as any)._originalName = name;
           }
         }
       }
-      if (expandPromises.length > 0) {
-        await Promise.all(expandPromises);
-        console.log(`[LLM PreExpand] 완료: ${expandPromises.length}개 확장 시도`);
+
+      if (expandTargets.length > 0) {
+        // 배치 호출: 고유 쿼리만 추출 → 1회 LLM 호출
+        const uniqueQueries = [...new Set(expandTargets.map(t => t.query))];
+        const batchResults = await expandQueriesBatch(uniqueQueries);
+        console.log(`[LLM PreExpand] 배치 완료: ${uniqueQueries.length}개 고유 쿼리`);
+
+        // 결과 적용
+        const tokenExpands = new Map<number, { tokens: string[]; anyExpanded: boolean }>();
+
+        for (const target of expandTargets) {
+          const expanded = batchResults.get(target.query);
+          if (!expanded || expanded.confidence < 0.4 || expanded.expandedQueries.length === 0) continue;
+
+          const item = parsedItems[target.itemIdx];
+
+          if (target.isToken && target.tokens && target.tokenIdx !== undefined) {
+            // 토큰별 확장
+            if (!tokenExpands.has(target.itemIdx)) {
+              tokenExpands.set(target.itemIdx, { tokens: [...target.tokens], anyExpanded: false });
+            }
+            const te = tokenExpands.get(target.itemIdx)!;
+            te.tokens[target.tokenIdx] = expanded.wineName;
+            te.anyExpanded = true;
+          } else {
+            // 전체 이름 확장
+            console.log(`[LLM PreExpand] "${target.query}" → "${expanded.wineName}" (conf=${expanded.confidence})`);
+            (item as any)._llmExpanded = expanded;
+            (item as any)._originalName = target.query;
+            item.name = expanded.wineName;
+          }
+        }
+
+        // 토큰별 확장 결과 적용
+        for (const [itemIdx, te] of tokenExpands.entries()) {
+          if (!te.anyExpanded) continue;
+          const item = parsedItems[itemIdx];
+          const newName = te.tokens.join(' ');
+          const origName = String(item.name || "");
+          console.log(`[LLM PreExpand] "${origName}" → "${newName}" (토큰별 확장)`);
+          (item as any)._llmExpanded = { originalQuery: origName, expandedQueries: [newName], wineName: newName, confidence: 0.95 };
+          (item as any)._originalName = origName;
+          item.name = newName;
+        }
       }
     }
 

@@ -1,7 +1,9 @@
 // app/lib/llmReranker.ts
-// 로컬 사전 + LLM 폴백 쿼리 확장 + 후보 리랭킹
+// 로컬 사전 + DB alias + LLM 폴백 쿼리 확장 + 후보 리랭킹
+// v2: 캐시 24h, 배치 LLM 호출, item_alias DB 조회 우선
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
+import { supabase } from "@/app/lib/db";
 
 const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
@@ -123,13 +125,54 @@ export function expandFromDict(query: string): ExpandResult | null {
   };
 }
 
-// 캐시
+// 캐시 (24시간 TTL)
 const expandCache = new Map<string, { result: ExpandResult; ts: number }>();
 const rerankCache = new Map<string, { result: RerankResult; ts: number }>();
-const CACHE_TTL = 10 * 60 * 1000; // 10분
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
+
+// item_alias DB 캐시 (서버 시작 시 1회 로드, 5분마다 갱신)
+let aliasCache: Map<string, string> | null = null;
+let aliasCacheTs = 0;
+const ALIAS_CACHE_TTL = 5 * 60 * 1000; // 5분
+
+async function getAliasMap(): Promise<Map<string, string>> {
+  if (aliasCache && Date.now() - aliasCacheTs < ALIAS_CACHE_TTL) {
+    return aliasCache;
+  }
+  try {
+    const { data } = await supabase
+      .from('item_alias')
+      .select('alias, canonical');
+    const map = new Map<string, string>();
+    for (const row of (data || [])) {
+      map.set(row.alias.toLowerCase(), row.canonical);
+    }
+    aliasCache = map;
+    aliasCacheTs = Date.now();
+    return map;
+  } catch {
+    return aliasCache || new Map();
+  }
+}
 
 /**
- * 쿼리 확장: 로컬 사전 우선 → LLM 폴백
+ * item_alias DB에서 조회 (캐시됨)
+ */
+async function expandFromAlias(query: string): Promise<ExpandResult | null> {
+  const map = await getAliasMap();
+  const canonical = map.get(query.toLowerCase());
+  if (!canonical) return null;
+
+  return {
+    originalQuery: query,
+    expandedQueries: [canonical],
+    wineName: canonical,
+    confidence: 0.9,
+  };
+}
+
+/**
+ * 쿼리 확장: 로컬 사전 → DB alias → 캐시 → LLM 폴백
  */
 export async function expandQueryWithLLM(
   query: string
@@ -147,7 +190,14 @@ export async function expandQueryWithLLM(
     return cached.result;
   }
 
-  // 3) LLM 폴백 (사전에 없는 경우만)
+  // 3) item_alias DB 조회 (캐시됨, 빠름)
+  const aliasResult = await expandFromAlias(query);
+  if (aliasResult) {
+    expandCache.set(cacheKey, { result: aliasResult, ts: Date.now() });
+    return aliasResult;
+  }
+
+  // 4) LLM 폴백 (사전/DB 모두 없는 경우만)
   try {
     const client = getClaudeClient();
     const response = await client.messages.create({
@@ -186,6 +236,112 @@ search_keywords에는 실제 재고 검색에 도움될 한글/영문 키워드�
     console.error("[LLM Expand] Error:", err);
     return null;
   }
+}
+
+/**
+ * 배치 쿼리 확장: 여러 쿼리를 1회 LLM 호출로 처리
+ * 사전/캐시/DB에서 해결 안 된 것만 LLM으로 묶어서 호출
+ */
+export async function expandQueriesBatch(
+  queries: string[]
+): Promise<Map<string, ExpandResult | null>> {
+  const results = new Map<string, ExpandResult | null>();
+  const needLLM: string[] = [];
+
+  // 1) 사전 + 캐시 + DB alias로 먼저 해결
+  for (const q of queries) {
+    if (!q || q.length < 2) { results.set(q, null); continue; }
+
+    const dictResult = expandFromDict(q);
+    if (dictResult) { results.set(q, dictResult); continue; }
+
+    const cacheKey = `expand::${q}`;
+    const cached = expandCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      results.set(q, cached.result); continue;
+    }
+
+    const aliasResult = await expandFromAlias(q);
+    if (aliasResult) {
+      expandCache.set(cacheKey, { result: aliasResult, ts: Date.now() });
+      results.set(q, aliasResult); continue;
+    }
+
+    needLLM.push(q);
+  }
+
+  // 2) LLM이 필요 없으면 바로 리턴
+  if (needLLM.length === 0) return results;
+
+  // 3) 1~2개면 개별 호출 (배치 프롬프트보다 효율적)
+  if (needLLM.length <= 2) {
+    for (const q of needLLM) {
+      results.set(q, await expandQueryWithLLM(q));
+    }
+    return results;
+  }
+
+  // 4) 3개 이상: 배치 LLM 호출 (1회)
+  try {
+    const client = getClaudeClient();
+    const queryList = needLLM.map((q, i) => `${i + 1}. "${q}"`).join('\n');
+
+    const response = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 100 * needLLM.length,
+      messages: [{
+        role: "user",
+        content: `와인 주문에서 고객이 입력한 약어/줄임말들입니다. 각각 어떤 와인/품종인지 해석해주세요.
+
+${queryList}
+
+각 항목에 대해 JSON 배열로 응답하세요 (순서 유지):
+[{"idx":1,"wine_name":"정식명(한글)","wine_name_en":"English","keywords":["키워드"],"confidence":0.0-1.0}, ...]
+반드시 JSON 배열만 응답하세요.`
+      }],
+    });
+
+    const raw = response.content[0]?.type === "text" ? response.content[0].text : "";
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      const parsed = JSON.parse(arrMatch[0]) as Array<{
+        idx: number; wine_name: string; wine_name_en: string;
+        keywords?: string[]; confidence: number;
+      }>;
+
+      for (const item of parsed) {
+        const idx = (item.idx || 0) - 1;
+        if (idx < 0 || idx >= needLLM.length) continue;
+        const q = needLLM[idx];
+
+        const result: ExpandResult = {
+          originalQuery: q,
+          expandedQueries: [
+            item.wine_name || "",
+            item.wine_name_en || "",
+            ...(item.keywords || []),
+          ].filter((s: string) => s && s.length >= 2),
+          wineName: item.wine_name || q,
+          confidence: Math.max(0, Math.min(1, item.confidence || 0)),
+        };
+
+        expandCache.set(`expand::${q}`, { result, ts: Date.now() });
+        results.set(q, result);
+      }
+    }
+
+    // 파싱 실패한 쿼리는 null
+    for (const q of needLLM) {
+      if (!results.has(q)) results.set(q, null);
+    }
+  } catch (err) {
+    console.error("[LLM Batch Expand] Error:", err);
+    for (const q of needLLM) {
+      if (!results.has(q)) results.set(q, null);
+    }
+  }
+
+  return results;
 }
 
 /**
