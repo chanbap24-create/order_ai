@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: result, validation });
   } catch (e) {
-    return handleApiError(e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[wine-research] ERROR:', msg, e instanceof Error ? e.stack : '');
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
