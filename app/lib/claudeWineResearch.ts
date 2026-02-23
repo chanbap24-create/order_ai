@@ -183,7 +183,7 @@ export async function researchWineWithClaude(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
     model: HAIKU_MODEL,
-    max_tokens: 1500,
+    max_tokens: 4096,
     messages: [
       { role: "user", content: `${RESEARCH_PROMPT}\n\n${userMessage}` },
     ],
@@ -212,9 +212,22 @@ export async function researchWineWithClaude(
   let result: WineResearchResult;
   try {
     result = JSON.parse(jsonStr) as WineResearchResult;
-  } catch (parseErr) {
-    logger.error(`[Claude] JSON parse failed. Raw text (first 500 chars): ${text.slice(0, 500)}`);
-    throw new Error(`JSON 파싱 실패: ${(parseErr as Error).message} | 응답: ${text.slice(0, 200)}`);
+  } catch {
+    // 잘린 JSON 복구 시도
+    try {
+      let fixed = jsonStr;
+      // 미완성 문자열 닫기
+      if (fixed.match(/"[^"]*$/)) fixed += '"';
+      // 닫히지 않은 중괄호/대괄호 보정
+      const openBraces = (fixed.match(/\{/g) || []).length;
+      const closeBraces = (fixed.match(/\}/g) || []).length;
+      for (let i = 0; i < openBraces - closeBraces; i++) fixed += '}';
+      result = JSON.parse(fixed) as WineResearchResult;
+      logger.warn(`[Claude] JSON was truncated but recovered for ${itemCode}`);
+    } catch (parseErr2) {
+      logger.error(`[Claude] JSON parse failed. Raw text (first 500 chars): ${text.slice(0, 500)}`);
+      throw new Error(`응답이 잘려 파싱에 실패했습니다. 재시도해주세요.`);
+    }
   }
 
   // Step 3: 이미지 보완 (Vivino/WS 없으면 fallback)
