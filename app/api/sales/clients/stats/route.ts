@@ -48,9 +48,10 @@ export async function GET(req: NextRequest) {
       while (true) {
         const { data, error } = await supabase
           .from(table)
-          .select('item_no, item_name, quantity, selling_price, total_amount, ship_date')
+          .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
           .eq('client_code', code)
           .gte('ship_date', twelveStr)
+          .order('ship_date', { ascending: true })
           .range(shipFrom, shipFrom + shipBatch - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
       }>();
 
       for (const s of allShipments) {
-        const amt = s.total_amount || 0;
+        const amt = s.supply_amount || 0;
         totalSales += amt;
         const d = s.ship_date?.toString().slice(0, 10) || '';
         if (d >= threeStr) recentQtr += amt;
@@ -154,9 +155,10 @@ export async function GET(req: NextRequest) {
       while (true) {
         const { data: shipmentAgg, error: shipErr } = await supabase
           .from(shipmentsTable)
-          .select('client_code, total_amount, ship_date')
+          .select('client_code, supply_amount, ship_date')
           .in('client_code', batch)
           .gte('ship_date', twelveStr)
+          .order('ship_date', { ascending: true })
           .range(from, from + rowBatchSize - 1);
 
         if (shipErr) throw shipErr;
@@ -168,7 +170,7 @@ export async function GET(req: NextRequest) {
             stats[s.client_code] = { totalSales: 0, lastShipDate: null, orderCount: 0, recentHalf: 0, prevHalf: 0, changeRate: 0 };
           }
           const st = stats[s.client_code];
-          const amt = s.total_amount || 0;
+          const amt = s.supply_amount || 0;
           st.totalSales += amt;
           st.orderCount += 1;
 
