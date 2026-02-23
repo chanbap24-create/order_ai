@@ -5,6 +5,8 @@ import { upsertWine, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const { wine_id, product_name_eng, item_name_kr, vintage } = await request.json();
