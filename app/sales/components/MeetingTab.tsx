@@ -222,6 +222,49 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [selectedRecs, setSelectedRecs] = useState<Set<string>>(new Set());
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [showColSettings, setShowColSettings] = useState(false);
+
+  const QUOTE_COL_OPTIONS: { key: string; label: string }[] = [
+    { key: 'country', label: '국가' },
+    { key: 'brand', label: '브랜드' },
+    { key: 'region', label: '지역' },
+    { key: 'grape_varieties', label: '포도품종' },
+    { key: 'image_url', label: '이미지' },
+    { key: 'vintage', label: '빈티지' },
+    { key: 'product_name', label: '상품명' },
+    { key: 'english_name', label: '영문명' },
+    { key: 'supply_price', label: '공급가' },
+    { key: 'retail_price', label: '판매가' },
+    { key: 'discount_rate', label: '할인율' },
+    { key: 'discounted_price', label: '할인가' },
+    { key: 'quantity', label: '수량' },
+    { key: 'normal_total', label: '정상합계' },
+    { key: 'discount_total', label: '할인합계' },
+    { key: 'tasting_note', label: '테이스팅노트' },
+    { key: 'note', label: '비고' },
+  ];
+
+  const DEFAULT_MEETING_COLS = [
+    'country','brand','region','grape_varieties',
+    'image_url','vintage','product_name',
+    'supply_price','retail_price','discount_rate','discounted_price',
+    'tasting_note','note',
+  ];
+
+  const [quoteCols, setQuoteCols] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('meeting_quote_columns');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return DEFAULT_MEETING_COLS;
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('meeting_quote_columns', JSON.stringify(quoteCols)); } catch {}
+  }, [quoteCols]);
+
   const [detailNotes, setDetailNotes] = useState('');
   const [toast, setToast] = useState('');
 
@@ -578,14 +621,8 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       if (json.error) { setToast('오류: ' + json.error); return; }
 
       // Excel 다운로드
-      const recCols = [
-        'country', 'brand', 'region', 'grape_varieties',
-        'image_url', 'vintage', 'product_name',
-        'supply_price', 'retail_price', 'discount_rate', 'discounted_price',
-        'tasting_note', 'note',
-      ];
       const params = new URLSearchParams();
-      params.set('columns', JSON.stringify(recCols));
+      params.set('columns', JSON.stringify(quoteCols));
       if (detailMeeting?.client_name) params.set('client_name', detailMeeting.client_name);
       window.location.href = `/api/quote/export?${params}`;
       setToast(`${json.added_count}개 와인 견적서 생성 완료`);
@@ -1401,14 +1438,75 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
                 {/* 견적서 생성 버튼 */}
                 {selectedRecs.size > 0 && (
-                  <button onClick={createQuote} disabled={quoteLoading} style={{
-                    width: '100%', padding: '14px', borderRadius: 10, border: 'none',
-                    background: quoteLoading ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
-                    color: '#fff', fontSize: 14, fontWeight: 700, marginBottom: 16,
-                    cursor: quoteLoading ? 'default' : 'pointer',
-                  }}>
-                    {quoteLoading ? '생성 중...' : `선택 ${selectedRecs.size}개 → 견적서 생성 & 다운로드`}
-                  </button>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setShowColSettings(v => !v)}
+                          style={{
+                            width: 40, height: 40, borderRadius: 10, border: '1px solid #ddd',
+                            background: showColSettings ? '#f5f0eb' : '#fff', color: '#5A1515',
+                            fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                          title="컬럼 설정"
+                        >⚙</button>
+                        {showColSettings && (
+                          <div style={{
+                            position: 'absolute', bottom: 48, left: 0, background: '#fff',
+                            border: '1px solid #e0e0e0', borderRadius: 10, padding: 12,
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 300,
+                            width: 220, maxHeight: 320, overflowY: 'auto',
+                          }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#5A1515', marginBottom: 8 }}>견적서 컬럼</div>
+                            {QUOTE_COL_OPTIONS.map(col => (
+                              <label key={col.key} style={{
+                                display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0',
+                                fontSize: 13, cursor: 'pointer', color: '#333',
+                              }}>
+                                <input
+                                  type="checkbox"
+                                  checked={quoteCols.includes(col.key)}
+                                  onChange={() => {
+                                    setQuoteCols(prev =>
+                                      prev.includes(col.key)
+                                        ? prev.filter(k => k !== col.key)
+                                        : [...prev, col.key]
+                                    );
+                                  }}
+                                  style={{ width: 14, height: 14 }}
+                                />
+                                {col.label}
+                              </label>
+                            ))}
+                            <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                              <button
+                                onClick={() => setQuoteCols(DEFAULT_MEETING_COLS)}
+                                style={{
+                                  flex: 1, padding: '5px 0', borderRadius: 6, border: '1px solid #ddd',
+                                  background: '#fff', fontSize: 11, cursor: 'pointer', color: '#666',
+                                }}
+                              >초기화</button>
+                              <button
+                                onClick={() => setShowColSettings(false)}
+                                style={{
+                                  flex: 1, padding: '5px 0', borderRadius: 6, border: 'none',
+                                  background: '#5A1515', color: '#fff', fontSize: 11, cursor: 'pointer',
+                                }}
+                              >닫기</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={createQuote} disabled={quoteLoading} style={{
+                        flex: 1, padding: '14px', borderRadius: 10, border: 'none',
+                        background: quoteLoading ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+                        color: '#fff', fontSize: 14, fontWeight: 700,
+                        cursor: quoteLoading ? 'default' : 'pointer',
+                      }}>
+                        {quoteLoading ? '생성 중...' : `선택 ${selectedRecs.size}개 → 견적서 생성 & 다운로드`}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
