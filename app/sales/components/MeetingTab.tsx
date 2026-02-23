@@ -437,8 +437,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     // 신규 거래처 모드: 먼저 client_details에 등록
     if (newClientMode) {
       if (!newClientName.trim()) { setToast('거래처명을 입력해주세요.'); return; }
-      if (!newClientCode.trim()) { setNewClientCodeError('거래처 코드를 입력해주세요.'); return; }
-      const code = newClientCode.trim();
+      const code = newClientCode.trim() || `NEW_${Date.now()}`;
       setModalSaving(true);
       try {
         const createRes = await fetch('/api/sales/clients', {
@@ -1004,7 +1003,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               <div style={{ marginBottom: 14 }}>
                 <input
                   type="text"
-                  placeholder="거래처명 (필수)"
+                  placeholder="거래처명"
                   value={newClientName}
                   onChange={e => setNewClientName(e.target.value)}
                   style={{
@@ -1015,20 +1014,17 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 />
                 <input
                   type="text"
-                  placeholder="거래처 코드 (필수)"
+                  placeholder="거래처 코드 (있으면 입력)"
                   value={newClientCode}
                   onChange={e => { setNewClientCode(e.target.value); setNewClientCodeError(''); }}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: 8,
-                    border: `1px solid ${newClientCodeError ? '#dc3545' : 'rgba(90,21,21,0.08)'}`, fontSize: 16, outline: 'none',
-                    boxSizing: 'border-box',
+                    border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+                    boxSizing: 'border-box', color: '#666',
                   }}
                 />
-                {newClientCodeError && (
-                  <div style={{ fontSize: 11, color: '#dc3545', marginTop: 2 }}>{newClientCodeError}</div>
-                )}
                 <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
-                  담당자: {currentManager || '-'} · 신규 거래처로 등록됩니다
+                  담당자: {currentManager || '-'} · 코드 없으면 자동 생성됩니다
                 </div>
               </div>
             ) : (
@@ -1152,11 +1148,11 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 flex: 1, padding: '12px', borderRadius: 8, border: '1px solid rgba(90,21,21,0.08)',
                 background: '#fff', color: '#8a8580', fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>취소</button>
-              <button onClick={saveMeeting} disabled={(newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving} style={{
+              <button onClick={saveMeeting} disabled={(newClientMode && !newClientName.trim()) || modalSaving} style={{
                 flex: 1, padding: '12px', borderRadius: 8, border: 'none',
-                background: ((newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+                background: ((newClientMode && !newClientName.trim()) || modalSaving) ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
                 color: '#fff', fontSize: 14, fontWeight: 600,
-                cursor: ((newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? 'default' : 'pointer',
+                cursor: ((newClientMode && !newClientName.trim()) || modalSaving) ? 'default' : 'pointer',
               }}>{modalSaving ? '저장 중...' : '저장'}</button>
             </div>
           </div>
