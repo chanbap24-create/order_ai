@@ -218,6 +218,7 @@ export async function GET(request: NextRequest) {
     const { data: quoteRows, error: quoteErr } = await supabase
       .from('quote_items')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('id', { ascending: true });
 
     if (quoteErr) throw quoteErr;

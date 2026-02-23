@@ -32,6 +32,7 @@ export async function GET() {
     const { data: items, error } = await supabase
       .from('quote_items')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('id', { ascending: true });
 
     if (error) throw error;
@@ -164,13 +165,22 @@ export async function POST(req: Request) {
       }
     }
 
+    // Get next sort_order
+    const { data: maxRow } = await supabase
+      .from('quote_items')
+      .select('sort_order')
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextSort = (maxRow?.sort_order ?? 0) + 1;
+
     const { data: inserted, error: insertError } = await supabase
       .from('quote_items')
       .insert({
         item_code, country, brand, region, image_url, vintage,
         product_name, english_name, korean_name,
         supply_price: price, retail_price: rPrice, discount_rate: rate, discounted_price,
-        quantity: qty, note, tasting_note
+        quantity: qty, note, tasting_note, sort_order: nextSort
       })
       .select()
       .single();
@@ -192,6 +202,18 @@ export async function PATCH(req: Request) {
   try {
     ensureQuoteTable();
     const body = await req.json();
+
+    // ── Reorder action: bulk update sort_order ──
+    if (body.action === 'reorder' && Array.isArray(body.items)) {
+      for (const item of body.items) {
+        await supabase
+          .from('quote_items')
+          .update({ sort_order: item.sort_order })
+          .eq('id', item.id);
+      }
+      return NextResponse.json({ success: true });
+    }
+
     const { id, ...fields } = body;
 
     if (!id) {

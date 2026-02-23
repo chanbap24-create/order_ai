@@ -55,6 +55,7 @@ interface QuoteItem {
   quantity: number;
   note: string;
   tasting_note: string;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -491,6 +492,29 @@ export default function InventoryPage() {
       }
     } catch (e) {
       console.error('Failed to update:', e);
+    }
+  }
+
+  async function moveItem(idx: number, direction: 'up' | 'down') {
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= quoteItems.length) return;
+    const newItems = [...quoteItems];
+    [newItems[idx], newItems[newIdx]] = [newItems[newIdx], newItems[idx]];
+    // Reassign sort_order based on new position
+    const reordered = newItems.map((item, i) => ({ ...item, sort_order: i }));
+    setQuoteItems(reordered);
+    // Persist to DB
+    try {
+      await fetch('/api/quote', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reorder',
+          items: reordered.map(item => ({ id: item.id, sort_order: item.sort_order })),
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to reorder:', e);
     }
   }
 
@@ -1370,7 +1394,7 @@ export default function InventoryPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ background: '#fafaf8' }}>
-                          <th style={{ ...qThStyle, width: 36 }}>No.</th>
+                          <th style={{ ...qThStyle, width: 60 }}>순서</th>
                           {visibleQuoteCols.map(col => (
                             <th key={col.key} style={{
                               ...qThStyle,
@@ -1386,7 +1410,27 @@ export default function InventoryPage() {
                       <tbody>
                         {quoteItems.map((item, idx) => (
                           <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                            <td style={{ ...qTdStyle, textAlign: 'center', color: '#888' }}>{idx + 1}</td>
+                            <td style={{ ...qTdStyle, textAlign: 'center', color: '#888', whiteSpace: 'nowrap' }}>
+                              <button
+                                onClick={() => moveItem(idx, 'up')}
+                                disabled={idx === 0}
+                                style={{
+                                  background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer',
+                                  color: idx === 0 ? '#ddd' : '#666', fontSize: 12, padding: '0 2px', lineHeight: 1,
+                                }}
+                                title="위로"
+                              >▲</button>
+                              <span style={{ fontSize: 12, margin: '0 1px' }}>{idx + 1}</span>
+                              <button
+                                onClick={() => moveItem(idx, 'down')}
+                                disabled={idx === quoteItems.length - 1}
+                                style={{
+                                  background: 'none', border: 'none', cursor: idx === quoteItems.length - 1 ? 'default' : 'pointer',
+                                  color: idx === quoteItems.length - 1 ? '#ddd' : '#666', fontSize: 12, padding: '0 2px', lineHeight: 1,
+                                }}
+                                title="아래로"
+                              >▼</button>
+                            </td>
                             {visibleQuoteCols.map(col => {
                               const isEditing = editCell?.id === item.id && editCell?.key === col.key;
                               const isEditable = col.editable;
@@ -1731,16 +1775,36 @@ export default function InventoryPage() {
                             cursor: 'pointer', position: 'relative',
                           }}
                         >
-                          <button
-                            onClick={e => { e.stopPropagation(); deleteQuoteItem(item.id); }}
-                            style={{
-                              position: 'absolute', top: 8, right: 10,
-                              background: 'none', border: 'none', color: '#ccc',
-                              fontSize: 18, cursor: 'pointer', lineHeight: 1,
-                            }}
-                          >
-                            ×
-                          </button>
+                          <div style={{
+                            position: 'absolute', top: 6, right: 8,
+                            display: 'flex', alignItems: 'center', gap: 4,
+                          }}>
+                            <button
+                              onClick={e => { e.stopPropagation(); moveItem(idx, 'up'); }}
+                              disabled={idx === 0}
+                              style={{
+                                background: 'none', border: 'none', padding: '2px 4px',
+                                color: idx === 0 ? '#ddd' : '#888', fontSize: 14,
+                                cursor: idx === 0 ? 'default' : 'pointer', lineHeight: 1,
+                              }}
+                            >▲</button>
+                            <button
+                              onClick={e => { e.stopPropagation(); moveItem(idx, 'down'); }}
+                              disabled={idx === quoteItems.length - 1}
+                              style={{
+                                background: 'none', border: 'none', padding: '2px 4px',
+                                color: idx === quoteItems.length - 1 ? '#ddd' : '#888', fontSize: 14,
+                                cursor: idx === quoteItems.length - 1 ? 'default' : 'pointer', lineHeight: 1,
+                              }}
+                            >▼</button>
+                            <button
+                              onClick={e => { e.stopPropagation(); deleteQuoteItem(item.id); }}
+                              style={{
+                                background: 'none', border: 'none', color: '#ccc',
+                                fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: '0 2px',
+                              }}
+                            >×</button>
+                          </div>
                           <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>
                             #{idx + 1} {item.item_code}
                             {item.vintage && ` · ${item.vintage}`}
