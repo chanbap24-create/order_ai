@@ -206,7 +206,8 @@ export async function researchWineWithClaude(
 
   // JSON 파싱 (코드블록 래핑 대응)
   let jsonStr = text;
-  const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  // greedy 매칭으로 코드블록 전체 캡처
+  const jsonMatch = text.match(/```(?:json)?\s*\n([\s\S]*)\n\s*```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
   } else {
@@ -214,7 +215,13 @@ export async function researchWineWithClaude(
     if (objMatch) jsonStr = objMatch[0];
   }
 
-  const result = JSON.parse(jsonStr) as WineResearchResult;
+  let result: WineResearchResult;
+  try {
+    result = JSON.parse(jsonStr) as WineResearchResult;
+  } catch (parseErr) {
+    logger.error(`[Claude] JSON parse failed. Raw text (first 500 chars): ${text.slice(0, 500)}`);
+    throw new Error(`JSON 파싱 실패: ${(parseErr as Error).message} | 응답: ${text.slice(0, 200)}`);
+  }
 
   // Step 3: 이미지 보완 (Vivino/WS 없으면 fallback)
   if (!imageUrl && result.item_name_en) {
