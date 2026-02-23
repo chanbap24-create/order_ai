@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     let meetings = (data || []).map((m: any) => ({
       ...m,
-      client_name: m.client_details?.client_name || m.client_code,
+      client_name: m.client_details?.client_name || m.client_code || m.purpose || '(일정)',
       client_importance: m.client_details?.importance || 3,
       client_business_type: m.client_details?.business_type || '',
       client_manager: m.client_details?.manager || '',
@@ -57,14 +57,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus, reminder_minutes } = body;
 
-    if (!client_code || !meeting_date) {
-      return NextResponse.json({ error: 'client_code, meeting_date는 필수입니다.' }, { status: 400 });
+    if (!meeting_date) {
+      return NextResponse.json({ error: 'meeting_date는 필수입니다.' }, { status: 400 });
     }
 
     if (id) {
       // UPDATE
       const updateData: any = {
-        client_code,
+        client_code: client_code || null,
         meeting_date,
         meeting_time: meeting_time || null,
         meeting_type: meeting_type || 'visit',
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       const { data, error } = await supabase
         .from('meetings')
         .insert({
-          client_code,
+          client_code: client_code || null,
           meeting_date,
           meeting_time: meeting_time || null,
           meeting_type: meeting_type || 'visit',

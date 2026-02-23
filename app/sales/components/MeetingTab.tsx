@@ -66,6 +66,8 @@ const MEETING_TYPES: Record<string, { label: string; color: string }> = {
   call: { label: '전화', color: '#4CAF50' },
   tasting: { label: '시음', color: '#9C27B0' },
   delivery: { label: '납품', color: '#FF9800' },
+  meeting: { label: '회의', color: '#607D8B' },
+  other: { label: '기타', color: '#795548' },
 };
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
@@ -455,11 +457,10 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       }
     }
 
-    if (!clientToUse) return;
     setModalSaving(true);
     try {
       const body: any = {
-        client_code: clientToUse.client_code,
+        client_code: clientToUse?.client_code || null,
         meeting_date: modalDate,
         meeting_time: modalTime,
         meeting_type: modalType,
@@ -477,14 +478,14 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       if (json.error) { setToast('오류: ' + json.error); return; }
       setShowModal(false);
       // 신규 생성 시 구글 캘린더 자동 열기
-      if (!editingId && clientToUse) {
+      if (!editingId) {
         const calUrl = buildGoogleCalendarUrl({
           meeting_date: modalDate,
           meeting_time: modalTime,
           meeting_type: modalType,
           purpose: modalPurpose,
           status: 'planned',
-          client_name: clientToUse.client_name,
+          client_name: clientToUse?.client_name || modalPurpose || '일정',
         } as Meeting);
         window.open(calUrl, '_blank');
       }
@@ -1134,11 +1135,11 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 flex: 1, padding: '12px', borderRadius: 8, border: '1px solid rgba(90,21,21,0.08)',
                 background: '#fff', color: '#8a8580', fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>취소</button>
-              <button onClick={saveMeeting} disabled={(!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving} style={{
+              <button onClick={saveMeeting} disabled={(newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving} style={{
                 flex: 1, padding: '12px', borderRadius: 8, border: 'none',
-                background: ((!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+                background: ((newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
                 color: '#fff', fontSize: 14, fontWeight: 600,
-                cursor: ((!modalClient && !newClientMode) || (newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? 'default' : 'pointer',
+                cursor: ((newClientMode && (!newClientName.trim() || !newClientCode.trim())) || modalSaving) ? 'default' : 'pointer',
               }}>{modalSaving ? '저장 중...' : '저장'}</button>
             </div>
           </div>
