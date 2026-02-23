@@ -105,6 +105,78 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [toast, setToast] = useState('');
+  const [quoteLoadingId, setQuoteLoadingId] = useState<number | null>(null);
+  const [showColSettingsId, setShowColSettingsId] = useState<number | null>(null);
+
+  const QUOTE_COL_OPTIONS: { key: string; label: string }[] = [
+    { key: 'country', label: '국가' },
+    { key: 'brand', label: '브랜드' },
+    { key: 'region', label: '지역' },
+    { key: 'grape_varieties', label: '포도품종' },
+    { key: 'image_url', label: '이미지' },
+    { key: 'vintage', label: '빈티지' },
+    { key: 'product_name', label: '상품명' },
+    { key: 'english_name', label: '영문명' },
+    { key: 'supply_price', label: '공급가' },
+    { key: 'retail_price', label: '판매가' },
+    { key: 'discount_rate', label: '할인율' },
+    { key: 'discounted_price', label: '할인가' },
+    { key: 'quantity', label: '수량' },
+    { key: 'normal_total', label: '정상합계' },
+    { key: 'discount_total', label: '할인합계' },
+    { key: 'tasting_note', label: '테이스팅노트' },
+    { key: 'note', label: '비고' },
+  ];
+
+  const DEFAULT_BRIEFING_COLS = [
+    'country','brand','region','grape_varieties',
+    'image_url','vintage','product_name',
+    'supply_price','retail_price','discount_rate','discounted_price',
+    'tasting_note','note',
+  ];
+
+  const [quoteCols, setQuoteCols] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('briefing_quote_columns');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return DEFAULT_BRIEFING_COLS;
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('briefing_quote_columns', JSON.stringify(quoteCols)); } catch {}
+  }, [quoteCols]);
+
+  const createQuoteFromBriefing = async (meeting: Meeting, briefing: BriefingData) => {
+    if (briefing.recommendations.length === 0) return;
+    setQuoteLoadingId(meeting.id);
+    try {
+      const items = briefing.recommendations.slice(0, 5);
+      const res = await fetch('/api/sales/recommend/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          client_code: meeting.client_code,
+          client_name: meeting.client_name,
+          clear_existing: true,
+        }),
+      });
+      const json = await res.json();
+      if (json.error) { setToast('오류: ' + json.error); return; }
+      const params = new URLSearchParams();
+      params.set('columns', JSON.stringify(quoteCols));
+      if (meeting.client_name) params.set('client_name', meeting.client_name);
+      window.location.href = `/api/quote/export?${params}`;
+      setToast(`${json.added_count}개 와인 견적서 생성 완료`);
+    } catch {
+      setToast('견적서 생성에 실패했습니다.');
+    } finally {
+      setQuoteLoadingId(null);
+    }
+  };
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayLabel = `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`;
@@ -445,6 +517,79 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
                           </div>
                         </div>
                       ))}
+
+                      {/* 견적서 다운로드 */}
+                      <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            onClick={() => setShowColSettingsId(prev => prev === m.id ? null : m.id)}
+                            style={{
+                              width: 32, height: 32, borderRadius: 8, border: '1px solid #ddd',
+                              background: showColSettingsId === m.id ? '#f5f0eb' : '#fff', color: '#5A1515',
+                              fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                            title="컬럼 설정"
+                          >⚙</button>
+                          {showColSettingsId === m.id && (
+                            <div style={{
+                              position: 'absolute', bottom: 40, left: 0, background: '#fff',
+                              border: '1px solid #e0e0e0', borderRadius: 10, padding: 12,
+                              boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 300,
+                              width: 220, maxHeight: 280, overflowY: 'auto',
+                            }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#5A1515', marginBottom: 6 }}>견적서 컬럼</div>
+                              {QUOTE_COL_OPTIONS.map(col => (
+                                <label key={col.key} style={{
+                                  display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0',
+                                  fontSize: 12, cursor: 'pointer', color: '#333',
+                                }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={quoteCols.includes(col.key)}
+                                    onChange={() => {
+                                      setQuoteCols(prev =>
+                                        prev.includes(col.key)
+                                          ? prev.filter(k => k !== col.key)
+                                          : [...prev, col.key]
+                                      );
+                                    }}
+                                    style={{ width: 13, height: 13 }}
+                                  />
+                                  {col.label}
+                                </label>
+                              ))}
+                              <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                                <button
+                                  onClick={() => setQuoteCols(DEFAULT_BRIEFING_COLS)}
+                                  style={{
+                                    flex: 1, padding: '4px 0', borderRadius: 6, border: '1px solid #ddd',
+                                    background: '#fff', fontSize: 10, cursor: 'pointer', color: '#666',
+                                  }}
+                                >초기화</button>
+                                <button
+                                  onClick={() => setShowColSettingsId(null)}
+                                  style={{
+                                    flex: 1, padding: '4px 0', borderRadius: 6, border: 'none',
+                                    background: '#5A1515', color: '#fff', fontSize: 10, cursor: 'pointer',
+                                  }}
+                                >닫기</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => createQuoteFromBriefing(m, briefing)}
+                          disabled={quoteLoadingId === m.id}
+                          style={{
+                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                            background: quoteLoadingId === m.id ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+                            color: '#fff', fontSize: 12, fontWeight: 600,
+                            cursor: quoteLoadingId === m.id ? 'default' : 'pointer',
+                          }}
+                        >
+                          {quoteLoadingId === m.id ? '생성 중...' : '추천 와인 견적서 다운로드'}
+                        </button>
+                      </div>
                     </div>
                   )}
 
