@@ -196,6 +196,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   const [modalDate, setModalDate] = useState('');
   const [modalTime, setModalTime] = useState('10:00');
   const [modalType, setModalType] = useState('visit');
+  const [modalTitle, setModalTitle] = useState('');
   const [modalPurpose, setModalPurpose] = useState('');
   const [modalClient, setModalClient] = useState<ClientOption | null>(null);
   const [modalClientSearch, setModalClientSearch] = useState('');
@@ -419,6 +420,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     setModalDate(date || formatDate(new Date()));
     setModalTime('10:00');
     setModalType('visit');
+    setModalTitle('');
     setModalPurpose('');
     setModalClient(null);
     setModalClientSearch('');
@@ -459,12 +461,13 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
     setModalSaving(true);
     try {
+      const purposeStr = [modalTitle.trim(), modalPurpose.trim()].filter(Boolean).join(' - ') || null;
       const body: any = {
         client_code: clientToUse?.client_code || null,
         meeting_date: modalDate,
         meeting_time: modalTime,
         meeting_type: modalType,
-        purpose: modalPurpose,
+        purpose: purposeStr,
         reminder_minutes: modalReminder,
       };
       if (editingId) body.id = editingId;
@@ -483,9 +486,9 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
           meeting_date: modalDate,
           meeting_time: modalTime,
           meeting_type: modalType,
-          purpose: modalPurpose,
+          purpose: purposeStr,
           status: 'planned',
-          client_name: clientToUse?.client_name || modalPurpose || '일정',
+          client_name: clientToUse?.client_name || modalTitle.trim() || '일정',
         } as Meeting);
         window.open(calUrl, '_blank');
       }
@@ -961,12 +964,26 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             width: '100%', maxWidth: 400, maxHeight: '90vh', overflowY: 'auto',
           }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#2c1810', marginBottom: 20 }}>
-              {editingId ? '미팅 수정' : '미팅 추가'}
+              {editingId ? '일정 수정' : '일정 추가'}
             </div>
 
-            {/* 거래처 검색 */}
+            {/* 제목 */}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>제목</label>
+            <input
+              type="text"
+              placeholder="예: 주간 회의, 와인 시음회..."
+              value={modalTitle}
+              onChange={e => setModalTitle(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8,
+                border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+                marginBottom: 14, boxSizing: 'border-box',
+              }}
+            />
+
+            {/* 거래처 검색 (선택) */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580' }}>거래처</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580' }}>거래처 <span style={{ fontWeight: 400, color: '#bbb' }}>(선택)</span></label>
               <button
                 onClick={() => {
                   setNewClientMode(!newClientMode);

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     let meetings = (data || []).map((m: any) => ({
       ...m,
-      client_name: m.client_details?.client_name || m.client_code || m.purpose || '(일정)',
+      client_name: m.client_details?.client_name || m.client_code || (m.purpose?.split(' - ')?.[0]) || '(일정)',
       client_importance: m.client_details?.importance || 3,
       client_business_type: m.client_details?.business_type || '',
       client_manager: m.client_details?.manager || '',
