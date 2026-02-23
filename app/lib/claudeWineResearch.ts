@@ -204,16 +204,10 @@ export async function researchWineWithClaude(
     throw new Error("Claude API 응답에 텍스트가 없습니다.");
   }
 
-  // JSON 파싱 (코드블록 래핑 대응)
-  let jsonStr = text;
-  // greedy 매칭으로 코드블록 전체 캡처
-  const jsonMatch = text.match(/```(?:json)?\s*\n([\s\S]*)\n\s*```/);
-  if (jsonMatch) {
-    jsonStr = jsonMatch[1].trim();
-  } else {
-    const objMatch = text.match(/\{[\s\S]*\}/);
-    if (objMatch) jsonStr = objMatch[0];
-  }
+  // JSON 파싱 (코드블록 래핑 제거 → { } 추출)
+  let jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  const objMatch = jsonStr.match(/\{[\s\S]*\}/);
+  if (objMatch) jsonStr = objMatch[0];
 
   let result: WineResearchResult;
   try {
