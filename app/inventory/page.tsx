@@ -320,26 +320,27 @@ export default function InventoryPage() {
       if (savedCDV) try { setVisibleColumnsCDV(migrate(JSON.parse(savedCDV))); } catch {}
       if (savedDL) try { setVisibleColumnsDL(migrate(JSON.parse(savedDL))); } catch {}
 
-      // Quote columns
-      const savedQCols = localStorage.getItem('quote_visible_columns');
-      if (savedQCols) try { setVisibleQuoteColumns(JSON.parse(savedQCols)); } catch {}
-
-      // Company / doc settings
+      // Company / doc settings (load first to determine tab)
       const savedCompany = localStorage.getItem('quote_company') as WarehouseTab | null;
+      const tab = (savedCompany === 'CDV' || savedCompany === 'DL') ? savedCompany : 'CDV';
       if (savedCompany === 'CDV' || savedCompany === 'DL') {
         setActiveTab(savedCompany);
         const savedDoc = localStorage.getItem(`quote_doc_settings_${savedCompany}`);
         if (savedDoc) try { setDocSettings(JSON.parse(savedDoc)); } catch {}
       }
+
+      // Quote columns (per tab)
+      const savedQCols = localStorage.getItem(`quote_visible_columns_${tab}`);
+      if (savedQCols) try { setVisibleQuoteColumns(JSON.parse(savedQCols)); } catch {}
     } catch {}
 
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Save quote columns
+  // Save quote columns (per tab)
   useEffect(() => {
-    try { localStorage.setItem('quote_visible_columns', JSON.stringify(visibleQuoteColumns)); } catch {}
-  }, [visibleQuoteColumns]);
+    try { localStorage.setItem(`quote_visible_columns_${activeTab}`, JSON.stringify(visibleQuoteColumns)); } catch {}
+  }, [visibleQuoteColumns, activeTab]);
 
   // Save company + doc settings
   useEffect(() => {
@@ -538,6 +539,14 @@ export default function InventoryPage() {
       else { setDocSettings(tab === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS); }
     } catch {
       setDocSettings(tab === 'CDV' ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS);
+    }
+    // Load quote columns for this tab
+    try {
+      const savedQCols = localStorage.getItem(`quote_visible_columns_${tab}`);
+      if (savedQCols) { setVisibleQuoteColumns(JSON.parse(savedQCols)); }
+      else { setVisibleQuoteColumns(DEFAULT_QUOTE_VISIBLE); }
+    } catch {
+      setVisibleQuoteColumns(DEFAULT_QUOTE_VISIBLE);
     }
   }
 
