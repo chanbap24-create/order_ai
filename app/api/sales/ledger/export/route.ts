@@ -302,9 +302,15 @@ async function generateExcel(client: any, grouped: GroupedMonth[], prevBalance: 
 
 // ─── PDF 생성 ───
 async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
-  // 폰트 런타임 로드
-  if (!fontCache) fontCache = await loadFont(FONT_URL);
-  if (!fontBoldCache) fontBoldCache = await loadFont(FONT_BOLD_URL);
+  // 폰트 런타임 로드 (실패 시 기본 폰트 사용)
+  let hasKorean = false;
+  try {
+    if (!fontCache) fontCache = await loadFont(FONT_URL);
+    if (!fontBoldCache) fontBoldCache = await loadFont(FONT_BOLD_URL);
+    hasKorean = true;
+  } catch (e) {
+    console.warn('Korean font download failed, using Helvetica:', e);
+  }
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30 });
@@ -313,11 +319,13 @@ async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: nu
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    doc.registerFont('Korean', fontCache!);
-    doc.registerFont('KoreanBold', fontBoldCache!);
+    if (hasKorean) {
+      doc.registerFont('Korean', fontCache!);
+      doc.registerFont('KoreanBold', fontBoldCache!);
+    }
 
-    const font = 'Korean';
-    const fontBold = 'KoreanBold';
+    const font = hasKorean ? 'Korean' : 'Helvetica';
+    const fontBold = hasKorean ? 'KoreanBold' : 'Helvetica-Bold';
 
     const pageW = doc.page.width - 60;
     const cols = [50, 180, 40, 60, 70, 60, 70, 70, 70]; // 컬럼 너비
