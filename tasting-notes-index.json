@@ -73,6 +73,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2019078": {
+      "exists": true,
+      "filename": "2019078.pdf",
+      "size_kb": 184,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2019416": {
       "exists": true,
       "filename": "2019416.pdf",
@@ -287,6 +294,13 @@
       "exists": true,
       "filename": "2023023.pdf",
       "size_kb": 369,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2023077": {
+      "exists": true,
+      "filename": "2023077.pdf",
+      "size_kb": 193,
       "pages": 1,
       "wine_name": ""
     },
@@ -612,6 +626,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2421607": {
+      "exists": true,
+      "filename": "2421607.pdf",
+      "size_kb": 162,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2422004": {
       "exists": true,
       "filename": "2422004.pdf",
@@ -640,10 +661,24 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2423004": {
+      "exists": true,
+      "filename": "2423004.pdf",
+      "size_kb": 179,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2619504": {
       "exists": true,
       "filename": "2619504.pdf",
       "size_kb": 239,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2621409": {
+      "exists": true,
+      "filename": "2621409.pdf",
+      "size_kb": 201,
       "pages": 1,
       "wine_name": ""
     },
@@ -878,6 +913,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "3022065": {
+      "exists": true,
+      "filename": "3022065.pdf",
+      "size_kb": 517,
+      "pages": 1,
+      "wine_name": ""
+    },
     "3022439": {
       "exists": true,
       "filename": "3022439.pdf",
@@ -896,6 +938,13 @@
       "exists": true,
       "filename": "3022601.pdf",
       "size_kb": 321,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3022702": {
+      "exists": true,
+      "filename": "3022702.pdf",
+      "size_kb": 131,
       "pages": 1,
       "wine_name": ""
     },
@@ -1193,6 +1242,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "3423019": {
+      "exists": true,
+      "filename": "3423019.pdf",
+      "size_kb": 195,
+      "pages": 1,
+      "wine_name": ""
+    },
     "3618401": {
       "exists": true,
       "filename": "3618401.pdf",
@@ -1365,6 +1421,13 @@
       "exists": true,
       "filename": "00NV001.pdf",
       "size_kb": 332,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "00NV004": {
+      "exists": true,
+      "filename": "00NV004.pdf",
+      "size_kb": 259,
       "pages": 1,
       "wine_name": ""
     },
