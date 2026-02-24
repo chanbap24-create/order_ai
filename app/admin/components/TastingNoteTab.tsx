@@ -329,8 +329,10 @@ export default function TastingNoteTab() {
         body: JSON.stringify({ wineIds: ids, format }),
       });
       const data = await res.json();
-      if (data.success) alert(`${label} 업로드 완료: 성공 ${data.uploaded}개, 실패 ${data.failed}개`);
-      else alert(`${label} 업로드 실패: ${data.error || '알 수 없는 오류'}`);
+      if (data.success) {
+        const failDetails = (data.results || []).filter((r: any) => r.error).map((r: any) => `${r.wineId}: ${r.error}`).join('\n');
+        alert(`${label} 업로드 완료: 성공 ${data.uploaded}개, 실패 ${data.failed}개${failDetails ? '\n\n실패 상세:\n' + failDetails : ''}`);
+      } else alert(`${label} 업로드 실패: ${data.error || '알 수 없는 오류'}`);
     } catch (e) {
       alert(`GitHub 오류: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
     }

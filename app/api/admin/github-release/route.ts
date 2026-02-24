@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
         }
 
         if (format === "pdf") {
+          logger.info(`[GitHub] Starting PDF generation for ${wineId}...`);
           const buffer = await generateSingleWinePdf(wineId);
+          logger.info(`[GitHub] PDF generated for ${wineId}: ${buffer.length} bytes`);
           files.push({ wineId, fileName: `${wineId}.pdf`, buffer, contentType: "application/pdf" });
         } else {
           const buffer = await generateSingleWinePpt(wineId);
