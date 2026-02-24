@@ -222,7 +222,6 @@ export default function SalesPage() {
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(90,21,21,0.08)'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               <option value="">담당자 선택</option>
-              <option value="ADMIN">ADMIN (관리자)</option>
               {managerList.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
