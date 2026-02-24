@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import path from 'path';
-import fs from 'fs';
+
+// Google Fonts에서 Noto Sans KR 폰트 런타임 다운로드 (캐시)
+let fontCache: Buffer | null = null;
+let fontBoldCache: Buffer | null = null;
+const FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/SubsetOTF/KR/NotoSansKR-Regular.otf';
+const FONT_BOLD_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/SubsetOTF/KR/NotoSansKR-Bold.otf';
+
+async function loadFont(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font download failed: ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
 
 // ─── 데이터 조회 (ledger route.ts와 동일 로직) ───
 async function fetchLedgerData(clientCode: string, startDate: string, endDate: string, clientType: string) {
@@ -292,11 +302,9 @@ async function generateExcel(client: any, grouped: GroupedMonth[], prevBalance: 
 
 // ─── PDF 생성 ───
 async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'MalgunGothic.ttf');
-  const fontBoldPath = path.join(process.cwd(), 'public', 'fonts', 'MalgunGothic-Bold.ttf');
-
-  const hasFont = fs.existsSync(fontPath);
-  const hasBoldFont = fs.existsSync(fontBoldPath);
+  // 폰트 런타임 로드
+  if (!fontCache) fontCache = await loadFont(FONT_URL);
+  if (!fontBoldCache) fontBoldCache = await loadFont(FONT_BOLD_URL);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30 });
@@ -305,13 +313,11 @@ async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: nu
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    if (hasFont) {
-      doc.registerFont('Korean', fontPath);
-      if (hasBoldFont) doc.registerFont('KoreanBold', fontBoldPath);
-    }
+    doc.registerFont('Korean', fontCache!);
+    doc.registerFont('KoreanBold', fontBoldCache!);
 
-    const font = hasFont ? 'Korean' : 'Helvetica';
-    const fontBold = hasBoldFont ? 'KoreanBold' : (hasFont ? 'Korean' : 'Helvetica-Bold');
+    const font = 'Korean';
+    const fontBold = 'KoreanBold';
 
     const pageW = doc.page.width - 60;
     const cols = [50, 180, 40, 60, 70, 60, 70, 70, 70]; // 컬럼 너비
