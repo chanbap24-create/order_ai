@@ -4,7 +4,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   // native 모듈은 번들하지 않음
-  serverExternalPackages: ['better-sqlite3'],
+  serverExternalPackages: ['pdfkit'],
   // Serverless function에서 불필요한 파일 제외 (250MB 제한 대응)
   outputFileTracingExcludes: {
     '*': [
