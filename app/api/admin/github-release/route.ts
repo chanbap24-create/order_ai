@@ -3,8 +3,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateSingleWinePpt } from "@/app/lib/pptGenerator";
 import { generateSingleWinePdf } from "@/app/lib/pdfGenerator";
-import { readOutputFile, savePptx } from "@/app/lib/fileOutput";
-import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
+import { savePptx } from "@/app/lib/fileOutput";
+import { uploadBatchToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
 import { getWineByCode } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
@@ -26,42 +26,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "wineIds 배열이 필요합니다." }, { status: 400 });
     }
 
-    const results: { wineId: string; url?: string; error?: string }[] = [];
+    // 1단계: 모든 파일 생성
+    const files: { wineId: string; fileName: string; buffer: Buffer; contentType: string }[] = [];
+    const genErrors: { wineId: string; error: string }[] = [];
 
     for (const wineId of wineIds) {
       try {
         const wine = await getWineByCode(wineId);
         if (!wine) {
-          results.push({ wineId, error: "와인 정보 없음" });
+          genErrors.push({ wineId, error: "와인 정보 없음" });
           continue;
         }
 
-        let buffer: Buffer;
-        let fileName: string;
-        let contentType: string;
-
         if (format === "pdf") {
-          buffer = await generateSingleWinePdf(wineId);
-          fileName = `${wineId}.pdf`;
-          contentType = "application/pdf";
+          const buffer = await generateSingleWinePdf(wineId);
+          files.push({ wineId, fileName: `${wineId}.pdf`, buffer, contentType: "application/pdf" });
         } else {
-          // PPTX - 항상 새로 생성 (이미지 변경 반영)
-          const pptxBuffer = await generateSingleWinePpt(wineId);
-          savePptx(wineId, pptxBuffer);
-          buffer = pptxBuffer;
-          fileName = `${wineId}.pptx`;
-          contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+          const buffer = await generateSingleWinePpt(wineId);
+          savePptx(wineId, buffer);
+          files.push({ wineId, fileName: `${wineId}.pptx`, buffer, contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
         }
-
-        const url = await uploadToRelease(fileName, buffer, contentType);
-        results.push({ wineId, url });
-        logger.info(`[GitHub] Uploaded ${fileName} (${buffer.length} bytes)`);
+        logger.info(`[GitHub] Generated ${wineId}.${format} (${files[files.length - 1].buffer.length} bytes)`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        results.push({ wineId, error: msg });
-        logger.warn(`[GitHub] Upload failed for ${wineId} (${format}): ${msg}`);
+        genErrors.push({ wineId, error: `생성 실패: ${msg}` });
+        logger.warn(`[GitHub] Generation failed for ${wineId}: ${msg}`);
       }
     }
+
+    // 2단계: 일괄 업로드 (릴리스/에셋 목록 1회 조회)
+    const uploadResults = files.length > 0
+      ? await uploadBatchToRelease(files.map(f => ({ fileName: f.fileName, buffer: f.buffer, contentType: f.contentType })))
+      : [];
+
+    // 결과 합치기
+    const results = [
+      ...genErrors.map(e => ({ wineId: e.wineId, error: e.error })),
+      ...files.map((f, i) => ({
+        wineId: f.wineId,
+        url: uploadResults[i]?.url,
+        error: uploadResults[i]?.error,
+      })),
+    ];
 
     try {
       await logChange("github_release", "tasting_note", wineIds.join(","), {

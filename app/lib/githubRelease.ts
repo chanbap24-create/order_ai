@@ -39,7 +39,7 @@ async function getRelease(): Promise<{ id: number; upload_url: string }> {
   return { id: data.id, upload_url: data.upload_url };
 }
 
-/** 릴리스의 모든 에셋 목록 가져오기 */
+/** 릴리스의 모든 에셋 목록 가져오기 (페이지네이션) */
 async function getReleaseAssets(releaseId: number): Promise<any[]> {
   const token = getToken();
   const base = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
@@ -60,38 +60,33 @@ async function getReleaseAssets(releaseId: number): Promise<any[]> {
   return allAssets;
 }
 
-/** 기존 에셋 삭제 (같은 이름) */
-async function deleteExistingAsset(releaseId: number, fileName: string) {
+/** 에셋 ID로 삭제 */
+async function deleteAssetById(assetId: number) {
   const token = getToken();
   const base = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
-
-  const res = await fetch(`${base}/releases/${releaseId}/assets?per_page=100`, { headers: apiHeaders(token) });
-  if (!res.ok) return;
-
-  const assets = await res.json();
-  for (const asset of assets) {
-    if (asset.name === fileName) {
-      await fetch(`${base}/releases/assets/${asset.id}`, {
-        method: "DELETE",
-        headers: apiHeaders(token),
-      });
-      logger.info(`[GitHub] Deleted existing asset: ${fileName}`);
-    }
-  }
+  await fetch(`${base}/releases/assets/${assetId}`, {
+    method: "DELETE",
+    headers: apiHeaders(token),
+  });
 }
 
-/** 파일을 GitHub 릴리스에 업로드 */
+/** 파일을 GitHub 릴리스에 업로드 (단건) */
 export async function uploadToRelease(fileName: string, buffer: Buffer, contentType: string): Promise<string> {
   logger.info(`[GitHub] Starting upload: ${fileName} (${buffer.length} bytes)`);
 
   const release = await getRelease();
+  const allAssets = await getReleaseAssets(release.id);
 
-  // 같은 이름 파일 있으면 삭제 (덮어쓰기)
-  await deleteExistingAsset(release.id, fileName);
+  // 같은 이름 파일 있으면 삭제
+  for (const asset of allAssets) {
+    if (asset.name === fileName) {
+      await deleteAssetById(asset.id);
+      logger.info(`[GitHub] Deleted existing asset: ${fileName}`);
+    }
+  }
 
-  // 업로드 URL 생성
+  // 업로드
   const uploadUrl = release.upload_url.replace("{?name,label}", `?name=${encodeURIComponent(fileName)}`);
-
   const token = getToken();
   const res = await fetch(uploadUrl, {
     method: "POST",
@@ -111,6 +106,65 @@ export async function uploadToRelease(fileName: string, buffer: Buffer, contentT
   const data = await res.json();
   logger.info(`[GitHub] Uploaded: ${fileName} (${buffer.length} bytes)`);
   return data.browser_download_url;
+}
+
+/**
+ * 여러 파일을 GitHub 릴리스에 일괄 업로드
+ * 릴리스/에셋 목록을 한 번만 조회하여 효율적으로 처리
+ */
+export async function uploadBatchToRelease(
+  files: { fileName: string; buffer: Buffer; contentType: string }[]
+): Promise<{ fileName: string; url?: string; error?: string }[]> {
+  const release = await getRelease();
+  const allAssets = await getReleaseAssets(release.id);
+  logger.info(`[GitHub] Batch upload: ${files.length} files, ${allAssets.length} existing assets`);
+
+  // 에셋 이름→ID 맵 (빠른 조회)
+  const assetMap = new Map<string, number>();
+  for (const asset of allAssets) {
+    assetMap.set(asset.name, asset.id);
+  }
+
+  const results: { fileName: string; url?: string; error?: string }[] = [];
+
+  for (const file of files) {
+    try {
+      // 기존 에셋 삭제
+      const existingId = assetMap.get(file.fileName);
+      if (existingId) {
+        await deleteAssetById(existingId);
+        logger.info(`[GitHub] Deleted existing: ${file.fileName}`);
+      }
+
+      // 업로드
+      const uploadUrl = release.upload_url.replace("{?name,label}", `?name=${encodeURIComponent(file.fileName)}`);
+      const token = getToken();
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `token ${token}`,
+          "Content-Type": file.contentType,
+          "User-Agent": "order-ai",
+        },
+        body: file.buffer,
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        results.push({ fileName: file.fileName, error: `${res.status} ${err}` });
+        logger.warn(`[GitHub] Upload failed: ${file.fileName} - ${res.status}`);
+      } else {
+        const data = await res.json();
+        results.push({ fileName: file.fileName, url: data.browser_download_url });
+        logger.info(`[GitHub] Uploaded: ${file.fileName} (${file.buffer.length} bytes)`);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      results.push({ fileName: file.fileName, error: msg });
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -148,7 +202,10 @@ export async function refreshReleaseIndex(): Promise<{ total: number }> {
   const indexBuffer = Buffer.from(JSON.stringify(index, null, 2), 'utf-8');
 
   // 기존 인덱스 삭제 후 업로드
-  await deleteExistingAsset(release.id, INDEX_FILE);
+  const indexAssetId = assets.find((a: any) => a.name === INDEX_FILE)?.id;
+  if (indexAssetId) {
+    await deleteAssetById(indexAssetId);
+  }
 
   const uploadUrl = release.upload_url.replace("{?name,label}", `?name=${encodeURIComponent(INDEX_FILE)}`);
   const token = getToken();
