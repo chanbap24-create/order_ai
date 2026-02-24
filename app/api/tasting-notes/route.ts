@@ -17,8 +17,9 @@ const CACHE_DURATION = 5 * 60 * 1000;
  * GET /api/tasting-notes
  *
  * 우선순위:
- * 1. GitHub Release PDF 인덱스 (공식 테이스팅 노트)
- * 2. Supabase tasting_notes DB (AI 리서치 fallback)
+ * 1. Supabase tasting_notes DB (HTML 렌더링 → 깔끔한 인라인 뷰)
+ * 2. GitHub Release PDF (iframe fallback)
+ * DB 소스일 때도 PDF/PPTX 다운로드 URL 함께 반환
  */
 export async function GET(request: NextRequest) {
   try {
@@ -27,28 +28,19 @@ export async function GET(request: NextRequest) {
 
     // 특정 품목번호 조회
     if (itemNo) {
-      // 1) GitHub Release PDF 인덱스 확인 (우선)
+      // GitHub 인덱스도 백그라운드로 로드 (PDF 다운로드 URL 제공용)
       await ensureIndexLoaded();
 
+      let pdfUrl: string | undefined;
       if (indexCache?.notes) {
-        const note = indexCache.notes[itemNo];
-        if (note?.exists) {
+        const pdfNote = indexCache.notes[itemNo];
+        if (pdfNote?.exists) {
           const baseUrl = indexCache.base_url || GITHUB_RELEASE_URL;
-          const pdfUrl = `${baseUrl}/${note.filename}`;
-          return NextResponse.json({
-            success: true,
-            source: 'pdf',
-            item_no: itemNo,
-            wine_name: note.wine_name,
-            pdf_url: pdfUrl,
-            size_kb: note.size_kb,
-            pages: note.pages,
-            updated_at: indexCache.updated_at
-          });
+          pdfUrl = `${baseUrl}/${pdfNote.filename}`;
         }
       }
 
-      // 2) Supabase tasting_notes DB 확인 (fallback)
+      // 1) Supabase tasting_notes DB 확인 (우선 - 깔끔한 HTML 렌더링)
       const { data: dbNote } = await supabase
         .from('tasting_notes')
         .select('id, wine_id, color_note, nose_note, palate_note, food_pairing, glass_pairing, serving_temp, awards, winemaking, winery_description, vintage_note, aging_potential, wine_type, country, region, grape_varieties, supply_price, updated_at')
@@ -61,7 +53,19 @@ export async function GET(request: NextRequest) {
           source: 'db',
           item_no: itemNo,
           tasting_note: dbNote,
+          pdf_url: pdfUrl,
           updated_at: dbNote.updated_at,
+        });
+      }
+
+      // 2) GitHub Release PDF fallback (DB에 없을 때)
+      if (pdfUrl) {
+        return NextResponse.json({
+          success: true,
+          source: 'pdf',
+          item_no: itemNo,
+          pdf_url: pdfUrl,
+          updated_at: indexCache?.updated_at,
         });
       }
 

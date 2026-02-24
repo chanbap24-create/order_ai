@@ -567,6 +567,10 @@ export default function InventoryPage() {
         if (data.source === 'db') {
           setTastingNoteSource('db');
           setDbTastingNote(data.tasting_note);
+          // DB 소스여도 PDF URL이 있으면 다운로드용으로 저장
+          if (data.pdf_url) {
+            setOriginalPdfUrl(data.pdf_url);
+          }
         } else {
           setTastingNoteSource('pdf');
           setTastingNoteUrl(`/api/proxy/pdf?url=${encodeURIComponent(data.pdf_url)}`);
@@ -2097,6 +2101,30 @@ export default function InventoryPage() {
                 </div>
               ) : tastingNoteSource === 'db' && dbTastingNote ? (
                 <div style={{ width: '100%', height: '100%', overflow: 'auto', padding: '8px 0' }}>
+                  {originalPdfUrl && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8, maxWidth: 720, margin: '0 auto 8px auto' }}>
+                      <button
+                        onClick={() => handleDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}
+                        style={{
+                          padding: '5px 14px', borderRadius: 6, border: 'none',
+                          background: '#5A1515', color: 'white', fontWeight: 600,
+                          fontSize: '0.75rem', cursor: 'pointer',
+                        }}
+                      >
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => handleDownload(originalPdfUrl.replace('.pdf', '.pptx'), `${selectedItemNo}.pptx`)}
+                        style={{
+                          padding: '5px 14px', borderRadius: 6, border: 'none',
+                          background: '#1a1a2e', color: 'white', fontWeight: 600,
+                          fontSize: '0.75rem', cursor: 'pointer',
+                        }}
+                      >
+                        PPTX
+                      </button>
+                    </div>
+                  )}
                   <div style={{ maxWidth: 720, margin: '0 auto' }}>
                     {[
                       { label: 'Color', value: dbTastingNote.color_note },
