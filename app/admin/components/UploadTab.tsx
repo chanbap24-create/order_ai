@@ -120,6 +120,11 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
     payments: null,
     'dl-payments': null,
   });
+  // inventory 마지막 업데이트 날짜
+  const [inventoryLastDates, setInventoryLastDates] = useState<Record<string, string | null>>({
+    downloads: null,
+    dl: null,
+  });
 
   const checkStatus = async () => {
     setIsChecking(true);
@@ -133,6 +138,9 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       }
       if (data.paymentLastDates) {
         setPaymentLastDates(data.paymentLastDates);
+      }
+      if (data.inventoryLastDates) {
+        setInventoryLastDates(data.inventoryLastDates);
       }
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : '상태 확인 실패');
@@ -477,14 +485,16 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 'var(--space-5)', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 'var(--space-5)', alignItems: 'stretch' }}>
         {UPLOAD_AREAS.map((area) => {
           const hasMode = area.type === 'client' || area.type === 'dl-client' || area.type === 'payments' || area.type === 'dl-payments';
           const lastDate = (area.type === 'client' || area.type === 'dl-client')
             ? shipmentLastDates[area.type]
             : (area.type === 'payments' || area.type === 'dl-payments')
               ? paymentLastDates[area.type]
-              : undefined;
+              : (area.type === 'downloads' || area.type === 'dl')
+                ? inventoryLastDates[area.type]
+                : undefined;
           return (
             <UploadCard
               key={area.type}
@@ -544,47 +554,54 @@ function UploadCard({
       transition: 'all var(--transition-fast)',
       cursor: isUploading ? 'not-allowed' : 'default',
       opacity: isUploading ? 0.7 : 1,
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column' as const,
     }}>
-      {/* 모드 토글 + 마지막 날짜 (client/dl-client만) */}
-      {hasMode && (
+      {/* 마지막 날짜 + 모드 토글 */}
+      {(hasMode || lastDate) && (
         <div style={{ padding: 'var(--space-3) var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
           {lastDate && (
             <div style={{
               display: 'inline-block', padding: '2px 10px', borderRadius: 'var(--radius-sm)',
               background: '#E3F2FD', color: '#1565C0', fontSize: '12px', fontWeight: 600,
-              marginBottom: 'var(--space-2)',
+              marginBottom: hasMode ? 'var(--space-2)' : 0,
             }}>
               {lastDate}까지 업데이트됨
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); onModeChange('append'); }}
-              style={{
-                padding: '4px 12px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
-                background: uploadMode === 'append' ? '#1565C0' : 'var(--color-background)',
-                color: uploadMode === 'append' ? '#fff' : 'var(--color-text-light)',
-              }}
-            >
-              누적 추가
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onModeChange('replace'); }}
-              style={{
-                padding: '4px 12px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
-                fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
-                background: uploadMode === 'replace' ? '#C62828' : 'var(--color-background)',
-                color: uploadMode === 'replace' ? '#fff' : 'var(--color-text-light)',
-              }}
-            >
-              전체 교체
-            </button>
-          </div>
-          {uploadMode === 'replace' && (
-            <div style={{ marginTop: 'var(--space-1)', fontSize: '11px', color: '#C62828' }}>
-              전체 교체 시 기존 데이터가 삭제됩니다
-            </div>
+          {hasMode && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onModeChange!('append'); }}
+                  style={{
+                    padding: '4px 12px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                    fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
+                    background: uploadMode === 'append' ? '#1565C0' : 'var(--color-background)',
+                    color: uploadMode === 'append' ? '#fff' : 'var(--color-text-light)',
+                  }}
+                >
+                  누적 추가
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onModeChange!('replace'); }}
+                  style={{
+                    padding: '4px 12px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                    fontSize: '12px', fontWeight: 600, transition: 'all 0.15s',
+                    background: uploadMode === 'replace' ? '#C62828' : 'var(--color-background)',
+                    color: uploadMode === 'replace' ? '#fff' : 'var(--color-text-light)',
+                  }}
+                >
+                  전체 교체
+                </button>
+              </div>
+              {uploadMode === 'replace' && (
+                <div style={{ marginTop: 'var(--space-1)', fontSize: '11px', color: '#C62828' }}>
+                  전체 교체 시 기존 데이터가 삭제됩니다
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -594,7 +611,7 @@ function UploadCard({
         onDragOver={isUploading ? undefined : handleDragOver}
         onDragLeave={isUploading ? undefined : handleDragLeave}
         onClick={() => !isUploading && inputRef.current?.click()}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-3)', padding: 'var(--space-6)', minHeight: 200, cursor: isUploading ? 'not-allowed' : 'pointer' }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-3)', padding: 'var(--space-6)', minHeight: 200, flex: 1, cursor: isUploading ? 'not-allowed' : 'pointer' }}
       >
         <input ref={inputRef} type="file" accept={ACCEPT} style={{ display: 'none' }} onChange={handleFileChange} disabled={isUploading} />
         <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-xl)', background: 'rgba(139,21,56,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

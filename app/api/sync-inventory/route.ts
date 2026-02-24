@@ -179,6 +179,21 @@ export async function GET() {
       .limit(1)
       .single();
 
+    // inventory 마지막 업데이트 날짜 조회
+    const { data: cdvUpdated } = await supabase
+      .from('inventory_cdv')
+      .select('updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const { data: dlUpdated } = await supabase
+      .from('inventory_dl')
+      .select('updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -198,6 +213,10 @@ export async function GET() {
       paymentLastDates: {
         payments: payMaxDate?.payment_date || null,
         'dl-payments': glassPayMaxDate?.payment_date || null,
+      },
+      inventoryLastDates: {
+        downloads: cdvUpdated?.updated_at ? cdvUpdated.updated_at.slice(0, 10) : null,
+        dl: dlUpdated?.updated_at ? dlUpdated.updated_at.slice(0, 10) : null,
       },
     });
   } catch (error: any) {
