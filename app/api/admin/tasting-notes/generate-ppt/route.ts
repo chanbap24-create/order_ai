@@ -6,6 +6,8 @@ import { upsertTastingNote } from "@/app/lib/wineDb";
 import { savePptx, convertToPdf } from "@/app/lib/fileOutput";
 import { logger } from "@/app/lib/logger";
 
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   try {
     const { wineIds } = await request.json();

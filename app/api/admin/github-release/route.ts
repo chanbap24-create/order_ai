@@ -9,6 +9,8 @@ import { getWineByCode } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
 
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.GITHUB_TOKEN) {
