@@ -544,6 +544,25 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     }
   };
 
+  // ── 미팅 수정 모달 열기 ──
+  const openEditModal = (m: Meeting) => {
+    setEditingId(m.id);
+    setModalDate(m.meeting_date?.slice(0, 10) || formatDate(new Date()));
+    setModalTime(m.meeting_time || '10:00');
+    setModalType(m.meeting_type || 'visit');
+    const parts = (m.purpose || '').split(' - ');
+    setModalTitle(parts[0] || '');
+    setModalPurpose(parts.slice(1).join(' - ') || '');
+    setModalClient(m.client_code ? { client_code: m.client_code, client_name: m.client_name } : null);
+    setModalClientSearch(m.client_name || '');
+    setNewClientMode(false);
+    setNewClientName('');
+    setNewClientCode('');
+    setModalReminder(m.reminder_minutes ?? null);
+    setDetailMeeting(null);
+    setShowModal(true);
+  };
+
   // ── 미팅 삭제 ──
   const deleteMeeting = async (id: number) => {
     if (!confirm('이 미팅을 삭제하시겠습니까?')) return;
@@ -1273,6 +1292,10 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                   }}>{sm.label}</button>
                 );
               })}
+              <button onClick={() => openEditModal(detailMeeting)} style={{
+                padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(90,21,21,0.15)',
+                background: '#fff', color: '#5A1515', fontSize: 12, cursor: 'pointer', fontWeight: 600,
+              }}>수정</button>
               <button onClick={() => deleteMeeting(detailMeeting.id)} style={{
                 padding: '8px 12px', borderRadius: 8, border: '1px solid #ffcdd2',
                 background: '#fff', color: '#c62828', fontSize: 12, cursor: 'pointer',
