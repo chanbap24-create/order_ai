@@ -210,7 +210,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   const [newClientCodeError, setNewClientCodeError] = useState('');
   const [modalReminder, setModalReminder] = useState<number | null>(null);
   const modalDropdownRef = useRef<HTMLDivElement>(null);
-  const modalSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allClientsCache = useRef<{ manager: string; clients: ClientOption[] }>({ manager: '', clients: [] });
 
   // 알림 관련
   const notifiedIdsRef = useRef<Set<number>>(new Set());
@@ -362,30 +362,34 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   };
   const goToday = () => setWeekBase(new Date());
 
-  // ── 거래처 검색 (모달) ──
-  const searchClients = useCallback(async (q: string) => {
+  // ── 거래처 목록 프리로드 (담당자별 1회) ──
+  const loadAllClients = useCallback(async (mgr: string) => {
+    if (allClientsCache.current.manager === mgr && allClientsCache.current.clients.length > 0) return;
     try {
-      const params = new URLSearchParams({ search: q, limit: '30', type: 'wine' });
-      if (filterManager) params.set('manager', filterManager);
+      const params = new URLSearchParams({ limit: '500', type: 'wine' });
+      if (mgr) params.set('manager', mgr);
       const res = await fetch(`/api/sales/clients?${params}`);
       const json = await res.json();
-      setModalClientOptions(json.clients || []);
-      setModalShowDropdown(true);
-    } catch {
-      setModalClientOptions([]);
-    }
-  }, [filterManager]);
+      allClientsCache.current = { manager: mgr, clients: json.clients || [] };
+    } catch { /* ignore */ }
+  }, []);
 
+  useEffect(() => { loadAllClients(filterManager); }, [filterManager, loadAllClients]);
+
+  // ── 거래처 검색 (로컬 필터링) ──
   useEffect(() => {
-    if (modalSearchTimer.current) clearTimeout(modalSearchTimer.current);
     if (modalClientSearch.length >= 1) {
-      modalSearchTimer.current = setTimeout(() => searchClients(modalClientSearch), 300);
+      const q = modalClientSearch.toLowerCase();
+      const filtered = allClientsCache.current.clients.filter(c =>
+        c.client_name.toLowerCase().includes(q) || c.client_code.toLowerCase().includes(q)
+      ).slice(0, 30);
+      setModalClientOptions(filtered);
+      setModalShowDropdown(true);
     } else {
       setModalClientOptions([]);
       setModalShowDropdown(false);
     }
-    return () => { if (modalSearchTimer.current) clearTimeout(modalSearchTimer.current); };
-  }, [modalClientSearch, searchClients]);
+  }, [modalClientSearch]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
