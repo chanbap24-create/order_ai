@@ -503,7 +503,7 @@ export async function GET(req: NextRequest) {
 
       const { data: meetingData } = await supabase
         .from('meetings')
-        .select('id, client_code, meeting_date, meeting_time, meeting_type, purpose, ai_briefing, status, client_details(client_name, importance, manager)')
+        .select('id, client_code, meeting_date, meeting_time, meeting_type, purpose, ai_briefing, status, manager, client_details(client_name, importance, manager)')
         .eq('status', 'planned')
         .gte('meeting_date', today)
         .lte('meeting_date', sevenStr)
@@ -511,8 +511,11 @@ export async function GET(req: NextRequest) {
 
       for (const m of meetingData || []) {
         const cd = m.client_details as any;
-        // manager 필터 후처리
-        if (cd?.manager && cd.manager !== manager) continue;
+        // manager 필터: 미팅 자체 담당자 또는 거래처 담당자가 일치해야 함
+        const meetingManager = (m as any).manager || '';
+        const clientManager = cd?.manager || '';
+        if (meetingManager && meetingManager !== manager && clientManager !== manager) continue;
+        if (!meetingManager && clientManager && clientManager !== manager) continue;
 
         const mDate = m.meeting_date?.toString().slice(0, 10) || '';
         const daysUntil = Math.max(0, Math.floor((new Date(mDate).getTime() - todayMs) / DAY_MS));
