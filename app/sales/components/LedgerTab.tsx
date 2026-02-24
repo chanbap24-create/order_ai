@@ -512,7 +512,7 @@ function getQuickRanges() {
   const curStart = `${y}-${pad(m + 1)}-01`;
   const prevStart = m === 0 ? `${y - 1}-12-01` : `${y}-${pad(m)}-01`;
   const prevEnd = new Date(y, m, 0); // 이전 달 마지막 날
-  const prevEndStr = prevEnd.toISOString().slice(0, 10);
+  const prevEndStr = `${prevEnd.getFullYear()}-${pad(prevEnd.getMonth() + 1)}-${pad(prevEnd.getDate())}`;
 
   const q = Math.floor(m / 3);
   const qStartMonth = q * 3 + 1; // 1-indexed
