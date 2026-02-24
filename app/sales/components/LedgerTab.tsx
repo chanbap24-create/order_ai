@@ -341,7 +341,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
 
           {/* 테이블 */}
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800, fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.1)' }}>
                   <th style={thStyle}>일자</th>
@@ -352,34 +352,48 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                   <th style={{ ...thStyle, textAlign: 'right' }}>부가세</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>합계</th>
                   <th style={{ ...thStyle, textAlign: 'right', color: '#1565C0' }}>수금액</th>
+                  <th style={{ ...thStyle, textAlign: 'right', color: '#c62828' }}>미수액</th>
                 </tr>
               </thead>
               <tbody>
-                {grouped.map(month => {
-                  const mCollapsed = collapsedMonths.has(month.month);
-                  return (
-                    <MonthGroup
-                      key={month.month}
-                      month={month}
-                      collapsed={mCollapsed}
-                      collapsedDays={collapsedDays}
-                      onToggleMonth={() => toggleMonth(month.month)}
-                      onToggleDay={toggleDay}
-                    />
-                  );
-                })}
+                {(() => {
+                  let runBal = prevBalance;
+                  return grouped.map(month => {
+                    const mCollapsed = collapsedMonths.has(month.month);
+                    const monthStartBal = runBal;
+                    runBal += month.totals.total - month.totals.payment;
+                    return (
+                      <MonthGroup
+                        key={month.month}
+                        month={month}
+                        collapsed={mCollapsed}
+                        collapsedDays={collapsedDays}
+                        onToggleMonth={() => toggleMonth(month.month)}
+                        onToggleDay={toggleDay}
+                        startBalance={monthStartBal}
+                        endBalance={runBal}
+                      />
+                    );
+                  });
+                })()}
                 {/* 총합계 */}
-                <tr style={{ background: '#5A1515', fontWeight: 700 }}>
-                  <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={2}>
-                    [{client.client_name} 합계]
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.qty)}</td>
-                  <td style={{ ...tdStyle, color: '#fff' }}></td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.supply)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.tax)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.total)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#90CAF9' }}>{fmt(grandTotal.payment)}</td>
-                </tr>
+                {(() => {
+                  const finalBalance = prevBalance + grandTotal.total - grandTotal.payment;
+                  return (
+                    <tr style={{ background: '#5A1515', fontWeight: 700 }}>
+                      <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={2}>
+                        [{client.client_name} 합계]
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.qty)}</td>
+                      <td style={{ ...tdStyle, color: '#fff' }}></td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.supply)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.tax)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.total)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#90CAF9' }}>{fmt(grandTotal.payment)}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#FFCDD2' }}>{fmt(finalBalance)}</td>
+                    </tr>
+                  );
+                })()}
               </tbody>
             </table>
           </div>
@@ -414,18 +428,25 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
 }
 
 /* ━━━ 월별 그룹 컴포넌트 ━━━ */
-function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDay }: {
+function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDay, startBalance, endBalance }: {
   month: MonthData;
   collapsed: boolean;
   collapsedDays: Set<string>;
   onToggleMonth: () => void;
   onToggleDay: (d: string) => void;
+  startBalance: number;
+  endBalance: number;
 }) {
   return (
     <>
-      {!collapsed && month.days.map(day => (
-        <DayGroup key={day.date} day={day} collapsed={collapsedDays.has(day.date)} onToggle={() => onToggleDay(day.date)} />
-      ))}
+      {!collapsed && (() => {
+        let dayBal = startBalance;
+        return month.days.map(day => {
+          const dayStartBal = dayBal;
+          dayBal += day.totals.total - day.totals.payment;
+          return <DayGroup key={day.date} day={day} collapsed={collapsedDays.has(day.date)} onToggle={() => onToggleDay(day.date)} endBalance={dayBal} />;
+        });
+      })()}
       {/* 월계 */}
       <tr style={{ background: '#FFF8E1', cursor: 'pointer' }} onClick={onToggleMonth}>
         <td style={{ ...tdStyle, fontWeight: 700, color: '#5A1515' }} colSpan={2}>
@@ -438,13 +459,14 @@ function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDa
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.tax)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.total)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#1565C0' }}>{month.totals.payment ? fmt(month.totals.payment) : ''}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#c62828' }}>{fmt(endBalance)}</td>
       </tr>
     </>
   );
 }
 
 /* ━━━ 일별 그룹 컴포넌트 ━━━ */
-function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boolean; onToggle: () => void }) {
+function DayGroup({ day, collapsed, onToggle, endBalance }: { day: DayData; collapsed: boolean; onToggle: () => void; endBalance: number }) {
   const showDaySummary = day.rows.length > 1 || day.paymentRows.length > 0;
   return (
     <>
@@ -462,6 +484,7 @@ function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boole
           <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.tax_amount)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{fmt(r.total_amount)}</td>
           <td style={tdStyle}></td>
+          <td style={tdStyle}></td>
         </tr>
       ))}
       {/* 수금 행 */}
@@ -477,6 +500,7 @@ function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boole
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#1565C0' }}>{fmt(p.amount)}</td>
+          <td style={tdStyle}></td>
         </tr>
       ))}
       {/* 일계 */}
@@ -492,6 +516,7 @@ function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boole
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.tax)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.total)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#1565C0' }}>{day.totals.payment ? fmt(day.totals.payment) : ''}</td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#c62828' }}>{fmt(endBalance)}</td>
         </tr>
       )}
     </>
