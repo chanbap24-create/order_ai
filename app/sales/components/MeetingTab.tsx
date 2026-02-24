@@ -511,6 +511,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
         meeting_type: modalType,
         purpose: purposeStr,
         reminder_minutes: modalReminder,
+        manager: currentManager || '',
       };
       if (editingId) body.id = editingId;
 

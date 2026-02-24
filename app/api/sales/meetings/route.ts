@@ -22,8 +22,11 @@ export async function GET(req: NextRequest) {
     if (status) query = query.eq('status', status);
     if (clientCode) query = query.eq('client_code', clientCode);
 
-    // manager 필터: client_details.manager로 필터
-    // Supabase에서는 FK 테이블 직접 필터 어려우므로 후처리
+    // manager 필터: meetings.manager 컬럼 직접 필터
+    if (manager) {
+      query = query.eq('manager', manager);
+    }
+
     const { data, error } = await query;
     if (error) throw error;
 
@@ -32,14 +35,9 @@ export async function GET(req: NextRequest) {
       client_name: m.client_details?.client_name || m.client_code || (m.purpose?.split(' - ')?.[0]) || '(일정)',
       client_importance: m.client_details?.importance || 3,
       client_business_type: m.client_details?.business_type || '',
-      client_manager: m.client_details?.manager || '',
+      client_manager: m.client_details?.manager || m.manager || '',
       client_contact: m.client_details?.contact_name || '',
     }));
-
-    // manager 필터 후처리
-    if (manager) {
-      meetings = meetings.filter((m: any) => m.client_manager === manager);
-    }
 
     return NextResponse.json({ meetings });
   } catch (err) {
@@ -55,7 +53,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus, reminder_minutes } = body;
+    const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus, reminder_minutes, manager: bodyManager } = body;
 
     if (!meeting_date) {
       return NextResponse.json({ error: 'meeting_date는 필수입니다.' }, { status: 400 });
@@ -96,6 +94,7 @@ export async function POST(req: NextRequest) {
           purpose: purpose || null,
           notes: notes || null,
           reminder_minutes: reminder_minutes !== undefined ? reminder_minutes : null,
+          manager: bodyManager || '',
         })
         .select()
         .single();
