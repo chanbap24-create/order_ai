@@ -160,7 +160,7 @@ const SUMMARY_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor:
 const FONT = '맑은 고딕';
 
 function fmtDate(d: Date): string {
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function colLetter(n: number): string {
@@ -328,14 +328,8 @@ async function buildQuote(
 
   // ── Document header ──
 
-  // Row 1: spacer
-  ws.getRow(1).height = 10;
-
-  // Row 2: spacer (로고 위 여백)
-  ws.getRow(2).height = 14;
-
-  // Row 3: Company logo or name
-  ws.mergeCells(`A3:${lastCol}3`);
+  // Row 1: Company logo or name
+  ws.mergeCells(`A1:${lastCol}1`);
   const logoPath = getLogoPath(company);
   if (logoPath) {
     const logoBuffer = fs.readFileSync(logoPath);
@@ -343,7 +337,7 @@ async function buildQuote(
     const imgH = company === 'DL' ? 150 : 100;
     const imgW = company === 'DL' ? Math.round(231 * (150 / 160)) : Math.round(307 * (100 / 100));
     const rowHeight = imgH + 10;
-    ws.getRow(3).height = rowHeight * 0.75;
+    ws.getRow(1).height = rowHeight * 0.75;
 
     // EMU 기반 정밀 중앙 배치
     const PX_EMU = 9525;
@@ -365,7 +359,7 @@ async function buildQuote(
     // 로고 우측 끝 EMU
     const logoRightEmu = logoLeftEmu + imgWEmu;
 
-    // Row 3의 세로 중앙 (row 2 = 0-indexed)
+    // Row 1의 세로 중앙 (row 0 = 0-indexed)
     const row3HEmu = rowHeight * 0.75 * PT_EMU;
     const logoTopEmu = Math.round((row3HEmu - imgHEmu) / 2);
 
@@ -384,113 +378,113 @@ async function buildQuote(
     }
 
     ws.addImage(logoId, {
-      tl: { nativeCol: tlCol, nativeColOff: tlOff, nativeRow: 2, nativeRowOff: Math.max(0, logoTopEmu) } as any,
-      br: { nativeCol: brCol, nativeColOff: brOff, nativeRow: 2, nativeRowOff: Math.max(0, logoTopEmu) + imgHEmu } as any,
+      tl: { nativeCol: tlCol, nativeColOff: tlOff, nativeRow: 0, nativeRowOff: Math.max(0, logoTopEmu) } as any,
+      br: { nativeCol: brCol, nativeColOff: brOff, nativeRow: 0, nativeRowOff: Math.max(0, logoTopEmu) + imgHEmu } as any,
       editAs: 'oneCell',
     } as any);
   } else {
-    const titleCell = ws.getCell('A3');
+    const titleCell = ws.getCell('A1');
     titleCell.value = doc.companyName;
     titleCell.font = { name: FONT, size: 16, bold: true };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    ws.getRow(3).height = 30;
+    ws.getRow(1).height = 30;
   }
 
-  // Row 4: 한글 주소
+  // Row 2: 한글 주소
+  ws.mergeCells(`A2:${lastCol}2`);
+  ws.getCell('A2').value = doc.address;
+  ws.getCell('A2').font = { name: FONT, size: 8 };
+  ws.getCell('A2').alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Row 3: 영문 주소
+  ws.mergeCells(`A3:${lastCol}3`);
+  ws.getCell('A3').value = doc.addressEn || '';
+  ws.getCell('A3').font = { name: FONT, size: 7 };
+  ws.getCell('A3').alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Row 4: 웹사이트/SNS URL
   ws.mergeCells(`A4:${lastCol}4`);
-  ws.getCell('A4').value = doc.address;
-  ws.getCell('A4').font = { name: FONT, size: 8 };
+  ws.getCell('A4').value = doc.websiteUrl || '';
+  ws.getCell('A4').font = { name: FONT, size: 7 };
   ws.getCell('A4').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Row 5: 영문 주소
-  ws.mergeCells(`A5:${lastCol}5`);
-  ws.getCell('A5').value = doc.addressEn || '';
-  ws.getCell('A5').font = { name: FONT, size: 7 };
-  ws.getCell('A5').alignment = { horizontal: 'center', vertical: 'middle' };
-
-  // Row 6: 웹사이트/SNS URL
-  ws.mergeCells(`A6:${lastCol}6`);
-  ws.getCell('A6').value = doc.websiteUrl || '';
-  ws.getCell('A6').font = { name: FONT, size: 7 };
-  ws.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
-
-  // Row 7~10: spacer (URL ↔ 수신 여백 4줄)
+  // Row 5~8: spacer (URL ↔ 수신 여백 4줄)
+  ws.getRow(5).height = 16.5;
+  ws.getRow(6).height = 16.5;
   ws.getRow(7).height = 16.5;
   ws.getRow(8).height = 16.5;
-  ws.getRow(9).height = 16.5;
-  ws.getRow(10).height = 16.5;
 
-  // Row 11: 수신 + date
-  ws.getCell('A11').value = `수      신 : ${clientName || ''}`;
+  // Row 9: 수신 + date
+  ws.getCell('A9').value = `수      신 : ${clientName || ''}`;
+  ws.getCell('A9').font = { name: FONT, size: 11 };
+  ws.getCell(`${lastCol}9`).value = fmtDate(new Date());
+  ws.getCell(`${lastCol}9`).font = { name: FONT, size: 11 };
+  ws.getCell(`${lastCol}9`).alignment = { horizontal: 'right', vertical: 'middle' };
+
+  // Row 10: spacer (수신↔발신)
+  ws.getRow(10).height = 12.5;
+
+  // Row 11: 발신
+  ws.getCell('A11').value = `발      신 : ${doc.sender}`;
   ws.getCell('A11').font = { name: FONT, size: 11 };
-  ws.getCell(`${lastCol}11`).value = fmtDate(new Date());
-  ws.getCell(`${lastCol}11`).font = { name: FONT, size: 11 };
-  ws.getCell(`${lastCol}11`).alignment = { horizontal: 'right', vertical: 'middle' };
 
-  // Row 12: spacer (수신↔발신)
+  // Row 12: spacer (발신↔제목)
   ws.getRow(12).height = 12.5;
 
-  // Row 13: 발신
-  ws.getCell('A13').value = `발      신 : ${doc.sender}`;
-  ws.getCell('A13').font = { name: FONT, size: 11 };
+  // Row 13: 제목
+  ws.getCell('A13').value = `제      목 : ${doc.title}`;
+  ws.getCell('A13').font = { name: FONT, size: 11, bold: true };
 
-  // Row 14: spacer (발신↔제목)
-  ws.getRow(14).height = 12.5;
+  // Row 14: spacer
+  ws.getRow(14).height = 8;
 
-  // Row 15: 제목
-  ws.getCell('A15').value = `제    목 : ${doc.title}`;
-  ws.getCell('A15').font = { name: FONT, size: 11, bold: true };
+  // Row 15: 내용 1
+  ws.getCell('A15').value = doc.content1;
+  ws.getCell('A15').font = { name: FONT, size: 11 };
 
-  // Row 16: spacer
-  ws.getRow(16).height = 8;
+  // Row 16: spacer (내용1↔내용2)
+  ws.getRow(16).height = 12.5;
 
-  // Row 17: 내용 1
-  ws.getCell('A17').value = doc.content1;
+  // Row 17: 내용 2
+  ws.getCell('A17').value = doc.content2;
   ws.getCell('A17').font = { name: FONT, size: 11 };
 
-  // Row 18: spacer (내용1↔내용2)
-  ws.getRow(18).height = 12.5;
+  // Row 18: spacer
+  ws.getRow(18).height = 8;
 
-  // Row 19: 내용 2
-  ws.getCell('A19').value = doc.content2;
+  // Row 19: 내용 3 (centered)
+  ws.mergeCells(`A19:${lastCol}19`);
+  ws.getCell('A19').value = doc.content3;
   ws.getCell('A19').font = { name: FONT, size: 11 };
+  ws.getCell('A19').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // Row 20: spacer
-  ws.getRow(20).height = 8;
-
-  // Row 21: 내용 3 (centered)
-  ws.mergeCells(`A21:${lastCol}21`);
-  ws.getCell('A21').value = doc.content3;
-  ws.getCell('A21').font = { name: FONT, size: 11 };
-  ws.getCell('A21').alignment = { horizontal: 'center', vertical: 'middle' };
-
-  // Row 22: 제품 및 가격 + 단위
-  ws.getCell('A22').value = '1. 제품 및 가격 :';
-  ws.getCell('A22').font = { name: FONT, size: 10 };
+  // Row 20: 제품 및 가격 + 단위
+  ws.getCell('A20').value = '1. 제품 및 가격 :';
+  ws.getCell('A20').font = { name: FONT, size: 10 };
   const unitStartCol = colLetter(Math.max(1, totalCols - 2));
   if (totalCols > 3) {
-    ws.mergeCells(`${unitStartCol}22:${lastCol}22`);
+    ws.mergeCells(`${unitStartCol}20:${lastCol}20`);
   }
-  ws.getCell(`${unitStartCol}22`).value = doc.unit;
-  ws.getCell(`${unitStartCol}22`).font = { name: FONT, size: 11, bold: true };
-  ws.getCell(`${unitStartCol}22`).alignment = { horizontal: 'right', vertical: 'middle' };
-  ws.getCell(`${unitStartCol}22`).border = { bottom: { style: 'medium' } };
+  ws.getCell(`${unitStartCol}20`).value = doc.unit;
+  ws.getCell(`${unitStartCol}20`).font = { name: FONT, size: 11 };
+  ws.getCell(`${unitStartCol}20`).alignment = { horizontal: 'right', vertical: 'middle' };
+  ws.getCell(`${unitStartCol}20`).border = { bottom: { style: 'medium' } };
 
-  // ── Column headers (Row 23) ──
+  // ── Column headers (Row 21) ──
   const hBorder: Partial<ExcelJS.Borders> = {
     top: { style: 'thin', color: { argb: 'FF2D1A1A' } },
     bottom: { style: 'thin', color: { argb: 'FF2D1A1A' } },
     left: { style: 'thin', color: { argb: 'FF5A3030' } },
     right: { style: 'thin', color: { argb: 'FF5A3030' } },
   };
-  const hRow = ws.getRow(23);
+  const hRow = ws.getRow(21);
   hRow.height = 32;
   activeCols.forEach((col, i) => {
     sc(hRow, i + 1, col.label, { border: hBorder, fill: HEADER_FILL, bold: true, size: 10, wrap: true, color: 'FFFFFFFF' });
   });
 
-  // ── Data rows (Row 24+) ──
-  const DS = 24;
+  // ── Data rows (Row 22+) ──
+  const DS = 22;
   const hasImageCol = activeCols.some(c => c.type === 'image');
   const IMG_ROW_HEIGHT = 95; // points when image column is active
 
@@ -717,7 +711,7 @@ async function buildQuote(
 
     // ── Footer ──
     const endR = sumR + 1;
-    ws.getCell(`${lastCol}${endR}`).value = '-끝-';
+    ws.getCell(`${lastCol}${endR}`).value = '-끝.-';
     ws.getCell(`${lastCol}${endR}`).font = { name: FONT, size: 11 };
     ws.getCell(`${lastCol}${endR}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
@@ -732,7 +726,7 @@ async function buildQuote(
 
     ws.mergeCells(`${sigStart}${sigR + 1}:${lastCol}${sigR + 1}`);
     ws.getCell(`${sigStart}${sigR + 1}`).value = doc.representative;
-    ws.getCell(`${sigStart}${sigR + 1}`).font = { name: FONT, size: 16, bold: true };
+    ws.getCell(`${sigStart}${sigR + 1}`).font = { name: FONT, size: 14, bold: true };
     ws.getCell(`${sigStart}${sigR + 1}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
     ws.mergeCells(`${sigStart}${sigR + 2}:${lastCol}${sigR + 2}`);
