@@ -61,6 +61,14 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
+  // 타입 변경 시 거래처 초기화
+  const handleTypeChange = (t: 'wine' | 'glass') => {
+    setType(t);
+    setClientSearch('');
+    setSelectedClient(null);
+    setSuggestions([]);
+  };
+
   // 거래처 검색
   const searchTimer = useRef<any>(null);
   const handleSearchChange = useCallback((val: string) => {
@@ -70,7 +78,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
     if (val.trim().length < 1) { setSuggestions([]); setShowSuggestions(false); return; }
     searchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/sales/clients?search=${encodeURIComponent(val)}&limit=15`);
+        const res = await fetch(`/api/sales/clients?search=${encodeURIComponent(val)}&limit=15&type=${type}`);
         const data = await res.json();
         if (data.clients) {
           setSuggestions(data.clients.map((c: any) => ({
@@ -80,7 +88,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
         }
       } catch { /* ignore */ }
     }, 300);
-  }, []);
+  }, [type]);
 
   // 외부 클릭 닫기
   useEffect(() => {
@@ -98,7 +106,6 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
     setSelectedClient(item);
     setClientSearch(item.name);
     setShowSuggestions(false);
-    if (item.type) setType(item.type as 'wine' | 'glass');
   };
 
   // 조회
@@ -167,6 +174,21 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
       }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', marginBottom: 14 }}>
           매출처원장
+        </div>
+
+        {/* 창고 선택 */}
+        <div style={{ display: 'flex', gap: 4, background: 'rgba(90,21,21,0.04)', borderRadius: 8, padding: 2, marginBottom: 12, alignSelf: 'flex-start', width: 'fit-content' }}>
+          {([['wine', '까브드뱅'], ['glass', '대유라이프']] as const).map(([t, label]) => (
+            <button key={t} onClick={() => handleTypeChange(t)} style={{
+              padding: '8px 18px', borderRadius: 6, border: 'none',
+              fontSize: 13, fontWeight: type === t ? 700 : 500,
+              background: type === t ? '#fff' : 'transparent',
+              color: type === t ? '#5A1515' : '#8a8580',
+              cursor: 'pointer', boxShadow: type === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* 거래처 검색 */}
@@ -249,21 +271,6 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                 outline: 'none', boxSizing: 'border-box', background: '#faf9f7',
               }}
             />
-          </div>
-          <div style={{ flex: '0 0 auto' }}>
-            <div style={{ display: 'flex', gap: 4, background: 'rgba(90,21,21,0.04)', borderRadius: 8, padding: 2 }}>
-              {(['wine', 'glass'] as const).map(t => (
-                <button key={t} onClick={() => setType(t)} style={{
-                  padding: '8px 14px', borderRadius: 6, border: 'none',
-                  fontSize: 12, fontWeight: type === t ? 700 : 500,
-                  background: type === t ? '#fff' : 'transparent',
-                  color: type === t ? '#5A1515' : '#8a8580',
-                  cursor: 'pointer', boxShadow: type === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                }}>
-                  {t === 'wine' ? '와인' : '글라스'}
-                </button>
-              ))}
-            </div>
           </div>
           <button onClick={handleSearch} disabled={loading} style={{
             padding: '10px 24px', borderRadius: 10, border: 'none',
