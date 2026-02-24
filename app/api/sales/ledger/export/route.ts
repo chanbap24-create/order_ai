@@ -292,8 +292,8 @@ async function generateExcel(client: any, grouped: GroupedMonth[], prevBalance: 
 
 // ─── PDF 생성 ───
 async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NanumGothic.ttf');
-  const fontBoldPath = path.join(process.cwd(), 'public', 'fonts', 'NanumGothic-Bold.ttf');
+  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'MalgunGothic.ttf');
+  const fontBoldPath = path.join(process.cwd(), 'public', 'fonts', 'MalgunGothic-Bold.ttf');
 
   const hasFont = fs.existsSync(fontPath);
   const hasBoldFont = fs.existsSync(fontBoldPath);
