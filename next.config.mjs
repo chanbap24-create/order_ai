@@ -39,6 +39,10 @@ const nextConfig = {
       'node_modules/lodash/**',
     ],
   },
+  // pdfkit AFM 폰트 데이터 파일을 서버리스 함수에 포함
+  outputFileTracingIncludes: {
+    '/api/*': ['./node_modules/pdfkit/**/*'],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
