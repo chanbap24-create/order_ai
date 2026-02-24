@@ -48,11 +48,19 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (dbNote && (dbNote.color_note || dbNote.nose_note || dbNote.palate_note)) {
+        // 와인 기본정보도 함께 조회 (원본 레이아웃 렌더링용)
+        const { data: wineInfo } = await supabase
+          .from('wines')
+          .select('item_code, item_name_kr, item_name_en, vintage, country, country_en, region, grape_varieties, alcohol, image_url, brand')
+          .eq('item_code', itemNo)
+          .maybeSingle();
+
         return NextResponse.json({
           success: true,
           source: 'db',
           item_no: itemNo,
           tasting_note: dbNote,
+          wine_info: wineInfo || null,
           pdf_url: pdfUrl,
           updated_at: dbNote.updated_at,
         });

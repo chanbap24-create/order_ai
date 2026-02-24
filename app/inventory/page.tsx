@@ -271,6 +271,7 @@ export default function InventoryPage() {
   const [selectedWineName, setSelectedWineName] = useState('');
   const [tastingNoteSource, setTastingNoteSource] = useState<'pdf' | 'db' | ''>('');
   const [dbTastingNote, setDbTastingNote] = useState<any>(null);
+  const [dbWineInfo, setDbWineInfo] = useState<any>(null);
   const [tastingNotesAvailable, setTastingNotesAvailable] = useState<Record<string, boolean>>({});
 
   // ── Quote state ──
@@ -558,6 +559,7 @@ export default function InventoryPage() {
     setShowTastingNote(true);
     setTastingNoteSource('');
     setDbTastingNote(null);
+    setDbWineInfo(null);
     setTastingNoteUrl('');
     setOriginalPdfUrl('');
     try {
@@ -567,6 +569,7 @@ export default function InventoryPage() {
         if (data.source === 'db') {
           setTastingNoteSource('db');
           setDbTastingNote(data.tasting_note);
+          setDbWineInfo(data.wine_info || null);
           // DB 소스여도 PDF URL이 있으면 다운로드용으로 저장
           if (data.pdf_url) {
             setOriginalPdfUrl(data.pdf_url);
@@ -2099,70 +2102,125 @@ export default function InventoryPage() {
                   <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>...</div>
                   <div>테이스팅 노트를 불러오는 중...</div>
                 </div>
-              ) : tastingNoteSource === 'db' && dbTastingNote ? (
-                <div style={{ width: '100%', height: '100%', overflow: 'auto', padding: '8px 0' }}>
+              ) : tastingNoteSource === 'db' && dbTastingNote ? (() => {
+                const tn = dbTastingNote;
+                const wi = dbWineInfo;
+                const nameKr = (wi?.item_name_kr || selectedWineName || '').replace(/^[A-Za-z]{2}\s+/, '');
+                const nameEn = wi?.item_name_en || '';
+                const country = wi?.country_en || tn.country || '';
+                const region = wi?.region || tn.region || '';
+                const grapes = wi?.grape_varieties || tn.grape_varieties || '';
+                const vintage = wi?.vintage || '';
+                const alcohol = wi?.alcohol || '';
+                const wineryTag = (tn.winery_description || '').split('.')[0]?.trim() || '';
+                const awards = tn.awards && tn.awards !== 'N/A' ? tn.awards : '';
+                return (
+                <div style={{ width: '100%', height: '100%', overflow: 'auto', padding: '4px 0' }}>
+                  {/* Download buttons */}
                   {originalPdfUrl && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 8, maxWidth: 720, margin: '0 auto 8px auto' }}>
-                      <button
-                        onClick={() => handleDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}
-                        style={{
-                          padding: '5px 14px', borderRadius: 6, border: 'none',
-                          background: '#5A1515', color: 'white', fontWeight: 600,
-                          fontSize: '0.75rem', cursor: 'pointer',
-                        }}
-                      >
-                        PDF
-                      </button>
-                      <button
-                        onClick={() => handleDownload(originalPdfUrl.replace('.pdf', '.pptx'), `${selectedItemNo}.pptx`)}
-                        style={{
-                          padding: '5px 14px', borderRadius: 6, border: 'none',
-                          background: '#1a1a2e', color: 'white', fontWeight: 600,
-                          fontSize: '0.75rem', cursor: 'pointer',
-                        }}
-                      >
-                        PPTX
-                      </button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, maxWidth: 600, margin: '0 auto 6px auto', padding: '0 8px' }}>
+                      <button onClick={() => handleDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}
+                        style={{ padding: '4px 12px', borderRadius: 5, border: 'none', background: '#5A1515', color: 'white', fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}>PDF</button>
+                      <button onClick={() => handleDownload(originalPdfUrl.replace('.pdf', '.pptx'), `${selectedItemNo}.pptx`)}
+                        style={{ padding: '4px 12px', borderRadius: 5, border: 'none', background: '#1a1a2e', color: 'white', fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}>PPTX</button>
                     </div>
                   )}
-                  <div style={{ maxWidth: 720, margin: '0 auto' }}>
-                    {[
-                      { label: 'Color', value: dbTastingNote.color_note },
-                      { label: 'Nose', value: dbTastingNote.nose_note },
-                      { label: 'Palate', value: dbTastingNote.palate_note },
-                      { label: 'Food Pairing', value: dbTastingNote.food_pairing },
-                      { label: 'Glass', value: dbTastingNote.glass_pairing },
-                      { label: 'Serving Temp', value: dbTastingNote.serving_temp },
-                      { label: 'Awards', value: dbTastingNote.awards },
-                      { label: 'Winemaking', value: dbTastingNote.winemaking },
-                      { label: 'Winery', value: dbTastingNote.winery_description },
-                      { label: 'Vintage', value: dbTastingNote.vintage_note },
-                      { label: 'Aging', value: dbTastingNote.aging_potential },
-                    ].filter(item => item.value).map((item, idx) => (
-                      <div key={idx} style={{
-                        marginBottom: 16, padding: '12px 16px',
-                        background: '#fafaf8', borderRadius: 8, border: '1px solid #eee',
-                      }}>
-                        <div style={{
-                          fontSize: 11, fontWeight: 700, color: '#8B1538',
-                          textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6,
-                        }}>{item.label}</div>
-                        <div style={{
-                          fontSize: 14, color: '#333', lineHeight: 1.6, whiteSpace: 'pre-wrap',
-                        }}>{item.value}</div>
-                      </div>
-                    ))}
-                    {dbTastingNote.grape_varieties && (
-                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8, fontSize: 12, color: '#666' }}>
-                        <span>Grape: {dbTastingNote.grape_varieties}</span>
-                        {dbTastingNote.wine_type && <span>Type: {dbTastingNote.wine_type}</span>}
-                        {dbTastingNote.country && <span>Country: {dbTastingNote.country}</span>}
-                        {dbTastingNote.region && <span>Region: {dbTastingNote.region}</span>}
+                  {/* Original-style tasting note card */}
+                  <div style={{
+                    maxWidth: 600, margin: '0 auto', background: '#fff',
+                    borderRadius: 10, overflow: 'hidden',
+                    border: '1px solid #E0D5C8', boxShadow: '0 2px 12px rgba(90,21,21,0.08)',
+                  }}>
+                    {/* Header: winery tagline */}
+                    {wineryTag && (
+                      <div style={{ padding: '10px 16px 0', fontSize: 11, color: '#8A8A8A', lineHeight: 1.4 }}>{wineryTag}</div>
+                    )}
+                    {/* Burgundy divider */}
+                    <div style={{ margin: '8px 16px 0', height: 2, background: '#722F37' }} />
+                    <div style={{ margin: '2px 16px 0', height: 1, background: '#D4C4A8' }} />
+                    {/* Wine name card */}
+                    <div style={{ margin: '12px 16px 0', padding: '12px 16px', background: '#F9F3F4', borderRadius: 8, border: '1px solid #E0D5C8' }}>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: '#5A252C', lineHeight: 1.35 }}>{nameKr}</div>
+                      {nameEn && <div style={{ fontSize: 13, color: '#5A5A5A', fontStyle: 'italic', marginTop: 4 }}>{nameEn}</div>}
+                    </div>
+                    {/* Info badges */}
+                    <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {(country || region) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ padding: '2px 10px', borderRadius: 4, background: '#722F37', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>지역</span>
+                          <span style={{ fontSize: 13, color: '#2C2C2C' }}>{region ? `${country}, ${region}` : country}</span>
+                        </div>
+                      )}
+                      {grapes && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ padding: '2px 10px', borderRadius: 4, background: '#722F37', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>품종</span>
+                          <span style={{ fontSize: 13, color: '#2C2C2C' }}>{grapes}</span>
+                        </div>
+                      )}
+                      {vintage && (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <span style={{ padding: '2px 10px', borderRadius: 4, background: '#722F37', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>빈티지</span>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: '#722F37' }}>{vintage.length === 2 ? (parseInt(vintage) >= 50 ? `19${vintage}` : `20${vintage}`) : vintage}</span>
+                          {tn.vintage_note && <span style={{ fontSize: 11, color: '#5A5A5A', lineHeight: 1.4, marginTop: 2 }}>{tn.vintage_note}</span>}
+                        </div>
+                      )}
+                    </div>
+                    {/* Winemaking */}
+                    {tn.winemaking && (
+                      <div style={{ padding: '12px 16px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <span style={{ padding: '2px 10px', borderRadius: 4, background: '#722F37', color: '#fff', fontSize: 11, fontWeight: 700 }}>양조</span>
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#2C2C2C', lineHeight: 1.6 }}>
+                          {tn.winemaking}
+                          {alcohol && <span style={{ color: '#5A5A5A' }}>{'\n'}알코올: {alcohol}</span>}
+                        </div>
                       </div>
                     )}
+                    {/* Tasting Note section */}
+                    <div style={{ margin: '14px 16px 0', padding: '14px 16px', background: '#F6EFF0', borderRadius: 8, border: '1px solid #E0D5C8' }}>
+                      <span style={{ padding: '2px 14px', borderRadius: 4, background: '#722F37', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' }}>TASTING NOTE</span>
+                      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {[
+                          { label: 'Color', value: tn.color_note },
+                          { label: 'Nose', value: tn.nose_note },
+                          { label: 'Palate', value: tn.palate_note },
+                          { label: 'Potential', value: tn.aging_potential },
+                        ].filter(x => x.value).map((x, i) => (
+                          <div key={i}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#722F37', fontStyle: 'italic', marginBottom: 2 }}>{x.label}</div>
+                            <div style={{ fontSize: 12.5, color: '#2C2C2C', lineHeight: 1.6 }}>{x.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Food pairing */}
+                    {tn.food_pairing && (
+                      <div style={{ padding: '12px 16px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <span style={{ padding: '2px 10px', borderRadius: 4, background: '#722F37', color: '#fff', fontSize: 11, fontWeight: 700 }}>푸드 페어링</span>
+                          {tn.serving_temp && <span style={{ fontSize: 11, color: '#8A8A8A' }}>{tn.serving_temp}</span>}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#2C2C2C', lineHeight: 1.6 }}>{tn.food_pairing}</div>
+                      </div>
+                    )}
+                    {/* Awards */}
+                    {awards && (
+                      <div style={{ margin: '12px 16px 0', padding: '8px 12px', borderTop: '1px solid #D4C4A8' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#B8976A', letterSpacing: '0.05em' }}>AWARDS</span>
+                        <span style={{ fontSize: 12, color: '#2C2C2C', marginLeft: 8 }}>{awards}</span>
+                      </div>
+                    )}
+                    {/* Footer */}
+                    <div style={{ margin: '10px 16px 0', height: 2, background: '#722F37' }} />
+                    <div style={{ height: 1, margin: '2px 16px 0', background: '#D4C4A8' }} />
+                    <div style={{ padding: '8px 16px 12px', fontSize: 10, color: '#8A8A8A' }}>
+                      T. 02-786-3136 | www.cavedevin.co.kr
+                    </div>
                   </div>
                 </div>
-              ) : tastingNoteSource === 'pdf' && tastingNoteUrl ? (
+                );
+              })() : tastingNoteSource === 'pdf' && tastingNoteUrl ? (
                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                     <button
