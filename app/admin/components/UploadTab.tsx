@@ -18,10 +18,15 @@ const UPLOAD_AREAS = [
       <line x1="12" y1="12" x2="12" y2="19"/><line x1="9" y1="19" x2="15" y2="19"/><path d="M9 19 L9 20 L15 20 L15 19"/>
     </svg>
   )},
-  { type: 'riedel', label: '리델리스트', description: '리델 가격 리스트', icon: (
+  { type: 'payments', label: '수금내역(Wine)', description: '와인 거래처별 수금 입금 내역', icon: (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+  )},
+  { type: 'dl-payments', label: '수금내역(DL)', description: 'DL(RIEDEL) 거래처별 수금 입금 내역', icon: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+      <circle cx="19" cy="5" r="4" fill="var(--color-primary)" stroke="none" opacity="0.3"/>
     </svg>
   )},
   { type: 'downloads', label: '와인재고현황', description: '와인 재고 현황 데이터', icon: (
@@ -41,9 +46,10 @@ const UPLOAD_AREAS = [
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
     </svg>
   )},
-  { type: 'payments', label: '수금내역', description: '거래처별 수금 입금 내역', icon: (
+  { type: 'riedel', label: '리델리스트', description: '리델 가격 리스트', icon: (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
     </svg>
   )},
 ] as const;
@@ -66,7 +72,8 @@ const UPLOAD_LABELS: Record<string, string> = {
   downloads: '와인재고현황',
   dl: '글라스재고현황',
   english: '와인리스트',
-  payments: '수금내역',
+  payments: '수금내역(Wine)',
+  'dl-payments': '수금내역(DL)',
 };
 
 function formatTimestamp(iso: string | null): string {
@@ -96,15 +103,22 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       ])
     )
   );
-  // 누적/교체 모드: client, dl-client만 해당
+  // 누적/교체 모드: client, dl-client, payments, dl-payments
   const [uploadMode, setUploadMode] = useState<Record<string, 'append' | 'replace'>>({
     client: 'append',
     'dl-client': 'append',
+    payments: 'append',
+    'dl-payments': 'append',
   });
   // shipment 마지막 날짜
   const [shipmentLastDates, setShipmentLastDates] = useState<Record<string, string | null>>({
     client: null,
     'dl-client': null,
+  });
+  // payment 마지막 날짜
+  const [paymentLastDates, setPaymentLastDates] = useState<Record<string, string | null>>({
+    payments: null,
+    'dl-payments': null,
   });
 
   const checkStatus = async () => {
@@ -116,6 +130,9 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       setStatusResult(data);
       if (data.shipmentLastDates) {
         setShipmentLastDates(data.shipmentLastDates);
+      }
+      if (data.paymentLastDates) {
+        setPaymentLastDates(data.paymentLastDates);
       }
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : '상태 확인 실패');
@@ -143,8 +160,8 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
     try {
       let res: Response;
 
-      // 수금내역: 브라우저에서 파싱 후 JSON 전송
-      if (type === 'payments') {
+      // 수금내역: 브라우저에서 파싱 후 JSON 전송 (wine / dl-payments 공용)
+      if (type === 'payments' || type === 'dl-payments') {
         updateCard(type, { status: 'uploading', fileName: file.name, message: '파일 분석 중...' });
         const XLSX = await import('xlsx');
         const buf = await file.arrayBuffer();
@@ -199,13 +216,24 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           }
         }
 
-        updateCard(type, { status: 'uploading', fileName: file.name, message: `${payments.length}건 수금 + ${carryovers.length}건 이월 업로드 중...` });
+        const currentPayMode = uploadMode[type] || 'replace';
+        // append 모드: 엑셀 데이터의 최소 payment_date 계산
+        let payMinDate: string | undefined;
+        if (currentPayMode === 'append') {
+          const dates = payments.map(p => p.payment_date).filter(Boolean);
+          if (dates.length > 0) payMinDate = dates.sort()[0];
+        }
 
-        res = await fetch('/api/admin/upload-data/payments', {
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${payments.length}건 수금 + ${carryovers.length}건 이월 업로드 중... (${currentPayMode === 'append' ? '누적' : '교체'})` });
+
+        const payEndpoint = type === 'dl-payments' ? 'dl-payments' : 'payments';
+        res = await fetch(`/api/admin/upload-data/${payEndpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payments, carryovers }),
+          body: JSON.stringify({ payments, carryovers, mode: currentPayMode, minDate: payMinDate }),
         });
+
+        if (res.ok) checkStatus();
       }
       // client/dl-client: 대용량 파일 → 브라우저에서 파싱 후 JSON 전송
       else if (type === 'client' || type === 'dl-client') {
@@ -445,23 +473,31 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           각 시트별 엑셀 파일을 업로드하여 DB 데이터를 교체합니다.
         </p>
         <div style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-md)', background: '#FFF8E1', border: '1px solid #FFE082', fontSize: 'var(--text-sm)', color: '#7C6800', marginBottom: 'var(--space-5)' }}>
-          출고현황(Client/DL-Client)은 누적 추가/전체 교체 모드를 선택할 수 있습니다. 그 외 시트는 업로드 시 기존 데이터가 교체됩니다.
+          출고현황(Client/DL-Client)과 수금내역(Wine/DL)은 누적 추가/전체 교체 모드를 선택할 수 있습니다. 그 외 시트는 업로드 시 기존 데이터가 교체됩니다.
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 'var(--space-5)' }}>
-        {UPLOAD_AREAS.map((area) => (
-          <UploadCard
-            key={area.type}
-            area={area}
-            state={cards[area.type]}
-            onUpload={handleUpload}
-            onDragState={(over) => updateCard(area.type, { isDragOver: over })}
-            uploadMode={(area.type === 'client' || area.type === 'dl-client') ? uploadMode[area.type] : undefined}
-            onModeChange={(area.type === 'client' || area.type === 'dl-client') ? (mode) => setUploadMode(prev => ({ ...prev, [area.type]: mode })) : undefined}
-            lastDate={(area.type === 'client' || area.type === 'dl-client') ? shipmentLastDates[area.type] : undefined}
-          />
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 'var(--space-5)', alignItems: 'start' }}>
+        {UPLOAD_AREAS.map((area) => {
+          const hasMode = area.type === 'client' || area.type === 'dl-client' || area.type === 'payments' || area.type === 'dl-payments';
+          const lastDate = (area.type === 'client' || area.type === 'dl-client')
+            ? shipmentLastDates[area.type]
+            : (area.type === 'payments' || area.type === 'dl-payments')
+              ? paymentLastDates[area.type]
+              : undefined;
+          return (
+            <UploadCard
+              key={area.type}
+              area={area}
+              state={cards[area.type]}
+              onUpload={handleUpload}
+              onDragState={(over) => updateCard(area.type, { isDragOver: over })}
+              uploadMode={hasMode ? uploadMode[area.type] : undefined}
+              onModeChange={hasMode ? (mode) => setUploadMode(prev => ({ ...prev, [area.type]: mode })) : undefined}
+              lastDate={lastDate}
+            />
+          );
+        })}
       </div>
     </div>
   );

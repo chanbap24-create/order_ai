@@ -798,10 +798,16 @@ export interface PaymentRow {
   department: string;
 }
 
-export async function processPaymentsFromData(payments: PaymentRow[]) {
-  // 전체 교체 (매번 최신 데이터로)
-  await supabase.from('payments').delete().not('id', 'is', null);
-  logger.info(`[Payments] Cleared payments table`);
+export async function processPaymentsFromData(payments: PaymentRow[], append = false, minDate?: string) {
+  if (append && minDate) {
+    // 누적 모드: minDate 이후 기존 데이터 삭제 후 재삽입
+    await supabase.from('payments').delete().gte('payment_date', minDate);
+    logger.info(`[Payments] Deleted payments >= ${minDate} (append mode)`);
+  } else {
+    // 전체 교체
+    await supabase.from('payments').delete().not('id', 'is', null);
+    logger.info(`[Payments] Cleared payments table`);
+  }
 
   let inserted = 0;
   for (let i = 0; i < payments.length; i += 500) {
@@ -825,9 +831,11 @@ export interface CarryoverRow {
   carryover_amount: number;
 }
 
-export async function processCarryoverFromData(carryovers: CarryoverRow[]) {
-  await supabase.from('client_carryover').delete().not('id', 'is', null);
-  logger.info(`[Carryover] Cleared client_carryover table`);
+export async function processCarryoverFromData(carryovers: CarryoverRow[], append = false) {
+  if (!append) {
+    await supabase.from('client_carryover').delete().not('id', 'is', null);
+    logger.info(`[Carryover] Cleared client_carryover table`);
+  }
 
   let inserted = 0;
   for (let i = 0; i < carryovers.length; i += 500) {
@@ -841,6 +849,53 @@ export async function processCarryoverFromData(carryovers: CarryoverRow[]) {
   }
 
   logger.info(`[Carryover] Inserted ${inserted} rows`);
+  return { inserted };
+}
+
+/* ─── DL(RIEDEL) 수금내역 처리 ─── */
+export async function processDlPaymentsFromData(payments: PaymentRow[], append = false, minDate?: string) {
+  if (append && minDate) {
+    await supabase.from('glass_payments').delete().gte('payment_date', minDate);
+    logger.info(`[DL-Payments] Deleted glass_payments >= ${minDate} (append mode)`);
+  } else {
+    await supabase.from('glass_payments').delete().not('id', 'is', null);
+    logger.info(`[DL-Payments] Cleared glass_payments table`);
+  }
+
+  let inserted = 0;
+  for (let i = 0; i < payments.length; i += 500) {
+    const batch = payments.slice(i, i + 500);
+    const { error } = await supabase.from('glass_payments').insert(batch);
+    if (error) {
+      logger.error(`[DL-Payments] insert error at batch ${i}`, { error });
+      throw new Error(`glass_payments insert failed: ${error.message}`);
+    }
+    inserted += batch.length;
+  }
+
+  logger.info(`[DL-Payments] Inserted ${inserted} rows`);
+  return { inserted };
+}
+
+/* ─── DL(RIEDEL) 이월 미수금 처리 ─── */
+export async function processDlCarryoverFromData(carryovers: CarryoverRow[], append = false) {
+  if (!append) {
+    await supabase.from('glass_client_carryover').delete().not('id', 'is', null);
+    logger.info(`[DL-Carryover] Cleared glass_client_carryover table`);
+  }
+
+  let inserted = 0;
+  for (let i = 0; i < carryovers.length; i += 500) {
+    const batch = carryovers.slice(i, i + 500);
+    const { error } = await supabase.from('glass_client_carryover').upsert(batch, { onConflict: 'client_code' });
+    if (error) {
+      logger.error(`[DL-Carryover] insert error at batch ${i}`, { error });
+      throw new Error(`glass_client_carryover insert failed: ${error.message}`);
+    }
+    inserted += batch.length;
+  }
+
+  logger.info(`[DL-Carryover] Inserted ${inserted} rows`);
   return { inserted };
 }
 

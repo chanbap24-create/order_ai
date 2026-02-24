@@ -3,8 +3,10 @@ import { supabase } from '@/app/lib/db';
 import ExcelJS from 'exceljs';
 
 // ─── 데이터 조회 (ledger route.ts와 동일 로직) ───
-async function fetchLedgerData(clientCode: string, startDate: string, endDate: string, clientType: string) {
+export async function fetchLedgerData(clientCode: string, startDate: string, endDate: string, clientType: string) {
   const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
+  const payTable = clientType === 'glass' ? 'glass_payments' : 'payments';
+  const carryoverTable = clientType === 'glass' ? 'glass_client_carryover' : 'client_carryover';
   const batch = 1000;
 
   // 거래처 정보
@@ -59,10 +61,10 @@ async function fetchLedgerData(clientCode: string, startDate: string, endDate: s
 
   // 이월 미수금
   let carryover = 0;
-  const { data: co } = await supabase.from('client_carryover').select('carryover_amount').in('client_code', allCodes);
+  const { data: co } = await supabase.from(carryoverTable).select('carryover_amount').in('client_code', allCodes);
   if (co) for (const c of co) carryover += (c.carryover_amount || 0);
   if (clientName) {
-    const { data: coName } = await supabase.from('client_carryover').select('carryover_amount')
+    const { data: coName } = await supabase.from(carryoverTable).select('carryover_amount')
       .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`);
     if (coName) for (const c of coName) carryover += (c.carryover_amount || 0);
   }
@@ -86,7 +88,7 @@ async function fetchLedgerData(clientCode: string, startDate: string, endDate: s
   let prevPay = 0;
   let ppf = 0;
   while (true) {
-    const { data, error } = await supabase.from('payments').select('amount')
+    const { data, error } = await supabase.from(payTable).select('amount')
       .in('client_code', allCodes).lt('payment_date', startDate)
       .range(ppf, ppf + batch - 1);
     if (error) throw error;
@@ -102,7 +104,7 @@ async function fetchLedgerData(clientCode: string, startDate: string, endDate: s
   const payments: any[] = [];
   let payFrom = 0;
   while (true) {
-    const { data, error } = await supabase.from('payments')
+    const { data, error } = await supabase.from(payTable)
       .select('client_code, client_name, payment_date, amount')
       .in('client_code', allCodes).gte('payment_date', startDate).lte('payment_date', endDate)
       .order('payment_date', { ascending: true }).range(payFrom, payFrom + batch - 1);
@@ -117,7 +119,7 @@ async function fetchLedgerData(clientCode: string, startDate: string, endDate: s
   if (clientName) {
     let npf = 0;
     while (true) {
-      const { data, error } = await supabase.from('payments')
+      const { data, error } = await supabase.from(payTable)
         .select('client_code, client_name, payment_date, amount')
         .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
         .gte('payment_date', startDate).lte('payment_date', endDate)
@@ -134,10 +136,10 @@ async function fetchLedgerData(clientCode: string, startDate: string, endDate: s
 }
 
 // ─── 데이터 그룹화 ───
-interface GroupedDay { date: string; shipRows: any[]; payRows: any[]; totals: { qty: number; supply: number; tax: number; total: number; payment: number } }
-interface GroupedMonth { month: string; days: GroupedDay[]; totals: { qty: number; supply: number; tax: number; total: number; payment: number } }
+export interface GroupedDay { date: string; shipRows: any[]; payRows: any[]; totals: { qty: number; supply: number; tax: number; total: number; payment: number } }
+export interface GroupedMonth { month: string; days: GroupedDay[]; totals: { qty: number; supply: number; tax: number; total: number; payment: number } }
 
-function groupData(rows: any[], payments: any[]): GroupedMonth[] {
+export function groupData(rows: any[], payments: any[]): GroupedMonth[] {
   const payByDay = new Map<string, any[]>();
   for (const p of payments) {
     const d = p.payment_date.slice(0, 10);
@@ -182,7 +184,7 @@ function groupData(rows: any[], payments: any[]): GroupedMonth[] {
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
 // ─── Excel 생성 ───
-async function generateExcel(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
+export async function generateExcel(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('매출처원장');
 

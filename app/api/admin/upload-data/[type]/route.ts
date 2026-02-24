@@ -1,12 +1,12 @@
 // app/api/admin/upload-data/[type]/route.ts
 // 클라이언트에서 파싱된 JSON 데이터를 받아 DB에 저장 (대용량 파일 대응)
 import { NextRequest, NextResponse } from "next/server";
-import { processClientFromData, processDlClientFromData, processShipmentsFromData, processPaymentsFromData, processCarryoverFromData } from "@/app/lib/adminUpload";
+import { processClientFromData, processDlClientFromData, processShipmentsFromData, processPaymentsFromData, processCarryoverFromData, processDlPaymentsFromData, processDlCarryoverFromData } from "@/app/lib/adminUpload";
 import type { ShipmentRow, PaymentRow, CarryoverRow } from "@/app/lib/adminUpload";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 
-const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments'] as const;
+const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments', 'dl-payments'] as const;
 
 export async function POST(
   request: NextRequest,
@@ -26,18 +26,38 @@ export async function POST(
 
     // 수금내역 업로드 (이월 미수금 포함)
     if (type === 'payments') {
-      const { payments, carryovers } = body as { payments: PaymentRow[]; carryovers?: CarryoverRow[] };
+      const { payments, carryovers, mode, minDate } = body as { payments: PaymentRow[]; carryovers?: CarryoverRow[]; mode?: string; minDate?: string };
       if (!payments || !Array.isArray(payments)) {
         return NextResponse.json(
           { success: false, error: 'payments 배열이 필요합니다.' },
           { status: 400 }
         );
       }
-      logger.info(`Admin upload-data: type=payments, rows=${payments.length}, carryovers=${carryovers?.length || 0}`);
-      const result = await processPaymentsFromData(payments);
+      const append = mode === 'append';
+      logger.info(`Admin upload-data: type=payments, rows=${payments.length}, carryovers=${carryovers?.length || 0}, mode=${mode || 'replace'}, minDate=${minDate || 'none'}`);
+      const result = await processPaymentsFromData(payments, append, minDate);
       let carryoverResult = null;
       if (carryovers && carryovers.length > 0) {
-        carryoverResult = await processCarryoverFromData(carryovers);
+        carryoverResult = await processCarryoverFromData(carryovers, append);
+      }
+      return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult });
+    }
+
+    // DL(RIEDEL) 수금내역 업로드
+    if (type === 'dl-payments') {
+      const { payments, carryovers, mode, minDate } = body as { payments: PaymentRow[]; carryovers?: CarryoverRow[]; mode?: string; minDate?: string };
+      if (!payments || !Array.isArray(payments)) {
+        return NextResponse.json(
+          { success: false, error: 'payments 배열이 필요합니다.' },
+          { status: 400 }
+        );
+      }
+      const append = mode === 'append';
+      logger.info(`Admin upload-data: type=dl-payments, rows=${payments.length}, carryovers=${carryovers?.length || 0}, mode=${mode || 'replace'}, minDate=${minDate || 'none'}`);
+      const result = await processDlPaymentsFromData(payments, append, minDate);
+      let carryoverResult = null;
+      if (carryovers && carryovers.length > 0) {
+        carryoverResult = await processDlCarryoverFromData(carryovers, append);
       }
       return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult });
     }

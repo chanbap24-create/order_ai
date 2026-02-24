@@ -164,6 +164,21 @@ export async function GET() {
       .limit(1)
       .single();
 
+    // payment 마지막 날짜 조회
+    const { data: payMaxDate } = await supabase
+      .from('payments')
+      .select('payment_date')
+      .order('payment_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    const { data: glassPayMaxDate } = await supabase
+      .from('glass_payments')
+      .select('payment_date')
+      .order('payment_date', { ascending: false })
+      .limit(1)
+      .single();
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -179,7 +194,11 @@ export async function GET() {
       shipmentLastDates: {
         client: shipMaxDate?.ship_date || null,
         'dl-client': glassShipMaxDate?.ship_date || null,
-      }
+      },
+      paymentLastDates: {
+        payments: payMaxDate?.payment_date || null,
+        'dl-payments': glassPayMaxDate?.payment_date || null,
+      },
     });
   } catch (error: any) {
     return NextResponse.json(

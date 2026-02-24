@@ -19,6 +19,8 @@ export async function GET(req: NextRequest) {
     }
 
     const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
+    const payTable = clientType === 'glass' ? 'glass_payments' : 'payments';
+    const carryoverTable = clientType === 'glass' ? 'glass_client_carryover' : 'client_carryover';
 
     // 거래처 정보
     const { data: clientInfo } = await supabase
@@ -97,7 +99,7 @@ export async function GET(req: NextRequest) {
     // 이월 미수금 조회 (25년 7월 이전 잔액)
     let carryover = 0;
     const { data: carryoverData } = await supabase
-      .from('client_carryover')
+      .from(carryoverTable)
       .select('carryover_amount')
       .in('client_code', allCodes);
     if (carryoverData) {
@@ -107,7 +109,7 @@ export async function GET(req: NextRequest) {
     // 이름 기반 이월 추가
     if (clientName) {
       const { data: carryoverName } = await supabase
-        .from('client_carryover')
+        .from(carryoverTable)
         .select('carryover_amount')
         .eq('client_name', clientName)
         .not('client_code', 'in', `(${allCodes.join(',')})`);
@@ -161,7 +163,7 @@ export async function GET(req: NextRequest) {
     let prevPayFrom = 0;
     while (true) {
       const { data, error } = await supabase
-        .from('payments')
+        .from(payTable)
         .select('amount')
         .in('client_code', allCodes)
         .lt('payment_date', startDate)
@@ -178,7 +180,7 @@ export async function GET(req: NextRequest) {
       let namePrevPayFrom = 0;
       while (true) {
         const { data, error } = await supabase
-          .from('payments')
+          .from(payTable)
           .select('amount')
           .eq('client_name', clientName)
           .not('client_code', 'in', `(${allCodes.join(',')})`)
@@ -202,7 +204,7 @@ export async function GET(req: NextRequest) {
     let payFrom = 0;
     while (true) {
       const { data: pd, error: pe } = await supabase
-        .from('payments')
+        .from(payTable)
         .select('client_code, client_name, payment_date, amount')
         .in('client_code', allCodes)
         .gte('payment_date', startDate)
@@ -222,7 +224,7 @@ export async function GET(req: NextRequest) {
       let namePayFrom = 0;
       while (true) {
         const { data: pd2, error: pe2 } = await supabase
-          .from('payments')
+          .from(payTable)
           .select('client_code, client_name, payment_date, amount')
           .eq('client_name', clientName)
           .not('client_code', 'in', `(${allCodes.join(',')})`)
