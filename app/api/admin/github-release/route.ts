@@ -43,12 +43,9 @@ export async function POST(request: NextRequest) {
           fileName = `${wineId}.pdf`;
           contentType = "application/pdf";
         } else {
-          // PPTX
-          let pptxBuffer = readOutputFile(wineId, "pptx");
-          if (!pptxBuffer) {
-            pptxBuffer = await generateSingleWinePpt(wineId);
-            savePptx(wineId, pptxBuffer);
-          }
+          // PPTX - 항상 새로 생성 (이미지 변경 반영)
+          const pptxBuffer = await generateSingleWinePpt(wineId);
+          savePptx(wineId, pptxBuffer);
           buffer = pptxBuffer;
           fileName = `${wineId}.pptx`;
           contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
