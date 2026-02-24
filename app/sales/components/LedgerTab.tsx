@@ -144,6 +144,19 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
     }
   };
 
+  // 내보내기
+  const handleExport = (format: 'excel' | 'pdf') => {
+    if (!selectedClient) return;
+    const params = new URLSearchParams({
+      client_code: selectedClient.code,
+      start_date: startDate,
+      end_date: endDate,
+      type,
+      format,
+    });
+    window.open(`/api/sales/ledger/export?${params}`, '_blank');
+  };
+
   // 데이터 가공: 월별 → 일별 → 행
   const grouped = groupData(rows, payments);
 
@@ -334,8 +347,18 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
               <span style={{ fontSize: 16, fontWeight: 700, color: '#2c1810' }}>{client.client_name}</span>
               <span style={{ fontSize: 12, color: '#8a8580', marginLeft: 8 }}>{client.client_code}</span>
             </div>
-            <div style={{ fontSize: 12, color: '#8a8580' }}>
-              {startDate} ~ {endDate} · {rows.length}건
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: '#8a8580' }}>
+                {startDate} ~ {endDate} · {rows.length}건
+              </span>
+              <button onClick={() => handleExport('excel')} style={{
+                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.15)',
+                background: '#fff', fontSize: 11, fontWeight: 600, color: '#2e7d32', cursor: 'pointer',
+              }}>Excel</button>
+              <button onClick={() => handleExport('pdf')} style={{
+                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.15)',
+                background: '#fff', fontSize: 11, fontWeight: 600, color: '#c62828', cursor: 'pointer',
+              }}>PDF</button>
             </div>
           </div>
 
@@ -492,7 +515,7 @@ function DayGroup({ day, collapsed, onToggle, endBalance }: { day: DayData; coll
           <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>
             {day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}
           </td>
-          <td style={{ ...tdStyle, color: '#1565C0', fontWeight: 600 }}>수금</td>
+          <td style={{ ...tdStyle, color: '#1565C0', fontWeight: 600 }}>입금</td>
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
