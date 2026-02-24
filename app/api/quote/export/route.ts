@@ -49,6 +49,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'retail_price', label: '소비자가', width: 12, type: 'currency', dataField: 'retail_price' },
   { uiKey: 'discount_rate', label: '할인율', width: 8, type: 'percent', dataField: 'discount_rate' },
   { uiKey: 'discounted_price', label: '할인가', width: 12, type: 'formula' },
+  { uiKey: 'retail_discounted_price', label: '할인판매가', width: 12, type: 'formula' },
   { uiKey: 'quantity', label: '수량', width: 6, type: 'number', dataField: 'quantity' },
   { uiKey: 'normal_total', label: '정상공급가합계', width: 14, type: 'formula' },
   { uiKey: 'discount_total', label: '할인공급가합계', width: 14, type: 'formula' },
@@ -570,6 +571,14 @@ async function buildQuote(
             sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
           } else {
             sc(row, c, Math.round((item.supply_price || 0) * (1 - (item.discount_rate || 0))), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
+          }
+        } else if (col.uiKey === 'retail_discounted_price') {
+          if (pos['retail_price'] && pos['discount_rate']) {
+            const rp = colLetter(pos['retail_price']);
+            const dr = colLetter(pos['discount_rate']);
+            sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
+          } else {
+            sc(row, c, Math.round((item.retail_price || 0) * (1 - (item.discount_rate || 0))), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
           }
         } else if (col.uiKey === 'normal_total') {
           if (pos['supply_price'] && pos['quantity']) {

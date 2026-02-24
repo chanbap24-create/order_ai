@@ -123,7 +123,7 @@ type QuoteColumnKey =
   | 'item_code' | 'country' | 'brand' | 'region' | 'image_url'
   | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
   | 'supply_price' | 'retail_price' | 'discount_rate'
-  | 'discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
+  | 'discounted_price' | 'retail_discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
   | 'retail_normal_total' | 'retail_discount_total'
   | 'note' | 'tasting_note' | 'grape_varieties';
 
@@ -149,6 +149,7 @@ const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: 'retail_price', label: '판매가', type: 'currency' },
   { key: 'discount_rate', label: '할인율', editable: true, type: 'percent' },
   { key: 'discounted_price', label: '할인가', type: 'computed' },
+  { key: 'retail_discounted_price', label: '할인판매가', type: 'computed' },
   { key: 'quantity', label: '수량', editable: true, type: 'number' },
   { key: 'normal_total', label: '정상공급가합계', type: 'computed' },
   { key: 'discount_total', label: '할인공급가합계', type: 'computed' },
@@ -825,6 +826,7 @@ export default function InventoryPage() {
   function getQuoteCellValue(item: QuoteItem, key: QuoteColumnKey): string | number {
     switch (key) {
       case 'discounted_price': return calcDiscountedPrice(item.supply_price, item.discount_rate);
+      case 'retail_discounted_price': return calcDiscountedPrice(item.retail_price || 0, item.discount_rate);
       case 'normal_total': return item.supply_price * item.quantity;
       case 'discount_total': return calcDiscountedPrice(item.supply_price, item.discount_rate) * item.quantity;
       case 'retail_normal_total': return (item.retail_price || 0) * item.quantity;
