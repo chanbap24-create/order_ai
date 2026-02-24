@@ -585,6 +585,8 @@ function groupData(rows: LedgerRow[], payments: PaymentRow[]): MonthData[] {
     }
     result.push({ month: m, days, totals: mTotals });
   }
+  // 월 순 정렬
+  result.sort((a, b) => a.month.localeCompare(b.month));
   return result;
 }
 
