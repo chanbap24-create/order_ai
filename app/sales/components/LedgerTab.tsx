@@ -504,20 +504,25 @@ function groupData(rows: LedgerRow[]): MonthData[] {
 function getQuickRanges() {
   const now = new Date();
   const y = now.getFullYear();
-  const m = now.getMonth();
+  const m = now.getMonth(); // 0-indexed
   const today = now.toISOString().slice(0, 10);
 
-  const prevStart = new Date(y, m - 1, 1);
-  const prevEnd = new Date(y, m, 0);
-  const curStart = new Date(y, m, 1);
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  const curStart = `${y}-${pad(m + 1)}-01`;
+  const prevStart = m === 0 ? `${y - 1}-12-01` : `${y}-${pad(m)}-01`;
+  const prevEnd = new Date(y, m, 0); // 이전 달 마지막 날
+  const prevEndStr = prevEnd.toISOString().slice(0, 10);
 
   const q = Math.floor(m / 3);
-  const qStart = new Date(y, q * 3, 1);
+  const qStartMonth = q * 3 + 1; // 1-indexed
+  const qStartYear = y;
+  const qStart = `${qStartYear}-${pad(qStartMonth)}-01`;
 
   return [
-    { label: '이번 달', start: curStart.toISOString().slice(0, 10), end: today },
-    { label: '지난 달', start: prevStart.toISOString().slice(0, 10), end: prevEnd.toISOString().slice(0, 10) },
-    { label: '이번 분기', start: qStart.toISOString().slice(0, 10), end: today },
+    { label: '이번 달', start: curStart, end: today },
+    { label: '지난 달', start: prevStart, end: prevEndStr },
+    { label: '이번 분기', start: qStart, end: today },
     { label: '올해', start: `${y}-01-01`, end: today },
     { label: '작년', start: `${y - 1}-01-01`, end: `${y - 1}-12-31` },
     { label: '전체', start: '2020-01-01', end: today },
