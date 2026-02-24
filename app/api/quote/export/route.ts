@@ -61,7 +61,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
 
 const DEFAULT_DOC: DocSettings = {
   companyName: '(주) 까 브 드 뱅',
-  address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
+  address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-786-3136 / FAX: 02-785-5719',
   addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
   websiteUrl: 'www.cavedevin.co.kr',
   sender: '(주)까브드뱅',
@@ -462,12 +462,13 @@ async function buildQuote(
   // Row 20: 제품 및 가격 + 단위
   ws.getCell('A20').value = '1. 제품 및 가격 :';
   ws.getCell('A20').font = { name: FONT, size: 10 };
+  ws.getCell('A20').alignment = { vertical: 'middle' };
   const unitStartCol = colLetter(Math.max(1, totalCols - 2));
   if (totalCols > 3) {
     ws.mergeCells(`${unitStartCol}20:${lastCol}20`);
   }
   ws.getCell(`${unitStartCol}20`).value = doc.unit;
-  ws.getCell(`${unitStartCol}20`).font = { name: FONT, size: 11 };
+  ws.getCell(`${unitStartCol}20`).font = { name: FONT, size: 10 };
   ws.getCell(`${unitStartCol}20`).alignment = { horizontal: 'right', vertical: 'middle' };
   ws.getCell(`${unitStartCol}20`).border = { bottom: { style: 'medium' } };
 
