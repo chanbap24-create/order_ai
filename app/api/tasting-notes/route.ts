@@ -40,7 +40,18 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // 1) Supabase tasting_notes DB 확인 (우선 - 깔끔한 HTML 렌더링)
+      // 1) GitHub Release PDF 우선 (원본 그대로 표시)
+      if (pdfUrl) {
+        return NextResponse.json({
+          success: true,
+          source: 'pdf',
+          item_no: itemNo,
+          pdf_url: pdfUrl,
+          updated_at: indexCache?.updated_at,
+        });
+      }
+
+      // 2) Supabase tasting_notes DB fallback (PDF 없을 때 HTML 렌더링)
       const { data: dbNote } = await supabase
         .from('tasting_notes')
         .select('id, wine_id, color_note, nose_note, palate_note, food_pairing, glass_pairing, serving_temp, awards, winemaking, winery_description, vintage_note, aging_potential, wine_type, country, region, grape_varieties, supply_price, updated_at')
@@ -61,19 +72,7 @@ export async function GET(request: NextRequest) {
           item_no: itemNo,
           tasting_note: dbNote,
           wine_info: wineInfo || null,
-          pdf_url: pdfUrl,
           updated_at: dbNote.updated_at,
-        });
-      }
-
-      // 2) GitHub Release PDF fallback (DB에 없을 때)
-      if (pdfUrl) {
-        return NextResponse.json({
-          success: true,
-          source: 'pdf',
-          item_no: itemNo,
-          pdf_url: pdfUrl,
-          updated_at: indexCache?.updated_at,
         });
       }
 
