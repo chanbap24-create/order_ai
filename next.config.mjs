@@ -8,6 +8,19 @@ const nextConfig = {
   // Serverless function에서 불필요한 파일 제외 (250MB 제한 대응)
   outputFileTracingExcludes: {
     '*': [
+      // 프로젝트 대용량 파일/폴더 제외
+      'sample/**',
+      'order_ai/**',
+      'public/bottle-images/**',
+      'data/**',
+      'output/**',
+      'scripts/**',
+      'supabase/**',
+      '.claude/**',
+      '*.xlsx',
+      '*.pptx',
+      '*.png',
+      '*.jpg',
       // Dev tools
       'node_modules/typescript/**',
       'node_modules/@typescript-eslint/**',
