@@ -165,6 +165,7 @@ export default function BrandTab() {
           brand_name_kr: editForm.brand_name_kr,
           brand_name_en: editForm.brand_name_en || '',
           country: editForm.country || '',
+          website: editForm.website || '',
         }),
       });
       if (res.ok) {

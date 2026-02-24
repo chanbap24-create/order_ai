@@ -1,12 +1,11 @@
 // Claude API 기반 브랜드(와이너리) 조사 로직
-// Sonnet + web_search 통합 검색 + Haiku 검증
+// Haiku + web_search 통합 검색 + Haiku 검증
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
 import type { BrandResearchResult, BrandValidation } from "@/app/types/wine";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
-const SONNET_MODEL = "claude-sonnet-4-20250514";
 
 /** web_search 응답의 <cite> 태그 제거 */
 function stripCitations(text: string): string {
@@ -16,10 +15,10 @@ function stripCitations(text: string): string {
 /* ─── 구조화 프롬프트 ─── */
 const BRAND_RESEARCH_PROMPT = `You are an expert wine industry researcher. Search the web thoroughly for information about the given wine producer/winery, then compile the results into structured JSON.
 
-SEARCH STRATEGY (use web searches efficiently, max 5):
-1. Search for the official winery website — extract history, philosophy, vineyard info
+SEARCH STRATEGY (use web searches efficiently):
+1. If an official website URL is provided, prioritize extracting information from that site first
 2. Search Wine-Searcher (wine-searcher.com) for the producer profile and scores
-3. Search for awards, ratings, and additional details as needed
+3. Search for awards, ratings, and additional details only if needed
 
 IMPORTANT RULES:
 - Cross-reference information from multiple sources for accuracy
@@ -51,20 +50,25 @@ Return ONLY the JSON below (no other text):
   "awards": "Major awards/scores (specific scores and years)"
 }`;
 
-/* ─── Sonnet 통합 검색 + 구조화 (1-stage) ─── */
-async function researchWithSonnet(
+/* ─── Haiku 통합 검색 + 구조화 (1-stage) ─── */
+async function researchBrand(
   client: ReturnType<typeof getClaudeClient>,
   brandNameKr: string,
   brandNameEn: string | undefined,
-  country: string | undefined
+  country: string | undefined,
+  website: string | undefined
 ): Promise<BrandResearchResult> {
   const searchTarget = brandNameEn || brandNameKr;
   const countryHint = country ? ` from ${country}` : '';
+  const maxUses = website ? 2 : 3;
+  const websiteHint = website
+    ? `\nOfficial website: ${website} — prioritize this site for accurate information.`
+    : '';
 
   const response = await client.messages.create({
-    model: SONNET_MODEL,
+    model: HAIKU_MODEL,
     max_tokens: 2500,
-    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: maxUses }],
     messages: [{
       role: "user",
       content: `${BRAND_RESEARCH_PROMPT}
@@ -72,7 +76,7 @@ async function researchWithSonnet(
 === TARGET ===
 Korean name: ${brandNameKr}
 English name: ${brandNameEn || '(unknown)'}
-Country: ${country || '(unknown)'}
+Country: ${country || '(unknown)'}${websiteHint}
 
 Please search thoroughly for "${searchTarget}"${countryHint} winery and compile all findings into the JSON format above.`
     }],
@@ -167,16 +171,17 @@ async function validateBrandResult(
 export async function researchBrandWithClaude(
   brandNameKr: string,
   brandNameEn?: string,
-  country?: string
+  country?: string,
+  website?: string
 ): Promise<{ result: BrandResearchResult; validation: BrandValidation }> {
   const client = getClaudeClient();
   const searchTarget = brandNameEn || brandNameKr;
   const countryHint = country ? ` (${country})` : '';
 
-  logger.info(`[BrandResearch] Starting research for: ${searchTarget}${countryHint}`);
+  logger.info(`[BrandResearch] Starting research for: ${searchTarget}${countryHint}${website ? ` [website: ${website}]` : ''}`);
 
-  // Step 1: Sonnet + web_search 통합 조사 (검색 + 구조화 한번에)
-  const result = await researchWithSonnet(client, brandNameKr, brandNameEn, country);
+  // Step 1: Haiku + web_search 통합 조사 (검색 + 구조화 한번에)
+  const result = await researchBrand(client, brandNameKr, brandNameEn, country, website);
 
   logger.info(`[BrandResearch] Research complete for "${searchTarget}": ${result.brand_name_en || 'N/A'}, desc=${(result.description || '').length}c`);
 
