@@ -397,11 +397,11 @@ function DateView({ rows }: { rows: ItemRow[] }) {
           </tr>
         ))}
         {/* 합계 */}
-        <tr style={{ background: '#5A1515', color: '#fff', fontWeight: 700 }}>
-          <td style={{ ...tdStyle, fontWeight: 700 }} colSpan={3}>합계</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(rows.reduce((s, r) => s + (r.quantity || 0), 0))}</td>
-          <td style={tdStyle}></td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(rows.reduce((s, r) => s + (r.supply_amount || 0), 0))}</td>
+        <tr style={{ background: '#5A1515', fontWeight: 700 }}>
+          <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={3}>합계</td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(rows.reduce((s, r) => s + (r.quantity || 0), 0))}</td>
+          <td style={{ ...tdStyle, color: '#fff' }}></td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(rows.reduce((s, r) => s + (r.supply_amount || 0), 0))}</td>
         </tr>
       </tbody>
     </table>
@@ -441,13 +441,13 @@ function ClientView({ summary }: { summary: ClientSummary[] }) {
           </tr>
         ))}
         {/* 합계 */}
-        <tr style={{ background: '#5A1515', color: '#fff', fontWeight: 700 }}>
-          <td style={{ ...tdStyle, fontWeight: 700 }}>합계 ({summary.length}개 거래처)</td>
-          <td style={tdStyle}></td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(grandQty)}</td>
-          <td style={tdStyle}></td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(grandAmt)}</td>
-          <td style={tdStyle} colSpan={2}></td>
+        <tr style={{ background: '#5A1515', fontWeight: 700 }}>
+          <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }}>합계 ({summary.length}개 거래처)</td>
+          <td style={{ ...tdStyle, color: '#fff' }}></td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandQty)}</td>
+          <td style={{ ...tdStyle, color: '#fff' }}></td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandAmt)}</td>
+          <td style={{ ...tdStyle, color: '#fff' }} colSpan={2}></td>
         </tr>
       </tbody>
     </table>

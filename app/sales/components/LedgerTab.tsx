@@ -350,15 +350,15 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                   );
                 })}
                 {/* 총합계 */}
-                <tr style={{ background: '#5A1515', color: '#fff', fontWeight: 700 }}>
-                  <td style={{ ...tdStyle, fontWeight: 700 }} colSpan={2}>
+                <tr style={{ background: '#5A1515', fontWeight: 700 }}>
+                  <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={2}>
                     [{client.client_name} 합계]
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(grandTotal.qty)}</td>
-                  <td style={tdStyle}></td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(grandTotal.supply)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(grandTotal.tax)}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{fmt(grandTotal.total)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.qty)}</td>
+                  <td style={{ ...tdStyle, color: '#fff' }}></td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.supply)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.tax)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.total)}</td>
                 </tr>
               </tbody>
             </table>
