@@ -41,6 +41,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 401 });
     }
 
+    // admin 계정은 sales 페이지 로그인 차단 (admin 페이지에서만 사용)
+    if (user.role === 'admin') {
+      return NextResponse.json({ error: '관리자 계정은 영업 페이지에 접근할 수 없습니다.' }, { status: 403 });
+    }
+
     // 세션 생성
     const token = await createSession(user.manager, user.role);
 
