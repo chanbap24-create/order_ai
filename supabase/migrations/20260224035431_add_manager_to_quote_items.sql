@@ -1,0 +1,1 @@
+ALTER TABLE quote_items ADD COLUMN IF NOT EXISTS manager TEXT DEFAULT '';

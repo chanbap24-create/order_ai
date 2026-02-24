@@ -26,15 +26,22 @@ function removePrefix(name: string): string {
   return name.replace(/^[A-Za-z]{2}\s+/, '').trim();
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     ensureQuoteTable();
-    const { data: items, error } = await supabase
+    const mgr = req.nextUrl.searchParams.get('manager') || '';
+
+    let query = supabase
       .from('quote_items')
       .select('*')
       .order('sort_order', { ascending: true })
       .order('id', { ascending: true });
 
+    if (mgr) {
+      query = query.eq('manager', mgr);
+    }
+
+    const { data: items, error } = await query;
     if (error) throw error;
 
     return NextResponse.json({ success: true, items: items || [] });
@@ -68,6 +75,7 @@ export async function POST(req: Request) {
       quantity = 1,
       note = '',
       tasting_note = '',
+      manager = '',
     } = body;
 
     // ── Supabase에서 데이터 보강 ──
@@ -140,13 +148,14 @@ export async function POST(req: Request) {
     const qty = Number(quantity) || 1;
     const discounted_price = Math.round(price * (1 - rate));
 
-    // 동일 item_code가 이미 있으면 수량 합산
+    // 동일 item_code가 이미 있으면 수량 합산 (같은 매니저 범위)
     if (item_code) {
-      const { data: existing } = await supabase
+      let dupQuery = supabase
         .from('quote_items')
         .select('id, quantity')
-        .eq('item_code', item_code)
-        .maybeSingle();
+        .eq('item_code', item_code);
+      if (manager) dupQuery = dupQuery.eq('manager', manager);
+      const { data: existing } = await dupQuery.maybeSingle();
 
       if (existing) {
         const newQty = existing.quantity + qty;
@@ -165,13 +174,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // Get next sort_order
-    const { data: maxRow } = await supabase
+    // Get next sort_order (같은 매니저 범위)
+    let sortQuery = supabase
       .from('quote_items')
       .select('sort_order')
       .order('sort_order', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (manager) sortQuery = sortQuery.eq('manager', manager);
+    const { data: maxRow } = await sortQuery.maybeSingle();
     const nextSort = (maxRow?.sort_order ?? 0) + 1;
 
     const { data: inserted, error: insertError } = await supabase
@@ -180,7 +190,7 @@ export async function POST(req: Request) {
         item_code, country, brand, region, image_url, vintage,
         product_name, english_name, korean_name,
         supply_price: price, retail_price: rPrice, discount_rate: rate, discounted_price,
-        quantity: qty, note, tasting_note, sort_order: nextSort
+        quantity: qty, note, tasting_note, sort_order: nextSort, manager
       })
       .select()
       .single();

@@ -274,6 +274,9 @@ export default function InventoryPage() {
   const [dbWineInfo, setDbWineInfo] = useState<any>(null);
   const [tastingNotesAvailable, setTastingNotesAvailable] = useState<Record<string, boolean>>({});
 
+  // ── Auth state (세션 기반 견적서 분리) ──
+  const [quoteManager, setQuoteManager] = useState('');
+
   // ── Quote state ──
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [quoteLoading, setQuoteLoading] = useState(true);
@@ -303,8 +306,59 @@ export default function InventoryPage() {
   // EFFECTS
   // ══════════════════════════════════════
 
+  // 세션 확인
   useEffect(() => {
-    fetchQuoteItems();
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        if (data.authenticated && data.manager) {
+          setQuoteManager(data.manager);
+        } else {
+          setQuoteManager('__loaded__');
+        }
+      } catch {
+        setQuoteManager('__loaded__');
+      }
+    })();
+  }, []);
+
+  // quoteManager 확정 후 견적 로드
+  useEffect(() => {
+    if (!quoteManager) return;
+    const mgr = quoteManager === '__loaded__' ? '' : quoteManager;
+    (async () => {
+      try {
+        const res = await fetch(`/api/quote${mgr ? `?manager=${encodeURIComponent(mgr)}` : ''}`);
+        const data = await res.json();
+        if (data.success) {
+          const items = data.items || [];
+          setQuoteItems(items);
+          const codes = items.map((i: QuoteItem) => i.item_code).filter(Boolean);
+          if (codes.length > 0) {
+            fetch(`/api/wine-profiles?item_codes=${encodeURIComponent(JSON.stringify(codes))}`)
+              .then(r => r.json())
+              .then(wpData => {
+                if (wpData.success && wpData.profiles) {
+                  const map: Record<string, { grape_varieties: string; description_kr: string }> = {};
+                  for (const p of wpData.profiles) {
+                    map[p.item_code] = { grape_varieties: p.grape_varieties || '', description_kr: p.description_kr || '' };
+                  }
+                  setWineProfiles(map);
+                }
+              })
+              .catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch quote items:', e);
+      } finally {
+        setQuoteLoading(false);
+      }
+    })();
+  }, [quoteManager]);
+
+  useEffect(() => {
     fetchTastingNoteIndex();
 
     const mq = window.matchMedia('(max-width: 768px)');
@@ -379,9 +433,15 @@ export default function InventoryPage() {
     } catch {}
   }
 
+  function getManagerParam() {
+    if (!quoteManager || quoteManager === '__loaded__') return '';
+    return quoteManager;
+  }
+
   async function fetchQuoteItems() {
     try {
-      const res = await fetch('/api/quote');
+      const mgr = getManagerParam();
+      const res = await fetch(`/api/quote${mgr ? `?manager=${encodeURIComponent(mgr)}` : ''}`);
       const data = await res.json();
       if (data.success) {
         const items = data.items || [];
@@ -455,6 +515,7 @@ export default function InventoryPage() {
           vintage: inv.vintage || '',
           quantity: 1,
           discount_rate: 0,
+          manager: getManagerParam(),
         }),
       });
       const data = await res.json();
@@ -672,7 +733,8 @@ export default function InventoryPage() {
     try {
       const columnsParam = encodeURIComponent(JSON.stringify(visibleQuoteColumns));
       const settingsParam = encodeURIComponent(JSON.stringify(docSettings));
-      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&columns=${columnsParam}&doc_settings=${settingsParam}&company=${activeTab}`);
+      const mgr = getManagerParam();
+      const res = await fetch(`/api/quote/export?client_name=${encodeURIComponent(clientName)}&columns=${columnsParam}&doc_settings=${settingsParam}&company=${activeTab}${mgr ? `&manager=${encodeURIComponent(mgr)}` : ''}`);
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);

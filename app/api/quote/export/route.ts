@@ -213,13 +213,16 @@ export async function GET(request: NextRequest) {
     ensureQuoteTable();
     ensureWineProfileTable();
     const clientName = request.nextUrl.searchParams.get('client_name') || '';
+    const manager = request.nextUrl.searchParams.get('manager') || '';
 
     // Fetch quote_items with wine_profiles grape_varieties via separate queries
-    const { data: quoteRows, error: quoteErr } = await supabase
+    let quoteQuery = supabase
       .from('quote_items')
       .select('*')
       .order('sort_order', { ascending: true })
       .order('id', { ascending: true });
+    if (manager) quoteQuery = quoteQuery.eq('manager', manager);
+    const { data: quoteRows, error: quoteErr } = await quoteQuery;
 
     if (quoteErr) throw quoteErr;
     const quoteItems = quoteRows || [];
