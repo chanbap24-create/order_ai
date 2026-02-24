@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
-// GET: shipments 테이블에서 고유 담당자 목록 조회
+// GET: client_details 테이블에서 고유 담당자 목록 조회
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const table = searchParams.get('table') || 'shipments';
+    // client_details는 ~4,500행으로 가벼움 (shipments 99,000+ 대비)
+    const { data, error } = await supabase
+      .from('client_details')
+      .select('manager')
+      .not('manager', 'is', null)
+      .neq('manager', '');
 
-    // distinct가 없으므로 전체 manager를 가져와서 중복 제거
-    // 대량 데이터 대비: 페이지네이션으로 전체 순회
+    if (error) throw error;
+
     const allManagers = new Set<string>();
-    let from = 0;
-    const batchSize = 1000;
-
-    while (true) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('manager')
-        .not('manager', 'is', null)
-        .neq('manager', '')
-        .range(from, from + batchSize - 1);
-
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-
-      for (const r of data) {
-        if (r.manager) allManagers.add(r.manager);
-      }
-
-      if (data.length < batchSize) break;
-      from += batchSize;
+    for (const r of (data || [])) {
+      if (r.manager) allManagers.add(r.manager);
     }
 
     // 비영업 담당자 제외
