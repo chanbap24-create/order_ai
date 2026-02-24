@@ -531,39 +531,41 @@ export async function generateTastingNotePpt(
 
     const note = await getTastingNote(wineId);
 
-    // 이미지: Vivino 누끼(투명배경) 우선 → 기존 image_url 폴백
+    // 이미지: DB image_url 우선 → Vivino 누끼 폴백
     let bottleImageBase64: string | undefined;
     let bottleImageMimeType: string | undefined;
 
-    // 1순위: Vivino 누끼 보틀샷 검색
-    const engName = wine.item_name_en;
-    if (engName) {
-      try {
-        const vivinoUrl = await searchVivinoBottleImage(engName);
-        if (vivinoUrl) {
-          const imgData = await downloadImageAsBase64(vivinoUrl);
-          if (imgData) {
-            bottleImageBase64 = imgData.base64;
-            bottleImageMimeType = imgData.mimeType;
-            logger.info(`[PPT] Vivino nukki image for ${wineId}`);
-          }
-        }
-      } catch {
-        logger.warn(`[PPT] Vivino search failed for ${wineId}`);
-      }
-    }
-
-    // 2순위: DB에 저장된 image_url
-    if (!bottleImageBase64 && wine.image_url) {
+    // 1순위: DB에 저장된 image_url (관리자 수정 가능)
+    if (wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
           bottleImageBase64 = imgData.base64;
           bottleImageMimeType = imgData.mimeType;
-          logger.info(`[PPT] Fallback image for ${wineId}`);
+          logger.info(`[PPT] DB image for ${wineId}`);
         }
       } catch {
         logger.warn(`[PPT] Image download failed for ${wineId}`);
+      }
+    }
+
+    // 2순위: Vivino 누끼 보틀샷 검색
+    if (!bottleImageBase64) {
+      const engName = wine.item_name_en;
+      if (engName) {
+        try {
+          const vivinoUrl = await searchVivinoBottleImage(engName);
+          if (vivinoUrl) {
+            const imgData = await downloadImageAsBase64(vivinoUrl);
+            if (imgData) {
+              bottleImageBase64 = imgData.base64;
+              bottleImageMimeType = imgData.mimeType;
+              logger.info(`[PPT] Vivino nukki image for ${wineId}`);
+            }
+          }
+        } catch {
+          logger.warn(`[PPT] Vivino search failed for ${wineId}`);
+        }
       }
     }
 

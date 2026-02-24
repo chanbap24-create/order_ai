@@ -28,6 +28,9 @@ export default function TastingNoteTab() {
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
   const [generatingPpt, setGeneratingPpt] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [imageUrlExpanded, setImageUrlExpanded] = useState(false);
+  const [savingImageUrl, setSavingImageUrl] = useState(false);
 
   // === 우측 상세 패널 ===
   const [showDetailPanel, setShowDetailPanel] = useState(true);
@@ -120,6 +123,8 @@ export default function TastingNoteTab() {
         const tn = data.data.tastingNote || null;
         setTastingNote(tn);
         setEngNameInput(data.data.wine.item_name_en || '');
+        setImageUrlInput(data.data.wine.image_url || '');
+        setImageUrlExpanded(!data.data.wine.image_url);
         initEditForm(data.data.wine, tn);
       }
     } catch { /* ignore */ }
@@ -131,6 +136,8 @@ export default function TastingNoteTab() {
     if (listWine) {
       setSelectedWine(listWine);
       setEngNameInput(listWine.item_name_en || '');
+      setImageUrlInput(listWine.image_url || '');
+      setImageUrlExpanded(!listWine.image_url);
       setTastingNote(null);
       initEditForm(listWine, null);
     }
@@ -639,11 +646,77 @@ export default function TastingNoteTab() {
               </div>
 
               {/* 이미지 */}
-              {selectedWine.image_url && (
-                <div style={{ marginBottom: 16, textAlign: 'center' }}>
-                  <img src={selectedWine.image_url} alt={selectedWine.item_name_kr} style={{ maxHeight: 180, borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                </div>
-              )}
+              <div style={{ marginBottom: 16 }}>
+                {selectedWine.image_url && (
+                  <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                    <img src={selectedWine.image_url} alt={selectedWine.item_name_kr} style={{ maxHeight: 180, borderRadius: 8, border: '1px solid #e5e7eb' }} />
+                  </div>
+                )}
+                {selectedWine.image_url && !imageUrlExpanded ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <button
+                      onClick={() => setImageUrlExpanded(true)}
+                      style={{ fontSize: 12, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      이미지 URL 변경
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input
+                      style={{ flex: 1, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 16 }}
+                      placeholder="이미지 URL 입력..."
+                      value={imageUrlInput}
+                      onChange={(e) => setImageUrlInput(e.target.value)}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!selectedWine) return;
+                        setSavingImageUrl(true);
+                        try {
+                          await fetch(`/api/admin/wines/${selectedWine.item_code}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ wine: { image_url: imageUrlInput.trim() || null } }),
+                          });
+                          setSelectedWine({ ...selectedWine, image_url: imageUrlInput.trim() || null });
+                          setImageUrlExpanded(!imageUrlInput.trim());
+                          fetchWines();
+                        } catch { /* ignore */ }
+                        setSavingImageUrl(false);
+                      }}
+                      disabled={savingImageUrl}
+                      style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      {savingImageUrl ? '...' : '저장'}
+                    </button>
+                    {selectedWine.image_url && (
+                      <button
+                        onClick={async () => {
+                          if (!selectedWine || !confirm('이미지를 삭제하시겠습니까?')) return;
+                          setSavingImageUrl(true);
+                          try {
+                            await fetch(`/api/admin/wines/${selectedWine.item_code}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ wine: { image_url: null } }),
+                            });
+                            setSelectedWine({ ...selectedWine, image_url: null });
+                            setImageUrlInput('');
+                            setImageUrlExpanded(true);
+                            fetchWines();
+                          } catch { /* ignore */ }
+                          setSavingImageUrl(false);
+                        }}
+                        disabled={savingImageUrl}
+                        style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #fee2e2', background: '#fef2f2', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', color: '#dc2626' }}
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16, marginBottom: 16 }}>
                 {/* 영문명 */}

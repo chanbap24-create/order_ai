@@ -404,21 +404,8 @@ export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer>
     let bottleImageBase64: string | undefined;
     let bottleImageMimeType: string | undefined;
 
-    const engName = wine.item_name_en;
-    if (engName) {
-      try {
-        const vivinoUrl = await searchVivinoBottleImage(engName);
-        if (vivinoUrl) {
-          const imgData = await downloadImageAsBase64(vivinoUrl);
-          if (imgData) {
-            bottleImageBase64 = imgData.base64;
-            bottleImageMimeType = imgData.mimeType;
-          }
-        }
-      } catch { /* ignore */ }
-    }
-
-    if (!bottleImageBase64 && wine.image_url) {
+    // 1순위: DB에 저장된 image_url (관리자 수정 가능)
+    if (wine.image_url) {
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
@@ -426,6 +413,23 @@ export async function generateTastingNotePdf(wineIds: string[]): Promise<Buffer>
           bottleImageMimeType = imgData.mimeType;
         }
       } catch { /* ignore */ }
+    }
+
+    // 2순위: Vivino 누끼 보틀샷 검색
+    if (!bottleImageBase64) {
+      const engName = wine.item_name_en;
+      if (engName) {
+        try {
+          const vivinoUrl = await searchVivinoBottleImage(engName);
+          if (vivinoUrl) {
+            const imgData = await downloadImageAsBase64(vivinoUrl);
+            if (imgData) {
+              bottleImageBase64 = imgData.base64;
+              bottleImageMimeType = imgData.mimeType;
+            }
+          }
+        } catch { /* ignore */ }
+      }
     }
 
     slides.push({
