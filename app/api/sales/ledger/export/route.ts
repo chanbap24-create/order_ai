@@ -1,19 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
-
-// Google Fonts에서 Noto Sans KR 폰트 런타임 다운로드 (캐시)
-let fontCache: Buffer | null = null;
-let fontBoldCache: Buffer | null = null;
-const FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/SubsetOTF/KR/NotoSansKR-Regular.otf';
-const FONT_BOLD_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-cjk@main/Sans/SubsetOTF/KR/NotoSansKR-Bold.otf';
-
-async function loadFont(url: string): Promise<Buffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Font download failed: ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
-}
 
 // ─── 데이터 조회 (ledger route.ts와 동일 로직) ───
 async function fetchLedgerData(clientCode: string, startDate: string, endDate: string, clientType: string) {
@@ -300,144 +287,7 @@ async function generateExcel(client: any, grouped: GroupedMonth[], prevBalance: 
   return Buffer.from(buf);
 }
 
-// ─── PDF 생성 ───
-async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
-  // 폰트 런타임 로드 (실패 시 기본 폰트 사용)
-  let hasKorean = false;
-  try {
-    if (!fontCache) fontCache = await loadFont(FONT_URL);
-    if (!fontBoldCache) fontBoldCache = await loadFont(FONT_BOLD_URL);
-    hasKorean = true;
-  } catch (e) {
-    console.warn('Korean font download failed, using Helvetica:', e);
-  }
-
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30 });
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
-
-    if (hasKorean) {
-      doc.registerFont('Korean', fontCache!);
-      doc.registerFont('KoreanBold', fontBoldCache!);
-    }
-
-    const font = hasKorean ? 'Korean' : 'Helvetica';
-    const fontBold = hasKorean ? 'KoreanBold' : 'Helvetica-Bold';
-
-    const pageW = doc.page.width - 60;
-    const cols = [50, 180, 40, 60, 70, 60, 70, 70, 70]; // 컬럼 너비
-    const headers = ['일자', '품목명', '수량', '단가', '공급금액', '부가세', '합계', '수금액', '미수액'];
-    const colX: number[] = [];
-    let cx = 30;
-    for (const w of cols) { colX.push(cx); cx += w; }
-
-    const drawHeader = () => {
-      doc.font(fontBold).fontSize(7);
-      doc.rect(30, doc.y, pageW, 16).fill('#F5F0F0');
-      const hy = doc.y + 4;
-      for (let i = 0; i < headers.length; i++) {
-        doc.fillColor('#5A1515');
-        if (i >= 2) {
-          doc.text(headers[i], colX[i], hy, { width: cols[i], align: 'right' });
-        } else {
-          doc.text(headers[i], colX[i], hy, { width: cols[i], align: 'left' });
-        }
-      }
-      doc.y = hy + 14;
-      doc.moveTo(30, doc.y).lineTo(30 + pageW, doc.y).strokeColor('#5A1515').lineWidth(1).stroke();
-      doc.y += 2;
-    };
-
-    const checkPage = (needed: number) => {
-      if (doc.y + needed > doc.page.height - 30) {
-        doc.addPage();
-        // 타이틀 반복
-        doc.font(fontBold).fontSize(9).fillColor('#2c1810');
-        doc.text(`매출처원장 - ${client.client_name} (${client.client_code})`, 30, 30);
-        doc.font(font).fontSize(7).fillColor('#888888');
-        doc.text(`기간: ${startDate} ~ ${endDate}`, 30, doc.y + 2);
-        doc.y += 6;
-        drawHeader();
-      }
-    };
-
-    const drawRow = (vals: string[], opts: { bold?: boolean; bg?: string; colors?: (string | null)[] } = {}) => {
-      checkPage(14);
-      const y = doc.y;
-      if (opts.bg) {
-        doc.rect(30, y, pageW, 13).fill(opts.bg);
-      }
-      const f = opts.bold ? fontBold : font;
-      doc.font(f).fontSize(7);
-      for (let i = 0; i < vals.length; i++) {
-        const color = opts.colors?.[i] || '#2c1810';
-        doc.fillColor(color);
-        if (i >= 2) {
-          doc.text(vals[i], colX[i], y + 2, { width: cols[i], align: 'right' });
-        } else {
-          doc.text(vals[i], colX[i], y + 2, { width: cols[i], align: 'left' });
-        }
-      }
-      doc.y = y + 13;
-    };
-
-    // 타이틀
-    doc.font(fontBold).fontSize(12).fillColor('#2c1810');
-    doc.text(`매출처원장 - ${client.client_name} (${client.client_code})`, 30, 30);
-    doc.font(font).fontSize(8).fillColor('#888888');
-    doc.text(`기간: ${startDate} ~ ${endDate}`, 30, doc.y + 2);
-    doc.y += 8;
-    drawHeader();
-
-    let runBal = prevBalance;
-    const grandTot = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
-
-    for (const month of grouped) {
-      for (const day of month.days) {
-        for (let i = 0; i < day.shipRows.length; i++) {
-          const r = day.shipRows[i];
-          drawRow([
-            i === 0 ? day.date.slice(5) : '', r.item_name || '',
-            fmt(r.quantity), fmt(r.unit_price), fmt(r.supply_amount), fmt(r.tax_amount), fmt(r.total_amount), '', '',
-          ]);
-        }
-        for (let i = 0; i < day.payRows.length; i++) {
-          const p = day.payRows[i];
-          drawRow([
-            day.shipRows.length === 0 && i === 0 ? day.date.slice(5) : '', '입금',
-            '', '', '', '', '', fmt(p.amount), '',
-          ], { colors: [null, '#1565C0', null, null, null, null, null, '#1565C0', null] });
-        }
-        runBal += day.totals.total - day.totals.payment;
-        if (day.shipRows.length > 1 || day.payRows.length > 0) {
-          const payStr = day.totals.payment ? fmt(day.totals.payment) : '';
-          drawRow([
-            `${day.date.slice(5)} 일계`, '', fmt(day.totals.qty), '', fmt(day.totals.supply), fmt(day.totals.tax), fmt(day.totals.total), payStr, fmt(runBal),
-          ], { bold: true, bg: '#FAF8F6', colors: [null, null, null, null, null, null, null, '#1565C0', '#C62828'] });
-        }
-      }
-      grandTot.qty += month.totals.qty; grandTot.supply += month.totals.supply;
-      grandTot.tax += month.totals.tax; grandTot.total += month.totals.total; grandTot.payment += month.totals.payment;
-      const mPayStr = month.totals.payment ? fmt(month.totals.payment) : '';
-      drawRow([
-        `${month.month} 월계`, '', fmt(month.totals.qty), '', fmt(month.totals.supply), fmt(month.totals.tax), fmt(month.totals.total), mPayStr, fmt(runBal),
-      ], { bold: true, bg: '#FFF8E1', colors: ['#5A1515', '#5A1515', '#5A1515', '#5A1515', '#5A1515', '#5A1515', '#5A1515', '#1565C0', '#C62828'] });
-    }
-
-    // 총합계
-    const finalBal = prevBalance + grandTot.total - grandTot.payment;
-    drawRow([
-      `[${client.client_name} 합계]`, '', fmt(grandTot.qty), '', fmt(grandTot.supply), fmt(grandTot.tax), fmt(grandTot.total), fmt(grandTot.payment), fmt(finalBal),
-    ], { bold: true, bg: '#5A1515', colors: ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#90CAF9', '#FFCDD2'] });
-
-    doc.end();
-  });
-}
-
-// ─── GET 핸들러 ───
+// ─── GET 핸들러 (Excel only, PDF는 클라이언트 인쇄) ───
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -445,7 +295,6 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const clientType = searchParams.get('type') || 'wine';
-    const format = searchParams.get('format') || 'excel';
 
     if (!clientCode || !startDate || !endDate) {
       return NextResponse.json({ error: 'client_code, start_date, end_date required' }, { status: 400 });
@@ -455,18 +304,6 @@ export async function GET(req: NextRequest) {
     const grouped = groupData(rows, payments);
 
     const safeName = (client.client_name || clientCode).replace(/[\\/:*?"<>|]/g, '_');
-
-    if (format === 'pdf') {
-      const buf = await generatePDF(client, grouped, prevBalance, startDate, endDate);
-      return new NextResponse(buf, {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate}.pdf`)}`,
-        },
-      });
-    }
-
-    // Excel
     const buf = await generateExcel(client, grouped, prevBalance, startDate, endDate);
     return new NextResponse(buf, {
       headers: {
