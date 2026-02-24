@@ -9,6 +9,7 @@ import ActionTab from './components/ActionTab';
 import AlertTab from './components/AlertTab';
 import AnalysisTab from './components/AnalysisTab';
 import LedgerTab from './components/LedgerTab';
+import ItemLedgerTab from './components/ItemLedgerTab';
 
 export default function SalesPage() {
   // ── 인증 상태 ──
@@ -467,6 +468,7 @@ export default function SalesPage() {
         {activeTab === 'actions' && <ActionTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleActionCountChange} />}
         {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'ledger' && <LedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'item-ledger' && <ItemLedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'alerts' && <AlertTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleAlertCountChange} />}
       </div>
     </div>
