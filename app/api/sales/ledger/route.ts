@@ -116,14 +116,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 이월 기준일 이후 ~ 조회 시작일 이전 공급금액 (이월이 7월 이전 잔액이므로 8월부터만)
+    // 이월 기준일 이후 ~ 조회 시작일 이전 판매액 (공급+부가세, 이월이 7월 이전 잔액이므로 8월부터만)
     const CARRYOVER_CUTOFF = '2025-08-01';
-    let prevSupply = 0;
+    let prevSales = 0;
     let prevFrom = 0;
     while (true) {
       const { data, error } = await supabase
         .from(table)
-        .select('supply_amount')
+        .select('total_amount')
         .in('client_code', allCodes)
         .gte('ship_date', CARRYOVER_CUTOFF)
         .lt('ship_date', startDate)
@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
 
       if (error) throw error;
       if (!data || data.length === 0) break;
-      for (const r of data) prevSupply += (r.supply_amount || 0);
+      for (const r of data) prevSales += (r.total_amount || 0);
       if (data.length < batch) break;
       prevFrom += batch;
     }
@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
       while (true) {
         const { data, error } = await supabase
           .from(table)
-          .select('supply_amount')
+          .select('total_amount')
           .eq('client_name', clientName)
           .not('client_code', 'in', `(${allCodes.join(',')})`)
           .gte('ship_date', CARRYOVER_CUTOFF)
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
 
         if (error) throw error;
         if (!data || data.length === 0) break;
-        for (const r of data) prevSupply += (r.supply_amount || 0);
+        for (const r of data) prevSales += (r.total_amount || 0);
         if (data.length < batch) break;
         namePrevFrom += batch;
       }
@@ -194,7 +194,8 @@ export async function GET(req: NextRequest) {
     }
 
     // 이월잔액 = 이월미수금 + 이전공급 - 이전수금
-    const prevTotal = carryover + prevSupply - prevPayments;
+    // 이월잔액 = 이월미수금 + 이전판매액(공급+부가세) - 이전수금액
+    const prevTotal = carryover + prevSales - prevPayments;
 
     // 수금 내역 조회
     const paymentRows: any[] = [];
