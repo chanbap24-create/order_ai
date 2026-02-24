@@ -361,7 +361,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                   return grouped.map(month => {
                     const mCollapsed = collapsedMonths.has(month.month);
                     const monthStartBal = runBal;
-                    runBal += month.totals.total - month.totals.payment;
+                    runBal += month.totals.supply - month.totals.payment;
                     return (
                       <MonthGroup
                         key={month.month}
@@ -378,7 +378,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                 })()}
                 {/* 총합계 */}
                 {(() => {
-                  const finalBalance = prevBalance + grandTotal.total - grandTotal.payment;
+                  const finalBalance = prevBalance + grandTotal.supply - grandTotal.payment;
                   return (
                     <tr style={{ background: '#5A1515', fontWeight: 700 }}>
                       <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={2}>
@@ -443,7 +443,7 @@ function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDa
         let dayBal = startBalance;
         return month.days.map(day => {
           const dayStartBal = dayBal;
-          dayBal += day.totals.total - day.totals.payment;
+          dayBal += day.totals.supply - day.totals.payment;
           return <DayGroup key={day.date} day={day} collapsed={collapsedDays.has(day.date)} onToggle={() => onToggleDay(day.date)} endBalance={dayBal} />;
         });
       })()}

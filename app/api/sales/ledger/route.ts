@@ -132,6 +132,46 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 이전 기간 수금 차감
+    let prevPayments = 0;
+    let prevPayFrom = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('amount')
+        .in('client_code', allCodes)
+        .lt('payment_date', startDate)
+        .range(prevPayFrom, prevPayFrom + batch - 1);
+
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) prevPayments += (r.amount || 0);
+      if (data.length < batch) break;
+      prevPayFrom += batch;
+    }
+
+    // 이름 기반 이전 수금
+    if (clientName) {
+      let namePrevPayFrom = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('payments')
+          .select('amount')
+          .eq('client_name', clientName)
+          .not('client_code', 'in', `(${allCodes.join(',')})`)
+          .lt('payment_date', startDate)
+          .range(namePrevPayFrom, namePrevPayFrom + batch - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) prevPayments += (r.amount || 0);
+        if (data.length < batch) break;
+        namePrevPayFrom += batch;
+      }
+    }
+
+    prevTotal -= prevPayments;
+
     // 수금 내역 조회
     const paymentRows: any[] = [];
     let payFrom = 0;
