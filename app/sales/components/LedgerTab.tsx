@@ -15,6 +15,13 @@ interface LedgerRow {
   warehouse: string;
 }
 
+interface PaymentRow {
+  client_code: string;
+  client_name: string;
+  payment_date: string;
+  amount: number;
+}
+
 interface ClientInfo {
   client_code: string;
   client_name: string;
@@ -54,6 +61,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [rows, setRows] = useState<LedgerRow[]>([]);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [prevBalance, setPrevBalance] = useState(0);
   const [error, setError] = useState('');
 
@@ -125,6 +133,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
       if (data.error) { setError(data.error); return; }
       setClient(data.client);
       setRows(data.rows || []);
+      setPayments(data.payments || []);
       setPrevBalance(data.prev_balance || 0);
       setCollapsedMonths(new Set());
       setCollapsedDays(new Set());
@@ -136,14 +145,16 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
   };
 
   // 데이터 가공: 월별 → 일별 → 행
-  const grouped = groupData(rows);
+  const grouped = groupData(rows, payments);
 
   // 총합계
+  const totalPayment = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const grandTotal = {
     qty: rows.reduce((s, r) => s + (r.quantity || 0), 0),
     supply: rows.reduce((s, r) => s + (r.supply_amount || 0), 0),
     tax: rows.reduce((s, r) => s + (r.tax_amount || 0), 0),
     total: rows.reduce((s, r) => s + (r.total_amount || 0), 0),
+    payment: totalPayment,
   };
 
   const toggleMonth = (m: string) => {
@@ -330,7 +341,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
 
           {/* 테이블 */}
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700, fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800, fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.1)' }}>
                   <th style={thStyle}>일자</th>
@@ -340,6 +351,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                   <th style={{ ...thStyle, textAlign: 'right' }}>공급금액</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>부가세</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>합계</th>
+                  <th style={{ ...thStyle, textAlign: 'right', color: '#1565C0' }}>수금액</th>
                 </tr>
               </thead>
               <tbody>
@@ -366,6 +378,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.supply)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.tax)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.total)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#90CAF9' }}>{fmt(grandTotal.payment)}</td>
                 </tr>
               </tbody>
             </table>
@@ -424,6 +437,7 @@ function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDa
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.supply)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.tax)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.total)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#1565C0' }}>{month.totals.payment ? fmt(month.totals.payment) : ''}</td>
       </tr>
     </>
   );
@@ -431,10 +445,11 @@ function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDa
 
 /* ━━━ 일별 그룹 컴포넌트 ━━━ */
 function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boolean; onToggle: () => void }) {
+  const showDaySummary = day.rows.length > 1 || day.paymentRows.length > 0;
   return (
     <>
       {!collapsed && day.rows.map((r, i) => (
-        <tr key={i} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+        <tr key={`s${i}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
           <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>
             {i === 0 ? day.date.slice(5) : ''}
           </td>
@@ -446,10 +461,26 @@ function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boole
           <td style={{ ...tdStyle, textAlign: 'right' }}>{fmt(r.supply_amount)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.tax_amount)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{fmt(r.total_amount)}</td>
+          <td style={tdStyle}></td>
+        </tr>
+      ))}
+      {/* 수금 행 */}
+      {!collapsed && day.paymentRows.map((p, i) => (
+        <tr key={`p${i}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(21,101,192,0.03)' }}>
+          <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>
+            {day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}
+          </td>
+          <td style={{ ...tdStyle, color: '#1565C0', fontWeight: 600 }}>수금</td>
+          <td style={tdStyle}></td>
+          <td style={tdStyle}></td>
+          <td style={tdStyle}></td>
+          <td style={tdStyle}></td>
+          <td style={tdStyle}></td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#1565C0' }}>{fmt(p.amount)}</td>
         </tr>
       ))}
       {/* 일계 */}
-      {day.rows.length > 1 && (
+      {showDaySummary && (
         <tr style={{ background: 'rgba(90,21,21,0.02)', cursor: 'pointer' }} onClick={onToggle}>
           <td style={{ ...tdStyle, fontWeight: 600, color: '#8a8580', fontSize: 11 }} colSpan={2}>
             <span style={{ marginRight: 4 }}>{collapsed ? '▶' : '▼'}</span>
@@ -460,6 +491,7 @@ function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boole
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.supply)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.tax)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.total)}</td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#1565C0' }}>{day.totals.payment ? fmt(day.totals.payment) : ''}</td>
         </tr>
       )}
     </>
@@ -467,40 +499,65 @@ function DayGroup({ day, collapsed, onToggle }: { day: DayData; collapsed: boole
 }
 
 /* ━━━ 데이터 그룹화 ━━━ */
-interface Totals { qty: number; supply: number; tax: number; total: number; }
-interface DayData { date: string; rows: LedgerRow[]; totals: Totals; }
+interface Totals { qty: number; supply: number; tax: number; total: number; payment: number; }
+interface DayData { date: string; rows: LedgerRow[]; paymentRows: PaymentRow[]; totals: Totals; }
 interface MonthData { month: string; days: DayData[]; totals: Totals; }
 
-function groupData(rows: LedgerRow[]): MonthData[] {
-  const monthMap = new Map<string, Map<string, LedgerRow[]>>();
+function groupData(rows: LedgerRow[], payments: PaymentRow[]): MonthData[] {
+  // 수금을 날짜별로 묶기
+  const payByDay = new Map<string, PaymentRow[]>();
+  for (const p of payments) {
+    const d = dayKey(p.payment_date);
+    if (!payByDay.has(d)) payByDay.set(d, []);
+    payByDay.get(d)!.push(p);
+  }
 
+  const monthMap = new Map<string, Map<string, { rows: LedgerRow[]; pays: PaymentRow[] }>>();
+
+  // 출고 행 분류
   for (const r of rows) {
     const m = monthKey(r.ship_date);
     const d = dayKey(r.ship_date);
     if (!monthMap.has(m)) monthMap.set(m, new Map());
     const dayMap = monthMap.get(m)!;
-    if (!dayMap.has(d)) dayMap.set(d, []);
-    dayMap.get(d)!.push(r);
+    if (!dayMap.has(d)) dayMap.set(d, { rows: [], pays: [] });
+    dayMap.get(d)!.rows.push(r);
+  }
+
+  // 수금 행 분류 (출고가 없는 날도 포함)
+  for (const [d, pays] of payByDay) {
+    const m = monthKey(d);
+    if (!monthMap.has(m)) monthMap.set(m, new Map());
+    const dayMap = monthMap.get(m)!;
+    if (!dayMap.has(d)) dayMap.set(d, { rows: [], pays: [] });
+    dayMap.get(d)!.pays = pays;
   }
 
   const result: MonthData[] = [];
   for (const [m, dayMap] of monthMap) {
     const days: DayData[] = [];
-    const mTotals: Totals = { qty: 0, supply: 0, tax: 0, total: 0 };
+    const mTotals: Totals = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
 
-    for (const [d, dRows] of dayMap) {
-      const dTotals: Totals = { qty: 0, supply: 0, tax: 0, total: 0 };
+    // 날짜 순 정렬
+    const sortedDays = [...dayMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+    for (const [d, { rows: dRows, pays }] of sortedDays) {
+      const dTotals: Totals = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
       for (const r of dRows) {
         dTotals.qty += r.quantity || 0;
         dTotals.supply += r.supply_amount || 0;
         dTotals.tax += r.tax_amount || 0;
         dTotals.total += r.total_amount || 0;
       }
+      for (const p of pays) {
+        dTotals.payment += p.amount || 0;
+      }
       mTotals.qty += dTotals.qty;
       mTotals.supply += dTotals.supply;
       mTotals.tax += dTotals.tax;
       mTotals.total += dTotals.total;
-      days.push({ date: d, rows: dRows, totals: dTotals });
+      mTotals.payment += dTotals.payment;
+      days.push({ date: d, rows: dRows, paymentRows: pays, totals: dTotals });
     }
     result.push({ month: m, days, totals: mTotals });
   }

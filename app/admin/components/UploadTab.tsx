@@ -41,6 +41,11 @@ const UPLOAD_AREAS = [
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
     </svg>
   )},
+  { type: 'payments', label: '수금내역', description: '거래처별 수금 입금 내역', icon: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+    </svg>
+  )},
 ] as const;
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
@@ -61,6 +66,7 @@ const UPLOAD_LABELS: Record<string, string> = {
   downloads: '와인재고현황',
   dl: '글라스재고현황',
   english: '와인리스트',
+  payments: '수금내역',
 };
 
 function formatTimestamp(iso: string | null): string {
@@ -137,8 +143,66 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
     try {
       let res: Response;
 
+      // 수금내역: 브라우저에서 파싱 후 JSON 전송
+      if (type === 'payments') {
+        updateCard(type, { status: 'uploading', fileName: file.name, message: '파일 분석 중...' });
+        const XLSX = await import('xlsx');
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+
+        // 헤더: [idx, 판매처번호(1), 판매처(2), 일자(3), 구분(4), ..., 수금액(8), ..., 부서(12), 담당자(13)]
+        let currentCode = '', currentName = '', currentManager = '', currentDept = '';
+        const payments: Array<{ client_code: string; client_name: string; payment_date: string; amount: number; manager: string; department: string }> = [];
+
+        const toDate = (v: unknown): string | null => {
+          if (v == null || v === '') return null;
+          if (typeof v === 'number') {
+            const d = new Date((v - 25569) * 86400000);
+            if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+          }
+          if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+          const s = String(v).trim();
+          if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s)) return s.replace(/\//g, '-');
+          return null;
+        };
+
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i] as unknown[];
+          // 이월 행에서 거래처 정보 갱신
+          if (r[4] === '이월' && r[1]) {
+            currentCode = String(r[1]).trim().replace(/\.0$/, '');
+            currentName = String(r[2] || '').trim();
+            currentDept = String(r[12] || '').trim();
+            currentManager = String(r[13] || '').trim();
+          }
+          // 일계 행에서 수금액 추출
+          if (r[4] === '일계' && r[8] && Number(r[8]) > 0) {
+            const date = toDate(r[3]);
+            if (date && currentCode) {
+              payments.push({
+                client_code: currentCode,
+                client_name: currentName,
+                payment_date: date,
+                amount: Math.round(Number(r[8])),
+                manager: currentManager,
+                department: currentDept,
+              });
+            }
+          }
+        }
+
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${payments.length}건 수금내역 업로드 중...` });
+
+        res = await fetch('/api/admin/upload-data/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payments }),
+        });
+      }
       // client/dl-client: 대용량 파일 → 브라우저에서 파싱 후 JSON 전송
-      if (type === 'client' || type === 'dl-client') {
+      else if (type === 'client' || type === 'dl-client') {
         updateCard(type, { status: 'uploading', fileName: file.name, message: '파일 분석 중...' });
         const XLSX = await import('xlsx');
         const buf = await file.arrayBuffer();

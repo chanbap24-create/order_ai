@@ -132,9 +132,52 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 수금 내역 조회
+    const paymentRows: any[] = [];
+    let payFrom = 0;
+    while (true) {
+      const { data: pd, error: pe } = await supabase
+        .from('payments')
+        .select('client_code, client_name, payment_date, amount')
+        .in('client_code', allCodes)
+        .gte('payment_date', startDate)
+        .lte('payment_date', endDate)
+        .order('payment_date', { ascending: true })
+        .range(payFrom, payFrom + batch - 1);
+
+      if (pe) throw pe;
+      if (!pd || pd.length === 0) break;
+      paymentRows.push(...pd);
+      if (pd.length < batch) break;
+      payFrom += batch;
+    }
+
+    // 이름 기반 수금 추가 조회
+    if (clientName) {
+      let namePayFrom = 0;
+      while (true) {
+        const { data: pd2, error: pe2 } = await supabase
+          .from('payments')
+          .select('client_code, client_name, payment_date, amount')
+          .eq('client_name', clientName)
+          .not('client_code', 'in', `(${allCodes.join(',')})`)
+          .gte('payment_date', startDate)
+          .lte('payment_date', endDate)
+          .order('payment_date', { ascending: true })
+          .range(namePayFrom, namePayFrom + batch - 1);
+
+        if (pe2) throw pe2;
+        if (!pd2 || pd2.length === 0) break;
+        paymentRows.push(...pd2);
+        if (pd2.length < batch) break;
+        namePayFrom += batch;
+      }
+    }
+
     return NextResponse.json({
       client: clientInfo || { client_code: clientCode, client_name: clientCode },
       rows: allRows,
+      payments: paymentRows,
       prev_balance: prevTotal,
       total_rows: allRows.length,
       matched_codes: allCodes,

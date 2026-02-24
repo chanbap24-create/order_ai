@@ -788,6 +788,36 @@ export async function processShipmentsFromData(
   return { inserted };
 }
 
+/* ─── 수금내역 처리 ─── */
+export interface PaymentRow {
+  client_code: string;
+  client_name: string;
+  payment_date: string;
+  amount: number;
+  manager: string;
+  department: string;
+}
+
+export async function processPaymentsFromData(payments: PaymentRow[]) {
+  // 전체 교체 (매번 최신 데이터로)
+  await supabase.from('payments').delete().not('id', 'is', null);
+  logger.info(`[Payments] Cleared payments table`);
+
+  let inserted = 0;
+  for (let i = 0; i < payments.length; i += 500) {
+    const batch = payments.slice(i, i + 500);
+    const { error } = await supabase.from('payments').insert(batch);
+    if (error) {
+      logger.error(`[Payments] insert error at batch ${i}`, { error });
+      throw new Error(`payments insert failed: ${error.message}`);
+    }
+    inserted += batch.length;
+  }
+
+  logger.info(`[Payments] Inserted ${inserted} rows`);
+  return { inserted };
+}
+
 /* ─── 메인 처리 함수 ─── */
 export async function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);

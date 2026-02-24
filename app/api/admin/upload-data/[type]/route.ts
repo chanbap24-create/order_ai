@@ -1,12 +1,12 @@
 // app/api/admin/upload-data/[type]/route.ts
 // 클라이언트에서 파싱된 JSON 데이터를 받아 DB에 저장 (대용량 파일 대응)
 import { NextRequest, NextResponse } from "next/server";
-import { processClientFromData, processDlClientFromData, processShipmentsFromData } from "@/app/lib/adminUpload";
-import type { ShipmentRow } from "@/app/lib/adminUpload";
+import { processClientFromData, processDlClientFromData, processShipmentsFromData, processPaymentsFromData } from "@/app/lib/adminUpload";
+import type { ShipmentRow, PaymentRow } from "@/app/lib/adminUpload";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 
-const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments'] as const;
+const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments'] as const;
 
 export async function POST(
   request: NextRequest,
@@ -23,6 +23,20 @@ export async function POST(
     }
 
     const body = await request.json();
+
+    // 수금내역 업로드
+    if (type === 'payments') {
+      const { payments } = body as { payments: PaymentRow[] };
+      if (!payments || !Array.isArray(payments)) {
+        return NextResponse.json(
+          { success: false, error: 'payments 배열이 필요합니다.' },
+          { status: 400 }
+        );
+      }
+      logger.info(`Admin upload-data: type=payments, rows=${payments.length}`);
+      const result = await processPaymentsFromData(payments);
+      return NextResponse.json({ success: true, type, ...result });
+    }
 
     // Shipments 배치 업로드
     if (type === 'client-shipments' || type === 'dl-client-shipments') {
