@@ -818,6 +818,32 @@ export async function processPaymentsFromData(payments: PaymentRow[]) {
   return { inserted };
 }
 
+/* ─── 이월 미수금 처리 ─── */
+export interface CarryoverRow {
+  client_code: string;
+  client_name: string;
+  carryover_amount: number;
+}
+
+export async function processCarryoverFromData(carryovers: CarryoverRow[]) {
+  await supabase.from('client_carryover').delete().not('id', 'is', null);
+  logger.info(`[Carryover] Cleared client_carryover table`);
+
+  let inserted = 0;
+  for (let i = 0; i < carryovers.length; i += 500) {
+    const batch = carryovers.slice(i, i + 500);
+    const { error } = await supabase.from('client_carryover').upsert(batch, { onConflict: 'client_code' });
+    if (error) {
+      logger.error(`[Carryover] insert error at batch ${i}`, { error });
+      throw new Error(`carryover insert failed: ${error.message}`);
+    }
+    inserted += batch.length;
+  }
+
+  logger.info(`[Carryover] Inserted ${inserted} rows`);
+  return { inserted };
+}
+
 /* ─── 메인 처리 함수 ─── */
 export async function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);

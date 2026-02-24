@@ -155,6 +155,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         // 헤더: [idx, 판매처번호(1), 판매처(2), 일자(3), 구분(4), ..., 수금액(8), ..., 부서(12), 담당자(13)]
         let currentCode = '', currentName = '', currentManager = '', currentDept = '';
         const payments: Array<{ client_code: string; client_name: string; payment_date: string; amount: number; manager: string; department: string }> = [];
+        const carryovers: Array<{ client_code: string; client_name: string; carryover_amount: number }> = [];
 
         const toDate = (v: unknown): string | null => {
           if (v == null || v === '') return null;
@@ -170,12 +171,17 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
 
         for (let i = 1; i < rows.length; i++) {
           const r = rows[i] as unknown[];
-          // 이월 행에서 거래처 정보 갱신
+          // 이월 행에서 거래처 정보 갱신 + 이월 미수금 추출
           if (r[4] === '이월' && r[1]) {
             currentCode = String(r[1]).trim().replace(/\.0$/, '');
             currentName = String(r[2] || '').trim();
             currentDept = String(r[12] || '').trim();
             currentManager = String(r[13] || '').trim();
+            carryovers.push({
+              client_code: currentCode,
+              client_name: currentName,
+              carryover_amount: Math.round(Number(r[9]) || 0),
+            });
           }
           // 일계 행에서 수금액 추출
           if (r[4] === '일계' && r[8] && Number(r[8]) > 0) {
@@ -193,12 +199,12 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           }
         }
 
-        updateCard(type, { status: 'uploading', fileName: file.name, message: `${payments.length}건 수금내역 업로드 중...` });
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${payments.length}건 수금 + ${carryovers.length}건 이월 업로드 중...` });
 
         res = await fetch('/api/admin/upload-data/payments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payments }),
+          body: JSON.stringify({ payments, carryovers }),
         });
       }
       // client/dl-client: 대용량 파일 → 브라우저에서 파싱 후 JSON 전송

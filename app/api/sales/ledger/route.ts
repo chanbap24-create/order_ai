@@ -94,25 +94,48 @@ export async function GET(req: NextRequest) {
       allRows.sort((a, b) => a.ship_date.localeCompare(b.ship_date) || (a.item_name || '').localeCompare(b.item_name || ''));
     }
 
-    // 전월 이월 합계
-    let prevTotal = 0;
+    // 이월 미수금 조회 (25년 7월 이전 잔액)
+    let carryover = 0;
+    const { data: carryoverData } = await supabase
+      .from('client_carryover')
+      .select('carryover_amount')
+      .in('client_code', allCodes);
+    if (carryoverData) {
+      for (const c of carryoverData) carryover += (c.carryover_amount || 0);
+    }
+
+    // 이름 기반 이월 추가
+    if (clientName) {
+      const { data: carryoverName } = await supabase
+        .from('client_carryover')
+        .select('carryover_amount')
+        .eq('client_name', clientName)
+        .not('client_code', 'in', `(${allCodes.join(',')})`);
+      if (carryoverName) {
+        for (const c of carryoverName) carryover += (c.carryover_amount || 0);
+      }
+    }
+
+    // 이월 기준일 이후 ~ 조회 시작일 이전 공급금액 (이월이 7월 이전 잔액이므로 8월부터만)
+    const CARRYOVER_CUTOFF = '2025-08-01';
+    let prevSupply = 0;
     let prevFrom = 0;
     while (true) {
       const { data, error } = await supabase
         .from(table)
         .select('supply_amount')
         .in('client_code', allCodes)
+        .gte('ship_date', CARRYOVER_CUTOFF)
         .lt('ship_date', startDate)
         .range(prevFrom, prevFrom + batch - 1);
 
       if (error) throw error;
       if (!data || data.length === 0) break;
-      for (const r of data) prevTotal += (r.supply_amount || 0);
+      for (const r of data) prevSupply += (r.supply_amount || 0);
       if (data.length < batch) break;
       prevFrom += batch;
     }
 
-    // 이름 기반 전월 추가
     if (clientName) {
       let namePrevFrom = 0;
       while (true) {
@@ -121,18 +144,19 @@ export async function GET(req: NextRequest) {
           .select('supply_amount')
           .eq('client_name', clientName)
           .not('client_code', 'in', `(${allCodes.join(',')})`)
+          .gte('ship_date', CARRYOVER_CUTOFF)
           .lt('ship_date', startDate)
           .range(namePrevFrom, namePrevFrom + batch - 1);
 
         if (error) throw error;
         if (!data || data.length === 0) break;
-        for (const r of data) prevTotal += (r.supply_amount || 0);
+        for (const r of data) prevSupply += (r.supply_amount || 0);
         if (data.length < batch) break;
         namePrevFrom += batch;
       }
     }
 
-    // 이전 기간 수금 차감
+    // 전월 수금 합계
     let prevPayments = 0;
     let prevPayFrom = 0;
     while (true) {
@@ -150,7 +174,6 @@ export async function GET(req: NextRequest) {
       prevPayFrom += batch;
     }
 
-    // 이름 기반 이전 수금
     if (clientName) {
       let namePrevPayFrom = 0;
       while (true) {
@@ -170,7 +193,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    prevTotal -= prevPayments;
+    // 이월잔액 = 이월미수금 + 이전공급 - 이전수금
+    const prevTotal = carryover + prevSupply - prevPayments;
 
     // 수금 내역 조회
     const paymentRows: any[] = [];
