@@ -16,7 +16,7 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "테이스팅 노트가 없습니다. 먼저 AI 조사를 실행하세요." }, { status: 404 });
     }
 
-    await upsertTastingNote(id, { approved: 1 });
+    await upsertTastingNote(id, { approved: 1, verification_status: 'approved' } as Record<string, unknown>);
 
     await logChange('tasting_note_approved', 'tasting_note', id, {});
 

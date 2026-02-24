@@ -17,6 +17,7 @@ const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연�
 사용자가 제공한 와인 정보와 Wine-Searcher 실제 데이터를 기반으로 와인을 분석하세요.
 
 중요 규칙:
+- 생산자/브랜드가 명시된 경우, 반드시 해당 생산자의 와인만 조사할 것 (다른 생산자의 동명 와인을 혼동하지 말 것)
 - Wine-Searcher 데이터가 있으면 최우선으로 사용
 - 브랜드 자료실 DB 정보가 있으면 winery_description, winemaking에 적극 활용 (양조 철학, 포도밭, 와인메이커 등)
 - 브랜드 DB의 수상 내역(awards)에서 해당 와인 관련 점수를 추출하여 활용
@@ -64,27 +65,34 @@ function parseVintage(raw: string | undefined | null): string {
 async function validateWineResult(
   originalNameKr: string,
   originalNameEn: string,
-  result: WineResearchResult
+  result: WineResearchResult,
+  originalSupplier?: string
 ): Promise<WineValidation> {
   try {
     const client = getClaudeClient();
+
+    const supplierLine = originalSupplier ? `\n- 생산자/브랜드: ${originalSupplier}` : '';
+    const supplierCriteria = originalSupplier
+      ? `\n4. 생산자/와이너리가 같은 곳인지 (가장 중요! 생산자가 다르면 confidence를 30 이하로 낮추세요)`
+      : '';
 
     const prompt = `당신은 와인 전문가입니다. 아래 원본 와인과 조사 결과가 같은 와인인지 판단하세요.
 
 원본 와인:
 - 한글명: ${originalNameKr}
-- 영문명: ${originalNameEn}
+- 영문명: ${originalNameEn}${supplierLine}
 
 조사 결과:
 - 영문명: ${result.item_name_en}
 - 국가: ${result.country_en}
 - 타입: ${result.wine_type}
 - 품종: ${result.grape_varieties}
+- 와이너리: ${result.winery_description?.slice(0, 100) || 'N/A'}
 
 판단 기준:
 1. 와인명이 같은 와인을 가리키는지 (약간의 표기 차이는 허용)
 2. 국가/지역이 합리적인지
-3. 품종과 타입이 서로 맞는지 (예: Cabernet Sauvignon → Red)
+3. 품종과 타입이 서로 맞는지 (예: Cabernet Sauvignon → Red)${supplierCriteria}
 
 반드시 아래 JSON 형식으로만 응답하세요:
 {"same_wine": true/false, "confidence": 0-100, "issues": ["문제점1", "문제점2"]}`;
@@ -116,12 +124,15 @@ async function validateWineResult(
   }
 }
 
+export type VerificationStatus = 'verified' | 'warning' | 'mismatch';
+
 export async function researchWineWithClaude(
   itemCode: string,
   itemNameKr: string,
   itemNameEn: string,
-  vintage?: string
-): Promise<{ result: WineResearchResult; validation: WineValidation }> {
+  vintage?: string,
+  supplier?: string
+): Promise<{ result: WineResearchResult; validation: WineValidation; verification_status: VerificationStatus }> {
   const client = getClaudeClient();
 
   if (!itemNameEn?.trim()) {
@@ -178,7 +189,9 @@ export async function researchWineWithClaude(
   // Step 2: Haiku 메인 조사 (컨텍스트 부족 시에만 web_search 추가)
   const vintageYear = parseVintage(vintage);
   const vintageInfo = vintageYear ? `\n빈티지: ${vintageYear}년` : '';
-  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}`;
+  const supplierInfo = supplier ? `\n생산자/브랜드: ${supplier}` : '';
+  const supplierWarning = supplier ? `\n\n중요: 반드시 위 생산자(${supplier})의 와인을 조사하세요. 다른 생산자의 동명 와인을 혼동하지 마세요.` : '';
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
@@ -247,10 +260,15 @@ export async function researchWineWithClaude(
     validation = { confidence: 95, issues: [] };
     logger.info(`[Claude] Skipping validation — rich context (WS+brand DB)`);
   } else {
-    validation = await validateWineResult(itemNameKr, itemNameEn, result);
+    validation = await validateWineResult(itemNameKr, itemNameEn, result, supplier);
   }
 
-  logger.info(`[Claude] Wine research complete for ${itemCode} (WS: ${wsData ? 'yes' : 'no'}, brand: ${dbBrandContext ? 'DB' : 'no'}, image: ${imageUrl ? 'yes' : 'no'}, validation: ${validation.confidence})`);
+  // verification_status 결정
+  const verification_status: VerificationStatus =
+    validation.confidence >= 80 ? 'verified' :
+    validation.confidence >= 50 ? 'warning' : 'mismatch';
 
-  return { result, validation };
+  logger.info(`[Claude] Wine research complete for ${itemCode} (WS: ${wsData ? 'yes' : 'no'}, brand: ${dbBrandContext ? 'DB' : 'no'}, image: ${imageUrl ? 'yes' : 'no'}, validation: ${validation.confidence}, status: ${verification_status})`);
+
+  return { result, validation, verification_status };
 }

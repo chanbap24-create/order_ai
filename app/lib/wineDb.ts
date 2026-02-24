@@ -86,7 +86,7 @@ export async function getTastingNote(wineId: string): Promise<TastingNote | unde
 
 export async function getTastingNotes(filters?: { search?: string; country?: string; hasNote?: boolean }): Promise<(Wine & { tasting_note_id: number | null })[]> {
   // Use wines with embedded tasting_notes
-  let query = supabase.from('wines').select('*, tasting_notes(id)');
+  let query = supabase.from('wines').select('*, tasting_notes(id, verification_status)');
 
   if (filters?.search) {
     const safe = sanitizeFilterValue(filters.search);
@@ -105,6 +105,7 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
     return {
       ...w,
       tasting_note_id: tn?.id ?? null,
+      verification_status: tn?.verification_status ?? null,
       tasting_notes: undefined,
     };
   }).filter((w: any) => {
@@ -257,11 +258,12 @@ export interface WineWithStatus extends Wine {
   tasting_note_id: number | null;
   ai_generated: number;
   approved: number;
-  wine_status: 'detected' | 'researched' | 'approved';
+  verification_status: string | null;
+  wine_status: 'detected' | 'researched' | 'approved' | 'mismatch';
 }
 
 export async function getNewWinesWithStatus(filters?: { status?: string; search?: string; wineStatus?: string }): Promise<WineWithStatus[]> {
-  let query = supabase.from('wines').select('*, tasting_notes(id, ai_generated, approved)');
+  let query = supabase.from('wines').select('*, tasting_notes(id, ai_generated, approved, verification_status)');
 
   if (filters?.status) {
     query = query.eq('status', filters.status);
@@ -278,8 +280,10 @@ export async function getNewWinesWithStatus(filters?: { status?: string; search?
     const tn = Array.isArray(w.tasting_notes) ? w.tasting_notes[0] : w.tasting_notes;
     const ai_gen = tn?.ai_generated ?? 0;
     const appr = tn?.approved ?? 0;
-    let wine_status: 'detected' | 'researched' | 'approved' = 'detected';
-    if (appr === 1) wine_status = 'approved';
+    const vs = tn?.verification_status ?? null;
+    let wine_status: 'detected' | 'researched' | 'approved' | 'mismatch' = 'detected';
+    if (vs === 'mismatch') wine_status = 'mismatch';
+    else if (appr === 1 || vs === 'approved') wine_status = 'approved';
     else if (ai_gen === 1 || w.ai_researched === 1) wine_status = 'researched';
 
     return {
@@ -287,6 +291,7 @@ export async function getNewWinesWithStatus(filters?: { status?: string; search?
       tasting_note_id: tn?.id ?? null,
       ai_generated: ai_gen,
       approved: appr,
+      verification_status: vs,
       wine_status,
       tasting_notes: undefined,
     };
@@ -294,6 +299,7 @@ export async function getNewWinesWithStatus(filters?: { status?: string; search?
     if (filters?.wineStatus === 'detected') return w.wine_status === 'detected';
     if (filters?.wineStatus === 'researched') return w.wine_status === 'researched';
     if (filters?.wineStatus === 'approved') return w.wine_status === 'approved';
+    if (filters?.wineStatus === 'mismatch') return w.wine_status === 'mismatch';
     return true;
   }) as WineWithStatus[];
 }

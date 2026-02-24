@@ -47,6 +47,7 @@ export interface TastingNote {
   ai_generated: number; // 0 or 1
   manually_edited: number; // 0 or 1
   approved: number; // 0 or 1
+  verification_status: 'pending' | 'verified' | 'warning' | 'mismatch' | 'approved' | null;
   ppt_generated: number; // 0 or 1
   created_at: string;
   updated_at: string;

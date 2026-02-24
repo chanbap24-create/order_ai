@@ -7,7 +7,7 @@ type NoteFilter = 'all' | 'with' | 'without' | 'db-only';
 
 export default function TastingNoteTab() {
   // === 좌측 리스트 ===
-  const [wines, setWines] = useState<(Wine & { tasting_note_id: number | null; inv_available?: number; inv_bonded?: number })[]>([]);
+  const [wines, setWines] = useState<(Wine & { tasting_note_id: number | null; verification_status?: string | null; inv_available?: number; inv_bonded?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -180,10 +180,14 @@ export default function TastingNoteTab() {
           product_name_eng: engName,
           item_name_kr: selectedWine.item_name_kr,
           vintage: selectedWine.vintage || '',
+          supplier: selectedWine.supplier || selectedWine.supplier_kr || '',
         }),
       });
       const data = await res.json();
       if (data.success) {
+        if (data.verification_status === 'warning') {
+          alert('생산자 확인 필요: 조사된 와인의 생산자가 다를 수 있습니다. 상세 내용을 확인 후 승인해주세요.');
+        }
         await loadWineDetail(selectedWine.item_code);
         fetchWines();
       } else {
@@ -221,6 +225,7 @@ export default function TastingNoteTab() {
             product_name_eng: w?.item_name_en || '',
             item_name_kr: w?.item_name_kr || '',
             vintage: w?.vintage || '',
+            supplier: w?.supplier || w?.supplier_kr || '',
           }),
         });
       } catch { /* continue */ }
@@ -389,6 +394,18 @@ export default function TastingNoteTab() {
     if (db) return { label: 'DB', color: '#ca8a04', bg: '#fef9c3', icon: '🟡' };
     if (gh) return { label: 'PDF', color: '#0ea5e9', bg: '#e0f2fe', icon: '🔵' };
     return { label: '미작성', color: '#9ca3af', bg: '#f3f4f6', icon: '⚪' };
+  };
+
+  // ───── 검증 배지 ─────
+  const verificationBadge = (vs: string | null | undefined) => {
+    switch (vs) {
+      case 'verified': return { label: 'V', color: '#16a34a', bg: '#dcfce7', title: '검증완료' };
+      case 'warning': return { label: '!', color: '#d97706', bg: '#fef3c7', title: '생산자 확인 필요' };
+      case 'mismatch': return { label: 'X', color: '#dc2626', bg: '#fee2e2', title: '생산자 불일치' };
+      case 'approved': return { label: 'VV', color: '#2563eb', bg: '#dbeafe', title: '승인완료' };
+      case 'pending': return { label: '?', color: '#9ca3af', bg: '#f3f4f6', title: '검증대기' };
+      default: return null;
+    }
   };
 
   return (
@@ -581,9 +598,19 @@ export default function TastingNoteTab() {
                       <span>합계 <b style={{ color: ((w.inv_available || 0) + (w.inv_bonded || 0)) > 0 ? '#1e293b' : '#d1d5db' }}>{(w.inv_available || 0) + (w.inv_bonded || 0)}</b></span>
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: badge.bg, color: badge.color, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {badge.label}
-                  </span>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                    {(() => {
+                      const vb = verificationBadge((w as typeof w & { verification_status?: string | null }).verification_status);
+                      return vb ? (
+                        <span title={vb.title} style={{ fontSize: 10, padding: '1px 5px', borderRadius: 8, background: vb.bg, color: vb.color, fontWeight: 700, lineHeight: '16px' }}>
+                          {vb.label}
+                        </span>
+                      ) : null;
+                    })()}
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: badge.bg, color: badge.color, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {badge.label}
+                    </span>
+                  </div>
                 </div>
               );
             })
@@ -663,7 +690,30 @@ export default function TastingNoteTab() {
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
                   <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>
                     테이스팅 노트 {tastingNote?.ai_generated ? '(AI 생성)' : ''}
+                    {tastingNote?.verification_status && (() => {
+                      const vb = verificationBadge(tastingNote.verification_status);
+                      return vb ? (
+                        <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 10, background: vb.bg, color: vb.color, fontWeight: 600 }}>
+                          {vb.title}
+                        </span>
+                      ) : null;
+                    })()}
                   </h4>
+
+                  {/* 생산자 확인 경고 배너 */}
+                  {tastingNote?.verification_status === 'warning' && (
+                    <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, marginBottom: 14, fontSize: 13, color: '#92400e' }}>
+                      <b>생산자 확인 필요</b> - AI 조사 결과의 생산자가 원본 와인의 생산자({selectedWine?.supplier || selectedWine?.supplier_kr || '미등록'})와 다를 수 있습니다.
+                      내용을 확인한 후 승인 버튼을 눌러주세요.
+                    </div>
+                  )}
+
+                  {/* 생산자 불일치 경고 배너 */}
+                  {tastingNote?.verification_status === 'mismatch' && (
+                    <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #f87171', borderRadius: 8, marginBottom: 14, fontSize: 13, color: '#991b1b' }}>
+                      <b>생산자 불일치</b> - 다른 생산자의 와인이 조사되었습니다. 재조사가 필요합니다.
+                    </div>
+                  )}
 
                   <SectionTitle title="기본 와인 정보" />
                   <FormRow label="품종" value={editForm.grape_varieties} onChange={(v) => updateField('grape_varieties', v)} />
@@ -698,10 +748,27 @@ export default function TastingNoteTab() {
                       >
                         {saving ? '저장 중...' : '저장'}
                       </button>
+                      {tastingNote && tastingNote.verification_status !== 'approved' && (
+                        <button
+                          onClick={handleApprove} disabled={approving}
+                          style={{
+                            padding: '10px 20px', borderRadius: 6, border: 'none', fontSize: 14, cursor: 'pointer',
+                            background: approving ? '#9ca3af' : '#16a34a', color: '#fff', fontWeight: 600,
+                          }}
+                        >
+                          {approving ? '승인 중...' : '승인'}
+                        </button>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button
-                        onClick={handleGeneratePpt}
+                        onClick={() => {
+                          const vs = tastingNote?.verification_status;
+                          if (vs && vs !== 'approved' && vs !== 'verified') {
+                            if (!confirm('이 와인은 아직 승인/검증되지 않았습니다. 그래도 PPT를 생성하시겠습니까?')) return;
+                          }
+                          handleGeneratePpt();
+                        }}
                         disabled={generatingPpt || !tastingNote}
                         style={{
                           flex: 1, padding: '10px', borderRadius: 6, border: '1px solid #d1d5db',
@@ -742,9 +809,18 @@ export default function TastingNoteTab() {
               </div>
             ) : (
               <div style={{ padding: '16px 18px' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>
                   AI 조사 원본 데이터
                 </div>
+                {tastingNote.verification_status && (() => {
+                  const vb = verificationBadge(tastingNote.verification_status);
+                  return vb ? (
+                    <div style={{ padding: '6px 10px', background: vb.bg, borderRadius: 6, fontSize: 12, color: vb.color, fontWeight: 600, marginBottom: 12 }}>
+                      {vb.title}
+                      {selectedWine?.supplier && <span style={{ fontWeight: 400, marginLeft: 8 }}>| 생산자: {selectedWine.supplier || selectedWine.supplier_kr}</span>}
+                    </div>
+                  ) : null;
+                })()}
 
                 <DetailSection icon="🏰" title="와이너리 상세" content={tastingNote.winery_description} />
                 <DetailSection icon="🍷" title="양조 방법 상세" content={tastingNote.winemaking} />

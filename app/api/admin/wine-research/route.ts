@@ -4,12 +4,13 @@ import { researchWineWithClaude } from "@/app/lib/claudeWineResearch";
 import { upsertWine, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
+import { supabase } from "@/app/lib/db";
 
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { wine_id, product_name_eng, item_name_kr, vintage } = await request.json();
+    const { wine_id, product_name_eng, item_name_kr, vintage, supplier: reqSupplier } = await request.json();
 
     if (!wine_id) {
       return NextResponse.json({ success: false, error: "wine_id가 필요합니다." }, { status: 400 });
@@ -18,18 +19,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "영문명(product_name_eng)이 필요합니다." }, { status: 400 });
     }
 
-    const { result, validation } = await researchWineWithClaude(
+    // wines 테이블에서 생산자 정보 조회
+    let supplierName = reqSupplier || '';
+    if (!supplierName) {
+      const { data: wineRow } = await supabase
+        .from('wines')
+        .select('supplier, supplier_kr')
+        .eq('item_code', wine_id)
+        .single();
+      if (wineRow) {
+        supplierName = wineRow.supplier || wineRow.supplier_kr || '';
+      }
+    }
+
+    const { result, validation, verification_status } = await researchWineWithClaude(
       wine_id,
       item_name_kr || '',
       product_name_eng.trim(),
-      vintage || undefined
+      vintage || undefined,
+      supplierName || undefined
     );
 
-    // confidence < 50 → 저장 안함, 에러 반환
-    if (validation.confidence < 50) {
+    // confidence < 50 (mismatch) → 저장 안함, 에러 반환
+    if (verification_status === 'mismatch') {
       return NextResponse.json({
         success: false,
-        error: "다른 와인이 조사되었습니다",
+        error: "생산자가 다른 와인이 조사되었습니다. 생산자를 확인해주세요.",
+        verification_status,
         validation,
         data: result,
       });
@@ -57,7 +73,7 @@ export async function POST(request: NextRequest) {
       ...(result.image_url ? { image_url: result.image_url } : {}),
     });
 
-    // tasting_notes 테이블 업데이트
+    // tasting_notes 테이블 업데이트 (verification_status 포함)
     await upsertTastingNote(wine_id, {
       winemaking: result.winemaking,
       winery_description: result.winery_description,
@@ -71,11 +87,12 @@ export async function POST(request: NextRequest) {
       serving_temp: result.serving_temp,
       awards: result.awards,
       ai_generated: 1,
-    });
+      verification_status,
+    } as Record<string, unknown>);
 
-    await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en });
+    await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en, verification_status });
 
-    return NextResponse.json({ success: true, data: result, validation });
+    return NextResponse.json({ success: true, data: result, validation, verification_status });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[wine-research] ERROR:', msg, e instanceof Error ? e.stack : '');

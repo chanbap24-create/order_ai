@@ -7,10 +7,11 @@ interface WineWithStatus extends Wine {
   tasting_note_id: number | null;
   ai_generated: number;
   approved: number;
-  wine_status: 'detected' | 'researched' | 'approved';
+  verification_status: string | null;
+  wine_status: 'detected' | 'researched' | 'approved' | 'mismatch';
 }
 
-type StatusFilter = 'all' | 'detected' | 'researched' | 'approved';
+type StatusFilter = 'all' | 'detected' | 'researched' | 'approved' | 'mismatch';
 
 export default function NewWineTab() {
   // === 좌측 리스트 상태 ===
@@ -161,10 +162,14 @@ export default function NewWineTab() {
           product_name_eng: engName,
           item_name_kr: selectedWine.item_name_kr,
           vintage: selectedWine.vintage || '',
+          supplier: selectedWine.supplier || selectedWine.supplier_kr || '',
         }),
       });
       const data = await res.json();
       if (data.success) {
+        if (data.verification_status === 'warning') {
+          alert('생산자 확인 필요: 조사된 와인의 생산자가 다를 수 있습니다. 확인 후 승인해주세요.');
+        }
         await loadWineDetail(selectedWine.item_code);
         fetchWines();
       } else {
@@ -209,6 +214,7 @@ export default function NewWineTab() {
             product_name_eng: w?.item_name_en || '',
             item_name_kr: w?.item_name_kr || '',
             vintage: w?.vintage || '',
+            supplier: w?.supplier || w?.supplier_kr || '',
           }),
         });
       } catch { /* continue */ }
@@ -434,6 +440,7 @@ export default function NewWineTab() {
   // ───── 상태 배지 ─────
   const statusBadge = (ws: string) => {
     if (ws === 'approved') return { label: '승인완료', color: '#16a34a', bg: '#dcfce7', icon: '🟢' };
+    if (ws === 'mismatch') return { label: '재조사필요', color: '#dc2626', bg: '#fee2e2', icon: '🔴' };
     if (ws === 'researched') return { label: '조사완료', color: '#ca8a04', bg: '#fef9c3', icon: '🟡' };
     return { label: '감지됨', color: '#2563eb', bg: '#dbeafe', icon: '🔵' };
   };
@@ -445,6 +452,7 @@ export default function NewWineTab() {
     all: wines.length,
     detected: wines.filter(w => w.wine_status === 'detected').length,
     researched: wines.filter(w => w.wine_status === 'researched').length,
+    mismatch: wines.filter(w => w.wine_status === 'mismatch').length,
     approved: wines.filter(w => w.wine_status === 'approved').length,
   };
 
@@ -454,8 +462,8 @@ export default function NewWineTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'inline-flex', background: 'rgba(90,21,21,0.05)', borderRadius: 8, padding: 2 }}>
-          {(['all', 'detected', 'researched', 'approved'] as StatusFilter[]).map(f => {
-            const labels: Record<StatusFilter, string> = { all: '전체', detected: '감지됨', researched: '조사완료', approved: '승인완료' };
+          {(['all', 'detected', 'researched', 'mismatch', 'approved'] as StatusFilter[]).map(f => {
+            const labels: Record<StatusFilter, string> = { all: '전체', detected: '감지됨', researched: '조사완료', mismatch: '재조사', approved: '승인완료' };
             const isActive = statusFilter === f;
             return (
               <button
@@ -716,7 +724,34 @@ export default function NewWineTab() {
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
                   <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>
                     조사 결과 {tastingNote?.ai_generated ? '(AI 생성)' : ''}
+                    {tastingNote?.verification_status && (() => {
+                      const vsMap: Record<string, { label: string; color: string; bg: string }> = {
+                        verified: { label: '검증완료', color: '#16a34a', bg: '#dcfce7' },
+                        warning: { label: '생산자 확인 필요', color: '#d97706', bg: '#fef3c7' },
+                        mismatch: { label: '생산자 불일치', color: '#dc2626', bg: '#fee2e2' },
+                        approved: { label: '승인완료', color: '#2563eb', bg: '#dbeafe' },
+                        pending: { label: '검증대기', color: '#9ca3af', bg: '#f3f4f6' },
+                      };
+                      const vs = vsMap[tastingNote.verification_status || ''];
+                      return vs ? (
+                        <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 10, background: vs.bg, color: vs.color, fontWeight: 600 }}>
+                          {vs.label}
+                        </span>
+                      ) : null;
+                    })()}
                   </h4>
+
+                  {/* 생산자 확인 경고 배너 */}
+                  {tastingNote?.verification_status === 'warning' && (
+                    <div style={{ padding: '10px 14px', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, marginBottom: 14, fontSize: 13, color: '#92400e' }}>
+                      <b>생산자 확인 필요</b> - AI 조사 결과의 생산자가 원본({selectedWine?.supplier || selectedWine?.supplier_kr || '미등록'})과 다를 수 있습니다.
+                    </div>
+                  )}
+                  {tastingNote?.verification_status === 'mismatch' && (
+                    <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #f87171', borderRadius: 8, marginBottom: 14, fontSize: 13, color: '#991b1b' }}>
+                      <b>생산자 불일치</b> - 다른 생산자의 와인이 조사되었습니다. 재조사가 필요합니다.
+                    </div>
+                  )}
 
                   <SectionTitle title="기본 와인 정보" />
                   <FormRow label="품종" value={editForm.grape_varieties} onChange={(v) => updateField('grape_varieties', v)} />
