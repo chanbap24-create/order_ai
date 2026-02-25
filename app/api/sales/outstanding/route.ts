@@ -31,7 +31,12 @@ export async function GET(req: NextRequest) {
     }
 
     // (X), (x) 접두어 거래처 제외 (폐업/철수)
-    const activeClients = clientList.filter(c => !/^\(x\)/i.test(c.client_name || ''));
+    // client_code가 숫자 코드가 아닌 이름 기반인 것도 제외 (URL 길이 제한 방지)
+    const activeClients = clientList.filter(c => {
+      if (/^\(x\)/i.test(c.client_name || '')) return false;
+      if (c.client_code === c.client_name) return false; // 이름 기반 코드 제외
+      return true;
+    });
 
     // client_name별 코드 그룹핑
     const nameToCodesMap = new Map<string, string[]>();
