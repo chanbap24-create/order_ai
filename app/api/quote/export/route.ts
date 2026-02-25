@@ -182,24 +182,23 @@ function sc(
     vertical: 'middle',
     wrapText: o?.wrap ?? false,
   };
-  const font: Partial<ExcelJS.Font> = { name: FONT };
+  const font: Partial<ExcelJS.Font> = { name: FONT, size: o?.size ?? 10 };
   if (o?.bold) font.bold = true;
   if (o?.color) font.color = { argb: o.color };
-  if (o?.size) font.size = o.size;
   cell.font = font;
   if (o?.fill) cell.fill = o.fill;
 }
 
 function sf(
   row: ExcelJS.Row, col: number, formula: string,
-  o?: { border?: Partial<ExcelJS.Borders>; fmt?: string; bold?: boolean; color?: string; fill?: ExcelJS.Fill }
+  o?: { border?: Partial<ExcelJS.Borders>; fmt?: string; bold?: boolean; color?: string; fill?: ExcelJS.Fill; size?: number }
 ) {
   const cell = row.getCell(col);
   cell.value = { formula } as ExcelJS.CellFormulaValue;
   if (o?.border) cell.border = o.border;
   if (o?.fmt) cell.numFmt = o.fmt;
   cell.alignment = { horizontal: 'right', vertical: 'middle' };
-  const font: Partial<ExcelJS.Font> = { name: FONT };
+  const font: Partial<ExcelJS.Font> = { name: FONT, size: o?.size ?? 10 };
   if (o?.bold) font.bold = true;
   if (o?.color) font.color = { argb: o.color };
   cell.font = font;
@@ -741,7 +740,7 @@ async function buildQuote(
 
     ws.mergeCells(`${sigStart}${sigR}:${lastCol}${sigR}`);
     ws.getCell(`${sigStart}${sigR}`).value = doc.companyName;
-    ws.getCell(`${sigStart}${sigR}`).font = { name: FONT, size: 16, bold: true };
+    ws.getCell(`${sigStart}${sigR}`).font = { name: FONT, size: 18, bold: true };
     ws.getCell(`${sigStart}${sigR}`).alignment = { horizontal: 'right', vertical: 'middle' };
 
     ws.mergeCells(`${sigStart}${sigR + 1}:${lastCol}${sigR + 1}`);
