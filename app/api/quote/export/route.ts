@@ -158,6 +158,7 @@ const PCT = '0%';
 const HEADER_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3D1C1C' } };
 const ALT_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F7F5' } };
 const SUMMARY_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0EBE6' } };
+const WHITE_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 const FONT = '맑은 고딕';
 
 function fmtDate(d: Date): string {
@@ -459,6 +460,15 @@ async function buildQuote(
   ws.getCell('A19').font = { name: FONT, size: 11 };
   ws.getCell('A19').alignment = { horizontal: 'center', vertical: 'middle' };
 
+  // ── 헤더 영역 (rows 1-19) 하얀 배경 + 테두리 제거 ──
+  for (let r = 1; r <= 19; r++) {
+    const hdrRow = ws.getRow(r);
+    for (let c = 1; c <= totalCols; c++) {
+      hdrRow.getCell(c).fill = WHITE_FILL;
+      hdrRow.getCell(c).border = {};
+    }
+  }
+
   // Row 20: 제품 및 가격 + 단위
   ws.getCell('A20').value = '1. 제품 및 가격 :';
   ws.getCell('A20').font = { name: FONT, size: 10 };
@@ -494,7 +504,7 @@ async function buildQuote(
     const item = items[idx];
     const r = DS + idx;
     const row = ws.getRow(r);
-    row.height = hasImageCol ? IMG_ROW_HEIGHT : 24;
+    row.height = hasImageCol ? IMG_ROW_HEIGHT : 40;
 
     const rowFill = idx % 2 === 1 ? ALT_FILL : undefined;
 
@@ -743,6 +753,15 @@ async function buildQuote(
     ws.getCell(`${sigStart}${sigR + 2}`).value = doc.sealText;
     ws.getCell(`${sigStart}${sigR + 2}`).font = { name: FONT, size: 11 };
     ws.getCell(`${sigStart}${sigR + 2}`).alignment = { horizontal: 'right', vertical: 'middle' };
+
+    // ── 푸터 영역 (끝 행부터 아래) 하얀 배경 + 테두리 제거 ──
+    for (let r = endR; r <= sigR + 2; r++) {
+      const ftrRow = ws.getRow(r);
+      for (let c = 1; c <= totalCols; c++) {
+        ftrRow.getCell(c).fill = WHITE_FILL;
+        ftrRow.getCell(c).border = {};
+      }
+    }
   }
 
   ws.pageSetup = { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
