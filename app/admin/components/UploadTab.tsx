@@ -208,8 +208,8 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
               carryover_amount: Math.round(Number(r[9]) || 0),
             });
           }
-          // 일계 행에서 수금액 추출
-          if (r[4] === '일계' && r[8] && Number(r[8]) > 0) {
+          // 일계 행에서 수금액 추출 (음수=환불도 포함)
+          if (r[4] === '일계' && r[8] && Number(r[8]) !== 0) {
             const date = toDate(r[3]);
             if (date && currentCode) {
               payments.push({
