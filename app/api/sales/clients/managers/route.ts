@@ -18,6 +18,15 @@ export async function GET(req: NextRequest) {
       if (r.manager) allManagers.add(r.manager);
     }
 
+    // sales_users 계정도 포함 (거래처 없어도 로그인 가능)
+    const { data: users } = await supabase
+      .from('sales_users')
+      .select('manager')
+      .neq('role', 'admin');
+    for (const u of (users || [])) {
+      if (u.manager) allManagers.add(u.manager);
+    }
+
     // 비영업 담당자 제외
     const EXCLUDE = ['윤영란', '정진경', '편지은', '경영지원부', 'ADMIN', 'Admin'];
     const managers = [...allManagers]
