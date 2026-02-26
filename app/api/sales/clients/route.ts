@@ -50,6 +50,73 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ═══ Glass: glass_clients + glass_shipments에서 검색 (client_details에 없음) ═══
+    if (clientType === 'glass') {
+      let glassQuery = supabase
+        .from('glass_clients')
+        .select('client_code, client_name, created_at', { count: 'exact' });
+
+      if (search) {
+        const safe = sanitizeFilterValue(search);
+        glassQuery = glassQuery.or(`client_name.ilike.%${safe}%,client_code.ilike.%${safe}%`);
+      }
+      if (managerClientCodes) {
+        glassQuery = glassQuery.in('client_code', managerClientCodes);
+      }
+
+      glassQuery = glassQuery.order('client_name', { ascending: true });
+      glassQuery = glassQuery.range(offset, offset + limit - 1);
+
+      const { data: glassData, error: glassErr, count: glassCount } = await glassQuery;
+      if (glassErr) throw glassErr;
+
+      // glass_clients에 결과가 있으면 반환
+      if (glassData && glassData.length > 0) {
+        return NextResponse.json({
+          clients: glassData.map(c => ({ ...c, client_type: 'glass' })),
+          total: glassCount || 0,
+          page,
+          limit,
+        });
+      }
+
+      // glass_clients에 없으면 glass_shipments에서 이름 검색 (client_code null인 경우)
+      if (search) {
+        const safe = sanitizeFilterValue(search);
+        let shipQuery = supabase
+          .from('glass_shipments')
+          .select('client_name, client_code')
+          .ilike('client_name', `%${safe}%`);
+        if (manager) {
+          shipQuery = shipQuery.eq('manager', manager);
+        }
+        shipQuery = shipQuery.limit(200);
+
+        const { data: shipData } = await shipQuery;
+        // DISTINCT by client_name
+        const seen = new Map<string, string>();
+        for (const r of (shipData || [])) {
+          if (r.client_name && !seen.has(r.client_name)) {
+            seen.set(r.client_name, r.client_code || r.client_name);
+          }
+        }
+        const results = [...seen.entries()].slice(0, limit).map(([name, code]) => ({
+          client_code: code,
+          client_name: name,
+          client_type: 'glass',
+        }));
+        return NextResponse.json({
+          clients: results,
+          total: results.length,
+          page,
+          limit,
+        });
+      }
+
+      return NextResponse.json({ clients: [], total: 0, page, limit });
+    }
+
+    // ═══ Wine: 기존 client_details 조회 ═══
     let query = supabase
       .from('client_details')
       .select('*', { count: 'exact' });
