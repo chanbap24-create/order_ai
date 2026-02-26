@@ -628,8 +628,10 @@ export async function GET(req: NextRequest) {
 
         if (!alertType) continue;
 
-        // 소진시기가 3개월(90일) 이상 남으면 표시하지 않음
-        if (daysRemaining !== null && daysRemaining >= 90) continue;
+        // low_stock인데 소진시기가 3개월(90일) 이상 남으면 제외
+        if (alertType === 'low_stock' && daysRemaining !== null && daysRemaining >= 90) continue;
+        // low_stock인데 소진시기 계산 불가(판매 없음)면 급하지 않으므로 제외
+        if (alertType === 'low_stock' && daysRemaining === null) continue;
 
         const itemAgg = itemClientMap.get(itemNo)!;
         const affectedClients = Array.from(itemAgg.clients.values())
