@@ -150,105 +150,30 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
     if (!selectedClient || exporting) return;
     setExporting(true);
     try {
-      if (format === 'excel') {
-        const params = new URLSearchParams({
-          client_code: selectedClient.code,
-          start_date: startDate,
-          end_date: endDate,
-          type,
-          format: 'excel',
-        });
-        const res = await fetch(`/api/sales/ledger/export?${params}`);
-        if (!res.ok) throw new Error('다운로드 실패');
-        const blob = await res.blob();
-        const safeName = (client?.client_name || selectedClient.code).replace(/[\\/:*?"<>|]/g, '_');
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `매출처원장_${safeName}_${startDate}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
-        return;
-      }
-      handlePrintPDF();
+      const params = new URLSearchParams({
+        client_code: selectedClient.code,
+        start_date: startDate,
+        end_date: endDate,
+        type,
+        format,
+      });
+      const res = await fetch(`/api/sales/ledger/export?${params}`);
+      if (!res.ok) throw new Error('다운로드 실패');
+      const blob = await res.blob();
+      const safeName = (client?.client_name || selectedClient.code).replace(/[\\/:*?"<>|]/g, '_');
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `매출처원장_${safeName}_${startDate}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
     } catch (err) {
       alert('다운로드 중 오류가 발생했습니다.');
     } finally {
       setExporting(false);
     }
-  };
-
-  const handlePrintPDF = () => {
-    if (!client || grouped.length === 0) return;
-    const f = (n: number) => n.toLocaleString();
-    let runBal = prevBalance;
-    let tBody = '';
-    const gTot = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
-
-    for (const month of grouped) {
-      for (const day of month.days) {
-        for (let i = 0; i < day.shipRows.length; i++) {
-          const r = day.shipRows[i];
-          tBody += `<tr><td>${i === 0 ? day.date.slice(5) : ''}</td><td>${r.item_name || ''}</td><td class="r">${f(r.quantity)}</td><td class="r">${f(r.unit_price)}</td><td class="r">${f(r.supply_amount)}</td><td class="r">${f(r.tax_amount)}</td><td class="r">${f(r.total_amount)}</td><td></td><td></td></tr>`;
-        }
-        for (let i = 0; i < day.payRows.length; i++) {
-          const p = day.payRows[i];
-          tBody += `<tr><td>${day.shipRows.length === 0 && i === 0 ? day.date.slice(5) : ''}</td><td style="color:#1565C0">입금</td><td></td><td></td><td></td><td></td><td></td><td class="r" style="color:#1565C0">${f(p.amount)}</td><td></td></tr>`;
-        }
-        runBal += day.totals.total - day.totals.payment;
-        if (day.shipRows.length > 1 || day.payRows.length > 0) {
-          const payStr = day.totals.payment ? f(day.totals.payment) : '';
-          tBody += `<tr class="daily"><td>${day.date.slice(5)} 일계</td><td></td><td class="r">${f(day.totals.qty)}</td><td></td><td class="r">${f(day.totals.supply)}</td><td class="r">${f(day.totals.tax)}</td><td class="r">${f(day.totals.total)}</td><td class="r" style="color:#1565C0">${payStr}</td><td class="r" style="color:#c62828">${f(runBal)}</td></tr>`;
-        }
-      }
-      gTot.qty += month.totals.qty; gTot.supply += month.totals.supply;
-      gTot.tax += month.totals.tax; gTot.total += month.totals.total; gTot.payment += month.totals.payment;
-      const mPay = month.totals.payment ? f(month.totals.payment) : '';
-      tBody += `<tr class="monthly"><td>${month.month} 월계</td><td></td><td class="r">${f(month.totals.qty)}</td><td></td><td class="r">${f(month.totals.supply)}</td><td class="r">${f(month.totals.tax)}</td><td class="r">${f(month.totals.total)}</td><td class="r" style="color:#1565C0">${mPay}</td><td class="r" style="color:#c62828">${f(runBal)}</td></tr>`;
-    }
-    const finalBal = prevBalance + gTot.total - gTot.payment;
-    tBody += `<tr class="grand"><td>${client.client_name} 합계</td><td></td><td class="r">${f(gTot.qty)}</td><td></td><td class="r">${f(gTot.supply)}</td><td class="r">${f(gTot.tax)}</td><td class="r">${f(gTot.total)}</td><td class="r">${f(gTot.payment)}</td><td class="r">${f(finalBal)}</td></tr>`;
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>매출처원장 - ${client.client_name}</title>
-<style>
-@page{size:A4 landscape;margin:10mm}
-body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:9px;margin:0;padding:10px}
-h2{font-size:14px;color:#2c1810;margin:0 0 4px}
-.sub{font-size:10px;color:#888;margin-bottom:8px}
-table{width:100%;border-collapse:collapse}
-th{background:#f5f0f0;color:#5A1515;padding:4px 6px;border-bottom:2px solid #5A1515;font-size:9px;text-align:left}
-th.r{text-align:right}
-td{padding:3px 6px;border-bottom:1px solid #eee;font-size:9px}
-td.r{text-align:right}
-tr.daily{background:#faf8f6;font-weight:bold}
-tr.monthly{background:#fff8e1;font-weight:bold;color:#5A1515}
-tr.grand{background:#5A1515;color:#fff;font-weight:bold}
-tr.grand td{color:#fff;border:none}
-.prev{font-size:10px;margin-bottom:6px;color:#5A1515;font-weight:bold}
-</style></head><body>
-<h2>매출처원장 - ${client.client_name} (${client.client_code})</h2>
-<div class="sub">${startDate} ~ ${endDate}</div>
-${prevBalance ? `<div class="prev">이월잔액: ${f(prevBalance)}원</div>` : ''}
-<table><thead><tr><th>일자</th><th>품목명</th><th class="r">수량</th><th class="r">단가</th><th class="r">공급금액</th><th class="r">부가세</th><th class="r">합계</th><th class="r" style="color:#1565C0">수금액</th><th class="r" style="color:#c62828">미수액</th></tr></thead>
-<tbody>${tBody}</tbody></table></body></html>`;
-
-    // iframe 방식: 모바일에서도 팝업 차단 없이 동작
-    let iframe = document.getElementById('print-frame') as HTMLIFrameElement;
-    if (!iframe) {
-      iframe = document.createElement('iframe');
-      iframe.id = 'print-frame';
-      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:0;height:0;border:none';
-      document.body.appendChild(iframe);
-    }
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-    }, 300);
   };
 
   // 데이터 가공: 월별 → 일별 → 행

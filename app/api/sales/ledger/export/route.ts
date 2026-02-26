@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
+import path from 'path';
+import fs from 'fs';
 
 // ─── 데이터 조회 (ledger route.ts와 동일 로직) ───
 export async function fetchLedgerData(clientCode: string, startDate: string, endDate: string, clientType: string) {
@@ -290,7 +293,117 @@ export async function generateExcel(client: any, grouped: GroupedMonth[], prevBa
   return Buffer.from(buf);
 }
 
-// ─── GET 핸들러 (Excel only, PDF는 클라이언트 인쇄) ───
+// ─── PDF 생성 ───
+export async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
+  const fontDir = path.join(process.cwd(), 'public', 'fonts');
+  const regularFont = path.join(fontDir, 'NanumGothic-Regular.ttf');
+  const boldFont = path.join(fontDir, 'NanumGothic-Bold.ttf');
+  const hasRegular = fs.existsSync(regularFont);
+  const hasBold = fs.existsSync(boldFont);
+
+  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: true });
+  const chunks: Buffer[] = [];
+  doc.on('data', (c: Buffer) => chunks.push(c));
+
+  if (hasRegular) doc.registerFont('Ko', regularFont);
+  if (hasBold) doc.registerFont('KoBold', boldFont);
+  const font = hasRegular ? 'Ko' : 'Helvetica';
+  const fontB = hasBold ? 'KoBold' : 'Helvetica-Bold';
+
+  const f = (n: number) => n.toLocaleString('ko-KR');
+  const pageW = 842 - 60; // A4 landscape - margins
+  const cols = [52, 180, 40, 60, 75, 60, 75, 75, 75]; // 9 columns
+  const headers = ['일자', '품목명', '수량', '단가', '공급금액', '부가세', '합계', '수금액', '미수액'];
+  const rowH = 14;
+  let y = 30;
+
+  const drawHeader = () => {
+    y = 30;
+    doc.font(fontB).fontSize(12).fillColor('#2c1810')
+      .text(`매출처원장 - ${client.client_name} (${client.client_code})`, 30, y);
+    y += 18;
+    doc.font(font).fontSize(8).fillColor('#888888')
+      .text(`${startDate} ~ ${endDate}`, 30, y);
+    y += 14;
+    if (prevBalance) {
+      doc.font(fontB).fontSize(8).fillColor('#5A1515')
+        .text(`이월잔액: ${f(prevBalance)}원`, 30, y);
+      y += 14;
+    }
+    // table header
+    doc.rect(30, y, pageW, rowH + 4).fill('#f5f0f0');
+    let x = 30;
+    doc.font(fontB).fontSize(7).fillColor('#5A1515');
+    for (let i = 0; i < 9; i++) {
+      const align = i <= 1 ? 'left' : 'right';
+      doc.text(headers[i], x + 2, y + 3, { width: cols[i] - 4, align });
+      x += cols[i];
+    }
+    y += rowH + 4;
+    doc.moveTo(30, y).lineTo(30 + pageW, y).strokeColor('#5A1515').lineWidth(1.5).stroke();
+    y += 2;
+  };
+
+  const checkPage = (need: number) => {
+    if (y + need > 560) { doc.addPage(); drawHeader(); }
+  };
+
+  const drawRow = (vals: string[], opts?: { bg?: string; color?: string; bold?: boolean; payColor?: boolean; balColor?: boolean }) => {
+    checkPage(rowH);
+    if (opts?.bg) { doc.rect(30, y, pageW, rowH).fill(opts.bg); }
+    let x = 30;
+    const f_ = opts?.bold ? fontB : font;
+    const c_ = opts?.color || '#000000';
+    for (let i = 0; i < 9; i++) {
+      const align = i <= 1 ? 'left' : 'right';
+      let color = c_;
+      if (opts?.payColor && i === 7 && vals[7]) color = '#1565C0';
+      if (opts?.balColor && i === 8 && vals[8]) color = '#c62828';
+      doc.font(f_).fontSize(7).fillColor(color)
+        .text(vals[i] || '', x + 2, y + 3, { width: cols[i] - 4, align });
+      x += cols[i];
+    }
+    y += rowH;
+  };
+
+  drawHeader();
+
+  let runBal = prevBalance;
+  const gTot = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
+
+  for (const month of grouped) {
+    for (const day of month.days) {
+      for (let i = 0; i < day.shipRows.length; i++) {
+        const r = day.shipRows[i];
+        drawRow([i === 0 ? day.date.slice(5) : '', r.item_name || '', f(r.quantity), f(r.unit_price), f(r.supply_amount), f(r.tax_amount), f(r.total_amount), '', '']);
+      }
+      for (let i = 0; i < day.payRows.length; i++) {
+        const p = day.payRows[i];
+        drawRow([day.shipRows.length === 0 && i === 0 ? day.date.slice(5) : '', '입금', '', '', '', '', '', f(p.amount), ''], { payColor: true });
+      }
+      runBal += day.totals.total - day.totals.payment;
+      if (day.shipRows.length > 1 || day.payRows.length > 0) {
+        drawRow([`${day.date.slice(5)} 일계`, '', f(day.totals.qty), '', f(day.totals.supply), f(day.totals.tax), f(day.totals.total), day.totals.payment ? f(day.totals.payment) : '', f(runBal)],
+          { bg: '#faf8f6', bold: true, payColor: true, balColor: true });
+      }
+    }
+    gTot.qty += month.totals.qty; gTot.supply += month.totals.supply;
+    gTot.tax += month.totals.tax; gTot.total += month.totals.total; gTot.payment += month.totals.payment;
+    drawRow([`${month.month} 월계`, '', f(month.totals.qty), '', f(month.totals.supply), f(month.totals.tax), f(month.totals.total), month.totals.payment ? f(month.totals.payment) : '', f(runBal)],
+      { bg: '#fff8e1', bold: true, color: '#5A1515', payColor: true, balColor: true });
+  }
+
+  const finalBal = prevBalance + gTot.total - gTot.payment;
+  drawRow([`${client.client_name} 합계`, '', f(gTot.qty), '', f(gTot.supply), f(gTot.tax), f(gTot.total), f(gTot.payment), f(finalBal)],
+    { bg: '#5A1515', bold: true, color: '#ffffff' });
+
+  doc.end();
+  return new Promise<Buffer>((resolve) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+// ─── GET 핸들러 ───
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -298,6 +411,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const clientType = searchParams.get('type') || 'wine';
+    const format = searchParams.get('format') || 'excel';
 
     if (!clientCode || !startDate || !endDate) {
       return NextResponse.json({ error: 'client_code, start_date, end_date required' }, { status: 400 });
@@ -305,8 +419,18 @@ export async function GET(req: NextRequest) {
 
     const { client, rows, payments, prevBalance } = await fetchLedgerData(clientCode, startDate, endDate, clientType);
     const grouped = groupData(rows, payments);
-
     const safeName = (client.client_name || clientCode).replace(/[\\/:*?"<>|]/g, '_');
+
+    if (format === 'pdf') {
+      const buf = await generatePDF(client, grouped, prevBalance, startDate, endDate);
+      return new NextResponse(buf, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate}.pdf`)}`,
+        },
+      });
+    }
+
     const buf = await generateExcel(client, grouped, prevBalance, startDate, endDate);
     return new NextResponse(buf, {
       headers: {
