@@ -145,86 +145,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 이월 기준일 이후 ~ 조회 시작일 이전 판매액 (공급+부가세, 이월이 7월 이전 잔액이므로 8월부터만)
-    const CARRYOVER_CUTOFF = '2025-08-01';
-    let prevSales = 0;
-    let prevFrom = 0;
-    while (true) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('total_amount')
-        .in('client_code', allCodes)
-        .gte('ship_date', CARRYOVER_CUTOFF)
-        .lt('ship_date', startDate)
-        .range(prevFrom, prevFrom + batch - 1);
-
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      for (const r of data) prevSales += (r.total_amount || 0);
-      if (data.length < batch) break;
-      prevFrom += batch;
-    }
-
-    if (clientName) {
-      let namePrevFrom = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from(table)
-          .select('total_amount')
-          .eq('client_name', clientName)
-          .not('client_code', 'in', `(${allCodes.join(',')})`)
-          .gte('ship_date', CARRYOVER_CUTOFF)
-          .lt('ship_date', startDate)
-          .range(namePrevFrom, namePrevFrom + batch - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) prevSales += (r.total_amount || 0);
-        if (data.length < batch) break;
-        namePrevFrom += batch;
-      }
-    }
-
-    // 전월 수금 합계
-    let prevPayments = 0;
-    let prevPayFrom = 0;
-    while (true) {
-      const { data, error } = await supabase
-        .from(payTable)
-        .select('amount')
-        .in('client_code', allCodes)
-        .lt('payment_date', startDate)
-        .range(prevPayFrom, prevPayFrom + batch - 1);
-
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      for (const r of data) prevPayments += (r.amount || 0);
-      if (data.length < batch) break;
-      prevPayFrom += batch;
-    }
-
-    if (clientName) {
-      let namePrevPayFrom = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from(payTable)
-          .select('amount')
-          .eq('client_name', clientName)
-          .not('client_code', 'in', `(${allCodes.join(',')})`)
-          .lt('payment_date', startDate)
-          .range(namePrevPayFrom, namePrevPayFrom + batch - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) prevPayments += (r.amount || 0);
-        if (data.length < batch) break;
-        namePrevPayFrom += batch;
-      }
-    }
-
-    // 이월잔액 = 이월미수금 + 이전공급 - 이전수금
-    // 이월잔액 = 이월미수금 + 이전판매액(공급+부가세) - 이전수금액
-    const prevTotal = carryover + prevSales - prevPayments;
+    // 이월잔액 = carryover (이미 조회기간 시작 전까지의 전체 미수잔액 포함)
+    const prevTotal = carryover;
 
     // 수금 내역 조회
     const paymentRows: any[] = [];

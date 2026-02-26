@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
-const CUTOFF = '2025-08-01';
-
 // GET /api/sales/outstanding?manager=XXX&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&type=wine
 export async function GET(req: NextRequest) {
   try {
@@ -36,7 +34,7 @@ export async function GET(req: NextRequest) {
 
       const clients: any[] = [];
       for (const r of rpcRows) {
-        const prevBalance = Number(r.carryover) + Number(r.prev_sales) - Number(r.prev_pay);
+        const prevBalance = Number(r.carryover);
         const outstanding = prevBalance + Number(r.period_total) - Number(r.period_payment);
 
         const hasActivity = Number(r.period_total) !== 0 || Number(r.period_payment) !== 0;
@@ -88,7 +86,7 @@ export async function GET(req: NextRequest) {
 
     const allCodes = activeClients.map(c => c.client_code);
 
-    // 2. 이월 미수금 일괄 조회
+    // 2. 이월 미수금 일괄 조회 (carryover = 조회기간 시작 전까지의 전체 미수잔액)
     const carryoverMap = new Map<string, number>();
     {
       const batch = 500;
@@ -109,52 +107,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. 이전 판매액 (CUTOFF ~ startDate) - 전월미수용
-    const prevSalesMap = new Map<string, number>();
-    {
-      const batch = 1000;
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from(table)
-          .select('client_code, total_amount')
-          .in('client_code', allCodes)
-          .gte('ship_date', CUTOFF)
-          .lt('ship_date', startDate)
-          .range(from, from + batch - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) {
-          prevSalesMap.set(r.client_code, (prevSalesMap.get(r.client_code) || 0) + (r.total_amount || 0));
-        }
-        if (data.length < batch) break;
-        from += batch;
-      }
-    }
-
-    // 4. 이전 수금 (~ startDate)
-    const prevPayMap = new Map<string, number>();
-    {
-      const batch = 1000;
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from(payTable)
-          .select('client_code, amount')
-          .in('client_code', allCodes)
-          .lt('payment_date', startDate)
-          .range(from, from + batch - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) {
-          prevPayMap.set(r.client_code, (prevPayMap.get(r.client_code) || 0) + (r.amount || 0));
-        }
-        if (data.length < batch) break;
-        from += batch;
-      }
-    }
-
-    // 5. 당기간 판매 (startDate ~ endDate)
+    // 3. 당기간 판매 (startDate ~ endDate)
     const periodSalesMap = new Map<string, { supply: number; tax: number; total: number }>();
     {
       const batch = 1000;
@@ -181,7 +134,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 6. 당기간 수금 (startDate ~ endDate)
+    // 4. 당기간 수금 (startDate ~ endDate)
     const periodPayMap = new Map<string, number>();
     {
       const batch = 1000;
@@ -204,7 +157,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 7. 거래처명별 집계
+    // 5. 거래처명별 집계
     const clients: {
       client_code: string;
       client_name: string;
@@ -217,19 +170,17 @@ export async function GET(req: NextRequest) {
     }[] = [];
 
     for (const [name, codes] of nameToCodesMap) {
-      let carryover = 0, prevSales = 0, prevPay = 0;
+      let carryover = 0;
       let pSupply = 0, pTax = 0, pTotal = 0, pPayment = 0;
 
       for (const code of codes) {
         carryover += carryoverMap.get(code) || 0;
-        prevSales += prevSalesMap.get(code) || 0;
-        prevPay += prevPayMap.get(code) || 0;
         const ps = periodSalesMap.get(code);
         if (ps) { pSupply += ps.supply; pTax += ps.tax; pTotal += ps.total; }
         pPayment += periodPayMap.get(code) || 0;
       }
 
-      const prevBalance = carryover + prevSales - prevPay;
+      const prevBalance = carryover;
       const outstanding = prevBalance + pTotal - pPayment;
 
       // 미수금 0이고 기간 내 거래도 없으면 제외
