@@ -338,10 +338,6 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
     y -= 16;
     page.drawText(`${startDate} ~ ${endDate}`, { x: M, y, size: 8, font: koFont, color: hexToRgb('#888888') });
     y -= 12;
-    if (prevBalance) {
-      page.drawText(`이월잔액: ${f(prevBalance)}원`, { x: M, y, size: 8, font: koBoldFont, color: hexToRgb('#5A1515') });
-      y -= 12;
-    }
     // 테이블 헤더 배경
     page.drawRectangle({ x: M, y: y - rowH, width: tableW, height: rowH, color: hexToRgb('#f5f0f0') });
     let x = M;
