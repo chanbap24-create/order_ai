@@ -21,172 +21,35 @@ export async function GET(req: NextRequest) {
     const payTable = isGlass ? 'glass_payments' : 'payments';
     const carryoverTable = isGlass ? 'glass_client_carryover' : 'client_carryover';
 
-    // ═══ Glass: manager 직접 필터 + client_name 기반 집계 ═══
+    // ═══ Glass: DB 함수로 거래처명 기반 전체 출고/수금 집계 (담당자 불일치 해결) ═══
     if (isGlass) {
-      // 1. 거래처명+코드 목록 (DB 함수, DISTINCT)
-      const { data: rpcRows, error: nErr } = await supabase
-        .rpc('get_glass_client_names', { p_manager: manager });
-      if (nErr) throw nErr;
+      const { data: rpcRows, error: rpcErr } = await supabase
+        .rpc('calc_glass_outstanding', {
+          p_manager: manager,
+          p_start_date: startDate,
+          p_end_date: endDate,
+        });
+      if (rpcErr) throw rpcErr;
       if (!rpcRows || rpcRows.length === 0) {
         return NextResponse.json({ clients: [] });
       }
 
-      const activeNamesSet = new Set<string>();
-      const nameToCodesMap = new Map<string, string[]>();
-      for (const r of rpcRows) {
-        if (!r.client_name || /^\(x\)/i.test(r.client_name)) continue;
-        activeNamesSet.add(r.client_name);
-        if (!nameToCodesMap.has(r.client_name)) nameToCodesMap.set(r.client_name, []);
-        if (r.client_code) {
-          const arr = nameToCodesMap.get(r.client_name)!;
-          if (!arr.includes(r.client_code)) arr.push(r.client_code);
-        }
-      }
-      if (activeNamesSet.size === 0) {
-        return NextResponse.json({ clients: [] });
-      }
-
-      // 2. shipments/payments는 manager 필터로 직접 조회 (client_name IN 불필요!)
-      const prevSalesByName = new Map<string, number>();
-      const periodSalesByName = new Map<string, { supply: number; tax: number; total: number }>();
-      const prevPayByName = new Map<string, number>();
-      const periodPayByName = new Map<string, number>();
-
-      // 이전 판매 (CUTOFF ~ startDate) - manager 필터
-      {
-        let from = 0;
-        while (true) {
-          const { data, error } = await supabase
-            .from(table)
-            .select('client_name, total_amount')
-            .eq('manager', manager)
-            .gte('ship_date', CUTOFF)
-            .lt('ship_date', startDate)
-            .range(from, from + 999);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          for (const r of data) {
-            if (!r.client_name || !activeNamesSet.has(r.client_name)) continue;
-            prevSalesByName.set(r.client_name, (prevSalesByName.get(r.client_name) || 0) + (r.total_amount || 0));
-          }
-          if (data.length < 1000) break;
-          from += 1000;
-        }
-      }
-
-      // 당기간 판매 - manager 필터
-      {
-        let from = 0;
-        while (true) {
-          const { data, error } = await supabase
-            .from(table)
-            .select('client_name, supply_amount, tax_amount, total_amount')
-            .eq('manager', manager)
-            .gte('ship_date', startDate)
-            .lte('ship_date', endDate)
-            .range(from, from + 999);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          for (const r of data) {
-            if (!r.client_name || !activeNamesSet.has(r.client_name)) continue;
-            const cur = periodSalesByName.get(r.client_name) || { supply: 0, tax: 0, total: 0 };
-            cur.supply += r.supply_amount || 0;
-            cur.tax += r.tax_amount || 0;
-            cur.total += r.total_amount || 0;
-            periodSalesByName.set(r.client_name, cur);
-          }
-          if (data.length < 1000) break;
-          from += 1000;
-        }
-      }
-
-      // 이전 수금 - manager 필터
-      {
-        let from = 0;
-        while (true) {
-          const { data, error } = await supabase
-            .from(payTable)
-            .select('client_name, amount')
-            .eq('manager', manager)
-            .lt('payment_date', startDate)
-            .range(from, from + 999);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          for (const r of data) {
-            if (!r.client_name || !activeNamesSet.has(r.client_name)) continue;
-            prevPayByName.set(r.client_name, (prevPayByName.get(r.client_name) || 0) + (r.amount || 0));
-          }
-          if (data.length < 1000) break;
-          from += 1000;
-        }
-      }
-
-      // 당기간 수금 - manager 필터
-      {
-        let from = 0;
-        while (true) {
-          const { data, error } = await supabase
-            .from(payTable)
-            .select('client_name, amount')
-            .eq('manager', manager)
-            .gte('payment_date', startDate)
-            .lte('payment_date', endDate)
-            .range(from, from + 999);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          for (const r of data) {
-            if (!r.client_name || !activeNamesSet.has(r.client_name)) continue;
-            periodPayByName.set(r.client_name, (periodPayByName.get(r.client_name) || 0) + (r.amount || 0));
-          }
-          if (data.length < 1000) break;
-          from += 1000;
-        }
-      }
-
-      // 이월 미수금 - carryover는 manager 컬럼 없으므로 전체 조회 후 이름 필터
-      const carryoverByName = new Map<string, number>();
-      {
-        let from = 0;
-        while (true) {
-          const { data, error } = await supabase
-            .from(carryoverTable)
-            .select('client_name, carryover_amount')
-            .range(from, from + 999);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          for (const r of data) {
-            if (!r.client_name || !activeNamesSet.has(r.client_name)) continue;
-            carryoverByName.set(r.client_name, (carryoverByName.get(r.client_name) || 0) + (r.carryover_amount || 0));
-          }
-          if (data.length < 1000) break;
-          from += 1000;
-        }
-      }
-
-      // 집계
       const clients: any[] = [];
-      for (const name of activeNamesSet) {
-        const carryover = carryoverByName.get(name) || 0;
-        const prevSales = prevSalesByName.get(name) || 0;
-        const prevPay = prevPayByName.get(name) || 0;
-        const ps = periodSalesByName.get(name) || { supply: 0, tax: 0, total: 0 };
-        const pPayment = periodPayByName.get(name) || 0;
+      for (const r of rpcRows) {
+        const prevBalance = Number(r.carryover) + Number(r.prev_sales) - Number(r.prev_pay);
+        const outstanding = prevBalance + Number(r.period_total) - Number(r.period_payment);
 
-        const prevBalance = carryover + prevSales - prevPay;
-        const outstanding = prevBalance + ps.total - pPayment;
-
-        const hasActivity = ps.total !== 0 || pPayment !== 0;
+        const hasActivity = Number(r.period_total) !== 0 || Number(r.period_payment) !== 0;
         if (outstanding === 0 && !hasActivity) continue;
 
-        const codes = nameToCodesMap.get(name) || [];
         clients.push({
-          client_code: codes[0] || name,
-          client_name: name,
+          client_code: r.client_code || r.client_name,
+          client_name: r.client_name,
           prev_balance: prevBalance,
-          period_supply: ps.supply,
-          period_tax: ps.tax,
-          period_total: ps.total,
-          period_payment: pPayment,
+          period_supply: Number(r.period_supply),
+          period_tax: Number(r.period_tax),
+          period_total: Number(r.period_total),
+          period_payment: Number(r.period_payment),
           outstanding,
         });
       }
