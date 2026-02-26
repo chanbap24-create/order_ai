@@ -16,9 +16,195 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'manager, start_date, end_date required' }, { status: 400 });
     }
 
-    const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
-    const payTable = clientType === 'glass' ? 'glass_payments' : 'payments';
-    const carryoverTable = clientType === 'glass' ? 'glass_client_carryover' : 'client_carryover';
+    const isGlass = clientType === 'glass';
+    const table = isGlass ? 'glass_shipments' : 'shipments';
+    const payTable = isGlass ? 'glass_payments' : 'payments';
+    const carryoverTable = isGlass ? 'glass_client_carryover' : 'client_carryover';
+
+    // ═══ Glass: client_name 기반 집계 (client_code가 null인 경우 많음) ═══
+    if (isGlass) {
+      // 1. glass_shipments에서 담당자의 거래처명 목록 추출
+      const { data: nameRows, error: nErr } = await supabase
+        .from('glass_shipments')
+        .select('client_name')
+        .eq('manager', manager)
+        .not('client_name', 'is', null);
+      if (nErr) throw nErr;
+
+      const clientNames = [...new Set((nameRows || []).map(r => r.client_name).filter(Boolean))];
+      if (clientNames.length === 0) {
+        return NextResponse.json({ clients: [] });
+      }
+
+      // (X) 접두어 제외
+      const activeNames = clientNames.filter(n => !/^\(x\)/i.test(n));
+
+      // client_name → client_codes 매핑 (payments/carryover 조회용)
+      const nameToCodesMap = new Map<string, string[]>();
+      {
+        const batch = 500;
+        for (let i = 0; i < activeNames.length; i += batch) {
+          const chunk = activeNames.slice(i, i + batch);
+          // glass_shipments에서 code가 있는 것
+          const { data: sc } = await supabase
+            .from('glass_shipments')
+            .select('client_name, client_code')
+            .in('client_name', chunk)
+            .not('client_code', 'is', null);
+          for (const r of (sc || [])) {
+            if (!r.client_code) continue;
+            if (!nameToCodesMap.has(r.client_name)) nameToCodesMap.set(r.client_name, []);
+            const arr = nameToCodesMap.get(r.client_name)!;
+            if (!arr.includes(r.client_code)) arr.push(r.client_code);
+          }
+          // glass_payments에서도 code 수집
+          const { data: pc } = await supabase
+            .from('glass_payments')
+            .select('client_name, client_code')
+            .in('client_name', chunk)
+            .not('client_code', 'is', null);
+          for (const r of (pc || [])) {
+            if (!r.client_code) continue;
+            if (!nameToCodesMap.has(r.client_name)) nameToCodesMap.set(r.client_name, []);
+            const arr = nameToCodesMap.get(r.client_name)!;
+            if (!arr.includes(r.client_code)) arr.push(r.client_code);
+          }
+        }
+      }
+
+      // 2~6. client_name 기반 집계 (이월/판매/수금 모두 이름 기반)
+      const carryoverByName = new Map<string, number>();
+      const prevSalesByName = new Map<string, number>();
+      const prevPayByName = new Map<string, number>();
+      const periodSalesByName = new Map<string, { supply: number; tax: number; total: number }>();
+      const periodPayByName = new Map<string, number>();
+
+      const batchSize = 300;
+      for (let i = 0; i < activeNames.length; i += batchSize) {
+        const chunk = activeNames.slice(i, i + batchSize);
+
+        // 이월 미수금 (client_name 기반)
+        const { data: coData } = await supabase
+          .from(carryoverTable)
+          .select('client_name, carryover_amount')
+          .in('client_name', chunk);
+        for (const r of (coData || [])) {
+          carryoverByName.set(r.client_name, (carryoverByName.get(r.client_name) || 0) + (r.carryover_amount || 0));
+        }
+
+        // 이전 판매 (CUTOFF ~ startDate)
+        let prevFrom = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from(table)
+            .select('client_name, total_amount')
+            .in('client_name', chunk)
+            .gte('ship_date', CUTOFF)
+            .lt('ship_date', startDate)
+            .range(prevFrom, prevFrom + 999);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          for (const r of data) {
+            prevSalesByName.set(r.client_name, (prevSalesByName.get(r.client_name) || 0) + (r.total_amount || 0));
+          }
+          if (data.length < 1000) break;
+          prevFrom += 1000;
+        }
+
+        // 이전 수금
+        let prevPayFrom = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from(payTable)
+            .select('client_name, amount')
+            .in('client_name', chunk)
+            .lt('payment_date', startDate)
+            .range(prevPayFrom, prevPayFrom + 999);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          for (const r of data) {
+            prevPayByName.set(r.client_name, (prevPayByName.get(r.client_name) || 0) + (r.amount || 0));
+          }
+          if (data.length < 1000) break;
+          prevPayFrom += 1000;
+        }
+
+        // 당기간 판매
+        let pSaleFrom = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from(table)
+            .select('client_name, supply_amount, tax_amount, total_amount')
+            .in('client_name', chunk)
+            .gte('ship_date', startDate)
+            .lte('ship_date', endDate)
+            .range(pSaleFrom, pSaleFrom + 999);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          for (const r of data) {
+            const cur = periodSalesByName.get(r.client_name) || { supply: 0, tax: 0, total: 0 };
+            cur.supply += r.supply_amount || 0;
+            cur.tax += r.tax_amount || 0;
+            cur.total += r.total_amount || 0;
+            periodSalesByName.set(r.client_name, cur);
+          }
+          if (data.length < 1000) break;
+          pSaleFrom += 1000;
+        }
+
+        // 당기간 수금
+        let pPayFrom = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from(payTable)
+            .select('client_name, amount')
+            .in('client_name', chunk)
+            .gte('payment_date', startDate)
+            .lte('payment_date', endDate)
+            .range(pPayFrom, pPayFrom + 999);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          for (const r of data) {
+            periodPayByName.set(r.client_name, (periodPayByName.get(r.client_name) || 0) + (r.amount || 0));
+          }
+          if (data.length < 1000) break;
+          pPayFrom += 1000;
+        }
+      }
+
+      // 7. 집계
+      const clients: any[] = [];
+      for (const name of activeNames) {
+        const carryover = carryoverByName.get(name) || 0;
+        const prevSales = prevSalesByName.get(name) || 0;
+        const prevPay = prevPayByName.get(name) || 0;
+        const ps = periodSalesByName.get(name) || { supply: 0, tax: 0, total: 0 };
+        const pPayment = periodPayByName.get(name) || 0;
+
+        const prevBalance = carryover + prevSales - prevPay;
+        const outstanding = prevBalance + ps.total - pPayment;
+
+        const hasActivity = ps.total !== 0 || pPayment !== 0;
+        if (outstanding === 0 && !hasActivity) continue;
+
+        const codes = nameToCodesMap.get(name) || [];
+        clients.push({
+          client_code: codes[0] || name,
+          client_name: name,
+          prev_balance: prevBalance,
+          period_supply: ps.supply,
+          period_tax: ps.tax,
+          period_total: ps.total,
+          period_payment: pPayment,
+          outstanding,
+        });
+      }
+
+      clients.sort((a, b) => b.outstanding - a.outstanding);
+      return NextResponse.json({ clients });
+    }
+
+    // ═══ Wine: 기존 client_code 기반 로직 ═══
 
     // 1. 담당자의 거래처 목록
     const { data: clientList, error: clErr } = await supabase
@@ -34,7 +220,7 @@ export async function GET(req: NextRequest) {
     // client_code가 숫자 코드가 아닌 이름 기반인 것도 제외 (URL 길이 제한 방지)
     const activeClients = clientList.filter(c => {
       if (/^\(x\)/i.test(c.client_name || '')) return false;
-      if (c.client_code === c.client_name) return false; // 이름 기반 코드 제외
+      if (c.client_code === c.client_name) return false;
       return true;
     });
 

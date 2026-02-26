@@ -18,9 +18,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
-    const payTable = clientType === 'glass' ? 'glass_payments' : 'payments';
-    const carryoverTable = clientType === 'glass' ? 'glass_client_carryover' : 'client_carryover';
+    const isGlass = clientType === 'glass';
+    const table = isGlass ? 'glass_shipments' : 'shipments';
+    const payTable = isGlass ? 'glass_payments' : 'payments';
+    const carryoverTable = isGlass ? 'glass_client_carryover' : 'client_carryover';
 
     // 거래처 정보
     const { data: clientInfo } = await supabase
@@ -29,7 +30,12 @@ export async function GET(req: NextRequest) {
       .eq('client_code', clientCode)
       .single();
 
-    const clientName = clientInfo?.client_name || '';
+    // Glass: client_details에 없으면 client_code를 client_name으로 간주
+    let clientName = clientInfo?.client_name || '';
+    if (isGlass && !clientName) {
+      // client_code가 실제로는 client_name일 수 있음 (outstanding에서 name 기반으로 넘김)
+      clientName = searchParams.get('client_name') || clientCode;
+    }
 
     // 같은 거래처명의 모든 코드 수집
     const allCodes: string[] = [clientCode];
@@ -41,6 +47,27 @@ export async function GET(req: NextRequest) {
       if (siblings) {
         for (const s of siblings) {
           if (!allCodes.includes(s.client_code)) allCodes.push(s.client_code);
+        }
+      }
+      // Glass: shipments/payments에서도 코드 수집
+      if (isGlass) {
+        const { data: shipCodes } = await supabase
+          .from('glass_shipments')
+          .select('client_code')
+          .eq('client_name', clientName)
+          .not('client_code', 'is', null)
+          .limit(100);
+        for (const s of (shipCodes || [])) {
+          if (s.client_code && !allCodes.includes(s.client_code)) allCodes.push(s.client_code);
+        }
+        const { data: payCodes } = await supabase
+          .from('glass_payments')
+          .select('client_code')
+          .eq('client_name', clientName)
+          .not('client_code', 'is', null)
+          .limit(100);
+        for (const s of (payCodes || [])) {
+          if (s.client_code && !allCodes.includes(s.client_code)) allCodes.push(s.client_code);
         }
       }
     }
