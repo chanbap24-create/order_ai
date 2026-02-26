@@ -26,13 +26,7 @@ export async function GET(req: NextRequest) {
 
     // 단일 거래처 상세 통계
     if (code) {
-      const { data: detail } = await supabase
-        .from('client_details')
-        .select('client_type')
-        .eq('client_code', code)
-        .single();
-
-      const table = detail?.client_type === 'glass' ? 'glass_shipments' : 'shipments';
+      const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
 
       const { data: recentShipments } = await supabase
         .from(table)
@@ -120,10 +114,12 @@ export async function GET(req: NextRequest) {
     // ── 다수 거래처 요약 통계 (목록용) ──
     // 전체 거래처 코드를 페이지네이션으로 가져오기
     const codes: string[] = [];
+    const isGlass = clientType === 'glass';
+    const detailTable = isGlass ? 'glass_clients' : 'client_details';
     let detailFrom = 0;
     while (true) {
-      let q = supabase.from('client_details').select('client_code');
-      if (clientType) q = q.eq('client_type', clientType);
+      let q = supabase.from(detailTable).select('client_code');
+      if (!isGlass && clientType) q = q.eq('client_type', clientType);
       const { data: batch } = await q.range(detailFrom, detailFrom + 999);
       if (!batch || batch.length === 0) break;
       for (const c of batch) codes.push(c.client_code);
