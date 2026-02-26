@@ -14,6 +14,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'recommend-settings', label: 'AI추천설정' },
   { id: 'wine-regions', label: '와인산지DB' },
   { id: 'brand-library', label: '브랜드자료실' },
+  { id: 'company-events', label: '회사일정' },
 ];
 
 interface AdminTabsProps {

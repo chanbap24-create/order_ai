@@ -27,6 +27,7 @@ interface Meeting {
   client_manager: string;
   client_contact: string;
   reminder_minutes: number | null;
+  is_company_event?: boolean;
 }
 
 interface BriefingData {
@@ -68,6 +69,7 @@ const MEETING_TYPES: Record<string, { label: string; color: string }> = {
   delivery: { label: '납품', color: '#FF9800' },
   meeting: { label: '회의', color: '#607D8B' },
   other: { label: '기타', color: '#795548' },
+  company: { label: '회사일정', color: '#D4A017' },
 };
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
@@ -1278,7 +1280,16 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               )}
             </div>
 
-            {/* 상태 변경 */}
+            {/* 상태 변경 (회사 일정은 읽기 전용) */}
+            {detailMeeting.is_company_event ? (
+              <div style={{
+                padding: '10px 14px', borderRadius: 8, marginBottom: 16,
+                background: '#FFF8E1', border: '1px solid #FFE082',
+                fontSize: 12, color: '#F57F17', fontWeight: 600, textAlign: 'center',
+              }}>
+                회사 일정 (읽기 전용)
+              </div>
+            ) : (
             <div style={{
               display: 'flex', gap: 8, marginBottom: 16,
             }}>
@@ -1305,6 +1316,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 background: '#fff', color: '#c62828', fontSize: 12, cursor: 'pointer',
               }}>삭제</button>
             </div>
+            )}
 
             {/* 구글 캘린더 추가 버튼 */}
             <button onClick={() => window.open(buildGoogleCalendarUrl(detailMeeting), '_blank')} style={{

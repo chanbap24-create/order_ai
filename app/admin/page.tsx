@@ -14,6 +14,7 @@ import ClientAnalysisTab from './components/ClientAnalysisTab';
 import RecommendSettingsTab from './components/RecommendSettingsTab';
 import WineRegionsTab from './components/WineRegionsTab';
 import BrandTab from './components/BrandTab';
+import CompanyEventsTab from './components/CompanyEventsTab';
 import '@/app/styles/design-system.css';
 
 const ADMIN_PIN = '0000';
@@ -169,6 +170,7 @@ export default function AdminPage() {
         {activeTab === 'recommend-settings' && <RecommendSettingsTab />}
         {activeTab === 'wine-regions' && <WineRegionsTab />}
         {activeTab === 'brand-library' && <BrandTab />}
+        {activeTab === 'company-events' && <CompanyEventsTab />}
       </div>
 
       {/* Toast container */}

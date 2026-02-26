@@ -22,9 +22,9 @@ export async function GET(req: NextRequest) {
     if (status) query = query.eq('status', status);
     if (clientCode) query = query.eq('client_code', clientCode);
 
-    // manager 필터: meetings.manager 컬럼 직접 필터
+    // manager 필터: meetings.manager 컬럼 직접 필터 + 회사 일정은 항상 포함
     if (manager) {
-      query = query.eq('manager', manager);
+      query = query.or(`manager.eq.${manager},is_company_event.eq.true`);
     }
 
     const { data, error } = await query;
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus, reminder_minutes, manager: bodyManager } = body;
+    const { id, client_code, meeting_date, meeting_time, meeting_type, purpose, notes, status: meetingStatus, reminder_minutes, manager: bodyManager, is_company_event } = body;
 
     if (!meeting_date) {
       return NextResponse.json({ error: 'meeting_date는 필수입니다.' }, { status: 400 });
@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
           notes: notes || null,
           reminder_minutes: reminder_minutes !== undefined ? reminder_minutes : null,
           manager: bodyManager || '',
+          is_company_event: is_company_event || false,
         })
         .select()
         .single();
