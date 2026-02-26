@@ -9,19 +9,20 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
   const carryoverTable = clientType === 'glass' ? 'glass_client_carryover' : 'client_carryover';
   const batch = 1000;
 
+  const isGlass = clientType === 'glass';
+
   // 거래처 정보
-  const { data: clientInfo } = await supabase
-    .from('client_details')
-    .select('client_code, client_name, client_type, manager')
-    .eq('client_code', clientCode)
-    .single();
+  const { data: clientInfo } = isGlass
+    ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', clientCode).single()
+    : await supabase.from('client_details').select('client_code, client_name, client_type, manager').eq('client_code', clientCode).single();
 
   const clientName = clientInfo?.client_name || '';
 
   // 같은 거래처명의 모든 코드
   const allCodes: string[] = [clientCode];
   if (clientName) {
-    const { data: siblings } = await supabase.from('client_details').select('client_code').eq('client_name', clientName);
+    const detailTable = isGlass ? 'glass_client_carryover' : 'client_details';
+    const { data: siblings } = await supabase.from(detailTable).select('client_code').eq('client_name', clientName);
     if (siblings) for (const s of siblings) if (!allCodes.includes(s.client_code)) allCodes.push(s.client_code);
   }
 
