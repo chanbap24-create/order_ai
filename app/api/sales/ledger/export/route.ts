@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
+import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import path from 'path';
 import fs from 'fs';
 
@@ -293,80 +294,99 @@ export async function generateExcel(client: any, grouped: GroupedMonth[], prevBa
   return Buffer.from(buf);
 }
 
-// ─── PDF 생성 ───
+// ─── PDF 생성 (pdf-lib) ───
+function hexToRgb(hex: string) {
+  const h = hex.replace('#', '');
+  return rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255);
+}
+
 export async function generatePDF(client: any, grouped: GroupedMonth[], prevBalance: number, startDate: string, endDate: string): Promise<Buffer> {
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+
+  // 한글 폰트 로드
   const fontDir = path.join(process.cwd(), 'public', 'fonts');
-  const regularFont = path.join(fontDir, 'NanumGothic-Regular.ttf');
-  const boldFont = path.join(fontDir, 'NanumGothic-Bold.ttf');
-  const hasRegular = fs.existsSync(regularFont);
-  const hasBold = fs.existsSync(boldFont);
-
-  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 30, bufferPages: true });
-  const chunks: Buffer[] = [];
-  doc.on('data', (c: Buffer) => chunks.push(c));
-
-  if (hasRegular) doc.registerFont('Ko', regularFont);
-  if (hasBold) doc.registerFont('KoBold', boldFont);
-  const font = hasRegular ? 'Ko' : 'Helvetica';
-  const fontB = hasBold ? 'KoBold' : 'Helvetica-Bold';
+  let koFont: PDFFont, koBoldFont: PDFFont;
+  try {
+    const regularBytes = fs.readFileSync(path.join(fontDir, 'NanumGothic-Regular.ttf'));
+    const boldBytes = fs.readFileSync(path.join(fontDir, 'NanumGothic-Bold.ttf'));
+    koFont = await doc.embedFont(regularBytes);
+    koBoldFont = await doc.embedFont(boldBytes);
+  } catch {
+    koFont = await doc.embedFont(StandardFonts.Helvetica);
+    koBoldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+  }
 
   const f = (n: number) => n.toLocaleString('ko-KR');
-  const pageW = 842 - 60; // A4 landscape - margins
-  const cols = [52, 180, 40, 60, 75, 60, 75, 75, 75]; // 9 columns
+  const M = 30; // margin
+  const pageW = 842; const pageH = 595; // A4 landscape
+  const tableW = pageW - M * 2;
+  const cols = [52, 178, 40, 60, 75, 60, 75, 75, 75];
   const headers = ['일자', '품목명', '수량', '단가', '공급금액', '부가세', '합계', '수금액', '미수액'];
   const rowH = 14;
-  let y = 30;
+  let page: PDFPage;
+  let y: number;
 
-  const drawHeader = () => {
-    y = 30;
-    doc.font(fontB).fontSize(12).fillColor('#2c1810')
-      .text(`매출처원장 - ${client.client_name} (${client.client_code})`, 30, y);
-    y += 18;
-    doc.font(font).fontSize(8).fillColor('#888888')
-      .text(`${startDate} ~ ${endDate}`, 30, y);
-    y += 14;
-    if (prevBalance) {
-      doc.font(fontB).fontSize(8).fillColor('#5A1515')
-        .text(`이월잔액: ${f(prevBalance)}원`, 30, y);
-      y += 14;
-    }
-    // table header
-    doc.rect(30, y, pageW, rowH + 4).fill('#f5f0f0');
-    let x = 30;
-    doc.font(fontB).fontSize(7).fillColor('#5A1515');
-    for (let i = 0; i < 9; i++) {
-      const align = i <= 1 ? 'left' : 'right';
-      doc.text(headers[i], x + 2, y + 3, { width: cols[i] - 4, align });
-      x += cols[i];
-    }
-    y += rowH + 4;
-    doc.moveTo(30, y).lineTo(30 + pageW, y).strokeColor('#5A1515').lineWidth(1.5).stroke();
-    y += 2;
+  const addNewPage = () => {
+    page = doc.addPage([pageW, pageH]);
+    y = pageH - M;
   };
 
-  const checkPage = (need: number) => {
-    if (y + need > 560) { doc.addPage(); drawHeader(); }
+  const drawPageHeader = () => {
+    // 타이틀
+    page.drawText(`매출처원장 - ${client.client_name} (${client.client_code})`, { x: M, y, size: 12, font: koBoldFont, color: hexToRgb('#2c1810') });
+    y -= 16;
+    page.drawText(`${startDate} ~ ${endDate}`, { x: M, y, size: 8, font: koFont, color: hexToRgb('#888888') });
+    y -= 12;
+    if (prevBalance) {
+      page.drawText(`이월잔액: ${f(prevBalance)}원`, { x: M, y, size: 8, font: koBoldFont, color: hexToRgb('#5A1515') });
+      y -= 12;
+    }
+    // 테이블 헤더 배경
+    page.drawRectangle({ x: M, y: y - rowH, width: tableW, height: rowH, color: hexToRgb('#f5f0f0') });
+    let x = M;
+    for (let i = 0; i < 9; i++) {
+      const txt = headers[i];
+      const tw = koBoldFont.widthOfTextAtSize(txt, 7);
+      const tx = i <= 1 ? x + 2 : x + cols[i] - 4 - tw;
+      page.drawText(txt, { x: tx, y: y - rowH + 4, size: 7, font: koBoldFont, color: hexToRgb('#5A1515') });
+      x += cols[i];
+    }
+    y -= rowH;
+    // 헤더 하단 선
+    page.drawLine({ start: { x: M, y }, end: { x: M + tableW, y }, thickness: 1.5, color: hexToRgb('#5A1515') });
+    y -= 2;
+  };
+
+  const ensureSpace = (need: number) => {
+    if (y - need < M) { addNewPage(); drawPageHeader(); }
   };
 
   const drawRow = (vals: string[], opts?: { bg?: string; color?: string; bold?: boolean; payColor?: boolean; balColor?: boolean }) => {
-    checkPage(rowH);
-    if (opts?.bg) { doc.rect(30, y, pageW, rowH).fill(opts.bg); }
-    let x = 30;
-    const f_ = opts?.bold ? fontB : font;
-    const c_ = opts?.color || '#000000';
+    ensureSpace(rowH);
+    if (opts?.bg) {
+      page.drawRectangle({ x: M, y: y - rowH, width: tableW, height: rowH, color: hexToRgb(opts.bg) });
+    }
+    const fn = opts?.bold ? koBoldFont : koFont;
+    const defColor = opts?.color ? hexToRgb(opts.color) : rgb(0, 0, 0);
+    let x = M;
     for (let i = 0; i < 9; i++) {
-      const align = i <= 1 ? 'left' : 'right';
-      let color = c_;
-      if (opts?.payColor && i === 7 && vals[7]) color = '#1565C0';
-      if (opts?.balColor && i === 8 && vals[8]) color = '#c62828';
-      doc.font(f_).fontSize(7).fillColor(color)
-        .text(vals[i] || '', x + 2, y + 3, { width: cols[i] - 4, align });
+      const v = vals[i] || '';
+      if (!v) { x += cols[i]; continue; }
+      let color = defColor;
+      if (opts?.payColor && i === 7) color = hexToRgb('#1565C0');
+      if (opts?.balColor && i === 8) color = hexToRgb('#c62828');
+      if (opts?.color === '#ffffff') color = rgb(1, 1, 1);
+      const tw = fn.widthOfTextAtSize(v, 7);
+      const tx = i <= 1 ? x + 2 : x + cols[i] - 4 - tw;
+      page.drawText(v, { x: Math.max(tx, x + 1), y: y - rowH + 4, size: 7, font: fn, color });
       x += cols[i];
     }
-    y += rowH;
+    y -= rowH;
   };
 
-  drawHeader();
+  addNewPage();
+  drawPageHeader();
 
   let runBal = prevBalance;
   const gTot = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
@@ -397,10 +417,8 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
   drawRow([`${client.client_name} 합계`, '', f(gTot.qty), '', f(gTot.supply), f(gTot.tax), f(gTot.total), f(gTot.payment), f(finalBal)],
     { bg: '#5A1515', bold: true, color: '#ffffff' });
 
-  doc.end();
-  return new Promise<Buffer>((resolve) => {
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-  });
+  const pdfBytes = await doc.save();
+  return Buffer.from(pdfBytes);
 }
 
 // ─── GET 핸들러 ───
