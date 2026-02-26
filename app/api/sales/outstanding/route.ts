@@ -23,53 +23,32 @@ export async function GET(req: NextRequest) {
 
     // ═══ Glass: client_name 기반 집계 (client_code가 null인 경우 많음) ═══
     if (isGlass) {
-      // 1. glass_shipments에서 담당자의 거래처명 목록 추출
-      const { data: nameRows, error: nErr } = await supabase
-        .from('glass_shipments')
-        .select('client_name')
-        .eq('manager', manager)
-        .not('client_name', 'is', null);
+      // 1. DB 함수로 담당자의 전체 거래처명+코드 목록 추출 (DISTINCT, 행 제한 없음)
+      const { data: rpcRows, error: nErr } = await supabase
+        .rpc('get_glass_client_names', { p_manager: manager });
       if (nErr) throw nErr;
 
-      const clientNames = [...new Set((nameRows || []).map(r => r.client_name).filter(Boolean))];
-      if (clientNames.length === 0) {
+      if (!rpcRows || rpcRows.length === 0) {
         return NextResponse.json({ clients: [] });
       }
 
       // (X) 접두어 제외
-      const activeNames = clientNames.filter(n => !/^\(x\)/i.test(n));
-
-      // client_name → client_codes 매핑 (payments/carryover 조회용)
+      const activeNames: string[] = [];
       const nameToCodesMap = new Map<string, string[]>();
-      {
-        const batch = 500;
-        for (let i = 0; i < activeNames.length; i += batch) {
-          const chunk = activeNames.slice(i, i + batch);
-          // glass_shipments에서 code가 있는 것
-          const { data: sc } = await supabase
-            .from('glass_shipments')
-            .select('client_name, client_code')
-            .in('client_name', chunk)
-            .not('client_code', 'is', null);
-          for (const r of (sc || [])) {
-            if (!r.client_code) continue;
-            if (!nameToCodesMap.has(r.client_name)) nameToCodesMap.set(r.client_name, []);
-            const arr = nameToCodesMap.get(r.client_name)!;
-            if (!arr.includes(r.client_code)) arr.push(r.client_code);
-          }
-          // glass_payments에서도 code 수집
-          const { data: pc } = await supabase
-            .from('glass_payments')
-            .select('client_name, client_code')
-            .in('client_name', chunk)
-            .not('client_code', 'is', null);
-          for (const r of (pc || [])) {
-            if (!r.client_code) continue;
-            if (!nameToCodesMap.has(r.client_name)) nameToCodesMap.set(r.client_name, []);
-            const arr = nameToCodesMap.get(r.client_name)!;
-            if (!arr.includes(r.client_code)) arr.push(r.client_code);
-          }
+      for (const r of rpcRows) {
+        if (!r.client_name || /^\(x\)/i.test(r.client_name)) continue;
+        if (!nameToCodesMap.has(r.client_name)) {
+          activeNames.push(r.client_name);
+          nameToCodesMap.set(r.client_name, []);
         }
+        if (r.client_code) {
+          const arr = nameToCodesMap.get(r.client_name)!;
+          if (!arr.includes(r.client_code)) arr.push(r.client_code);
+        }
+      }
+
+      if (activeNames.length === 0) {
+        return NextResponse.json({ clients: [] });
       }
 
       // 2~6. client_name 기반 집계 (이월/판매/수금 모두 이름 기반)
