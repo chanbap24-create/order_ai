@@ -628,6 +628,9 @@ export async function GET(req: NextRequest) {
 
         if (!alertType) continue;
 
+        // 소진시기가 3개월(90일) 이상 남으면 표시하지 않음
+        if (daysRemaining !== null && daysRemaining >= 90) continue;
+
         const itemAgg = itemClientMap.get(itemNo)!;
         const affectedClients = Array.from(itemAgg.clients.values())
           .sort((a, b) => b.total_qty - a.total_qty)
