@@ -3,6 +3,7 @@ import { supabase } from '@/app/lib/db';
 import ExcelJS from 'exceljs';
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+import subsetFont from 'subset-font';
 import path from 'path';
 import fs from 'fs';
 
@@ -304,14 +305,49 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  // 한글 폰트 로드
+  // PDF에 사용될 모든 텍스트를 수집하여 subset 생성
+  const allTextSet = new Set<string>();
+  const addText = (s: string) => { for (const ch of s) allTextSet.add(ch); };
+  const f0 = (n: number) => n.toLocaleString('ko-KR');
+
+  // 헤더/고정 텍스트
+  addText(`매출처원장 - ${client.client_name} (${client.client_code})`);
+  addText(`${startDate} ~ ${endDate}`);
+  addText('일자품목명수량단가공급금액부가세합계수금액미수액');
+  addText(`${client.client_name} 합계`);
+  addText('입금 월계 일계 0123456789,-.');
+
+  // 데이터 텍스트
+  for (const month of grouped) {
+    addText(`${month.month} 월계`);
+    for (const day of month.days) {
+      addText(day.date);
+      addText(`${day.date.slice(5)} 일계`);
+      for (const r of day.shipRows) {
+        addText(r.item_name || '');
+        addText(f0(r.quantity)); addText(f0(r.unit_price));
+        addText(f0(r.supply_amount)); addText(f0(r.tax_amount)); addText(f0(r.total_amount));
+      }
+      for (const p of day.payRows) { addText(f0(p.amount)); }
+      addText(f0(day.totals.qty)); addText(f0(day.totals.supply)); addText(f0(day.totals.tax));
+      addText(f0(day.totals.total)); addText(f0(day.totals.payment));
+    }
+    addText(f0(month.totals.qty)); addText(f0(month.totals.supply)); addText(f0(month.totals.tax));
+    addText(f0(month.totals.total)); addText(f0(month.totals.payment));
+  }
+
+  const subsetText = Array.from(allTextSet).join('');
+
+  // 한글 폰트 로드 (subset 적용)
   const fontDir = path.join(process.cwd(), 'public', 'fonts');
   let koFont: PDFFont, koBoldFont: PDFFont;
   try {
     const regularBytes = fs.readFileSync(path.join(fontDir, 'NanumGothic-Regular.ttf'));
     const boldBytes = fs.readFileSync(path.join(fontDir, 'NanumGothic-Bold.ttf'));
-    koFont = await doc.embedFont(regularBytes);
-    koBoldFont = await doc.embedFont(boldBytes);
+    const regularSubset = Buffer.from(await subsetFont(regularBytes, subsetText, { targetFormat: 'truetype' }));
+    const boldSubset = Buffer.from(await subsetFont(boldBytes, subsetText, { targetFormat: 'truetype' }));
+    koFont = await doc.embedFont(regularSubset);
+    koBoldFont = await doc.embedFont(boldSubset);
   } catch {
     koFont = await doc.embedFont(StandardFonts.Helvetica);
     koBoldFont = await doc.embedFont(StandardFonts.HelveticaBold);
