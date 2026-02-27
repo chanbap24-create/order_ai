@@ -402,6 +402,23 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
                 </tr>
               </thead>
               <tbody>
+                {/* 전월미수 행 */}
+                {prevBalance !== 0 && (
+                  <tr style={{ background: 'rgba(90,21,21,0.02)', borderBottom: '1px solid rgba(90,21,21,0.1)' }}>
+                    <td style={tdStyle}></td>
+                    <td style={{ ...tdStyle, fontWeight: 700, color: '#5A1515' }}>전월미수</td>
+                    <td style={tdStyle}></td>
+                    <td style={tdStyle}></td>
+                    <td style={tdStyle}></td>
+                    <td style={tdStyle}></td>
+                    <td style={tdStyle}></td>
+                    <td style={tdStyle}></td>
+                    <td style={{
+                      ...tdStyle, textAlign: 'right', fontWeight: 700,
+                      color: prevBalance > 0 ? '#c62828' : '#1565C0',
+                    }}>{fmt(prevBalance)}</td>
+                  </tr>
+                )}
                 {(() => {
                   let runBal = prevBalance;
                   return grouped.map(month => {
