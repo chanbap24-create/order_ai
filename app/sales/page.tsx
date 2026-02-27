@@ -25,6 +25,7 @@ export default function SalesPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [managerList, setManagerList] = useState<string[]>([]);
+  const [execLabels, setExecLabels] = useState<Record<string, string>>({});
 
   // ── 비밀번호 변경 ──
   const [showPwChange, setShowPwChange] = useState(false);
@@ -57,7 +58,7 @@ export default function SalesPage() {
         if (data.authenticated) {
           setAuthenticated(true);
           setCurrentManager(data.manager);
-          setIsAdmin(data.role === 'admin');
+          setIsAdmin(data.role === 'admin' || data.role === 'executive');
         }
       } catch { /* not authenticated */ }
       finally { setAuthChecking(false); }
@@ -72,6 +73,7 @@ export default function SalesPage() {
         const res = await fetch('/api/sales/clients/managers');
         const data = await res.json();
         if (data.managers) setManagerList(data.managers);
+        if (data.executiveLabels) setExecLabels(data.executiveLabels);
       } catch { /* ignore */ }
     })();
   }, [authenticated]);
@@ -92,7 +94,7 @@ export default function SalesPage() {
       if (data.success) {
         setAuthenticated(true);
         setCurrentManager(data.manager);
-        setIsAdmin(data.role === 'admin');
+        setIsAdmin(data.role === 'admin' || data.role === 'executive');
       } else {
         setLoginError(data.error || '로그인 실패');
       }
@@ -222,7 +224,7 @@ export default function SalesPage() {
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(90,21,21,0.08)'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               <option value="">담당자 선택</option>
-              {managerList.map(m => <option key={m} value={m}>{m}</option>)}
+              {managerList.map(m => <option key={m} value={m}>{m}{execLabels[m] ? ` (${execLabels[m]})` : ''}</option>)}
             </select>
           </div>
 

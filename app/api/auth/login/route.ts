@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     }
 
     // admin 계정은 sales 페이지 로그인 차단 (admin 페이지에서만 사용)
+    // executive(회장/대표)는 허용
     if (user.role === 'admin') {
       return NextResponse.json({ error: '관리자 계정은 영업 페이지에 접근할 수 없습니다.' }, { status: 403 });
     }

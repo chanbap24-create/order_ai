@@ -21,19 +21,29 @@ export async function GET(req: NextRequest) {
     // sales_users 계정도 포함 (거래처 없어도 로그인 가능)
     const { data: users } = await supabase
       .from('sales_users')
-      .select('manager')
+      .select('manager, role')
       .neq('role', 'admin');
+    const executives: string[] = [];
     for (const u of (users || [])) {
-      if (u.manager) allManagers.add(u.manager);
+      if (u.manager) {
+        allManagers.add(u.manager);
+        if (u.role === 'executive') executives.push(u.manager);
+      }
     }
 
     // 비영업 담당자 제외
     const EXCLUDE = ['윤영란', '정진경', '편지은', '경영지원부', 'ADMIN', 'Admin'];
-    const managers = [...allManagers]
-      .filter(m => !EXCLUDE.includes(m))
+    const regular = [...allManagers]
+      .filter(m => !EXCLUDE.includes(m) && !executives.includes(m))
       .sort();
 
-    return NextResponse.json({ managers });
+    // 임원을 맨 위에 배치
+    const managers = [...executives, ...regular];
+
+    // 임원 라벨 매핑
+    const EXEC_LABELS: Record<string, string> = { '유안근': '회장', '유병우': '대표' };
+
+    return NextResponse.json({ managers, executiveLabels: EXEC_LABELS });
   } catch (err) {
     console.error('GET /api/sales/clients/managers error:', err);
     return NextResponse.json(
