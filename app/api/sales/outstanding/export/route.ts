@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     const zipBuf = await zip.generateAsync({ type: 'nodebuffer' });
-    const zipName = `매출처원장_일괄_${start_date}.zip`;
+    const zipName = `매출처원장_일괄_${start_date.slice(0, 7)}.zip`;
 
     return new NextResponse(zipBuf, {
       headers: {

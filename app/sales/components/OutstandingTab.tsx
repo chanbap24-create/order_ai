@@ -102,7 +102,7 @@ export default function OutstandingTab({ currentManager, isAdmin }: { currentMan
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `매출처원장_일괄_${startDate}.zip`;
+      a.download = `매출처원장_일괄_${startDate.slice(0, 7)}.zip`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
