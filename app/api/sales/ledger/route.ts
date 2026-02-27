@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       let from = 0;
       while (true) {
         const { data, error } = await supabase.from(table)
-          .select('ship_date, item_no, item_name, quantity, unit_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
+          .select('ship_date, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
           .in('client_code', allCodes).gte('ship_date', startDate).lte('ship_date', endDate)
           .order('ship_date', { ascending: true }).order('item_name', { ascending: true })
           .range(from, from + batch - 1);
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       let from = 0;
       while (true) {
         const { data, error } = await supabase.from(table)
-          .select('ship_date, item_no, item_name, quantity, unit_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
+          .select('ship_date, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
           .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
           .gte('ship_date', startDate).lte('ship_date', endDate)
           .order('ship_date', { ascending: true }).range(from, from + batch - 1);

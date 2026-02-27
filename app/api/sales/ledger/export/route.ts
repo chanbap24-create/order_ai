@@ -36,7 +36,7 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
   let from = 0;
   while (true) {
     const { data, error } = await supabase.from(table)
-      .select('ship_date, item_no, item_name, quantity, unit_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
+      .select('ship_date, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
       .in('client_code', allCodes).gte('ship_date', startDate).lte('ship_date', endDate)
       .order('ship_date', { ascending: true }).order('item_name', { ascending: true })
       .range(from, from + batch - 1);
@@ -52,7 +52,7 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     let nameFrom = 0;
     while (true) {
       const { data, error } = await supabase.from(table)
-        .select('ship_date, item_no, item_name, quantity, unit_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
+        .select('ship_date, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
         .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
         .gte('ship_date', startDate).lte('ship_date', endDate)
         .order('ship_date', { ascending: true }).range(nameFrom, nameFrom + batch - 1);
@@ -245,7 +245,7 @@ export async function generateExcel(client: any, grouped: GroupedMonth[], prevBa
       for (let i = 0; i < day.shipRows.length; i++) {
         const r = day.shipRows[i];
         const row = ws.getRow(rowIdx++);
-        row.values = [i === 0 ? day.date.slice(5) : '', r.item_name, r.quantity, r.unit_price, r.supply_amount, r.tax_amount, r.total_amount, '', ''];
+        row.values = [i === 0 ? day.date.slice(5) : '', r.item_name, r.quantity, r.selling_price ?? r.unit_price, r.supply_amount, r.tax_amount, r.total_amount, '', ''];
         row.getCell(3).numFmt = numFmt; row.getCell(4).numFmt = numFmt;
         row.getCell(5).numFmt = numFmt; row.getCell(6).numFmt = numFmt; row.getCell(7).numFmt = numFmt;
         row.font = { size: 9 };
@@ -333,7 +333,7 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
       addText(`${day.date.slice(5)} 일계`);
       for (const r of day.shipRows) {
         addText(r.item_name || '');
-        addText(f0(r.quantity)); addText(f0(r.unit_price));
+        addText(f0(r.quantity)); addText(f0(r.selling_price ?? r.unit_price));
         addText(f0(r.supply_amount)); addText(f0(r.tax_amount)); addText(f0(r.total_amount));
       }
       for (const p of day.payRows) { addText(f0(p.amount)); }
@@ -443,7 +443,7 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
     for (const day of month.days) {
       for (let i = 0; i < day.shipRows.length; i++) {
         const r = day.shipRows[i];
-        drawRow([i === 0 ? day.date.slice(5) : '', r.item_name || '', f(r.quantity), f(r.unit_price), f(r.supply_amount), f(r.tax_amount), f(r.total_amount), '', '']);
+        drawRow([i === 0 ? day.date.slice(5) : '', r.item_name || '', f(r.quantity), f(r.selling_price ?? r.unit_price), f(r.supply_amount), f(r.tax_amount), f(r.total_amount), '', '']);
       }
       for (let i = 0; i < day.payRows.length; i++) {
         const p = day.payRows[i];

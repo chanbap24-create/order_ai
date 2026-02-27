@@ -8,6 +8,7 @@ interface LedgerRow {
   item_name: string;
   quantity: number;
   unit_price: number;
+  selling_price: number | null;
   supply_amount: number;
   tax_amount: number;
   total_amount: number;
@@ -523,7 +524,7 @@ function DayGroup({ day, collapsed, onToggle, endBalance }: { day: DayData; coll
             {r.item_name}
           </td>
           <td style={{ ...tdStyle, textAlign: 'right' }}>{fmt(r.quantity)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.unit_price)}</td>
+          <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.selling_price ?? r.unit_price)}</td>
           <td style={{ ...tdStyle, textAlign: 'right' }}>{fmt(r.supply_amount)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.tax_amount)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{fmt(r.total_amount)}</td>

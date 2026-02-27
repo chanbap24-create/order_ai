@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     while (true) {
       const { data, error } = await supabase
         .from(table)
-        .select('ship_date, client_code, client_name, manager, department, quantity, unit_price, supply_amount, tax_amount, total_amount')
+        .select('ship_date, client_code, client_name, manager, department, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount')
         .eq('item_no', itemNo)
         .gte('ship_date', startDate)
         .lte('ship_date', endDate)
