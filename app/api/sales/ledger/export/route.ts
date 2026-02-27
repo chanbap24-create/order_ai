@@ -75,36 +75,8 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     if (coName) for (const c of coName) carryover += (c.carryover_amount || 0);
   }
 
-  // 이전 판매액 (CUTOFF 이후)
-  const CUTOFF = '2025-08-01';
-  let prevSales = 0;
-  let pf = 0;
-  while (true) {
-    const { data, error } = await supabase.from(table).select('total_amount')
-      .in('client_code', allCodes).gte('ship_date', CUTOFF).lt('ship_date', startDate)
-      .range(pf, pf + batch - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    for (const r of data) prevSales += (r.total_amount || 0);
-    if (data.length < batch) break;
-    pf += batch;
-  }
-
-  // 이전 수금
-  let prevPay = 0;
-  let ppf = 0;
-  while (true) {
-    const { data, error } = await supabase.from(payTable).select('amount')
-      .in('client_code', allCodes).lt('payment_date', startDate)
-      .range(ppf, ppf + batch - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    for (const r of data) prevPay += (r.amount || 0);
-    if (data.length < batch) break;
-    ppf += batch;
-  }
-
-  const prevBalance = carryover + prevSales - prevPay;
+  // 이월잔액 = carryover만 사용 (미수현황과 동일 로직)
+  const prevBalance = carryover;
 
   // 수금 내역
   const payments: any[] = [];
