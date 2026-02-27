@@ -338,16 +338,20 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
 
   const subsetText = Array.from(allTextSet).join('');
 
-  // 한글 폰트 로드 (subset 적용)
+  // 한글 폰트 로드 (subset 시도 → 실패 시 원본 → 최종 fallback: Helvetica)
   const fontDir = path.join(process.cwd(), 'public', 'fonts');
   let koFont: PDFFont, koBoldFont: PDFFont;
   try {
     const regularBytes = fs.readFileSync(path.join(fontDir, 'NanumGothic-Regular.ttf'));
     const boldBytes = fs.readFileSync(path.join(fontDir, 'NanumGothic-Bold.ttf'));
-    const regularSubset = Buffer.from(await subsetFont(regularBytes, subsetText, { targetFormat: 'truetype' }));
-    const boldSubset = Buffer.from(await subsetFont(boldBytes, subsetText, { targetFormat: 'truetype' }));
-    koFont = await doc.embedFont(regularSubset);
-    koBoldFont = await doc.embedFont(boldSubset);
+    let regEmbed: Buffer | Uint8Array = regularBytes;
+    let boldEmbed: Buffer | Uint8Array = boldBytes;
+    try {
+      regEmbed = Buffer.from(await subsetFont(regularBytes, subsetText, { targetFormat: 'truetype' }));
+      boldEmbed = Buffer.from(await subsetFont(boldBytes, subsetText, { targetFormat: 'truetype' }));
+    } catch { /* subset 실패 시 원본 사용 */ }
+    koFont = await doc.embedFont(regEmbed);
+    koBoldFont = await doc.embedFont(boldEmbed);
   } catch {
     koFont = await doc.embedFont(StandardFonts.Helvetica);
     koBoldFont = await doc.embedFont(StandardFonts.HelveticaBold);
