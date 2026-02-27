@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { ImportScheduleItem } from '@/app/types/wine';
 
 // ── 타입 ──
 interface ClientOption {
@@ -193,6 +194,10 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   const [managers, setManagers] = useState<string[]>([]);
   const [holidays, setHolidays] = useState<Record<string, string>>({});
 
+  // 수입일정
+  const [importItems, setImportItems] = useState<ImportScheduleItem[]>([]);
+  const [importDetailDate, setImportDetailDate] = useState<string | null>(null);
+
   // 생성 모달
   const [showModal, setShowModal] = useState(false);
   const [modalDate, setModalDate] = useState('');
@@ -296,6 +301,25 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       .catch(() => {});
   }, [weekBase.getFullYear()]);
 
+  // ── 수입일정 로드 ──
+  useEffect(() => {
+    const fetchImport = async () => {
+      try {
+        // 넓은 범위로 조회 (현재월 기준 ±3개월)
+        const s = new Date(weekBase.getFullYear(), weekBase.getMonth() - 1, 1);
+        const e = new Date(weekBase.getFullYear(), weekBase.getMonth() + 4, 0);
+        const params = new URLSearchParams({
+          start_date: formatDate(s),
+          end_date: formatDate(e),
+        });
+        const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`);
+        const json = await res.json();
+        setImportItems(json.items || []);
+      } catch { setImportItems([]); }
+    };
+    fetchImport();
+  }, [weekBase.getFullYear(), weekBase.getMonth()]);
+
   // ── 미팅 로드 ──
   const loadMeetings = useCallback(async () => {
     setLoading(true);
@@ -348,6 +372,19 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
     }
     if (currentWeek.length > 0) weekGroups.push(currentWeek);
   }
+
+  // ── 수입일정: 날짜별 브랜드 그룹 ──
+  const importByDate: Record<string, { brands: string[]; items: ImportScheduleItem[] }> = {};
+  for (const item of importItems) {
+    const d = item.arrival_date?.slice(0, 10);
+    if (!d) continue;
+    if (!importByDate[d]) importByDate[d] = { brands: [], items: [] };
+    importByDate[d].items.push(item);
+    if (item.brand_code && !importByDate[d].brands.includes(item.brand_code)) {
+      importByDate[d].brands.push(item.brand_code);
+    }
+  }
+  const importDates = Object.keys(importByDate).sort();
 
   // ── 기간 이동 ──
   const prevPeriod = () => {
@@ -755,13 +792,16 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#a8a098' }}>로딩 중...</div>
       ) : viewMode === 'month' ? (
-        /* ── 월간 뷰: 캘린더 그리드 ── */
-        <div style={{
-          background: '#fff', borderRadius: 12,
-          border: '1px solid rgba(90,21,21,0.06)',
-          boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
-          overflow: 'hidden',
-        }}>
+        /* ── 월간 뷰: 캘린더 + 수입일정 사이드바 ── */
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {/* 캘린더 */}
+          <div style={{
+            flex: 1, minWidth: 0,
+            background: '#fff', borderRadius: 12,
+            border: '1px solid rgba(90,21,21,0.06)',
+            boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
+            overflow: 'hidden',
+          }}>
           {/* 요일 헤더 */}
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
@@ -785,7 +825,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               {/* 첫 주 빈칸 채우기 */}
               {wi === 0 && (() => {
                 const firstDay = new Date(week[0] + 'T00:00:00').getDay();
-                const emptyCount = firstDay; // 일=0, 월=1 ... 토=6
+                const emptyCount = firstDay;
                 return Array.from({ length: emptyCount }).map((_, i) => (
                   <div key={`e${i}`} style={{ borderRight: '1px solid #f8f6f0', minHeight: 102, background: '#fcfcfb' }} />
                 ));
@@ -801,6 +841,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 const isSat = d.getDay() === 6;
                 const holidayName = holidays[dateStr];
                 const isHoliday = !!holidayName;
+                const dayImport = importByDate[dateStr];
 
                 return (
                   <div key={dateStr} style={{
@@ -850,6 +891,23 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                         +{dayMeetings.length - 3}건
                       </div>
                     )}
+
+                    {/* 수입일정 브랜드코드 태그 */}
+                    {dayImport && (
+                      <div onClick={e => { e.stopPropagation(); setImportDetailDate(dateStr); }} style={{
+                        display: 'flex', gap: 1, flexWrap: 'wrap', marginTop: 1, cursor: 'pointer',
+                      }}>
+                        {dayImport.brands.slice(0, 3).map(bc => (
+                          <span key={bc} style={{
+                            fontSize: 8, padding: '0px 3px', borderRadius: 3,
+                            background: '#FFF3E0', color: '#E65100', fontWeight: 700,
+                          }}>{bc}</span>
+                        ))}
+                        {dayImport.brands.length > 3 && (
+                          <span style={{ fontSize: 8, color: '#E65100' }}>+{dayImport.brands.length - 3}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -857,7 +915,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               {/* 마지막 주 빈칸 채우기 */}
               {wi === weekGroups.length - 1 && (() => {
                 const lastDay = new Date(week[week.length - 1] + 'T00:00:00').getDay();
-                const emptyCount = 6 - lastDay; // 토=6이면 0, 일=0이면 6
+                const emptyCount = 6 - lastDay;
                 return Array.from({ length: emptyCount }).map((_, i) => (
                   <div key={`le${i}`} style={{ borderRight: '1px solid #f8f6f0', minHeight: 102, background: '#fcfcfb' }} />
                 ));
@@ -878,6 +936,53 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               }).filter(Boolean).join(' · ')}
             </span>
           </div>
+          </div>
+
+          {/* 수입일정 사이드바 */}
+          {importDates.length > 0 && (
+            <div style={{
+              width: 180, flexShrink: 0,
+              background: '#fff', borderRadius: 12,
+              border: '1px solid rgba(90,21,21,0.06)',
+              boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
+              overflow: 'hidden', alignSelf: 'flex-start',
+            }}>
+              <div style={{
+                padding: '10px 12px', background: '#FFF3E0',
+                borderBottom: '1px solid #FFE0B2',
+                fontSize: 13, fontWeight: 700, color: '#E65100',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <span style={{ fontSize: 16 }}>📦</span> 수입일정
+              </div>
+              <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                {importDates.map(dateStr => {
+                  const info = importByDate[dateStr];
+                  const d = new Date(dateStr + 'T00:00:00');
+                  const label = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+                  return (
+                    <div
+                      key={dateStr}
+                      onClick={() => setImportDetailDate(dateStr)}
+                      style={{
+                        padding: '8px 12px', cursor: 'pointer',
+                        borderBottom: '1px solid #f8f6f0',
+                        display: 'flex', alignItems: 'baseline', gap: 8,
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#FFF8E1')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '')}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#E65100', flexShrink: 0, width: 40 }}>{label}</span>
+                      <span style={{ fontSize: 12, color: '#5D4037', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {info.brands.join(', ')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* ── 주간 뷰: 기존 날짜별 리스트 ── */
@@ -1609,6 +1714,60 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
               fontSize: 18, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
             }}
           >×</button>
+        </div>
+      )}
+
+      {/* ═══ 수입일정 상세 팝업 ═══ */}
+      {importDetailDate && importByDate[importDetailDate] && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 16,
+        }} onClick={() => setImportDetailDate(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 16, padding: '20px',
+            width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#E65100' }}>
+                  📦 {importDetailDate.replace(/-/g, '.')} 입항 품목
+                </div>
+                <div style={{ fontSize: 12, color: '#8a8580', marginTop: 2 }}>
+                  {importByDate[importDetailDate].items.length}건 · 브랜드: {importByDate[importDetailDate].brands.join(', ')}
+                </div>
+              </div>
+              <button onClick={() => setImportDetailDate(null)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 22, color: '#a8a098', lineHeight: 1,
+              }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {importByDate[importDetailDate].items.map((item, i) => (
+                <div key={i} style={{
+                  padding: '10px 12px', borderRadius: 8,
+                  background: '#FFF8E1', border: '1px solid #FFE0B2',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 10, padding: '1px 6px', borderRadius: 6,
+                      background: '#E65100', color: '#fff', fontWeight: 700,
+                    }}>{item.brand_code}</span>
+                    <span style={{ fontSize: 11, color: '#8a8580' }}>{item.item_code}</span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810', marginBottom: 2 }}>
+                    {item.item_name_en || item.item_name_kr}
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#8a8580' }}>
+                    {item.vintage && <span>VT {item.vintage}</span>}
+                    <span>{(item.total_btls || 0).toLocaleString()} btls</span>
+                    {item.bl_number && <span>BL# {item.bl_number}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

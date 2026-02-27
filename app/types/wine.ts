@@ -138,6 +138,19 @@ export interface DashboardStats {
   inventoryByItemDl?: Array<{ itemNo: string; name: string; qty: number; value: number; ship30: number; ship90: number }>;
 }
 
+export interface ImportScheduleItem {
+  id?: number;
+  item_code: string;
+  item_name_kr: string;
+  item_name_en: string;
+  brand_code: string;
+  vintage: string;
+  total_btls: number;
+  bl_number: string;
+  arrival_date: string;
+  created_at?: string;
+}
+
 export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis' | 'recommend-settings' | 'wine-regions' | 'brand-library' | 'company-events';
 
 export interface Brand {

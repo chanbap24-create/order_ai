@@ -52,6 +52,12 @@ const UPLOAD_AREAS = [
       <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
     </svg>
   )},
+  { type: 'import-schedule', label: '수입일정', description: 'CDV 미착 품목 수입 일정', icon: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/>
+      <path d="M12 14l-3 3h6l-3-3z" fill="var(--color-primary)" opacity="0.3"/>
+    </svg>
+  )},
 ] as const;
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
@@ -74,6 +80,7 @@ const UPLOAD_LABELS: Record<string, string> = {
   english: '와인리스트',
   payments: '수금내역(Wine)',
   'dl-payments': '수금내역(DL)',
+  'import-schedule': '수입일정',
 };
 
 function formatTimestamp(iso: string | null): string {
@@ -397,6 +404,68 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           // 업로드 완료 후 날짜 갱신
           checkStatus();
         }
+      }
+      // 수입일정: 브라우저에서 파싱 후 JSON 전송
+      else if (type === 'import-schedule') {
+        updateCard(type, { status: 'uploading', fileName: file.name, message: '파일 분석 중...' });
+        const XLSX = await import('xlsx');
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+
+        // row 4부터 데이터 (index 3+)
+        const items: Array<{
+          item_code: string; item_name_kr: string; item_name_en: string;
+          brand_code: string; vintage: string; total_btls: number;
+          bl_number: string; arrival_date: string;
+        }> = [];
+
+        for (let i = 3; i < rows.length; i++) {
+          const r = rows[i] as unknown[];
+          const itemCode = String(r[0] || '').trim();
+          const nameKr = String(r[1] || '').trim();
+          const nameEn = String(r[2] || '').trim();
+          const arrivalRaw = r[9];
+          if (!itemCode || !arrivalRaw) continue;
+
+          // brand_code: B열(nameKr) 첫 공백 이전 문자열
+          const brandMatch = nameKr.match(/^([A-Za-z]+)\s/);
+          const brandCode = brandMatch ? brandMatch[1].toUpperCase() : '';
+
+          // arrival_date: '2026.03.11' → '2026-03-11' 또는 Excel serial
+          let arrivalDate = '';
+          if (typeof arrivalRaw === 'number') {
+            const d = new Date((arrivalRaw - 25569) * 86400000);
+            if (!isNaN(d.getTime())) arrivalDate = d.toISOString().slice(0, 10);
+          } else {
+            arrivalDate = String(arrivalRaw).trim().replace(/\./g, '-');
+          }
+          if (!arrivalDate) continue;
+
+          const vintage = String(r[3] || '').trim();
+          const totalBtls = parseInt(String(r[6] || '0'), 10) || 0;
+          const blNumber = String(r[8] || '').trim();
+
+          items.push({
+            item_code: itemCode,
+            item_name_kr: nameKr,
+            item_name_en: nameEn,
+            brand_code: brandCode,
+            vintage,
+            total_btls: totalBtls,
+            bl_number: blNumber,
+            arrival_date: arrivalDate,
+          });
+        }
+
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${items.length}건 수입일정 업로드 중...` });
+
+        res = await fetch('/api/admin/upload-data/import-schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
       } else {
         // 그 외: 기존 FormData 방식
         const formData = new FormData();
