@@ -70,8 +70,6 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
-  // 프린트 ref
-  const printRef = useRef<HTMLDivElement>(null);
 
   // 타입 변경 시 거래처 초기화
   const handleTypeChange = (t: 'wine' | 'glass') => {
@@ -150,7 +148,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
 
   // 프린트
   const handlePrint = () => {
-    if (!printRef.current || !client) return;
+    if (!client) return;
     const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
     const title = `${prefix} 매출처원장 - ${client.client_name} (${startDate} ~ ${endDate})`;
     const w = window.open('', '_blank', 'width=1000,height=700');
