@@ -186,7 +186,15 @@ export async function generateExcel(client: any, grouped: GroupedMonth[], prevBa
   ws.mergeCells('A1:I1');
   ws.getCell('A2').value = `기간: ${startDate} ~ ${endDate}`;
   ws.getCell('A2').font = { size: 10, color: { argb: 'FF888888' } };
-  ws.mergeCells('A2:I2');
+  ws.mergeCells('A2:E2');
+  // 전월 미수금 (우측 상단)
+  ws.getCell('H2').value = '전월미수';
+  ws.getCell('H2').font = { size: 10, color: { argb: 'FF888888' } };
+  ws.getCell('H2').alignment = { horizontal: 'right', vertical: 'middle' };
+  ws.getCell('I2').value = prevBalance;
+  ws.getCell('I2').numFmt = '#,##0';
+  ws.getCell('I2').font = { size: 11, bold: true, color: { argb: prevBalance > 0 ? 'FFC62828' : 'FF2c1810' } };
+  ws.getCell('I2').alignment = { horizontal: 'right', vertical: 'middle' };
 
   // 헤더 스타일
   const headerRow = ws.getRow(3);
@@ -287,7 +295,8 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
   addText(`${startDate} ~ ${endDate}`);
   addText('일자품목명수량단가공급금액부가세합계수금액미수액');
   addText(`${client.client_name} 합계`);
-  addText('입금 월계 일계 0123456789,-.');
+  addText('입금 월계 일계 전월미수 0123456789,-.');
+  addText(f0(prevBalance));
 
   // 데이터 텍스트
   for (const month of grouped) {
@@ -349,6 +358,13 @@ export async function generatePDF(client: any, grouped: GroupedMonth[], prevBala
     page.drawText(`매출처원장 - ${client.client_name} (${client.client_code})`, { x: M, y, size: 12, font: koBoldFont, color: hexToRgb('#2c1810') });
     y -= 16;
     page.drawText(`${startDate} ~ ${endDate}`, { x: M, y, size: 8, font: koFont, color: hexToRgb('#888888') });
+    // 전월 미수금 (우측 상단)
+    const prevLabel = '전월미수';
+    const prevValue = f(prevBalance);
+    const pvw = koBoldFont.widthOfTextAtSize(prevValue, 9);
+    const plw = koFont.widthOfTextAtSize(prevLabel, 8);
+    page.drawText(prevLabel, { x: M + tableW - pvw - plw - 8, y, size: 8, font: koFont, color: hexToRgb('#888888') });
+    page.drawText(prevValue, { x: M + tableW - pvw, y, size: 9, font: koBoldFont, color: prevBalance > 0 ? hexToRgb('#c62828') : hexToRgb('#2c1810') });
     y -= 12;
     // 테이블 헤더 배경
     page.drawRectangle({ x: M, y: y - rowH, width: tableW, height: rowH, color: hexToRgb('#f5f0f0') });
