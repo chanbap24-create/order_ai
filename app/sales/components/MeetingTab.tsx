@@ -953,7 +953,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 fontSize: 13, fontWeight: 700, color: '#E65100',
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                <span style={{ fontSize: 16 }}>📦</span> 수입일정
+                입항일
               </div>
               <div style={{ maxHeight: 400, overflowY: 'auto' }}>
                 {importDates.map(dateStr => {
@@ -1732,7 +1732,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#E65100' }}>
-                  📦 {importDetailDate.replace(/-/g, '.')} 입항 품목
+                  {importDetailDate.replace(/-/g, '.')} 입항 품목
                 </div>
                 <div style={{ fontSize: 12, color: '#8a8580', marginTop: 2 }}>
                   {importByDate[importDetailDate].items.length}건 · 브랜드: {importByDate[importDetailDate].brands.join(', ')}

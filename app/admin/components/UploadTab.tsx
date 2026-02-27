@@ -414,14 +414,24 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
 
-        // row 4부터 데이터 (index 3+)
+        // 데이터 시작 행 자동 감지: arrival_date(J열)에 날짜가 있는 첫 행
+        let startRow = 2;
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+          const r = rows[i] as unknown[];
+          const j = r[9];
+          if (j && String(r[0] || '').trim() && (typeof j === 'number' || /^\d{4}[./]/.test(String(j)))) {
+            startRow = i;
+            break;
+          }
+        }
+
         const items: Array<{
           item_code: string; item_name_kr: string; item_name_en: string;
           brand_code: string; vintage: string; total_btls: number;
           bl_number: string; arrival_date: string;
         }> = [];
 
-        for (let i = 3; i < rows.length; i++) {
+        for (let i = startRow; i < rows.length; i++) {
           const r = rows[i] as unknown[];
           const itemCode = String(r[0] || '').trim();
           const nameKr = String(r[1] || '').trim();
