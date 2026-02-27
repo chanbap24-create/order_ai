@@ -75,8 +75,36 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     if (coName) for (const c of coName) carryover += (c.carryover_amount || 0);
   }
 
-  // 이월잔액 = carryover만 사용 (미수현황과 동일 로직)
-  const prevBalance = carryover;
+  // carryover = 현재 월 시작 잔액. 과거 월 조회 시 역산 필요.
+  const now = new Date();
+  const refDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  let prevBalance = carryover;
+  if (startDate < refDate) {
+    let adjSales = 0, adjPay = 0;
+    let af = 0;
+    while (true) {
+      const { data, error } = await supabase.from(table).select('total_amount')
+        .in('client_code', allCodes).gte('ship_date', startDate).lt('ship_date', refDate)
+        .range(af, af + batch - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) adjSales += (r.total_amount || 0);
+      if (data.length < batch) break;
+      af += batch;
+    }
+    af = 0;
+    while (true) {
+      const { data, error } = await supabase.from(payTable).select('amount')
+        .in('client_code', allCodes).gte('payment_date', startDate).lt('payment_date', refDate)
+        .range(af, af + batch - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) adjPay += (r.amount || 0);
+      if (data.length < batch) break;
+      af += batch;
+    }
+    prevBalance = carryover - adjSales + adjPay;
+  }
 
   // 수금 내역
   const payments: any[] = [];

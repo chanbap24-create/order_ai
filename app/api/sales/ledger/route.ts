@@ -126,9 +126,44 @@ export async function GET(req: NextRequest) {
       return carry;
     };
 
-    // 5개 쿼리 병렬 실행 (이월잔액 = carryover만 사용, 미수현황과 동일)
-    const [codeShips, nameShips, codePays, namePays, carryover] = await Promise.all([
-      fetchAllShipments(), fetchNameShipments(), fetchAllPayments(), fetchNamePayments(), fetchCarryover(),
+    // carryover = 현재 월 시작 잔액. 과거 월 조회 시 역산 필요.
+    const now = new Date();
+    const refDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+    // 과거 월 조회 시 startDate~refDate 사이 매출/수금을 역산
+    const fetchAdjustment = async () => {
+      if (startDate >= refDate) return { adjSales: 0, adjPay: 0 };
+      let adjSales = 0, adjPay = 0;
+      // 매출 역산 (startDate ~ refDate)
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(table).select('total_amount')
+          .in('client_code', allCodes).gte('ship_date', startDate).lt('ship_date', refDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) adjSales += (r.total_amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      // 수금 역산 (startDate ~ refDate)
+      from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(payTable).select('amount')
+          .in('client_code', allCodes).gte('payment_date', startDate).lt('payment_date', refDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) adjPay += (r.amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      return { adjSales, adjPay };
+    };
+
+    // 6개 쿼리 병렬 실행
+    const [codeShips, nameShips, codePays, namePays, carryover, adj] = await Promise.all([
+      fetchAllShipments(), fetchNameShipments(), fetchAllPayments(), fetchNamePayments(), fetchCarryover(), fetchAdjustment(),
     ]);
 
     const allRows = [...codeShips, ...nameShips];
@@ -137,12 +172,14 @@ export async function GET(req: NextRequest) {
     }
 
     const paymentRows = [...codePays, ...namePays];
+    // 과거 월: carryover에서 그 사이 거래를 역산하여 해당 월 시작 잔액 산출
+    const prevBalance = carryover - adj.adjSales + adj.adjPay;
 
     return NextResponse.json({
       client: clientInfo || { client_code: clientCode, client_name: clientCode },
       rows: allRows,
       payments: paymentRows,
-      prev_balance: carryover,
+      prev_balance: prevBalance,
       total_rows: allRows.length,
       matched_codes: allCodes,
     });
