@@ -126,9 +126,44 @@ export async function GET(req: NextRequest) {
       return carry;
     };
 
-    // 5개 쿼리 병렬 실행
-    const [codeShips, nameShips, codePays, namePays, carryover] = await Promise.all([
-      fetchAllShipments(), fetchNameShipments(), fetchAllPayments(), fetchNamePayments(), fetchCarryover(),
+    // 이전 기간 매출 (CUTOFF ~ startDate)
+    const CUTOFF = '2025-08-01';
+    const fetchPrevSales = async () => {
+      let total = 0;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(table).select('total_amount')
+          .in('client_code', allCodes).gte('ship_date', CUTOFF).lt('ship_date', startDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) total += (r.total_amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      return total;
+    };
+
+    // 이전 기간 수금 (~ startDate)
+    const fetchPrevPayments = async () => {
+      let total = 0;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(payTable).select('amount')
+          .in('client_code', allCodes).lt('payment_date', startDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) total += (r.amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      return total;
+    };
+
+    // 7개 쿼리 병렬 실행
+    const [codeShips, nameShips, codePays, namePays, carryover, prevSales, prevPay] = await Promise.all([
+      fetchAllShipments(), fetchNameShipments(), fetchAllPayments(), fetchNamePayments(), fetchCarryover(), fetchPrevSales(), fetchPrevPayments(),
     ]);
 
     const allRows = [...codeShips, ...nameShips];
@@ -136,7 +171,7 @@ export async function GET(req: NextRequest) {
       allRows.sort((a, b) => a.ship_date.localeCompare(b.ship_date) || (a.item_name || '').localeCompare(b.item_name || ''));
     }
 
-    const prevTotal = carryover;
+    const prevTotal = carryover + prevSales - prevPay;
     const paymentRows = [...codePays, ...namePays];
 
     return NextResponse.json({
