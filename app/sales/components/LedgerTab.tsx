@@ -165,7 +165,8 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `매출처원장_${safeName}_${startDate.slice(0, 7)}.${ext}`;
+      const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
+      a.download = `${prefix}_매출처원장_${safeName}_${startDate.slice(0, 7)}.${ext}`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);

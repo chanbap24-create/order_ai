@@ -490,13 +490,14 @@ export async function GET(req: NextRequest) {
     const { client, rows, payments, prevBalance } = await fetchLedgerData(clientCode, startDate, endDate, clientType);
     const grouped = groupData(rows, payments);
     const safeName = (client.client_name || clientCode).replace(/[\\/:*?"<>|]/g, '_');
+    const prefix = clientType === 'glass' ? '대유라이프' : '까브드뱅';
 
     if (format === 'pdf') {
       const buf = await generatePDF(client, grouped, prevBalance, startDate, endDate);
       return new NextResponse(buf, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate.slice(0, 7)}.pdf`)}`,
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`${prefix}_매출처원장_${safeName}_${startDate.slice(0, 7)}.pdf`)}`,
         },
       });
     }
@@ -505,7 +506,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(buf, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate.slice(0, 7)}.xlsx`)}`,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`${prefix}_매출처원장_${safeName}_${startDate.slice(0, 7)}.xlsx`)}`,
       },
     });
   } catch (err) {

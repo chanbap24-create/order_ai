@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     const isPdf = format === 'pdf';
     const ext = isPdf ? 'pdf' : 'xlsx';
     const zip = new JSZip();
+    const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
 
     for (const code of client_codes) {
       try {
@@ -29,14 +30,14 @@ export async function POST(req: NextRequest) {
           : await generateExcel(client, grouped, prevBalance, start_date, end_date);
 
         const safeName = (client.client_name || code).replace(/[\\/:*?"<>|]/g, '_');
-        zip.file(`매출처원장_${safeName}_${start_date.slice(0, 7)}.${ext}`, buf);
+        zip.file(`${prefix}_매출처원장_${safeName}_${start_date.slice(0, 7)}.${ext}`, buf);
       } catch (e) {
         console.error(`Export error for ${code}:`, e);
       }
     }
 
     const zipBuf = await zip.generateAsync({ type: 'nodebuffer' });
-    const zipName = `매출처원장_일괄_${start_date.slice(0, 7)}.zip`;
+    const zipName = `${prefix}_매출처원장_일괄_${start_date.slice(0, 7)}.zip`;
 
     return new NextResponse(zipBuf, {
       headers: {

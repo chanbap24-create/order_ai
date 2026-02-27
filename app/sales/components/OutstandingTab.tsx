@@ -102,7 +102,8 @@ export default function OutstandingTab({ currentManager, isAdmin }: { currentMan
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `매출처원장_일괄_${startDate.slice(0, 7)}.zip`;
+      const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
+      a.download = `${prefix}_매출처원장_일괄_${startDate.slice(0, 7)}.zip`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
