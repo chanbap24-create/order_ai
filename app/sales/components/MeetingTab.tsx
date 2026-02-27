@@ -197,6 +197,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   // 수입일정
   const [importItems, setImportItems] = useState<ImportScheduleItem[]>([]);
   const [importDetailDate, setImportDetailDate] = useState<string | null>(null);
+  const [showImportPanel, setShowImportPanel] = useState(false);
 
   // 생성 모달
   const [showModal, setShowModal] = useState(false);
@@ -793,7 +794,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
         <div style={{ textAlign: 'center', padding: '40px', color: '#a8a098' }}>로딩 중...</div>
       ) : viewMode === 'month' ? (
         /* ── 월간 뷰: 캘린더 + 수입일정 사이드바 ── */
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
           {/* 캘린더 */}
           <div style={{
             flex: 1, minWidth: 0,
@@ -938,9 +939,9 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
           </div>
           </div>
 
-          {/* 수입일정 사이드바 */}
+          {/* 수입일정 사이드바 (데스크탑만) */}
           {importDates.length > 0 && (
-            <div style={{
+            <div className="import-sidebar-desktop" style={{
               width: 180, flexShrink: 0,
               background: '#fff', borderRadius: 12,
               border: '1px solid rgba(90,21,21,0.06)',
@@ -951,7 +952,6 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
                 padding: '10px 12px', background: '#FFF3E0',
                 borderBottom: '1px solid #FFE0B2',
                 fontSize: 13, fontWeight: 700, color: '#E65100',
-                display: 'flex', alignItems: 'center', gap: 6,
               }}>
                 입항일
               </div>
@@ -1117,6 +1117,101 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
           })}
         </div>
       )}
+
+      {/* ── 모바일 입항일 플로팅 버튼 ── */}
+      {importDates.length > 0 && viewMode === 'month' && (
+        <button
+          className="import-fab-mobile"
+          onClick={() => setShowImportPanel(true)}
+          style={{
+            position: 'fixed', bottom: 90, right: 16, zIndex: 900,
+            width: 48, height: 48, borderRadius: '50%', border: 'none',
+            background: '#E65100', color: '#fff',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            boxShadow: '0 3px 12px rgba(230,81,0,0.4)',
+            display: 'none', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column', lineHeight: 1.1,
+          }}
+        >
+          <span style={{ fontSize: 14 }}>入</span>
+          <span style={{ fontSize: 9 }}>{importDates.length}</span>
+        </button>
+      )}
+
+      {/* ── 모바일 입항일 슬라이드 패널 ── */}
+      {showImportPanel && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 1000,
+        }}>
+          {/* 배경 오버레이 */}
+          <div
+            onClick={() => setShowImportPanel(false)}
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.4)',
+            }}
+          />
+          {/* 우측 패널 */}
+          <div style={{
+            position: 'absolute', top: 0, right: 0, bottom: 0,
+            width: 260, background: '#fff',
+            boxShadow: '-4px 0 20px rgba(0,0,0,0.15)',
+            display: 'flex', flexDirection: 'column',
+            animation: 'slideInRight 0.25s ease-out',
+          }}>
+            <div style={{
+              padding: '16px', background: '#FFF3E0',
+              borderBottom: '1px solid #FFE0B2',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#E65100' }}>입항일</span>
+              <button onClick={() => setShowImportPanel(false)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 20, color: '#a8a098', lineHeight: 1,
+              }}>×</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {importDates.map(dateStr => {
+                const info = importByDate[dateStr];
+                const d = new Date(dateStr + 'T00:00:00');
+                const label = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+                return (
+                  <div
+                    key={dateStr}
+                    onClick={() => { setImportDetailDate(dateStr); setShowImportPanel(false); }}
+                    style={{
+                      padding: '12px 16px', cursor: 'pointer',
+                      borderBottom: '1px solid #f8f6f0',
+                      display: 'flex', alignItems: 'baseline', gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#E65100', flexShrink: 0 }}>{label}</span>
+                    <span style={{ fontSize: 13, color: '#5D4037', fontWeight: 500 }}>
+                      {info.brands.join(', ')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 모바일/데스크탑 분기 CSS */}
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @media (max-width: 768px) {
+          .import-sidebar-desktop { display: none !important; }
+          .import-fab-mobile { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          .import-fab-mobile { display: none !important; }
+        }
+      `}</style>
 
       {/* ═══ 미팅 생성/수정 모달 ═══ */}
       {showModal && (
