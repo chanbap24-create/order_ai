@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
           : await generateExcel(client, grouped, prevBalance, start_date, end_date);
 
         const safeName = (client.client_name || code).replace(/[\\/:*?"<>|]/g, '_');
-        zip.file(`매출처원장_${safeName}_${start_date}.${ext}`, buf);
+        zip.file(`매출처원장_${safeName}_${start_date.slice(0, 7)}.${ext}`, buf);
       } catch (e) {
         console.error(`Export error for ${code}:`, e);
       }

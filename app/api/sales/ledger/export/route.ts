@@ -476,7 +476,7 @@ export async function GET(req: NextRequest) {
       return new NextResponse(buf, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate}.pdf`)}`,
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate.slice(0, 7)}.pdf`)}`,
         },
       });
     }
@@ -485,7 +485,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(buf, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate}.xlsx`)}`,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`매출처원장_${safeName}_${startDate.slice(0, 7)}.xlsx`)}`,
       },
     });
   } catch (err) {
