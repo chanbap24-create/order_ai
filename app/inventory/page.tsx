@@ -276,7 +276,7 @@ export default function InventoryPage() {
   const [tastingNotesAvailable, setTastingNotesAvailable] = useState<Record<string, boolean>>({});
 
   // ── Import schedule state ──
-  const [importScheduleMap, setImportScheduleMap] = useState<Record<string, { arrival_date: string; item_name_en: string; total_btls: number; bl_number: string }[]>>({});
+  const [importScheduleMap, setImportScheduleMap] = useState<Record<string, { arrival_date: string; item_name_en: string; item_name_kr: string; brand_code: string; vintage: string; total_btls: number; bl_number: string }[]>>({});
   const [showImportPopup, setShowImportPopup] = useState<string | null>(null);
 
   // ── Auth state (세션 기반 견적서 분리) ──
@@ -371,11 +371,11 @@ export default function InventoryPage() {
         const res = await fetch(`/api/admin/upload-data/import-schedule?start_date=${today}`);
         const data = await res.json();
         if (data.success && data.items) {
-          const map: Record<string, { arrival_date: string; item_name_en: string; total_btls: number; bl_number: string }[]> = {};
+          const map: Record<string, { arrival_date: string; item_name_en: string; item_name_kr: string; brand_code: string; vintage: string; total_btls: number; bl_number: string }[]> = {};
           for (const item of data.items) {
             const code = item.item_code;
             if (!map[code]) map[code] = [];
-            map[code].push({ arrival_date: item.arrival_date, item_name_en: item.item_name_en, total_btls: item.total_btls, bl_number: item.bl_number });
+            map[code].push({ arrival_date: item.arrival_date, item_name_en: item.item_name_en, item_name_kr: item.item_name_kr || '', brand_code: item.brand_code || '', vintage: item.vintage || '', total_btls: item.total_btls, bl_number: item.bl_number });
           }
           setImportScheduleMap(map);
         }
@@ -508,6 +508,32 @@ export default function InventoryPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '검색 중 오류가 발생했습니다.');
       const items = data.results || [];
+
+      // 수입일정에만 있는 품목도 검색 결과에 추가 (CDV만)
+      if (activeTab === 'CDV') {
+        const existingCodes = new Set(items.map((i: InventoryItem) => i.item_no));
+        const q = searchQuery.toLowerCase();
+        for (const [code, schedules] of Object.entries(importScheduleMap)) {
+          if (existingCodes.has(code)) continue;
+          const s = schedules[0];
+          const matchName = s.item_name_kr.toLowerCase().includes(q) || s.item_name_en.toLowerCase().includes(q);
+          const matchCode = code.toLowerCase().includes(q);
+          const matchBrand = s.brand_code.toLowerCase().includes(q);
+          if (matchName || matchCode || matchBrand) {
+            items.push({
+              item_no: code,
+              item_name: s.item_name_kr || s.item_name_en,
+              brand: s.brand_code,
+              vintage: s.vintage,
+              supply_price: 0, discount_price: 0, wholesale_price: 0, retail_price: 0, min_price: 0,
+              available_stock: 0, incoming_stock: 0, sales_30days: 0,
+              total_stock: 0,
+              _isImportOnly: true,
+            } as InventoryItem & { _isImportOnly?: boolean });
+          }
+        }
+      }
+
       setResults(items);
       if (activeTab === 'CDV') {
         items.forEach((item: InventoryItem) => {
@@ -802,7 +828,7 @@ export default function InventoryPage() {
       const hasBondedStock = item.bonded_warehouse && item.bonded_warehouse > 0;
       return hasNoStock && hasBondedStock;
     }
-    if (hideNoStock && (!item.total_stock || item.total_stock <= 0)) return false;
+    if (hideNoStock && (!item.total_stock || item.total_stock <= 0) && !importScheduleMap[item.item_no]) return false;
     return true;
   });
 
