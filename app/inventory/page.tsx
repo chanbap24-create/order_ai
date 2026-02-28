@@ -187,7 +187,7 @@ const CDV_DOC_DEFAULTS: DocSettings = {
   companyName: '(주) 까 브 드 뱅',
   address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-780-9441 / FAX: 02-780-9444',
   addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
-  websiteUrl: 'www.cavedevin.co.kr',
+  websiteUrl: 'www.cavedevin.com',
   sender: '(주)까브드뱅',
   title: '와인 제안의 건',
   content1: '1. 귀사의 일익 번창하심을 기원합니다.',
@@ -2360,7 +2360,7 @@ export default function InventoryPage() {
                     <div style={{ margin: '10px 16px 0', height: 2, background: '#722F37' }} />
                     <div style={{ height: 1, margin: '2px 16px 0', background: '#D4C4A8' }} />
                     <div style={{ padding: '8px 16px 12px', fontSize: 10, color: '#8A8A8A' }}>
-                      T. 02-786-3136 | www.cavedevin.co.kr
+                      T. 02-786-3136 | www.cavedevin.com
                     </div>
                   </div>
                 </div>

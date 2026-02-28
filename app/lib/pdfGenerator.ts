@@ -363,7 +363,7 @@ function renderPage(doc: PDFKit.PDFDocument, data: SlideData, fontRegular: strin
   } catch { /* ignore */ }
 
   doc.save().font(fontRegular).fontSize(7).fillColor(C.TEXT_MUTED)
-    .text("T. 02-786-3136  |  www.cavedevin.co.kr", i(1.12), i(9.72), {
+    .text("T. 02-786-3136  |  www.cavedevin.com", i(1.12), i(9.72), {
       width: i(2.76), align: "right",
     }).restore();
 

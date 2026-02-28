@@ -63,7 +63,7 @@ const DEFAULT_DOC: DocSettings = {
   companyName: '(주) 까 브 드 뱅',
   address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-786-3136 / FAX: 02-785-5719',
   addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
-  websiteUrl: 'www.cavedevin.co.kr',
+  websiteUrl: 'www.cavedevin.com',
   sender: '(주)까브드뱅',
   title: '와인 제안의 건',
   content1: '1. 귀사의 일익 번창하심을 기원합니다.',

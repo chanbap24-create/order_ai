@@ -478,7 +478,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   }
 
   // 회사 정보
-  slide.addText("T. 02-786-3136  |  www.cavedevin.co.kr", {
+  slide.addText("T. 02-786-3136  |  www.cavedevin.com", {
     x: 1.12,
     y: 9.69,
     w: 2.76,
