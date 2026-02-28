@@ -275,6 +275,10 @@ export default function InventoryPage() {
   const [dbWineInfo, setDbWineInfo] = useState<any>(null);
   const [tastingNotesAvailable, setTastingNotesAvailable] = useState<Record<string, boolean>>({});
 
+  // ── Import schedule state ──
+  const [importScheduleMap, setImportScheduleMap] = useState<Record<string, { arrival_date: string; item_name_en: string; total_btls: number; bl_number: string }[]>>({});
+  const [showImportPopup, setShowImportPopup] = useState<string | null>(null);
+
   // ── Auth state (세션 기반 견적서 분리) ──
   const [quoteManager, setQuoteManager] = useState('');
 
@@ -358,6 +362,26 @@ export default function InventoryPage() {
       }
     })();
   }, [quoteManager]);
+
+  // ── Import schedule fetch ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const res = await fetch(`/api/admin/upload-data/import-schedule?start_date=${today}`);
+        const data = await res.json();
+        if (data.success && data.items) {
+          const map: Record<string, { arrival_date: string; item_name_en: string; total_btls: number; bl_number: string }[]> = {};
+          for (const item of data.items) {
+            const code = item.item_code;
+            if (!map[code]) map[code] = [];
+            map[code].push({ arrival_date: item.arrival_date, item_name_en: item.item_name_en, total_btls: item.total_btls, bl_number: item.bl_number });
+          }
+          setImportScheduleMap(map);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   useEffect(() => {
     fetchTastingNoteIndex();
@@ -1242,6 +1266,18 @@ export default function InventoryPage() {
                         }}>
                           {item.item_name}
                         </span>
+                        {importScheduleMap[item.item_no] && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setShowImportPopup(showImportPopup === item.item_no ? null : item.item_no); }}
+                            style={{
+                              background: '#E65100', color: '#fff', border: 'none', borderRadius: 4,
+                              fontSize: '0.62rem', fontWeight: 700, padding: '2px 6px', cursor: 'pointer',
+                              flexShrink: 0, whiteSpace: 'nowrap', lineHeight: 1.2,
+                            }}
+                          >
+                            입항 {importScheduleMap[item.item_no][0].arrival_date.slice(5)}
+                          </button>
+                        )}
                       </div>
                       {/* [+] Add to quote button */}
                       <button
@@ -1273,6 +1309,25 @@ export default function InventoryPage() {
                           );
                         })}
                     </div>
+
+                    {/* 수입일정 팝업 */}
+                    {showImportPopup === item.item_no && importScheduleMap[item.item_no] && (
+                      <div style={{
+                        marginTop: 8, padding: '10px 12px', background: '#FFF3E0',
+                        borderRadius: 8, border: '1px solid rgba(230,81,0,0.2)',
+                      }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#E65100', marginBottom: 6 }}>
+                          수입일정
+                        </div>
+                        {importScheduleMap[item.item_no].map((s, si) => (
+                          <div key={si} style={{ display: 'flex', gap: 12, fontSize: '0.72rem', color: '#4E342E', marginBottom: 3 }}>
+                            <span style={{ fontWeight: 600 }}>{s.arrival_date}</span>
+                            <span>{s.total_btls.toLocaleString()}btls</span>
+                            <span style={{ color: '#8a8580' }}>{s.bl_number}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
