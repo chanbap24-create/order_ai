@@ -25,7 +25,7 @@ export default function SalesPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [managerList, setManagerList] = useState<string[]>([]);
-  const [execLabels, setExecLabels] = useState<Record<string, string>>({});
+  const [userRole, setUserRole] = useState('');
 
   // ── 비밀번호 변경 ──
   const [showPwChange, setShowPwChange] = useState(false);
@@ -59,6 +59,8 @@ export default function SalesPage() {
           setAuthenticated(true);
           setCurrentManager(data.manager);
           setIsAdmin(data.role === 'admin' || data.role === 'executive');
+          setUserRole(data.role || '');
+          if (data.role === 'executive') setActiveTab('analysis');
         }
       } catch { /* not authenticated */ }
       finally { setAuthChecking(false); }
@@ -73,7 +75,6 @@ export default function SalesPage() {
         const res = await fetch('/api/sales/clients/managers');
         const data = await res.json();
         if (data.managers) setManagerList(data.managers);
-        if (data.executiveLabels) setExecLabels(data.executiveLabels);
       } catch { /* ignore */ }
     })();
   }, [authenticated]);
@@ -95,6 +96,8 @@ export default function SalesPage() {
         setAuthenticated(true);
         setCurrentManager(data.manager);
         setIsAdmin(data.role === 'admin' || data.role === 'executive');
+        setUserRole(data.role || '');
+        if (data.role === 'executive') setActiveTab('analysis');
       } else {
         setLoginError(data.error || '로그인 실패');
       }
@@ -224,7 +227,7 @@ export default function SalesPage() {
               onBlur={e => { e.currentTarget.style.borderColor = 'rgba(90,21,21,0.08)'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               <option value="">담당자 선택</option>
-              {managerList.map(m => <option key={m} value={m}>{m}{execLabels[m] ? ` (${execLabels[m]})` : ''}</option>)}
+              {managerList.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
 
@@ -462,7 +465,7 @@ export default function SalesPage() {
         )}
 
         {/* 탭 */}
-        <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} actionCount={actionCount} />
+        <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} actionCount={actionCount} userRole={userRole} />
 
         {/* 탭 콘텐츠 */}
         {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={isAdmin} />}

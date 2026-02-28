@@ -13,14 +13,19 @@ const TABS: { id: SalesTabId; label: string; icon: string }[] = [
   { id: 'item-ledger', label: '품목별', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
 ];
 
+// executive 계정이 볼 수 있는 탭 (실적 관련만)
+const EXEC_TABS: Set<SalesTabId> = new Set(['analysis', 'outstanding', 'ledger', 'item-ledger']);
+
 interface SalesTabsProps {
   activeTab: SalesTabId;
   onTabChange: (tab: SalesTabId) => void;
   alertCount?: number;
   actionCount?: number;
+  userRole?: string;
 }
 
-export default function SalesTabs({ activeTab, onTabChange, alertCount, actionCount }: SalesTabsProps) {
+export default function SalesTabs({ activeTab, onTabChange, alertCount, actionCount, userRole }: SalesTabsProps) {
+  const visibleTabs = userRole === 'executive' ? TABS.filter(t => EXEC_TABS.has(t.id)) : TABS;
   return (
     <div style={{
       marginBottom: 24,
@@ -34,7 +39,7 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, actionCo
         padding: 3,
         gap: 2,
       }}>
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button

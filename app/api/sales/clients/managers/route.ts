@@ -40,10 +40,7 @@ export async function GET(req: NextRequest) {
     // 임원을 맨 위에 배치
     const managers = [...executives, ...regular];
 
-    // 임원 라벨 매핑
-    const EXEC_LABELS: Record<string, string> = { '유안근': '회장', '유병우': '대표' };
-
-    return NextResponse.json({ managers, executiveLabels: EXEC_LABELS });
+    return NextResponse.json({ managers });
   } catch (err) {
     console.error('GET /api/sales/clients/managers error:', err);
     return NextResponse.json(
