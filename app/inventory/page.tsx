@@ -822,7 +822,7 @@ export default function InventoryPage() {
 
   // Filter results
   const filteredResults = results.filter(item => {
-    if (hideNoSupplyPrice && (!item.supply_price || item.supply_price <= 0)) return false;
+    if (hideNoSupplyPrice && (!item.supply_price || item.supply_price <= 0) && !importScheduleMap[item.item_no]) return false;
     if (activeTab === 'CDV' && showOnlyBondedStock) {
       const hasNoStock = !item.total_stock || item.total_stock <= 0;
       const hasBondedStock = item.bonded_warehouse && item.bonded_warehouse > 0;
