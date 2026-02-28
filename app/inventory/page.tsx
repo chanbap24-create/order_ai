@@ -516,10 +516,10 @@ export default function InventoryPage() {
         for (const [code, schedules] of Object.entries(importScheduleMap)) {
           if (existingCodes.has(code)) continue;
           const s = schedules[0];
-          const matchName = s.item_name_kr.toLowerCase().includes(q) || s.item_name_en.toLowerCase().includes(q);
           const matchCode = code.toLowerCase().includes(q);
-          const matchBrand = s.brand_code.toLowerCase().includes(q);
-          if (matchName || matchCode || matchBrand) {
+          const matchBrand = s.brand_code.toLowerCase() === q;
+          const matchName = q.length >= 3 && (s.item_name_kr.toLowerCase().includes(q) || s.item_name_en.toLowerCase().includes(q));
+          if (matchCode || matchBrand || matchName) {
             items.push({
               item_no: code,
               item_name: s.item_name_kr || s.item_name_en,
