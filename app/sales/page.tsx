@@ -468,7 +468,7 @@ export default function SalesPage() {
         <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} actionCount={actionCount} userRole={userRole} />
 
         {/* 탭 콘텐츠 */}
-        {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={userRole === 'executive' ? false : isAdmin} />}
         {activeTab === 'briefing' && <BriefingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'actions' && <ActionTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleActionCountChange} />}
         {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
