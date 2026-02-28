@@ -14,7 +14,7 @@ const TABS: { id: SalesTabId; label: string; icon: string }[] = [
 ];
 
 // executive 계정이 볼 수 있는 탭 (실적 관련만)
-const EXEC_TABS: Set<SalesTabId> = new Set(['analysis', 'outstanding', 'ledger', 'item-ledger']);
+const EXEC_TABS: Set<SalesTabId> = new Set(['meetings', 'analysis', 'outstanding', 'ledger', 'item-ledger']);
 
 interface SalesTabsProps {
   activeTab: SalesTabId;
