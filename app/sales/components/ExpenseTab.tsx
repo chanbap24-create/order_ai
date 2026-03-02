@@ -218,26 +218,56 @@ export default function ExpenseTab({ currentManager }: Props) {
     reader.readAsDataURL(file);
   };
 
-  // ── 워크북에 항목 1건 즉시 기입 ──
+  // ── 셀 날짜 → YYYY-MM-DD 문자열 변환 ──
+  const cellToDateStr = (v: ExcelJS.CellValue): string => {
+    if (v instanceof Date) {
+      return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+    }
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+    return '';
+  };
+
+  // ── 워크북에 항목 1건 날짜순 삽입 ──
   const writeItemToSheet = (item: ExpenseItem) => {
     if (!workbook || !selectedSheet) return;
     const ws = workbook.getWorksheet(selectedSheet);
     if (!ws) return;
-    // R11부터 빈 행 찾기
-    let startRow = 11;
-    while (startRow <= 1000) {
-      const cellA = ws.getCell(`A${startRow}`).value;
-      const cellD = ws.getCell(`D${startRow}`).value;
-      if (!cellA && !cellD) break;
-      startRow++;
+    const cols = ['A', 'B', 'C', 'D', 'E'];
+
+    // 데이터 마지막 행 찾기 (R11~)
+    let lastDataRow = 10;
+    for (let r = 11; r <= 1000; r++) {
+      if (!ws.getCell(`A${r}`).value && !ws.getCell(`D${r}`).value) break;
+      lastDataRow = r;
     }
-    ws.getCell(`A${startRow}`).value = item.date;
-    ws.getCell(`B${startRow}`).value = item.account_category;
-    ws.getCell(`C${startRow}`).value = item.description;
-    ws.getCell(`D${startRow}`).value = item.amount;
-    ['A', 'B', 'C', 'D', 'E'].forEach(col => {
+
+    // 날짜 비교로 삽입 위치 결정
+    let insertRow = lastDataRow + 1;
+    for (let r = 11; r <= lastDataRow; r++) {
+      const d = cellToDateStr(ws.getCell(`A${r}`).value);
+      if (d && d > item.date) { insertRow = r; break; }
+    }
+
+    // 중간 삽입이면 기존 행을 아래로 밀기 (아래→위 순서로)
+    if (insertRow <= lastDataRow) {
+      for (let r = lastDataRow; r >= insertRow; r--) {
+        cols.forEach(col => {
+          const src = ws.getCell(`${col}${r}`);
+          const tgt = ws.getCell(`${col}${r + 1}`);
+          tgt.value = src.value;
+          if (src.style) tgt.style = { ...src.style };
+        });
+      }
+    }
+
+    // 새 항목 기입
+    ws.getCell(`A${insertRow}`).value = item.date;
+    ws.getCell(`B${insertRow}`).value = item.account_category;
+    ws.getCell(`C${insertRow}`).value = item.description;
+    ws.getCell(`D${insertRow}`).value = item.amount;
+    cols.forEach(col => {
       const srcCell = ws.getCell(`${col}11`);
-      const tgtCell = ws.getCell(`${col}${startRow}`);
+      const tgtCell = ws.getCell(`${col}${insertRow}`);
       if (srcCell.style) tgtCell.style = { ...srcCell.style };
     });
   };
