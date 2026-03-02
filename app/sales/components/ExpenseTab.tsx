@@ -136,12 +136,27 @@ export default function ExpenseTab({ currentManager }: Props) {
     if (!ws) return;
     const rows: string[][] = [];
     ws.eachRow({ includeEmpty: false }, (row, rowNum) => {
-      if (rowNum > 50) return; // 최대 50행
+      if (rowNum < 11 || rowNum > 200) return; // 11행부터 데이터 영역만
       const cells: string[] = [];
-      for (let c = 1; c <= 4; c++) { // A~D만: 일자, 계정과목, 내역, 금액
-        const v = row.getCell(c).value;
-        cells.push(v != null ? String(v) : '');
+      for (let c = 1; c <= 4; c++) {
+        let v = row.getCell(c).value;
+        if (v == null) { cells.push(''); continue; }
+        // 날짜 → 숫자만 (MM/DD 또는 MM-DD)
+        if (c === 1 && v instanceof Date) {
+          cells.push(`${v.getMonth() + 1}/${v.getDate()}`);
+        } else if (c === 1 && typeof v === 'string') {
+          const d = v.replace(/\D+/g, '');
+          if (d.length >= 4) {
+            cells.push(`${parseInt(d.slice(-4, -2))}/${parseInt(d.slice(-2))}`);
+          } else {
+            cells.push(v);
+          }
+        } else {
+          cells.push(String(v));
+        }
       }
+      // 빈 행 스킵
+      if (cells.every(c => !c)) return;
       rows.push(cells);
     });
     setPreviewRows(rows);
