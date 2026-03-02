@@ -138,7 +138,7 @@ export default function ExpenseTab({ currentManager }: Props) {
     ws.eachRow({ includeEmpty: false }, (row, rowNum) => {
       if (rowNum > 50) return; // 최대 50행
       const cells: string[] = [];
-      for (let c = 1; c <= 6; c++) {
+      for (let c = 1; c <= 4; c++) { // A~D만: 일자, 계정과목, 내역, 금액
         const v = row.getCell(c).value;
         cells.push(v != null ? String(v) : '');
       }
@@ -808,7 +808,7 @@ export default function ExpenseTab({ currentManager }: Props) {
               }}>
                 <thead>
                   <tr>
-                    {['일자', '계정과목', '내역', '금액', 'E', 'F'].map((h, i) => (
+                    {['사용일자', '계정과목', '사용내역', '금액'].map((h, i) => (
                       <th key={i} style={{
                         padding: '8px 6px', textAlign: i === 3 ? 'right' : 'left',
                         borderBottom: '2px solid rgba(90,21,21,0.1)',
