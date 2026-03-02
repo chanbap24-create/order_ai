@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import SalesTabs from './components/SalesTabs';
 import type { SalesTabId } from './components/SalesTabs';
+
+// 첫 화면(미팅)만 즉시 로드, 나머지는 lazy
 import MeetingTab from './components/MeetingTab';
-import BriefingTab from './components/BriefingTab';
-import ActionTab from './components/ActionTab';
-import AlertTab from './components/AlertTab';
-import AnalysisTab from './components/AnalysisTab';
-import LedgerTab from './components/LedgerTab';
-import ItemLedgerTab from './components/ItemLedgerTab';
-import OutstandingTab from './components/OutstandingTab';
-import ExpenseTab from './components/ExpenseTab';
+const BriefingTab = dynamic(() => import('./components/BriefingTab'), { ssr: false });
+const ActionTab = dynamic(() => import('./components/ActionTab'), { ssr: false });
+const AlertTab = dynamic(() => import('./components/AlertTab'), { ssr: false });
+const AnalysisTab = dynamic(() => import('./components/AnalysisTab'), { ssr: false });
+const LedgerTab = dynamic(() => import('./components/LedgerTab'), { ssr: false });
+const ItemLedgerTab = dynamic(() => import('./components/ItemLedgerTab'), { ssr: false });
+const OutstandingTab = dynamic(() => import('./components/OutstandingTab'), { ssr: false });
+const ExpenseTab = dynamic(() => import('./components/ExpenseTab'), { ssr: false });
 
 export default function SalesPage() {
   // ── 인증 상태 ──
@@ -51,36 +54,23 @@ export default function SalesPage() {
     setActionCount(count);
   }, []);
 
-  // ── 세션 확인 ──
+  // ── 세션 확인 + 담당자 목록 병렬 로드 ──
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        if (data.authenticated) {
-          setAuthenticated(true);
-          setCurrentManager(data.manager);
-          setIsAdmin(data.role === 'admin' || data.role === 'executive');
-          setUserRole(data.role || '');
-          setUserDepartment(data.department || '');
-          if (data.role === 'executive') setActiveTab('analysis');
-        }
-      } catch { /* not authenticated */ }
-      finally { setAuthChecking(false); }
-    })();
+    const authP = fetch('/api/auth/me').then(r => r.json()).catch(() => null);
+    const mgrP = fetch('/api/sales/clients/managers').then(r => r.json()).catch(() => null);
+    Promise.all([authP, mgrP]).then(([authData, mgrData]) => {
+      if (authData?.authenticated) {
+        setAuthenticated(true);
+        setCurrentManager(authData.manager);
+        setIsAdmin(authData.role === 'admin' || authData.role === 'executive');
+        setUserRole(authData.role || '');
+        setUserDepartment(authData.department || '');
+        if (authData.role === 'executive') setActiveTab('analysis');
+      }
+      if (mgrData?.managers) setManagerList(mgrData.managers);
+      setAuthChecking(false);
+    });
   }, []);
-
-  // ── 담당자 목록 (로그인 폼용) ──
-  useEffect(() => {
-    if (authenticated) return;
-    (async () => {
-      try {
-        const res = await fetch('/api/sales/clients/managers');
-        const data = await res.json();
-        if (data.managers) setManagerList(data.managers);
-      } catch { /* ignore */ }
-    })();
-  }, [authenticated]);
 
   // ── 로그인 ──
   const handleLogin = async () => {
