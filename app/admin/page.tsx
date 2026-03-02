@@ -17,31 +17,46 @@ import BrandTab from './components/BrandTab';
 import CompanyEventsTab from './components/CompanyEventsTab';
 import '@/app/styles/design-system.css';
 
-const ADMIN_PIN = '0000';
-
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
   const [newWineCount, setNewWineCount] = useState<number>(0);
   const [authenticated, setAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
 
+  // 기존 세션 확인
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem('admin_auth') === 'true') {
-        setAuthenticated(true);
-      }
-    } catch {}
+    fetch('/api/auth/admin-login')
+      .then(r => r.json())
+      .then(d => { if (d.authenticated) setAuthenticated(true); })
+      .catch(() => {})
+      .finally(() => setAuthChecking(false));
   }, []);
 
-  const handleLogin = () => {
-    if (pin === ADMIN_PIN) {
-      setAuthenticated(true);
-      setError(false);
-      try { sessionStorage.setItem('admin_auth', 'true'); } catch {}
-    } else {
+  const handleLogin = async () => {
+    if (pin.length < 4) return;
+    setLoginLoading(true);
+    setError(false);
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pin }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAuthenticated(true);
+      } else {
+        setError(true);
+        setPin('');
+      }
+    } catch {
       setError(true);
       setPin('');
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -51,6 +66,20 @@ export default function AdminPage() {
       setNewWineCount(result.newWinesDetected);
     }
   };
+
+  if (authChecking) {
+    return (
+      <div style={{
+        minHeight: 'calc(100vh - 56px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
+      }}>
+        <div style={{ fontSize: 14, color: '#a8a098' }}>인증 확인 중...</div>
+      </div>
+    );
+  }
 
   if (!authenticated) {
     return (
@@ -110,22 +139,22 @@ export default function AdminPage() {
           )}
           <button
             onClick={handleLogin}
-            disabled={pin.length < 4}
+            disabled={pin.length < 4 || loginLoading}
             style={{
               width: '100%',
               height: 40,
               marginTop: 16,
-              background: pin.length >= 4 ? '#5A1515' : '#ddd',
+              background: pin.length >= 4 && !loginLoading ? '#5A1515' : '#ddd',
               color: '#fff',
               border: 'none',
               borderRadius: 6,
               fontSize: 14,
               fontWeight: 600,
-              cursor: pin.length >= 4 ? 'pointer' : 'default',
+              cursor: pin.length >= 4 && !loginLoading ? 'pointer' : 'default',
               transition: 'background 0.2s',
             }}
           >
-            확인
+            {loginLoading ? '확인 중...' : '확인'}
           </button>
         </div>
       </div>

@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
 const COOKIE_NAME = 'sales_auth';
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback-secret-key';
+const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7일
 
 // ── 비밀번호 해시 (bcrypt) ──
 export async function hashPassword(password: string): Promise<string> {
@@ -83,6 +84,9 @@ export async function getSession(): Promise<SalesSession | null> {
 
   const payload = verifyToken(token);
   if (!payload || !payload.manager) return null;
+
+  // 세션 만료 체크 (7일)
+  if (payload.ts && Date.now() - payload.ts > SESSION_MAX_AGE_MS) return null;
 
   return { manager: payload.manager, role: payload.role || 'user', department: payload.department || '' };
 }
