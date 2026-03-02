@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'manager required' }, { status: 400 });
   }
 
-  const filePath = `${manager}.xlsx`;
+  const filePath = `manager_${encodeURIComponent(manager)}.xlsx`;
 
   const { data, error } = await supabase.storage
     .from(BUCKET)
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// PUT — FormData로 엑셀 파일 업로드 (body size limit 회피)
+// PUT — FormData로 엑셀 파일 업로드
 export async function PUT(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -41,18 +41,22 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'manager and file required' }, { status: 400 });
     }
 
-    const filePath = `${manager}.xlsx`;
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // 한글 파일명 이슈 회피 — 영문 해시 기반 파일명 사용
+    const filePath = `manager_${encodeURIComponent(manager)}.xlsx`;
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8 = new Uint8Array(arrayBuffer);
+
+    // 먼저 삭제 시도 후 새로 업로드 (upsert 400 에러 회피)
+    await supabase.storage.from(BUCKET).remove([filePath]);
 
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(filePath, buffer, {
+      .upload(filePath, uint8, {
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        upsert: true,
       });
 
     if (error) {
-      console.error('Storage upload error:', error);
+      console.error('Storage upload error:', JSON.stringify(error));
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
