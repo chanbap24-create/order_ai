@@ -11,6 +11,7 @@ import AnalysisTab from './components/AnalysisTab';
 import LedgerTab from './components/LedgerTab';
 import ItemLedgerTab from './components/ItemLedgerTab';
 import OutstandingTab from './components/OutstandingTab';
+import ExpenseTab from './components/ExpenseTab';
 
 export default function SalesPage() {
   // ── 인증 상태 ──
@@ -476,6 +477,7 @@ export default function SalesPage() {
         {activeTab === 'item-ledger' && <ItemLedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'outstanding' && <OutstandingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'alerts' && <AlertTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleAlertCountChange} />}
+        {activeTab === 'expense' && <ExpenseTab currentManager={currentManager} isAdmin={isAdmin} />}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-export type SalesTabId = 'meetings' | 'briefing' | 'actions' | 'analysis' | 'ledger' | 'item-ledger' | 'outstanding' | 'alerts';
+export type SalesTabId = 'meetings' | 'briefing' | 'actions' | 'analysis' | 'ledger' | 'item-ledger' | 'outstanding' | 'alerts' | 'expense';
 
 const TABS: { id: SalesTabId; label: string; icon: string }[] = [
   { id: 'meetings', label: '미팅', icon: 'M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM16 2v4M8 2v4M3 10h18' },
@@ -11,6 +11,7 @@ const TABS: { id: SalesTabId; label: string; icon: string }[] = [
   { id: 'outstanding', label: '미수현황', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
   { id: 'ledger', label: '원장', icon: 'M4 2h16a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM9 2v20M3 7h18M3 12h18M3 17h18' },
   { id: 'item-ledger', label: '품목별', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+  { id: 'expense', label: '경비', icon: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' },
 ];
 
 // executive 계정이 볼 수 있는 탭 (실적 관련만)
