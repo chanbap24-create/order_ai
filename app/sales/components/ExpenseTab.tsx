@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import ExcelJS from 'exceljs';
 
 const ACCOUNT_CATEGORIES = [
@@ -47,6 +47,10 @@ export default function ExpenseTab({ currentManager }: Props) {
   // ── 추가된 항목 ──
   const [items, setItems] = useState<ExpenseItem[]>([]);
 
+  // ── 저장 상태 ──
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'unsaved'>('idle');
+  const [autoLoading, setAutoLoading] = useState(true);
+
   // ── refs ──
   const excelInputRef = useRef<HTMLInputElement>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +61,56 @@ export default function ExpenseTab({ currentManager }: Props) {
     const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
     return names.find(n => n.includes(ym)) || names[0] || '';
   }, []);
+
+  // ── 마운트 시 저장된 엑셀 자동 로드 ──
+  useEffect(() => {
+    if (!currentManager) { setAutoLoading(false); return; }
+    (async () => {
+      try {
+        const res = await fetch(`/api/sales/expense/file?manager=${encodeURIComponent(currentManager)}`);
+        const data = await res.json();
+        if (data.exists && data.data) {
+          const buffer = Uint8Array.from(atob(data.data), c => c.charCodeAt(0));
+          const wb = new ExcelJS.Workbook();
+          await wb.xlsx.load(buffer.buffer);
+          const names = wb.worksheets.map(ws => ws.name).filter(n => n !== '계정과목');
+          setWorkbook(wb);
+          setFileName(data.fileName || `${currentManager}.xlsx`);
+          setSheetNames(names);
+          setSelectedSheet(getCurrentMonthSheet(names));
+          setSaveStatus('saved');
+        }
+      } catch { /* 저장된 파일 없음 — 무시 */ }
+      setAutoLoading(false);
+    })();
+  }, [currentManager, getCurrentMonthSheet]);
+
+  // ── Storage에 저장 ──
+  const handleSave = async () => {
+    if (!workbook) return;
+    setSaveStatus('saving');
+    try {
+      const buffer = await workbook.xlsx.writeBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      const res = await fetch('/api/sales/expense/file', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manager: currentManager, data: base64 }),
+      });
+      const result = await res.json();
+      if (result.ok) {
+        setSaveStatus('saved');
+      } else {
+        alert('저장 실패: ' + (result.error || ''));
+        setSaveStatus('unsaved');
+      }
+    } catch {
+      alert('서버 연결 실패');
+      setSaveStatus('unsaved');
+    }
+  };
 
   // ── 엑셀 업로드 ──
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +128,7 @@ export default function ExpenseTab({ currentManager }: Props) {
       const autoSheet = getCurrentMonthSheet(names);
       setSelectedSheet(autoSheet);
       setItems([]);
+      setSaveStatus('unsaved');
     } catch {
       alert('엑셀 파일을 읽을 수 없습니다.');
     } finally {
@@ -133,6 +188,7 @@ export default function ExpenseTab({ currentManager }: Props) {
       account_category: editCategory,
     };
     setItems(prev => [...prev, newItem]);
+    setSaveStatus('unsaved');
     // 폼 리셋
     setParseResult(null);
     setReceiptPreview('');
@@ -197,6 +253,10 @@ export default function ExpenseTab({ currentManager }: Props) {
     a.download = fileName.replace(/\.xlsx?$/i, '') + '_경비입력.xlsx';
     a.click();
     URL.revokeObjectURL(url);
+
+    // 항목 기입 후 items 클리어 + 자동 저장
+    setItems([]);
+    handleSave();
   };
 
   // ── 스타일 상수 ──
@@ -226,14 +286,37 @@ export default function ExpenseTab({ currentManager }: Props) {
 
   return (
     <div>
+      {/* ── 자동 로드 중 ── */}
+      {autoLoading && (
+        <div style={{ ...cardStyle, textAlign: 'center', padding: '32px 16px' }}>
+          <div style={{
+            width: 20, height: 20, border: '2px solid rgba(90,21,21,0.15)',
+            borderTop: '2px solid #5A1515', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite', margin: '0 auto 10px',
+          }} />
+          <div style={{ fontSize: 13, color: '#8a8580' }}>저장된 엑셀 불러오는 중...</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
       {/* ── 1. 엑셀 업로드 ── */}
-      <div style={cardStyle}>
+      {!autoLoading && <div style={cardStyle}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A1515" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
           법인카드 엑셀
+          {saveStatus === 'saved' && (
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#16a34a', marginLeft: 'auto' }}>
+              저장됨
+            </span>
+          )}
+          {saveStatus === 'unsaved' && (
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#E65100', marginLeft: 'auto' }}>
+              미저장
+            </span>
+          )}
         </div>
 
         {!workbook ? (
@@ -277,7 +360,13 @@ export default function ExpenseTab({ currentManager }: Props) {
                 {fileName}
               </div>
               <button
-                onClick={() => { setWorkbook(null); setFileName(''); setSheetNames([]); setSelectedSheet(''); setItems([]); if (excelInputRef.current) excelInputRef.current.value = ''; }}
+                onClick={() => excelInputRef.current?.click()}
+                style={{ background: 'none', border: 'none', color: '#5A1515', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+              >
+                파일 교체
+              </button>
+              <button
+                onClick={() => { setWorkbook(null); setFileName(''); setSheetNames([]); setSelectedSheet(''); setItems([]); setSaveStatus('idle'); if (excelInputRef.current) excelInputRef.current.value = ''; }}
                 style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
               >
                 삭제
@@ -311,7 +400,7 @@ export default function ExpenseTab({ currentManager }: Props) {
           onChange={handleExcelUpload}
           style={{ display: 'none' }}
         />
-      </div>
+      </div>}
 
       {/* ── 2. 영수증 촬영/업로드 ── */}
       {workbook && (
@@ -536,24 +625,65 @@ export default function ExpenseTab({ currentManager }: Props) {
         </div>
       )}
 
-      {/* ── 5. 엑셀 다운로드 ── */}
-      {items.length > 0 && workbook && (
-        <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
+      {/* ── 5. 저장 + 다운로드 ── */}
+      {workbook && (
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8, marginBottom: 24 }}>
           <button
-            onClick={handleDownload}
+            onClick={handleSave}
+            disabled={saveStatus === 'saving'}
             style={{
               ...btnPrimary,
-              padding: '14px 40px', fontSize: 15,
+              padding: '14px 28px', fontSize: 14,
               display: 'inline-flex', alignItems: 'center', gap: 8,
+              opacity: saveStatus === 'saving' ? 0.6 : 1,
+              background: saveStatus === 'saved' ? '#16a34a' : '#5A1515',
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            엑셀 다운로드 ({selectedSheet})
+            {saveStatus === 'saving' ? (
+              <>
+                <div style={{
+                  width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)',
+                  borderTop: '2px solid white', borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
+                저장 중...
+              </>
+            ) : saveStatus === 'saved' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                저장됨
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                저장
+              </>
+            )}
           </button>
+          {items.length > 0 && (
+            <button
+              onClick={handleDownload}
+              style={{
+                padding: '14px 28px', borderRadius: 10, border: '1.5px solid rgba(90,21,21,0.15)',
+                background: 'transparent', fontSize: 14, fontWeight: 600,
+                color: '#5A1515', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              다운로드
+            </button>
+          )}
         </div>
       )}
     </div>
