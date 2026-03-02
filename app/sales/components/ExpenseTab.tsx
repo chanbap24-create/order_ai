@@ -135,23 +135,24 @@ export default function ExpenseTab({ currentManager }: Props) {
     const ws = workbook.getWorksheet(selectedSheet);
     if (!ws) return;
     const rows: string[][] = [];
-    ws.eachRow({ includeEmpty: false }, (row, rowNum) => {
-      if (rowNum < 11 || rowNum > 200) return; // 11행부터 데이터 영역만
+    for (let rowNum = 11; rowNum <= 200; rowNum++) {
+      const row = ws.getRow(rowNum);
+      const valA = row.getCell(1).value;
+      // A열이 "계정별", "합산", "합계" 등 요약 행이면 중단
+      if (valA != null && typeof valA === 'string' && /계정|합산|합계|소계/.test(valA)) break;
       const cells: string[] = [];
       for (let c = 1; c <= 4; c++) {
-        let v = row.getCell(c).value;
+        const v = row.getCell(c).value;
         if (v == null) { cells.push(''); continue; }
-        // 날짜 → YYYY-MM-DD
         if (c === 1 && v instanceof Date) {
           cells.push(`${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`);
         } else {
           cells.push(String(v));
         }
       }
-      // 빈 행 스킵
-      if (cells.every(c => !c)) return;
+      if (cells.every(c => !c)) continue;
       rows.push(cells);
-    });
+    }
     setPreviewRows(rows);
     setPreviewOpen(true);
   };
