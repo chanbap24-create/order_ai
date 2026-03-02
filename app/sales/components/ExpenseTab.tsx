@@ -476,57 +476,61 @@ export default function ExpenseTab({ currentManager }: Props) {
           </div>
         ) : (
           <div>
-            {/* 시트 선택 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-              {sheetNames.map(name => (
+            {/* 시트 선택 + 액션 버튼 한 줄 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select
+                value={selectedSheet}
+                onChange={e => setSelectedSheet(e.target.value)}
+                style={{
+                  padding: '8px 32px 8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  border: '1.5px solid rgba(90,21,21,0.12)', background: '#faf9f7', color: '#5A1515',
+                  cursor: 'pointer', outline: 'none', appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235A1515' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+                  minWidth: 100,
+                }}
+              >
+                {sheetNames.map(name => {
+                  const m = name.match(/(\d{4})(\d{2})/);
+                  const label = m ? `${m[1]}년 ${Number(m[2])}월` : name;
+                  return <option key={name} value={name}>{label}</option>;
+                })}
+              </select>
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
                 <button
-                  key={name}
-                  onClick={() => setSelectedSheet(name)}
+                  onClick={openPreview}
                   style={{
-                    padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    border: selectedSheet === name ? '1.5px solid #5A1515' : '1.5px solid rgba(90,21,21,0.1)',
-                    background: selectedSheet === name ? 'rgba(90,21,21,0.06)' : 'transparent',
-                    color: selectedSheet === name ? '#5A1515' : '#8a8580',
-                    transition: 'all 0.15s ease',
+                    padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#5A1515',
+                    display: 'flex', alignItems: 'center', gap: 4,
                   }}
                 >
-                  {name}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  현황
                 </button>
-              ))}
-            </div>
-            {/* 액션 버튼 */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                onClick={openPreview}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#5A1515',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                현황보기
-              </button>
-              <button
-                onClick={handleDownloadCurrent}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#5A1515',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                다운로드
-              </button>
-              <button
-                onClick={() => excelInputRef.current?.click()}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#8a8580',
-                }}
-              >
-                파일 교체
-              </button>
+                <button
+                  onClick={handleDownloadCurrent}
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#5A1515',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  다운로드
+                </button>
+                <button
+                  onClick={() => excelInputRef.current?.click()}
+                  style={{
+                    padding: '8px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                    border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#8a8580',
+                    display: 'flex', alignItems: 'center',
+                  }}
+                  title="파일 교체"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </button>
+              </div>
             </div>
           </div>
         )}
