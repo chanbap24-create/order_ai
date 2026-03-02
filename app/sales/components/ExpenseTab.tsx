@@ -218,7 +218,31 @@ export default function ExpenseTab({ currentManager }: Props) {
     reader.readAsDataURL(file);
   };
 
-  // ── 항목 추가 ──
+  // ── 워크북에 항목 1건 즉시 기입 ──
+  const writeItemToSheet = (item: ExpenseItem) => {
+    if (!workbook || !selectedSheet) return;
+    const ws = workbook.getWorksheet(selectedSheet);
+    if (!ws) return;
+    // R11부터 빈 행 찾기
+    let startRow = 11;
+    while (startRow <= 1000) {
+      const cellA = ws.getCell(`A${startRow}`).value;
+      const cellD = ws.getCell(`D${startRow}`).value;
+      if (!cellA && !cellD) break;
+      startRow++;
+    }
+    ws.getCell(`A${startRow}`).value = item.date;
+    ws.getCell(`B${startRow}`).value = item.account_category;
+    ws.getCell(`C${startRow}`).value = item.description;
+    ws.getCell(`D${startRow}`).value = item.amount;
+    ['A', 'B', 'C', 'D', 'E'].forEach(col => {
+      const srcCell = ws.getCell(`${col}11`);
+      const tgtCell = ws.getCell(`${col}${startRow}`);
+      if (srcCell.style) tgtCell.style = { ...srcCell.style };
+    });
+  };
+
+  // ── 항목 추가 (UI + 워크북에 즉시 기입) ──
   const handleAddItem = () => {
     if (!editDate || !editDesc || !editAmount) {
       alert('일자, 내역, 금액을 모두 입력해주세요.');
@@ -231,6 +255,7 @@ export default function ExpenseTab({ currentManager }: Props) {
       amount: Number(editAmount) || 0,
       account_category: editCategory,
     };
+    writeItemToSheet(newItem);
     setItems(prev => [...prev, newItem]);
     setSaveStatus('unsaved');
     // 폼 리셋
@@ -249,46 +274,9 @@ export default function ExpenseTab({ currentManager }: Props) {
     setItems(prev => prev.filter(i => i.id !== id));
   };
 
-  // ── 엑셀 다운로드 ──
+  // ── 기입 후 다운로드 (이미 워크북에 기입됨 → 다운로드 + 저장만) ──
   const handleDownload = async () => {
-    if (!workbook || !selectedSheet || items.length === 0) {
-      alert('엑셀 파일과 추가할 항목이 필요합니다.');
-      return;
-    }
-
-    const ws = workbook.getWorksheet(selectedSheet);
-    if (!ws) {
-      alert('선택한 시트를 찾을 수 없습니다.');
-      return;
-    }
-
-    // R11부터 빈 행 찾기
-    let startRow = 11;
-    while (startRow <= 1000) {
-      const cellA = ws.getCell(`A${startRow}`).value;
-      const cellD = ws.getCell(`D${startRow}`).value;
-      if (!cellA && !cellD) break;
-      startRow++;
-    }
-
-    // 항목 기입
-    items.forEach((item, idx) => {
-      const row = startRow + idx;
-      ws.getCell(`A${row}`).value = item.date;
-      ws.getCell(`B${row}`).value = item.account_category;
-      ws.getCell(`C${row}`).value = item.description;
-      ws.getCell(`D${row}`).value = item.amount;
-      // 스타일 복사 (R11 기준)
-      ['A', 'B', 'C', 'D', 'E'].forEach(col => {
-        const srcCell = ws.getCell(`${col}11`);
-        const tgtCell = ws.getCell(`${col}${row}`);
-        if (srcCell.style) {
-          tgtCell.style = { ...srcCell.style };
-        }
-      });
-    });
-
-    // blob 생성 & 다운로드
+    if (!workbook) return;
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
@@ -297,8 +285,6 @@ export default function ExpenseTab({ currentManager }: Props) {
     a.download = fileName.replace(/\.xlsx?$/i, '') + '_경비입력.xlsx';
     a.click();
     URL.revokeObjectURL(url);
-
-    // 항목 기입 후 items 클리어 + 자동 저장
     setItems([]);
     handleSave();
   };
