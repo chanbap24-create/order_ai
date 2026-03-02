@@ -91,13 +91,13 @@ export default function ExpenseTab({ currentManager }: Props) {
     setSaveStatus('saving');
     try {
       const buffer = await workbook.xlsx.writeBuffer();
-      const base64 = btoa(
-        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-      );
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const formData = new FormData();
+      formData.append('manager', currentManager);
+      formData.append('file', blob, `${currentManager}.xlsx`);
       const res = await fetch('/api/sales/expense/file', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manager: currentManager, data: base64 }),
+        body: formData,
       });
       const result = await res.json();
       if (result.ok) {

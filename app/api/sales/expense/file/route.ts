@@ -30,28 +30,35 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// PUT { manager, data(base64) } → Storage에 엑셀 저장 (upsert)
+// PUT — FormData로 엑셀 파일 업로드 (body size limit 회피)
 export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const { manager, data: base64Data } = body;
+  try {
+    const formData = await req.formData();
+    const manager = formData.get('manager') as string;
+    const file = formData.get('file') as File;
 
-  if (!manager || !base64Data) {
-    return NextResponse.json({ error: 'manager and data required' }, { status: 400 });
+    if (!manager || !file) {
+      return NextResponse.json({ error: 'manager and file required' }, { status: 400 });
+    }
+
+    const filePath = `${manager}.xlsx`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(filePath, buffer, {
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('PUT expense file error:', err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-
-  const filePath = `${manager}.xlsx`;
-  const buffer = Buffer.from(base64Data, 'base64');
-
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(filePath, buffer, {
-      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      upsert: true,
-    });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
