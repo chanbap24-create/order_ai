@@ -28,9 +28,10 @@ interface VehicleInfo {
 interface Props {
   currentManager: string;
   isAdmin: boolean;
+  department?: string;
 }
 
-export default function ExpenseTab({ currentManager }: Props) {
+export default function ExpenseTab({ currentManager, department }: Props) {
   // ── 엑셀 상태 ──
   const [workbook, setWorkbook] = useState<ExcelJS.Workbook | null>(null);
   const [fileName, setFileName] = useState('');
@@ -134,7 +135,9 @@ export default function ExpenseTab({ currentManager }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName || `${currentManager}_경비.xlsx`;
+    const now = new Date();
+    const year = now.getFullYear();
+    a.download = `법인카드 사용내역_${department || ''}${department ? ' ' : ''}${currentManager} ${year}년.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -376,7 +379,9 @@ export default function ExpenseTab({ currentManager }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName.replace(/\.xlsx?$/i, '') + '_경비입력.xlsx';
+    const dl = new Date();
+    const yr = dl.getFullYear();
+    a.download = `법인카드 사용내역_${department || ''}${department ? ' ' : ''}${currentManager} ${yr}년.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     setItems([]);

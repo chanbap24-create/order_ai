@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     // 사용자 조회
     const { data: user } = await supabase
       .from('sales_users')
-      .select('manager, password_hash, role')
+      .select('manager, password_hash, role, department')
       .eq('manager', manager)
       .maybeSingle();
 
@@ -48,12 +48,13 @@ export async function POST(req: Request) {
     }
 
     // 세션 생성
-    const token = await createSession(user.manager, user.role);
+    const token = await createSession(user.manager, user.role, user.department || '');
 
     const response = NextResponse.json({
       success: true,
       manager: user.manager,
       role: user.role,
+      department: user.department || '',
     });
 
     response.cookies.set(COOKIE_NAME, token, {

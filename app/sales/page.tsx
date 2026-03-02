@@ -27,6 +27,7 @@ export default function SalesPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [managerList, setManagerList] = useState<string[]>([]);
   const [userRole, setUserRole] = useState('');
+  const [userDepartment, setUserDepartment] = useState('');
 
   // ── 비밀번호 변경 ──
   const [showPwChange, setShowPwChange] = useState(false);
@@ -61,6 +62,7 @@ export default function SalesPage() {
           setCurrentManager(data.manager);
           setIsAdmin(data.role === 'admin' || data.role === 'executive');
           setUserRole(data.role || '');
+          setUserDepartment(data.department || '');
           if (data.role === 'executive') setActiveTab('analysis');
         }
       } catch { /* not authenticated */ }
@@ -98,6 +100,7 @@ export default function SalesPage() {
         setCurrentManager(data.manager);
         setIsAdmin(data.role === 'admin' || data.role === 'executive');
         setUserRole(data.role || '');
+        setUserDepartment(data.department || '');
         if (data.role === 'executive') setActiveTab('analysis');
       } else {
         setLoginError(data.error || '로그인 실패');
@@ -477,7 +480,7 @@ export default function SalesPage() {
         {activeTab === 'item-ledger' && <ItemLedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'outstanding' && <OutstandingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'alerts' && <AlertTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleAlertCountChange} />}
-        {activeTab === 'expense' && <ExpenseTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'expense' && <ExpenseTab currentManager={currentManager} isAdmin={isAdmin} department={userDepartment} />}
       </div>
     </div>
   );

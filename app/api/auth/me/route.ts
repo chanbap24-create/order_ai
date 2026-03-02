@@ -11,6 +11,7 @@ export async function GET() {
       authenticated: true,
       manager: session.manager,
       role: session.role,
+      department: session.department,
     });
   } catch (error) {
     return NextResponse.json({ authenticated: false }, { status: 401 });

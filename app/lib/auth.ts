@@ -68,10 +68,11 @@ function verifyToken(token: string): any | null {
 export interface SalesSession {
   manager: string;
   role: string; // 'admin' | 'user'
+  department: string;
 }
 
-export async function createSession(manager: string, role: string): Promise<string> {
-  const payload = { manager, role, ts: Date.now() };
+export async function createSession(manager: string, role: string, department: string = ''): Promise<string> {
+  const payload = { manager, role, department, ts: Date.now() };
   return signPayload(payload);
 }
 
@@ -83,7 +84,7 @@ export async function getSession(): Promise<SalesSession | null> {
   const payload = verifyToken(token);
   if (!payload || !payload.manager) return null;
 
-  return { manager: payload.manager, role: payload.role || 'user' };
+  return { manager: payload.manager, role: payload.role || 'user', department: payload.department || '' };
 }
 
 export { COOKIE_NAME };
