@@ -141,16 +141,9 @@ export default function ExpenseTab({ currentManager }: Props) {
       for (let c = 1; c <= 4; c++) {
         let v = row.getCell(c).value;
         if (v == null) { cells.push(''); continue; }
-        // 날짜 → 숫자만 (MM/DD 또는 MM-DD)
+        // 날짜 → YYYY-MM-DD
         if (c === 1 && v instanceof Date) {
-          cells.push(`${v.getMonth() + 1}/${v.getDate()}`);
-        } else if (c === 1 && typeof v === 'string') {
-          const d = v.replace(/\D+/g, '');
-          if (d.length >= 4) {
-            cells.push(`${parseInt(d.slice(-4, -2))}/${parseInt(d.slice(-2))}`);
-          } else {
-            cells.push(v);
-          }
+          cells.push(`${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`);
         } else {
           cells.push(String(v));
         }
@@ -403,40 +396,8 @@ export default function ExpenseTab({ currentManager }: Props) {
           </div>
         ) : (
           <div>
+            {/* 시트 선택 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-              <div style={{
-                background: 'rgba(22,163,74,0.08)', color: '#16a34a', fontSize: 12, fontWeight: 600,
-                padding: '4px 10px', borderRadius: 6,
-              }}>
-                {fileName}
-              </div>
-              <button
-                onClick={openPreview}
-                style={{ background: 'none', border: 'none', color: '#5A1515', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-              >
-                현황보기
-              </button>
-              <button
-                onClick={handleDownloadCurrent}
-                style={{ background: 'none', border: 'none', color: '#5A1515', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-              >
-                다운로드
-              </button>
-              <button
-                onClick={() => excelInputRef.current?.click()}
-                style={{ background: 'none', border: 'none', color: '#8a8580', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-              >
-                교체
-              </button>
-              <button
-                onClick={() => { setWorkbook(null); setFileName(''); setSheetNames([]); setSelectedSheet(''); setItems([]); setSaveStatus('idle'); if (excelInputRef.current) excelInputRef.current.value = ''; }}
-                style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-              >
-                삭제
-              </button>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <label style={{ ...labelStyle, margin: 0 }}>시트</label>
               {sheetNames.map(name => (
                 <button
                   key={name}
@@ -452,6 +413,40 @@ export default function ExpenseTab({ currentManager }: Props) {
                   {name}
                 </button>
               ))}
+            </div>
+            {/* 액션 버튼 */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={openPreview}
+                style={{
+                  padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#5A1515',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                현황보기
+              </button>
+              <button
+                onClick={handleDownloadCurrent}
+                style={{
+                  padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#5A1515',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                다운로드
+              </button>
+              <button
+                onClick={() => excelInputRef.current?.click()}
+                style={{
+                  padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: '1.5px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#8a8580',
+                }}
+              >
+                파일 교체
+              </button>
             </div>
           </div>
         )}
@@ -783,37 +778,22 @@ export default function ExpenseTab({ currentManager }: Props) {
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#2c1810' }}>
                   {selectedSheet} 현황
                 </div>
-                <div style={{ fontSize: 11, color: '#8a8580', marginTop: 2 }}>
-                  {previewRows.length}행 표시
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#5A1515', marginTop: 4 }}>
+                  총 {previewRows.reduce((sum, row) => {
+                    const n = Number(row[3]?.replace(/,/g, ''));
+                    return sum + (isNaN(n) ? 0 : n);
+                  }, 0).toLocaleString()}원
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <button
-                  onClick={handleDownloadCurrent}
-                  style={{
-                    padding: '8px 16px', borderRadius: 8, border: '1.5px solid rgba(90,21,21,0.15)',
-                    background: 'transparent', fontSize: 12, fontWeight: 600,
-                    color: '#5A1515', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  다운로드
-                </button>
-                <button
-                  onClick={() => setPreviewOpen(false)}
-                  style={{
-                    background: 'none', border: 'none', fontSize: 22, color: '#8a8580',
-                    cursor: 'pointer', padding: '0 4px', lineHeight: 1,
-                  }}
-                >
-                  ×
-                </button>
-              </div>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                style={{
+                  background: 'none', border: 'none', fontSize: 22, color: '#8a8580',
+                  cursor: 'pointer', padding: '0 4px', lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
             </div>
 
             {/* 테이블 */}
