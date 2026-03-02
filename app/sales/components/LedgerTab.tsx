@@ -38,7 +38,7 @@ function monthKey(date: string) { return date.slice(0, 7); }
 // 일 키 추출 (YYYY-MM-DD)
 function dayKey(date: string) { return date.slice(0, 10); }
 
-function fmt(n: number) { return n.toLocaleString(); }
+function fmt(n: number | null | undefined) { return (n ?? 0).toLocaleString(); }
 
 export default function LedgerTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   // 검색
@@ -183,7 +183,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
     ['일자','품목명','수량','단가','공급금액','부가세','합계','수금액','미수액'].forEach(h => w.document.write(`<th>${h}</th>`));
     w.document.write('</tr></thead><tbody>');
 
-    const f = (n: number) => n.toLocaleString();
+    const f = (n: number | null | undefined) => (n ?? 0).toLocaleString();
     // 전월미수
     if (prevBalance !== 0) {
       const balClass = prevBalance > 0 ? 'bal-pos' : 'bal-neg';
