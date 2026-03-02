@@ -220,9 +220,8 @@ export default function ExpenseTab({ currentManager }: Props) {
 
   // ── 항목 추가 ──
   const handleAddItem = () => {
-    console.log('[경비] handleAddItem called:', { editDate, editDesc, editAmount, editCategory });
     if (!editDate || !editDesc || !editAmount) {
-      alert(`입력 확인 필요:\n일자: ${editDate || '(없음)'}\n내역: ${editDesc || '(없음)'}\n금액: ${editAmount || '(없음)'}`);
+      alert('일자, 내역, 금액을 모두 입력해주세요.');
       return;
     }
     const newItem: ExpenseItem = {
