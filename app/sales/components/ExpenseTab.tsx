@@ -15,6 +15,14 @@ interface ExpenseItem {
   description: string;
   amount: number;
   account_category: string;
+  km?: number;
+}
+
+interface VehicleInfo {
+  carNo: string;
+  totalKm: number;
+  totalLiter: number;
+  totalFuel: number;
 }
 
 interface Props {
@@ -43,6 +51,7 @@ export default function ExpenseTab({ currentManager }: Props) {
   const [editAmount, setEditAmount] = useState('');
   const [editCategory, setEditCategory] = useState('복리후생비');
   const [editNote, setEditNote] = useState('');
+  const [editKm, setEditKm] = useState('');
 
   // ── 추가된 항목 ──
   const [items, setItems] = useState<ExpenseItem[]>([]);
@@ -54,6 +63,7 @@ export default function ExpenseTab({ currentManager }: Props) {
   // ── 미리보기 패널 ──
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewRows, setPreviewRows] = useState<{ rowNum: number; cells: string[] }[]>([]);
+  const [vehicleInfo, setVehicleInfo] = useState<VehicleInfo | null>(null);
 
   // ── refs ──
   const excelInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +163,18 @@ export default function ExpenseTab({ currentManager }: Props) {
       collected.push({ rowNum: rn, cells });
     }
     setPreviewRows(collected);
+    // 차량비 정보 (R56)
+    const carNo = ws.getCell('A56').value;
+    if (carNo) {
+      setVehicleInfo({
+        carNo: String(carNo),
+        totalKm: Number(ws.getCell('B56').value) || 0,
+        totalLiter: Number(ws.getCell('C56').value) || 0,
+        totalFuel: Number(ws.getCell('D56').value) || 0,
+      });
+    } else {
+      setVehicleInfo(null);
+    }
     setPreviewOpen(true);
   };
 
@@ -299,6 +321,17 @@ export default function ExpenseTab({ currentManager }: Props) {
       const tgtCell = ws.getCell(`${col}${insertRow}`);
       if (srcCell.style) tgtCell.style = { ...srcCell.style };
     });
+
+    // 차량유지비 → R56 차량비 섹션 업데이트
+    if (item.account_category === '차량유지비') {
+      const prevKm = Number(ws.getCell('B56').value) || 0;
+      const prevFuel = Number(ws.getCell('D56').value) || 0;
+      if (item.km) ws.getCell('B56').value = prevKm + item.km;
+      // 주유 관련 내용이면 주유금액에 누적
+      if (/주유/.test(item.description)) {
+        ws.getCell('D56').value = prevFuel + item.amount;
+      }
+    }
   };
 
   // ── 항목 추가 (UI + 워크북에 즉시 기입) ──
@@ -313,6 +346,7 @@ export default function ExpenseTab({ currentManager }: Props) {
       description: editDesc,
       amount: Number(editAmount) || 0,
       account_category: editCategory,
+      km: editKm ? Number(editKm) : undefined,
     };
     writeItemToSheet(newItem);
     setItems(prev => [...prev, newItem]);
@@ -325,6 +359,7 @@ export default function ExpenseTab({ currentManager }: Props) {
     setEditAmount('');
     setEditCategory('복리후생비');
     setEditNote('');
+    setEditKm('');
     if (receiptInputRef.current) receiptInputRef.current.value = '';
   };
 
@@ -644,6 +679,24 @@ export default function ExpenseTab({ currentManager }: Props) {
                 style={inputStyle}
               />
             </div>
+            {editCategory === '차량유지비' && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>운행거리 (KM)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={editKm}
+                  onChange={e => setEditKm(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="0"
+                  style={{ ...inputStyle, textAlign: 'right' }}
+                />
+                {editKm && (
+                  <div style={{ fontSize: 11, color: '#8a8580', marginTop: 4, textAlign: 'right' }}>
+                    {Number(editKm).toLocaleString()}km
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
@@ -899,6 +952,36 @@ export default function ExpenseTab({ currentManager }: Props) {
               {previewRows.length === 0 && (
                 <div style={{ textAlign: 'center', padding: 40, color: '#8a8580', fontSize: 13 }}>
                   데이터가 없습니다
+                </div>
+              )}
+
+              {/* 차량비 요약 */}
+              {vehicleInfo && (
+                <div style={{
+                  marginTop: 20, padding: '14px 16px', borderRadius: 10,
+                  background: '#faf9f7', border: '1px solid rgba(90,21,21,0.06)',
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 10 }}>
+                    차량비
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
+                    <div>
+                      <span style={{ color: '#8a8580' }}>차량번호</span>
+                      <div style={{ fontWeight: 600, color: '#2c1810', marginTop: 2 }}>{vehicleInfo.carNo}</div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#8a8580' }}>총운행</span>
+                      <div style={{ fontWeight: 600, color: '#2c1810', marginTop: 2 }}>{vehicleInfo.totalKm.toLocaleString()} km</div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#8a8580' }}>총주유량</span>
+                      <div style={{ fontWeight: 600, color: '#2c1810', marginTop: 2 }}>{vehicleInfo.totalLiter ? `${vehicleInfo.totalLiter.toLocaleString()} L` : '-'}</div>
+                    </div>
+                    <div>
+                      <span style={{ color: '#8a8580' }}>주유금액</span>
+                      <div style={{ fontWeight: 600, color: '#5A1515', marginTop: 2 }}>{vehicleInfo.totalFuel.toLocaleString()}원</div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
