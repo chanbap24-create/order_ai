@@ -51,6 +51,10 @@ export default function ExpenseTab({ currentManager }: Props) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'unsaved'>('idle');
   const [autoLoading, setAutoLoading] = useState(true);
 
+  // ── 미리보기 패널 ──
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewRows, setPreviewRows] = useState<string[][]>([]);
+
   // ── refs ──
   const excelInputRef = useRef<HTMLInputElement>(null);
   const receiptInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +114,38 @@ export default function ExpenseTab({ currentManager }: Props) {
       alert('서버 연결 실패');
       setSaveStatus('unsaved');
     }
+  };
+
+  // ── 현재 파일 그대로 다운로드 (제출용) ──
+  const handleDownloadCurrent = async () => {
+    if (!workbook) return;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName || `${currentManager}_경비.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── 미리보기 열기 ──
+  const openPreview = () => {
+    if (!workbook || !selectedSheet) return;
+    const ws = workbook.getWorksheet(selectedSheet);
+    if (!ws) return;
+    const rows: string[][] = [];
+    ws.eachRow({ includeEmpty: false }, (row, rowNum) => {
+      if (rowNum > 50) return; // 최대 50행
+      const cells: string[] = [];
+      for (let c = 1; c <= 6; c++) {
+        const v = row.getCell(c).value;
+        cells.push(v != null ? String(v) : '');
+      }
+      rows.push(cells);
+    });
+    setPreviewRows(rows);
+    setPreviewOpen(true);
   };
 
   // ── 엑셀 업로드 ──
@@ -352,7 +388,7 @@ export default function ExpenseTab({ currentManager }: Props) {
           </div>
         ) : (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
               <div style={{
                 background: 'rgba(22,163,74,0.08)', color: '#16a34a', fontSize: 12, fontWeight: 600,
                 padding: '4px 10px', borderRadius: 6,
@@ -360,10 +396,22 @@ export default function ExpenseTab({ currentManager }: Props) {
                 {fileName}
               </div>
               <button
-                onClick={() => excelInputRef.current?.click()}
+                onClick={openPreview}
                 style={{ background: 'none', border: 'none', color: '#5A1515', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
               >
-                파일 교체
+                현황보기
+              </button>
+              <button
+                onClick={handleDownloadCurrent}
+                style={{ background: 'none', border: 'none', color: '#5A1515', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+              >
+                다운로드
+              </button>
+              <button
+                onClick={() => excelInputRef.current?.click()}
+                style={{ background: 'none', border: 'none', color: '#8a8580', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+              >
+                교체
               </button>
               <button
                 onClick={() => { setWorkbook(null); setFileName(''); setSheetNames([]); setSelectedSheet(''); setItems([]); setSaveStatus('idle'); if (excelInputRef.current) excelInputRef.current.value = ''; }}
@@ -625,9 +673,9 @@ export default function ExpenseTab({ currentManager }: Props) {
         </div>
       )}
 
-      {/* ── 5. 저장 + 다운로드 ── */}
+      {/* ── 5. 저장 + 기입후 다운로드 ── */}
       {workbook && (
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8, marginBottom: 24, flexWrap: 'wrap' }}>
           <button
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
@@ -681,10 +729,131 @@ export default function ExpenseTab({ currentManager }: Props) {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              다운로드
+              기입 후 다운로드
             </button>
           )}
         </div>
+      )}
+
+      {/* ── 6. 우측 슬라이드 미리보기 패널 ── */}
+      {previewOpen && (
+        <>
+          {/* 오버레이 */}
+          <div
+            onClick={() => setPreviewOpen(false)}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.3)', zIndex: 9998,
+              transition: 'opacity 0.2s ease',
+            }}
+          />
+          {/* 패널 */}
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0,
+            width: '90vw', maxWidth: 520,
+            background: '#fff', zIndex: 9999,
+            boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
+            display: 'flex', flexDirection: 'column',
+            animation: 'slideIn 0.25s ease',
+          }}>
+            <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+
+            {/* 헤더 */}
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid rgba(90,21,21,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexShrink: 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#2c1810' }}>
+                  {selectedSheet} 현황
+                </div>
+                <div style={{ fontSize: 11, color: '#8a8580', marginTop: 2 }}>
+                  {previewRows.length}행 표시
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  onClick={handleDownloadCurrent}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, border: '1.5px solid rgba(90,21,21,0.15)',
+                    background: 'transparent', fontSize: 12, fontWeight: 600,
+                    color: '#5A1515', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  다운로드
+                </button>
+                <button
+                  onClick={() => setPreviewOpen(false)}
+                  style={{
+                    background: 'none', border: 'none', fontSize: 22, color: '#8a8580',
+                    cursor: 'pointer', padding: '0 4px', lineHeight: 1,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* 테이블 */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+              <table style={{
+                width: '100%', borderCollapse: 'collapse', fontSize: 11,
+              }}>
+                <thead>
+                  <tr>
+                    {['일자', '계정과목', '내역', '금액', 'E', 'F'].map((h, i) => (
+                      <th key={i} style={{
+                        padding: '8px 6px', textAlign: i === 3 ? 'right' : 'left',
+                        borderBottom: '2px solid rgba(90,21,21,0.1)',
+                        color: '#8a8580', fontWeight: 600, fontSize: 10,
+                        position: 'sticky', top: 0, background: '#fff',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row, ri) => (
+                    <tr key={ri} style={{
+                      background: ri % 2 === 0 ? '#fff' : '#faf9f7',
+                    }}>
+                      {row.map((cell, ci) => (
+                        <td key={ci} style={{
+                          padding: '6px',
+                          borderBottom: '1px solid rgba(90,21,21,0.04)',
+                          textAlign: ci === 3 ? 'right' : 'left',
+                          color: '#2c1810',
+                          whiteSpace: 'nowrap',
+                          maxWidth: ci === 2 ? 160 : 100,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}>
+                          {ci === 3 && cell && !isNaN(Number(cell))
+                            ? Number(cell).toLocaleString()
+                            : cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {previewRows.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 40, color: '#8a8580', fontSize: 13 }}>
+                  데이터가 없습니다
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
