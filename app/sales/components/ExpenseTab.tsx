@@ -53,7 +53,7 @@ export default function ExpenseTab({ currentManager }: Props) {
 
   // ── 미리보기 패널 ──
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewRows, setPreviewRows] = useState<string[][]>([]);
+  const [previewRows, setPreviewRows] = useState<{ rowNum: number; cells: string[] }[]>([]);
 
   // ── refs ──
   const excelInputRef = useRef<HTMLInputElement>(null);
@@ -134,10 +134,10 @@ export default function ExpenseTab({ currentManager }: Props) {
     if (!workbook || !selectedSheet) return;
     const ws = workbook.getWorksheet(selectedSheet);
     if (!ws) return;
-    const rows: string[][] = [];
+    const collected: { rowNum: number; cells: string[] }[] = [];
     let emptyCount = 0;
-    for (let rowNum = 11; rowNum <= 200; rowNum++) {
-      const row = ws.getRow(rowNum);
+    for (let rn = 11; rn <= 200; rn++) {
+      const row = ws.getRow(rn);
       const cells: string[] = [];
       for (let c = 1; c <= 4; c++) {
         const v = row.getCell(c).value;
@@ -150,10 +150,39 @@ export default function ExpenseTab({ currentManager }: Props) {
       }
       if (cells.every(c => !c)) { emptyCount++; if (emptyCount >= 2) break; continue; }
       emptyCount = 0;
-      rows.push(cells);
+      collected.push({ rowNum: rn, cells });
     }
-    setPreviewRows(rows);
+    setPreviewRows(collected);
     setPreviewOpen(true);
+  };
+
+  // ── 미리보기에서 행 삭제 ──
+  const handleDeletePreviewRow = (excelRowNum: number) => {
+    if (!workbook || !selectedSheet) return;
+    const ws = workbook.getWorksheet(selectedSheet);
+    if (!ws) return;
+    // 해당 행 셀 비우기 + 아래 행을 위로 당기기
+    const cols = ['A', 'B', 'C', 'D', 'E'];
+    // 마지막 데이터 행 찾기
+    let lastRow = excelRowNum;
+    for (let r = excelRowNum + 1; r <= 200; r++) {
+      if (!ws.getCell(`A${r}`).value && !ws.getCell(`D${r}`).value) break;
+      lastRow = r;
+    }
+    // 위로 당기기
+    for (let r = excelRowNum; r < lastRow; r++) {
+      cols.forEach(col => {
+        const below = ws.getCell(`${col}${r + 1}`);
+        const cur = ws.getCell(`${col}${r}`);
+        cur.value = below.value;
+        if (below.style) cur.style = { ...below.style };
+      });
+    }
+    // 마지막 행 비우기
+    cols.forEach(col => { ws.getCell(`${col}${lastRow}`).value = null; });
+    setSaveStatus('unsaved');
+    // 미리보기 갱신
+    openPreview();
   };
 
   // ── 엑셀 업로드 ──
@@ -795,8 +824,8 @@ export default function ExpenseTab({ currentManager }: Props) {
                   {selectedSheet} 현황
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#5A1515', marginTop: 4 }}>
-                  총 {previewRows.reduce((sum, row) => {
-                    const n = Number(row[3]?.replace(/,/g, ''));
+                  총 {previewRows.reduce((sum, r) => {
+                    const n = Number(r.cells[3]?.replace(/,/g, ''));
                     return sum + (isNaN(n) ? 0 : n);
                   }, 0).toLocaleString()}원
                 </div>
@@ -819,13 +848,13 @@ export default function ExpenseTab({ currentManager }: Props) {
               }}>
                 <thead>
                   <tr>
-                    {['사용일자', '계정과목', '사용내역', '금액'].map((h, i) => (
+                    {['사용일자', '계정과목', '사용내역', '금액', ''].map((h, i) => (
                       <th key={i} style={{
                         padding: '8px 6px', textAlign: i === 3 ? 'right' : 'left',
                         borderBottom: '2px solid rgba(90,21,21,0.1)',
                         color: '#8a8580', fontWeight: 600, fontSize: 10,
                         position: 'sticky', top: 0, background: '#fff',
-                        whiteSpace: 'nowrap',
+                        whiteSpace: 'nowrap', width: i === 4 ? 28 : undefined,
                       }}>
                         {h}
                       </th>
@@ -833,11 +862,11 @@ export default function ExpenseTab({ currentManager }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {previewRows.map((row, ri) => (
+                  {previewRows.map((r, ri) => (
                     <tr key={ri} style={{
                       background: ri % 2 === 0 ? '#fff' : '#faf9f7',
                     }}>
-                      {row.map((cell, ci) => (
+                      {r.cells.map((cell, ci) => (
                         <td key={ci} style={{
                           padding: '6px',
                           borderBottom: '1px solid rgba(90,21,21,0.04)',
@@ -853,6 +882,16 @@ export default function ExpenseTab({ currentManager }: Props) {
                             : cell}
                         </td>
                       ))}
+                      <td style={{ padding: '4px 2px', borderBottom: '1px solid rgba(90,21,21,0.04)', textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleDeletePreviewRow(r.rowNum)}
+                          style={{
+                            background: 'none', border: 'none', color: '#dc2626',
+                            cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
+                          }}
+                          title="삭제"
+                        >×</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
