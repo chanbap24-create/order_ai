@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'manager required' }, { status: 400 });
   }
 
-  const filePath = `manager_${encodeURIComponent(manager)}.xlsx`;
+  // 한글→hex 해시로 안전한 파일명 생성
+  const safeKey = Buffer.from(manager).toString('hex');
+  const filePath = `m_${safeKey}.xlsx`;
 
   const { data, error } = await supabase.storage
     .from(BUCKET)
@@ -42,7 +44,9 @@ export async function PUT(req: NextRequest) {
     }
 
     // 한글 파일명 이슈 회피 — 영문 해시 기반 파일명 사용
-    const filePath = `manager_${encodeURIComponent(manager)}.xlsx`;
+    // 한글→hex 해시로 안전한 파일명 생성
+  const safeKey = Buffer.from(manager).toString('hex');
+  const filePath = `m_${safeKey}.xlsx`;
     const arrayBuffer = await file.arrayBuffer();
     const uint8 = new Uint8Array(arrayBuffer);
 
