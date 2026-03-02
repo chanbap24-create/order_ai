@@ -135,13 +135,9 @@ export default function ExpenseTab({ currentManager }: Props) {
     const ws = workbook.getWorksheet(selectedSheet);
     if (!ws) return;
     const rows: string[][] = [];
-    ws.eachRow({ includeEmpty: false }, (row, rowNum) => {
-      if (rowNum < 11 || rowNum > 200) return;
-      // B열(계정과목)에 "계정별", "합산", "합계" 등 요약 텍스트면 이후 무시
-      const valB = row.getCell(2).value;
-      if (valB != null && typeof valB === 'string' && /계정|합산|합계|소계/.test(valB)) return;
-      const valA = row.getCell(1).value;
-      if (valA != null && typeof valA === 'string' && /계정|합산|합계|소계/.test(valA)) return;
+    let emptyCount = 0;
+    for (let rowNum = 11; rowNum <= 200; rowNum++) {
+      const row = ws.getRow(rowNum);
       const cells: string[] = [];
       for (let c = 1; c <= 4; c++) {
         const v = row.getCell(c).value;
@@ -152,9 +148,10 @@ export default function ExpenseTab({ currentManager }: Props) {
           cells.push(String(v));
         }
       }
-      if (cells.every(c => !c)) return;
+      if (cells.every(c => !c)) { emptyCount++; if (emptyCount >= 2) break; continue; }
+      emptyCount = 0;
       rows.push(cells);
-    });
+    }
     setPreviewRows(rows);
     setPreviewOpen(true);
   };
