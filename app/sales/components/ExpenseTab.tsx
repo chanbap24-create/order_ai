@@ -226,42 +226,62 @@ export default function ExpenseTab({ currentManager, department }: Props) {
     }
   };
 
+  // ── 이미지 압축 (모바일 카메라 사진 → 최대 1200px, JPEG 70%) ──
+  const compressImage = (file: File, maxDim = 1200, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject('Canvas 생성 실패');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject('이미지 로드 실패');
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // ── 영수증 업로드 ──
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
+    setParsing(true);
+    setParseResult(null);
+    try {
+      const base64 = await compressImage(file);
       setReceiptPreview(base64);
-      setParseResult(null);
 
-      setParsing(true);
-      try {
-        const res = await fetch('/api/sales/expense/parse-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, manager: currentManager }),
-        });
-        const data = await res.json();
-        if (data.error) {
-          alert('파싱 실패: ' + data.error);
-        } else {
-          setParseResult(data);
-          setEditDate(data.date || '');
-          setEditDesc(data.description || '');
-          setEditAmount(data.amount != null ? String(data.amount) : '');
-          setEditCategory(data.account_category || '복리후생비');
-          setEditNote('');
-        }
-      } catch {
-        alert('서버 연결 실패');
-      } finally {
-        setParsing(false);
+      const res = await fetch('/api/sales/expense/parse-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, manager: currentManager }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert('파싱 실패: ' + data.error);
+      } else {
+        setParseResult(data);
+        setEditDate(data.date || '');
+        setEditDesc(data.description || '');
+        setEditAmount(data.amount != null ? String(data.amount) : '');
+        setEditCategory(data.account_category || '복리후생비');
+        setEditNote('');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      alert('서버 연결 실패');
+    } finally {
+      setParsing(false);
+    }
   };
 
   // ── 셀 날짜 → YYYY-MM-DD 문자열 변환 ──
