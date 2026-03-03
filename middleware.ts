@@ -65,6 +65,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── /api/admin 중 세일즈도 읽기 가능한 경로 (GET only) ──
+  const ADMIN_READ_ALLOWED = ['/api/admin/upload-data/import-schedule'];
+  if (ADMIN_READ_ALLOWED.includes(pathname) && request.method === 'GET') {
+    // admin_auth 또는 sales_auth 둘 다 허용
+    const adminToken = request.cookies.get(ADMIN_COOKIE)?.value;
+    if (adminToken) {
+      const ap = await verifyToken(adminToken);
+      if (ap?.role === 'admin' && (!ap.ts || Date.now() - ap.ts <= ADMIN_MAX_AGE)) {
+        return NextResponse.next();
+      }
+    }
+    const { valid } = await verifySalesToken(request);
+    if (valid) return NextResponse.next();
+    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+  }
+
   // ── /api/admin/* 보호 (admin_auth 쿠키) ──
   if (pathname.startsWith('/api/admin')) {
     const token = request.cookies.get(ADMIN_COOKIE)?.value;
