@@ -8,19 +8,23 @@ const SALES_MAX_AGE = 7 * 24 * 60 * 60 * 1000;  // 7일
 const ADMIN_MAX_AGE = 24 * 60 * 60 * 1000;       // 24시간
 
 // --- base64url helpers (Edge Runtime) ---
-function uint8ArrayToBase64url(arr: Uint8Array): string {
-  let binary = '';
-  for (const byte of arr) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
 function base64urlDecode(b64url: string): string {
   const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
   const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
   return atob(b64 + pad);
 }
 
+function base64urlToUint8Array(b64url: string): Uint8Array {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+  const binary = atob(b64 + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 // --- HMAC-SHA256 token verification (Web Crypto API) ---
+// crypto.subtle.verify로 바이트 직접 비교 → base64url 인코딩 차이 문제 회피
 async function verifyToken(token: string): Promise<{ manager?: string; role?: string; ts?: number } | null> {
   if (!SECRET) return null;
   const dotIdx = token.indexOf('.');
@@ -31,11 +35,11 @@ async function verifyToken(token: string): Promise<{ manager?: string; role?: st
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       'raw', encoder.encode(SECRET),
-      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['verify'],
     );
-    const sigBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(b64));
-    const expected = uint8ArrayToBase64url(new Uint8Array(sigBytes));
-    if (sig !== expected) return null;
+    const sigBytes = base64urlToUint8Array(sig);
+    const valid = await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(b64));
+    if (!valid) return null;
     return JSON.parse(base64urlDecode(b64));
   } catch {
     return null;
