@@ -93,9 +93,20 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // ── 페이지 보호: 로그인 안 됐으면 /sales로 리다이렉트 ──
-  const { valid } = await verifySalesToken(request);
-  if (!valid) {
+  // ── 페이지 보호: 쿠키 없으면 /sales로 리다이렉트 ──
+  // (페이지 자체는 데이터 없음, API 호출 시 HMAC 검증됨)
+  const token = request.cookies.get(SALES_COOKIE)?.value;
+  if (!token || !token.includes('.')) {
+    return NextResponse.redirect(new URL('/sales', request.url));
+  }
+  // 페이로드에 manager 필드가 있는지 기본 확인
+  try {
+    const b64 = token.split('.')[0];
+    const payload = JSON.parse(base64urlDecode(b64));
+    if (!payload.manager) {
+      return NextResponse.redirect(new URL('/sales', request.url));
+    }
+  } catch {
     return NextResponse.redirect(new URL('/sales', request.url));
   }
 
