@@ -100,11 +100,18 @@ export default function ExpenseTab({ currentManager, department }: Props) {
     })();
   }, [currentManager, getCurrentMonthSheet]);
 
-  // ── Storage에 저장 ──
+  // ── 저장 (큐 항목 워크북 기입 + Storage 업로드) ──
   const handleSave = async () => {
     if (!workbook) return;
     setSaveStatus('saving');
     try {
+      // 대기 중인 항목이 있으면 워크북에 기입
+      if (items.length > 0) {
+        for (const item of items) {
+          writeItemToSheet(item);
+        }
+        setItems([]);
+      }
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const formData = new FormData();
@@ -125,21 +132,6 @@ export default function ExpenseTab({ currentManager, department }: Props) {
       alert('서버 연결 실패');
       setSaveStatus('unsaved');
     }
-  };
-
-  // ── 현재 파일 그대로 다운로드 (제출용) ──
-  const handleDownloadCurrent = async () => {
-    if (!workbook) return;
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const now = new Date();
-    const year = now.getFullYear();
-    a.download = `법인카드 사용내역_${department || ''}${department ? ' ' : ''}${currentManager} ${year}년.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   // ── 미리보기 열기 ──
@@ -337,7 +329,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
     }
   };
 
-  // ── 항목 추가 (UI + 워크북에 즉시 기입) ──
+  // ── 항목 추가 (큐에만 추가, 워크북 기입은 저장 시 일괄) ──
   const handleAddItem = () => {
     if (!editDate || !editDesc || !editAmount) {
       alert('일자, 내역, 금액을 모두 입력해주세요.');
@@ -351,7 +343,6 @@ export default function ExpenseTab({ currentManager, department }: Props) {
       account_category: editCategory,
       km: editKm ? Number(editKm) : undefined,
     };
-    writeItemToSheet(newItem);
     setItems(prev => [...prev, newItem]);
     setSaveStatus('unsaved');
     // 폼 리셋
@@ -371,21 +362,26 @@ export default function ExpenseTab({ currentManager, department }: Props) {
     setItems(prev => prev.filter(i => i.id !== id));
   };
 
-  // ── 기입 후 다운로드 (이미 워크북에 기입됨 → 다운로드 + 저장만) ──
-  const handleDownload = async () => {
+  // ── 다운로드 (대기 항목 있으면 먼저 기입 후 다운로드) ──
+  const handleDownloadCurrent = async () => {
     if (!workbook) return;
+    // 대기 항목 있으면 워크북에 먼저 기입
+    if (items.length > 0) {
+      for (const item of items) {
+        writeItemToSheet(item);
+      }
+      setItems([]);
+    }
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const dl = new Date();
-    const yr = dl.getFullYear();
-    a.download = `법인카드 사용내역_${department || ''}${department ? ' ' : ''}${currentManager} ${yr}년.xlsx`;
+    const now = new Date();
+    const year = now.getFullYear();
+    a.download = `법인카드 사용내역_${department || ''}${department ? ' ' : ''}${currentManager} ${year}년.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-    setItems([]);
-    handleSave();
   };
 
   // ── 스타일 상수 ──
@@ -790,18 +786,18 @@ export default function ExpenseTab({ currentManager, department }: Props) {
         </div>
       )}
 
-      {/* ── 5. 저장 + 기입후 다운로드 ── */}
+      {/* ── 5. 저장 버튼 ── */}
       {workbook && (
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8, marginBottom: 24 }}>
           <button
             onClick={handleSave}
             disabled={saveStatus === 'saving'}
             style={{
               ...btnPrimary,
-              padding: '14px 28px', fontSize: 14,
+              padding: '14px 32px', fontSize: 14,
               display: 'inline-flex', alignItems: 'center', gap: 8,
               opacity: saveStatus === 'saving' ? 0.6 : 1,
-              background: saveStatus === 'saved' ? '#16a34a' : '#5A1515',
+              background: saveStatus === 'saved' && items.length === 0 ? '#16a34a' : '#5A1515',
             }}
           >
             {saveStatus === 'saving' ? (
@@ -813,7 +809,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
                 }} />
                 저장 중...
               </>
-            ) : saveStatus === 'saved' ? (
+            ) : saveStatus === 'saved' && items.length === 0 ? (
               <>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
@@ -827,28 +823,10 @@ export default function ExpenseTab({ currentManager, department }: Props) {
                   <polyline points="17 21 17 13 7 13 7 21" />
                   <polyline points="7 3 7 8 15 8" />
                 </svg>
-                저장
+                저장{items.length > 0 ? ` (${items.length}건 기입)` : ''}
               </>
             )}
           </button>
-          {items.length > 0 && (
-            <button
-              onClick={handleDownload}
-              style={{
-                padding: '14px 28px', borderRadius: 10, border: '1.5px solid rgba(90,21,21,0.15)',
-                background: 'transparent', fontSize: 14, fontWeight: 600,
-                color: '#5A1515', cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              기입 후 다운로드
-            </button>
-          )}
         </div>
       )}
 
