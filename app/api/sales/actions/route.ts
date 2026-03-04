@@ -628,8 +628,8 @@ export async function GET(req: NextRequest) {
 
         if (!alertType) continue;
 
-        // low_stock인데 소진시기가 3개월(90일) 이상 남으면 제외
-        if (alertType === 'low_stock' && daysRemaining !== null && daysRemaining >= 90) continue;
+        // low_stock인데 소진시기가 30일 이상 남으면 제외 (threshold 기반 false positive 방지)
+        if (alertType === 'low_stock' && daysRemaining !== null && daysRemaining >= 30) continue;
         // low_stock인데 소진시기 계산 불가(판매 없음)면 급하지 않으므로 제외
         if (alertType === 'low_stock' && daysRemaining === null) continue;
 

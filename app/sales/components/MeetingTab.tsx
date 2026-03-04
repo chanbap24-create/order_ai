@@ -275,6 +275,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
   const [detailNotes, setDetailNotes] = useState('');
   const [toast, setToast] = useState('');
+  const [pendingCalUrl, setPendingCalUrl] = useState('');
 
   // ── 날짜 범위 ──
   const { start: weekStart, end: weekEnd } = viewMode === 'week'
@@ -444,9 +445,9 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
   // 토스트
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(''), 3000);
+    const t = setTimeout(() => { setToast(''); setPendingCalUrl(''); }, pendingCalUrl ? 8000 : 3000);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [toast, pendingCalUrl]);
 
   // ── 브라우저 알림 권한 요청 ──
   useEffect(() => {
@@ -567,7 +568,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
       const json = await res.json();
       if (json.error) { setToast('오류: ' + json.error); return; }
       setShowModal(false);
-      // 신규 생성 시 구글 캘린더 자동 열기
+      // 신규 생성 시 구글 캘린더 링크 표시 (모바일 팝업 차단 방지)
       if (!editingId) {
         const calUrl = buildGoogleCalendarUrl({
           meeting_date: modalDate,
@@ -577,7 +578,7 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
           status: 'planned',
           client_name: clientToUse?.client_name || modalTitle.trim() || '일정',
         } as Meeting);
-        window.open(calUrl, '_blank');
+        setPendingCalUrl(calUrl);
       }
       setToast(editingId ? '미팅이 수정되었습니다.' : '미팅이 생성되었습니다.');
       loadMeetings();
@@ -1871,10 +1872,28 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
         <div style={{
           position: 'fixed', top: reminderToast ? 130 : 80, left: '50%', transform: 'translateX(-50%)',
           background: toast.startsWith('오류') ? '#c53030' : '#38a169',
-          color: '#fff', padding: '12px 24px', borderRadius: 8,
+          color: '#fff', padding: pendingCalUrl ? '10px 16px' : '12px 24px', borderRadius: 8,
           fontSize: 14, fontWeight: 500, zIndex: 2000,
           boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
-        }}>{toast}</div>
+          display: 'flex', alignItems: 'center', gap: 10, maxWidth: '90vw',
+        }}>
+          <span>{toast}</span>
+          {pendingCalUrl && (
+            <a
+              href={pendingCalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => { setPendingCalUrl(''); setToast(''); }}
+              style={{
+                background: '#fff', color: '#4285F4', padding: '4px 10px', borderRadius: 6,
+                fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              📅 캘린더 추가
+            </a>
+          )}
+        </div>
       )}
     </div>
   );
