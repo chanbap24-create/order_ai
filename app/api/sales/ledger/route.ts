@@ -116,25 +116,44 @@ export async function GET(req: NextRequest) {
 
     const fetchCarryover = async () => {
       let carry = 0;
-      const { data } = await supabase.from(carryoverTable).select('carryover_amount').in('client_code', allCodes);
-      if (data) for (const c of data) carry += (c.carryover_amount || 0);
-      if (clientName) {
-        const { data: d2 } = await supabase.from(carryoverTable).select('carryover_amount')
-          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`);
-        if (d2) for (const c of d2) carry += (c.carryover_amount || 0);
+      let latestCreatedAt: string | null = null;
+      const { data } = await supabase.from(carryoverTable).select('carryover_amount, created_at').in('client_code', allCodes);
+      if (data) for (const c of data) {
+        carry += (c.carryover_amount || 0);
+        if (c.created_at && (!latestCreatedAt || c.created_at > latestCreatedAt)) latestCreatedAt = c.created_at;
       }
-      return carry;
+      if (clientName) {
+        const { data: d2 } = await supabase.from(carryoverTable).select('carryover_amount, created_at')
+          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`);
+        if (d2) for (const c of d2) {
+          carry += (c.carryover_amount || 0);
+          if (c.created_at && (!latestCreatedAt || c.created_at > latestCreatedAt)) latestCreatedAt = c.created_at;
+        }
+      }
+      return { carry, latestCreatedAt };
     };
 
-    // carryover = 현재 월 시작 잔액. 과거 월 조회 시 역산 필요.
-    const now = new Date();
-    const refDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    // 6개 쿼리 병렬 실행 (adjustment는 carryover 결과 필요하므로 이후 실행)
+    const [codeShips, nameShips, codePays, namePays, carryResult] = await Promise.all([
+      fetchAllShipments(), fetchNameShipments(), fetchAllPayments(), fetchNamePayments(), fetchCarryover(),
+    ]);
+
+    const carryover = carryResult.carry;
+
+    // carryover 기준월 결정: created_at 월의 1일 (carryover = 해당 월 시작 잔액)
+    // 예: created_at=2026-02-26 → refDate=2026-02-01 (carryover는 2월 시작 잔액)
+    let refDate: string;
+    if (carryResult.latestCreatedAt) {
+      const d = new Date(carryResult.latestCreatedAt);
+      refDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    } else {
+      const now = new Date();
+      refDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    }
 
     // 과거 월 조회 시 startDate~refDate 사이 매출/수금을 역산
-    const fetchAdjustment = async () => {
-      if (startDate >= refDate) return { adjSales: 0, adjPay: 0 };
-      let adjSales = 0, adjPay = 0;
-      // 매출 역산 (startDate ~ refDate)
+    let adjSales = 0, adjPay = 0;
+    if (startDate < refDate) {
       let from = 0;
       while (true) {
         const { data, error } = await supabase.from(table).select('total_amount')
@@ -146,7 +165,6 @@ export async function GET(req: NextRequest) {
         if (data.length < batch) break;
         from += batch;
       }
-      // 수금 역산 (startDate ~ refDate)
       from = 0;
       while (true) {
         const { data, error } = await supabase.from(payTable).select('amount')
@@ -158,13 +176,34 @@ export async function GET(req: NextRequest) {
         if (data.length < batch) break;
         from += batch;
       }
-      return { adjSales, adjPay };
-    };
-
-    // 6개 쿼리 병렬 실행
-    const [codeShips, nameShips, codePays, namePays, carryover, adj] = await Promise.all([
-      fetchAllShipments(), fetchNameShipments(), fetchAllPayments(), fetchNamePayments(), fetchCarryover(), fetchAdjustment(),
-    ]);
+    } else if (startDate > refDate) {
+      // 미래 월 조회: carryover 이후 거래를 순방향 계산
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(table).select('total_amount')
+          .in('client_code', allCodes).gte('ship_date', refDate).lt('ship_date', startDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) adjSales += (r.total_amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(payTable).select('amount')
+          .in('client_code', allCodes).gte('payment_date', refDate).lt('payment_date', startDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) adjPay += (r.amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      // 순방향: 잔액 = carryover + sales - payments
+      adjSales = -adjSales;
+      adjPay = -adjPay;
+    }
 
     const allRows = [...codeShips, ...nameShips];
     if (nameShips.length > 0) {
@@ -172,8 +211,8 @@ export async function GET(req: NextRequest) {
     }
 
     const paymentRows = [...codePays, ...namePays];
-    // 과거 월: carryover에서 그 사이 거래를 역산하여 해당 월 시작 잔액 산출
-    const prevBalance = carryover - adj.adjSales + adj.adjPay;
+    // 역산/순산: carryover 기준점에서 startDate까지의 잔액 산출
+    const prevBalance = carryover - adjSales + adjPay;
 
     return NextResponse.json({
       client: clientInfo || { client_code: clientCode, client_name: clientCode },
