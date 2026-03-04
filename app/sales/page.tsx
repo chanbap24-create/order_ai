@@ -8,7 +8,6 @@ import type { SalesTabId } from './components/SalesTabs';
 // 첫 화면(미팅)만 즉시 로드, 나머지는 lazy
 import MeetingTab from './components/MeetingTab';
 const BriefingTab = dynamic(() => import('./components/BriefingTab'), { ssr: false });
-const ActionTab = dynamic(() => import('./components/ActionTab'), { ssr: false });
 const AlertTab = dynamic(() => import('./components/AlertTab'), { ssr: false });
 const AnalysisTab = dynamic(() => import('./components/AnalysisTab'), { ssr: false });
 const LedgerTab = dynamic(() => import('./components/LedgerTab'), { ssr: false });
@@ -44,14 +43,8 @@ export default function SalesPage() {
   // ── 탭 ──
   const [activeTab, setActiveTab] = useState<SalesTabId>('meetings');
   const [alertCount, setAlertCount] = useState<number>(0);
-  const [actionCount, setActionCount] = useState<number>(0);
-
   const handleAlertCountChange = useCallback((count: number) => {
     setAlertCount(count);
-  }, []);
-
-  const handleActionCountChange = useCallback((count: number) => {
-    setActionCount(count);
   }, []);
 
   // ── 세션 확인 + 담당자 목록 병렬 로드 ──
@@ -459,13 +452,12 @@ export default function SalesPage() {
         )}
 
         {/* 탭 */}
-        <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} actionCount={actionCount} userRole={userRole} />
+        <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} userRole={userRole} />
 
         {/* 탭 콘텐츠 */}
         {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={userRole === 'executive' ? false : isAdmin} />}
         {activeTab === 'briefing' && <BriefingTab currentManager={currentManager} isAdmin={isAdmin} />}
-        {activeTab === 'actions' && <ActionTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleActionCountChange} />}
-        {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
+{activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'ledger' && <LedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'item-ledger' && <ItemLedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'outstanding' && <OutstandingTab currentManager={currentManager} isAdmin={isAdmin} />}
