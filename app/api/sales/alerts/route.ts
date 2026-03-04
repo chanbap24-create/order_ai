@@ -198,12 +198,10 @@ export async function POST(req: Request) {
       if (!inv || totalStock <= 0) {
         isShortage = true;
         alertType = 'out_of_stock';
-      } else if (totalStock < threshold) {
-        isShortage = true;
-        alertType = 'low_stock';
       } else if (avgSales90d > 0) {
         const dailySales = avgSales90d / 90;
         if (dailySales > 0 && totalStock / dailySales < 30) {
+          // 소진일 30일 미만만 알림 (threshold 규칙은 표시용으로만 유지)
           isShortage = true;
           alertType = 'low_stock';
         }
