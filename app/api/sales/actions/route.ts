@@ -622,16 +622,12 @@ export async function GET(req: NextRequest) {
         let alertType: 'out_of_stock' | 'low_stock' | null = null;
         if (stock <= 0) {
           alertType = 'out_of_stock';
-        } else if (stock < threshold || (daysRemaining !== null && daysRemaining < 30)) {
+        } else if (daysRemaining !== null && daysRemaining < 30) {
+          // 소진일 30일 미만만 알림 (threshold 규칙은 표시용으로만 유지)
           alertType = 'low_stock';
         }
 
         if (!alertType) continue;
-
-        // low_stock인데 소진시기가 30일 이상 남으면 제외 (threshold 기반 false positive 방지)
-        if (alertType === 'low_stock' && daysRemaining !== null && daysRemaining >= 30) continue;
-        // low_stock인데 소진시기 계산 불가(판매 없음)면 급하지 않으므로 제외
-        if (alertType === 'low_stock' && daysRemaining === null) continue;
 
         const itemAgg = itemClientMap.get(itemNo)!;
         const affectedClients = Array.from(itemAgg.clients.values())
