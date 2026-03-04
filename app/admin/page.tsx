@@ -60,10 +60,24 @@ export default function AdminPage() {
     }
   };
 
-  // Downloads 업로드 완료 시 신규 와인 수 업데이트
-  const handleUploadComplete = (type: string, result: Record<string, unknown>) => {
-    if (type === 'downloads' && typeof result.newWinesDetected === 'number') {
-      setNewWineCount(result.newWinesDetected);
+  // DB에서 실제 status='new' 와인 수 조회
+  const fetchNewWineCount = async () => {
+    try {
+      const res = await fetch('/api/admin/wines?status=new');
+      const data = await res.json();
+      if (data.success) setNewWineCount(data.data?.length || 0);
+    } catch { /* ignore */ }
+  };
+
+  // 인증 완료 후 신규 와인 수 로드
+  useEffect(() => {
+    if (authenticated) fetchNewWineCount();
+  }, [authenticated]);
+
+  // 업로드 완료 시 신규 와인 수 갱신
+  const handleUploadComplete = (type: string, _result: Record<string, unknown>) => {
+    if (type === 'downloads') {
+      fetchNewWineCount();
     }
   };
 

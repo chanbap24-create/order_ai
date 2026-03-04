@@ -103,7 +103,8 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         alcohol: item.alcohol,
         country: existing.country || kr || item.country,
         country_en: existing.country_en || en,
-        status: 'active',
+        // status='new'인 와인은 사용자가 확인할 때까지 유지
+        status: existing.status === 'new' ? 'new' : 'active',
         updated_at: new Date().toISOString(),
       };
       if (brandCode && !existing.brand) update.brand = brandCode;
