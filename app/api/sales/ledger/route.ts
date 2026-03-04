@@ -116,21 +116,21 @@ export async function GET(req: NextRequest) {
 
     const fetchCarryover = async () => {
       let carry = 0;
-      let latestCreatedAt: string | null = null;
+      let earliestCreatedAt: string | null = null;
       const { data } = await supabase.from(carryoverTable).select('carryover_amount, created_at').in('client_code', allCodes);
       if (data) for (const c of data) {
         carry += (c.carryover_amount || 0);
-        if (c.created_at && (!latestCreatedAt || c.created_at > latestCreatedAt)) latestCreatedAt = c.created_at;
+        if (c.created_at && (!earliestCreatedAt || c.created_at < earliestCreatedAt)) earliestCreatedAt = c.created_at;
       }
       if (clientName) {
         const { data: d2 } = await supabase.from(carryoverTable).select('carryover_amount, created_at')
           .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`);
         if (d2) for (const c of d2) {
           carry += (c.carryover_amount || 0);
-          if (c.created_at && (!latestCreatedAt || c.created_at > latestCreatedAt)) latestCreatedAt = c.created_at;
+          if (c.created_at && (!earliestCreatedAt || c.created_at < earliestCreatedAt)) earliestCreatedAt = c.created_at;
         }
       }
-      return { carry, latestCreatedAt };
+      return { carry, earliestCreatedAt };
     };
 
     // 6개 쿼리 병렬 실행 (adjustment는 carryover 결과 필요하므로 이후 실행)
@@ -140,11 +140,11 @@ export async function GET(req: NextRequest) {
 
     const carryover = carryResult.carry;
 
-    // carryover 기준월 결정: created_at 월의 1일 (carryover = 해당 월 시작 잔액)
-    // 예: created_at=2026-02-26 → refDate=2026-02-01 (carryover는 2월 시작 잔액)
+    // carryover 기준월 결정: 최초 created_at 월의 1일 (carryover = 해당 월 시작 잔액)
+    // MIN 사용: 재업로드된 레코드의 created_at이 달라져도 최초 업로드 기준
     let refDate: string;
-    if (carryResult.latestCreatedAt) {
-      const d = new Date(carryResult.latestCreatedAt);
+    if (carryResult.earliestCreatedAt) {
+      const d = new Date(carryResult.earliestCreatedAt);
       refDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
     } else {
       const now = new Date();
