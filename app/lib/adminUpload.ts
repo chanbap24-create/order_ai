@@ -837,9 +837,14 @@ export async function processCarryoverFromData(carryovers: CarryoverRow[], appen
     logger.info(`[Carryover] Cleared client_carryover table`);
   }
 
+  // client_code 중복 제거 (마지막 값 우선)
+  const deduped = Array.from(
+    carryovers.reduce((m, r) => m.set(r.client_code, r), new Map<string, CarryoverRow>()).values()
+  );
+
   let inserted = 0;
-  for (let i = 0; i < carryovers.length; i += 500) {
-    const batch = carryovers.slice(i, i + 500);
+  for (let i = 0; i < deduped.length; i += 500) {
+    const batch = deduped.slice(i, i + 500);
     const { error } = await supabase.from('client_carryover').upsert(batch, { onConflict: 'client_code' });
     if (error) {
       logger.error(`[Carryover] insert error at batch ${i}`, { error });
@@ -884,9 +889,14 @@ export async function processDlCarryoverFromData(carryovers: CarryoverRow[], app
     logger.info(`[DL-Carryover] Cleared glass_client_carryover table`);
   }
 
+  // client_code 중복 제거 (마지막 값 우선)
+  const deduped = Array.from(
+    carryovers.reduce((m, r) => m.set(r.client_code, r), new Map<string, CarryoverRow>()).values()
+  );
+
   let inserted = 0;
-  for (let i = 0; i < carryovers.length; i += 500) {
-    const batch = carryovers.slice(i, i + 500);
+  for (let i = 0; i < deduped.length; i += 500) {
+    const batch = deduped.slice(i, i + 500);
     const { error } = await supabase.from('glass_client_carryover').upsert(batch, { onConflict: 'client_code' });
     if (error) {
       logger.error(`[DL-Carryover] insert error at batch ${i}`, { error });
