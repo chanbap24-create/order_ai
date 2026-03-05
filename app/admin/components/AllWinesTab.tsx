@@ -32,6 +32,7 @@ export default function AllWinesTab() {
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [savingField, setSavingField] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -248,19 +249,38 @@ export default function AllWinesTab() {
             {deleting ? '삭제 중...' : `선택 삭제 (${checkedIds.size})`}
           </button>
           <button
-            onClick={() => {
-              const params = new URLSearchParams();
-              if (search) params.set('search', search);
-              if (country) params.set('country', country);
-              if (hideZero) params.set('hideZero', '1');
-              window.open(`/api/admin/wines/export?${params}`, '_blank');
+            disabled={exporting}
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const params = new URLSearchParams();
+                if (search) params.set('search', search);
+                if (country) params.set('country', country);
+                if (hideZero) params.set('hideZero', '1');
+                const res = await fetch(`/api/admin/wines/export?${params}`);
+                if (!res.ok) throw new Error('다운로드 실패');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wine-list_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch (e) {
+                alert('엑셀 다운로드에 실패했습니다.');
+              } finally {
+                setExporting(false);
+              }
             }}
             style={{
               padding: '6px 14px', borderRadius: 6, border: '1px solid #059669', fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', background: '#ecfdf5', color: '#059669',
+              cursor: exporting ? 'wait' : 'pointer', background: '#ecfdf5', color: '#059669',
+              opacity: exporting ? 0.6 : 1,
             }}
           >
-            Excel
+            {exporting ? '...' : 'Excel'}
           </button>
         </div>
       </div>
