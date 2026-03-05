@@ -842,9 +842,12 @@ export async function processCarryoverFromData(carryovers: CarryoverRow[], appen
     carryovers.reduce((m, r) => m.set(r.client_code, r), new Map<string, CarryoverRow>()).values()
   );
 
+  // created_at을 2025-08-01로 고정 (전산 전환 시점 = 이월 기준일)
+  const batchData = deduped.map(r => ({ ...r, created_at: '2025-08-01T00:00:00+09:00' }));
+
   let inserted = 0;
-  for (let i = 0; i < deduped.length; i += 500) {
-    const batch = deduped.slice(i, i + 500);
+  for (let i = 0; i < batchData.length; i += 500) {
+    const batch = batchData.slice(i, i + 500);
     const { error } = await supabase.from('client_carryover').upsert(batch, { onConflict: 'client_code' });
     if (error) {
       logger.error(`[Carryover] insert error at batch ${i}`, { error });
@@ -894,9 +897,12 @@ export async function processDlCarryoverFromData(carryovers: CarryoverRow[], app
     carryovers.reduce((m, r) => m.set(r.client_code, r), new Map<string, CarryoverRow>()).values()
   );
 
+  // created_at을 2025-08-01로 고정 (전산 전환 시점 = 이월 기준일)
+  const batchData = deduped.map(r => ({ ...r, created_at: '2025-08-01T00:00:00+09:00' }));
+
   let inserted = 0;
-  for (let i = 0; i < deduped.length; i += 500) {
-    const batch = deduped.slice(i, i + 500);
+  for (let i = 0; i < batchData.length; i += 500) {
+    const batch = batchData.slice(i, i + 500);
     const { error } = await supabase.from('glass_client_carryover').upsert(batch, { onConflict: 'client_code' });
     if (error) {
       logger.error(`[DL-Carryover] insert error at batch ${i}`, { error });
