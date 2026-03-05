@@ -257,6 +257,15 @@ export default function InventoryPage() {
   const [hideNoSupplyPrice, setHideNoSupplyPrice] = useState(true);
   const [hideNoStock, setHideNoStock] = useState(true);
   const [showOnlyBondedStock, setShowOnlyBondedStock] = useState(false);
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    stockMin: { enabled: false, value: 0 },
+    sales30Max: { enabled: false, value: 0 },
+    sales90Max: { enabled: false, value: 0 },
+    vintage: { enabled: false, value: 2020, op: 'gte' as 'gte' | 'lte' },
+    supplyPrice: { enabled: false, value: 0, op: 'gte' as 'gte' | 'lte' },
+    retailPrice: { enabled: false, value: 0, op: 'gte' as 'gte' | 'lte' },
+  });
   const [showInvColumnSettings, setShowInvColumnSettings] = useState(false);
   const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<InvColumnKey[]>(DEFAULT_INV_CDV);
   const [visibleColumnsDL, setVisibleColumnsDL] = useState<InvColumnKey[]>(DEFAULT_INV_DL);
@@ -496,14 +505,32 @@ export default function InventoryPage() {
 
   // ── Inventory search ──
   const handleSearch = async () => {
-    if (!searchQuery.trim()) { setError('검색어를 입력해주세요.'); return; }
+    const hasFilters = Object.values(advancedFilters).some(f => f.enabled);
+    if (!searchQuery.trim() && !hasFilters) { setError('검색어 또는 필터 조건을 설정해주세요.'); return; }
     setIsSearching(true);
     setError('');
     setHasSearched(true);
     try {
-      const endpoint = activeTab === 'CDV'
-        ? `/api/inventory/search?q=${encodeURIComponent(searchQuery)}`
-        : `/api/inventory/dl/search?q=${encodeURIComponent(searchQuery)}`;
+      let endpoint: string;
+
+      if (hasFilters) {
+        // Use filter API (handles both filter-only and filter+text)
+        const params = new URLSearchParams();
+        params.set('tab', activeTab);
+        if (searchQuery.trim()) params.set('q', searchQuery);
+        const f = advancedFilters;
+        if (f.stockMin.enabled && f.stockMin.value) params.set('stockMin', String(f.stockMin.value));
+        if (f.sales30Max.enabled) params.set('sales30Max', String(f.sales30Max.value));
+        if (f.sales90Max.enabled) params.set('sales90Max', String(f.sales90Max.value));
+        if (f.vintage.enabled && f.vintage.value) { params.set('vintage', String(f.vintage.value)); params.set('vintageOp', f.vintage.op); }
+        if (f.supplyPrice.enabled && f.supplyPrice.value) { params.set('supplyPrice', String(f.supplyPrice.value)); params.set('supplyPriceOp', f.supplyPrice.op); }
+        if (f.retailPrice.enabled && f.retailPrice.value) { params.set('retailPrice', String(f.retailPrice.value)); params.set('retailPriceOp', f.retailPrice.op); }
+        endpoint = `/api/inventory/filter?${params.toString()}`;
+      } else {
+        endpoint = activeTab === 'CDV'
+          ? `/api/inventory/search?q=${encodeURIComponent(searchQuery)}`
+          : `/api/inventory/dl/search?q=${encodeURIComponent(searchQuery)}`;
+      }
       const response = await fetch(endpoint);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '검색 중 오류가 발생했습니다.');
@@ -820,6 +847,9 @@ export default function InventoryPage() {
     return true;
   });
 
+  // Active advanced filter count
+  const activeFilterCount = Object.values(advancedFilters).filter(f => f.enabled).length;
+
   // Filter results
   const filteredResults = results.filter(item => {
     if (hideNoSupplyPrice && (!item.supply_price || item.supply_price <= 0) && !importScheduleMap[item.item_no]) return false;
@@ -829,6 +859,35 @@ export default function InventoryPage() {
       return hasNoStock && hasBondedStock;
     }
     if (hideNoStock && (!item.total_stock || item.total_stock <= 0) && !importScheduleMap[item.item_no]) return false;
+
+    // Advanced filters
+    if (advancedFilters.stockMin.enabled) {
+      const totalAvail = (item.available_stock || 0) + (item.bonded_warehouse || 0);
+      if (totalAvail < advancedFilters.stockMin.value) return false;
+    }
+    if (advancedFilters.sales30Max.enabled) {
+      if ((item.sales_30days || 0) > advancedFilters.sales30Max.value) return false;
+    }
+    if (advancedFilters.sales90Max.enabled) {
+      if ((item.avg_sales_90d || 0) > advancedFilters.sales90Max.value) return false;
+    }
+    if (advancedFilters.vintage.enabled) {
+      const v = parseInt(item.vintage);
+      if (!isNaN(v)) {
+        if (advancedFilters.vintage.op === 'gte' && v < advancedFilters.vintage.value) return false;
+        if (advancedFilters.vintage.op === 'lte' && v > advancedFilters.vintage.value) return false;
+      }
+    }
+    if (advancedFilters.supplyPrice.enabled) {
+      const p = item.supply_price || 0;
+      if (advancedFilters.supplyPrice.op === 'gte' && p < advancedFilters.supplyPrice.value) return false;
+      if (advancedFilters.supplyPrice.op === 'lte' && p > advancedFilters.supplyPrice.value) return false;
+    }
+    if (advancedFilters.retailPrice.enabled) {
+      const p = item.retail_price || 0;
+      if (advancedFilters.retailPrice.op === 'gte' && p < advancedFilters.retailPrice.value) return false;
+      if (advancedFilters.retailPrice.op === 'lte' && p > advancedFilters.retailPrice.value) return false;
+    }
     return true;
   });
 
@@ -1176,7 +1235,7 @@ export default function InventoryPage() {
             placeholder="Search wine or item code..."
             disabled={isSearching}
             style={{
-              width: '100%', height: 48, paddingLeft: 42, paddingRight: 52,
+              width: '100%', height: 48, paddingLeft: 42, paddingRight: 96,
               border: `1.5px solid ${searchFocused ? '#5A1515' : '#E5E5E5'}`,
               borderRadius: 12, fontSize: 16, background: 'white', outline: 'none',
               transition: 'all 0.2s ease',
@@ -1184,21 +1243,297 @@ export default function InventoryPage() {
               color: '#1a1a2e', boxSizing: 'border-box',
             }}
           />
-          <button
-            onClick={handleSearch}
-            disabled={isSearching}
-            style={{
-              position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-              padding: '5px 14px', borderRadius: 6, border: 'none',
-              background: '#F0EFED', color: '#5A1515', fontWeight: 600, fontSize: '0.75rem',
-              cursor: isSearching ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.2s ease', opacity: isSearching ? 0.6 : 1,
-            }}
-          >
-            {isSearching ? '검색중' : '검색'}
-          </button>
+          <div style={{
+            position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            <button
+              onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+              style={{
+                position: 'relative',
+                width: 34, height: 34, borderRadius: 6, border: 'none',
+                background: activeFilterCount > 0 ? 'rgba(90,21,21,0.1)' : showAdvancedFilter ? '#F0EFED' : 'transparent',
+                color: activeFilterCount > 0 ? '#5A1515' : '#999',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              {activeFilterCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -4,
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#5A1515', color: 'white',
+                  fontSize: '0.6rem', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              style={{
+                padding: '5px 14px', borderRadius: 6, border: 'none',
+                background: '#F0EFED', color: '#5A1515', fontWeight: 600, fontSize: '0.75rem',
+                cursor: isSearching ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s ease', opacity: isSearching ? 0.6 : 1,
+              }}
+            >
+              {isSearching ? '검색중' : '검색'}
+            </button>
+          </div>
         </div>
+
+        {/* ═══════════════════════════════════ */}
+        {/* ADVANCED FILTER PANEL               */}
+        {/* ═══════════════════════════════════ */}
+        {showAdvancedFilter && (
+          <div style={{
+            marginBottom: 12, padding: '14px 16px',
+            background: 'white', borderRadius: 12,
+            border: '1px solid #F0EFED',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2D2D2D' }}>조건 필터</span>
+              {activeFilterCount > 0 && (
+                <span style={{ fontSize: '0.68rem', color: '#5A1515', fontWeight: 500 }}>
+                  {activeFilterCount}개 활성
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* 재고+보세 N병 이상 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 90, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={advancedFilters.stockMin.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, stockMin: { ...f.stockMin, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }}
+                  />
+                  재고+보세
+                </label>
+                <input
+                  type="number"
+                  value={advancedFilters.stockMin.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, stockMin: { ...f.stockMin, value: Number(e.target.value) } }))}
+                  placeholder="0"
+                  disabled={!advancedFilters.stockMin.enabled}
+                  style={{
+                    width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 8px', fontSize: 16, textAlign: 'right',
+                    opacity: advancedFilters.stockMin.enabled ? 1 : 0.4,
+                  }}
+                />
+                <span style={{ fontSize: '0.72rem', color: '#888' }}>병 이상</span>
+              </div>
+
+              {/* 30일출고 N병 이하 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 90, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={advancedFilters.sales30Max.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, sales30Max: { ...f.sales30Max, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }}
+                  />
+                  30일 출고
+                </label>
+                <input
+                  type="number"
+                  value={advancedFilters.sales30Max.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, sales30Max: { ...f.sales30Max, value: Number(e.target.value) } }))}
+                  placeholder="0"
+                  disabled={!advancedFilters.sales30Max.enabled}
+                  style={{
+                    width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 8px', fontSize: 16, textAlign: 'right',
+                    opacity: advancedFilters.sales30Max.enabled ? 1 : 0.4,
+                  }}
+                />
+                <span style={{ fontSize: '0.72rem', color: '#888' }}>병 이하</span>
+              </div>
+
+              {/* 90일평균출고 N병 이하 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 90, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={advancedFilters.sales90Max.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, sales90Max: { ...f.sales90Max, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }}
+                  />
+                  90일 출고
+                </label>
+                <input
+                  type="number"
+                  value={advancedFilters.sales90Max.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, sales90Max: { ...f.sales90Max, value: Number(e.target.value) } }))}
+                  placeholder="0"
+                  disabled={!advancedFilters.sales90Max.enabled}
+                  style={{
+                    width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 8px', fontSize: 16, textAlign: 'right',
+                    opacity: advancedFilters.sales90Max.enabled ? 1 : 0.4,
+                  }}
+                />
+                <span style={{ fontSize: '0.72rem', color: '#888' }}>병 이하</span>
+              </div>
+
+              {/* 빈티지 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 90, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={advancedFilters.vintage.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, vintage: { ...f.vintage, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }}
+                  />
+                  빈티지
+                </label>
+                <input
+                  type="number"
+                  value={advancedFilters.vintage.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, vintage: { ...f.vintage, value: Number(e.target.value) } }))}
+                  placeholder="2020"
+                  disabled={!advancedFilters.vintage.enabled}
+                  style={{
+                    width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 8px', fontSize: 16, textAlign: 'right',
+                    opacity: advancedFilters.vintage.enabled ? 1 : 0.4,
+                  }}
+                />
+                <select
+                  value={advancedFilters.vintage.op}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, vintage: { ...f.vintage, op: e.target.value as 'gte' | 'lte' } }))}
+                  disabled={!advancedFilters.vintage.enabled}
+                  style={{
+                    height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 6px', fontSize: '0.72rem', color: '#555',
+                    opacity: advancedFilters.vintage.enabled ? 1 : 0.4,
+                  }}
+                >
+                  <option value="gte">이상</option>
+                  <option value="lte">이하</option>
+                </select>
+              </div>
+
+              {/* 공급가 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 90, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={advancedFilters.supplyPrice.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, supplyPrice: { ...f.supplyPrice, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }}
+                  />
+                  공급가
+                </label>
+                <input
+                  type="number"
+                  value={advancedFilters.supplyPrice.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, supplyPrice: { ...f.supplyPrice, value: Number(e.target.value) } }))}
+                  placeholder="0"
+                  disabled={!advancedFilters.supplyPrice.enabled}
+                  style={{
+                    width: 100, height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 8px', fontSize: 16, textAlign: 'right',
+                    opacity: advancedFilters.supplyPrice.enabled ? 1 : 0.4,
+                  }}
+                />
+                <select
+                  value={advancedFilters.supplyPrice.op}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, supplyPrice: { ...f.supplyPrice, op: e.target.value as 'gte' | 'lte' } }))}
+                  disabled={!advancedFilters.supplyPrice.enabled}
+                  style={{
+                    height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 6px', fontSize: '0.72rem', color: '#555',
+                    opacity: advancedFilters.supplyPrice.enabled ? 1 : 0.4,
+                  }}
+                >
+                  <option value="gte">이상</option>
+                  <option value="lte">이하</option>
+                </select>
+              </div>
+
+              {/* 소비자가 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 90, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={advancedFilters.retailPrice.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, retailPrice: { ...f.retailPrice, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }}
+                  />
+                  소비자가
+                </label>
+                <input
+                  type="number"
+                  value={advancedFilters.retailPrice.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, retailPrice: { ...f.retailPrice, value: Number(e.target.value) } }))}
+                  placeholder="0"
+                  disabled={!advancedFilters.retailPrice.enabled}
+                  style={{
+                    width: 100, height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 8px', fontSize: 16, textAlign: 'right',
+                    opacity: advancedFilters.retailPrice.enabled ? 1 : 0.4,
+                  }}
+                />
+                <select
+                  value={advancedFilters.retailPrice.op}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, retailPrice: { ...f.retailPrice, op: e.target.value as 'gte' | 'lte' } }))}
+                  disabled={!advancedFilters.retailPrice.enabled}
+                  style={{
+                    height: 30, borderRadius: 6, border: '1px solid #E5E5E5',
+                    padding: '0 6px', fontSize: '0.72rem', color: '#555',
+                    opacity: advancedFilters.retailPrice.enabled ? 1 : 0.4,
+                  }}
+                >
+                  <option value="gte">이상</option>
+                  <option value="lte">이하</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 적용 / 초기화 buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setAdvancedFilters({
+                  stockMin: { enabled: false, value: 0 },
+                  sales30Max: { enabled: false, value: 0 },
+                  sales90Max: { enabled: false, value: 0 },
+                  vintage: { enabled: false, value: 2020, op: 'gte' },
+                  supplyPrice: { enabled: false, value: 0, op: 'gte' },
+                  retailPrice: { enabled: false, value: 0, op: 'gte' },
+                })}
+                style={{
+                  padding: '6px 16px', borderRadius: 6, border: '1px solid #E5E5E5',
+                  background: 'white', color: '#888', fontSize: '0.75rem', fontWeight: 500,
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                }}
+              >
+                초기화
+              </button>
+              <button
+                onClick={() => { setShowAdvancedFilter(false); handleSearch(); }}
+                style={{
+                  padding: '6px 16px', borderRadius: 6, border: 'none',
+                  background: '#5A1515', color: 'white', fontSize: '0.75rem', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                }}
+              >
+                검색
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div style={{
