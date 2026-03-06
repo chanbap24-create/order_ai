@@ -37,10 +37,11 @@ export async function POST(
       logger.info(`Admin upload-data: type=payments, rows=${payments.length}, carryovers=${carryovers?.length || 0}, mode=${mode || 'replace'}, minDate=${minDate || 'none'}`);
       const result = await processPaymentsFromData(payments, append, minDate);
       let carryoverResult = null;
-      if (carryovers && carryovers.length > 0) {
+      // append 모드에서는 이월 미수금을 건드리지 않음 (수금만 추가)
+      if (!append && carryovers && carryovers.length > 0) {
         carryoverResult = await processCarryoverFromData(carryovers, append);
       }
-      return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult });
+      return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult, carryover_skipped: append ? true : undefined });
     }
 
     // DL(RIEDEL) 수금내역 업로드
@@ -56,10 +57,11 @@ export async function POST(
       logger.info(`Admin upload-data: type=dl-payments, rows=${payments.length}, carryovers=${carryovers?.length || 0}, mode=${mode || 'replace'}, minDate=${minDate || 'none'}`);
       const result = await processDlPaymentsFromData(payments, append, minDate);
       let carryoverResult = null;
-      if (carryovers && carryovers.length > 0) {
+      // append 모드에서는 이월 미수금을 건드리지 않음
+      if (!append && carryovers && carryovers.length > 0) {
         carryoverResult = await processDlCarryoverFromData(carryovers, append);
       }
-      return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult });
+      return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult, carryover_skipped: append ? true : undefined });
     }
 
     // Shipments 배치 업로드
