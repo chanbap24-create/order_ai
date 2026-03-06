@@ -76,8 +76,10 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
   }
 
   // carryover = 현재 월 시작 잔액. 과거 월 조회 시 역산 필요.
+  // KST(UTC+9) 기준 — Vercel(UTC) 환경에서도 한국 날짜 사용
   const now = new Date();
-  const refDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const refDate = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
   let prevBalance = carryover;
   if (startDate < refDate) {
     let adjSales = 0, adjPay = 0;

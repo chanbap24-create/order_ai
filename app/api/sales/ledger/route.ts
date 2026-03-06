@@ -141,14 +141,16 @@ export async function GET(req: NextRequest) {
     const carryover = carryResult.carry;
 
     // carryover 기준월 결정: 최초 created_at 월의 1일 (carryover = 해당 월 시작 잔액)
-    // MIN 사용: 재업로드된 레코드의 created_at이 달라져도 최초 업로드 기준
+    // KST(UTC+9) 기준으로 날짜 파싱 — Vercel(UTC) 환경에서도 정확한 한국 날짜 사용
     let refDate: string;
     if (carryResult.earliestCreatedAt) {
       const d = new Date(carryResult.earliestCreatedAt);
-      refDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+      const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+      refDate = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-01`;
     } else {
       const now = new Date();
-      refDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      refDate = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
     }
 
     // 과거 월 조회 시 startDate~refDate 사이 매출/수금을 역산
