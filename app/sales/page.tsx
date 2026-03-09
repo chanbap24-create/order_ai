@@ -280,7 +280,7 @@ export default function SalesPage() {
           </button>
 
           <p style={{ fontSize: 11, color: '#a8a098', textAlign: 'center', marginTop: 16 }}>
-            초기 비밀번호: 0000
+            담당자 이름과 비밀번호를 입력하세요
           </p>
         </div>
       </div>

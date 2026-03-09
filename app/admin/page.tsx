@@ -36,7 +36,7 @@ export default function AdminPage() {
   }, []);
 
   const handleLogin = async () => {
-    if (pin.length < 4) return;
+    if (pin.length < 1) return;
     setLoginLoading(true);
     setError(false);
     try {
@@ -126,12 +126,10 @@ export default function AdminPage() {
           </div>
           <input
             type="password"
-            inputMode="numeric"
-            maxLength={4}
             value={pin}
-            onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setError(false); }}
+            onChange={e => { setPin(e.target.value); setError(false); }}
             onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
-            placeholder="••••"
+            placeholder=""
             autoFocus
             style={{
               width: '100%',
@@ -153,18 +151,18 @@ export default function AdminPage() {
           )}
           <button
             onClick={handleLogin}
-            disabled={pin.length < 4 || loginLoading}
+            disabled={pin.length < 1 || loginLoading}
             style={{
               width: '100%',
               height: 40,
               marginTop: 16,
-              background: pin.length >= 4 && !loginLoading ? '#5A1515' : '#ddd',
+              background: pin.length >= 1 && !loginLoading ? '#5A1515' : '#ddd',
               color: '#fff',
               border: 'none',
               borderRadius: 6,
               fontSize: 14,
               fontWeight: 600,
-              cursor: pin.length >= 4 && !loginLoading ? 'pointer' : 'default',
+              cursor: pin.length >= 1 && !loginLoading ? 'pointer' : 'default',
               transition: 'background 0.2s',
             }}
           >
