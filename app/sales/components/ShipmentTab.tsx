@@ -134,9 +134,13 @@ export default function ShipmentTab({ currentManager, isAdmin }: { currentManage
     // 이번 분기
     const qStart = Math.floor(m / 3) * 3;
     const qFrom = `${y}-${pad(qStart + 1)}-01`;
+    // 내일
+    const tmr = new Date(y, m, d + 1);
+    const tomorrowStr = `${tmr.getFullYear()}-${pad(tmr.getMonth() + 1)}-${pad(tmr.getDate())}`;
     // 올해
     const yearFrom = `${y}-01-01`;
     return [
+      { label: '내일', from: tomorrowStr, to: tomorrowStr },
       { label: '오늘', from: todayStr, to: todayStr },
       { label: '이번 주', from: weekFrom, to: todayStr },
       { label: '이번 달', from: monthFrom, to: todayStr },
