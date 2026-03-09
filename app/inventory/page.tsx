@@ -148,8 +148,8 @@ const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: 'supply_price', label: '공급가', type: 'currency' },
   { key: 'retail_price', label: '판매가', type: 'currency' },
   { key: 'discount_rate', label: '할인율', editable: true, type: 'percent' },
-  { key: 'discounted_price', label: '할인가', type: 'computed' },
-  { key: 'retail_discounted_price', label: '할인판매가', type: 'computed' },
+  { key: 'discounted_price', label: '할인가', editable: true, type: 'computed' },
+  { key: 'retail_discounted_price', label: '할인판매가', editable: true, type: 'computed' },
   { key: 'quantity', label: '수량', editable: true, type: 'number' },
   { key: 'normal_total', label: '정상공급가합계', type: 'computed' },
   { key: 'discount_total', label: '할인공급가합계', type: 'computed' },
@@ -766,6 +766,8 @@ export default function InventoryPage() {
     setEditCell({ id, key });
     if (key === 'discount_rate') {
       setEditValue(String(Math.round((currentValue || 0) * 100)));
+    } else if (key === 'discounted_price' || key === 'retail_discounted_price') {
+      setEditValue(String(Math.round(Number(currentValue) || 0)));
     } else {
       setEditValue(String(currentValue ?? ''));
     }
@@ -775,9 +777,33 @@ export default function InventoryPage() {
     if (!editCell) return;
     const { id, key } = editCell;
     let value: any = editValue;
-    if (key === 'quantity') value = Math.max(0, parseInt(value) || 0);
-    else if (key === 'discount_rate') value = Math.min(100, Math.max(0, parseInt(value) || 0)) / 100;
-    else if (key === 'supply_price') value = Math.max(0, parseInt(value) || 0);
+    if (key === 'quantity') {
+      value = Math.max(0, parseInt(value) || 0);
+    } else if (key === 'discount_rate') {
+      value = Math.min(100, Math.max(0, parseInt(value) || 0)) / 100;
+    } else if (key === 'supply_price') {
+      value = Math.max(0, parseInt(value) || 0);
+    } else if (key === 'discounted_price') {
+      const item = quoteItems.find(i => i.id === id);
+      if (item && item.supply_price > 0) {
+        const newPrice = Math.max(0, parseInt(value) || 0);
+        const newRate = (item.supply_price - newPrice) / item.supply_price;
+        updateQuoteItem(id, { discount_rate: Math.round(newRate * 10000) / 10000 });
+        setEditCell(null);
+        setEditValue('');
+        return;
+      }
+    } else if (key === 'retail_discounted_price') {
+      const item = quoteItems.find(i => i.id === id);
+      if (item && (item.retail_price || 0) > 0) {
+        const newPrice = Math.max(0, parseInt(value) || 0);
+        const newRate = ((item.retail_price || 0) - newPrice) / (item.retail_price || 1);
+        updateQuoteItem(id, { discount_rate: Math.round(newRate * 10000) / 10000 });
+        setEditCell(null);
+        setEditValue('');
+        return;
+      }
+    }
     updateQuoteItem(id, { [key]: value });
     setEditCell(null);
     setEditValue('');
@@ -789,6 +815,7 @@ export default function InventoryPage() {
     setSheetValues({
       quantity: item.quantity,
       discount_rate: Math.round(item.discount_rate * 100),
+      discounted_price: String(calcDiscountedPrice(item.supply_price, item.discount_rate)),
       note: item.note || '',
       tasting_note: item.tasting_note || '',
     });
@@ -796,9 +823,14 @@ export default function InventoryPage() {
 
   function saveBottomSheet() {
     if (!bottomSheetItem) return;
+    // 할인가에서 정밀한 할인율 역산
+    const dp = parseInt(sheetValues.discounted_price) || 0;
+    const rate = bottomSheetItem.supply_price > 0
+      ? (bottomSheetItem.supply_price - dp) / bottomSheetItem.supply_price
+      : 0;
     updateQuoteItem(bottomSheetItem.id, {
       quantity: Math.max(0, parseInt(sheetValues.quantity) || 0),
-      discount_rate: Math.min(100, Math.max(0, parseInt(sheetValues.discount_rate) || 0)) / 100,
+      discount_rate: Math.round(rate * 10000) / 10000,
       note: sheetValues.note || '',
       tasting_note: sheetValues.tasting_note || '',
     });
@@ -2447,10 +2479,30 @@ export default function InventoryPage() {
                   <input
                     type="number"
                     value={sheetValues.discount_rate}
-                    onChange={e => setSheetValues(v => ({ ...v, discount_rate: e.target.value }))}
+                    onChange={e => {
+                      const rate = parseInt(e.target.value) || 0;
+                      const dp = Math.round(bottomSheetItem.supply_price * (1 - rate / 100));
+                      setSheetValues(v => ({ ...v, discount_rate: e.target.value, discounted_price: String(dp) }));
+                    }}
                     style={sheetInputStyle}
                     min={0}
                     max={100}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>할인가 (원)</label>
+                  <input
+                    type="number"
+                    value={sheetValues.discounted_price}
+                    onChange={e => {
+                      const dp = parseInt(e.target.value) || 0;
+                      const rate = bottomSheetItem.supply_price > 0
+                        ? Math.round((bottomSheetItem.supply_price - dp) / bottomSheetItem.supply_price * 100)
+                        : 0;
+                      setSheetValues(v => ({ ...v, discounted_price: e.target.value, discount_rate: String(rate) }));
+                    }}
+                    style={sheetInputStyle}
+                    min={0}
                   />
                 </div>
                 <div>
@@ -2480,20 +2532,14 @@ export default function InventoryPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ color: '#666' }}>할인가</span>
                   <span>
-                    {formatWon(calcDiscountedPrice(
-                      bottomSheetItem.supply_price,
-                      (parseInt(sheetValues.discount_rate) || 0) / 100
-                    ))}원
+                    {formatWon(parseInt(sheetValues.discounted_price) || 0)}원
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#5A1515' }}>
                   <span>할인합계</span>
                   <span>
                     {formatWon(
-                      calcDiscountedPrice(
-                        bottomSheetItem.supply_price,
-                        (parseInt(sheetValues.discount_rate) || 0) / 100
-                      ) * (parseInt(sheetValues.quantity) || 0)
+                      (parseInt(sheetValues.discounted_price) || 0) * (parseInt(sheetValues.quantity) || 0)
                     )}원
                   </span>
                 </div>
