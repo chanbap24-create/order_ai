@@ -109,6 +109,96 @@ interface ShipClient {
   items: { item_no: string; item_name: string; quantity: number; unit_price: number; total_amount: number }[];
 }
 
+function ShipmentSection({ title, color, shipments, expandedShipClient, setExpandedShipClient, prefix }: {
+  title: string; color: string;
+  shipments: { clients: ShipClient[]; totals: { supply: number; tax: number; total: number }; count: number };
+  expandedShipClient: string | null; setExpandedShipClient: (v: string | null) => void; prefix: string;
+}) {
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12, border: '1px solid rgba(90,21,21,0.06)',
+      boxShadow: '0 1px 3px rgba(90,21,21,0.03)', marginBottom: 12, overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '10px 14px', borderBottom: '1px solid rgba(90,21,21,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color }}>
+          {title}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 700, color }}>
+          {fmt(shipments.totals.total)}원
+        </span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: '#fafaf8' }}>
+              <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>거래처</th>
+              <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>업종</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>공급금액</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>부가세</th>
+              <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>합계</th>
+            </tr>
+          </thead>
+          {shipments.clients.map(c => {
+            const key = prefix + (c.client_code || c.client_name);
+            const isExp = expandedShipClient === key;
+            return (
+              <tbody key={key}>
+                <tr
+                  onClick={() => setExpandedShipClient(isExp ? null : key)}
+                  style={{ cursor: 'pointer', borderBottom: isExp ? 'none' : '1px solid rgba(90,21,21,0.04)' }}
+                >
+                  <td style={{ padding: '8px 10px', fontWeight: 600, color: '#2c1810', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {isExp ? '▾ ' : '▸ '}{c.client_name}
+                  </td>
+                  <td style={{ padding: '8px 6px', color: '#a8a098', whiteSpace: 'nowrap' }}>{c.business_type || '-'}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right', color: '#333', whiteSpace: 'nowrap' }}>{fmt(c.supply_amount)}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right', color: '#999', whiteSpace: 'nowrap' }}>{fmt(c.tax_amount)}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#2c1810', whiteSpace: 'nowrap' }}>{fmt(c.total_amount)}</td>
+                </tr>
+                {isExp && (
+                  <>
+                    <tr style={{ background: '#f8f6f4' }}>
+                      <td style={{ padding: '4px 10px 4px 28px', fontSize: 10, fontWeight: 600, color: '#a8a098' }}>품목</td>
+                      <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: '#a8a098' }}>품명</td>
+                      <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: '#a8a098', textAlign: 'right' }}>수량</td>
+                      <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: '#a8a098', textAlign: 'right' }}>단가</td>
+                      <td style={{ padding: '4px 10px', fontSize: 10, fontWeight: 600, color: '#a8a098', textAlign: 'right' }}>금액</td>
+                    </tr>
+                    {c.items.map((it, idx) => (
+                      <tr key={idx} style={{ background: '#f8f6f4', borderBottom: idx === c.items.length - 1 ? 'none' : '1px solid rgba(90,21,21,0.03)' }}>
+                        <td style={{ padding: '4px 10px 4px 28px', fontSize: 11, color: '#666' }}>{it.item_no}</td>
+                        <td style={{ padding: '4px 6px', fontSize: 11, color: '#333', whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.item_name}</td>
+                        <td style={{ padding: '4px 6px', fontSize: 11, color: '#333', textAlign: 'right' }}>{it.quantity}</td>
+                        <td style={{ padding: '4px 6px', fontSize: 11, color: '#999', textAlign: 'right' }}>{fmt(it.unit_price)}</td>
+                        <td style={{ padding: '4px 10px', fontSize: 11, color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmt(it.total_amount)}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.06)' }}>
+                      <td colSpan={4} style={{ padding: '6px 10px', fontSize: 11, fontWeight: 600, color: '#8a8580', textAlign: 'right' }}>소계</td>
+                      <td style={{ padding: '6px 10px', fontSize: 11, fontWeight: 700, color: '#2c1810', textAlign: 'right' }}>{fmt(c.total_amount)}</td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            );
+          })}
+          <tfoot>
+            <tr style={{ borderTop: '2px solid rgba(90,21,21,0.1)' }}>
+              <td colSpan={2} style={{ padding: '10px', fontSize: 12, fontWeight: 700, color: '#2c1810' }}>합계</td>
+              <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#333' }}>{fmt(shipments.totals.supply)}</td>
+              <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#999' }}>{fmt(shipments.totals.tax)}</td>
+              <td style={{ padding: '10px', textAlign: 'right', fontSize: 13, fontWeight: 700, color }}>{fmt(shipments.totals.total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function BriefingTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(false);
@@ -117,7 +207,8 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
   const [toast, setToast] = useState('');
   const [quoteLoadingId, setQuoteLoadingId] = useState<number | null>(null);
   const [showColSettingsId, setShowColSettingsId] = useState<number | null>(null);
-  const [todayShipments, setTodayShipments] = useState<{ clients: ShipClient[]; totals: { supply: number; tax: number; total: number }; count: number } | null>(null);
+  const [wineShipments, setWineShipments] = useState<{ clients: ShipClient[]; totals: { supply: number; tax: number; total: number }; count: number } | null>(null);
+  const [glassShipments, setGlassShipments] = useState<{ clients: ShipClient[]; totals: { supply: number; tax: number; total: number }; count: number } | null>(null);
   const [expandedShipClient, setExpandedShipClient] = useState<string | null>(null);
 
   const QUOTE_COL_OPTIONS: { key: string; label: string }[] = [
@@ -221,14 +312,10 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
         if (!isAdmin) params.set('manager', currentManager);
         const res = await fetch(`/api/sales/shipments/today?${params}`);
         const json = await res.json();
-        // wine + glass 합산
         const w = json.wine || { clients: [], totals: { supply: 0, tax: 0, total: 0 }, count: 0 };
         const g = json.glass || { clients: [], totals: { supply: 0, tax: 0, total: 0 }, count: 0 };
-        setTodayShipments({
-          clients: [...w.clients, ...g.clients],
-          totals: { supply: w.totals.supply + g.totals.supply, tax: w.totals.tax + g.totals.tax, total: w.totals.total + g.totals.total },
-          count: w.count + g.count,
-        });
+        setWineShipments(w.count > 0 ? w : null);
+        setGlassShipments(g.count > 0 ? g : null);
       } catch (e) {
         console.error('[shipments/today] error', e);
       }
@@ -281,7 +368,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
     return <div style={{ textAlign: 'center', padding: '60px', color: '#a8a098' }}>로딩 중...</div>;
   }
 
-  if (meetings.length === 0 && !todayShipments) {
+  if (meetings.length === 0 && !wineShipments && !glassShipments) {
     return (
       <div style={{
         textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14,
@@ -331,91 +418,28 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
         )}
       </div>}
 
-      {/* 금일 출고 현황 */}
-      {todayShipments && (
-        <div style={{
-          background: '#fff', borderRadius: 12, border: '1px solid rgba(90,21,21,0.06)',
-          boxShadow: '0 1px 3px rgba(90,21,21,0.03)', marginBottom: 16, overflow: 'hidden',
-        }}>
-          <div style={{
-            padding: '12px 14px', borderBottom: '1px solid rgba(90,21,21,0.06)',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#2c1810' }}>
-              금일 출고 현황 ({todayShipments.count}건)
-            </span>
-          </div>
+      {/* 금일 출고 현황 - 와인 */}
+      {wineShipments && (
+        <ShipmentSection
+          title={`와인 출고 (${wineShipments.count}건)`}
+          color="#5A1515"
+          shipments={wineShipments}
+          expandedShipClient={expandedShipClient}
+          setExpandedShipClient={setExpandedShipClient}
+          prefix="w_"
+        />
+      )}
 
-          {/* 거래처 목록 */}
-          {todayShipments.clients.length === 0 ? (
-            <div style={{ padding: '20px 14px', textAlign: 'center', color: '#a8a098', fontSize: 13 }}>
-              금일 출고 건이 없습니다
-            </div>
-          ) : <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: '#fafaf8' }}>
-                  <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>거래처</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>업종</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>공급금액</th>
-                  <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>부가세</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>합계</th>
-                </tr>
-              </thead>
-                {todayShipments.clients.map(c => {
-                  const isExp = expandedShipClient === (c.client_code || c.client_name);
-                  return (
-                    <tbody key={c.client_code || c.client_name}>
-                      <tr
-                        onClick={() => setExpandedShipClient(isExp ? null : (c.client_code || c.client_name))}
-                        style={{ cursor: 'pointer', borderBottom: isExp ? 'none' : '1px solid rgba(90,21,21,0.04)' }}
-                      >
-                        <td style={{ padding: '8px 10px', fontWeight: 600, color: '#2c1810', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {isExp ? '▾ ' : '▸ '}{c.client_name}
-                        </td>
-                        <td style={{ padding: '8px 6px', color: '#a8a098', whiteSpace: 'nowrap' }}>{c.business_type || '-'}</td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right', color: '#333', whiteSpace: 'nowrap' }}>{fmt(c.supply_amount)}</td>
-                        <td style={{ padding: '8px 6px', textAlign: 'right', color: '#999', whiteSpace: 'nowrap' }}>{fmt(c.tax_amount)}</td>
-                        <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#2c1810', whiteSpace: 'nowrap' }}>{fmt(c.total_amount)}</td>
-                      </tr>
-                      {isExp && (
-                        <>
-                          <tr style={{ background: '#f8f6f4' }}>
-                            <td style={{ padding: '4px 10px 4px 28px', fontSize: 10, fontWeight: 600, color: '#a8a098' }}>품목</td>
-                            <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: '#a8a098' }}>품명</td>
-                            <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: '#a8a098', textAlign: 'right' }}>수량</td>
-                            <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: '#a8a098', textAlign: 'right' }}>단가</td>
-                            <td style={{ padding: '4px 10px', fontSize: 10, fontWeight: 600, color: '#a8a098', textAlign: 'right' }}>금액</td>
-                          </tr>
-                          {c.items.map((it, idx) => (
-                            <tr key={idx} style={{ background: '#f8f6f4', borderBottom: idx === c.items.length - 1 ? 'none' : '1px solid rgba(90,21,21,0.03)' }}>
-                              <td style={{ padding: '4px 10px 4px 28px', fontSize: 11, color: '#666' }}>{it.item_no}</td>
-                              <td style={{ padding: '4px 6px', fontSize: 11, color: '#333', whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.item_name}</td>
-                              <td style={{ padding: '4px 6px', fontSize: 11, color: '#333', textAlign: 'right' }}>{it.quantity}</td>
-                              <td style={{ padding: '4px 6px', fontSize: 11, color: '#999', textAlign: 'right' }}>{fmt(it.unit_price)}</td>
-                              <td style={{ padding: '4px 10px', fontSize: 11, color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmt(it.total_amount)}</td>
-                            </tr>
-                          ))}
-                          <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.06)' }}>
-                            <td colSpan={4} style={{ padding: '6px 10px', fontSize: 11, fontWeight: 600, color: '#8a8580', textAlign: 'right' }}>소계</td>
-                            <td style={{ padding: '6px 10px', fontSize: 11, fontWeight: 700, color: '#2c1810', textAlign: 'right' }}>{fmt(c.total_amount)}</td>
-                          </tr>
-                        </>
-                      )}
-                    </tbody>
-                  );
-                })}
-              <tfoot>
-                <tr style={{ borderTop: '2px solid rgba(90,21,21,0.1)' }}>
-                  <td colSpan={2} style={{ padding: '10px', fontSize: 12, fontWeight: 700, color: '#2c1810' }}>합계</td>
-                  <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#333' }}>{fmt(todayShipments.totals.supply)}</td>
-                  <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#999' }}>{fmt(todayShipments.totals.tax)}</td>
-                  <td style={{ padding: '10px', textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>{fmt(todayShipments.totals.total)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>}
-        </div>
+      {/* 금일 출고 현황 - 글라스 */}
+      {glassShipments && (
+        <ShipmentSection
+          title={`글라스 출고 (${glassShipments.count}건)`}
+          color="#1565c0"
+          shipments={glassShipments}
+          expandedShipClient={expandedShipClient}
+          setExpandedShipClient={setExpandedShipClient}
+          prefix="g_"
+        />
       )}
 
       {/* 미팅 목록 */}
