@@ -40,7 +40,7 @@ export default function Home() {
     },
     {
       id: 'order',
-      href: '/order',
+      href: '/order-v2',
       title: 'Order',
       subtitle: '와인 / 리델 발주',
       desc: 'AI 파싱 기반 자동 발주서 생성 시스템',

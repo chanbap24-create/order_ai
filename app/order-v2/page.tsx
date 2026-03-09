@@ -397,6 +397,12 @@ export default function OrderV2Page() {
 
   const totalAmount = orderLines.reduce((s, ol, idx) => s + getItemPrice(idx) * ol.quantity, 0);
 
+  // DL 단위: 0으로 시작하는 품번(레스토랑 시리즈)=잔, 나머지=개, CDV=병
+  const getUnit = (itemNo?: string) => {
+    if (tab !== 'DL') return '병';
+    return itemNo?.trim().startsWith('0') ? '잔' : '개';
+  };
+
   // 발주 메시지
   const staffMessage = (() => {
     if (orderLines.length === 0) return '';
@@ -404,14 +410,14 @@ export default function OrderV2Page() {
     const deliveryLine = finalDeliveryLabel ? `배송 예정일: ${finalDeliveryLabel}` : '';
     const lines = orderLines.map((ol, idx) => {
       const sel = getSelected(ol);
-      if (!sel) return `- (미선택) / ${ol.query} / ${ol.quantity}병`;
+      if (!sel) return `- (미선택) / ${ol.query} / ${ol.quantity}${getUnit()}`;
       const rate = discountRates[idx] || 0;
       const price = getItemPrice(idx);
       const hasHistory = historySet.has(sel.item_no.trim().toUpperCase());
       const pricePart = rate > 0
         ? ` / ${fmt(price)} (${rate}%↓)`
         : (!hasHistory && sel.supply_price > 0) ? ` / ${fmt(sel.supply_price)}` : '';
-      return `- ${sel.item_no} / ${sel.item_name} / ${ol.quantity}병${pricePart}`;
+      return `- ${sel.item_no} / ${sel.item_name} / ${ol.quantity}${getUnit(sel.item_no)}${pricePart}`;
     });
     const notesLine = deliveryNotes.trim() ? `\n${deliveryNotes.trim()}\n` : '';
     return `[${name}]\n${deliveryLine ? deliveryLine + '\n' : ''}${notesLine}\n${lines.join('\n')}\n\n발주 요청드립니다.`;
@@ -445,686 +451,871 @@ export default function OrderV2Page() {
   const confLabel = (c: number) => c >= 0.9 ? '확실' : c >= 0.7 ? '높음' : c >= 0.5 ? '중간' : '불확실';
 
   return (
-    <div style={{
-      maxWidth: 800, margin: '0 auto', padding: '80px 16px 40px',
-      fontFamily: "'DM Sans', -apple-system, sans-serif",
-    }}>
-      {/* 헤더 */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2c1810', margin: 0 }}>
-          발주 파싱 v2
-        </h1>
-        <p style={{ fontSize: 13, color: '#8a8580', margin: '4px 0 0' }}>
-          AI가 발주 메시지를 분석하여 와인을 자동 매칭합니다
-        </p>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+        @keyframes orderPulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+        @keyframes orderSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes orderShimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .order-card:hover { box-shadow: 0 4px 20px rgba(90,21,21,0.06) !important; }
+        .order-btn-parse:hover:not(:disabled) {
+          box-shadow: 0 6px 24px rgba(90,21,21,0.25) !important;
+          transform: translateY(-1px);
+        }
+        .order-btn-parse:active:not(:disabled) { transform: translateY(0); }
+        .order-btn-parse { transition: all 0.2s ease !important; }
+        .order-client-item:hover { background: rgba(90,21,21,0.03) !important; }
+        .order-cand-btn:hover { background: rgba(90,21,21,0.03) !important; }
+        .order-search-item:hover { background: rgba(90,21,21,0.03) !important; }
+        .order-copy-btn:hover { border-color: #5A1515 !important; color: #5A1515 !important; }
+        .order-preset-btn:hover { background: rgba(255,255,255,0.15) !important; }
+        .order-input:focus { border-color: rgba(90,21,21,0.3) !important; box-shadow: 0 0 0 3px rgba(90,21,21,0.06) !important; }
+        .order-line-card:hover { border-color: rgba(90,21,21,0.12) !important; }
+        .order-qty-btn:hover { background: rgba(90,21,21,0.04) !important; border-color: rgba(90,21,21,0.2) !important; }
+        .order-history-row:hover { background: rgba(90,21,21,0.02) !important; }
+      `}</style>
 
-      {/* 입력 영역 */}
       <div style={{
-        background: '#fff', borderRadius: 16, padding: 20,
-        border: '1px solid rgba(90,21,21,0.06)',
-        boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
-        marginBottom: 20,
+        maxWidth: 760, margin: '0 auto', padding: '88px 20px 48px',
+        fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        minHeight: '100vh',
       }}>
-        {/* CDV / DL */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {(['CDV', 'DL'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: tab === t ? 700 : 500,
-              border: tab === t ? '1.5px solid #5A1515' : '1px solid rgba(90,21,21,0.1)',
-              background: tab === t ? 'rgba(90,21,21,0.06)' : '#fff',
-              color: tab === t ? '#5A1515' : '#8a8580', cursor: 'pointer',
-            }}>{t}</button>
-          ))}
-        </div>
 
-        {/* 거래처 */}
-        <div style={{ marginBottom: 16, position: 'relative' }} ref={dropdownRef}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 6 }}>거래처</label>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input type="text" value={clientQuery}
-              onChange={e => { setClientQuery(e.target.value); setSelectedClient(null); setShowDropdown(true); }}
-              onFocus={() => setShowDropdown(true)}
-              placeholder="거래처명 또는 코드 검색"
-              style={{
-                flex: 1, fontSize: 16, padding: '10px 14px', borderRadius: 10,
-                border: '1px solid rgba(90,21,21,0.12)', background: '#faf9f7', color: '#2c1810', outline: 'none',
-              }}
-            />
-            {selectedClient && (
-              <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, whiteSpace: 'nowrap', padding: '4px 10px', background: 'rgba(22,163,74,0.08)', borderRadius: 6 }}>
-                {selectedClient.client_code}
-              </span>
-            )}
+        {/* ═══ Header ═══ */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <h1 style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: 28, fontWeight: 600, color: '#1a1a2e',
+              margin: 0, letterSpacing: '-0.01em',
+            }}>
+              Order
+            </h1>
+            <span style={{
+              fontSize: 10, fontWeight: 600, color: '#5A1515',
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              opacity: 0.6,
+            }}>
+              AI Parsing
+            </span>
           </div>
-          {showDropdown && clientResults.length > 0 && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-              background: '#fff', borderRadius: 10, marginTop: 4,
-              border: '1px solid rgba(90,21,21,0.1)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-              maxHeight: 240, overflowY: 'auto',
-            }}>
-              {clientResults.map(c => (
-                <button key={c.client_code} onClick={() => pickClient(c)} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  width: '100%', padding: '10px 14px', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontSize: 14, color: '#2c1810', textAlign: 'left',
-                  borderBottom: '1px solid rgba(90,21,21,0.04)',
-                }}>
-                  <span style={{ fontWeight: 600 }}>{c.client_name}</span>
-                  <span style={{ fontSize: 11, color: '#8a8580' }}>{c.client_code}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <div style={{
+            width: 32, height: 2, marginTop: 10,
+            background: 'linear-gradient(90deg, #5A1515, rgba(90,21,21,0.15))',
+            borderRadius: 1,
+          }} />
         </div>
 
-        {/* 거래처 입고내역 (접힘/펼침) */}
-        {selectedClient && (
-          <div style={{ marginBottom: 12 }}>
-            <button onClick={toggleHistory} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
-            }}>
-              <span style={{
-                fontSize: 9, color: '#8a8580', display: 'inline-block',
-                transform: showHistory ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.15s',
-              }}>▶</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#5A1515' }}>
-                입고내역
-              </span>
-              {historyLoaded && (
-                <span style={{ fontSize: 11, color: '#8a8580' }}>
-                  {historyItems.length}건
+        {/* ═══ Input Card ═══ */}
+        <div className="order-card" style={{
+          background: '#fff', borderRadius: 14, padding: '22px 22px 20px',
+          border: '1px solid rgba(90,21,21,0.06)',
+          boxShadow: '0 2px 12px rgba(90,21,21,0.03)',
+          marginBottom: 20,
+          transition: 'box-shadow 0.3s ease',
+        }}>
+
+          {/* CDV / DL toggle */}
+          <div style={{
+            display: 'inline-flex', gap: 0,
+            background: 'rgba(90,21,21,0.04)', borderRadius: 9,
+            padding: 3, marginBottom: 18,
+          }}>
+            {(['CDV', 'DL'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{
+                padding: '7px 22px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                border: 'none',
+                background: tab === t ? '#fff' : 'transparent',
+                color: tab === t ? '#5A1515' : '#a8a098',
+                cursor: 'pointer',
+                boxShadow: tab === t ? '0 1px 4px rgba(90,21,21,0.08)' : 'none',
+                transition: 'all 0.2s ease',
+                letterSpacing: '0.04em',
+              }}>{t}</button>
+            ))}
+          </div>
+
+          {/* 거래처 */}
+          <div style={{ marginBottom: 18, position: 'relative' }} ref={dropdownRef}>
+            <label style={{
+              display: 'block', fontSize: 11, fontWeight: 600,
+              color: '#a8a098', marginBottom: 7,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>거래처</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="text" value={clientQuery}
+                className="order-input"
+                onChange={e => { setClientQuery(e.target.value); setSelectedClient(null); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="거래처명 또는 코드 검색"
+                style={{
+                  flex: 1, fontSize: 16, padding: '11px 14px', borderRadius: 10,
+                  border: '1px solid rgba(90,21,21,0.1)', background: '#faf9f7', color: '#2c1810',
+                  outline: 'none', transition: 'all 0.2s ease',
+                  fontFamily: "'DM Sans', -apple-system, sans-serif",
+                }}
+              />
+              {selectedClient && (
+                <span style={{
+                  fontSize: 11, color: '#16a34a', fontWeight: 600,
+                  whiteSpace: 'nowrap', padding: '5px 10px',
+                  background: 'rgba(22,163,74,0.06)', borderRadius: 7,
+                  border: '1px solid rgba(22,163,74,0.1)',
+                }}>
+                  {selectedClient.client_code}
                 </span>
               )}
-            </button>
+            </div>
+            {showDropdown && clientResults.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                background: '#fff', borderRadius: 10, marginTop: 4,
+                border: '1px solid rgba(90,21,21,0.08)',
+                boxShadow: '0 8px 32px rgba(90,21,21,0.1)',
+                maxHeight: 240, overflowY: 'auto',
+              }}>
+                {clientResults.map(c => (
+                  <button key={c.client_code} onClick={() => pickClient(c)}
+                    className="order-client-item"
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      width: '100%', padding: '11px 14px', border: 'none', background: 'transparent',
+                      cursor: 'pointer', fontSize: 14, color: '#2c1810', textAlign: 'left',
+                      borderBottom: '1px solid rgba(90,21,21,0.04)',
+                      transition: 'background 0.15s ease',
+                    }}>
+                    <span style={{ fontWeight: 600 }}>{c.client_name}</span>
+                    <span style={{ fontSize: 11, color: '#a8a098', fontFamily: "'DM Sans', monospace" }}>{c.client_code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {showHistory && (() => {
-              const oneYearAgo = new Date();
-              oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-              const cutoff = oneYearAgo.toISOString().slice(0, 10);
-              const recentItems = historyItems.filter(h => (h.last_ship_date || '') >= cutoff);
-              const oldItems = historyItems.filter(h => (h.last_ship_date || '') < cutoff);
+          {/* 거래처 입고내역 (접힘/펼침) */}
+          {selectedClient && (
+            <div style={{ marginBottom: 14 }}>
+              <button onClick={toggleHistory} style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+              }}>
+                <span style={{
+                  fontSize: 8, color: '#a8a098', display: 'inline-block',
+                  transform: showHistory ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                }}>▶</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#5A1515' }}>
+                  입고내역
+                </span>
+                {historyLoaded && (
+                  <span style={{
+                    fontSize: 10, color: '#a8a098', fontWeight: 500,
+                    padding: '1px 6px', background: 'rgba(90,21,21,0.04)', borderRadius: 4,
+                  }}>
+                    {historyItems.length}
+                  </span>
+                )}
+              </button>
 
-              const renderTable = (items: HistoryItem[]) => (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(90,21,21,0.08)', background: 'rgba(90,21,21,0.02)' }}>
-                      <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, color: '#8a8580', fontSize: 11 }}>품명</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: '#8a8580', fontSize: 11, whiteSpace: 'nowrap' }}>공급가</th>
-                      {tab === 'CDV' && (
-                        <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: '#8a8580', fontSize: 11, whiteSpace: 'nowrap' }}>횟수</th>
-                      )}
-                      <th style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: '#8a8580', fontSize: 11, whiteSpace: 'nowrap' }}>최근입고</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((h, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid rgba(90,21,21,0.04)' }}>
-                        <td style={{ padding: '6px 10px', color: '#2c1810' }}>
-                          <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{h.item_name}</div>
-                          <div style={{ fontSize: 10, color: '#a8a098' }}>{h.item_no}</div>
-                        </td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', color: '#2c1810', whiteSpace: 'nowrap' }}>
-                          {h.supply_price ? fmt(h.supply_price) : '-'}
-                        </td>
+              {showHistory && (() => {
+                const oneYearAgo = new Date();
+                oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+                const cutoff = oneYearAgo.toISOString().slice(0, 10);
+                const recentItems = historyItems.filter(h => (h.last_ship_date || '') >= cutoff);
+                const oldItems = historyItems.filter(h => (h.last_ship_date || '') < cutoff);
+
+                const renderTable = (items: HistoryItem[]) => (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(90,21,21,0.06)' }}>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: '#a8a098', fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase' }}>품명</th>
+                        <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#a8a098', fontSize: 10, whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>공급가</th>
                         {tab === 'CDV' && (
-                          <td style={{ padding: '6px 8px', textAlign: 'right', color: '#5A1515', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                            {h.buy_count || '-'}
-                          </td>
+                          <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#a8a098', fontSize: 10, whiteSpace: 'nowrap' }}>횟수</th>
                         )}
-                        <td style={{ padding: '6px 10px', textAlign: 'right', color: '#a8a098', whiteSpace: 'nowrap', fontSize: 11 }}>
-                          {h.last_ship_date ? h.last_ship_date.slice(0, 10) : '-'}
-                        </td>
+                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#a8a098', fontSize: 10, whiteSpace: 'nowrap' }}>최근입고</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              );
+                    </thead>
+                    <tbody>
+                      {items.map((h, i) => (
+                        <tr key={i} className="order-history-row" style={{
+                          borderBottom: '1px solid rgba(90,21,21,0.03)',
+                          transition: 'background 0.15s ease',
+                        }}>
+                          <td style={{ padding: '7px 12px', color: '#2c1810' }}>
+                            <div style={{ fontWeight: 500, lineHeight: 1.3, fontSize: 12 }}>{h.item_name}</div>
+                            <div style={{ fontSize: 10, color: '#b8b0a8', fontFamily: "'DM Sans', monospace" }}>{h.item_no}</div>
+                          </td>
+                          <td style={{ padding: '7px 8px', textAlign: 'right', color: '#2c1810', whiteSpace: 'nowrap', fontSize: 12 }}>
+                            {h.supply_price ? fmt(h.supply_price) : '-'}
+                          </td>
+                          {tab === 'CDV' && (
+                            <td style={{ padding: '7px 8px', textAlign: 'right', color: '#5A1515', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              {h.buy_count || '-'}
+                            </td>
+                          )}
+                          <td style={{ padding: '7px 12px', textAlign: 'right', color: '#b8b0a8', whiteSpace: 'nowrap', fontSize: 11 }}>
+                            {h.last_ship_date ? h.last_ship_date.slice(0, 10) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
 
-              return (
-                <div style={{
-                  marginTop: 6, border: '1px solid rgba(90,21,21,0.08)', borderRadius: 10,
-                  background: '#faf9f7', overflow: 'hidden',
-                }}>
-                  {historyLoading ? (
-                    <div style={{ padding: '16px', textAlign: 'center', fontSize: 12, color: '#8a8580' }}>
-                      불러오는 중...
-                    </div>
-                  ) : historyItems.length === 0 ? (
-                    <div style={{ padding: '16px', textAlign: 'center', fontSize: 12, color: '#a8a098' }}>
-                      입고내역이 없습니다
-                    </div>
-                  ) : (
-                    <>
-                      {/* 최근 1년 */}
-                      <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                        {recentItems.length > 0 ? renderTable(recentItems) : (
-                          <div style={{ padding: '12px', textAlign: 'center', fontSize: 12, color: '#a8a098' }}>
-                            최근 1년 내 입고내역 없음
+                return (
+                  <div style={{
+                    marginTop: 6, border: '1px solid rgba(90,21,21,0.06)', borderRadius: 10,
+                    background: '#faf9f7', overflow: 'hidden',
+                    animation: 'orderSlideIn 0.2s ease',
+                  }}>
+                    {historyLoading ? (
+                      <div style={{ padding: '20px', textAlign: 'center', fontSize: 12, color: '#a8a098' }}>
+                        <span style={{ animation: 'orderPulse 1.2s ease-in-out infinite' }}>불러오는 중...</span>
+                      </div>
+                    ) : historyItems.length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', fontSize: 12, color: '#b8b0a8' }}>
+                        입고내역이 없습니다
+                      </div>
+                    ) : (
+                      <>
+                        {/* 최근 1년 */}
+                        <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                          {recentItems.length > 0 ? renderTable(recentItems) : (
+                            <div style={{ padding: '14px', textAlign: 'center', fontSize: 12, color: '#b8b0a8' }}>
+                              최근 1년 내 입고내역 없음
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 1년 이전 */}
+                        {oldItems.length > 0 && (
+                          <div style={{ borderTop: '1px solid rgba(90,21,21,0.06)' }}>
+                            <button onClick={() => setShowOldHistory(v => !v)} style={{
+                              display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                              padding: '9px 12px', background: 'rgba(90,21,21,0.02)',
+                              border: 'none', cursor: 'pointer',
+                            }}>
+                              <span style={{
+                                fontSize: 8, color: '#a8a098', display: 'inline-block',
+                                transform: showOldHistory ? 'rotate(90deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s ease',
+                              }}>▶</span>
+                              <span style={{ fontSize: 11, color: '#a8a098' }}>
+                                1년 이전 ({oldItems.length}건)
+                              </span>
+                            </button>
+                            {showOldHistory && (
+                              <div style={{ maxHeight: 250, overflowY: 'auto' }}>
+                                {renderTable(oldItems)}
+                              </div>
+                            )}
                           </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* 발주 내용 */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{
+              display: 'block', fontSize: 11, fontWeight: 600,
+              color: '#a8a098', marginBottom: 7,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>발주 내용</label>
+            <textarea value={orderText} onChange={e => setOrderText(e.target.value)}
+              className="order-input"
+              placeholder="카톡/문자 발주 내용을 붙여넣으세요"
+              rows={6}
+              style={{
+                width: '100%', fontSize: 16, padding: '13px 14px', borderRadius: 10,
+                border: '1px solid rgba(90,21,21,0.1)', background: '#faf9f7',
+                color: '#2c1810', outline: 'none', resize: 'vertical',
+                fontFamily: "'DM Sans', -apple-system, sans-serif", lineHeight: 1.6,
+                boxSizing: 'border-box', transition: 'all 0.2s ease',
+              }}
+            />
+          </div>
+
+          {/* 버튼 */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={handleParse} disabled={loading || !orderText.trim()}
+              className="order-btn-parse"
+              style={{
+                flex: 1, padding: '13px 0', borderRadius: 10, border: 'none',
+                background: loading || !orderText.trim()
+                  ? '#d8d3ce'
+                  : 'linear-gradient(135deg, #5A1515 0%, #7a2828 50%, #5A1515 100%)',
+                color: '#fff', fontSize: 14, fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
+                letterSpacing: '0.04em',
+                boxShadow: loading || !orderText.trim() ? 'none' : '0 4px 16px rgba(90,21,21,0.15)',
+                position: 'relative', overflow: 'hidden',
+              }}>
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#fff', borderRadius: '50%',
+                    animation: 'orderShimmer 0.8s linear infinite',
+                    display: 'inline-block',
+                  }} />
+                  분석 중...
+                </span>
+              ) : '발주 분석'}
+            </button>
+            {orderLines.length > 0 && (
+              <button onClick={handleReset} style={{
+                padding: '13px 22px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                border: '1px solid rgba(90,21,21,0.1)', background: '#fff',
+                color: '#a8a098', cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}>초기화</button>
+            )}
+          </div>
+        </div>
+
+        {/* ═══ Error ═══ */}
+        {error && (
+          <div style={{
+            padding: '12px 16px', borderRadius: 10, marginBottom: 16,
+            background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.1)',
+            color: '#dc2626', fontSize: 13, fontWeight: 500,
+            animation: 'orderSlideIn 0.2s ease',
+          }}>{error}</div>
+        )}
+
+        {/* ═══ Results ═══ */}
+        {orderLines.length > 0 && (
+          <div style={{ animation: 'orderSlideIn 0.3s ease' }}>
+
+            {/* ─── Summary Header ─── */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1a2e 40%, #3a1520 100%)',
+              borderRadius: 14, padding: '18px 20px', color: '#fff', marginBottom: 16,
+              position: 'relative', overflow: 'hidden',
+            }}>
+              {/* subtle grain texture */}
+              <div style={{
+                position: 'absolute', inset: 0, opacity: 0.03,
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+                pointerEvents: 'none',
+              }} />
+              {/* radial glow */}
+              <div style={{
+                position: 'absolute', top: 0, right: 0, width: '60%', height: '100%',
+                background: 'radial-gradient(ellipse at 80% 30%, rgba(90,21,21,0.3) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em',
+                }}>
+                  {selectedClient?.client_name || clientQuery || '발주'} 분석 결과
+                </div>
+                <div style={{
+                  fontSize: 12, opacity: 0.55, marginTop: 3,
+                  fontWeight: 500, letterSpacing: '0.02em',
+                }}>
+                  {orderLines.length}개 품목 · {orderLines.reduce((s, ol) => s + ol.quantity, 0)}{tab === 'DL' ? '개' : '병'}
+                  {totalAmount > 0 && ` · ${fmtShort(totalAmount)}`}
+                </div>
+
+                {/* 배송 예정일 (접힘/펼침) */}
+                <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <button onClick={() => setShowDeliveryDate(v => !v)} style={{
+                    display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  }}>
+                    <span style={{
+                      fontSize: 8, color: 'rgba(255,255,255,0.35)', display: 'inline-block',
+                      transform: showDeliveryDate ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}>▶</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>배송 예정일</span>
+                    {finalDeliveryLabel && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginLeft: 4 }}>{finalDeliveryLabel}</span>
+                    )}
+                  </button>
+                  {showDeliveryDate && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                      {deliveryInfo.options ? (
+                        <>
+                          <button onClick={() => { setFridayChoice('saturday'); setCustomDeliveryDate(''); }} style={{
+                            padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                            border: fridayChoice === 'saturday' && !customDeliveryDate ? '1.5px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)',
+                            background: fridayChoice === 'saturday' && !customDeliveryDate ? 'rgba(255,255,255,0.12)' : 'transparent',
+                            color: '#fff', cursor: 'pointer', transition: 'all 0.2s ease',
+                          }}>토 {deliveryInfo.options.sat.getMonth() + 1}/{deliveryInfo.options.sat.getDate()}</button>
+                          <button onClick={() => { setFridayChoice('monday'); setCustomDeliveryDate(''); }} style={{
+                            padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                            border: fridayChoice === 'monday' && !customDeliveryDate ? '1.5px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)',
+                            background: fridayChoice === 'monday' && !customDeliveryDate ? 'rgba(255,255,255,0.12)' : 'transparent',
+                            color: '#fff', cursor: 'pointer', transition: 'all 0.2s ease',
+                          }}>월 {deliveryInfo.options.mon.getMonth() + 1}/{deliveryInfo.options.mon.getDate()}</button>
+                        </>
+                      ) : (
+                        <button onClick={() => setCustomDeliveryDate('')} style={{
+                          padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                          border: !customDeliveryDate ? '1.5px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)',
+                          background: !customDeliveryDate ? 'rgba(255,255,255,0.12)' : 'transparent',
+                          color: '#fff', cursor: 'pointer', transition: 'all 0.2s ease',
+                        }}>{deliveryInfo.label}</button>
+                      )}
+                      <input type="date" value={customDeliveryDate}
+                        onChange={e => setCustomDeliveryDate(e.target.value)}
+                        style={{
+                          fontSize: 16, padding: '5px 10px', borderRadius: 8,
+                          border: customDeliveryDate ? '1.5px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)',
+                          background: customDeliveryDate ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+                          color: '#fff', cursor: 'pointer', colorScheme: 'dark',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* 배송 특이사항 (접힘/펼침) */}
+                <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <button onClick={() => setShowDeliveryNotes(v => !v)} style={{
+                    display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  }}>
+                    <span style={{
+                      fontSize: 8, color: 'rgba(255,255,255,0.35)', display: 'inline-block',
+                      transform: showDeliveryNotes ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}>▶</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>특이사항</span>
+                    {deliveryNotes.trim() && (
+                      <span style={{
+                        fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 4,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180,
+                      }}>
+                        {deliveryNotes.trim().split('\n')[0]}
+                      </span>
+                    )}
+                  </button>
+                  {showDeliveryNotes && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {DELIVERY_PRESETS.map(preset => {
+                          const isActive = deliveryNotes.includes(preset);
+                          return (
+                            <button key={preset} onClick={() => {
+                              if (isActive) {
+                                setDeliveryNotes(prev => prev.replace(preset, '').replace(/\n{2,}/g, '\n').trim());
+                              } else {
+                                setDeliveryNotes(prev => prev ? prev + '\n' + preset : preset);
+                              }
+                            }}
+                              className="order-preset-btn"
+                              style={{
+                                padding: '5px 11px', borderRadius: 6, fontSize: 11, fontWeight: isActive ? 700 : 500,
+                                border: isActive ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                                background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+                                color: isActive ? '#fff' : 'rgba(255,255,255,0.6)', cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}>{preset}</button>
+                          );
+                        })}
+                      </div>
+                      <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)}
+                        placeholder="추가 특이사항 입력"
+                        rows={2}
+                        style={{
+                          width: '100%', fontSize: 16, padding: '9px 12px', borderRadius: 8,
+                          border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)',
+                          color: '#fff', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                          fontFamily: "'DM Sans', -apple-system, sans-serif",
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Staff Message ─── */}
+            <div className="order-card" style={{
+              background: '#fff', borderRadius: 14, padding: '16px 18px',
+              border: '1px solid rgba(90,21,21,0.06)',
+              boxShadow: '0 2px 12px rgba(90,21,21,0.03)',
+              marginBottom: 16,
+              transition: 'box-shadow 0.3s ease',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 3, height: 14, borderRadius: 2,
+                    background: 'linear-gradient(180deg, #5A1515, rgba(90,21,21,0.3))',
+                  }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#2c1810' }}>발주 메시지</span>
+                </div>
+                <button onClick={copyMessage} className="order-copy-btn" style={{
+                  padding: '6px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  border: copied ? '1px solid #16a34a' : '1px solid rgba(90,21,21,0.1)',
+                  background: copied ? '#16a34a' : '#fff',
+                  color: copied ? '#fff' : '#8a8580', cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  letterSpacing: '0.02em',
+                }}>
+                  {copied ? '복사됨!' : '복사'}
+                </button>
+              </div>
+              <pre style={{
+                fontSize: 13, color: '#2c1810', lineHeight: 1.75,
+                whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                margin: 0, fontFamily: "'DM Sans', -apple-system, sans-serif",
+                background: '#faf9f7', borderRadius: 10, padding: '14px 16px',
+                border: '1px solid rgba(90,21,21,0.04)',
+              }}>
+                {staffMessage}
+              </pre>
+            </div>
+
+            {/* ─── Item List ─── */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 600, color: '#a8a098', marginBottom: 10,
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span>품목 상세</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 500, color: '#b8b0a8',
+                  padding: '1px 6px', background: 'rgba(90,21,21,0.04)', borderRadius: 4,
+                }}>{orderLines.length}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {orderLines.map((ol, lineIdx) => {
+                  const sel = getSelected(ol);
+                  const disc = discountRates[lineIdx] || 0;
+                  const discPrice = sel ? Math.round(sel.supply_price * (1 - disc / 100)) : 0;
+                  const isExpanded = expandedLines.has(lineIdx);
+                  const isSearching = searchIdx === lineIdx;
+                  const toggleExpand = () => setExpandedLines(prev => {
+                    const next = new Set(prev);
+                    if (next.has(lineIdx)) next.delete(lineIdx); else next.add(lineIdx);
+                    return next;
+                  });
+
+                  return (
+                    <div key={lineIdx} className="order-line-card" style={{
+                      background: '#fff', borderRadius: 10,
+                      border: '1px solid rgba(90,21,21,0.06)',
+                      overflow: 'hidden',
+                      transition: 'border-color 0.2s ease',
+                    }}>
+                      {/* 컴팩트 한 줄 요약 */}
+                      <div style={{
+                        padding: '10px 14px',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        cursor: 'pointer',
+                      }} onClick={toggleExpand}>
+                        {/* 펼침 아이콘 */}
+                        <span style={{
+                          fontSize: 8, color: '#a8a098', flexShrink: 0,
+                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          display: 'inline-block',
+                        }}>▶</span>
+
+                        {/* 선택된 품목명 */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {sel ? (
+                            <span style={{
+                              fontSize: 13, fontWeight: 600, color: '#2c1810',
+                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              display: 'block',
+                            }}>
+                              {sel.item_name}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>미선택</span>
+                          )}
+                          <span style={{ fontSize: 10, color: '#b8b0a8', display: 'block', marginTop: 1 }}>
+                            {sel?.item_no || ''} · &quot;{ol.query}&quot;
+                          </span>
+                        </div>
+
+                        {/* 수량 */}
+                        <span style={{
+                          fontSize: 13, fontWeight: 700, color: '#5A1515',
+                          flexShrink: 0, minWidth: 32, textAlign: 'right',
+                        }}>
+                          {ol.quantity}{getUnit(sel?.item_no)}
+                        </span>
+
+                        {/* 신뢰도 */}
+                        {sel && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, color: confColor(sel.confidence),
+                            padding: '2px 6px', borderRadius: 4,
+                            background: `${confColor(sel.confidence)}0a`,
+                            border: `1px solid ${confColor(sel.confidence)}20`,
+                            flexShrink: 0,
+                          }}>
+                            {Math.round(sel.confidence * 100)}%
+                          </span>
                         )}
                       </div>
 
-                      {/* 1년 이전 */}
-                      {oldItems.length > 0 && (
-                        <div style={{ borderTop: '1px solid rgba(90,21,21,0.08)' }}>
-                          <button onClick={() => setShowOldHistory(v => !v)} style={{
-                            display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-                            padding: '8px 10px', background: 'rgba(90,21,21,0.02)',
-                            border: 'none', cursor: 'pointer',
+                      {/* 펼쳐진 상세 */}
+                      {isExpanded && (
+                        <div style={{
+                          borderTop: '1px solid rgba(90,21,21,0.05)',
+                          animation: 'orderSlideIn 0.15s ease',
+                        }}>
+                          {/* 수량 조절 + 삭제 */}
+                          <div style={{
+                            padding: '8px 14px', background: '#faf9f7',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           }}>
-                            <span style={{
-                              fontSize: 9, color: '#8a8580', display: 'inline-block',
-                              transform: showOldHistory ? 'rotate(90deg)' : 'rotate(0deg)',
-                              transition: 'transform 0.15s',
-                            }}>▶</span>
-                            <span style={{ fontSize: 11, color: '#8a8580' }}>
-                              1년 이전 ({oldItems.length}건)
+                            <span style={{ fontSize: 12, color: '#5A1515', fontWeight: 600 }}>
+                              &quot;{ol.query}&quot;
                             </span>
-                          </button>
-                          {showOldHistory && (
-                            <div style={{ maxHeight: 250, overflowY: 'auto' }}>
-                              {renderTable(oldItems)}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <button onClick={() => updateQty(lineIdx, ol.quantity - 1)}
+                                className="order-qty-btn"
+                                style={{
+                                  width: 26, height: 26, borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
+                                  background: '#fff', cursor: 'pointer', fontSize: 14, color: '#5A1515',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'all 0.15s ease',
+                                }}>-</button>
+                              <input type="text" inputMode="numeric"
+                                value={editingQty[lineIdx] !== undefined ? editingQty[lineIdx] : ol.quantity}
+                                onChange={e => setEditingQty(prev => ({ ...prev, [lineIdx]: e.target.value }))}
+                                onBlur={() => {
+                                  const val = editingQty[lineIdx];
+                                  if (val !== undefined) {
+                                    const num = parseInt(val, 10);
+                                    if (!isNaN(num) && num >= 1) updateQty(lineIdx, num);
+                                    setEditingQty(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
+                                  }
+                                }}
+                                style={{
+                                  width: 34, textAlign: 'center', fontSize: 14, fontWeight: 700,
+                                  border: '1px solid rgba(90,21,21,0.1)', borderRadius: 6,
+                                  padding: '3px 0', color: '#2c1810', background: '#fff',
+                                }}
+                              />
+                              <button onClick={() => updateQty(lineIdx, ol.quantity + 1)}
+                                className="order-qty-btn"
+                                style={{
+                                  width: 26, height: 26, borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
+                                  background: '#fff', cursor: 'pointer', fontSize: 14, color: '#5A1515',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'all 0.15s ease',
+                                }}>+</button>
+                              <button onClick={() => removeLine(lineIdx)} style={{
+                                width: 26, height: 26, borderRadius: 6, border: '1px solid rgba(220,38,38,0.1)',
+                                background: 'rgba(220,38,38,0.03)', cursor: 'pointer', fontSize: 12,
+                                color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                marginLeft: 4, transition: 'all 0.15s ease',
+                              }}>x</button>
+                            </div>
+                          </div>
+
+                          {/* 후보 리스트 */}
+                          <div style={{ padding: '4px 0' }}>
+                            {ol.candidates.map((cand, cIdx) => {
+                              const isSelected = ol.selectedIdx === cIdx;
+                              return (
+                                <button key={cIdx} onClick={() => selectCandidate(lineIdx, cIdx)}
+                                  className="order-cand-btn"
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    width: '100%', padding: '7px 14px', border: 'none',
+                                    background: isSelected ? 'rgba(90,21,21,0.03)' : 'transparent',
+                                    cursor: 'pointer', textAlign: 'left',
+                                    borderLeft: isSelected ? '3px solid #5A1515' : '3px solid transparent',
+                                    transition: 'all 0.15s ease',
+                                  }}>
+                                  <span style={{
+                                    width: 16, height: 16, borderRadius: 8, flexShrink: 0,
+                                    border: isSelected ? '2px solid #5A1515' : '2px solid #d8d3ce',
+                                    background: isSelected ? '#5A1515' : 'transparent',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.15s ease',
+                                  }}>
+                                    {isSelected && <span style={{ width: 5, height: 5, borderRadius: 3, background: '#fff' }} />}
+                                  </span>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{
+                                      fontSize: 12, fontWeight: isSelected ? 700 : 500,
+                                      color: isSelected ? '#2c1810' : '#888',
+                                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                    }}>
+                                      {cand.item_name}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#b8b0a8' }}>
+                                      {cand.item_no} · {cand.reasoning}
+                                    </div>
+                                  </div>
+                                  <span style={{
+                                    fontSize: 9, fontWeight: 700, color: confColor(cand.confidence),
+                                    padding: '2px 6px', borderRadius: 4,
+                                    background: `${confColor(cand.confidence)}0a`,
+                                    border: `1px solid ${confColor(cand.confidence)}20`,
+                                    flexShrink: 0,
+                                  }}>
+                                    {Math.round(cand.confidence * 100)}%
+                                  </span>
+                                </button>
+                              );
+                            })}
+
+                            {/* 수동 검색 */}
+                            <div style={{ padding: '4px 14px 8px', position: 'relative' }} ref={isSearching ? searchRef : undefined}>
+                              {!isSearching ? (
+                                <button onClick={() => { setSearchIdx(lineIdx); setSearchQuery(''); setSearchResults([]); }} style={{
+                                  fontSize: 11, color: '#5A1515', background: 'none', border: 'none',
+                                  cursor: 'pointer', fontWeight: 600, padding: '3px 0',
+                                  textDecoration: 'underline', textUnderlineOffset: 3,
+                                  opacity: 0.8, transition: 'opacity 0.15s ease',
+                                }}>
+                                  직접 검색하여 변경
+                                </button>
+                              ) : (
+                                <div>
+                                  <input type="text" value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    placeholder="와인명 또는 품번 검색"
+                                    autoFocus
+                                    style={{
+                                      width: '100%', fontSize: 16, padding: '8px 12px', borderRadius: 8,
+                                      border: '1.5px solid #5A1515', background: '#fff', color: '#2c1810',
+                                      outline: 'none', boxSizing: 'border-box',
+                                    }}
+                                  />
+                                  {searchLoading && (
+                                    <div style={{ fontSize: 11, color: '#a8a098', padding: '6px 0' }}>
+                                      <span style={{ animation: 'orderPulse 1.2s ease-in-out infinite' }}>검색 중...</span>
+                                    </div>
+                                  )}
+                                  {searchResults.length > 0 && (
+                                    <div style={{
+                                      maxHeight: 200, overflowY: 'auto', marginTop: 4,
+                                      border: '1px solid rgba(90,21,21,0.08)', borderRadius: 8,
+                                      background: '#fff', boxShadow: '0 8px 24px rgba(90,21,21,0.08)',
+                                    }}>
+                                      {searchResults.map(sr => (
+                                        <button key={sr.item_no} onClick={() => replaceWithSearch(lineIdx, sr)}
+                                          className="order-search-item"
+                                          style={{
+                                            display: 'block', width: '100%', padding: '8px 12px', border: 'none',
+                                            background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                                            borderBottom: '1px solid rgba(90,21,21,0.03)',
+                                            transition: 'background 0.15s ease',
+                                          }}>
+                                          <div style={{ fontSize: 12, fontWeight: 600, color: '#2c1810' }}>{sr.item_name}</div>
+                                          <div style={{ fontSize: 10, color: '#a8a098', marginTop: 2 }}>
+                                            {sr.item_no} · 공급가 {fmt(sr.supply_price || 0)} · 재고 {sr.available_stock || 0}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {searchQuery && !searchLoading && searchResults.length === 0 && (
+                                    <div style={{ fontSize: 11, color: '#b8b0a8', padding: '6px 0' }}>검색 결과 없음</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 가격/할인 */}
+                          {sel && (
+                            <div style={{
+                              padding: '8px 14px 10px',
+                              borderTop: '1px solid rgba(90,21,21,0.04)',
+                              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                              background: '#faf9f7',
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ fontSize: 11, color: '#a8a098', fontWeight: 500 }}>공급가</span>
+                                <input type="text" inputMode="numeric"
+                                  value={editingPrice[lineIdx] !== undefined ? editingPrice[lineIdx] : sel.supply_price.toLocaleString()}
+                                  onChange={e => setEditingPrice(prev => ({ ...prev, [lineIdx]: e.target.value }))}
+                                  onBlur={() => {
+                                    const val = editingPrice[lineIdx];
+                                    if (val !== undefined) {
+                                      const num = parseInt(val.replace(/,/g, ''), 10);
+                                      if (!isNaN(num) && num >= 0) updatePrice(lineIdx, num);
+                                      setEditingPrice(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
+                                    }
+                                  }}
+                                  style={{
+                                    width: 78, textAlign: 'right', fontSize: 12, fontWeight: 600,
+                                    border: sel.supply_price === 0 ? '1.5px solid #d97706' : '1px solid rgba(90,21,21,0.1)',
+                                    borderRadius: 6, padding: '3px 6px', color: '#2c1810',
+                                    background: sel.supply_price === 0 ? '#fffbeb' : '#fff',
+                                  }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ fontSize: 11, color: '#a8a098', fontWeight: 500 }}>할인</span>
+                                <select value={disc} onChange={e => updateDiscount(lineIdx, Number(e.target.value))} style={{
+                                  fontSize: 12, fontWeight: 600, padding: '3px 4px', borderRadius: 6,
+                                  border: '1px solid rgba(90,21,21,0.1)', background: '#fff',
+                                  color: disc > 0 ? '#5A1515' : '#a8a098', cursor: 'pointer',
+                                }}>
+                                  <option value={0}>0%</option>
+                                  <option value={5}>5%</option>
+                                  <option value={10}>10%</option>
+                                  <option value={15}>15%</option>
+                                  <option value={20}>20%</option>
+                                  <option value={25}>25%</option>
+                                  <option value={30}>30%</option>
+                                </select>
+                              </div>
+                              {disc > 0 && (
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#5A1515' }}>
+                                  → {fmt(discPrice)}
+                                </span>
+                              )}
+                              <span style={{ fontSize: 10, color: '#b8b0a8', marginLeft: 'auto', fontWeight: 500 }}>
+                                재고 {sel.available_stock}
+                              </span>
                             </div>
                           )}
                         </div>
                       )}
-                    </>
-                  )}
-                </div>
-              );
-            })()}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 토큰 */}
+            {usage && (
+              <div style={{
+                textAlign: 'center', fontSize: 10, color: '#c8c0b8', marginBottom: 16,
+                letterSpacing: '0.02em',
+              }}>
+                {usage.input_tokens.toLocaleString()} in / {usage.output_tokens.toLocaleString()} out
+                · ~${((usage.input_tokens * 0.8 + usage.output_tokens * 4) / 1e6).toFixed(4)}
+              </div>
+            )}
           </div>
         )}
-
-        {/* 발주 내용 */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 6 }}>발주 내용</label>
-          <textarea value={orderText} onChange={e => setOrderText(e.target.value)}
-            placeholder="카톡/문자 발주 내용을 붙여넣으세요"
-            rows={6}
-            style={{
-              width: '100%', fontSize: 16, padding: '12px 14px', borderRadius: 10,
-              border: '1px solid rgba(90,21,21,0.12)', background: '#faf9f7',
-              color: '#2c1810', outline: 'none', resize: 'vertical',
-              fontFamily: "'DM Sans', -apple-system, sans-serif", lineHeight: 1.6, boxSizing: 'border-box',
-            }}
-          />
-        </div>
-
-        {/* 버튼 */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={handleParse} disabled={loading || !orderText.trim()} style={{
-            flex: 1, padding: '12px 0', borderRadius: 10, border: 'none',
-            background: loading || !orderText.trim() ? '#d1ccc7' : 'linear-gradient(135deg, #5A1515, #7a2020)',
-            color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'wait' : 'pointer',
-          }}>
-            {loading ? '분석 중...' : '발주 분석'}
-          </button>
-          {orderLines.length > 0 && (
-            <button onClick={handleReset} style={{
-              padding: '12px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-              border: '1px solid rgba(90,21,21,0.12)', background: '#fff', color: '#8a8580', cursor: 'pointer',
-            }}>초기화</button>
-          )}
-        </div>
       </div>
-
-      {/* 에러 */}
-      {error && (
-        <div style={{
-          padding: '12px 16px', borderRadius: 10, marginBottom: 16,
-          background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.15)',
-          color: '#dc2626', fontSize: 13,
-        }}>{error}</div>
-      )}
-
-      {/* 결과 */}
-      {orderLines.length > 0 && (
-        <>
-          {/* 요약 헤더 */}
-          <div style={{
-            background: 'linear-gradient(135deg, #1a237e, #283593)',
-            borderRadius: 12, padding: 16, color: '#fff', marginBottom: 16,
-          }}>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>
-                {selectedClient?.client_name || clientQuery || '발주'} 분석 결과
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>
-                {orderLines.length}개 품목 · {orderLines.reduce((s, ol) => s + ol.quantity, 0)}병
-              </div>
-            </div>
-
-            {/* 배송 예정일 (접힘/펼침) */}
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-              <button onClick={() => setShowDeliveryDate(v => !v)} style={{
-                display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              }}>
-                <span style={{
-                  fontSize: 9, color: 'rgba(255,255,255,0.5)', display: 'inline-block',
-                  transform: showDeliveryDate ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.15s',
-                }}>▶</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>배송 예정일</span>
-                {finalDeliveryLabel && (
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginLeft: 4 }}>{finalDeliveryLabel}</span>
-                )}
-              </button>
-              {showDeliveryDate && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-                  {deliveryInfo.options ? (
-                    <>
-                      <button onClick={() => { setFridayChoice('saturday'); setCustomDeliveryDate(''); }} style={{
-                        padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                        border: fridayChoice === 'saturday' && !customDeliveryDate ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)',
-                        background: fridayChoice === 'saturday' && !customDeliveryDate ? 'rgba(255,255,255,0.2)' : 'transparent',
-                        color: '#fff', cursor: 'pointer',
-                      }}>토 {deliveryInfo.options.sat.getMonth() + 1}/{deliveryInfo.options.sat.getDate()}</button>
-                      <button onClick={() => { setFridayChoice('monday'); setCustomDeliveryDate(''); }} style={{
-                        padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                        border: fridayChoice === 'monday' && !customDeliveryDate ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)',
-                        background: fridayChoice === 'monday' && !customDeliveryDate ? 'rgba(255,255,255,0.2)' : 'transparent',
-                        color: '#fff', cursor: 'pointer',
-                      }}>월 {deliveryInfo.options.mon.getMonth() + 1}/{deliveryInfo.options.mon.getDate()}</button>
-                    </>
-                  ) : (
-                    <button onClick={() => setCustomDeliveryDate('')} style={{
-                      padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                      border: !customDeliveryDate ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)',
-                      background: !customDeliveryDate ? 'rgba(255,255,255,0.2)' : 'transparent',
-                      color: '#fff', cursor: 'pointer',
-                    }}>{deliveryInfo.label}</button>
-                  )}
-                  <input type="date" value={customDeliveryDate}
-                    onChange={e => setCustomDeliveryDate(e.target.value)}
-                    style={{
-                      fontSize: 16, padding: '4px 8px', borderRadius: 8,
-                      border: customDeliveryDate ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)',
-                      background: customDeliveryDate ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-                      color: '#fff', cursor: 'pointer',
-                      colorScheme: 'dark',
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* 배송 특이사항 (접힘/펼침) */}
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-              <button onClick={() => setShowDeliveryNotes(v => !v)} style={{
-                display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              }}>
-                <span style={{
-                  fontSize: 9, color: 'rgba(255,255,255,0.5)', display: 'inline-block',
-                  transform: showDeliveryNotes ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.15s',
-                }}>▶</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>특이사항</span>
-                {deliveryNotes.trim() && (
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginLeft: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
-                    {deliveryNotes.trim().split('\n')[0]}
-                  </span>
-                )}
-              </button>
-              {showDeliveryNotes && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {DELIVERY_PRESETS.map(preset => {
-                      const isActive = deliveryNotes.includes(preset);
-                      return (
-                        <button key={preset} onClick={() => {
-                          if (isActive) {
-                            setDeliveryNotes(prev => prev.replace(preset, '').replace(/\n{2,}/g, '\n').trim());
-                          } else {
-                            setDeliveryNotes(prev => prev ? prev + '\n' + preset : preset);
-                          }
-                        }} style={{
-                          padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: isActive ? 700 : 500,
-                          border: isActive ? '1.5px solid #fff' : '1px solid rgba(255,255,255,0.3)',
-                          background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
-                          color: '#fff', cursor: 'pointer',
-                        }}>{preset}</button>
-                      );
-                    })}
-                  </div>
-                  <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)}
-                    placeholder="추가 특이사항 입력"
-                    rows={2}
-                    style={{
-                      width: '100%', fontSize: 16, padding: '8px 10px', borderRadius: 8,
-                      border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)',
-                      color: '#fff', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-                      fontFamily: "'DM Sans', -apple-system, sans-serif",
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 발주 메시지 (맨 위) */}
-          <div style={{
-            background: '#fff', borderRadius: 16, padding: 16,
-            border: '1px solid rgba(90,21,21,0.06)',
-            boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
-            marginBottom: 16,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#5A1515' }}>발주 메시지</span>
-              <button onClick={copyMessage} style={{
-                padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                border: '1px solid rgba(90,21,21,0.12)',
-                background: copied ? '#16a34a' : '#fff',
-                color: copied ? '#fff' : '#5A1515', cursor: 'pointer', transition: 'all 0.2s',
-              }}>
-                {copied ? '복사됨!' : '복사'}
-              </button>
-            </div>
-            <pre style={{
-              fontSize: 13, color: '#2c1810', lineHeight: 1.7,
-              whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-              margin: 0, fontFamily: "'DM Sans', -apple-system, sans-serif",
-              background: '#faf9f7', borderRadius: 10, padding: 14,
-            }}>
-              {staffMessage}
-            </pre>
-          </div>
-
-          {/* 품목 리스트 (컴팩트) */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>품목 상세</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {orderLines.map((ol, lineIdx) => {
-                const sel = getSelected(ol);
-                const disc = discountRates[lineIdx] || 0;
-                const discPrice = sel ? Math.round(sel.supply_price * (1 - disc / 100)) : 0;
-                const isExpanded = expandedLines.has(lineIdx);
-                const isSearching = searchIdx === lineIdx;
-                const toggleExpand = () => setExpandedLines(prev => {
-                  const next = new Set(prev);
-                  if (next.has(lineIdx)) next.delete(lineIdx); else next.add(lineIdx);
-                  return next;
-                });
-
-                return (
-                  <div key={lineIdx} style={{
-                    background: '#fff', borderRadius: 10,
-                    border: '1px solid rgba(90,21,21,0.06)',
-                    overflow: 'hidden',
-                  }}>
-                    {/* 컴팩트 한 줄 요약 */}
-                    <div style={{
-                      padding: '8px 12px',
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      cursor: 'pointer',
-                    }} onClick={toggleExpand}>
-                      {/* 펼침 아이콘 */}
-                      <span style={{
-                        fontSize: 10, color: '#8a8580', flexShrink: 0,
-                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.15s',
-                        display: 'inline-block',
-                      }}>▶</span>
-
-                      {/* 선택된 품목명 */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {sel ? (
-                          <span style={{
-                            fontSize: 13, fontWeight: 600, color: '#2c1810',
-                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                            display: 'block',
-                          }}>
-                            {sel.item_name}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>미선택</span>
-                        )}
-                        <span style={{ fontSize: 10, color: '#a8a098' }}>
-                          {sel?.item_no || ''} · &quot;{ol.query}&quot;
-                        </span>
-                      </div>
-
-                      {/* 수량 */}
-                      <span style={{
-                        fontSize: 13, fontWeight: 700, color: '#5A1515',
-                        flexShrink: 0, minWidth: 30, textAlign: 'right',
-                      }}>
-                        {ol.quantity}병
-                      </span>
-
-                      {/* 신뢰도 */}
-                      {sel && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, color: confColor(sel.confidence),
-                          padding: '1px 5px', borderRadius: 3,
-                          background: `${confColor(sel.confidence)}14`,
-                          flexShrink: 0,
-                        }}>
-                          {Math.round(sel.confidence * 100)}%
-                        </span>
-                      )}
-                    </div>
-
-                    {/* 펼쳐진 상세 */}
-                    {isExpanded && (
-                      <div style={{ borderTop: '1px solid rgba(90,21,21,0.06)' }}>
-                        {/* 수량 조절 + 삭제 */}
-                        <div style={{
-                          padding: '8px 12px', background: '#faf9f7',
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        }}>
-                          <span style={{ fontSize: 12, color: '#5A1515', fontWeight: 600 }}>
-                            &quot;{ol.query}&quot;
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <button onClick={() => updateQty(lineIdx, ol.quantity - 1)} style={{
-                              width: 24, height: 24, borderRadius: 5, border: '1px solid rgba(90,21,21,0.1)',
-                              background: '#fff', cursor: 'pointer', fontSize: 14, color: '#5A1515',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>-</button>
-                            <input type="text" inputMode="numeric"
-                              value={editingQty[lineIdx] !== undefined ? editingQty[lineIdx] : ol.quantity}
-                              onChange={e => setEditingQty(prev => ({ ...prev, [lineIdx]: e.target.value }))}
-                              onBlur={() => {
-                                const val = editingQty[lineIdx];
-                                if (val !== undefined) {
-                                  const num = parseInt(val, 10);
-                                  if (!isNaN(num) && num >= 1) updateQty(lineIdx, num);
-                                  setEditingQty(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
-                                }
-                              }}
-                              style={{
-                                width: 32, textAlign: 'center', fontSize: 14, fontWeight: 700,
-                                border: '1px solid rgba(90,21,21,0.1)', borderRadius: 5,
-                                padding: '2px 0', color: '#2c1810', background: '#fff',
-                              }}
-                            />
-                            <button onClick={() => updateQty(lineIdx, ol.quantity + 1)} style={{
-                              width: 24, height: 24, borderRadius: 5, border: '1px solid rgba(90,21,21,0.1)',
-                              background: '#fff', cursor: 'pointer', fontSize: 14, color: '#5A1515',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>+</button>
-                            <button onClick={() => removeLine(lineIdx)} style={{
-                              width: 24, height: 24, borderRadius: 5, border: '1px solid rgba(220,38,38,0.15)',
-                              background: 'rgba(220,38,38,0.04)', cursor: 'pointer', fontSize: 12,
-                              color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              marginLeft: 4,
-                            }}>x</button>
-                          </div>
-                        </div>
-
-                        {/* 후보 리스트 */}
-                        <div style={{ padding: '4px 0' }}>
-                          {ol.candidates.map((cand, cIdx) => {
-                            const isSelected = ol.selectedIdx === cIdx;
-                            return (
-                              <button key={cIdx} onClick={() => selectCandidate(lineIdx, cIdx)} style={{
-                                display: 'flex', alignItems: 'center', gap: 8,
-                                width: '100%', padding: '6px 12px', border: 'none',
-                                background: isSelected ? 'rgba(90,21,21,0.04)' : 'transparent',
-                                cursor: 'pointer', textAlign: 'left',
-                                borderLeft: isSelected ? '3px solid #5A1515' : '3px solid transparent',
-                              }}>
-                                <span style={{
-                                  width: 16, height: 16, borderRadius: 8, flexShrink: 0,
-                                  border: isSelected ? '2px solid #5A1515' : '2px solid #d1ccc7',
-                                  background: isSelected ? '#5A1515' : 'transparent',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                  {isSelected && <span style={{ width: 5, height: 5, borderRadius: 3, background: '#fff' }} />}
-                                </span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{
-                                    fontSize: 12, fontWeight: isSelected ? 700 : 500,
-                                    color: isSelected ? '#2c1810' : '#666',
-                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                  }}>
-                                    {cand.item_name}
-                                  </div>
-                                  <div style={{ fontSize: 10, color: '#a8a098' }}>
-                                    {cand.item_no} · {cand.reasoning}
-                                  </div>
-                                </div>
-                                <span style={{
-                                  fontSize: 9, fontWeight: 700, color: confColor(cand.confidence),
-                                  padding: '1px 5px', borderRadius: 3,
-                                  background: `${confColor(cand.confidence)}14`,
-                                  flexShrink: 0,
-                                }}>
-                                  {Math.round(cand.confidence * 100)}%
-                                </span>
-                              </button>
-                            );
-                          })}
-
-                          {/* 수동 검색 */}
-                          <div style={{ padding: '4px 12px 6px', position: 'relative' }} ref={isSearching ? searchRef : undefined}>
-                            {!isSearching ? (
-                              <button onClick={() => { setSearchIdx(lineIdx); setSearchQuery(''); setSearchResults([]); }} style={{
-                                fontSize: 11, color: '#5A1515', background: 'none', border: 'none',
-                                cursor: 'pointer', fontWeight: 600, padding: '2px 0',
-                                textDecoration: 'underline', textUnderlineOffset: 2,
-                              }}>
-                                직접 검색하여 변경
-                              </button>
-                            ) : (
-                              <div>
-                                <input type="text" value={searchQuery}
-                                  onChange={e => setSearchQuery(e.target.value)}
-                                  placeholder="와인명 또는 품번 검색"
-                                  autoFocus
-                                  style={{
-                                    width: '100%', fontSize: 16, padding: '7px 10px', borderRadius: 7,
-                                    border: '1.5px solid #5A1515', background: '#fff', color: '#2c1810',
-                                    outline: 'none', boxSizing: 'border-box',
-                                  }}
-                                />
-                                {searchLoading && <div style={{ fontSize: 11, color: '#8a8580', padding: '4px 0' }}>검색 중...</div>}
-                                {searchResults.length > 0 && (
-                                  <div style={{
-                                    maxHeight: 180, overflowY: 'auto', marginTop: 4,
-                                    border: '1px solid rgba(90,21,21,0.1)', borderRadius: 7,
-                                    background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                  }}>
-                                    {searchResults.map(sr => (
-                                      <button key={sr.item_no} onClick={() => replaceWithSearch(lineIdx, sr)} style={{
-                                        display: 'block', width: '100%', padding: '7px 10px', border: 'none',
-                                        background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                                        borderBottom: '1px solid rgba(90,21,21,0.04)',
-                                      }}>
-                                        <div style={{ fontSize: 12, fontWeight: 600, color: '#2c1810' }}>{sr.item_name}</div>
-                                        <div style={{ fontSize: 10, color: '#8a8580' }}>
-                                          {sr.item_no} · 공급가 {fmt(sr.supply_price || 0)} · 재고 {sr.available_stock || 0}
-                                        </div>
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                                {searchQuery && !searchLoading && searchResults.length === 0 && (
-                                  <div style={{ fontSize: 11, color: '#a8a098', padding: '4px 0' }}>검색 결과 없음</div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 가격/할인 */}
-                        {sel && (
-                          <div style={{
-                            padding: '6px 12px 8px',
-                            borderTop: '1px solid rgba(90,21,21,0.04)',
-                            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <span style={{ fontSize: 11, color: '#8a8580' }}>공급가</span>
-                              <input type="text" inputMode="numeric"
-                                value={editingPrice[lineIdx] !== undefined ? editingPrice[lineIdx] : sel.supply_price.toLocaleString()}
-                                onChange={e => setEditingPrice(prev => ({ ...prev, [lineIdx]: e.target.value }))}
-                                onBlur={() => {
-                                  const val = editingPrice[lineIdx];
-                                  if (val !== undefined) {
-                                    const num = parseInt(val.replace(/,/g, ''), 10);
-                                    if (!isNaN(num) && num >= 0) updatePrice(lineIdx, num);
-                                    setEditingPrice(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
-                                  }
-                                }}
-                                style={{
-                                  width: 76, textAlign: 'right', fontSize: 12, fontWeight: 600,
-                                  border: sel.supply_price === 0 ? '1.5px solid #d97706' : '1px solid rgba(90,21,21,0.1)',
-                                  borderRadius: 5, padding: '2px 5px', color: '#2c1810',
-                                  background: sel.supply_price === 0 ? '#fffbeb' : '#faf9f7',
-                                }}
-                              />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <span style={{ fontSize: 11, color: '#8a8580' }}>할인</span>
-                              <select value={disc} onChange={e => updateDiscount(lineIdx, Number(e.target.value))} style={{
-                                fontSize: 12, fontWeight: 600, padding: '2px 3px', borderRadius: 5,
-                                border: '1px solid rgba(90,21,21,0.1)', background: '#faf9f7',
-                                color: disc > 0 ? '#5A1515' : '#8a8580', cursor: 'pointer',
-                              }}>
-                                <option value={0}>0%</option>
-                                <option value={5}>5%</option>
-                                <option value={10}>10%</option>
-                                <option value={15}>15%</option>
-                                <option value={20}>20%</option>
-                                <option value={25}>25%</option>
-                                <option value={30}>30%</option>
-                              </select>
-                            </div>
-                            {disc > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#5A1515' }}>
-                                → {fmt(discPrice)}
-                              </span>
-                            )}
-                            <span style={{ fontSize: 10, color: '#8a8580', marginLeft: 'auto' }}>
-                              재고 {sel.available_stock}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 토큰 */}
-          {usage && (
-            <div style={{ textAlign: 'center', fontSize: 11, color: '#a8a098', marginBottom: 16 }}>
-              토큰: {usage.input_tokens.toLocaleString()} in / {usage.output_tokens.toLocaleString()} out
-              · 비용 ~${((usage.input_tokens * 0.8 + usage.output_tokens * 4) / 1e6).toFixed(4)}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    </>
   );
 }
