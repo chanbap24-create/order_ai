@@ -30,6 +30,14 @@ interface SearchResult {
   available_stock: number;
 }
 
+interface HistoryItem {
+  item_no: string;
+  item_name: string;
+  supply_price: number;
+  buy_count: number;
+  last_ship_date: string;
+}
+
 // 큰 금액 요약용
 function fmtShort(n: number) {
   if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
@@ -164,6 +172,12 @@ export default function OrderV2Page() {
   const [showDeliveryDate, setShowDeliveryDate] = useState(false);
   const [showDeliveryNotes, setShowDeliveryNotes] = useState(false);
 
+  // 거래처 입고내역 조회
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false); // 이미 로드했는지
+
   useEffect(() => {
     const year = new Date().getFullYear();
     fetch(`/api/sales/holidays?year=${year}`)
@@ -213,6 +227,37 @@ export default function OrderV2Page() {
     setSelectedClient(c);
     setClientQuery(c.client_name);
     setShowDropdown(false);
+    // 거래처 변경 시 입고내역 리셋
+    setHistoryItems([]);
+    setHistoryLoaded(false);
+    setShowHistory(false);
+  };
+
+  // 탭 변경 시 입고내역 리셋
+  useEffect(() => {
+    setHistoryItems([]);
+    setHistoryLoaded(false);
+    setShowHistory(false);
+  }, [tab]);
+
+  // 거래처 입고내역 조회
+  const fetchHistory = useCallback(async () => {
+    if (!selectedClient?.client_code) return;
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`/api/order-v2/history?client_code=${encodeURIComponent(selectedClient.client_code)}&tab=${tab}`);
+      const json = await res.json();
+      setHistoryItems(json.items || []);
+      setHistoryLoaded(true);
+    } catch { setHistoryItems([]); }
+    finally { setHistoryLoading(false); }
+  }, [selectedClient?.client_code, tab]);
+
+  const toggleHistory = () => {
+    if (!showHistory && !historyLoaded) {
+      fetchHistory();
+    }
+    setShowHistory(v => !v);
   };
 
   // 와인 수동 검색
@@ -384,6 +429,9 @@ export default function OrderV2Page() {
     setCustomDeliveryDate('');
     setDeliveryNotes('');
     setFridayChoice(undefined);
+    setHistoryItems([]);
+    setHistoryLoaded(false);
+    setShowHistory(false);
   };
 
   const confColor = (c: number) => c >= 0.9 ? '#16a34a' : c >= 0.7 ? '#2563eb' : c >= 0.5 ? '#d97706' : '#dc2626';
@@ -463,6 +511,82 @@ export default function OrderV2Page() {
             </div>
           )}
         </div>
+
+        {/* 거래처 입고내역 (접힘/펼침) */}
+        {selectedClient && (
+          <div style={{ marginBottom: 12 }}>
+            <button onClick={toggleHistory} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+            }}>
+              <span style={{
+                fontSize: 9, color: '#8a8580', display: 'inline-block',
+                transform: showHistory ? 'rotate(90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.15s',
+              }}>▶</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#5A1515' }}>
+                입고내역
+              </span>
+              {historyLoaded && (
+                <span style={{ fontSize: 11, color: '#8a8580' }}>
+                  {historyItems.length}건
+                </span>
+              )}
+            </button>
+
+            {showHistory && (
+              <div style={{
+                marginTop: 6, maxHeight: 300, overflowY: 'auto',
+                border: '1px solid rgba(90,21,21,0.08)', borderRadius: 10,
+                background: '#faf9f7',
+              }}>
+                {historyLoading ? (
+                  <div style={{ padding: '16px', textAlign: 'center', fontSize: 12, color: '#8a8580' }}>
+                    불러오는 중...
+                  </div>
+                ) : historyItems.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', fontSize: 12, color: '#a8a098' }}>
+                    입고내역이 없습니다
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(90,21,21,0.08)', background: 'rgba(90,21,21,0.02)' }}>
+                        <th style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 600, color: '#8a8580', fontSize: 11 }}>품명</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: '#8a8580', fontSize: 11, whiteSpace: 'nowrap' }}>공급가</th>
+                        {tab === 'CDV' && (
+                          <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: '#8a8580', fontSize: 11, whiteSpace: 'nowrap' }}>횟수</th>
+                        )}
+                        <th style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: '#8a8580', fontSize: 11, whiteSpace: 'nowrap' }}>최근입고</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historyItems.map((h, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid rgba(90,21,21,0.04)' }}>
+                          <td style={{ padding: '6px 10px', color: '#2c1810' }}>
+                            <div style={{ fontWeight: 500, lineHeight: 1.3 }}>{h.item_name}</div>
+                            <div style={{ fontSize: 10, color: '#a8a098' }}>{h.item_no}</div>
+                          </td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right', color: '#2c1810', whiteSpace: 'nowrap' }}>
+                            {h.supply_price ? fmt(h.supply_price) : '-'}
+                          </td>
+                          {tab === 'CDV' && (
+                            <td style={{ padding: '6px 8px', textAlign: 'right', color: '#5A1515', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              {h.buy_count || '-'}
+                            </td>
+                          )}
+                          <td style={{ padding: '6px 10px', textAlign: 'right', color: '#a8a098', whiteSpace: 'nowrap', fontSize: 11 }}>
+                            {h.last_ship_date ? h.last_ship_date.slice(0, 10) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 발주 내용 */}
         <div style={{ marginBottom: 16 }}>
