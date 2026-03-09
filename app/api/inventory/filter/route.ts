@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     // Text search (optional)
     if (q.trim()) {
-      const safe = q.trim().toLowerCase().replace(/[%_]/g, '');
+      const safe = q.trim().toLowerCase().replace(/[%_,.()"\\]/g, '');
       query = query.or(`item_name.ilike.%${safe}%,item_no.ilike.%${safe}%`);
     }
 

@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
 
     // manager 필터: meetings.manager 컬럼 직접 필터 + 회사 일정은 항상 포함
     if (manager) {
-      query = query.or(`manager.eq.${manager},is_company_event.eq.true`);
+      const safeManager = String(manager).replace(/[,.()"\\]/g, '');
+      query = query.or(`manager.eq.${safeManager},is_company_event.eq.true`);
     }
 
     const { data, error } = await query;

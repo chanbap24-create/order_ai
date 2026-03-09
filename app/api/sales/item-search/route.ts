@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const { data: nameMatch } = await supabase
       .from(table)
       .select('item_no, item_name')
-      .ilike('item_name', `%${q.trim()}%`)
+      .ilike('item_name', `%${q.trim().replace(/[%_,.()"\\]/g, '')}%`)
       .order('ship_date', { ascending: false })
       .limit(200);
 

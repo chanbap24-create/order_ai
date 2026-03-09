@@ -19,6 +19,10 @@ export async function POST(req: Request) {
     if (!password) {
       return NextResponse.json({ error: '비밀번호를 입력해주세요.' }, { status: 400 });
     }
+    // bcrypt DoS 방지: 72바이트 제한
+    if (typeof password !== 'string' || password.length > 72) {
+      return NextResponse.json({ error: '비밀번호 형식이 올바르지 않습니다.' }, { status: 400 });
+    }
 
     // ADMIN 계정 조회
     const { data: user } = await supabase

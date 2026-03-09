@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const { data: allRules } = await supabase
       .from('grade_rules')
       .select('*')
-      .or(`manager.eq.${manager},manager.eq._default`)
+      .or(`manager.eq.${String(manager).replace(/[,.()"\\]/g, '')},manager.eq._default`)
       .eq('client_type', type);
 
     // 업종별 규칙 맵 구축 (담당 우선 > _default 폴백)

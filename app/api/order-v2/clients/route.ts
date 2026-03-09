@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ clients: data || [] });
     }
 
-    const safe = q.trim().replace(/[%_]/g, '');
+    const safe = q.trim().replace(/[%_,.()"\\]/g, '');
 
     // 거래처 테이블에서 검색
     const { data: direct, error: e1 } = await supabase

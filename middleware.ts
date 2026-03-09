@@ -147,10 +147,12 @@ export const config = {
   matcher: [
     // API 전체
     '/api/:path*',
-    // 보호할 페이지 (sales, admin 제외 - 자체 인증)
+    // 보호할 페이지 (sales 로그인 페이지 제외 - 자체 인증)
     '/order',
+    '/order-v2',
     '/inventory',
     '/glass',
     '/wine',
+    '/quote',
   ],
 };

@@ -1,9 +1,32 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { hashPassword } from '@/app/lib/auth';
+import { hashPassword, verifyToken } from '@/app/lib/auth';
 
-// POST: 초기 사용자 생성 (managers 목록에서 자동 생성)
-export async function POST() {
+// 설정 키 검증 (초기 세팅 시 환경변수로 관리)
+function verifySetupKey(req: NextRequest): boolean {
+  const setupKey = process.env.SETUP_SECRET_KEY;
+  if (!setupKey) return false; // 키 미설정 시 차단
+  const provided = req.headers.get('x-setup-key') || req.nextUrl.searchParams.get('key');
+  return provided === setupKey;
+}
+
+// admin 세션 검증
+async function verifyAdmin(req: NextRequest): Promise<boolean> {
+  const token = req.cookies.get('admin_auth')?.value;
+  if (!token) return false;
+  const payload = verifyToken(token);
+  return payload?.role === 'admin';
+}
+
+// POST: 초기 사용자 생성 (admin 인증 또는 setup key 필요)
+export async function POST(req: NextRequest) {
+  const isAdmin = await verifyAdmin(req);
+  const hasSetupKey = verifySetupKey(req);
+
+  if (!isAdmin && !hasSetupKey) {
+    return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
+  }
+
   try {
     // 이미 사용자가 있는지 확인
     const { data: existing } = await supabase
@@ -13,7 +36,7 @@ export async function POST() {
 
     if (existing && existing.length > 0) {
       return NextResponse.json({
-        message: '이미 사용자가 등록되어 있습니다. 추가 등록은 /api/auth/setup PUT을 사용하세요.',
+        message: '이미 사용자가 등록되어 있습니다.',
         existing_count: existing.length,
       });
     }
@@ -70,14 +93,19 @@ export async function POST() {
   } catch (error) {
     console.error('Setup error:', error);
     return NextResponse.json(
-      { error: '사용자 생성 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '사용자 생성 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
 }
 
-// GET: 사용자 목록 (admin 전용)
-export async function GET() {
+// GET: 사용자 목록 (admin 인증 필요)
+export async function GET(req: NextRequest) {
+  const isAdmin = await verifyAdmin(req);
+  if (!isAdmin) {
+    return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
+  }
+
   try {
     const { data: users } = await supabase
       .from('sales_users')
@@ -86,7 +114,7 @@ export async function GET() {
       .order('manager', { ascending: true });
 
     return NextResponse.json({ users: users || [] });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: '조회 실패' }, { status: 500 });
   }
 }

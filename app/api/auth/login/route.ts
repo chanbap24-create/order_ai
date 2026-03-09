@@ -9,6 +9,10 @@ export async function POST(req: Request) {
     if (!manager || !password) {
       return NextResponse.json({ error: '담당자명과 비밀번호를 입력해주세요.' }, { status: 400 });
     }
+    // 입력값 길이 제한: bcrypt DoS 방지 (72바이트)
+    if (typeof password !== 'string' || password.length > 72 || typeof manager !== 'string' || manager.length > 50) {
+      return NextResponse.json({ error: '입력값 형식이 올바르지 않습니다.' }, { status: 400 });
+    }
 
     // 사용자 조회
     const { data: user } = await supabase

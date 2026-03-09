@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Quote GET error:', error);
     return NextResponse.json(
-      { error: '견적서 조회 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '견적서 조회 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -202,7 +202,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Quote POST error:', error);
     return NextResponse.json(
-      { error: '견적서 추가 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '견적서 추가 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -280,7 +280,7 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error('Quote PATCH error:', error);
     return NextResponse.json(
-      { error: '견적서 수정 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '견적서 수정 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -322,7 +322,7 @@ export async function DELETE(req: NextRequest) {
   } catch (error) {
     console.error('Quote DELETE error:', error);
     return NextResponse.json(
-      { error: '견적서 삭제 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '견적서 삭제 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

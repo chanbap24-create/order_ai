@@ -18,6 +18,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // 입력값 검증: date format, clientCode 길이 제한
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+    }
+    if (clientCode.length > 50) {
+      return NextResponse.json({ error: 'Invalid client_code' }, { status: 400 });
+    }
+
+    // PostgREST 필터 인젝션 방지: .not('in', ...) 문자열에 사용되는 값 sanitize
+    const sanitizeCode = (v: string) => v.replace(/[(),."\\]/g, '');
+    const safeClientCode = sanitizeCode(clientCode);
+
     const isGlass = clientType === 'glass';
     const table = isGlass ? 'glass_shipments' : 'shipments';
     const payTable = isGlass ? 'glass_payments' : 'payments';
@@ -25,13 +38,13 @@ export async function GET(req: NextRequest) {
 
     // 거래처 정보 + 이름 확인
     const { data: clientInfo } = isGlass
-      ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', clientCode).single()
-      : await supabase.from('client_details').select('client_code, client_name, client_type, manager, importance, business_type').eq('client_code', clientCode).single();
+      ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', safeClientCode).single()
+      : await supabase.from('client_details').select('client_code, client_name, client_type, manager, importance, business_type').eq('client_code', safeClientCode).single();
 
     let clientName = clientInfo?.client_name || searchParams.get('client_name') || '';
 
     // 같은 거래처명의 모든 코드 수집 (가벼운 테이블에서만)
-    const allCodes: string[] = [clientCode];
+    const allCodes: string[] = [safeClientCode];
     if (clientName) {
       const detailTable = isGlass ? 'glass_client_carryover' : 'client_details';
       const { data: siblings } = await supabase.from(detailTable).select('client_code').eq('client_name', clientName);
@@ -66,7 +79,7 @@ export async function GET(req: NextRequest) {
       while (true) {
         const { data, error } = await supabase.from(table)
           .select('ship_date, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
-          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
+          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`)
           .gte('ship_date', startDate).lte('ship_date', endDate)
           .order('ship_date', { ascending: true }).range(from, from + batch - 1);
         if (error) throw error;
@@ -102,7 +115,7 @@ export async function GET(req: NextRequest) {
       while (true) {
         const { data, error } = await supabase.from(payTable)
           .select('client_code, client_name, payment_date, amount')
-          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
+          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`)
           .gte('payment_date', startDate).lte('payment_date', endDate)
           .order('payment_date', { ascending: true }).range(from, from + batch - 1);
         if (error) throw error;
@@ -124,7 +137,7 @@ export async function GET(req: NextRequest) {
       }
       if (clientName) {
         const { data: d2 } = await supabase.from(carryoverTable).select('carryover_amount, created_at')
-          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`);
+          .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`);
         if (d2) for (const c of d2) {
           carry += (c.carryover_amount || 0);
           if (c.created_at && (!earliestCreatedAt || c.created_at < earliestCreatedAt)) earliestCreatedAt = c.created_at;

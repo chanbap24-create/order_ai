@@ -125,7 +125,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Recommend quote error:', error);
     return NextResponse.json(
-      { error: '견적서 생성 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '견적서 생성 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

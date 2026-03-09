@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Inventory search error:', error);
     return NextResponse.json(
-      { error: '재고 검색 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '재고 검색 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

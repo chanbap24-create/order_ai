@@ -14,6 +14,13 @@ export async function PATCH(req: Request) {
     if (!new_password || new_password.length < 4) {
       return NextResponse.json({ error: '새 비밀번호는 4자 이상이어야 합니다.' }, { status: 400 });
     }
+    // bcrypt DoS 방지: 72바이트 제한
+    if (typeof new_password !== 'string' || new_password.length > 72) {
+      return NextResponse.json({ error: '비밀번호는 72자 이하여야 합니다.' }, { status: 400 });
+    }
+    if (current_password && (typeof current_password !== 'string' || current_password.length > 72)) {
+      return NextResponse.json({ error: '비밀번호 형식이 올바르지 않습니다.' }, { status: 400 });
+    }
 
     // admin은 다른 사용자의 비밀번호도 변경 가능
     const manager = (session.role === 'admin' && target_manager)

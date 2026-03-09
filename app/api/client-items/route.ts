@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("거래처 품목 조회 실패:", error);
     return NextResponse.json(
-      { success: false, message: error.message },
+      { success: false, message: '거래처 품목 조회 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

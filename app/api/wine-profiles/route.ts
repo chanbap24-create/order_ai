@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Wine profiles GET error:', error);
     return NextResponse.json(
-      { error: '와인 프로필 조회 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '와인 프로필 조회 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Wine profiles POST error:', error);
     return NextResponse.json(
-      { error: '와인 프로필 저장 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '와인 프로필 저장 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -157,7 +157,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Wine profiles PATCH error:', error);
     return NextResponse.json(
-      { error: '와인 프로필 수정 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '와인 프로필 수정 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -182,7 +182,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Wine profiles DELETE error:', error);
     return NextResponse.json(
-      { error: '와인 프로필 삭제 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '와인 프로필 삭제 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

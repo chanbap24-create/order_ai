@@ -44,7 +44,7 @@ function signPayload(payload: object): string {
   return `${b64}.${sig}`;
 }
 
-function verifyToken(token: string): any | null {
+export function verifyToken(token: string): any | null {
   const parts = token.split('.');
   if (parts.length !== 2) return null;
   const [b64, sig] = parts;

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const safe = q.trim().replace(/[%_]/g, '');
+    const safe = q.trim().replace(/[%_,.()"\\]/g, '');
     const { data, error } = await supabase
       .from(table)
       .select('item_no, item_name, supply_price, available_stock')

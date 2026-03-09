@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
     if (!order_text?.trim()) {
       return NextResponse.json({ error: '발주 내용을 입력해주세요.' }, { status: 400 });
     }
+    // LLM 입력 길이 제한 (과도한 토큰 소비 방지)
+    if (typeof order_text !== 'string' || order_text.length > 5000) {
+      return NextResponse.json({ error: '발주 내용이 너무 깁니다. (최대 5000자)' }, { status: 400 });
+    }
 
     // 1. 와인 리스트
     const table = tab === 'DL' ? 'inventory_dl' : 'inventory_cdv';

@@ -21,12 +21,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // GitHub Release URL 검증 (PDF 또는 PPTX)
-    if (!pdfUrl.includes('github.com') || (!pdfUrl.endsWith('.pdf') && !pdfUrl.endsWith('.pptx'))) {
-      return NextResponse.json(
-        { error: '올바른 GitHub Release 파일 URL이 아닙니다.' },
-        { status: 400 }
-      );
+    // SSRF 방지: GitHub 도메인만 허용 (hostname 검증)
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(pdfUrl);
+    } catch {
+      return NextResponse.json({ error: '올바른 URL 형식이 아닙니다.' }, { status: 400 });
+    }
+    if (parsedUrl.hostname !== 'github.com' && !parsedUrl.hostname.endsWith('.github.com') && parsedUrl.hostname !== 'objects.githubusercontent.com') {
+      return NextResponse.json({ error: '올바른 GitHub Release 파일 URL이 아닙니다.' }, { status: 400 });
+    }
+    if (parsedUrl.protocol !== 'https:') {
+      return NextResponse.json({ error: 'HTTPS URL만 허용됩니다.' }, { status: 400 });
+    }
+    if (!pdfUrl.endsWith('.pdf') && !pdfUrl.endsWith('.pptx')) {
+      return NextResponse.json({ error: '올바른 파일 형식이 아닙니다.' }, { status: 400 });
     }
 
     console.log('📥 Fetching file from GitHub:', pdfUrl);
@@ -73,10 +82,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ PDF proxy error:', error);
     return NextResponse.json(
-      { 
-        error: 'PDF 프록시 오류',
-        details: error.message 
-      },
+      { error: 'PDF 프록시 오류' },
       { status: 500 }
     );
   }

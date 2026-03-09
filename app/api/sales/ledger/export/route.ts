@@ -8,6 +8,9 @@ import path from 'path';
 import fs from 'fs';
 
 // ─── 데이터 조회 (ledger route.ts와 동일 로직) ───
+// PostgREST 필터 인젝션 방지
+const sanitizeCode = (v: string) => v.replace(/[(),."\\]/g, '');
+
 export async function fetchLedgerData(clientCode: string, startDate: string, endDate: string, clientType: string) {
   const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
   const payTable = clientType === 'glass' ? 'glass_payments' : 'payments';
@@ -15,16 +18,17 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
   const batch = 1000;
 
   const isGlass = clientType === 'glass';
+  const safeClientCode = sanitizeCode(clientCode);
 
   // 거래처 정보
   const { data: clientInfo } = isGlass
-    ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', clientCode).single()
-    : await supabase.from('client_details').select('client_code, client_name, client_type, manager').eq('client_code', clientCode).single();
+    ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', safeClientCode).single()
+    : await supabase.from('client_details').select('client_code, client_name, client_type, manager').eq('client_code', safeClientCode).single();
 
   const clientName = clientInfo?.client_name || '';
 
   // 같은 거래처명의 모든 코드
-  const allCodes: string[] = [clientCode];
+  const allCodes: string[] = [safeClientCode];
   if (clientName) {
     const detailTable = isGlass ? 'glass_client_carryover' : 'client_details';
     const { data: siblings } = await supabase.from(detailTable).select('client_code').eq('client_name', clientName);
@@ -53,7 +57,7 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     while (true) {
       const { data, error } = await supabase.from(table)
         .select('ship_date, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager, warehouse, client_code, client_name')
-        .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
+        .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`)
         .gte('ship_date', startDate).lte('ship_date', endDate)
         .order('ship_date', { ascending: true }).range(nameFrom, nameFrom + batch - 1);
       if (error) throw error;
@@ -71,7 +75,7 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
   if (co) for (const c of co) carryover += (c.carryover_amount || 0);
   if (clientName) {
     const { data: coName } = await supabase.from(carryoverTable).select('carryover_amount')
-      .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`);
+      .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`);
     if (coName) for (const c of coName) carryover += (c.carryover_amount || 0);
   }
 
@@ -129,7 +133,7 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     while (true) {
       const { data, error } = await supabase.from(payTable)
         .select('client_code, client_name, payment_date, amount')
-        .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.join(',')})`)
+        .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`)
         .gte('payment_date', startDate).lte('payment_date', endDate)
         .order('payment_date', { ascending: true }).range(npf, npf + batch - 1);
       if (error) throw error;
@@ -483,6 +487,15 @@ export async function GET(req: NextRequest) {
 
     if (!clientCode || !startDate || !endDate) {
       return NextResponse.json({ error: 'client_code, start_date, end_date required' }, { status: 400 });
+    }
+
+    // 입력값 검증
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+    }
+    if (clientCode.length > 50) {
+      return NextResponse.json({ error: 'Invalid client_code' }, { status: 400 });
     }
 
     const { client, rows, payments, prevBalance } = await fetchLedgerData(clientCode, startDate, endDate, clientType);

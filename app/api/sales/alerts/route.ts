@@ -259,7 +259,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Alerts POST error:', error);
     return NextResponse.json(
-      { error: '재고 스캔 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '재고 스캔 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -368,7 +368,7 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error('Alerts PATCH error:', error);
     return NextResponse.json(
-      { error: '처리 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '처리 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
@@ -419,7 +419,7 @@ export async function GET() {
   } catch (error) {
     console.error('Alerts GET error:', error);
     return NextResponse.json(
-      { error: '제외 목록 조회 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '제외 목록 조회 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

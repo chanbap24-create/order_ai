@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Wine profiles import error:', error);
     return NextResponse.json(
-      { error: '벌크 임포트 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : String(error) },
+      { error: '벌크 임포트 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
