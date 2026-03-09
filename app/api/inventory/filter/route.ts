@@ -51,10 +51,9 @@ export async function GET(request: NextRequest) {
     if (sales90Min) query = query.gte('avg_sales_90d', Number(sales90Min));
     if (sales90Max) query = query.lte('avg_sales_90d', Number(sales90Max));
 
-    // Country filter
+    // Country filter (exact match from dropdown)
     if (country) {
-      const safe = country.trim().replace(/[%_]/g, '');
-      query = query.ilike('country', `%${safe}%`);
+      query = query.eq('country', country.trim());
     }
 
     query = query.order('supply_price', { ascending: false }).limit(500);

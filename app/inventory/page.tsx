@@ -267,6 +267,7 @@ export default function InventoryPage() {
     retailPrice: { enabled: false, min: '', max: '' },
     country: { enabled: false, value: '' },
   });
+  const [countryList, setCountryList] = useState<string[]>([]);
   const [showInvColumnSettings, setShowInvColumnSettings] = useState(false);
   const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<InvColumnKey[]>(DEFAULT_INV_CDV);
   const [visibleColumnsDL, setVisibleColumnsDL] = useState<InvColumnKey[]>(DEFAULT_INV_DL);
@@ -337,6 +338,14 @@ export default function InventoryPage() {
       }
     })();
   }, []);
+
+  // 국가 목록 로드
+  useEffect(() => {
+    fetch(`/api/inventory/countries?tab=${activeTab}`)
+      .then(r => r.json())
+      .then(d => setCountryList(d.countries || []))
+      .catch(() => {});
+  }, [activeTab]);
 
   // quoteManager 확정 후 견적 로드
   useEffect(() => {
@@ -940,8 +949,7 @@ export default function InventoryPage() {
       if (hi !== null && v > hi) return false;
     }
     if (advancedFilters.country.enabled && advancedFilters.country.value) {
-      const kw = advancedFilters.country.value.toLowerCase();
-      if (!(item.country || '').toLowerCase().includes(kw)) return false;
+      if ((item.country || '') !== advancedFilters.country.value) return false;
     }
     return true;
   });
@@ -1486,10 +1494,13 @@ export default function InventoryPage() {
                     style={{ accentColor: '#5A1515' }} />
                   국가
                 </label>
-                <input type="text" value={advancedFilters.country.value} placeholder="프랑스, 이탈리아..."
+                <select value={advancedFilters.country.value}
                   onChange={(e) => setAdvancedFilters(f => ({ ...f, country: { ...f.country, value: e.target.value } }))}
                   disabled={!advancedFilters.country.enabled}
-                  style={{ width: 150, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 8px', fontSize: 16, opacity: advancedFilters.country.enabled ? 1 : 0.4 }} />
+                  style={{ width: 150, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 14, color: '#333', opacity: advancedFilters.country.enabled ? 1 : 0.4 }}>
+                  <option value="">전체</option>
+                  {countryList.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
             </div>
 
