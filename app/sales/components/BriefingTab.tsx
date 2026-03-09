@@ -190,8 +190,9 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
     }
   };
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todayLabel = `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`;
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayStr = kstNow.toISOString().slice(0, 10);
+  const todayLabel = `${kstNow.getUTCMonth() + 1}월 ${kstNow.getUTCDate()}일`;
 
   // 오늘 미팅 로드
   const loadToday = useCallback(async () => {

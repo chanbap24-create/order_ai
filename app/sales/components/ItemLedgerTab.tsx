@@ -37,10 +37,10 @@ export default function ItemLedgerTab({ currentManager, isAdmin }: { currentMana
   const [selectedItem, setSelectedItem] = useState<SearchItem | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // 기간
-  const now = new Date();
-  const y = now.getFullYear();
-  const today = now.toISOString().slice(0, 10);
+  // 기간 (KST)
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const y = kstNow.getUTCFullYear();
+  const today = kstNow.toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(`${y}-01-01`);
   const [endDate, setEndDate] = useState(today);
 

@@ -81,16 +81,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: '담당자를 선택해주세요.' }, { status: 400 });
     }
 
-    // 기준 날짜 계산
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    // 기준 날짜 계산 (KST, UTC+9)
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const today = kstNow.toISOString().slice(0, 10);
     const todayMs = new Date(today).getTime();
     const DAY_MS = 1000 * 60 * 60 * 24;
-    const threeMonthsAgo = new Date(now);
+    const threeMonthsAgo = new Date(kstNow);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const sixMonthsAgo = new Date(now);
+    const sixMonthsAgo = new Date(kstNow);
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    const twelveMonthsAgo = new Date(now);
+    const twelveMonthsAgo = new Date(kstNow);
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
     const threeStr = threeMonthsAgo.toISOString().slice(0, 10);

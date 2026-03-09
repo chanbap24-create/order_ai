@@ -16,9 +16,9 @@ interface OutstandingClient {
 function fmt(n: number) { return n.toLocaleString(); }
 
 export default function OutstandingTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const today = kstNow.toISOString().slice(0, 10);
+  const firstOfMonth = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
 
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(today);

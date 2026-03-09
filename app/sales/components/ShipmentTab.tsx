@@ -111,18 +111,18 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
 }
 
 export default function ShipmentTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
-  const now = new Date();
-  const todayStr = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayStr = kstNow.toISOString().slice(0, 10);
   const [dateFrom, setDateFrom] = useState(todayStr);
   const [dateTo, setDateTo] = useState(todayStr);
 
   const presets: { label: string; from: string; to: string }[] = (() => {
-    const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    const y = kstNow.getUTCFullYear(), m = kstNow.getUTCMonth(), d = kstNow.getUTCDate();
     const pad = (n: number) => String(n).padStart(2, '0');
     // 이번 주 (월~일)
-    const day = now.getDay();
-    const mon = new Date(y, m, d - (day === 0 ? 6 : day - 1));
-    const weekFrom = `${mon.getFullYear()}-${pad(mon.getMonth() + 1)}-${pad(mon.getDate())}`;
+    const day = kstNow.getUTCDay();
+    const mon = new Date(Date.UTC(y, m, d - (day === 0 ? 6 : day - 1)));
+    const weekFrom = `${mon.getUTCFullYear()}-${pad(mon.getUTCMonth() + 1)}-${pad(mon.getUTCDate())}`;
     // 이번 달
     const monthFrom = `${y}-${pad(m + 1)}-01`;
     // 지난 달
@@ -135,8 +135,8 @@ export default function ShipmentTab({ currentManager, isAdmin }: { currentManage
     const qStart = Math.floor(m / 3) * 3;
     const qFrom = `${y}-${pad(qStart + 1)}-01`;
     // 내일
-    const tmr = new Date(y, m, d + 1);
-    const tomorrowStr = `${tmr.getFullYear()}-${pad(tmr.getMonth() + 1)}-${pad(tmr.getDate())}`;
+    const tmr = new Date(Date.UTC(y, m, d + 1));
+    const tomorrowStr = `${tmr.getUTCFullYear()}-${pad(tmr.getUTCMonth() + 1)}-${pad(tmr.getUTCDate())}`;
     // 올해
     const yearFrom = `${y}-01-01`;
     return [

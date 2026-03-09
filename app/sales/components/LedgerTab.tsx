@@ -48,10 +48,10 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
   const [selectedClient, setSelectedClient] = useState<SuggestionItem | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // 기간
-  const now = new Date();
-  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const today = now.toISOString().slice(0, 10);
+  // 기간 (KST)
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const firstOfMonth = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  const today = kstNow.toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(today);
 
@@ -730,10 +730,10 @@ function groupData(rows: LedgerRow[], payments: PaymentRow[]): MonthData[] {
 
 /* ━━━ 빠른 기간 ━━━ */
 function getQuickRanges() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth(); // 0-indexed
-  const today = now.toISOString().slice(0, 10);
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const y = kstNow.getUTCFullYear();
+  const m = kstNow.getUTCMonth(); // 0-indexed
+  const today = kstNow.toISOString().slice(0, 10);
 
   const pad = (n: number) => String(n).padStart(2, '0');
 

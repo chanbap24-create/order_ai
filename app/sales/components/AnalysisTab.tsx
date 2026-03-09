@@ -74,7 +74,7 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
   const [clientCode, setClientCode] = useState('');
   const [clientName, setClientName] = useState('');
   const [startDate, setStartDate] = useState('2026-01-01');
-  const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
