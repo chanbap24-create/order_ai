@@ -63,9 +63,6 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
                 letterSpacing: '0.01em',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d={tab.icon} />
-              </svg>
               {tab.label}
               {tab.id === 'alerts' && alertCount != null && alertCount > 0 && (
                 <span style={{
