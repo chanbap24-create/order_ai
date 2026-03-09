@@ -93,9 +93,10 @@ export async function POST(request: NextRequest) {
     await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en, verification_status });
 
     return NextResponse.json({ success: true, data: result, validation, verification_status });
-  } catch (e) {
+  } catch (e: any) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error('[wine-research] ERROR:', msg, e instanceof Error ? e.stack : '');
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    const detail = e?.status ? `(API status: ${e.status})` : '';
+    console.error('[wine-research] ERROR:', msg, detail, e instanceof Error ? e.stack : '');
+    return NextResponse.json({ success: false, error: `${msg} ${detail}`.trim() }, { status: 500 });
   }
 }

@@ -574,14 +574,14 @@ function DetailPanel({
       if (json.success) {
         setResearchMsg('AI 조사 완료');
         onRefresh?.();
+        setTimeout(() => setResearchMsg(''), 4000);
       } else {
-        setResearchMsg('오류: ' + (json.error || '실패'));
+        setResearchMsg('오류: ' + (json.error || `실패 (${res.status})`));
       }
-    } catch {
-      setResearchMsg('AI 조사 요청 실패');
+    } catch (err: any) {
+      setResearchMsg('AI 조사 요청 실패: ' + (err?.message || ''));
     } finally {
       setResearching(false);
-      setTimeout(() => setResearchMsg(''), 4000);
     }
   };
 
