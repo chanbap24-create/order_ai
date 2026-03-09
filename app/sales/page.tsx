@@ -8,6 +8,7 @@ import type { SalesTabId } from './components/SalesTabs';
 // 첫 화면(미팅)만 즉시 로드, 나머지는 lazy
 import MeetingTab from './components/MeetingTab';
 const BriefingTab = dynamic(() => import('./components/BriefingTab'), { ssr: false });
+const ShipmentTab = dynamic(() => import('./components/ShipmentTab'), { ssr: false });
 const AlertTab = dynamic(() => import('./components/AlertTab'), { ssr: false });
 const AnalysisTab = dynamic(() => import('./components/AnalysisTab'), { ssr: false });
 const LedgerTab = dynamic(() => import('./components/LedgerTab'), { ssr: false });
@@ -457,7 +458,8 @@ export default function SalesPage() {
         {/* 탭 콘텐츠 */}
         {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={userRole === 'executive' ? false : isAdmin} />}
         {activeTab === 'briefing' && <BriefingTab currentManager={currentManager} isAdmin={isAdmin} />}
-{activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'shipments' && <ShipmentTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'ledger' && <LedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'item-ledger' && <ItemLedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'outstanding' && <OutstandingTab currentManager={currentManager} isAdmin={isAdmin} />}
