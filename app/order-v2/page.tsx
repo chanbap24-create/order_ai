@@ -485,13 +485,13 @@ export default function OrderV2Page() {
       `}</style>
 
       <div style={{
-        maxWidth: 760, margin: '0 auto', padding: '88px 20px 48px',
+        maxWidth: 760, margin: '0 auto', padding: '64px 20px 48px',
         fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         minHeight: '100vh',
       }}>
 
         {/* ═══ Header ═══ */}
-        <div style={{ marginBottom: 28 }}>
+        <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <h1 style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
