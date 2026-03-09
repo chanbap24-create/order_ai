@@ -68,9 +68,9 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get('date_from') || sp.get('date');
   const dateTo = sp.get('date_to') || dateFrom;
 
-  // 기본: KST 오늘
-  const now = new Date();
-  const todayDefault = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // 기본: KST 오늘 (UTC+9)
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayDefault = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
   const from = (dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) ? dateFrom : todayDefault;
   const to = (dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) ? dateTo : from;
 

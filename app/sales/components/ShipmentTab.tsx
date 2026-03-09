@@ -112,7 +112,7 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
 
 export default function ShipmentTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const [dateFrom, setDateFrom] = useState(todayStr);
   const [dateTo, setDateTo] = useState(todayStr);
 
