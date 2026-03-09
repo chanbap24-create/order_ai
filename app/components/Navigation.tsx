@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 const NAV_LINKS = [
   { href: '/inventory', label: 'Inventory' },
   { href: '/sales', label: 'Sales' },
-  { href: '/order', label: 'Order' },
+  { href: '/order-v2', label: 'Order' },
 ];
 
 export default function Navigation() {
