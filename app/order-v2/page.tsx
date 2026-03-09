@@ -199,14 +199,14 @@ export default function OrderV2Page() {
     return deliveryInfo.label;
   })();
 
-  // 거래처 검색
+  // 거래처 검색 (tab에 따라 CDV/DL 테이블)
   const searchClients = useCallback(async (q: string) => {
     try {
-      const res = await fetch(`/api/order-v2/clients?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/order-v2/clients?q=${encodeURIComponent(q)}&tab=${tab}`);
       const json = await res.json();
       setClientResults(json.clients || []);
     } catch { setClientResults([]); }
-  }, []);
+  }, [tab]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -235,8 +235,11 @@ export default function OrderV2Page() {
     setShowOldHistory(false);
   };
 
-  // 탭 변경 시 입고내역 리셋
+  // 탭 변경 시 거래처 + 입고내역 리셋
   useEffect(() => {
+    setSelectedClient(null);
+    setClientQuery('');
+    setClientResults([]);
     setHistoryItems([]);
     setHistoryLoaded(false);
     setShowHistory(false);

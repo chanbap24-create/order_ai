@@ -20,14 +20,14 @@ export async function POST(req: NextRequest) {
       .order('item_no', { ascending: true });
     if (wineErr) throw wineErr;
 
-    // 2. 거래처 입고내역
+    // 2. 거래처 입고내역 (CDV/DL 테이블 분리)
     let purchaseHistory: any[] = [];
     if (client_code) {
+      const statsTable = tab === 'DL' ? 'glass_client_item_stats' : 'client_item_stats';
       const { data: stats } = await supabase
-        .from('client_item_stats')
-        .select('item_no, item_name, buy_count')
+        .from(statsTable)
+        .select('item_no, item_name')
         .eq('client_code', client_code)
-        .order('buy_count', { ascending: false })
         .limit(100);
       purchaseHistory = stats || [];
     }
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     // 4. 입고내역 텍스트
     const historyText = purchaseHistory.length > 0
-      ? purchaseHistory.map(h => `${h.item_no}|${h.item_name}|${h.buy_count}회`).join('\n')
+      ? purchaseHistory.map(h => `${h.item_no}|${h.item_name}`).join('\n')
       : '';
 
     // 5. 프롬프트 - 후보군 3개씩 반환
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 - confidence: 0.9+=확실, 0.7~0.9=높음, 0.5~0.7=중간, <0.5=불확실
 
 거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
-${historyText ? `\n입고내역(품번|품명|구매횟수):\n${historyText}\n` : ''}
+${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
 와인리스트(품번|품명):
 ${wineListText}
 
