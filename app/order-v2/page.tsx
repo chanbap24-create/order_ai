@@ -644,7 +644,7 @@ export default function OrderV2Page() {
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 6 }}>발주 내용</label>
           <textarea value={orderText} onChange={e => setOrderText(e.target.value)}
-            placeholder={"카톡/문자 발주 내용을 붙여넣으세요\n\n예시:\n까브 6병\n바롤로 3병"}
+            placeholder="카톡/문자 발주 내용을 붙여넣으세요"
             rows={6}
             style={{
               width: '100%', fontSize: 16, padding: '12px 14px', borderRadius: 10,
