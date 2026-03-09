@@ -6,17 +6,22 @@ export async function GET(request: NextRequest) {
     const p = request.nextUrl.searchParams;
     const tab = p.get('tab') || 'CDV';
     const table = tab === 'DL' ? 'inventory_dl' : 'inventory_cdv';
-
-    const stockMin = p.get('stockMin');
-    const sales30Max = p.get('sales30Max');
-    const sales90Max = p.get('sales90Max');
-    const vintageVal = p.get('vintage');
-    const vintageOp = p.get('vintageOp') || 'gte';
-    const supplyPriceVal = p.get('supplyPrice');
-    const supplyPriceOp = p.get('supplyPriceOp') || 'gte';
-    const retailPriceVal = p.get('retailPrice');
-    const retailPriceOp = p.get('retailPriceOp') || 'gte';
     const q = p.get('q') || '';
+
+    // Range params
+    const stockMin = p.get('stockMin');
+    const stockMax = p.get('stockMax');
+    const sales30Min = p.get('sales30Min');
+    const sales30Max = p.get('sales30Max');
+    const sales90Min = p.get('sales90Min');
+    const sales90Max = p.get('sales90Max');
+    const vintageMin = p.get('vintageMin');
+    const vintageMax = p.get('vintageMax');
+    const supplyPriceMin = p.get('supplyPriceMin');
+    const supplyPriceMax = p.get('supplyPriceMax');
+    const retailPriceMin = p.get('retailPriceMin');
+    const retailPriceMax = p.get('retailPriceMax');
+    const country = p.get('country');
 
     let query = supabase.from(table).select('*');
 
@@ -26,35 +31,30 @@ export async function GET(request: NextRequest) {
       query = query.or(`item_name.ilike.%${safe}%,item_no.ilike.%${safe}%`);
     }
 
-    // Supply price filter
-    if (supplyPriceVal) {
-      const v = Number(supplyPriceVal);
-      if (supplyPriceOp === 'gte') query = query.gte('supply_price', v);
-      else query = query.lte('supply_price', v);
-    }
+    // Supply price range
+    if (supplyPriceMin) query = query.gte('supply_price', Number(supplyPriceMin));
+    if (supplyPriceMax) query = query.lte('supply_price', Number(supplyPriceMax));
 
-    // Retail price filter
-    if (retailPriceVal) {
-      const v = Number(retailPriceVal);
-      if (retailPriceOp === 'gte') query = query.gte('retail_price', v);
-      else query = query.lte('retail_price', v);
-    }
+    // Retail price range
+    if (retailPriceMin) query = query.gte('retail_price', Number(retailPriceMin));
+    if (retailPriceMax) query = query.lte('retail_price', Number(retailPriceMax));
 
-    // Vintage filter (text column - cast comparison)
-    if (vintageVal) {
-      const v = vintageVal;
-      if (vintageOp === 'gte') query = query.gte('vintage', v);
-      else query = query.lte('vintage', v);
-    }
+    // Vintage range
+    if (vintageMin) query = query.gte('vintage', vintageMin);
+    if (vintageMax) query = query.lte('vintage', vintageMax);
 
-    // 30-day sales filter
-    if (sales30Max) {
-      query = query.lte('sales_30days', Number(sales30Max));
-    }
+    // 30-day sales range
+    if (sales30Min) query = query.gte('sales_30days', Number(sales30Min));
+    if (sales30Max) query = query.lte('sales_30days', Number(sales30Max));
 
-    // 90-day avg sales filter
-    if (sales90Max) {
-      query = query.lte('avg_sales_90d', Number(sales90Max));
+    // 90-day avg sales range
+    if (sales90Min) query = query.gte('avg_sales_90d', Number(sales90Min));
+    if (sales90Max) query = query.lte('avg_sales_90d', Number(sales90Max));
+
+    // Country filter
+    if (country) {
+      const safe = country.trim().replace(/[%_]/g, '');
+      query = query.ilike('country', `%${safe}%`);
     }
 
     query = query.order('supply_price', { ascending: false }).limit(500);
@@ -62,13 +62,16 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Stock min filter (available_stock + bonded_warehouse) - done in JS
+    // Stock range filter (available_stock + bonded_warehouse) - done in JS
     let results = data || [];
-    if (stockMin) {
-      const min = Number(stockMin);
+    if (stockMin || stockMax) {
+      const lo = stockMin ? Number(stockMin) : null;
+      const hi = stockMax ? Number(stockMax) : null;
       results = results.filter((r: any) => {
         const total = (r.available_stock || 0) + (r.bonded_warehouse || 0);
-        return total >= min;
+        if (lo !== null && total < lo) return false;
+        if (hi !== null && total > hi) return false;
+        return true;
       });
     }
 

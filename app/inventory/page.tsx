@@ -520,12 +520,13 @@ export default function InventoryPage() {
         params.set('tab', activeTab);
         if (searchQuery.trim()) params.set('q', searchQuery);
         const f = advancedFilters;
-        if (f.stockMin.enabled && f.stockMin.value) params.set('stockMin', String(f.stockMin.value));
-        if (f.sales30Max.enabled) params.set('sales30Max', String(f.sales30Max.value));
-        if (f.sales90Max.enabled) params.set('sales90Max', String(f.sales90Max.value));
-        if (f.vintage.enabled && f.vintage.value) { params.set('vintage', String(f.vintage.value)); params.set('vintageOp', f.vintage.op); }
-        if (f.supplyPrice.enabled && f.supplyPrice.value) { params.set('supplyPrice', String(f.supplyPrice.value)); params.set('supplyPriceOp', f.supplyPrice.op); }
-        if (f.retailPrice.enabled && f.retailPrice.value) { params.set('retailPrice', String(f.retailPrice.value)); params.set('retailPriceOp', f.retailPrice.op); }
+        if (f.stock.enabled) { if (f.stock.min !== '') params.set('stockMin', f.stock.min); if (f.stock.max !== '') params.set('stockMax', f.stock.max); }
+        if (f.sales30.enabled) { if (f.sales30.min !== '') params.set('sales30Min', f.sales30.min); if (f.sales30.max !== '') params.set('sales30Max', f.sales30.max); }
+        if (f.sales90.enabled) { if (f.sales90.min !== '') params.set('sales90Min', f.sales90.min); if (f.sales90.max !== '') params.set('sales90Max', f.sales90.max); }
+        if (f.vintage.enabled) { if (f.vintage.min !== '') params.set('vintageMin', f.vintage.min); if (f.vintage.max !== '') params.set('vintageMax', f.vintage.max); }
+        if (f.supplyPrice.enabled) { if (f.supplyPrice.min !== '') params.set('supplyPriceMin', f.supplyPrice.min); if (f.supplyPrice.max !== '') params.set('supplyPriceMax', f.supplyPrice.max); }
+        if (f.retailPrice.enabled) { if (f.retailPrice.min !== '') params.set('retailPriceMin', f.retailPrice.min); if (f.retailPrice.max !== '') params.set('retailPriceMax', f.retailPrice.max); }
+        if (f.country.enabled && f.country.value) params.set('country', f.country.value);
         endpoint = `/api/inventory/filter?${params.toString()}`;
       } else {
         endpoint = activeTab === 'CDV'
