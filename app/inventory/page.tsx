@@ -99,7 +99,8 @@ const INV_COLUMNS: InvColumnConfig[] = [
   { key: 'barcode', label: '바코드' },
   { key: 'stock_excl_available', label: '가용재고제외' },
   { key: 'pending_shipment', label: '출고예정' },
-  { key: 'total_stock', label: '가용재고' },
+  { key: 'total_stock', label: '재고수량' },
+  { key: 'available_stock', label: '가용재고' },
   { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
   { key: 'yongma_logistics', label: '용마로지스', cdvOnly: true },
   { key: 'anseong_warehouse', label: '안성창고', dlOnly: true },
@@ -981,6 +982,12 @@ export default function InventoryPage() {
         return (
           <span style={{ color: (item.total_stock ?? 0) > 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
             {formatNumber(item.total_stock ?? 0)}
+          </span>
+        );
+      case 'available_stock':
+        return (
+          <span style={{ color: (item.available_stock ?? 0) > 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+            {formatNumber(item.available_stock ?? 0)}
           </span>
         );
       case 'stock_excl_available': case 'pending_shipment':
