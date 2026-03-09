@@ -139,6 +139,7 @@ export default function OrderV2Page() {
   const [editingQty, setEditingQty] = useState<Record<number, string>>({});
   const [editingPrice, setEditingPrice] = useState<Record<number, string>>({});
   const [discountRates, setDiscountRates] = useState<Record<number, number>>({});
+  const [customDiscountInput, setCustomDiscountInput] = useState<Record<number, string>>({});
 
   // 수동 검색
   const [searchIdx, setSearchIdx] = useState<number | null>(null);
@@ -414,7 +415,9 @@ export default function OrderV2Page() {
       const rate = discountRates[idx] || 0;
       const price = getItemPrice(idx);
       const hasHistory = historySet.has(sel.item_no.trim().toUpperCase());
-      const pricePart = rate > 0
+      const pricePart = rate === 100
+        ? ' / 시음주'
+        : rate > 0
         ? ` / ${fmt(price)} (${rate}%↓)`
         : (!hasHistory && sel.supply_price > 0) ? ` / ${fmt(sel.supply_price)}` : '';
       return `- ${sel.item_no} / ${sel.item_name} / ${ol.quantity}${getUnit(sel.item_no)}${pricePart}`;
@@ -1271,11 +1274,26 @@ export default function OrderV2Page() {
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <span style={{ fontSize: 11, color: '#a8a098', fontWeight: 500 }}>할인</span>
-                                <select value={disc} onChange={e => updateDiscount(lineIdx, Number(e.target.value))} style={{
-                                  fontSize: 12, fontWeight: 600, padding: '3px 4px', borderRadius: 6,
-                                  border: '1px solid rgba(90,21,21,0.1)', background: '#fff',
-                                  color: disc > 0 ? '#5A1515' : '#a8a098', cursor: 'pointer',
-                                }}>
+                                <select
+                                  value={customDiscountInput[lineIdx] !== undefined ? 'custom' : disc === 100 ? 'tasting' : disc}
+                                  onChange={e => {
+                                    const v = e.target.value;
+                                    if (v === 'custom') {
+                                      setCustomDiscountInput(prev => ({ ...prev, [lineIdx]: String(disc > 0 && disc < 100 ? disc : '') }));
+                                    } else if (v === 'tasting') {
+                                      setCustomDiscountInput(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
+                                      updateDiscount(lineIdx, 100);
+                                    } else {
+                                      setCustomDiscountInput(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
+                                      updateDiscount(lineIdx, Number(v));
+                                    }
+                                  }}
+                                  style={{
+                                    fontSize: 12, fontWeight: 600, padding: '3px 4px', borderRadius: 6,
+                                    border: '1px solid rgba(90,21,21,0.1)', background: '#fff',
+                                    color: disc > 0 ? '#5A1515' : '#a8a098', cursor: 'pointer',
+                                  }}
+                                >
                                   <option value={0}>0%</option>
                                   <option value={5}>5%</option>
                                   <option value={10}>10%</option>
@@ -1283,9 +1301,48 @@ export default function OrderV2Page() {
                                   <option value={20}>20%</option>
                                   <option value={25}>25%</option>
                                   <option value={30}>30%</option>
+                                  <option value={35}>35%</option>
+                                  <option value={40}>40%</option>
+                                  <option value={45}>45%</option>
+                                  <option value={50}>50%</option>
+                                  <option value="custom">직접입력</option>
+                                  <option value="tasting">🍷 시음주</option>
                                 </select>
+                                {customDiscountInput[lineIdx] !== undefined && (
+                                  <input
+                                    type="text" inputMode="numeric" autoFocus
+                                    placeholder="%"
+                                    value={customDiscountInput[lineIdx]}
+                                    onChange={e => {
+                                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                                      setCustomDiscountInput(prev => ({ ...prev, [lineIdx]: raw }));
+                                    }}
+                                    onBlur={() => {
+                                      const num = parseInt(customDiscountInput[lineIdx] || '0', 10);
+                                      const clamped = Math.min(Math.max(num, 0), 99);
+                                      updateDiscount(lineIdx, clamped);
+                                      setCustomDiscountInput(prev => { const n = { ...prev }; delete n[lineIdx]; return n; });
+                                    }}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                    }}
+                                    style={{
+                                      width: 44, textAlign: 'center', fontSize: 12, fontWeight: 600,
+                                      border: '1.5px solid #5A1515', borderRadius: 6, padding: '3px 4px',
+                                      color: '#5A1515', background: '#fff',
+                                    }}
+                                  />
+                                )}
                               </div>
-                              {disc > 0 && (
+                              {disc === 100 && (
+                                <span style={{
+                                  fontSize: 11, fontWeight: 700, color: '#fff', background: '#5A1515',
+                                  padding: '2px 8px', borderRadius: 10,
+                                }}>
+                                  시음주
+                                </span>
+                              )}
+                              {disc > 0 && disc < 100 && (
                                 <span style={{ fontSize: 11, fontWeight: 700, color: '#5A1515' }}>
                                   → {fmt(discPrice)}
                                 </span>
