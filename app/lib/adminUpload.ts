@@ -102,6 +102,10 @@ const HEADER_MAP: Record<string, string> = {
   // 창고 — CDV (까브드뱅)
   '보세(용마)': 'bonded_warehouse',
   '용마로지스': 'yongma_logistics',
+  '용마(리져브)': 'yongma_reserve',
+  '용마(마케팅부)': 'yongma_marketing',
+  '용마(영업1부)': 'yongma_sales1',
+  '용마(영업2부)': 'yongma_sales2',
   '안성창고(CDV)': 'anseong_warehouse',
   // 창고 — DL (대유라이프)
   '보세(GIG)': 'bonded_warehouse',

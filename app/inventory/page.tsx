@@ -29,6 +29,10 @@ interface InventoryItem {
   avg_sales_90d?: number;
   avg_sales_365d?: number;
   yongma_logistics?: number;
+  yongma_reserve?: number;
+  yongma_marketing?: number;
+  yongma_sales1?: number;
+  yongma_sales2?: number;
   gig_warehouse?: number;
   gig_marketing?: number;
   gig_sales1?: number;
@@ -72,7 +76,8 @@ type InvColumnKey =
   | 'total_stock' | 'stock_excl_available' | 'pending_shipment' | 'available_stock'
   | 'bonded_warehouse' | 'anseong_warehouse' | 'incoming_stock'
   | 'sales_30days' | 'avg_sales_90d' | 'avg_sales_365d'
-  | 'yongma_logistics' | 'gig_warehouse' | 'gig_marketing' | 'gig_sales1'
+  | 'yongma_logistics' | 'yongma_reserve' | 'yongma_marketing' | 'yongma_sales1' | 'yongma_sales2'
+  | 'gig_warehouse' | 'gig_marketing' | 'gig_sales1'
   | 'vintage' | 'alcohol_content' | 'country';
 
 interface InvColumnConfig {
@@ -103,6 +108,10 @@ const INV_COLUMNS: InvColumnConfig[] = [
   { key: 'available_stock', label: '가용재고' },
   { key: 'bonded_warehouse', label: '보세창고', cdvOnly: true },
   { key: 'yongma_logistics', label: '용마로지스', cdvOnly: true },
+  { key: 'yongma_reserve', label: '용마블락', cdvOnly: true },
+  { key: 'yongma_marketing', label: '마케팅블락', cdvOnly: true },
+  { key: 'yongma_sales1', label: '1부블락', cdvOnly: true },
+  { key: 'yongma_sales2', label: '2부블락', cdvOnly: true },
   { key: 'anseong_warehouse', label: '안성창고', dlOnly: true },
   { key: 'gig_warehouse', label: 'GIG', dlOnly: true },
   { key: 'gig_marketing', label: 'GIG마케팅', dlOnly: true },
