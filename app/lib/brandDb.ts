@@ -132,6 +132,7 @@ export interface BrandContext {
   brandNameEn: string | null;  // 영문 브랜드명 (이미지 검색 보조)
   country: string | null;
   region: string | null;
+  website: string | null;   // 와이너리 공식 웹사이트
   imageUrl: string | null;  // 브랜드 대표 이미지 (검증용)
   logoUrl: string | null;   // 브랜드 로고
 }
@@ -178,6 +179,7 @@ export async function getBrandContextForWine(itemCode: string): Promise<BrandCon
     brandNameEn: brand.brand_name_en || null,
     country: brand.country || null,
     region: brand.region || null,
+    website: brand.website || null,
     imageUrl: brand.image_url || null,
     logoUrl: brand.logo_url || null,
   };

@@ -1,6 +1,7 @@
-// 와인 이미지 검색 + Wine-Searcher 데이터 스크래핑 + Vivino 보틀샷
+// 와인 이미지 검색 + Wine-Searcher 데이터 스크래핑 + Vivino 보틀샷 + 와이너리 공식사이트
 
 import { logger } from "@/app/lib/logger";
+import { getClaudeClient } from "@/app/lib/claudeClient";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
@@ -162,6 +163,94 @@ export async function searchWineImage(wineNameEn: string): Promise<string | null
   // 2순위: Wine-Searcher 이미지
   const wsData = await scrapeWineSearcher(wineNameEn);
   return wsData?.imageUrl || null;
+}
+
+/**
+ * 와이너리 공식 웹사이트에서 와인 보틀 이미지 검색 (Claude Haiku + web_search)
+ * 브랜드 자료실에 저장된 website URL을 활용하여 공식 제품 이미지를 우선 획득
+ */
+export async function searchWineryWebsiteImage(
+  wineNameEn: string,
+  websiteUrl: string,
+  brandNameEn?: string
+): Promise<string | null> {
+  if (!wineNameEn || !websiteUrl) return null;
+
+  try {
+    // 도메인 추출 (site: 검색용)
+    let domain = websiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+    if (!domain) return null;
+
+    const client = getClaudeClient();
+    const searchQuery = brandNameEn
+      ? `${brandNameEn} ${wineNameEn} wine bottle`
+      : `${wineNameEn} wine bottle`;
+
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      tools: [{ type: "web_search_20250305" as const, name: "web_search", max_uses: 2 }],
+      messages: [{
+        role: "user",
+        content: `Find the official product/bottle image URL for this wine from the winery's website.
+
+Wine: ${wineNameEn}
+Winery website: ${websiteUrl}
+Domain: ${domain}
+
+Search for this wine on the winery's official site (${domain}) and find the product page with a bottle image.
+
+RULES:
+- ONLY return image URLs from the winery's official domain (${domain}) or their CDN
+- The image should be a wine bottle photo (not a logo, banner, or vineyard photo)
+- Prefer PNG/JPG direct image URLs (ending in .jpg, .jpeg, .png, .webp)
+- If you can't find an image from the official site, search "${searchQuery}" and find a reliable bottle image
+
+Return ONLY a JSON object: {"image_url": "https://..."} or {"image_url": null} if not found.
+No other text.`,
+      }],
+    });
+
+    // 응답에서 텍스트 추출
+    const texts: string[] = [];
+    for (const block of response.content) {
+      if (block.type === 'text' && 'text' in block) texts.push(block.text);
+    }
+    const text = texts.join('\n').replace(/<cite[^>]*>.*?<\/cite>/g, '').trim();
+    if (!text) return null;
+
+    // JSON 파싱
+    let jsonStr = text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) jsonStr = jsonMatch[0];
+
+    const parsed = JSON.parse(jsonStr);
+    const imgUrl = parsed?.image_url;
+
+    if (imgUrl && typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
+      // 이미지 URL 유효성 검증 (HEAD 요청)
+      try {
+        const headRes = await fetch(imgUrl, { method: 'HEAD', headers: { "User-Agent": USER_AGENT } });
+        const ct = headRes.headers.get('content-type') || '';
+        if (headRes.ok && (ct.includes('image') || /\.(jpg|jpeg|png|webp)$/i.test(imgUrl))) {
+          logger.info(`[WineryImage] Found bottle image from ${domain}: ${imgUrl}`);
+          return imgUrl;
+        }
+      } catch {
+        // HEAD 실패해도 URL 자체는 유효할 수 있음
+        if (/\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(imgUrl)) {
+          logger.info(`[WineryImage] URL looks valid (skip HEAD): ${imgUrl}`);
+          return imgUrl;
+        }
+      }
+    }
+
+    logger.info(`[WineryImage] No valid image found from ${domain} for ${wineNameEn}`);
+    return null;
+  } catch (e) {
+    logger.warn(`[WineryImage] Failed for ${wineNameEn}`, { error: e });
+    return null;
+  }
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import OpenAI from "openai";
 import { logger } from "@/app/lib/logger";
-import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
+import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import type { WineResearchResult } from "@/app/types/wine";
 
@@ -155,34 +155,45 @@ export async function researchWine(itemCode: string, itemNameKr: string, itemNam
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // Step 4: 이미지 검색 (사용자 입력 영문명 우선)
-  // AI가 변환한 긴 이름보다 사용자 입력 짧은 이름이 검색 적중률 높음
+  // Step 4: 이미지 검색 (우선순위: 와이너리 공식사이트 → Vivino → Wine-Searcher)
   if (!imageUrl) {
     const searchNames = [
       englishName,                         // 사용자 입력/번역된 이름 (최우선)
       result.item_name_en,                 // AI 조사명
     ].filter(Boolean) as string[];
-
     const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
     const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
 
-    for (const lowerName of uniqueNames) {
-      const name = nameMap.get(lowerName) || lowerName;
-      imageUrl = await searchVivinoBottleImage(name);
+    // 4-1. 와이너리 공식 웹사이트에서 보틀 이미지
+    if (brandCtx?.website) {
+      imageUrl = await searchWineryWebsiteImage(
+        englishName || result.item_name_en, brandCtx.website, brandCtx.brandNameEn || undefined
+      );
       if (imageUrl) {
-        logger.info(`[WineImage] Found via "${name}"`);
-        break;
+        logger.info(`[WineImage] Found from winery site: ${brandCtx.website}`);
       }
     }
 
-    // Wine-Searcher fallback
+    // 4-2. Vivino 보틀샷
+    if (!imageUrl) {
+      for (const lowerName of uniqueNames) {
+        const name = nameMap.get(lowerName) || lowerName;
+        imageUrl = await searchVivinoBottleImage(name);
+        if (imageUrl) {
+          logger.info(`[WineImage] Vivino: "${name}"`);
+          break;
+        }
+      }
+    }
+
+    // 4-3. Wine-Searcher fallback
     if (!imageUrl) {
       for (const lowerName of uniqueNames) {
         const name = nameMap.get(lowerName) || lowerName;
         const wsRetry = await scrapeWineSearcher(name);
         if (wsRetry?.imageUrl) {
           imageUrl = wsRetry.imageUrl;
-          logger.info(`[WineImage] WS fallback via "${name}"`);
+          logger.info(`[WineImage] WS fallback: "${name}"`);
           break;
         }
       }
