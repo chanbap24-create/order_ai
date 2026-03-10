@@ -16,6 +16,7 @@ interface ExpenseItem {
   amount: number;
   account_category: string;
   km?: number;
+  note?: string;
 }
 
 interface VehicleInfo {
@@ -144,7 +145,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
     for (let rn = 11; rn <= 200; rn++) {
       const row = ws.getRow(rn);
       const cells: string[] = [];
-      for (let c = 1; c <= 4; c++) {
+      for (let c = 1; c <= 5; c++) {
         const v = row.getCell(c).value;
         if (v == null) { cells.push(''); continue; }
         if (c === 1 && v instanceof Date) {
@@ -331,6 +332,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
     ws.getCell(`B${insertRow}`).value = item.account_category;
     ws.getCell(`C${insertRow}`).value = item.description;
     ws.getCell(`D${insertRow}`).value = item.amount;
+    if (item.note) ws.getCell(`E${insertRow}`).value = item.note;
     cols.forEach(col => {
       const srcCell = ws.getCell(`${col}11`);
       const tgtCell = ws.getCell(`${col}${insertRow}`);
@@ -362,6 +364,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
       amount: Number(editAmount) || 0,
       account_category: editCategory,
       km: editKm ? Number(editKm) : undefined,
+      note: editNote || undefined,
     };
     setItems(prev => [...prev, newItem]);
     setSaveStatus('unsaved');
@@ -789,7 +792,10 @@ export default function ExpenseTab({ currentManager, department }: Props) {
                   background: 'rgba(90,21,21,0.06)', color: '#5A1515', fontSize: 11,
                   fontWeight: 600, padding: '2px 8px', borderRadius: 5, flexShrink: 0,
                 }}>{item.account_category}</span>
-                <span style={{ flex: 1, color: '#2c1810', fontWeight: 500 }}>{item.description}</span>
+                <span style={{ flex: 1, color: '#2c1810', fontWeight: 500 }}>
+                  {item.description}
+                  {item.note && <span style={{ color: '#8a8580', fontSize: 11, marginLeft: 4 }}>({item.note})</span>}
+                </span>
                 <span style={{ fontWeight: 700, color: '#2c1810', minWidth: 80, textAlign: 'right' }}>
                   {item.amount.toLocaleString()}
                 </span>
@@ -908,7 +914,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
               }}>
                 <thead>
                   <tr>
-                    {['사용일자', '계정과목', '사용내역', '금액', ''].map((h, i) => (
+                    {['사용일자', '계정과목', '사용내역', '금액', '비고'].map((h, i) => (
                       <th key={i} style={{
                         padding: '8px 6px', textAlign: i === 3 ? 'right' : 'left',
                         borderBottom: '2px solid rgba(90,21,21,0.1)',
