@@ -169,7 +169,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   // 2. HEADER - 로고
   try {
     slide.addImage({
-      data: "image/jpeg;base64," + LOGO_CAVEDEVIN_BASE64,
+      data: "image/png;base64," + LOGO_CAVEDEVIN_BASE64,
       x: 0.3,
       y: 0.14,
       w: 1.49,
@@ -467,7 +467,7 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   // Footer 로고
   try {
     slide.addImage({
-      data: "image/jpeg;base64," + LOGO_CAVEDEVIN_BASE64,
+      data: "image/png;base64," + LOGO_CAVEDEVIN_BASE64,
       x: 0.09,
       y: 9.68,
       w: 0.95,
