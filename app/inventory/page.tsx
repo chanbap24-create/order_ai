@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ══════════════════════════════════════════
 // TYPES
@@ -434,8 +434,45 @@ export default function InventoryPage() {
       if (savedQCols) try { setVisibleQuoteColumns(JSON.parse(savedQCols)); } catch {}
     } catch {}
 
+    // sessionStorage에서 검색 상태 복원
+    try {
+      const saved = sessionStorage.getItem('inv_search_state');
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.searchQuery) setSearchQuery(s.searchQuery);
+        if (s.activeTab === 'CDV' || s.activeTab === 'DL') setActiveTab(s.activeTab);
+        if (typeof s.hideNoSupplyPrice === 'boolean') setHideNoSupplyPrice(s.hideNoSupplyPrice);
+        if (typeof s.hideNoStock === 'boolean') setHideNoStock(s.hideNoStock);
+        if (typeof s.showOnlyBondedStock === 'boolean') setShowOnlyBondedStock(s.showOnlyBondedStock);
+        if (s.advancedFilters) setAdvancedFilters(s.advancedFilters);
+        if (s.results && s.results.length > 0) {
+          setResults(s.results);
+          setHasSearched(true);
+        }
+      }
+    } catch {}
+
     return () => mq.removeEventListener('change', handler);
   }, []);
+
+  // sessionStorage에 검색 상태 저장
+  const saveSearchState = useCallback(() => {
+    try {
+      sessionStorage.setItem('inv_search_state', JSON.stringify({
+        searchQuery,
+        activeTab,
+        hideNoSupplyPrice,
+        hideNoStock,
+        showOnlyBondedStock,
+        advancedFilters,
+        results,
+      }));
+    } catch {}
+  }, [searchQuery, activeTab, hideNoSupplyPrice, hideNoStock, showOnlyBondedStock, advancedFilters, results]);
+
+  useEffect(() => {
+    saveSearchState();
+  }, [saveSearchState]);
 
   // Save quote columns (per tab)
   useEffect(() => {

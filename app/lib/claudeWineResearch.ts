@@ -145,11 +145,11 @@ export async function researchWineWithClaude(
   const [wsData, vivinoImageUrl, dbBrandContext] = await Promise.all([
     scrapeWineSearcher(itemNameEn),
     searchVivinoBottleImage(itemNameEn).catch(() => null),
-    getBrandContextForWine(itemCode).catch(() => ''),
+    getBrandContextForWine(itemCode).catch(() => null),
   ]);
 
   if (dbBrandContext) {
-    logger.info(`[Claude] Using DB brand data for ${itemCode} (${dbBrandContext.length} chars)`);
+    logger.info(`[Claude] Using DB brand data for ${itemCode}: ${dbBrandContext.brandNameEn}`);
   }
 
   let wsContext = "";
@@ -179,8 +179,8 @@ export async function researchWineWithClaude(
 
   // 브랜드 컨텍스트
   let brandContext = '';
-  if (dbBrandContext) {
-    brandContext = `\n\n=== 브랜드 자료실 DB 정보 ===\n${dbBrandContext}\n`;
+  if (dbBrandContext?.text) {
+    brandContext = `\n\n=== 브랜드 자료실 DB 정보 ===\n${dbBrandContext.text}\n`;
   }
 
   // 컨텍스트 풍부도 판단: WS 또는 브랜드DB 있으면 web_search 불필요
@@ -191,7 +191,7 @@ export async function researchWineWithClaude(
   const vintageInfo = vintageYear ? `\n빈티지: ${vintageYear}년` : '';
   const supplierInfo = supplier ? `\n생산자/브랜드: ${supplier}` : '';
   const supplierWarning = supplier ? `\n\n중요: 반드시 위 생산자(${supplier})의 와인을 조사하세요. 다른 생산자의 동명 와인을 혼동하지 마세요.` : '';
-  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext?.text ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
@@ -243,10 +243,26 @@ export async function researchWineWithClaude(
     }
   }
 
-  // Step 3: 이미지 보완 (Vivino/WS 없으면 fallback)
+  // Step 3: 이미지 보완 (브랜드명 활용으로 정확도 향상)
   if (!imageUrl && result.item_name_en) {
+    // 3-1. GPT 확인된 정확한 영문명으로 재검색
     const fallbackImage = await searchWineImage(result.item_name_en).catch(() => null);
-    if (fallbackImage) imageUrl = fallbackImage;
+    if (fallbackImage) {
+      imageUrl = fallbackImage;
+    } else if (dbBrandContext?.brandNameEn) {
+      // 3-2. 브랜드명을 포함한 검색어로 재시도
+      const confirmedName = result.item_name_en || itemNameEn;
+      const brandPrefixed = confirmedName.toLowerCase().includes(dbBrandContext.brandNameEn.toLowerCase())
+        ? confirmedName
+        : `${dbBrandContext.brandNameEn} ${confirmedName}`;
+      if (brandPrefixed !== confirmedName) {
+        const brandImage = await searchVivinoBottleImage(brandPrefixed).catch(() => null);
+        if (brandImage) {
+          imageUrl = brandImage;
+          logger.info(`[Claude][WineImage] Found via brand-prefixed search: ${brandPrefixed}`);
+        }
+      }
+    }
   }
   if (imageUrl) {
     result.image_url = imageUrl;

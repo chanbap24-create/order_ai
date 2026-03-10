@@ -127,7 +127,16 @@ export async function getWineCountsByBrand(): Promise<Record<string, number>> {
 
 /* ─── 와인 품번으로 브랜드 컨텍스트 가져오기 (AI 조사용) ─── */
 
-export async function getBrandContextForWine(itemCode: string): Promise<string> {
+export interface BrandContext {
+  text: string;           // GPT 프롬프트용 텍스트
+  brandNameEn: string | null;  // 영문 브랜드명 (이미지 검색 보조)
+  country: string | null;
+  region: string | null;
+  imageUrl: string | null;  // 브랜드 대표 이미지 (검증용)
+  logoUrl: string | null;   // 브랜드 로고
+}
+
+export async function getBrandContextForWine(itemCode: string): Promise<BrandContext | null> {
   // 1. wines 테이블에서 brand 코드 조회
   const { data: wine } = await supabase
     .from('wines')
@@ -135,7 +144,7 @@ export async function getBrandContextForWine(itemCode: string): Promise<string> 
     .eq('item_code', itemCode)
     .maybeSingle();
 
-  if (!wine?.brand) return '';
+  if (!wine?.brand) return null;
 
   // 2. brands 테이블에서 브랜드 정보 조회
   const { data: brand } = await supabase
@@ -144,7 +153,7 @@ export async function getBrandContextForWine(itemCode: string): Promise<string> 
     .eq('brand_code', wine.brand)
     .maybeSingle();
 
-  if (!brand || !brand.ai_researched) return '';
+  if (!brand || !brand.ai_researched) return null;
 
   // 3. 컨텍스트 문자열 구성
   const parts: string[] = [];
@@ -161,10 +170,17 @@ export async function getBrandContextForWine(itemCode: string): Promise<string> 
   if (brand.key_wines) parts.push(`Key wines: ${brand.key_wines}`);
   if (brand.awards) parts.push(`Awards: ${brand.awards}`);
 
-  if (parts.length === 0) return '';
+  if (parts.length === 0) return null;
 
   logger.info(`[BrandContext] Found brand "${brand.brand_name_en}" for wine ${itemCode}`);
-  return parts.join('\n');
+  return {
+    text: parts.join('\n'),
+    brandNameEn: brand.brand_name_en || null,
+    country: brand.country || null,
+    region: brand.region || null,
+    imageUrl: brand.image_url || null,
+    logoUrl: brand.logo_url || null,
+  };
 }
 
 /* ─── brand_code로 연결된 와인 목록 ─── */
