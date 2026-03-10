@@ -60,10 +60,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // wines 테이블 업데이트
+    // wines 테이블 업데이트 (사용자가 저장한 영문명은 덮어쓰지 않음)
+    const userEnName = product_name_eng.trim();
     await upsertWine({
       item_code: wine_id,
-      item_name_en: result.item_name_en,
+      item_name_en: userEnName || result.item_name_en,
       country_en: result.country_en,
       region: result.region,
       grape_varieties: result.grape_varieties,

@@ -28,7 +28,8 @@ DATA PRIORITY:
 3. Your expert knowledge (only to supplement missing fields)
 
 IMPORTANT:
-- Use Wine-Searcher data as-is for grape variety, region, origin, and wine name
+- item_name_en: Return the user-provided English wine name AS-IS. Do NOT prepend winery name or modify it
+- Use Wine-Searcher data as-is for grape variety, region, origin
 - Use brand research data for winemaking philosophy, vineyard info, and producer context
 - DO NOT make up information
 - Tasting notes should be detailed, professional, and consistent with the producer's known style
@@ -36,7 +37,7 @@ IMPORTANT:
 
 Respond ONLY in valid JSON format with the following fields:
 {
-  "item_name_en": "English wine name (use Wine-Searcher name if available)",
+  "item_name_en": "Return the user-provided English wine name exactly as given",
   "country_en": "Country in English (from origin data)",
   "region": "Specific wine region (from origin data)",
   "grape_varieties": "Grape varieties (from varietal data)",
@@ -154,31 +155,37 @@ export async function researchWine(itemCode: string, itemNameKr: string, itemNam
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // Step 4: 이미지 검색 (브랜드 컨텍스트 활용으로 정확도 향상)
-  // 검색어 전략: GPT가 확인한 정확한 영문명 > 브랜드명+와인명 조합 > 원래 영문명
-  const confirmedEnName = result.item_name_en || englishName;
-
+  // Step 4: 이미지 검색 (사용자 입력 영문명 우선)
+  // AI가 변환한 긴 이름보다 사용자 입력 짧은 이름이 검색 적중률 높음
   if (!imageUrl) {
-    // 4-1. 정확한 영문명으로 Vivino 보틀샷 검색 (가장 정확)
-    imageUrl = await searchVivinoBottleImage(confirmedEnName);
+    const searchNames = [
+      englishName,                         // 사용자 입력/번역된 이름 (최우선)
+      result.item_name_en,                 // AI 조사명
+    ].filter(Boolean) as string[];
 
-    // 4-2. 브랜드명을 포함한 검색 (브랜드 컨텍스트가 있으면 더 정확한 검색어 구성)
-    if (!imageUrl && brandCtx?.brandNameEn) {
-      const brandPrefixedSearch = confirmedEnName.toLowerCase().includes(brandCtx.brandNameEn.toLowerCase())
-        ? confirmedEnName
-        : `${brandCtx.brandNameEn} ${confirmedEnName}`;
-      if (brandPrefixedSearch !== confirmedEnName) {
-        imageUrl = await searchVivinoBottleImage(brandPrefixedSearch);
-        if (imageUrl) {
-          logger.info(`[WineImage] Found via brand-prefixed search: ${brandPrefixedSearch}`);
-        }
+    const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
+    const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
+
+    for (const lowerName of uniqueNames) {
+      const name = nameMap.get(lowerName) || lowerName;
+      imageUrl = await searchVivinoBottleImage(name);
+      if (imageUrl) {
+        logger.info(`[WineImage] Found via "${name}"`);
+        break;
       }
     }
 
-    // 4-3. Wine-Searcher fallback
+    // Wine-Searcher fallback
     if (!imageUrl) {
-      const wsRetry = await scrapeWineSearcher(confirmedEnName);
-      imageUrl = wsRetry?.imageUrl || null;
+      for (const lowerName of uniqueNames) {
+        const name = nameMap.get(lowerName) || lowerName;
+        const wsRetry = await scrapeWineSearcher(name);
+        if (wsRetry?.imageUrl) {
+          imageUrl = wsRetry.imageUrl;
+          logger.info(`[WineImage] WS fallback via "${name}"`);
+          break;
+        }
+      }
     }
   }
 

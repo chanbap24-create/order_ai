@@ -18,6 +18,7 @@ const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연�
 
 중요 규칙:
 - 생산자/브랜드가 명시된 경우, 반드시 해당 생산자의 와인만 조사할 것 (다른 생산자의 동명 와인을 혼동하지 말 것)
+- item_name_en: 사용자가 제공한 "와인 이름(영문)"을 그대로 반환할 것. 와이너리명을 앞에 붙이거나 변형하지 말 것
 - Wine-Searcher 데이터가 있으면 최우선으로 사용
 - 브랜드 자료실 DB 정보가 있으면 winery_description, winemaking에 적극 활용 (양조 철학, 포도밭, 와인메이커 등)
 - 브랜드 DB의 수상 내역(awards)에서 해당 와인 관련 점수를 추출하여 활용
@@ -27,7 +28,7 @@ const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연�
 
 반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
 {
-  "item_name_en": "영문 와인명 (Wine-Searcher 데이터 우선)",
+  "item_name_en": "사용자가 제공한 영문 와인명을 그대로 사용",
   "country_en": "영문 국가명",
   "region": "영문 세부 산지",
   "grape_varieties": "영문 품종 (여러 개면 쉼표 구분)",
@@ -243,23 +244,37 @@ export async function researchWineWithClaude(
     }
   }
 
-  // Step 3: 이미지 보완 (브랜드명 활용으로 정확도 향상)
-  if (!imageUrl && result.item_name_en) {
-    // 3-1. GPT 확인된 정확한 영문명으로 재검색
-    const fallbackImage = await searchWineImage(result.item_name_en).catch(() => null);
-    if (fallbackImage) {
-      imageUrl = fallbackImage;
-    } else if (dbBrandContext?.brandNameEn) {
-      // 3-2. 브랜드명을 포함한 검색어로 재시도
-      const confirmedName = result.item_name_en || itemNameEn;
-      const brandPrefixed = confirmedName.toLowerCase().includes(dbBrandContext.brandNameEn.toLowerCase())
-        ? confirmedName
-        : `${dbBrandContext.brandNameEn} ${confirmedName}`;
-      if (brandPrefixed !== confirmedName) {
-        const brandImage = await searchVivinoBottleImage(brandPrefixed).catch(() => null);
-        if (brandImage) {
-          imageUrl = brandImage;
-          logger.info(`[Claude][WineImage] Found via brand-prefixed search: ${brandPrefixed}`);
+  // Step 3: 이미지 보완 (사용자 입력 영문명 우선, 브랜드명 활용)
+  // 핵심: AI가 변환한 긴 이름(Jamieson Ranch Vineyards Reata...)보다
+  //       사용자가 입력한 짧은 이름(Reata Three County...)이 검색 적중률 높음
+  if (!imageUrl) {
+    const searchNames = [
+      itemNameEn,                          // 사용자 입력명 (최우선)
+      result.item_name_en,                 // AI 조사명
+    ].filter(Boolean) as string[];
+
+    // 중복 제거 (같으면 1번만 검색)
+    const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
+    const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
+
+    for (const lowerName of uniqueNames) {
+      const name = nameMap.get(lowerName) || lowerName;
+      imageUrl = await searchVivinoBottleImage(name).catch(() => null);
+      if (imageUrl) {
+        logger.info(`[Claude][WineImage] Found via "${name}"`);
+        break;
+      }
+    }
+
+    // fallback: Wine-Searcher
+    if (!imageUrl) {
+      for (const lowerName of uniqueNames) {
+        const name = nameMap.get(lowerName) || lowerName;
+        const wsRetry = await scrapeWineSearcher(name).catch(() => null);
+        if (wsRetry?.imageUrl) {
+          imageUrl = wsRetry.imageUrl;
+          logger.info(`[Claude][WineImage] WS fallback via "${name}"`);
+          break;
         }
       }
     }
