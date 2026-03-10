@@ -831,7 +831,7 @@ export default function InventoryPage() {
     }
   }
 
-  function commitEdit() {
+  async function commitEdit() {
     if (!editCell) return;
     const { id, key } = editCell;
     let value: any = editValue;
@@ -846,7 +846,7 @@ export default function InventoryPage() {
       if (item && item.supply_price > 0) {
         const newPrice = Math.max(0, parseInt(value) || 0);
         const newRate = (item.supply_price - newPrice) / item.supply_price;
-        updateQuoteItem(id, { discount_rate: Math.round(newRate * 10000) / 10000 });
+        await updateQuoteItem(id, { discount_rate: Math.round(newRate * 10000) / 10000 });
         setEditCell(null);
         setEditValue('');
         return;
@@ -856,13 +856,13 @@ export default function InventoryPage() {
       if (item && (item.retail_price || 0) > 0) {
         const newPrice = Math.max(0, parseInt(value) || 0);
         const newRate = ((item.retail_price || 0) - newPrice) / (item.retail_price || 1);
-        updateQuoteItem(id, { discount_rate: Math.round(newRate * 10000) / 10000 });
+        await updateQuoteItem(id, { discount_rate: Math.round(newRate * 10000) / 10000 });
         setEditCell(null);
         setEditValue('');
         return;
       }
     }
-    updateQuoteItem(id, { [key]: value });
+    await updateQuoteItem(id, { [key]: value });
     setEditCell(null);
     setEditValue('');
   }
@@ -879,14 +879,14 @@ export default function InventoryPage() {
     });
   }
 
-  function saveBottomSheet() {
+  async function saveBottomSheet() {
     if (!bottomSheetItem) return;
     // 할인가에서 정밀한 할인율 역산
     const dp = parseInt(sheetValues.discounted_price) || 0;
     const rate = bottomSheetItem.supply_price > 0
       ? (bottomSheetItem.supply_price - dp) / bottomSheetItem.supply_price
       : 0;
-    updateQuoteItem(bottomSheetItem.id, {
+    await updateQuoteItem(bottomSheetItem.id, {
       quantity: Math.max(0, parseInt(sheetValues.quantity) || 0),
       discount_rate: Math.round(rate * 10000) / 10000,
       note: sheetValues.note || '',
@@ -897,6 +897,10 @@ export default function InventoryPage() {
 
   // ── Excel export ──
   async function handleExport() {
+    // 편집 중인 셀이 있으면 먼저 저장 완료 후 export
+    if (editCell) {
+      await commitEdit();
+    }
     setExporting(true);
     try {
       const columnsParam = encodeURIComponent(JSON.stringify(visibleQuoteColumns));
