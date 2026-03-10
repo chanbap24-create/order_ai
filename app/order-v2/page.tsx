@@ -398,10 +398,19 @@ export default function OrderV2Page() {
 
   const totalAmount = orderLines.reduce((s, ol, idx) => s + getItemPrice(idx) * ol.quantity, 0);
 
-  // DL 단위: 0으로 시작하는 품번(레스토랑 시리즈)=잔, 나머지=개, CDV=병
-  const getUnit = (itemNo?: string) => {
+  // DL 단위: 레스토랑/글라스 시리즈=잔, 디캔터/박스/쇼핑백 등=개, CDV=병
+  const getUnit = (itemNo?: string, itemName?: string) => {
     if (tab !== 'DL') return '병';
-    return itemNo?.trim().startsWith('0') ? '잔' : '개';
+    const name = itemName || '';
+    // 디캔터, 박스, 쇼핑백 등 비글라스 제품은 "개"
+    if (/디캔터|박스|쇼핑백|클리너|캐링백|세트|밸류팩|폴리싱|클로스|린넨/i.test(name)) return '개';
+    // 레스토랑 시리즈 (이름에 레스토랑/글라스 포함, 또는 RD 코드, 또는 0xxx/xx 형식 품명)
+    if (/레스토랑|글라스|glass/i.test(name)) return '잔';
+    if (/RD\s+\d{4}\/\d/i.test(name)) return '잔';
+    if (/0\d{3}\/\d/.test(name)) return '잔';
+    // 품번이 0으로 시작 (레스토랑 시리즈)
+    if (itemNo?.trim().startsWith('0')) return '잔';
+    return '개';
   };
 
   // 발주 메시지
@@ -411,7 +420,7 @@ export default function OrderV2Page() {
     const deliveryLine = finalDeliveryLabel ? `배송 예정일: ${finalDeliveryLabel}` : '';
     const lines = orderLines.map((ol, idx) => {
       const sel = getSelected(ol);
-      if (!sel) return `- (미선택) / ${ol.query} / ${ol.quantity}${getUnit()}`;
+      if (!sel) return `- (미선택) / ${ol.query} / ${ol.quantity}${getUnit(undefined, ol.query)}`;
       const rate = discountRates[idx] || 0;
       const price = getItemPrice(idx);
       const hasHistory = historySet.has(sel.item_no.trim().toUpperCase());
@@ -420,7 +429,7 @@ export default function OrderV2Page() {
         : rate > 0
         ? ` / ${fmt(price)} (${rate}%↓)`
         : (!hasHistory && sel.supply_price > 0) ? ` / ${fmt(sel.supply_price)}` : '';
-      return `- ${sel.item_no} / ${sel.item_name} / ${ol.quantity}${getUnit(sel.item_no)}${pricePart}`;
+      return `- ${sel.item_no} / ${sel.item_name} / ${ol.quantity}${getUnit(sel.item_no, sel.item_name)}${pricePart}`;
     });
     const notesLine = deliveryNotes.trim() ? `\n${deliveryNotes.trim()}\n` : '';
     return `[${name}]\n${deliveryLine ? deliveryLine + '\n' : ''}${notesLine}\n${lines.join('\n')}\n\n발주 요청드립니다.`;
@@ -834,7 +843,19 @@ export default function OrderV2Page() {
                   fontSize: 12, opacity: 0.55, marginTop: 3,
                   fontWeight: 500, letterSpacing: '0.02em',
                 }}>
-                  {orderLines.length}개 품목 · {orderLines.reduce((s, ol) => s + ol.quantity, 0)}{tab === 'DL' ? '개' : '병'}
+                  {orderLines.length}개 품목 · {(() => {
+                    if (tab !== 'DL') return `${orderLines.reduce((s, ol) => s + ol.quantity, 0)}병`;
+                    let glasses = 0, pieces = 0;
+                    orderLines.forEach(ol => {
+                      const sel = getSelected(ol);
+                      const u = getUnit(sel?.item_no, sel?.item_name);
+                      if (u === '잔') glasses += ol.quantity; else pieces += ol.quantity;
+                    });
+                    const parts = [];
+                    if (glasses > 0) parts.push(`${glasses}잔`);
+                    if (pieces > 0) parts.push(`${pieces}개`);
+                    return parts.join(' + ') || '0개';
+                  })()}
                   {totalAmount > 0 && ` · ${fmtShort(totalAmount)}`}
                 </div>
 
@@ -1061,7 +1082,7 @@ export default function OrderV2Page() {
                           fontSize: 13, fontWeight: 700, color: '#5A1515',
                           flexShrink: 0, minWidth: 32, textAlign: 'right',
                         }}>
-                          {ol.quantity}{getUnit(sel?.item_no)}
+                          {ol.quantity}{getUnit(sel?.item_no, sel?.item_name)}
                         </span>
 
                         {/* 신뢰도 */}
