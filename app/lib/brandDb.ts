@@ -146,11 +146,11 @@ export async function getBrandContextForWine(itemCode: string): Promise<BrandCon
 
   if (!wine?.brand) return null;
 
-  // 2. brands 테이블에서 브랜드 정보 조회
+  // 2. brands 테이블에서 브랜드 정보 조회 (대소문자 무시)
   const { data: brand } = await supabase
     .from('brands')
     .select('*')
-    .eq('brand_code', wine.brand)
+    .ilike('brand_code', wine.brand)
     .maybeSingle();
 
   if (!brand || !brand.ai_researched) return null;
