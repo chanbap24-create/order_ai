@@ -14,6 +14,7 @@ const AnalysisTab = dynamic(() => import('./components/AnalysisTab'), { ssr: fal
 const LedgerTab = dynamic(() => import('./components/LedgerTab'), { ssr: false });
 const ItemLedgerTab = dynamic(() => import('./components/ItemLedgerTab'), { ssr: false });
 const OutstandingTab = dynamic(() => import('./components/OutstandingTab'), { ssr: false });
+const ClientListTab = dynamic(() => import('./components/ClientListTab'), { ssr: false });
 const ExpenseTab = dynamic(() => import('./components/ExpenseTab'), { ssr: false });
 
 export default function SalesPage() {
@@ -463,6 +464,7 @@ export default function SalesPage() {
         {activeTab === 'ledger' && <LedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'item-ledger' && <ItemLedgerTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'outstanding' && <OutstandingTab currentManager={currentManager} isAdmin={isAdmin} />}
+        {activeTab === 'client-list' && <ClientListTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'alerts' && <AlertTab currentManager={currentManager} isAdmin={isAdmin} onCountChange={handleAlertCountChange} />}
         {activeTab === 'expense' && <ExpenseTab currentManager={currentManager} isAdmin={isAdmin} department={userDepartment} />}
       </div>
