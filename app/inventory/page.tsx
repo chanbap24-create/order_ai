@@ -44,6 +44,7 @@ interface InventoryItem {
 interface QuoteItem {
   id: number;
   item_code: string;
+  barcode?: string;
   country: string;
   brand: string;
   region: string;
@@ -130,7 +131,7 @@ const DEFAULT_INV_DL: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 
 // ══════════════════════════════════════════
 
 type QuoteColumnKey =
-  | 'item_code' | 'country' | 'brand' | 'region' | 'image_url'
+  | 'item_code' | 'barcode' | 'country' | 'brand' | 'region' | 'image_url'
   | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
   | 'supply_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'retail_discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
@@ -146,6 +147,7 @@ interface QuoteColumnConfig {
 
 const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: 'item_code', label: '품목코드' },
+  { key: 'barcode', label: '바코드' },
   { key: 'country', label: '국가' },
   { key: 'brand', label: '브랜드' },
   { key: 'region', label: '지역' },

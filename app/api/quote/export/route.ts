@@ -36,6 +36,7 @@ interface ColDef {
 const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: null, label: 'No.', width: 5, type: 'index' },
   { uiKey: 'item_code', label: '품목코드', width: 11, type: 'text', dataField: 'item_code' },
+  { uiKey: 'barcode', label: '바코드', width: 15, type: 'text', dataField: 'barcode' },
   { uiKey: 'country', label: '국가', width: 8, type: 'text', dataField: 'country' },
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
   { uiKey: 'region', label: '지역', width: 16, type: 'text', dataField: 'region' },
@@ -231,6 +232,7 @@ export async function GET(request: NextRequest) {
     // Fetch wines table for grape_varieties enrichment
     const itemCodes = quoteItems.map((q: any) => q.item_code).filter(Boolean);
     let grapeMap: Record<string, string> = {};
+    let barcodeMap: Record<string, string> = {};
     if (itemCodes.length > 0) {
       const { data: wineRows } = await supabase
         .from('wines')
@@ -241,12 +243,37 @@ export async function GET(request: NextRequest) {
           if (w.grape_varieties) grapeMap[w.item_code] = w.grape_varieties;
         }
       }
+
+      // Fetch barcode from inventory_cdv
+      const { data: invRows } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, barcode')
+        .in('item_no', itemCodes);
+      if (invRows) {
+        for (const inv of invRows) {
+          if (inv.barcode) barcodeMap[inv.item_no] = inv.barcode;
+        }
+      }
+      // Fallback: inventory_dl
+      const missingCodes = itemCodes.filter((c: string) => !barcodeMap[c]);
+      if (missingCodes.length > 0) {
+        const { data: dlRows } = await supabase
+          .from('inventory_dl')
+          .select('item_no, barcode')
+          .in('item_no', missingCodes);
+        if (dlRows) {
+          for (const inv of dlRows) {
+            if (inv.barcode) barcodeMap[inv.item_no] = inv.barcode;
+          }
+        }
+      }
     }
 
-    // Merge grape_varieties into items
+    // Merge grape_varieties + barcode into items
     const items = quoteItems.map((q: any) => ({
       ...q,
       grape_varieties: grapeMap[q.item_code] || null,
+      barcode: barcodeMap[q.item_code] || null,
     }));
 
     // Parse visible columns

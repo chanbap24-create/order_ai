@@ -44,7 +44,34 @@ export async function GET(req: NextRequest) {
     const { data: items, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ success: true, items: items || [] });
+    // barcode 보강 (inventory_cdv → inventory_dl fallback)
+    const codes = (items || []).map((i: any) => i.item_code).filter(Boolean);
+    const barcodeMap: Record<string, string> = {};
+    if (codes.length > 0) {
+      const { data: invRows } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, barcode')
+        .in('item_no', codes);
+      if (invRows) {
+        for (const r of invRows) { if (r.barcode) barcodeMap[r.item_no] = r.barcode; }
+      }
+      const missing = codes.filter((c: string) => !barcodeMap[c]);
+      if (missing.length > 0) {
+        const { data: dlRows } = await supabase
+          .from('inventory_dl')
+          .select('item_no, barcode')
+          .in('item_no', missing);
+        if (dlRows) {
+          for (const r of dlRows) { if (r.barcode) barcodeMap[r.item_no] = r.barcode; }
+        }
+      }
+    }
+    const enriched = (items || []).map((i: any) => ({
+      ...i,
+      barcode: barcodeMap[i.item_code] || null,
+    }));
+
+    return NextResponse.json({ success: true, items: enriched });
   } catch (error) {
     console.error('Quote GET error:', error);
     return NextResponse.json(
