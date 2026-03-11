@@ -12,6 +12,8 @@ const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid
 const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
 const Legend = dynamic(() => import('recharts').then(m => m.Legend), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
+const BarChart = dynamic(() => import('recharts').then(m => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import('recharts').then(m => m.Bar), { ssr: false });
 
 // PieChart는 Cell이 dynamic import 시 자식 인식 안 되므로 통째로 래핑
 const BizPieChart = dynamic(() => import('recharts').then(mod => {
@@ -103,6 +105,9 @@ export default function ClientAnalysisTab() {
   // 매출추이 기간 단위
   const [trendPeriod, setTrendPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
+  // YoY comparison
+  const [lastYearTrend, setLastYearTrend] = useState<Array<{ date: string; revenue: number }>>([]);
+
   // Client detail bottom sheet
   const [selectedClient, setSelectedClient] = useState<{ code: string; name: string } | null>(null);
   const [clientItems, setClientItems] = useState<Array<{ item_no: string; item_name: string; quantity: number; revenue: number; count: number; supplyPrice: number | null; avgSellingPrice: number | null; discountRate: number | null }>>([]);
@@ -133,6 +138,24 @@ export default function ClientAnalysisTab() {
       const res = await fetch(`/api/admin/client-analysis?${params}`);
       const json = await res.json();
       if (json.success) setData(json);
+
+      // 작년 동기간 데이터도 fetch (YoY 비교용)
+      const lyStart = startDate.replace(/^\d{4}/, String(Number(startDate.slice(0, 4)) - 1));
+      const lyEnd = endDate.replace(/^\d{4}/, String(Number(endDate.slice(0, 4)) - 1));
+      const lyParams = new URLSearchParams({ type });
+      if (manager) lyParams.set('manager', manager);
+      if (department) lyParams.set('department', department);
+      if (businessType) lyParams.set('businessType', businessType);
+      if (clientSearch) lyParams.set('clientSearch', clientSearch);
+      lyParams.set('startDate', lyStart);
+      lyParams.set('endDate', lyEnd);
+      const lyRes = await fetch(`/api/admin/client-analysis?${lyParams}`);
+      const lyJson = await lyRes.json();
+      if (lyJson.success && lyJson.dailyTrend) {
+        setLastYearTrend(lyJson.dailyTrend);
+      } else {
+        setLastYearTrend([]);
+      }
     } catch { /* ignore */ }
     setLoading(false);
   }, [type, manager, department, businessType, clientSearch, startDate, endDate]);
@@ -529,6 +552,80 @@ export default function ClientAnalysisTab() {
               })()}
             </Card>
           )}
+
+          {/* YoY Monthly Revenue Comparison Chart */}
+          {data.dailyTrend.length > 0 && (() => {
+            // 올해 월별 집계
+            const thisYearMonthly = new Map<string, number>();
+            for (const d of data.dailyTrend) {
+              const m = d.date.slice(5, 7); // "01"~"12"
+              thisYearMonthly.set(m, (thisYearMonthly.get(m) || 0) + d.revenue);
+            }
+            // 작년 월별 집계
+            const lastYearMonthly = new Map<string, number>();
+            for (const d of lastYearTrend) {
+              const m = d.date.slice(5, 7);
+              lastYearMonthly.set(m, (lastYearMonthly.get(m) || 0) + d.revenue);
+            }
+            // 모든 월 합치기
+            const allMonths = [...new Set([...thisYearMonthly.keys(), ...lastYearMonthly.keys()])].sort();
+            if (allMonths.length === 0) return null;
+
+            const thisYear = startDate.slice(0, 4);
+            const lastYear = String(Number(thisYear) - 1);
+
+            const yoyData = allMonths.map(m => ({
+              month: `${Number(m)}월`,
+              [lastYear]: Math.round((lastYearMonthly.get(m) || 0) / 10000),
+              [thisYear]: Math.round((thisYearMonthly.get(m) || 0) / 10000),
+            }));
+
+            const thisYearTotal = [...thisYearMonthly.values()].reduce((s, v) => s + v, 0);
+            const lastYearTotal = [...lastYearMonthly.values()].reduce((s, v) => s + v, 0);
+            const growthRate = lastYearTotal > 0 ? ((thisYearTotal - lastYearTotal) / lastYearTotal * 100).toFixed(1) : null;
+
+            return (
+              <Card style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                  <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, margin: 0 }}>
+                    전년 대비 매출 비교
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 'var(--text-xs)' }}>
+                    <span style={{ color: 'var(--color-text-light)' }}>
+                      {lastYear}년 <b style={{ color: '#9CA3AF' }}>{formatKrw(lastYearTotal)}</b>
+                    </span>
+                    <span style={{ color: 'var(--color-text-light)' }}>
+                      {thisYear}년 <b style={{ color: '#8B1538' }}>{formatKrw(thisYearTotal)}</b>
+                    </span>
+                    {growthRate != null && (
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 6, fontWeight: 700, fontSize: 11,
+                        background: Number(growthRate) >= 0 ? 'rgba(229,62,62,0.08)' : 'rgba(49,130,206,0.08)',
+                        color: Number(growthRate) >= 0 ? '#E53E3E' : '#3182CE',
+                      }}>
+                        {Number(growthRate) >= 0 ? '+' : ''}{growthRate}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={yoyData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v.toLocaleString()}만`} width={60} />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [`${value.toLocaleString()}만원`, `${name}년`]}
+                      />
+                      <Legend formatter={(value: string) => `${value}년`} />
+                      <Bar dataKey={lastYear} fill="#D1D5DB" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey={thisYear} fill="#8B1538" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            );
+          })()}
 
           {/* Client Ranking Table */}
           {data.clientRanking.length > 0 && (
