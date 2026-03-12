@@ -710,6 +710,20 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2423605": {
+      "exists": true,
+      "filename": "2423605.pdf",
+      "size_kb": 327,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2423606": {
+      "exists": true,
+      "filename": "2423606.pdf",
+      "size_kb": 399,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2619504": {
       "exists": true,
       "filename": "2619504.pdf",
@@ -1687,6 +1701,13 @@
       "exists": true,
       "filename": "2D21001.pdf",
       "size_kb": 276,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2D21401": {
+      "exists": true,
+      "filename": "2D21401.pdf",
+      "size_kb": 298,
       "pages": 1,
       "wine_name": ""
     },
