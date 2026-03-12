@@ -398,6 +398,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
             if (!shipRes.ok) {
               const shipJson = await shipRes.json();
               console.error('Shipment batch error:', shipJson);
+              throw new Error(`출고 데이터 업로드 실패: ${shipJson.error || '알 수 없는 오류'}`);
             }
           }
 
