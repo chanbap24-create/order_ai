@@ -215,8 +215,8 @@ export async function GET() {
         'dl-payments': glassPayMaxDate?.payment_date || null,
       },
       inventoryLastDates: {
-        downloads: cdvUpdated?.updated_at ? cdvUpdated.updated_at.slice(0, 10) : null,
-        dl: dlUpdated?.updated_at ? dlUpdated.updated_at.slice(0, 10) : null,
+        downloads: cdvUpdated?.updated_at ? new Date(new Date(cdvUpdated.updated_at).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10) : null,
+        dl: dlUpdated?.updated_at ? new Date(new Date(dlUpdated.updated_at).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10) : null,
       },
     });
   } catch (error: any) {
