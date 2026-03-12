@@ -424,12 +424,11 @@ export default function InventoryPage() {
 
     try {
       // Inventory columns
-      const migrate = (cols: InvColumnKey[]): InvColumnKey[] =>
-        cols.map(c => c === ('available_stock' as any) ? 'total_stock' as InvColumnKey : c);
+      const dedupe = (cols: InvColumnKey[]): InvColumnKey[] => [...new Set(cols)];
       const savedCDV = localStorage.getItem('inventory_columns_cdv');
       const savedDL = localStorage.getItem('inventory_columns_dl');
-      if (savedCDV) try { setVisibleColumnsCDV(migrate(JSON.parse(savedCDV))); } catch {}
-      if (savedDL) try { setVisibleColumnsDL(migrate(JSON.parse(savedDL))); } catch {}
+      if (savedCDV) try { setVisibleColumnsCDV(dedupe(JSON.parse(savedCDV))); } catch {}
+      if (savedDL) try { setVisibleColumnsDL(dedupe(JSON.parse(savedDL))); } catch {}
 
       // Company / doc settings (load first to determine tab)
       const savedCompany = localStorage.getItem('quote_company') as WarehouseTab | null;
@@ -484,6 +483,14 @@ export default function InventoryPage() {
   useEffect(() => {
     saveSearchState();
   }, [saveSearchState]);
+
+  // Save inventory columns
+  useEffect(() => {
+    try { localStorage.setItem('inventory_columns_cdv', JSON.stringify([...new Set(visibleColumnsCDV)])); } catch {}
+  }, [visibleColumnsCDV]);
+  useEffect(() => {
+    try { localStorage.setItem('inventory_columns_dl', JSON.stringify([...new Set(visibleColumnsDL)])); } catch {}
+  }, [visibleColumnsDL]);
 
   // Save quote columns (per tab)
   useEffect(() => {
@@ -813,12 +820,9 @@ export default function InventoryPage() {
     if (key === 'item_no' || key === 'item_name') return;
     const current = activeTab === 'CDV' ? visibleColumnsCDV : visibleColumnsDL;
     const setter = activeTab === 'CDV' ? setVisibleColumnsCDV : setVisibleColumnsDL;
-    const newCols = current.includes(key) ? current.filter(k => k !== key) : [...current, key];
+    const dedupedCurrent = [...new Set(current)];
+    const newCols = dedupedCurrent.includes(key) ? dedupedCurrent.filter(k => k !== key) : [...dedupedCurrent, key];
     setter(newCols);
-    try {
-      const storageKey = activeTab === 'CDV' ? 'inventory_columns_cdv' : 'inventory_columns_dl';
-      localStorage.setItem(storageKey, JSON.stringify(newCols));
-    } catch {}
   };
 
   // ── Quote inline editing ──
@@ -935,7 +939,7 @@ export default function InventoryPage() {
   // Inventory columns
   const invColumnOrder = INV_COLUMNS.map(c => c.key);
   const rawInvVisible = activeTab === 'CDV' ? visibleColumnsCDV : visibleColumnsDL;
-  const visibleInvColumns = [...rawInvVisible].sort((a, b) => invColumnOrder.indexOf(a) - invColumnOrder.indexOf(b));
+  const visibleInvColumns = [...new Set(rawInvVisible)].sort((a, b) => invColumnOrder.indexOf(a) - invColumnOrder.indexOf(b));
 
   const availableInvColumns = INV_COLUMNS.filter(col => {
     if (activeTab === 'CDV') return !col.dlOnly;
