@@ -73,8 +73,19 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
   const [clientSearch, setClientSearch] = useState('');
   const [clientCode, setClientCode] = useState('');
   const [clientName, setClientName] = useState('');
-  const [startDate, setStartDate] = useState('2026-01-01');
-  const [endDate, setEndDate] = useState(new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('analysis_startDate') || '2026-01-01';
+    }
+    return '2026-01-01';
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('analysis_endDate') || new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    }
+    return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  });
+  const [preset, setPreset] = useState('');
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,6 +116,51 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
   const isWine = type === 'wine';
 
   useEffect(() => { setMounted(true); }, []);
+
+  // ── Save dates to sessionStorage ──
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('analysis_startDate', startDate);
+      sessionStorage.setItem('analysis_endDate', endDate);
+    }
+  }, [startDate, endDate]);
+
+  const applyPreset = (p: string) => {
+    setPreset(p);
+    const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    let s = '', e = '';
+    switch (p) {
+      case 'this_month':
+        s = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+        e = now.toISOString().slice(0, 10);
+        break;
+      case 'last_month': {
+        const pm = m === 0 ? 11 : m - 1;
+        const py = m === 0 ? y - 1 : y;
+        s = `${py}-${String(pm + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(py, pm + 1, 0).getDate();
+        e = `${py}-${String(pm + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        break;
+      }
+      case 'recent_3m': {
+        const d3 = new Date(y, m - 2, 1);
+        s = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-01`;
+        e = now.toISOString().slice(0, 10);
+        break;
+      }
+      case 'this_year':
+        s = `${y}-01-01`;
+        e = now.toISOString().slice(0, 10);
+        break;
+      case 'last_year':
+        s = `${y - 1}-01-01`;
+        e = `${y - 1}-12-31`;
+        break;
+    }
+    if (s && e) { setStartDate(s); setEndDate(e); }
+  };
 
   // ── Fetch client ranking data ──
   const fetchClientRanking = useCallback(async () => {
@@ -264,14 +320,29 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
                 </select>
               </div>
             )}
+            <div style={{ flex: '1 1 100px', minWidth: 80 }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>기간</label>
+              <select
+                value={preset}
+                onChange={e => applyPreset(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810' }}
+              >
+                <option value="">직접선택</option>
+                <option value="this_month">이번달</option>
+                <option value="last_month">지난달</option>
+                <option value="recent_3m">최근3개월</option>
+                <option value="this_year">올해</option>
+                <option value="last_year">작년</option>
+              </select>
+            </div>
             <div style={{ flex: '1 1 110px', minWidth: 100 }}>
               <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>시작</label>
-              <input type="date" value={startDate} min={dateRange?.min || ''} max={endDate || dateRange?.max || ''} onChange={e => setStartDate(e.target.value)}
+              <input type="date" value={startDate} min={dateRange?.min || ''} max={endDate || dateRange?.max || ''} onChange={e => { setStartDate(e.target.value); setPreset(''); }}
                 style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810', boxSizing: 'border-box' }} />
             </div>
             <div style={{ flex: '1 1 110px', minWidth: 100 }}>
               <label style={{ fontSize: '0.65rem', fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 3 }}>종료</label>
-              <input type="date" value={endDate} min={startDate || dateRange?.min || ''} max={dateRange?.max || ''} onChange={e => setEndDate(e.target.value)}
+              <input type="date" value={endDate} min={startDate || dateRange?.min || ''} max={dateRange?.max || ''} onChange={e => { setEndDate(e.target.value); setPreset(''); }}
                 style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, background: '#fff', color: '#2c1810', boxSizing: 'border-box' }} />
             </div>
             <div ref={suggestRef} style={{ flex: '1 1 140px', minWidth: 120, position: 'relative' }}>
