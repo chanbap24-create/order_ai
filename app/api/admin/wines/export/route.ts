@@ -108,11 +108,17 @@ export async function GET(request: NextRequest) {
       return true;
     });
 
+    // United States → USA 통일
+    for (const w of allWines) {
+      if (w.country_en === 'United States') w.country_en = 'USA';
+      if (w.country === 'United States') w.country = 'USA';
+    }
+
     // 커스텀 정렬 (국가 → 브랜드 → 가격)
     const COUNTRY_ORDER: Record<string, number> = {
       'England': 0, '영국': 0, 'France': 1, '프랑스': 1,
       'Italy': 2, '이탈리아': 2, '이태리': 2, 'Spain': 3, '스페인': 3,
-      'Portugal': 4, '포르투갈': 4, 'USA': 5, '미국': 5,
+      'Portugal': 4, '포르투갈': 4, 'USA': 5, 'United States': 5, '미국': 5,
       'Chile': 6, '칠레': 6, 'Argentina': 7, '아르헨티나': 7,
       'Australia': 8, '호주': 8, 'NewZealand': 9, 'New Zealand': 9, '뉴질랜드': 9,
     };
