@@ -7,6 +7,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
     const clientType = searchParams.get('type') || 'wine';
+    const startParam = searchParams.get('start') || '';
+    const endParam = searchParams.get('end') || '';
+    const managerParam = searchParams.get('manager') || '';
 
     // 타입에 따라 테이블 선택
     const shipmentsTable = clientType === 'glass' ? 'glass_shipments' : 'shipments';
@@ -23,6 +26,11 @@ export async function GET(req: NextRequest) {
     const threeStr = threeMonthsAgo.toISOString().slice(0, 10);
     const sixStr = sixMonthsAgo.toISOString().slice(0, 10);
     const twelveStr = twelveMonthsAgo.toISOString().slice(0, 10);
+
+    // 사용자 지정 기간이 있으면 해당 기간으로 필터
+    const useCustomRange = !!(startParam && endParam);
+    const rangeStart = startParam || twelveStr;
+    const rangeEnd = endParam || '';
 
     // 단일 거래처 상세 통계
     if (code) {
@@ -149,13 +157,17 @@ export async function GET(req: NextRequest) {
       let from = 0;
 
       while (true) {
-        const { data: shipmentAgg, error: shipErr } = await supabase
+        let q = supabase
           .from(shipmentsTable)
           .select('client_code, supply_amount, ship_date')
           .in('client_code', batch)
-          .gte('ship_date', twelveStr)
-          .order('ship_date', { ascending: true })
+          .gte('ship_date', rangeStart);
+        if (rangeEnd) q = q.lte('ship_date', rangeEnd);
+        if (managerParam) q = q.eq('manager', managerParam);
+        q = q.order('ship_date', { ascending: true })
           .range(from, from + rowBatchSize - 1);
+
+        const { data: shipmentAgg, error: shipErr } = await q;
 
         if (shipErr) throw shipErr;
         if (!shipmentAgg || shipmentAgg.length === 0) break;
@@ -171,8 +183,12 @@ export async function GET(req: NextRequest) {
           st.orderCount += 1;
 
           const d = s.ship_date?.toString().slice(0, 10) || '';
-          if (d >= threeStr) st.recentHalf += amt;
-          else if (d >= sixStr) st.prevHalf += amt;
+          if (!useCustomRange) {
+            if (d >= threeStr) st.recentHalf += amt;
+            else if (d >= sixStr) st.prevHalf += amt;
+          } else {
+            st.recentHalf += amt;
+          }
 
           if (d && (!st.lastShipDate || d > st.lastShipDate)) {
             st.lastShipDate = d;

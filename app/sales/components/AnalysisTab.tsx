@@ -166,12 +166,16 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
   const fetchClientRanking = useCallback(async () => {
     setRankLoading(true);
     try {
-      const params = new URLSearchParams({ type, limit: '9999' });
       const mgr = isAdmin ? manager : currentManager;
-      if (mgr) params.set('manager', mgr);
+      const clientParams = new URLSearchParams({ type, limit: '9999' });
+      if (mgr) clientParams.set('manager', mgr);
+      const statsParams = new URLSearchParams({ type });
+      if (startDate) statsParams.set('start', startDate);
+      if (endDate) statsParams.set('end', endDate);
+      if (mgr) statsParams.set('manager', mgr);
       const [clientRes, statsRes] = await Promise.all([
-        fetch(`/api/sales/clients?${params}`),
-        fetch(`/api/sales/clients/stats?type=${type}`),
+        fetch(`/api/sales/clients?${clientParams}`),
+        fetch(`/api/sales/clients/stats?${statsParams}`),
       ]);
       const clientJson = await clientRes.json();
       const statsJson = await statsRes.json();
@@ -179,9 +183,9 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
       if (statsJson.stats) setRankStats(statsJson.stats);
     } catch (err) { console.error('Failed to fetch client ranking:', err); }
     finally { setRankLoading(false); }
-  }, [type, manager, isAdmin, currentManager]);
+  }, [type, manager, isAdmin, currentManager, startDate, endDate]);
 
-  useEffect(() => { fetchClientRanking(); }, [fetchClientRanking]);
+  useEffect(() => { fetchClientRanking(); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTypeChange = (t: 'wine' | 'glass') => {
     setType(t);
@@ -249,7 +253,8 @@ function AnalysisSection({ currentManager, isAdmin, onSelectClient }: { currentM
       .then(r => r.json())
       .then(d => { if (d.success) setData(d); })
       .finally(() => setLoading(false));
-  }, [type, manager, department, clientCode, startDate, endDate, isAdmin, currentManager]);
+    fetchClientRanking();
+  }, [type, manager, department, clientCode, startDate, endDate, isAdmin, currentManager, fetchClientRanking]);
 
   useEffect(() => {
     loadData();
