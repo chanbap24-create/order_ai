@@ -300,26 +300,21 @@ async function dismissPopups(page) {
 // ══════════════════════════════════════════
 async function setQueryConditions(page, config) {
   if (config.type === 'release') {
-    // 출고현황: 완료제외 체크
-    const needsCheck = await page.evaluate(() => {
-      const allText = document.body.innerText;
-      if (allText.includes('완료제외')) {
-        // 완료제외 근처의 체크박스 찾기
-        const labels = document.querySelectorAll('label, span');
-        for (const l of labels) {
-          if (l.textContent?.includes('완료제외')) {
-            const cb = l.querySelector('input[type="checkbox"]')
-              || l.closest('label')?.querySelector('input[type="checkbox"]');
-            if (cb && !cb.checked) return true;
-          }
+    // 출고현황: 완료제외 체크박스가 켜져있으면 해제 (완료건 포함해서 전체 조회)
+    const needsUncheck = await page.evaluate(() => {
+      const labels = document.querySelectorAll('label, span');
+      for (const l of labels) {
+        if (l.textContent?.includes('완료제외')) {
+          const cb = l.querySelector('input[type="checkbox"]')
+            || l.closest('label')?.querySelector('input[type="checkbox"]');
+          if (cb && cb.checked) return true;
         }
       }
       return false;
     });
 
-    if (needsCheck) {
-      log('  완료제외 체크');
-      // 완료제외 텍스트 근처 체크박스 클릭
+    if (needsUncheck) {
+      log('  완료제외 체크 해제 (전체 조회)');
       await page.evaluate(() => {
         const labels = document.querySelectorAll('label, span');
         for (const l of labels) {
