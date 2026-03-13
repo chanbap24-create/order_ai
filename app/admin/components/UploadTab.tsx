@@ -554,11 +554,14 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         )}
       </Card>
 
+      {/* ═══ 스마트 일괄 업로드 ═══ */}
+      <SmartBatchUpload handleUpload={handleUpload} checkStatus={checkStatus} />
+
       {/* 엑셀 업로드 */}
       <div style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>엑셀 업로드</h2>
+        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>개별 업로드</h2>
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-light)', marginBottom: 'var(--space-4)' }}>
-          각 시트별 엑셀 파일을 업로드하여 DB 데이터를 교체합니다.
+          각 시트별 엑셀 파일을 개별 업로드합니다.
         </p>
         <div style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-md)', background: '#FFF8E1', border: '1px solid #FFE082', fontSize: 'var(--text-sm)', color: '#7C6800', marginBottom: 'var(--space-5)' }}>
           출고현황(Client/DL-Client)과 수금내역(Wine/DL)은 누적 추가/전체 교체 모드를 선택할 수 있습니다. 그 외 시트는 업로드 시 기존 데이터가 교체됩니다.
@@ -590,6 +593,364 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         })}
       </div>
     </div>
+  );
+}
+
+/* ─── Smart Batch Upload Component ─── */
+type DetectedType = 'downloads' | 'dl' | 'client' | 'dl-client' | 'payments' | 'dl-payments' | 'unknown';
+
+interface BatchFile {
+  file: File;
+  detectedType: DetectedType;
+  confidence: 'high' | 'medium' | 'low';
+  reason: string;
+  overrideType?: DetectedType;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  message?: string;
+}
+
+const BATCH_TYPE_OPTIONS: { value: DetectedType; label: string }[] = [
+  { value: 'downloads', label: '와인재고현황' },
+  { value: 'dl', label: '글라스재고현황' },
+  { value: 'client', label: '와인 출고현황' },
+  { value: 'dl-client', label: '글라스 출고현황' },
+  { value: 'payments', label: '수금내역(Wine)' },
+  { value: 'dl-payments', label: '수금내역(DL)' },
+];
+
+async function detectFileType(file: File): Promise<{ type: DetectedType; confidence: 'high' | 'medium' | 'low'; reason: string }> {
+  try {
+    const XLSX = await import('xlsx');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+    if (rows.length < 2) return { type: 'unknown', confidence: 'low', reason: '데이터 없음' };
+
+    const headers = (rows[0] as unknown[]).map(h => String(h ?? '').trim());
+    const headerText = headers.join('|');
+    const colCount = headers.filter(h => h).length;
+
+    // 1) 재고 파일: 헤더에 '품번', '품명', '재고수량' 등 포함
+    if (headerText.includes('품번') && headerText.includes('품명') && (headerText.includes('재고수량') || headerText.includes('가용재고'))) {
+      // CDV vs DL: 창고 헤더로 구분
+      if (headerText.includes('용마') || headerText.includes('보세(용마)')) {
+        return { type: 'downloads', confidence: 'high', reason: '재고파일 - 용마 창고 헤더 감지 (CDV)' };
+      }
+      if (headerText.includes('GIG') || headerText.includes('보세(GIG)')) {
+        return { type: 'dl', confidence: 'high', reason: '재고파일 - GIG 창고 헤더 감지 (DL)' };
+      }
+      return { type: 'downloads', confidence: 'low', reason: '재고파일이나 CDV/DL 구분 불가' };
+    }
+
+    // 2) 출고현황 (client/dl-client): 컬럼 수 많음 (30+), 출하일자/거래처 패턴
+    // 검사: 5번째 컬럼 부근에 거래처명, 6번째에 거래처코드, 7번째에 날짜
+    if (colCount >= 30) {
+      // 몇 행 샘플링해서 warehouse 값 확인
+      const warehouseValues = new Set<string>();
+      for (let i = 1; i < Math.min(100, rows.length); i++) {
+        const r = rows[i] as unknown[];
+        const wh = String(r[23] ?? '').trim();
+        if (wh) warehouseValues.add(wh);
+      }
+      const whText = Array.from(warehouseValues).join('|');
+
+      if (whText.includes('용마') || whText.includes('CDV') || whText.includes('안성(CDV)')) {
+        return { type: 'client', confidence: 'high', reason: '출고현황 - 용마/CDV 창고 감지' };
+      }
+      if (whText.includes('GIG') || whText.includes('DL') || whText.includes('안성(DL)')) {
+        return { type: 'dl-client', confidence: 'high', reason: '출고현황 - GIG/DL 창고 감지' };
+      }
+
+      // 파일명 힌트
+      const fname = file.name.toLowerCase();
+      if (fname.includes('dl') || fname.includes('글라스') || fname.includes('glass') || fname.includes('riedel')) {
+        return { type: 'dl-client', confidence: 'medium', reason: '출고현황 - 파일명에 DL/글라스 포함' };
+      }
+      return { type: 'client', confidence: 'medium', reason: '출고현황 - 컬럼 수 30+ (CDV 추정)' };
+    }
+
+    // 3) 수금내역 (payments/dl-payments): 컬럼 ~14개, '이월' 행 존재
+    if (colCount >= 10 && colCount <= 20) {
+      // '이월' 행 확인
+      let hasCarryover = false;
+      for (let i = 1; i < Math.min(50, rows.length); i++) {
+        const r = rows[i] as unknown[];
+        if (r[4] === '이월') { hasCarryover = true; break; }
+      }
+
+      if (hasCarryover) {
+        // CDV vs DL 구분: 부서/담당자 또는 파일명
+        const fname = file.name.toLowerCase();
+        if (fname.includes('dl') || fname.includes('글라스') || fname.includes('glass') || fname.includes('riedel')) {
+          return { type: 'dl-payments', confidence: 'high', reason: '수금내역 - 이월행 + 파일명 DL' };
+        }
+        // 부서 컬럼(12) 확인
+        const depts = new Set<string>();
+        for (let i = 1; i < Math.min(100, rows.length); i++) {
+          const r = rows[i] as unknown[];
+          const dept = String(r[12] ?? '').trim();
+          if (dept) depts.add(dept);
+        }
+        const deptText = Array.from(depts).join('|');
+        if (deptText.includes('DL') || deptText.includes('글라스')) {
+          return { type: 'dl-payments', confidence: 'high', reason: '수금내역 - 부서에 DL 포함' };
+        }
+        return { type: 'payments', confidence: 'medium', reason: '수금내역 - 이월행 감지 (CDV 추정)' };
+      }
+    }
+
+    return { type: 'unknown', confidence: 'low', reason: `헤더 패턴 미매칭 (컬럼 ${colCount}개)` };
+  } catch {
+    return { type: 'unknown', confidence: 'low', reason: '파일 분석 실패' };
+  }
+}
+
+function SmartBatchUpload({ handleUpload, checkStatus }: { handleUpload: (type: string, file: File) => Promise<void>; checkStatus: () => void }) {
+  const [files, setFiles] = useState<BatchFile[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isBatchUploading, setIsBatchUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const analyzeFiles = useCallback(async (fileList: FileList | File[]) => {
+    setIsAnalyzing(true);
+    const newFiles: BatchFile[] = [];
+
+    for (const file of Array.from(fileList)) {
+      const name = file.name.toLowerCase();
+      if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) continue;
+      const { type, confidence, reason } = await detectFileType(file);
+      newFiles.push({ file, detectedType: type, confidence, reason, status: 'pending' });
+    }
+
+    setFiles(prev => [...prev, ...newFiles]);
+    setIsAnalyzing(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setIsDragOver(false);
+    if (e.dataTransfer.files.length > 0) analyzeFiles(e.dataTransfer.files);
+  }, [analyzeFiles]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) analyzeFiles(e.target.files);
+    if (inputRef.current) inputRef.current.value = '';
+  }, [analyzeFiles]);
+
+  const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx));
+  const clearAll = () => setFiles([]);
+
+  const setOverride = (idx: number, type: DetectedType) => {
+    setFiles(prev => prev.map((f, i) => i === idx ? { ...f, overrideType: type === f.detectedType ? undefined : type } : f));
+  };
+
+  const getEffectiveType = (f: BatchFile): DetectedType => f.overrideType || f.detectedType;
+
+  const batchUpload = async () => {
+    const uploadable = files.filter(f => getEffectiveType(f) !== 'unknown' && f.status !== 'success');
+    if (uploadable.length === 0) return;
+
+    // 중복 타입 체크
+    const typeCount = new Map<string, number>();
+    for (const f of uploadable) {
+      const t = getEffectiveType(f);
+      typeCount.set(t, (typeCount.get(t) || 0) + 1);
+    }
+    const dupes = Array.from(typeCount.entries()).filter(([, c]) => c > 1);
+    if (dupes.length > 0) {
+      const names = dupes.map(([t]) => BATCH_TYPE_OPTIONS.find(o => o.value === t)?.label || t).join(', ');
+      if (!confirm(`${names}에 여러 파일이 지정되어 있습니다. 계속하시겠습니까?`)) return;
+    }
+
+    setIsBatchUploading(true);
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const effectiveType = getEffectiveType(f);
+      if (effectiveType === 'unknown' || f.status === 'success') continue;
+
+      setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, status: 'uploading', message: '업로드 중...' } : pf));
+
+      try {
+        await handleUpload(effectiveType, f.file);
+        setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, status: 'success', message: '완료' } : pf));
+      } catch (err) {
+        setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, status: 'error', message: err instanceof Error ? err.message : '오류' } : pf));
+      }
+    }
+
+    setIsBatchUploading(false);
+    checkStatus();
+  };
+
+  const confidenceColor = (c: 'high' | 'medium' | 'low') =>
+    c === 'high' ? '#2E7D32' : c === 'medium' ? '#E65100' : '#C62828';
+  const confidenceLabel = (c: 'high' | 'medium' | 'low') =>
+    c === 'high' ? '확실' : c === 'medium' ? '추정' : '불확실';
+
+  const statusIcon = (s: BatchFile['status']) => {
+    if (s === 'success') return <span style={{ color: '#2E7D32', fontSize: 18 }}>&#10003;</span>;
+    if (s === 'error') return <span style={{ color: '#C62828', fontSize: 18 }}>&#10007;</span>;
+    if (s === 'uploading') return <Spinner />;
+    return null;
+  };
+
+  const uploadableCount = files.filter(f => getEffectiveType(f) !== 'unknown' && f.status !== 'success').length;
+
+  return (
+    <Card style={{ marginBottom: 'var(--space-6)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+        <div>
+          <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>스마트 일괄 업로드</h2>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-light)', marginTop: 2 }}>
+            여러 파일을 한번에 드래그하면 자동으로 파일 종류를 감지합니다
+          </p>
+        </div>
+        {files.length > 0 && (
+          <button className="btn btn-outline btn-sm" onClick={clearAll} disabled={isBatchUploading}>
+            전체 초기화
+          </button>
+        )}
+      </div>
+
+      {/* Drop zone */}
+      <div
+        ref={dropRef}
+        onDrop={isBatchUploading ? undefined : handleDrop}
+        onDragOver={isBatchUploading ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true); }}
+        onDragLeave={isBatchUploading ? undefined : (e) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false); }}
+        onClick={() => !isBatchUploading && !isAnalyzing && inputRef.current?.click()}
+        style={{
+          border: `2px dashed ${isDragOver ? 'var(--color-primary)' : 'var(--color-border)'}`,
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-6)',
+          textAlign: 'center',
+          cursor: isBatchUploading ? 'not-allowed' : 'pointer',
+          background: isDragOver ? 'rgba(139,21,56,0.04)' : 'var(--color-background)',
+          transition: 'all 0.15s',
+          marginBottom: files.length > 0 ? 'var(--space-4)' : 0,
+        }}
+      >
+        <input ref={inputRef} type="file" accept={ACCEPT} multiple style={{ display: 'none' }} onChange={handleFileInput} disabled={isBatchUploading} />
+        {isAnalyzing ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Spinner />
+            <span style={{ color: 'var(--color-text-light)', fontSize: 'var(--text-sm)' }}>파일 분석 중...</span>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }}>&#128194;</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-light)' }}>
+              6개 파일을 한번에 드래그하거나 클릭하여 선택
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-lighter)', marginTop: 4 }}>
+              재고(CDV/DL) + 출고현황(CDV/DL) + 수금(Wine/DL) 자동 감지
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* File list */}
+      {files.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          {files.map((f, idx) => {
+            const effectiveType = getEffectiveType(f);
+            const isOverridden = !!f.overrideType;
+            const typeLabel = BATCH_TYPE_OPTIONS.find(o => o.value === effectiveType)?.label || '알 수 없음';
+
+            return (
+              <div key={idx} style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                padding: 'var(--space-3) var(--space-4)',
+                background: f.status === 'success' ? 'rgba(52,199,89,0.06)' : f.status === 'error' ? 'rgba(255,59,48,0.06)' : 'var(--color-card)',
+                borderRadius: 'var(--radius-md)',
+                border: `1px solid ${f.status === 'success' ? 'rgba(52,199,89,0.2)' : f.status === 'error' ? 'rgba(255,59,48,0.2)' : 'var(--color-border)'}`,
+              }}>
+                {/* Status icon */}
+                <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
+                  {statusIcon(f.status)}
+                </div>
+
+                {/* File name */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.file.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-lighter)', marginTop: 1 }}>
+                    {f.reason}
+                    {f.message && f.status !== 'pending' && <span> &middot; {f.message}</span>}
+                  </div>
+                </div>
+
+                {/* Detected type */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700,
+                    padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+                    background: effectiveType === 'unknown' ? '#FFEBEE' : isOverridden ? '#E3F2FD' : 'rgba(52,199,89,0.1)',
+                    color: effectiveType === 'unknown' ? '#C62828' : isOverridden ? '#1565C0' : '#2E7D32',
+                  }}>
+                    {typeLabel}
+                  </span>
+                  {!isOverridden && effectiveType !== 'unknown' && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: confidenceColor(f.confidence) }}>
+                      {confidenceLabel(f.confidence)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Type override dropdown */}
+                {f.status === 'pending' && (
+                  <select
+                    value={effectiveType}
+                    onChange={(e) => setOverride(idx, e.target.value as DetectedType)}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      fontSize: 12, padding: '4px 8px', borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--color-border)', background: 'var(--color-card)',
+                      cursor: 'pointer', minWidth: 100,
+                    }}
+                  >
+                    {BATCH_TYPE_OPTIONS.map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Remove button */}
+                {f.status === 'pending' && (
+                  <button
+                    onClick={() => removeFile(idx)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--color-text-lighter)', fontSize: 18, padding: '0 4px',
+                      lineHeight: 1,
+                    }}
+                    title="제거"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Batch upload button */}
+          {uploadableCount > 0 && (
+            <button
+              className="btn btn-primary"
+              onClick={batchUpload}
+              disabled={isBatchUploading}
+              style={{ marginTop: 'var(--space-2)', width: '100%', padding: 'var(--space-3)' }}
+            >
+              {isBatchUploading ? '업로드 중...' : `${uploadableCount}개 파일 일괄 업로드`}
+            </button>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 
