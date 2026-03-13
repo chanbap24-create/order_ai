@@ -123,10 +123,34 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     // 8. 와인맵으로 가격/재고 보강 (trim + 대소문자 무시)
     const wineMap = new Map((wines || []).map(w => [w.item_no.trim().toUpperCase(), w]));
 
+    // 입고예정 조회
+    const { data: importSchedule } = await supabase
+      .from('import_schedule')
+      .select('item_code, arrival_date, total_btls')
+      .gte('arrival_date', new Date().toISOString().slice(0, 10));
+    const importMap = new Map<string, { arrival_date: string; total_btls: number }>();
+    for (const is of (importSchedule || [])) {
+      const key = (is.item_code || '').trim().toUpperCase();
+      if (!importMap.has(key)) importMap.set(key, { arrival_date: is.arrival_date, total_btls: is.total_btls });
+    }
+
+    // 거래처 구매이력 품번 Set
+    const historyItemNos = purchaseHistory.map(h => h.item_no);
+    const historySet = new Set(historyItemNos.map(n => n.trim().toUpperCase()));
+
+    // 품번에서 빈티지 제거한 "와인 기본키" 추출 (예: 3A24001 → 3Axx001 → 와인 "3A")
+    // 품번 구조: 브랜드(2) + 빈티지(2) + 번호(3) → 같은 와인 = 브랜드 + 번호 동일
+    const getWineBase = (itemNo: string): string => {
+      const s = itemNo.trim();
+      if (s.length >= 7) return s.slice(0, 2) + 'XX' + s.slice(4);
+      return s;
+    };
+
     const orderLines = parsed.map((p: any) => {
       const candidates = (p.candidates || []).map((c: any) => {
         const key = (c.item_no || '').trim().toUpperCase();
         const wine = wineMap.get(key);
+        const imp = importMap.get(key);
         return {
           item_no: wine?.item_no || (c.item_no || '').trim(),
           item_name: wine?.item_name || c.item_name || '',
@@ -134,8 +158,46 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
           supply_price: wine?.supply_price || 0,
           available_stock: wine?.available_stock || 0,
           reasoning: c.reasoning || '',
+          ...(imp ? { incoming: { arrival_date: imp.arrival_date, total_btls: imp.total_btls } } : {}),
         };
       });
+
+      // ── 빈티지 자동 확정 로직 ──
+      if (tab !== 'DL' && candidates.length > 1) {
+        const first = candidates[0];
+        const firstBase = getWineBase(first.item_no);
+
+        // 같은 와인(브랜드+번호)의 다른 빈티지 후보 찾기
+        const sameWineCands = candidates.filter((c: any) => getWineBase(c.item_no) === firstBase);
+
+        if (sameWineCands.length > 1) {
+          // 1) 거래처가 특정 빈티지를 구매한 이력이 있으면 그것을 우선 선택
+          const historyMatch = sameWineCands.find((c: any) => historySet.has(c.item_no.trim().toUpperCase()));
+          if (historyMatch) {
+            const hIdx = candidates.indexOf(historyMatch);
+            if (hIdx > 0) {
+              // 해당 후보를 맨 앞으로
+              candidates.splice(hIdx, 1);
+              candidates.unshift(historyMatch);
+              historyMatch.reasoning = (historyMatch.reasoning || '') + ' [거래처 구매이력 빈티지]';
+            }
+          } else {
+            // 2) 이전 빈티지 재고 0이면 → 재고 있는 최신 빈티지 선택
+            if (first.available_stock <= 0) {
+              const withStock = sameWineCands.find((c: any) => c.available_stock > 0);
+              if (withStock) {
+                const wsIdx = candidates.indexOf(withStock);
+                if (wsIdx > 0) {
+                  candidates.splice(wsIdx, 1);
+                  candidates.unshift(withStock);
+                  withStock.reasoning = (withStock.reasoning || '') + ' [이전 빈티지 재고 없음→최신 빈티지]';
+                }
+              }
+            }
+          }
+        }
+      }
+
       return {
         query: p.query || '',
         quantity: Number(p.quantity) || 1,
@@ -147,9 +209,6 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       input_tokens: response.usage?.input_tokens || 0,
       output_tokens: response.usage?.output_tokens || 0,
     };
-
-    // 구매이력 품번 Set
-    const historyItemNos = purchaseHistory.map(h => h.item_no);
 
     return NextResponse.json({
       orderLines,

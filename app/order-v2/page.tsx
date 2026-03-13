@@ -14,6 +14,7 @@ interface Candidate {
   supply_price: number;
   available_stock: number;
   reasoning: string;
+  incoming?: { arrival_date: string; total_btls: number };
 }
 
 interface OrderLine {
@@ -1072,8 +1073,14 @@ export default function OrderV2Page() {
                           ) : (
                             <span style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>미선택</span>
                           )}
-                          <span style={{ fontSize: 10, color: '#b8b0a8', display: 'block', marginTop: 1 }}>
+                          <span style={{ fontSize: 10, color: '#b8b0a8', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
                             {sel?.item_no || ''} · &quot;{ol.query}&quot;
+                            {sel?.incoming && (
+                              <span style={{
+                                fontSize: 8, fontWeight: 700, color: '#0369a1',
+                                background: '#e0f2fe', padding: '0px 4px', borderRadius: 3,
+                              }}>입고</span>
+                            )}
                           </span>
                         </div>
 
@@ -1188,8 +1195,15 @@ export default function OrderV2Page() {
                                     }}>
                                       {cand.item_name}
                                     </div>
-                                    <div style={{ fontSize: 10, color: '#b8b0a8' }}>
-                                      {cand.item_no} · {cand.reasoning}
+                                    <div style={{ fontSize: 10, color: '#b8b0a8', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                      {cand.item_no} · 재고 {cand.available_stock} · {cand.reasoning}
+                                      {cand.incoming && (
+                                        <span style={{
+                                          fontSize: 8, fontWeight: 700, color: '#0369a1',
+                                          background: '#e0f2fe', padding: '0px 4px', borderRadius: 3,
+                                          border: '1px solid #bae6fd',
+                                        }}>입고 {cand.incoming.arrival_date.slice(5)}</span>
+                                      )}
                                     </div>
                                   </div>
                                   <span style={{
@@ -1368,8 +1382,17 @@ export default function OrderV2Page() {
                                   → {fmt(discPrice)}
                                 </span>
                               )}
-                              <span style={{ fontSize: 10, color: '#b8b0a8', marginLeft: 'auto', fontWeight: 500 }}>
+                              <span style={{ fontSize: 10, color: '#b8b0a8', marginLeft: 'auto', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 재고 {sel.available_stock}
+                                {sel.incoming && (
+                                  <span style={{
+                                    fontSize: 9, fontWeight: 700, color: '#0369a1',
+                                    background: '#e0f2fe', padding: '1px 6px', borderRadius: 4,
+                                    border: '1px solid #bae6fd',
+                                  }}>
+                                    입고 {sel.incoming.arrival_date.slice(5)} · {sel.incoming.total_btls}병
+                                  </span>
+                                )}
                               </span>
                             </div>
                           )}
