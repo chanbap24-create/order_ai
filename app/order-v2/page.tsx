@@ -1167,15 +1167,16 @@ export default function OrderV2Page() {
                           <div style={{ padding: '4px 0' }}>
                             {ol.candidates.map((cand, cIdx) => {
                               const isSelected = ol.selectedIdx === cIdx;
+                              const hasHistory = historySet.has(cand.item_no.trim().toUpperCase());
                               return (
                                 <button key={cIdx} onClick={() => selectCandidate(lineIdx, cIdx)}
                                   className="order-cand-btn"
                                   style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
                                     width: '100%', padding: '7px 14px', border: 'none',
-                                    background: isSelected ? 'rgba(90,21,21,0.03)' : 'transparent',
+                                    background: isSelected ? 'rgba(90,21,21,0.03)' : hasHistory ? 'rgba(22,163,74,0.04)' : 'transparent',
                                     cursor: 'pointer', textAlign: 'left',
-                                    borderLeft: isSelected ? '3px solid #5A1515' : '3px solid transparent',
+                                    borderLeft: isSelected ? '3px solid #5A1515' : hasHistory ? '3px solid rgba(22,163,74,0.3)' : '3px solid transparent',
                                     transition: 'all 0.15s ease',
                                   }}>
                                   <span style={{
@@ -1192,8 +1193,12 @@ export default function OrderV2Page() {
                                       fontSize: 12, fontWeight: isSelected ? 700 : 500,
                                       color: isSelected ? '#2c1810' : '#888',
                                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                      display: 'flex', alignItems: 'center', gap: 4,
                                     }}>
                                       {cand.item_name}
+                                      {hasHistory && (
+                                        <span style={{ fontSize: 8, color: '#16a34a', fontWeight: 600, flexShrink: 0 }}>●</span>
+                                      )}
                                     </div>
                                     <div style={{ fontSize: 10, color: '#b8b0a8', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                                       {cand.item_no} · 재고 {cand.available_stock} · {cand.reasoning}
