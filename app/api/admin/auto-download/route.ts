@@ -1,23 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-// Next.js/Turbopack 번들링을 우회하여 Node.js 빌트인 모듈 로드
-function getNodeModules() {
-  const _require = new Function('mod', 'return require(mod)') as (mod: string) => any;
-  return {
-    spawn: (_require('child_process') as typeof import('child_process')).spawn,
-    path: _require('path') as typeof import('path'),
-    fs: _require('fs') as typeof import('fs'),
-  };
-}
-
-// SSE로 진행상황 스트리밍
+// SSE로 진행상황 실시간 스트리밍
 export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get('mode') || 'all';
-  const { spawn, path, fs } = getNodeModules();
+
+  // Node.js 빌트인 모듈을 런타임에 로드 (번들러 우회)
+  const cp = await import(/* webpackIgnore: true */ 'node:child_process');
+  const path = await import(/* webpackIgnore: true */ 'node:path');
+  const fs = await import(/* webpackIgnore: true */ 'node:fs');
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -28,7 +22,7 @@ export async function GET(req: NextRequest) {
 
       const scriptPath = path.join(process.cwd(), 'scripts', 'auto-download.js');
       if (!fs.existsSync(scriptPath)) {
-        send({ type: 'error', message: 'auto-download.js 스크립트를 찾을 수 없습니다.' });
+        send({ type: 'error', message: 'auto-download.js not found' });
         controller.close();
         return;
       }
@@ -39,14 +33,13 @@ export async function GET(req: NextRequest) {
 
       send({ type: 'start', message: 'ABCosmos 자동 다운로드 시작...' });
 
-      const child = spawn('node', args, {
+      const child = cp.spawn('node', args, {
         cwd: process.cwd(),
         env: { ...process.env },
       });
 
       child.stdout.on('data', (chunk: Buffer) => {
-        const text = chunk.toString();
-        for (const line of text.split('\n').filter(Boolean)) {
+        for (const line of chunk.toString().split('\n').filter(Boolean)) {
           const msg = line.replace(/^\[.*?\]\s*/, '');
           if (line.includes('✓')) send({ type: 'success', message: msg });
           else if (line.includes('✗')) send({ type: 'fail', message: msg });
@@ -100,7 +93,8 @@ export async function GET(req: NextRequest) {
 // 다운로드된 파일을 클라이언트로 전달
 export async function POST(req: NextRequest) {
   const { fileName } = await req.json();
-  const { path, fs } = getNodeModules();
+  const path = await import(/* webpackIgnore: true */ 'node:path');
+  const fs = await import(/* webpackIgnore: true */ 'node:fs');
 
   const filePath = path.join(process.cwd(), 'downloads', fileName);
   if (!fs.existsSync(filePath)) {
