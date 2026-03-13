@@ -554,6 +554,9 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         )}
       </Card>
 
+      {/* ═══ ABCosmos 자동 다운로드 ═══ */}
+      <ABCosmosAutoDownload handleUpload={handleUpload} checkStatus={checkStatus} />
+
       {/* ═══ 스마트 일괄 업로드 ═══ */}
       <SmartBatchUpload handleUpload={handleUpload} checkStatus={checkStatus} />
 
@@ -704,6 +707,291 @@ async function detectFileType(file: File): Promise<{ type: DetectedType; confide
   } catch {
     return { type: 'unknown', confidence: 'low', reason: '파일 분석 실패' };
   }
+}
+
+// ══════════════════════════════════════════
+// ABCosmos 자동 다운로드 컴포넌트
+// ══════════════════════════════════════════
+const FILE_KEY_MAP: Record<string, string> = {
+  'cdv-release': 'client',
+  'cdv-stock': 'downloads',
+  'cdv-payment': 'payments',
+  'dl-release': 'dl-client',
+  'dl-stock': 'dl',
+  'dl-payment': 'dl-payments',
+};
+const FILE_LABEL_MAP: Record<string, string> = {
+  'cdv-release': '와인 출고현황',
+  'cdv-stock': '와인 재고현황',
+  'cdv-payment': '수금내역(Wine)',
+  'dl-release': '글라스 출고현황',
+  'dl-stock': '글라스 재고현황',
+  'dl-payment': '수금내역(DL)',
+};
+
+interface DownloadLog {
+  type: 'start' | 'progress' | 'info' | 'success' | 'fail' | 'error' | 'summary' | 'done';
+  message: string;
+  files?: string[];
+  code?: number;
+}
+
+function ABCosmosAutoDownload({ handleUpload, checkStatus }: { handleUpload: (type: string, file: File) => Promise<void>; checkStatus: () => void }) {
+  const [phase, setPhase] = useState<'idle' | 'downloading' | 'uploading' | 'done'>('idle');
+  const [logs, setLogs] = useState<DownloadLog[]>([]);
+  const [expanded, setExpanded] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
+
+  const addLog = (log: DownloadLog) => setLogs(prev => [...prev, log]);
+
+  // 다운로드 → 업로드 일괄 실행
+  const startSync = async (mode = 'all') => {
+    setPhase('downloading');
+    setLogs([]);
+    setExpanded(true);
+
+    let files: string[] = [];
+
+    // ── Phase 1: 다운로드 ──
+    try {
+      const res = await fetch(`/api/admin/auto-download?mode=${mode}`);
+      if (!res.body) throw new Error('스트림을 열 수 없습니다.');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6)) as DownloadLog;
+            addLog(data);
+            if (data.type === 'done' && data.files) {
+              files = data.files;
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } catch (err) {
+      addLog({ type: 'error', message: err instanceof Error ? err.message : '알 수 없는 에러' });
+      setPhase('done');
+      return;
+    }
+
+    if (files.length === 0) {
+      addLog({ type: 'error', message: '다운로드된 파일이 없습니다.' });
+      setPhase('done');
+      return;
+    }
+
+    // ── Phase 2: DB 업로드 ──
+    setPhase('uploading');
+    addLog({ type: 'summary', message: `\n═══ DB 업로드 시작 (${files.length}개) ═══` });
+
+    let uploadSuccess = 0;
+    for (const fileName of files) {
+      const key = fileName.replace(/_\d+\.xlsx$/, '');
+      const uploadType = FILE_KEY_MAP[key];
+      if (!uploadType) continue;
+
+      try {
+        addLog({ type: 'info', message: `업로드: ${FILE_LABEL_MAP[key] || key}...` });
+        const res = await fetch('/api/admin/auto-download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName }),
+        });
+        if (!res.ok) throw new Error('파일 가져오기 실패');
+
+        const blob = await res.blob();
+        const file = new File([blob], fileName, { type: blob.type });
+        await handleUpload(uploadType, file);
+        addLog({ type: 'success', message: `✓ ${FILE_LABEL_MAP[key]} DB 반영 완료` });
+        uploadSuccess++;
+      } catch (err) {
+        addLog({ type: 'fail', message: `✗ ${FILE_LABEL_MAP[key]} 업로드 실패: ${err instanceof Error ? err.message : ''}` });
+      }
+    }
+
+    addLog({ type: 'summary', message: `\n═══ 동기화 완료: ${uploadSuccess}/${files.length} 성공 ═══` });
+    checkStatus();
+    setPhase('done');
+  };
+
+  // 다운로드만 실행
+  const startDownloadOnly = async (mode = 'all') => {
+    setPhase('downloading');
+    setLogs([]);
+    setExpanded(true);
+
+    try {
+      const res = await fetch(`/api/admin/auto-download?mode=${mode}`);
+      if (!res.body) throw new Error('스트림을 열 수 없습니다.');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try { addLog(JSON.parse(line.slice(6)) as DownloadLog); } catch { /* skip */ }
+        }
+      }
+    } catch (err) {
+      addLog({ type: 'error', message: err instanceof Error ? err.message : '알 수 없는 에러' });
+    } finally {
+      setPhase('done');
+    }
+  };
+
+  // 자동 스크롤
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [logs]);
+
+  const isBusy = phase === 'downloading' || phase === 'uploading';
+  const successCount = logs.filter(l => l.type === 'success').length;
+  const failCount = logs.filter(l => l.type === 'fail' || l.type === 'error').length;
+
+  const phaseLabel = phase === 'downloading' ? 'ERP 다운로드 중...'
+    : phase === 'uploading' ? 'DB 업로드 중...' : '';
+
+  return (
+    <Card style={{ marginBottom: 'var(--space-6)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 'var(--radius-md)',
+            background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, margin: 0 }}>ERP 데이터 동기화</h3>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', margin: 0 }}>
+              ABCosmos ERP에서 6개 파일 다운로드 + DB 자동 반영
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+          {/* 다운로드만 버튼 */}
+          <button
+            onClick={() => startDownloadOnly('all')}
+            disabled={isBusy}
+            style={{
+              padding: '8px 14px', borderRadius: 'var(--radius-md)',
+              background: isBusy ? 'var(--color-border)' : 'white',
+              color: isBusy ? 'var(--color-text-lighter)' : 'var(--color-text)',
+              border: '1px solid var(--color-border)', fontSize: 'var(--text-sm)', fontWeight: 600,
+              cursor: isBusy ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            다운로드만
+          </button>
+          {/* 일괄 동기화 (메인 버튼) */}
+          <button
+            onClick={() => startSync('all')}
+            disabled={isBusy}
+            style={{
+              padding: '8px 20px', borderRadius: 'var(--radius-md)',
+              background: isBusy ? 'var(--color-border)' : 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+              color: 'white', border: 'none', fontSize: 'var(--text-sm)', fontWeight: 700,
+              cursor: isBusy ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              boxShadow: isBusy ? 'none' : '0 2px 8px rgba(124,58,237,0.3)',
+            }}
+          >
+            {isBusy ? (
+              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} /> {phaseLabel}</>
+            ) : (
+              <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="23 4 23 10 17 10" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" /></svg> 일괄 동기화</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 진행 로그 */}
+      {logs.length > 0 && (
+        <div style={{ marginTop: 'var(--space-4)' }}>
+          {/* 간략 상태 바 */}
+          {phase === 'done' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+              padding: 'var(--space-2) var(--space-3)',
+              background: failCount === 0 ? '#f0fdf4' : '#fef2f2',
+              borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-2)',
+              border: `1px solid ${failCount === 0 ? '#bbf7d0' : '#fecaca'}`,
+            }}>
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: failCount === 0 ? '#16a34a' : '#dc2626' }}>
+                {failCount === 0 ? `${successCount}개 완료` : `${successCount}개 성공 / ${failCount}개 실패`}
+              </span>
+              <button
+                onClick={() => setExpanded(!expanded)}
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: 'var(--text-xs)', color: 'var(--color-text-light)', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                {expanded ? '로그 접기' : '로그 보기'}
+              </button>
+            </div>
+          )}
+
+          {/* 상세 로그 */}
+          {(expanded || isBusy) && (
+            <div
+              ref={logRef}
+              style={{
+                maxHeight: 200, overflowY: 'auto',
+                background: '#1e1e1e', borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-3)', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.6,
+              }}
+            >
+              {logs.map((log, i) => {
+                let color = '#d4d4d4';
+                let prefix = '';
+                if (log.type === 'success') { color = '#4ade80'; prefix = '✓ '; }
+                else if (log.type === 'fail' || log.type === 'error') { color = '#f87171'; prefix = '✗ '; }
+                else if (log.type === 'progress') { color = '#60a5fa'; prefix = '▸ '; }
+                else if (log.type === 'info') { color = '#a78bfa'; prefix = '  '; }
+                else if (log.type === 'summary' || log.type === 'done') { color = '#fbbf24'; prefix = ''; }
+                return (
+                  <div key={i} style={{ color, whiteSpace: 'pre-wrap' }}>
+                    {prefix}{log.message}
+                  </div>
+                );
+              })}
+              {isBusy && (
+                <div style={{ color: '#60a5fa' }}>
+                  <span style={{ animation: 'pulse 1.5s infinite' }}>●</span> {phaseLabel}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 function SmartBatchUpload({ handleUpload, checkStatus }: { handleUpload: (type: string, file: File) => Promise<void>; checkStatus: () => void }) {
