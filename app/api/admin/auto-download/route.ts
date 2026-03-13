@@ -1,17 +1,17 @@
 import { NextRequest } from 'next/server';
+import path from 'path';
+import fs from 'fs';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { spawn } = globalThis.process ? require('child_process') : { spawn: null };
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// SSE로 진행상황 실시간 스트리밍
+// SSE로 진행상황 실시간 스트리밍 (로컬 전용 - Playwright 브라우저 필요)
 export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get('mode') || 'all';
-
-  // Node.js 빌트인 모듈을 런타임에 로드 (번들러 우회)
-  const cp = await import(/* webpackIgnore: true */ 'node:child_process');
-  const path = await import(/* webpackIgnore: true */ 'node:path');
-  const fs = await import(/* webpackIgnore: true */ 'node:fs');
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
       const scriptPath = path.join(process.cwd(), 'scripts', 'auto-download.js');
       if (!fs.existsSync(scriptPath)) {
-        send({ type: 'error', message: 'auto-download.js not found' });
+        send({ type: 'error', message: '이 기능은 로컬 환경에서만 사용 가능합니다. (스크립트 없음)' });
         controller.close();
         return;
       }
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
       send({ type: 'start', message: 'ABCosmos 자동 다운로드 시작...' });
 
-      const child = cp.spawn('node', args, {
+      const child = spawn('node', args, {
         cwd: process.cwd(),
         env: { ...process.env },
       });
@@ -93,10 +93,8 @@ export async function GET(req: NextRequest) {
 // 다운로드된 파일을 클라이언트로 전달
 export async function POST(req: NextRequest) {
   const { fileName } = await req.json();
-  const path = await import(/* webpackIgnore: true */ 'node:path');
-  const fs = await import(/* webpackIgnore: true */ 'node:fs');
-
   const filePath = path.join(process.cwd(), 'downloads', fileName);
+
   if (!fs.existsSync(filePath)) {
     return Response.json({ error: '파일을 찾을 수 없습니다.' }, { status: 404 });
   }

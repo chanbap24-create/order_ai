@@ -487,8 +487,9 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        updateCard(type, { status: 'error', message: json.error || `업로드 실패 (${res.status})` });
-        return;
+        const errMsg = json.error || `업로드 실패 (${res.status})`;
+        updateCard(type, { status: 'error', message: errMsg });
+        throw new Error(errMsg);
       }
 
       const details = Object.entries(json)
@@ -500,6 +501,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
       onUploadComplete?.(type, json);
     } catch (e) {
       updateCard(type, { status: 'error', message: e instanceof Error ? e.message : '네트워크 오류' });
+      throw e;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
