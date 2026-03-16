@@ -15,6 +15,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'wine-regions', label: '와인산지DB' },
   { id: 'brand-library', label: '브랜드자료실' },
   { id: 'company-events', label: '회사일정' },
+  { id: 'import-forecast', label: '수입량예측' },
 ];
 
 interface AdminTabsProps {

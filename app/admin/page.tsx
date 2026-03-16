@@ -15,6 +15,7 @@ import RecommendSettingsTab from './components/RecommendSettingsTab';
 import WineRegionsTab from './components/WineRegionsTab';
 import BrandTab from './components/BrandTab';
 import CompanyEventsTab from './components/CompanyEventsTab';
+import ImportForecastTab from './components/ImportForecastTab';
 import '@/app/styles/design-system.css';
 
 export default function AdminPage() {
@@ -212,6 +213,7 @@ export default function AdminPage() {
         {activeTab === 'wine-regions' && <WineRegionsTab />}
         {activeTab === 'brand-library' && <BrandTab />}
         {activeTab === 'company-events' && <CompanyEventsTab />}
+        {activeTab === 'import-forecast' && <ImportForecastTab />}
       </div>
 
       {/* Toast container */}
