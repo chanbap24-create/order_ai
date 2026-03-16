@@ -1225,8 +1225,9 @@ export default function ImportForecastTab() {
               {/* 연도별 추이 */}
               {detailTab === 'years' && activeData.year_details && (() => {
                 const details = activeData.year_details;
+                const singleYear = details.length === 1;
                 const maxYr = Math.max(...details.map(d => Number(d.year)));
-                const getWeight = (yr: string) => { const diff = maxYr - Number(yr); return diff === 0 ? 3 : diff === 1 ? 2 : 1; };
+                const getWeight = (yr: string) => { if (singleYear) return 1; const diff = maxYr - Number(yr); return diff === 0 ? 3 : diff === 1 ? 2 : 1; };
                 const totalWeight = details.reduce((s, d) => s + getWeight(d.year), 0);
                 const maxQ = Math.max(...details.map(y => y.correctedQty), 1);
                 const maxPerItem = Math.max(...details.map(y => y.qtyPerItemCorrected), 1);
@@ -1242,9 +1243,9 @@ export default function ImportForecastTab() {
                       return (
                         <div key={yd.year} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                           <div style={{ width: 40, fontSize: 14, fontWeight: 700, color: '#2c1810' }}>{yd.year}</div>
-                          <div style={{ width: 30, textAlign: 'center' }}>
+                          {!singleYear && <div style={{ width: 30, textAlign: 'center' }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: weightColors[w], background: w === 3 ? '#faf5f6' : w === 2 ? '#fef7ed' : '#f5f5f5', padding: '2px 6px', borderRadius: 4, border: `1px solid ${w === 3 ? '#5A1515' : w === 2 ? '#c4925a' : '#e8e4e0'}` }}>×{w}</span>
-                          </div>
+                          </div>}
                           <div style={{ flex: 1, height: 32, background: '#f5f3f0', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
                             <div style={{ height: '100%', width: `${pct}%`, background: w === 3 ? 'linear-gradient(90deg, #5A1515, #8B1538)' : w === 2 ? 'linear-gradient(90deg, #b87333, #c4925a)' : 'linear-gradient(90deg, #bbb, #ccc)', borderRadius: 8, transition: 'width 0.4s', minWidth: 4 }} />
                             <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 700, color: pct > 40 ? '#fff' : '#2c1810' }}>
@@ -1268,42 +1269,59 @@ export default function ImportForecastTab() {
                       return (
                         <div key={yd.year} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                           <div style={{ width: 40, fontSize: 14, fontWeight: 700, color: '#2c1810' }}>{yd.year}</div>
-                          <div style={{ width: 30, textAlign: 'center' }}>
+                          {!singleYear && <div style={{ width: 30, textAlign: 'center' }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: w === 3 ? '#5A1515' : w === 2 ? '#c4925a' : '#aaa' }}>×{w}</span>
-                          </div>
+                          </div>}
                           <div style={{ flex: 1, height: 32, background: '#f5f3f0', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
                             <div style={{ height: '100%', width: `${pct}%`, background: w === 3 ? 'linear-gradient(90deg, #5A1515, #8B1538)' : w === 2 ? 'linear-gradient(90deg, #b87333, #c4925a)' : 'linear-gradient(90deg, #bbb, #ccc)', borderRadius: 8, transition: 'width 0.4s', minWidth: 4 }} />
                             <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 700, color: pct > 40 ? '#fff' : '#2c1810' }}>
-                              {yd.correctedQty.toLocaleString()} ÷ {yd.items} = {yd.qtyPerItemCorrected}병
+                              {yd.correctedQty.toLocaleString()} ÷ {isNewItem ? `(${yd.items}+1)` : yd.items} = {yd.qtyPerItemCorrected}병
                             </div>
                           </div>
-                          <div style={{ width: 100, fontSize: 12, color: '#8a8580', textAlign: 'right' }}>
+                          {!singleYear && <div style={{ width: 100, fontSize: 12, color: '#8a8580', textAlign: 'right' }}>
                             {yd.qtyPerItemCorrected} × {w} = <strong style={{ color: '#5A1515' }}>{yd.qtyPerItemCorrected * w}</strong>
-                          </div>
+                          </div>}
                         </div>
                       );
                     })}
 
                     {/* 가중 평균 계산 + 보정 과정 */}
                     <div style={{ marginTop: 20, padding: '16px 18px', background: '#faf5f6', borderRadius: 10, border: '1px solid rgba(90,21,21,0.08)' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#5A1515', marginBottom: 10 }}>가중 평균 계산</div>
-                      <div style={{ fontSize: 13, color: '#2c1810', lineHeight: 2, fontFamily: "'SF Mono', 'Consolas', monospace" }}>
-                        <div style={{ color: '#8a8580', fontSize: 11, marginBottom: 4 }}>가중 합계 ÷ 총 가중치</div>
-                        <div>
-                          ({details.map(yd => `${yd.qtyPerItemCorrected}×${getWeight(yd.year)}`).join(' + ')})
-                        </div>
-                        <div>÷ ({details.map(yd => getWeight(yd.year)).join(' + ')}) = ÷ {totalWeight}</div>
-                        <div style={{ marginTop: 4 }}>
-                          = {details.reduce((s, yd) => s + yd.qtyPerItemCorrected * getWeight(yd.year), 0)} ÷ {totalWeight}
-                        </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#5A1515', marginBottom: 10 }}>{singleYear ? '기대값 산출' : '가중 평균 계산'}</div>
+
+                      {/* 산출 근거 설명 */}
+                      <div style={{ fontSize: 12, color: '#8a8580', lineHeight: 1.8, marginBottom: 12, padding: '8px 12px', background: '#fff', borderRadius: 6, border: '1px solid #f0ece8' }}>
+                        <div>총 판매량(보정): <strong style={{ color: '#2c1810' }}>{activeData.avg_annual_qty_corrected.toLocaleString()}병</strong></div>
+                        <div>판매 와인 수: <strong style={{ color: '#2c1810' }}>{activeData.avg_items}개</strong></div>
+                        {isNewItem ? (
+                          <>
+                            <div>기대값 = 총 판매량 ÷ (와인 수 + <span style={{ color: '#e67e22' }}>신규 1개</span>) = {activeData.avg_annual_qty_corrected.toLocaleString()} ÷ {activeData.avg_items + 1} = <strong style={{ color: '#5A1515' }}>{activeData.qty_per_item}병</strong></div>
+                            <div style={{ fontSize: 11, color: '#b0a8a0', marginTop: 4 }}>"+1"은 신규 와인 1개를 추가했을 때 기존 와인들과 나눠 갖는 판매량</div>
+                          </>
+                        ) : (
+                          <div>와인당 평균 = 총 판매량 ÷ 와인 수 = {activeData.avg_annual_qty_corrected.toLocaleString()} ÷ {activeData.avg_items} = <strong style={{ color: '#5A1515' }}>{activeData.qty_per_item}병</strong></div>
+                        )}
                       </div>
 
+                      {!singleYear && (
+                        <div style={{ fontSize: 13, color: '#2c1810', lineHeight: 2, fontFamily: "'SF Mono', 'Consolas', monospace", marginBottom: 8 }}>
+                          <div style={{ color: '#8a8580', fontSize: 11, marginBottom: 4 }}>연도별 와인당 판매량의 가중 평균</div>
+                          <div>
+                            ({details.map(yd => `${yd.qtyPerItemCorrected}×${getWeight(yd.year)}`).join(' + ')})
+                          </div>
+                          <div>÷ ({details.map(yd => getWeight(yd.year)).join(' + ')}) = ÷ {totalWeight}</div>
+                          <div style={{ marginTop: 4 }}>
+                            = {details.reduce((s, yd) => s + yd.qtyPerItemCorrected * getWeight(yd.year), 0)} ÷ {totalWeight}
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, color: '#8a8580' }}>기대값 =</span>
+                        <span style={{ fontSize: 13, color: '#8a8580' }}>{isNewItem ? '정상화 기대값 =' : '기대값 ='}</span>
                         <span style={{ fontSize: 28, fontWeight: 800, color: '#5A1515' }}>{activeData.qty_per_item}</span>
                         <span style={{ fontSize: 14, color: '#5A1515' }}>병/년</span>
-                        {activeData.qty_per_item_raw !== activeData.qty_per_item && (
-                          <span style={{ fontSize: 12, color: '#e67e22' }}>(보정 전 {activeData.qty_per_item_raw})</span>
+                        {Math.abs(activeData.qty_per_item - activeData.qty_per_item_raw) >= 5 && (
+                          <span style={{ fontSize: 12, color: '#e67e22' }}>(품절보정 전 {activeData.qty_per_item_raw})</span>
                         )}
                       </div>
 

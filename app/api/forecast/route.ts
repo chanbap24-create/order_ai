@@ -340,8 +340,9 @@ export async function POST(request: Request) {
       const avgWines = Math.round(sortedYears.reduce((s, [yr, v]) => s + v.wineNames.size * getWeight(yr), 0) / totalWeight);
       const avgClients = Math.round(sortedYears.reduce((s, [yr, v]) => s + v.clients.size * getWeight(yr), 0) / totalWeight);
 
-      const qtyPerItemRaw = avgWines > 0 ? Math.round(avgQtyRaw / (avgWines + 1)) : 0;
-      const qtyPerItem = avgWines > 0 ? Math.round(avgQtyCorrected / (avgWines + 1)) : 0;
+      const divisor = isNewItem ? avgWines + 1 : avgWines;
+      const qtyPerItemRaw = divisor > 0 ? Math.round(avgQtyRaw / divisor) : 0;
+      const qtyPerItem = divisor > 0 ? Math.round(avgQtyCorrected / divisor) : 0;
       const qtyPerItemYear1 = learningCurve ? Math.round(qtyPerItem * learningCurve.ratio) : null;
 
       // 와인별 분포 통계 (유사 와인 성과 참조용)
@@ -358,8 +359,8 @@ export async function POST(request: Request) {
         return {
           year: yr, qty: v.qty, correctedQty: v.correctedQty,
           items: v.wineNames.size, clients: v.clients.size,
-          qtyPerItem: v.wineNames.size > 0 ? Math.round(v.qty / (v.wineNames.size + 1)) : 0,
-          qtyPerItemCorrected: v.wineNames.size > 0 ? Math.round(v.correctedQty / (v.wineNames.size + 1)) : 0,
+          qtyPerItem: v.wineNames.size > 0 ? Math.round(v.qty / (isNewItem ? v.wineNames.size + 1 : v.wineNames.size)) : 0,
+          qtyPerItemCorrected: v.wineNames.size > 0 ? Math.round(v.correctedQty / (isNewItem ? v.wineNames.size + 1 : v.wineNames.size)) : 0,
         };
       });
 
