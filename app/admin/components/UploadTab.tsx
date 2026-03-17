@@ -166,7 +166,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
     setCards((prev) => ({ ...prev, [type]: { ...prev[type], ...patch } }));
   }
 
-  const handleUpload = useCallback(async (type: string, file: File) => {
+  const handleUpload = useCallback(async (type: string, file: File, modeOverride?: 'append' | 'replace') => {
     const name = file.name.toLowerCase();
     if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) return;
 
@@ -231,7 +231,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           }
         }
 
-        const currentPayMode = uploadMode[type] || 'replace';
+        const currentPayMode = modeOverride || uploadMode[type] || 'replace';
         // append 모드: 엑셀 데이터의 최소 payment_date 계산
         let payMinDate: string | undefined;
         if (currentPayMode === 'append') {
@@ -348,7 +348,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           });
         }
 
-        const currentMode = uploadMode[type] || 'replace';
+        const currentMode = modeOverride || uploadMode[type] || 'replace';
         updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중... (${currentMode === 'append' ? '누적' : '교체'})` });
 
         // 1) clients/items 업로드 (mode 전달)
@@ -815,7 +815,8 @@ function ABCosmosAutoDownload({ handleUpload, checkStatus }: { handleUpload: (ty
 
         const blob = await res.blob();
         const file = new File([blob], fileName, { type: blob.type });
-        await handleUpload(uploadType, file);
+        // 일괄 동기화는 항상 누적 모드 강제 (이전 월 데이터 보호)
+        await handleUpload(uploadType, file, 'append');
         addLog({ type: 'success', message: `✓ ${FILE_LABEL_MAP[key]} DB 반영 완료` });
         uploadSuccess++;
       } catch (err) {
