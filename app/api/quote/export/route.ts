@@ -530,7 +530,7 @@ async function buildQuote(
     const item = items[idx];
     const r = DS + idx;
     const row = ws.getRow(r);
-    row.height = hasImageCol ? IMG_ROW_HEIGHT : 40;
+    row.height = hasImageCol ? IMG_ROW_HEIGHT : 45;
 
     const rowFill = idx % 2 === 1 ? ALT_FILL : undefined;
 
@@ -540,7 +540,7 @@ async function buildQuote(
 
       // No.
       if (col.type === 'index') {
-        sc(row, c, idx + 1, { border: THIN, fill: rowFill });
+        sc(row, c, idx + 1, { border: THIN, fill: rowFill, align: 'center' });
         continue;
       }
 
