@@ -199,8 +199,11 @@ export default function ImportForecastTab() {
       setMatchedItems(data.matchedItems || 0);
       setAllMatchedItems(data.allMatchedItems || data.matchedItems || 0);
       setStockoutInfo(data.stockoutInfo || null);
-      // 트렌드는 별도 API로 로드 (전체 와인 기준)
-      fetch(`/api/forecast/trends?endYear=${Number(endYear)}`)
+      // 트렌드는 직전 완료 연도 기준 (현재 진행 중인 해는 제외)
+      const now = new Date();
+      const kstYear = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })).getFullYear();
+      const trendYear = Math.min(Number(endYear), kstYear - 1);
+      fetch(`/api/forecast/trends?endYear=${trendYear}`)
         .then(r => r.json()).then(d => setTrend(d)).catch(() => setTrend(null));
       setBulkInfo(data.bulkInfo || null);
       setSampleInfo(data.sampleInfo || null);
@@ -1211,14 +1214,14 @@ export default function ImportForecastTab() {
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 50px 50px 110px', padding: '6px 20px', fontSize: 11, color: '#b0a8a0', fontWeight: 600, borderBottom: '1px solid #f0ece8' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 60px 50px 90px', padding: '6px 20px', fontSize: 11, color: '#b0a8a0', fontWeight: 600, borderBottom: '1px solid #f0ece8' }}>
                     <div></div>
                     <div>와인명</div>
                     <div style={{ textAlign: 'right' }}>공급가</div>
                     <div style={{ textAlign: 'right' }}>평균공급가</div>
                     <div style={{ textAlign: 'right' }}>원가</div>
+                    <div style={{ textAlign: 'right' }}>이익</div>
                     <div style={{ textAlign: 'right' }}>거래처</div>
-                    <div style={{ textAlign: 'right' }}>연수</div>
                     <div style={{ textAlign: 'right' }}>총 판매</div>
                   </div>
                   {activeData.wine_details.map((w, i) => {
@@ -1229,7 +1232,7 @@ export default function ImportForecastTab() {
                     return (
                       <div key={w.item_code} style={{ position: 'relative', borderBottom: i < (activeData.wine_details?.length || 1) - 1 ? '1px solid #f8f6f4' : 'none', opacity: isChecked ? 0.45 : 1, transition: 'opacity 0.15s' }}>
                         <div style={{ position: 'absolute', left: 36, top: 0, bottom: 0, width: `calc(${pct}% - 36px)`, background: isChecked ? 'rgba(200,200,200,0.08)' : 'linear-gradient(90deg, rgba(90,21,21,0.04), rgba(90,21,21,0.01))', transition: 'width 0.3s' }} />
-                        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 50px 50px 110px', padding: '10px 20px', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 60px 50px 90px', padding: '10px 20px', alignItems: 'center' }}>
                           <div>
                             <input type="checkbox" checked={isChecked}
                               onChange={() => toggleExcludeWine(w.item_name, { supply_price: w.supply_price, region: w.region })}
@@ -1261,8 +1264,19 @@ export default function ImportForecastTab() {
                           <div style={{ textAlign: 'right', fontSize: 12, color: w.avg_import_cost > 0 ? '#3498db' : '#ccc' }}>
                             {w.avg_import_cost > 0 ? w.avg_import_cost.toLocaleString() : '-'}
                           </div>
+                          <div style={{ textAlign: 'right', fontSize: 12 }}>
+                            {w.avg_import_cost > 0 && w.avg_selling_price > 0 ? (() => {
+                              const profit = w.avg_selling_price - w.avg_import_cost;
+                              const pct = Math.round(profit / w.avg_import_cost * 100);
+                              return (
+                                <>
+                                  <div style={{ color: profit >= 0 ? '#27ae60' : '#c0392b', fontWeight: 600 }}>{profit >= 0 ? '+' : ''}{profit.toLocaleString()}</div>
+                                  <div style={{ fontSize: 10, color: profit >= 0 ? '#27ae60' : '#c0392b' }}>{pct >= 0 ? '+' : ''}{pct}%</div>
+                                </>
+                              );
+                            })() : <span style={{ color: '#ccc' }}>-</span>}
+                          </div>
                           <div style={{ textAlign: 'right', fontSize: 12, color: '#8a8580' }}>{w.client_count}곳</div>
-                          <div style={{ textAlign: 'right', fontSize: 12, color: '#8a8580' }}>{w.years_sold}년</div>
                           <div style={{ textAlign: 'right' }}>
                             <span style={{ fontSize: 15, fontWeight: 700, color: isChecked ? '#bbb' : '#5A1515' }}>{w.corrected_qty.toLocaleString()}</span>
                             <span style={{ fontSize: 11, color: '#b0a8a0' }}>병</span>
@@ -1329,6 +1343,32 @@ export default function ImportForecastTab() {
                       </div>
                     );
                   })}
+
+                  {/* 합계 행 */}
+                  {(() => {
+                    const details = activeData.wine_details || [];
+                    const totalQty = details.filter(w => !excludedWines.has(w.item_name)).reduce((s, w) => s + w.corrected_qty, 0);
+                    const totalProfit = details.filter(w => !excludedWines.has(w.item_name) && w.avg_import_cost > 0 && w.avg_selling_price > 0)
+                      .reduce((s, w) => s + (w.avg_selling_price - w.avg_import_cost) * w.corrected_qty, 0);
+                    const totalCost = details.filter(w => !excludedWines.has(w.item_name) && w.avg_import_cost > 0)
+                      .reduce((s, w) => s + w.avg_import_cost * w.corrected_qty, 0);
+                    const avgMargin = totalCost > 0 ? Math.round(totalProfit / totalCost * 100) : 0;
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 60px 50px 90px', padding: '10px 20px', background: '#5A1515', fontWeight: 700, color: '#fff', fontSize: 12 }}>
+                        <div></div>
+                        <div>합계 ({details.filter(w => !excludedWines.has(w.item_name)).length}개)</div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div>{totalProfit > 0 ? '+' : ''}{(totalProfit / 10000).toLocaleString(undefined, { maximumFractionDigits: 0 })}만</div>
+                          <div style={{ fontSize: 10, opacity: 0.7 }}>{avgMargin}%</div>
+                        </div>
+                        <div></div>
+                        <div style={{ textAlign: 'right' }}>{totalQty.toLocaleString()}병</div>
+                      </div>
+                    );
+                  })()}
 
                   {/* 제외된 와인 목록 (이전 재계산에서 이미 제외된 것들) */}
                   {excludedWineDetails.filter(ew => !wineNames.includes(ew.item_name)).length > 0 && (
