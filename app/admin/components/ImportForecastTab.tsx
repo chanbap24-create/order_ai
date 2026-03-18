@@ -1706,19 +1706,20 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
       <div style={{ padding: '16px 24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scenarios.length}, 1fr)`, gap: 12, marginBottom: 16 }}>
           {scenarios.map(s => {
-            const yr1Sales = Math.round(s.value * lc);
+            const yr1Expected = Math.round(s.value * lc);
+            const yr1Sales = Math.min(yr1Expected, importBottles);
             const yr1Revenue = yr1Sales * sellingPrice;
             const yr1Profit = yr1Sales * (sellingPrice - costPrice);
-            const sellThruPct = Math.min(100, Math.round(yr1Sales / importBottles * 100));
             const remainBottles = Math.max(0, importBottles - yr1Sales);
+            const sellThruPct = Math.min(100, Math.round(yr1Sales / importBottles * 100));
             const roi = totalInvestment > 0 ? Math.round(yr1Profit / totalInvestment * 100) : 0;
-            const monthsToSell = yr1Sales > 0 ? Math.round(importBottles / yr1Sales * 12) : 999;
+            const monthsToSell = yr1Expected > 0 ? Math.round(importBottles / yr1Expected * 12) : 999;
 
             return (
               <div key={s.label} style={{ padding: 16, borderRadius: 10, border: `1.5px solid ${s.color}33`, background: `${s.color}08` }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: s.color, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span>{s.icon}</span> {s.label}
-                  <span style={{ fontSize: 10, fontWeight: 400, color: '#a8a098', marginLeft: 'auto' }}>{s.value}병/년</span>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: '#a8a098', marginLeft: 'auto' }}>기대 {yr1Expected}병/년</span>
                 </div>
 
                 <div style={{ fontSize: 11, color: '#8a8580', lineHeight: 2.2 }}>
