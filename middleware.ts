@@ -69,6 +69,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── /api/forecast/* → 공개 (읽기 전용 통계) ──
+  if (pathname.startsWith('/api/forecast')) {
+    return NextResponse.next();
+  }
+
   // ── /api/admin 중 세일즈도 읽기 가능한 경로 (GET only) ──
   const ADMIN_READ_ALLOWED = ['/api/admin/upload-data/import-schedule'];
   if (ADMIN_READ_ALLOWED.includes(pathname) && request.method === 'GET') {
@@ -154,5 +159,6 @@ export const config = {
     '/glass',
     '/wine',
     '/quote',
+    '/marketing',
   ],
 };

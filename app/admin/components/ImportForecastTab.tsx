@@ -1674,6 +1674,7 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
   priceStats: PriceStats | null;
 }) {
   const [importCases, setImportCases] = useState(10);
+  const [bottlesPerCase, setBottlesPerCase] = useState(12);
   // 수입원가: wine_details에서 avg_import_cost 평균 계산 (없으면 공급가 fallback)
   const avgImportCost = (() => {
     const details = mergedData?.wine_details || [];
@@ -1707,7 +1708,7 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
     { label: '낙관적', value: Math.round(baseQty * 1.5), color: '#27ae60', icon: '△' },
   ];
 
-  const importBottles = importCases * 12;
+  const importBottles = importCases * bottlesPerCase;
   const totalInvestment = importBottles * costPrice;
   const sellingPrice = Math.round(costPrice * (1 + marginPct / 100));
 
@@ -1728,7 +1729,16 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
             <input type="number" value={importCases} onChange={e => setImportCases(Math.max(1, Number(e.target.value) || 1))}
               style={{ width: 52, padding: '4px 6px', fontSize: 13, fontWeight: 700, textAlign: 'center', border: '1.5px solid #e8e4e0', borderRadius: 6, color: '#5A1515' }} />
           </div>
-          <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>{importBottles.toLocaleString()}병 · 투자 {(totalInvestment / 10000).toLocaleString()}만원</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <span style={{ fontSize: 11, color: '#a8a098' }}>입수</span>
+            {[6, 12].map(n => (
+              <button key={n} onClick={() => setBottlesPerCase(n)}
+                style={{ padding: '2px 8px', fontSize: 11, fontWeight: 600, border: `1.5px solid ${bottlesPerCase === n ? '#5A1515' : '#e8e4e0'}`, borderRadius: 4, background: bottlesPerCase === n ? '#5A1515' : '#fff', color: bottlesPerCase === n ? '#fff' : '#8a8580', cursor: 'pointer' }}>
+                {n}병
+              </button>
+            ))}
+            <span style={{ fontSize: 11, color: '#a8a098', marginLeft: 4 }}>{importBottles.toLocaleString()}병 · 투자 {Math.round(totalInvestment / 10000).toLocaleString()}만원</span>
+          </div>
         </div>
         <div style={{ flex: 1, minWidth: 140 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#6b5e54', marginBottom: 4 }}>수입원가 (원)</div>
@@ -1772,11 +1782,11 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>매출</span>
-                    <strong style={{ color: '#2c1810' }}>{(yr1Revenue / 10000).toLocaleString()}만원</strong>
+                    <strong style={{ color: '#2c1810' }}>{Math.round(yr1Revenue / 10000).toLocaleString()}만원</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>수익</span>
-                    <strong style={{ color: yr1Profit >= 0 ? '#27ae60' : '#c0392b' }}>{yr1Profit >= 0 ? '+' : ''}{(yr1Profit / 10000).toLocaleString()}만원</strong>
+                    <strong style={{ color: yr1Profit >= 0 ? '#27ae60' : '#c0392b' }}>{yr1Profit >= 0 ? '+' : ''}{Math.round(yr1Profit / 10000).toLocaleString()}만원</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>ROI</span>
