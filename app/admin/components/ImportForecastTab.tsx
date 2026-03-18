@@ -1712,7 +1712,7 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
         <div style={{ flex: 1, minWidth: 140 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#6b5e54', marginBottom: 4 }}>마진율 (%)</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input type="range" min={5} max={60} value={marginPct} onChange={e => setMarginPct(Number(e.target.value))}
+            <input type="range" min={5} max={200} value={marginPct} onChange={e => setMarginPct(Number(e.target.value))}
               style={{ flex: 1, accentColor: '#5A1515' }} />
             <span style={{ fontSize: 13, fontWeight: 700, color: '#5A1515', minWidth: 36 }}>{marginPct}%</span>
           </div>
