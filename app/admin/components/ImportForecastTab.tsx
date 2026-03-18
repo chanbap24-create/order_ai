@@ -1644,42 +1644,24 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
 
   if (!mergedData || !mergedData.wine_details?.length) return null;
 
+  // 기대값 기준 시나리오 (qty_per_item = 총판매량 ÷ 와인수)
+  const baseQty = isNewItem
+    ? (mergedData.qty_per_item_year1 ?? mergedData.qty_per_item)
+    : mergedData.qty_per_item;
+  if (!baseQty || baseQty <= 0) return null;
+
+  const lc = 1; // 이미 qty_per_item_year1에 러닝커브 반영됨
+
   const wines = (mergedData.wine_details || [])
     .map(w => ({ name: w.item_name, annual: w.annual_avg_corrected, price: w.avg_selling_price }))
     .filter(w => w.annual >= 6)
     .sort((a, b) => a.annual - b.annual);
-  if (wines.length === 0) return null;
-
-  const lc = (isNewItem && learningCurve) ? learningCurve.ratio : 1;
-  const p25Idx = Math.max(0, Math.floor(wines.length * 0.25));
-  const medIdx = Math.floor(wines.length * 0.5);
-  const p75Idx = Math.min(wines.length - 1, Math.floor(wines.length * 0.75));
-  const medVal = wines[medIdx].annual;
-  // 낙관적: P75지만 중위값의 2배 이내로 제한 (히트 와인 왜곡 방지)
-  const p75Raw = wines[p75Idx].annual;
-  const p75Capped = Math.min(p75Raw, Math.round(medVal * 2));
-  // 보수적: P25지만 중위값의 50% 이상 유지
-  const p25Raw = wines[p25Idx].annual;
-  const p25Capped = Math.max(p25Raw, Math.round(medVal * 0.5));
 
   const scenarios = [
-    { label: '보수적', value: p25Capped, color: '#95a5a6', icon: '▽' },
-    { label: '기본', value: medVal, color: '#5A1515', icon: '■' },
-    { label: '낙관적', value: p75Capped, color: '#27ae60', icon: '△' },
+    { label: '보수적', value: Math.round(baseQty * 0.6), color: '#95a5a6', icon: '▽' },
+    { label: '기본', value: baseQty, color: '#5A1515', icon: '■' },
+    { label: '낙관적', value: Math.round(baseQty * 1.5), color: '#27ae60', icon: '△' },
   ];
-  if (wines.length === 1) {
-    scenarios.splice(0, scenarios.length,
-      { label: '보수적', value: Math.round(wines[0].annual * 0.7), color: '#95a5a6', icon: '▽' },
-      { label: '기본', value: wines[0].annual, color: '#5A1515', icon: '■' },
-      { label: '낙관적', value: Math.round(wines[0].annual * 1.3), color: '#27ae60', icon: '△' },
-    );
-  } else if (wines.length === 2) {
-    scenarios.splice(0, scenarios.length,
-      { label: '보수적', value: wines[0].annual, color: '#95a5a6', icon: '▽' },
-      { label: '기본', value: Math.round((wines[0].annual + wines[1].annual) / 2), color: '#5A1515', icon: '■' },
-      { label: '낙관적', value: wines[1].annual, color: '#27ae60', icon: '△' },
-    );
-  }
 
   const importBottles = importCases * 12;
   const totalInvestment = importBottles * costPrice;
@@ -1781,11 +1763,12 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
         </div>
 
         {/* 근거 와인 */}
+        {wines.length > 0 && (
         <div style={{ borderTop: '1px solid #f0ece8', paddingTop: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>근거: 유사 와인 {wines.length}개 연평균 판매량 분포</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>근거: 기대값 {baseQty}병/년 (유사 와인 {wines.length}개 기반)</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {wines.map((w, i) => {
-              const sColor = i <= p25Idx ? '#95a5a6' : i >= p75Idx ? '#27ae60' : '#5A1515';
+              const sColor = '#5A1515';
               return (
                 <div key={i} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: `${sColor}11`, border: `1px solid ${sColor}33`, color: '#2c1810', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
@@ -1795,6 +1778,7 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
             })}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
