@@ -52,11 +52,17 @@ export async function GET(req: NextRequest) {
     // 품목명 (shipments에서 가져오기)
     const itemName = allRows[0]?.item_name || wineInfo?.item_name_kr || itemNo;
 
+    // selling_price를 unit_price로 사용 (selling_price = 병당 실제 판매단가)
+    for (const r of allRows) {
+      if (r.selling_price > 0) r.unit_price = r.selling_price;
+    }
+
     // 거래처별 집계
     const clientAgg = new Map<string, {
       client_name: string;
       total_qty: number;
       total_amount: number;
+      total_selling: number;
       avg_price: number;
       ship_count: number;
       last_date: string;
@@ -68,20 +74,22 @@ export async function GET(req: NextRequest) {
       if (!clientAgg.has(key)) {
         clientAgg.set(key, {
           client_name: r.client_name || r.client_code,
-          total_qty: 0, total_amount: 0, avg_price: 0,
+          total_qty: 0, total_amount: 0, total_selling: 0, avg_price: 0,
           ship_count: 0, last_date: '', first_date: r.ship_date,
         });
       }
       const agg = clientAgg.get(key)!;
-      agg.total_qty += (r.quantity || 0);
+      const qty = r.quantity || 0;
+      agg.total_qty += qty;
       agg.total_amount += (r.supply_amount || 0);
+      agg.total_selling += (r.unit_price || 0) * qty;
       agg.ship_count += 1;
       if (r.ship_date > agg.last_date) agg.last_date = r.ship_date;
       if (r.ship_date < agg.first_date) agg.first_date = r.ship_date;
     }
 
     for (const agg of clientAgg.values()) {
-      agg.avg_price = agg.total_qty !== 0 ? Math.round(agg.total_amount / agg.total_qty) : 0;
+      agg.avg_price = agg.total_qty !== 0 ? Math.round(agg.total_selling / agg.total_qty) : 0;
     }
 
     const clientSummary = Array.from(clientAgg.values())
