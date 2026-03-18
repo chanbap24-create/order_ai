@@ -526,23 +526,27 @@ function calcStockoutCorrections(
     }
 
     // 공백 전후 판매 존재 확인 → 재고 소진 판정
+    // 최소 2개월 연속 판매 후에야 "본격 판매"로 인정 (샘플/빈티지 전환 대기 제외)
     const monthSet = new Set(months);
     let stockoutMonths = 0;
     let consecutiveGap = 0;
-    let hadSalesBefore = false;
+    let consecutiveSales = 0;
+    let hadSustainedSales = false;
     const current = new Date(fy, fm - 1);
     const lastDate = new Date(ly, lm - 1);
 
     while (current <= lastDate) {
       const ym = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
       if (monthSet.has(ym)) {
-        if (consecutiveGap >= 2 && hadSalesBefore) {
+        if (consecutiveGap >= 2 && hadSustainedSales) {
           stockoutMonths += consecutiveGap;
         }
         consecutiveGap = 0;
-        hadSalesBefore = true;
+        consecutiveSales++;
+        if (consecutiveSales >= 2) hadSustainedSales = true;
       } else {
         consecutiveGap++;
+        consecutiveSales = 0;
       }
       current.setMonth(current.getMonth() + 1);
     }
