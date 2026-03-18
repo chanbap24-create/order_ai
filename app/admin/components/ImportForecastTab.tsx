@@ -1211,11 +1211,12 @@ export default function ImportForecastTab() {
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 80px 80px 60px 60px 110px', padding: '6px 20px', fontSize: 11, color: '#b0a8a0', fontWeight: 600, borderBottom: '1px solid #f0ece8' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 50px 50px 110px', padding: '6px 20px', fontSize: 11, color: '#b0a8a0', fontWeight: 600, borderBottom: '1px solid #f0ece8' }}>
                     <div></div>
                     <div>와인명</div>
                     <div style={{ textAlign: 'right' }}>공급가</div>
                     <div style={{ textAlign: 'right' }}>평균공급가</div>
+                    <div style={{ textAlign: 'right' }}>원가</div>
                     <div style={{ textAlign: 'right' }}>거래처</div>
                     <div style={{ textAlign: 'right' }}>연수</div>
                     <div style={{ textAlign: 'right' }}>총 판매</div>
@@ -1228,7 +1229,7 @@ export default function ImportForecastTab() {
                     return (
                       <div key={w.item_code} style={{ position: 'relative', borderBottom: i < (activeData.wine_details?.length || 1) - 1 ? '1px solid #f8f6f4' : 'none', opacity: isChecked ? 0.45 : 1, transition: 'opacity 0.15s' }}>
                         <div style={{ position: 'absolute', left: 36, top: 0, bottom: 0, width: `calc(${pct}% - 36px)`, background: isChecked ? 'rgba(200,200,200,0.08)' : 'linear-gradient(90deg, rgba(90,21,21,0.04), rgba(90,21,21,0.01))', transition: 'width 0.3s' }} />
-                        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '36px 1fr 80px 80px 60px 60px 110px', padding: '10px 20px', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '36px 1fr 70px 70px 70px 50px 50px 110px', padding: '10px 20px', alignItems: 'center' }}>
                           <div>
                             <input type="checkbox" checked={isChecked}
                               onChange={() => toggleExcludeWine(w.item_name, { supply_price: w.supply_price, region: w.region })}
@@ -1256,6 +1257,9 @@ export default function ImportForecastTab() {
                                 {w.avg_selling_price < w.supply_price ? '' : '+'}{Math.round((w.avg_selling_price - w.supply_price) / w.supply_price * 100)}%
                               </div>
                             )}
+                          </div>
+                          <div style={{ textAlign: 'right', fontSize: 12, color: w.avg_import_cost > 0 ? '#3498db' : '#ccc' }}>
+                            {w.avg_import_cost > 0 ? w.avg_import_cost.toLocaleString() : '-'}
                           </div>
                           <div style={{ textAlign: 'right', fontSize: 12, color: '#8a8580' }}>{w.client_count}곳</div>
                           <div style={{ textAlign: 'right', fontSize: 12, color: '#8a8580' }}>{w.years_sold}년</div>
