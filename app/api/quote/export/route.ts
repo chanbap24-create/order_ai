@@ -602,7 +602,9 @@ async function buildQuote(
       // Formula columns
       if (col.type === 'formula') {
         if (col.uiKey === 'discounted_price') {
-          if (pos['supply_price'] && pos['discount_rate']) {
+          if (item.discounted_price && item.discounted_price > 0) {
+            sc(row, c, item.discounted_price, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
+          } else if (pos['supply_price'] && pos['discount_rate']) {
             const sp = colLetter(pos['supply_price']);
             const dr = colLetter(pos['discount_rate']);
             sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });

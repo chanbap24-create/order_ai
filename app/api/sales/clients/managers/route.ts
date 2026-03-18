@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 비영업 담당자 제외
-    const EXCLUDE = ['윤영란', '정진경', '편지은', '경영지원부', 'ADMIN', 'Admin'];
+    const EXCLUDE = ['정진경', '편지은', '경영지원부', 'ADMIN', 'Admin'];
     const regular = [...allManagers]
       .filter(m => !EXCLUDE.includes(m) && !executives.includes(m))
       .sort();

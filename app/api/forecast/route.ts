@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // ── 1단계: wines 조회 ──
     let wineQuery = supabase
       .from('wines')
-      .select('item_code, item_name_kr, supply_price, region, grape_varieties, wine_type')
+      .select('item_code, item_name_kr, supply_price, avg_import_cost, region, grape_varieties, wine_type, country, supplier_kr')
       .eq('country', country)
       .gte('supply_price', pMin)
       .lt('supply_price', pMax)
@@ -102,9 +102,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ stats: [], priceRange, matchedItems: 0, message: msg });
     }
 
-    const wineMap: Record<string, { name: string; price: number; region: string | null; grape: string | null; type: string | null }> = {};
+    const wineMap: Record<string, { name: string; price: number; importCost: number; region: string | null; grape: string | null; type: string | null; country: string | null; brand: string | null }> = {};
     for (const w of wines || []) {
-      wineMap[w.item_code] = { name: w.item_name_kr, price: w.supply_price, region: w.region, grape: w.grape_varieties, type: w.wine_type };
+      wineMap[w.item_code] = { name: w.item_name_kr, price: w.supply_price, importCost: w.avg_import_cost || 0, region: w.region, grape: w.grape_varieties, type: w.wine_type, country: w.country || null, brand: w.supplier_kr || null };
     }
     const getWineName = (itemNo: string) => wineMap[itemNo]?.name || itemNo;
 
@@ -253,6 +253,8 @@ export async function POST(request: Request) {
       }
     }
 
+    // 트렌드는 별도 API(/api/forecast/trends)에서 전체 데이터 기준으로 계산
+
     // ── 3단계: 재고 소진 보정 ──
     const stockoutCorrections = noCorrection ? {} : calcStockoutCorrections(filteredShipments, getWineName);
 
@@ -275,8 +277,9 @@ export async function POST(request: Request) {
       if (mShipments.length === 0) continue;
 
       const yearMap: Record<string, { qty: number; correctedQty: number; wineNames: Set<string>; clients: Set<string> }> = {};
-      const wineStats: Record<string, { qty: number; correctedQty: number; clients: Set<string>; years: Set<string>; codes: Set<string>; price: number; totalListAmt: number; totalListQty: number; totalUnitAmt: number; totalUnitQty: number }> = {};
+      const wineStats: Record<string, { qty: number; correctedQty: number; clients: Set<string>; years: Set<string>; codes: Set<string>; price: number; importCost: number; totalListAmt: number; totalListQty: number; totalUnitAmt: number; totalUnitQty: number }> = {};
       const clientStats: Record<string, { qty: number; wineNames: Set<string> }> = {};
+      const channelStats: Record<string, { qty: number; correctedQty: number; clients: Set<string>; wineNames: Set<string> }> = {};
 
       for (const s of mShipments) {
         const yr = s.ship_date?.substring(0, 4);
@@ -292,7 +295,7 @@ export async function POST(request: Request) {
         yearMap[yr].wineNames.add(wineName);
         yearMap[yr].clients.add(s.client_name);
 
-        if (!wineStats[wineName]) wineStats[wineName] = { qty: 0, correctedQty: 0, clients: new Set(), years: new Set(), codes: new Set(), price: wineMap[s.item_no]?.price || 0, totalListAmt: 0, totalListQty: 0, totalUnitAmt: 0, totalUnitQty: 0 };
+        if (!wineStats[wineName]) wineStats[wineName] = { qty: 0, correctedQty: 0, clients: new Set(), years: new Set(), codes: new Set(), price: wineMap[s.item_no]?.price || 0, importCost: wineMap[s.item_no]?.importCost || 0, totalListAmt: 0, totalListQty: 0, totalUnitAmt: 0, totalUnitQty: 0 };
         wineStats[wineName].qty += qty;
         wineStats[wineName].correctedQty += correctedQty;
         wineStats[wineName].clients.add(s.client_name);
@@ -322,6 +325,14 @@ export async function POST(request: Request) {
         if (!clientStats[s.client_name]) clientStats[s.client_name] = { qty: 0, wineNames: new Set() };
         clientStats[s.client_name].qty += qty;
         clientStats[s.client_name].wineNames.add(wineName);
+
+        // 채널별 집계
+        const bt = (s.business_type || '').trim() || '(미분류)';
+        if (!channelStats[bt]) channelStats[bt] = { qty: 0, correctedQty: 0, clients: new Set(), wineNames: new Set() };
+        channelStats[bt].qty += qty;
+        channelStats[bt].correctedQty += correctedQty;
+        channelStats[bt].clients.add(s.client_name);
+        channelStats[bt].wineNames.add(wineName);
       }
 
       const years = Object.entries(yearMap).filter(([, v]) => v.qty >= 6);
@@ -370,6 +381,7 @@ export async function POST(request: Request) {
           item_code: [...v.codes].join(', '),
           item_name: name,
           supply_price: v.totalListQty > 0 ? Math.round(v.totalListAmt / v.totalListQty) : v.price,
+          avg_import_cost: v.importCost,
           avg_selling_price: v.totalUnitQty > 0 ? Math.round(v.totalUnitAmt / v.totalUnitQty) : v.price,
           region: wineMap[[...v.codes][0]]?.region || null,
           total_qty: v.qty,
@@ -391,6 +403,23 @@ export async function POST(request: Request) {
           business_type: clientBusinessType[name] || '(미분류)',
         }));
 
+      // 채널별 분석
+      const yearsCount = Math.max(years.length, 1);
+      const channels = Object.entries(channelStats)
+        .map(([channel, v]) => ({
+          channel,
+          qty: v.correctedQty,
+          annual_qty: Math.round(v.correctedQty / yearsCount),
+          clients: v.clients.size,
+          wines: v.wineNames.size,
+          qty_per_wine: v.wineNames.size > 0 ? Math.round(v.correctedQty / yearsCount / (isNewItem ? v.wineNames.size + 1 : v.wineNames.size)) : 0,
+          pct: 0,
+        }))
+        .filter(c => c.qty > 0)
+        .sort((a, b) => b.qty - a.qty);
+      const totalChQty = channels.reduce((s, c) => s + c.qty, 0);
+      channels.forEach(c => { c.pct = totalChQty > 0 ? Math.round(c.qty / totalChQty * 100) : 0; });
+
       results.push({
         manager,
         years_active: years.length,
@@ -404,6 +433,7 @@ export async function POST(request: Request) {
         min_qty: Math.min(...years.map(([, v]) => v.qty)),
         max_qty: Math.max(...years.map(([, v]) => v.qty)),
         wine_distribution: { median, p25, p75, count: perWineAnnuals.length },
+        channels,
         year_details: yearDetails,
         wine_details: wineDetails,
         top_clients: topClients,

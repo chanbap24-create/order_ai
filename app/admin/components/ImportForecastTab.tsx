@@ -3,14 +3,16 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface YearDetail { year: string; qty: number; correctedQty: number; items: number; clients: number; qtyPerItem: number; qtyPerItemCorrected: number; }
-interface WineDetail { item_code: string; item_name: string; supply_price: number; avg_selling_price: number; region: string | null; total_qty: number; corrected_qty: number; stockout_factor: number; client_count: number; years_sold: number; annual_avg: number; annual_avg_corrected: number; }
+interface WineDetail { item_code: string; item_name: string; supply_price: number; avg_import_cost: number; avg_selling_price: number; region: string | null; total_qty: number; corrected_qty: number; stockout_factor: number; client_count: number; years_sold: number; annual_avg: number; annual_avg_corrected: number; }
 interface TopClient { client_name: string; total_qty: number; item_count: number; business_type?: string; }
 interface WineDistribution { median: number; p25: number; p75: number; count: number; }
+interface ChannelStat { channel: string; qty: number; annual_qty: number; clients: number; wines: number; qty_per_wine: number; pct: number; }
 interface ManagerStat {
   manager: string; years_active: number; avg_annual_qty: number; avg_annual_qty_corrected: number; avg_items: number;
   qty_per_item_raw: number; qty_per_item: number; qty_per_item_year1: number | null;
   avg_clients: number; min_qty: number; max_qty: number;
   wine_distribution: WineDistribution;
+  channels?: ChannelStat[];
   year_details?: YearDetail[]; wine_details?: WineDetail[]; top_clients?: TopClient[];
 }
 interface ExcludedWine { item_name: string; supply_price: number; region: string | null; }
@@ -110,9 +112,10 @@ export default function ImportForecastTab() {
   const [message, setMessage] = useState('');
   const [matchedItems, setMatchedItems] = useState(0);
   const [stockoutInfo, setStockoutInfo] = useState<StockoutInfo | null>(null);
+  const [trend, setTrend] = useState<{ year: string; prevYear: string; items: Record<string, { cur: number; prev: number; pct: number }> } | null>(null);
   const [learningCurve, setLearningCurve] = useState<LearningCurve | null>(null);
   const [activeManager, setActiveManager] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<'wines' | 'years' | 'clients'>('wines');
+  const [detailTab, setDetailTab] = useState<'wines' | 'years' | 'clients' | 'channels'>('wines');
   const [expandedWine, setExpandedWine] = useState<string | null>(null);
   const [wineShipments, setWineShipments] = useState<{ date: string; client: string; qty: number; price: number; manager: string }[]>([]);
   const [shipLoading, setShipLoading] = useState(false);
@@ -138,11 +141,11 @@ export default function ImportForecastTab() {
   const [excludedWineDetails, setExcludedWineDetails] = useState<ExcludedWine[]>([]);
   const [pendingRecalc, setPendingRecalc] = useState(false);
   const [allMatchedItems, setAllMatchedItems] = useState(0);
-  const [excludeBulk, setExcludeBulk] = useState(false);
+  const [excludeBulk, setExcludeBulk] = useState(true);
   const [bulkThreshold, setBulkThreshold] = useState(60);
   const [bulkInfo, setBulkInfo] = useState<BulkInfo | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [excludeSamples, setExcludeSamples] = useState(false);
+  const [excludeSamples, setExcludeSamples] = useState(true);
   const [sampleInfo, setSampleInfo] = useState<SampleInfo | null>(null);
   const [businessTypes, setBusinessTypes] = useState<string[]>(['etc/기타','off/백화점','off/편의점','off/할인점','on/도매장','on/샵','on/업소','on/호텔','백화점','백화점(와인)','(미분류)']);
   const [excludedBizTypes, setExcludedBizTypes] = useState<Set<string>>(new Set());
@@ -196,6 +199,9 @@ export default function ImportForecastTab() {
       setMatchedItems(data.matchedItems || 0);
       setAllMatchedItems(data.allMatchedItems || data.matchedItems || 0);
       setStockoutInfo(data.stockoutInfo || null);
+      // 트렌드는 별도 API로 로드 (전체 와인 기준)
+      fetch(`/api/forecast/trends?endYear=${Number(endYear)}`)
+        .then(r => r.json()).then(d => setTrend(d)).catch(() => setTrend(null));
       setBulkInfo(data.bulkInfo || null);
       setSampleInfo(data.sampleInfo || null);
       if (data.businessTypes?.length) setBusinessTypes(data.businessTypes);
@@ -503,6 +509,7 @@ export default function ImportForecastTab() {
           a.years_sold = Math.max(a.years_sold, w.years_sold);
           a.annual_avg += w.annual_avg;
           a.annual_avg_corrected += w.annual_avg_corrected;
+          if (w.avg_import_cost > 0 && a.avg_import_cost === 0) a.avg_import_cost = w.avg_import_cost;
           // 가중 평균 갱신
           a.supply_price = Math.round(a._supplyAmt / a._priceQty);
           a.avg_selling_price = Math.round(a._sellingAmt / a._priceQty);
@@ -524,6 +531,24 @@ export default function ImportForecastTab() {
       }
     }
     const allClients = Object.values(clientAgg).sort((a, b) => b.total_qty - a.total_qty).slice(0, 20);
+
+    // 채널별 통합
+    const channelAgg: Record<string, ChannelStat> = {};
+    for (const r of results) {
+      for (const ch of r.channels || []) {
+        if (!channelAgg[ch.channel]) channelAgg[ch.channel] = { ...ch };
+        else {
+          channelAgg[ch.channel].qty += ch.qty;
+          channelAgg[ch.channel].annual_qty += ch.annual_qty;
+          channelAgg[ch.channel].clients += ch.clients;
+          channelAgg[ch.channel].wines = Math.max(channelAgg[ch.channel].wines, ch.wines);
+          channelAgg[ch.channel].qty_per_wine += ch.qty_per_wine;
+        }
+      }
+    }
+    const allChannels = Object.values(channelAgg).sort((a, b) => b.qty - a.qty);
+    const totalChQty = allChannels.reduce((s, c) => s + c.qty, 0);
+    allChannels.forEach(c => { c.pct = totalChQty > 0 ? Math.round(c.qty / totalChQty * 100) : 0; });
 
     // 연도별 통합
     const yearAgg: Record<string, YearDetail> = {};
@@ -560,6 +585,7 @@ export default function ImportForecastTab() {
       min_qty: Math.min(...results.map(r => r.min_qty)),
       max_qty: results.reduce((s, r) => s + r.max_qty, 0),
       wine_distribution: { median: med, p25: perWine[Math.floor(perWine.length * 0.25)] || 0, p75: perWine[Math.floor(perWine.length * 0.75)] || 0, count: perWine.length },
+      channels: allChannels,
       year_details: allYears,
       wine_details: allWines,
       top_clients: allClients,
@@ -862,6 +888,15 @@ export default function ImportForecastTab() {
             </div>
           </div>
 
+          {/* ── 시뮬레이션 ── */}
+          <SimulationCard
+            mergedData={mergedData}
+            results={results}
+            isNewItem={isNewItem}
+            learningCurve={learningCurve}
+            priceStats={priceStats}
+          />
+
           {/* ── 보정 정보 배지 ── */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
             {/* 재고소진 보정 */}
@@ -972,6 +1007,97 @@ export default function ImportForecastTab() {
             )}
           </div>
 
+          {/* ── 트렌드 보정 ── */}
+          {trend && Object.keys(trend.items).length > 0 && mergedData && (() => {
+            const t = trend.items;
+            const total = t['전사'];
+            const countryKey = country ? 'country:' + country : null;
+            const countryTrend = countryKey && t[countryKey] ? t[countryKey] : null;
+            const typeKey = wineType ? 'type:' + wineType : null;
+            const typeTrend = typeKey && t[typeKey] ? t[typeKey] : null;
+
+            // 검색 결과 와인들의 실제 지역/브랜드만 추출
+            const resultRegions = new Set<string>();
+            const resultBrands = new Set<string>();
+            for (const w of mergedData.wine_details || []) {
+              if (w.region) resultRegions.add(w.region);
+            }
+            // 브랜드는 results의 wine_details에서 wines 테이블 supplier_kr 기반
+            // wine_details에는 brand가 없으므로 트렌드 키에서 매칭
+            for (const r of results) {
+              for (const w of r.wine_details || []) {
+                // 트렌드 키 중 이 와인명이 포함된 브랜드 찾기
+                for (const k of Object.keys(t)) {
+                  if (k.startsWith('brand:') && w.item_name.includes(k.replace('brand:', '').substring(0, 4))) {
+                    resultBrands.add(k);
+                  }
+                }
+              }
+            }
+
+            // 검색 결과에 해당하는 지역만
+            const topRegions = Object.keys(t)
+              .filter(k => k.startsWith('region:') && resultRegions.has(k.replace('region:', '')))
+              .sort((a, b) => (t[b].cur + t[b].prev) - (t[a].cur + t[a].prev))
+              .slice(0, 3);
+
+            // 검색 결과에 해당하는 브랜드만 (매칭 안 되면 국가 기준 Top)
+            let brandKeys = [...resultBrands]
+              .filter(k => t[k])
+              .sort((a, b) => (t[b].cur + t[b].prev) - (t[a].cur + t[a].prev))
+              .slice(0, 3);
+            if (brandKeys.length === 0 && countryKey) {
+              // fallback: 같은 국가의 브랜드 중 큰 것
+              brandKeys = Object.keys(t)
+                .filter(k => k.startsWith('brand:') && t[k].prev + t[k].cur > 50)
+                .sort((a, b) => (t[b].cur + t[b].prev) - (t[a].cur + t[a].prev))
+                .slice(0, 3);
+            }
+
+            const renderPct = (pct: number) => {
+              const color = pct > 10 ? '#27ae60' : pct < -10 ? '#c0392b' : '#8a8580';
+              const arrow = pct > 0 ? '↑' : pct < 0 ? '↓' : '→';
+              return <span style={{ fontWeight: 700, color }}>{arrow}{pct > 0 ? '+' : ''}{pct}%</span>;
+            };
+
+            return (
+              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e8e4e0', padding: '14px 20px', marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 2 }}>
+                  판매 트렌드 ({trend.prevYear}→{trend.year})
+                </div>
+                <div style={{ fontSize: 10, color: '#b0a8a0', marginBottom: 8 }}>전사 전체 와인 출고 기준 전년 대비 성장률</div>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
+                  {total && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#8a8580' }}>전사</span> {renderPct(total.pct)}
+                      <span style={{ fontSize: 10, color: '#b0a8a0' }}>{total.prev.toLocaleString()}→{total.cur.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {countryTrend && countryKey && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#8a8580' }}>{countryKey.replace('country:', '')}</span> {renderPct(countryTrend.pct)}
+                    </div>
+                  )}
+                  {topRegions.map(k => (
+                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#8a8580' }}>{k.replace('region:', '').substring(0, 15)}</span> {renderPct(t[k].pct)}
+                    </div>
+                  ))}
+                  {typeTrend && typeKey && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#8a8580' }}>{typeKey.replace('type:', '')}</span> {renderPct(typeTrend.pct)}
+                    </div>
+                  )}
+                  {brandKeys.slice(0, 3).map(k => (
+                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: '#8a8580' }}>{k.replace('brand:', '')}</span> {renderPct(t[k].pct)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── 영업사원 선택 바 ── */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
             {/* 전체 버튼 */}
@@ -1022,6 +1148,7 @@ export default function ImportForecastTab() {
                   { id: 'wines' as const, label: `판매 와인 (${activeData.wine_details?.length || 0})` },
                   { id: 'years' as const, label: '연도별 추이' },
                   { id: 'clients' as const, label: `주요 거래처 (${activeData.top_clients?.length || 0})` },
+                  { id: 'channels' as const, label: `채널별 (${activeData.channels?.length || 0})` },
                 ]).map(tab => (
                   <button key={tab.id} onClick={() => setDetailTab(tab.id)}
                     style={{
@@ -1367,6 +1494,73 @@ export default function ImportForecastTab() {
                   ))}
                 </div>
               )}
+
+              {/* 채널별 분석 */}
+              {detailTab === 'channels' && activeData.channels && activeData.channels.length > 0 && (() => {
+                const chs = activeData.channels;
+                const maxQty = chs[0]?.qty || 1;
+                const channelColors: Record<string, string> = {
+                  'on/업소': '#e74c3c', 'on/호텔': '#c0392b', 'on/샵': '#e67e22', 'on/도매장': '#f39c12',
+                  'off/백화점': '#3498db', 'off/편의점': '#2980b9', 'off/할인점': '#1abc9c',
+                  '백화점': '#3498db', '백화점(와인)': '#2c6faa',
+                  'etc/기타': '#95a5a6', '(미분류)': '#bdc3c7',
+                };
+                return (
+                  <div style={{ padding: '16px 20px' }}>
+                    {/* 채널 바 차트 */}
+                    {chs.map((ch, i) => {
+                      const pct = Math.round(ch.qty / maxQty * 100);
+                      const color = channelColors[ch.channel] || '#8a8580';
+                      return (
+                        <div key={ch.channel} style={{ marginBottom: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>{ch.channel}</span>
+                              <span style={{ fontSize: 11, color: '#a8a098' }}>{ch.pct}%</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#8a8580' }}>
+                              <span>{ch.clients}거래처</span>
+                              <span>{ch.wines}와인</span>
+                              <span style={{ fontWeight: 700, color }}>{ch.annual_qty.toLocaleString()}병/년</span>
+                            </div>
+                          </div>
+                          <div style={{ height: 24, background: '#f5f3f0', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}aa)`, borderRadius: 6, transition: 'width 0.3s', minWidth: 4 }} />
+                            <div style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, fontWeight: 700, color: pct > 35 ? '#fff' : '#2c1810' }}>
+                              {ch.qty.toLocaleString()}병
+                            </div>
+                          </div>
+                          {/* 와인당 기대값 */}
+                          <div style={{ fontSize: 11, color: '#a8a098', marginTop: 3, textAlign: 'right' }}>
+                            와인당 {ch.qty_per_wine}병/년{isNewItem ? ' (신규+1 포함)' : ''}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* 채널 요약 */}
+                    <div style={{ marginTop: 16, padding: '12px 16px', background: '#faf9f7', borderRadius: 8, border: '1px solid #f0ece8' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>채널별 신규 와인 기대값</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {chs.filter(c => c.qty_per_wine > 0).map(ch => {
+                          const color = channelColors[ch.channel] || '#8a8580';
+                          return (
+                            <div key={ch.channel} style={{ padding: '6px 12px', borderRadius: 8, background: '#fff', border: `1px solid ${color}44`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+                              <span style={{ fontSize: 12, color: '#2c1810' }}>{ch.channel}</span>
+                              <span style={{ fontSize: 14, fontWeight: 700, color }}>{ch.qty_per_wine}병</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#b0a8a0', marginTop: 8 }}>
+                        신규 와인이 주로 진입할 채널에 따라 기대값이 달라집니다
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -1389,6 +1583,9 @@ export default function ImportForecastTab() {
           해당 조건의 판매 이력이 없습니다.<br /><span style={{ fontSize: 12 }}>지역을 비우거나 가격대를 조정해 보세요.</span>
         </div>
       )}
+
+      {/* ── 브랜드 소진 분석 ── */}
+      <BrandVelocitySection startYear={startYear} endYear={endYear} />
     </div>
   );
 }
@@ -1423,3 +1620,297 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box', color: '#2c1810', background: '#fafafa',
   transition: 'border-color 0.2s',
 };
+
+// ── 시뮬레이션 카드 ──
+function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceStats }: {
+  mergedData: ManagerStat | null;
+  results: ManagerStat[];
+  isNewItem: boolean;
+  learningCurve: LearningCurve | null;
+  priceStats: PriceStats | null;
+}) {
+  const [importCases, setImportCases] = useState(10);
+  // 수입원가: wine_details에서 avg_import_cost 평균 계산 (없으면 공급가 fallback)
+  const avgImportCost = (() => {
+    const details = mergedData?.wine_details || [];
+    const withCost = details.filter(w => w.avg_import_cost > 0);
+    if (withCost.length > 0) return Math.round(withCost.reduce((s, w) => s + w.avg_import_cost, 0) / withCost.length);
+    return priceStats?.avg || 50000;
+  })();
+  const [costPrice, setCostPrice] = useState(avgImportCost);
+  const [marginPct, setMarginPct] = useState(20);
+
+  useEffect(() => { if (avgImportCost > 0) setCostPrice(avgImportCost); }, [avgImportCost]);
+
+  if (!mergedData || !mergedData.wine_details?.length) return null;
+
+  const wines = (mergedData.wine_details || [])
+    .map(w => ({ name: w.item_name, annual: w.annual_avg_corrected, price: w.avg_selling_price }))
+    .filter(w => w.annual >= 6)
+    .sort((a, b) => a.annual - b.annual);
+  if (wines.length === 0) return null;
+
+  const lc = (isNewItem && learningCurve) ? learningCurve.ratio : 1;
+  const p25Idx = Math.max(0, Math.floor(wines.length * 0.25));
+  const medIdx = Math.floor(wines.length * 0.5);
+  const p75Idx = Math.min(wines.length - 1, Math.floor(wines.length * 0.75));
+  const medVal = wines[medIdx].annual;
+  // 낙관적: P75지만 중위값의 2배 이내로 제한 (히트 와인 왜곡 방지)
+  const p75Raw = wines[p75Idx].annual;
+  const p75Capped = Math.min(p75Raw, Math.round(medVal * 2));
+  // 보수적: P25지만 중위값의 50% 이상 유지
+  const p25Raw = wines[p25Idx].annual;
+  const p25Capped = Math.max(p25Raw, Math.round(medVal * 0.5));
+
+  const scenarios = [
+    { label: '보수적', value: p25Capped, color: '#95a5a6', icon: '▽' },
+    { label: '기본', value: medVal, color: '#5A1515', icon: '■' },
+    { label: '낙관적', value: p75Capped, color: '#27ae60', icon: '△' },
+  ];
+  if (wines.length === 1) {
+    scenarios.splice(0, scenarios.length,
+      { label: '보수적', value: Math.round(wines[0].annual * 0.7), color: '#95a5a6', icon: '▽' },
+      { label: '기본', value: wines[0].annual, color: '#5A1515', icon: '■' },
+      { label: '낙관적', value: Math.round(wines[0].annual * 1.3), color: '#27ae60', icon: '△' },
+    );
+  } else if (wines.length === 2) {
+    scenarios.splice(0, scenarios.length,
+      { label: '보수적', value: wines[0].annual, color: '#95a5a6', icon: '▽' },
+      { label: '기본', value: Math.round((wines[0].annual + wines[1].annual) / 2), color: '#5A1515', icon: '■' },
+      { label: '낙관적', value: wines[1].annual, color: '#27ae60', icon: '△' },
+    );
+  }
+
+  const importBottles = importCases * 12;
+  const totalInvestment = importBottles * costPrice;
+  const sellingPrice = Math.round(costPrice * (1 + marginPct / 100));
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(90,21,21,0.06)', marginBottom: 16, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0ece8', background: '#faf9f7' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#2c1810' }}>투자 시뮬레이션</div>
+        <div style={{ fontSize: 11, color: '#a8a098' }}>수입 물량과 수입원가 마진율을 조정하여 시나리오별 수익성을 분석합니다</div>
+      </div>
+
+      {/* 입력 */}
+      <div style={{ padding: '16px 24px', display: 'flex', gap: 20, flexWrap: 'wrap', borderBottom: '1px solid #f0ece8' }}>
+        <div style={{ flex: 1, minWidth: 140 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b5e54', marginBottom: 4 }}>수입량 (케이스)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="range" min={1} max={100} value={importCases} onChange={e => setImportCases(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#5A1515' }} />
+            <input type="number" value={importCases} onChange={e => setImportCases(Math.max(1, Number(e.target.value) || 1))}
+              style={{ width: 52, padding: '4px 6px', fontSize: 13, fontWeight: 700, textAlign: 'center', border: '1.5px solid #e8e4e0', borderRadius: 6, color: '#5A1515' }} />
+          </div>
+          <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>{importBottles.toLocaleString()}병 · 투자 {(totalInvestment / 10000).toLocaleString()}만원</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 140 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b5e54', marginBottom: 4 }}>수입원가 (원)</div>
+          <input type="number" value={costPrice} onChange={e => setCostPrice(Number(e.target.value) || 0)}
+            style={{ width: '100%', padding: '6px 10px', fontSize: 13, border: '1.5px solid #e8e4e0', borderRadius: 6, color: '#2c1810' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 140 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b5e54', marginBottom: 4 }}>마진율 (%)</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="range" min={5} max={60} value={marginPct} onChange={e => setMarginPct(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#5A1515' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#5A1515', minWidth: 36 }}>{marginPct}%</span>
+          </div>
+          <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>판매가 {sellingPrice.toLocaleString()}원</div>
+        </div>
+      </div>
+
+      {/* 시나리오별 결과 */}
+      <div style={{ padding: '16px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scenarios.length}, 1fr)`, gap: 12, marginBottom: 16 }}>
+          {scenarios.map(s => {
+            const yr1Sales = Math.round(s.value * lc);
+            const yr1Revenue = yr1Sales * sellingPrice;
+            const yr1Profit = yr1Sales * (sellingPrice - costPrice);
+            const sellThruPct = Math.min(100, Math.round(yr1Sales / importBottles * 100));
+            const remainBottles = Math.max(0, importBottles - yr1Sales);
+            const roi = totalInvestment > 0 ? Math.round(yr1Profit / totalInvestment * 100) : 0;
+            const monthsToSell = yr1Sales > 0 ? Math.round(importBottles / yr1Sales * 12) : 999;
+
+            return (
+              <div key={s.label} style={{ padding: 16, borderRadius: 10, border: `1.5px solid ${s.color}33`, background: `${s.color}08` }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: s.color, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>{s.icon}</span> {s.label}
+                  <span style={{ fontSize: 10, fontWeight: 400, color: '#a8a098', marginLeft: 'auto' }}>{s.value}병/년</span>
+                </div>
+
+                <div style={{ fontSize: 11, color: '#8a8580', lineHeight: 2.2 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{isNewItem ? '1년차 판매' : '연간 판매'}</span>
+                    <strong style={{ color: '#2c1810' }}>{yr1Sales.toLocaleString()}병</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>매출</span>
+                    <strong style={{ color: '#2c1810' }}>{(yr1Revenue / 10000).toLocaleString()}만원</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>수익</span>
+                    <strong style={{ color: yr1Profit >= 0 ? '#27ae60' : '#c0392b' }}>{yr1Profit >= 0 ? '+' : ''}{(yr1Profit / 10000).toLocaleString()}만원</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>ROI</span>
+                    <strong style={{ color: roi >= 0 ? '#27ae60' : '#c0392b' }}>{roi >= 0 ? '+' : ''}{roi}%</strong>
+                  </div>
+
+                  {/* 소진 바 */}
+                  <div style={{ marginTop: 6, marginBottom: 2 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#b0a8a0' }}>
+                      <span>소진율</span>
+                      <span>{sellThruPct}% · 잔여 {remainBottles}병</span>
+                    </div>
+                    <div style={{ height: 6, background: '#f0ece8', borderRadius: 3, marginTop: 3 }}>
+                      <div style={{ height: '100%', width: `${sellThruPct}%`, background: sellThruPct >= 80 ? '#27ae60' : sellThruPct >= 50 ? '#e67e22' : '#c0392b', borderRadius: 3, transition: 'width 0.3s' }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                    <span>완전소진</span>
+                    <strong style={{ color: monthsToSell <= 12 ? '#27ae60' : monthsToSell <= 24 ? '#e67e22' : '#c0392b' }}>
+                      {monthsToSell >= 999 ? '-' : `약 ${monthsToSell}개월`}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 근거 와인 */}
+        <div style={{ borderTop: '1px solid #f0ece8', paddingTop: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', marginBottom: 8 }}>근거: 유사 와인 {wines.length}개 연평균 판매량 분포</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {wines.map((w, i) => {
+              const sColor = i <= p25Idx ? '#95a5a6' : i >= p75Idx ? '#27ae60' : '#5A1515';
+              return (
+                <div key={i} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: `${sColor}11`, border: `1px solid ${sColor}33`, color: '#2c1810', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
+                  <span style={{ fontWeight: 700, color: sColor }}>{w.annual}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 브랜드 소진 분석 ──
+function BrandVelocitySection({ startYear, endYear }: { startYear: string; endYear: string }) {
+  const [brands, setBrands] = useState<{
+    brand: string; country: string; items: number; total: number;
+    monthlyAvg: number; spanMonths: number; avgPrice: number;
+    m1: number; m3: number; m6: number; m12: number; pattern: string;
+    months5c: number; months10c: number; months20c: number;
+  }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<'total' | 'monthlyAvg' | 'avgPrice' | 'items'>('total');
+  const [filterPrice, setFilterPrice] = useState('all');
+
+  const [lastPeriod, setLastPeriod] = useState('');
+
+  const loadBrands = async () => {
+    const period = `${startYear}-${endYear}`;
+    if (brands.length > 0 && lastPeriod === period) { setOpen(v => !v); return; }
+    setLoading(true);
+    setLastPeriod(period);
+    try {
+      const res = await fetch(`/api/forecast/brands?startYear=${startYear}&endYear=${endYear}`);
+      const data = await res.json();
+      setBrands(data.brands || []);
+      setOpen(true);
+    } catch { /* */ }
+    finally { setLoading(false); }
+  };
+
+  const filtered = brands.filter(b => {
+    if (filterPrice === 'all') return true;
+    if (filterPrice === '~2만') return b.avgPrice > 0 && b.avgPrice < 20000;
+    if (filterPrice === '2~5만') return b.avgPrice >= 20000 && b.avgPrice < 50000;
+    if (filterPrice === '5~10만') return b.avgPrice >= 50000 && b.avgPrice < 100000;
+    if (filterPrice === '10만~') return b.avgPrice >= 100000;
+    return true;
+  }).sort((a, b) => (b as Record<string, number>)[sortKey] - (a as Record<string, number>)[sortKey]);
+
+  const patternColor: Record<string, string> = { '초반집중': '#e74c3c', '꾸준': '#27ae60', '후반가속': '#3498db' };
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <button onClick={loadBrands}
+        style={{ width: '100%', padding: '14px 24px', background: '#fff', borderRadius: 14, border: '1px solid #e8e4e0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', textAlign: 'left' }}>브랜드별 소진 속도 분석</div>
+          <div style={{ fontSize: 11, color: '#a8a098', textAlign: 'left', marginTop: 2 }}>과거 데이터 기반 브랜드별 월평균 판매량, 소진 기간, 패턴</div>
+        </div>
+        <span style={{ fontSize: 12, color: '#a8a098' }}>{loading ? '로딩...' : open ? '▲ 접기' : '▼ 펼치기'}</span>
+      </button>
+
+      {open && brands.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: '0 0 14px 14px', border: '1px solid #e8e4e0', borderTop: 'none', padding: '16px 0' }}>
+          {/* 필터/정렬 */}
+          <div style={{ padding: '0 20px 12px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#8a8580' }}>가격대:</span>
+            {['all', '~2만', '2~5만', '5~10만', '10만~'].map(p => (
+              <button key={p} onClick={() => setFilterPrice(p)}
+                style={{ padding: '3px 10px', fontSize: 11, borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: filterPrice === p ? 700 : 400, background: filterPrice === p ? '#5A1515' : '#f5f3f0', color: filterPrice === p ? '#fff' : '#8a8580' }}>
+                {p === 'all' ? '전체' : p}
+              </button>
+            ))}
+            <div style={{ width: 1, height: 14, background: '#e8e4e0', margin: '0 4px' }} />
+            <span style={{ fontSize: 11, color: '#8a8580' }}>정렬:</span>
+            {([['total', '총판매'], ['monthlyAvg', '월평균'], ['avgPrice', '평균가'], ['items', '품목수']] as const).map(([k, l]) => (
+              <button key={k} onClick={() => setSortKey(k)}
+                style={{ padding: '3px 10px', fontSize: 11, borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: sortKey === k ? 700 : 400, background: sortKey === k ? '#5A1515' : '#f5f3f0', color: sortKey === k ? '#fff' : '#8a8580' }}>
+                {l}
+              </button>
+            ))}
+            <span style={{ fontSize: 11, color: '#b0a8a0', marginLeft: 'auto' }}>{filtered.length}개 브랜드</span>
+          </div>
+
+          {/* 헤더 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 50px 55px 70px 65px 55px 55px 55px 60px', padding: '8px 20px', fontSize: 10, color: '#b0a8a0', fontWeight: 600, borderBottom: '1px solid #f0ece8' }}>
+            <div>브랜드</div><div style={{ textAlign: 'right' }}>품목</div><div style={{ textAlign: 'right' }}>평균가</div>
+            <div style={{ textAlign: 'right' }}>총판매</div><div style={{ textAlign: 'right' }}>월평균</div>
+            <div style={{ textAlign: 'center' }}>5cs</div><div style={{ textAlign: 'center' }}>10cs</div><div style={{ textAlign: 'center' }}>20cs</div>
+            <div style={{ textAlign: 'center' }}>패턴</div>
+          </div>
+
+          {/* 데이터 */}
+          {filtered.map((b, i) => {
+            const maxAvg = filtered[0]?.monthlyAvg || 1;
+            const pct = Math.min(100, Math.round(b.monthlyAvg / maxAvg * 100));
+            return (
+              <div key={b.brand} style={{ position: 'relative', borderBottom: '1px solid #f8f6f4' }}>
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: 'linear-gradient(90deg, rgba(90,21,21,0.04), rgba(90,21,21,0.01))' }} />
+                <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 50px 55px 70px 65px 55px 55px 55px 60px', padding: '10px 20px', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>{b.brand}</div>
+                    <div style={{ fontSize: 10, color: '#b0a8a0' }}>{b.country}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: 12, color: '#8a8580' }}>{b.items}</div>
+                  <div style={{ textAlign: 'right', fontSize: 11, color: '#8a8580' }}>{b.avgPrice > 0 ? (b.avgPrice / 1000).toFixed(0) + 'k' : '-'}</div>
+                  <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#5A1515' }}>{b.total.toLocaleString()}</div>
+                  <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#2c1810' }}>{b.monthlyAvg.toLocaleString()}</div>
+                  <div style={{ textAlign: 'center', fontSize: 11, color: b.months5c <= 1 ? '#27ae60' : '#8a8580' }}>{b.months5c}월</div>
+                  <div style={{ textAlign: 'center', fontSize: 11, color: b.months10c <= 3 ? '#27ae60' : b.months10c <= 6 ? '#e67e22' : '#c0392b' }}>{b.months10c}월</div>
+                  <div style={{ textAlign: 'center', fontSize: 11, color: b.months20c <= 6 ? '#27ae60' : b.months20c <= 12 ? '#e67e22' : '#c0392b' }}>{b.months20c}월</div>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 600, color: patternColor[b.pattern] || '#8a8580', background: (patternColor[b.pattern] || '#8a8580') + '15' }}>
+                      {b.pattern}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

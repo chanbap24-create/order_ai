@@ -29,7 +29,7 @@ function preprocessGlassMessage(text: string) {
   s = s.replace(/,\s*(?=\d{3,4}\/)/g, "\n");
   s = s.replace(/,\s*(?=[가-힣]{2})/g, "\n");
 
-  s = s.replace(/[.!?]/g, "\n");
+  s = s.replace(/(?<!\d)\.(?!\d)|[!?]/g, "\n");
 
   s = s
     .split("\n")
