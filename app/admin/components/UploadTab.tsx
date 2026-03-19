@@ -259,22 +259,32 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
 
-        const IDX_CLIENT_NAME = 4;
-        const IDX_CLIENT_CODE = 5;
-        const IDX_SHIP_DATE = 6;
-        const IDX_BIZ_TYPE = 7;
-        const IDX_ITEM_NO = 12;
-        const IDX_ITEM_NAME = 13;
-        const IDX_SELLING_PRICE = 16;
-        const IDX_QUANTITY = 18;
-        const IDX_UNIT_PRICE = 19;
-        const IDX_SUPPLY_AMT = 20;
-        const IDX_TAX_AMT = 21;
-        const IDX_TOTAL_AMT = 22;
-        const IDX_WAREHOUSE = 23;
-        const IDX_MANAGER = 37;
-        const IDX_DEPARTMENT = 38;
-        const IDX_PRICE = type === 'client' ? 19 : 16;
+        // 헤더 기반 동적 컬럼 매핑 (엑셀 형식 변경에 대응)
+        const header = (rows[0] as unknown[]).map(v => String(v ?? '').trim());
+        const col = (name: string): number => {
+          // 정확 매칭 우선
+          const exact = header.findIndex(h => h === name);
+          if (exact >= 0) return exact;
+          // 부분 매칭 폴백 (startsWith로 더 안전하게)
+          return header.findIndex(h => h.startsWith(name));
+        };
+        const IDX_CLIENT_NAME = col('판매처') >= 0 && col('판매처') !== col('판매처번호') ? col('판매처') : 4;
+        const IDX_CLIENT_CODE = col('판매처번호') >= 0 ? col('판매처번호') : 5;
+        const IDX_SHIP_DATE = col('출고일') >= 0 ? col('출고일') : 6;
+        const IDX_BIZ_TYPE = col('업종구분') >= 0 ? col('업종구분') : 7;
+        const IDX_ITEM_NO = col('품번') >= 0 ? col('품번') : 12;
+        const IDX_ITEM_NAME = col('품명') >= 0 ? col('품명') : 13;
+        const IDX_SELLING_PRICE = col('판매단가') >= 0 ? col('판매단가') : 16;
+        const IDX_QUANTITY = col('출고수량') >= 0 ? col('출고수량') : 18;
+        const IDX_UNIT_PRICE = col('기준단가') >= 0 ? col('기준단가') : 19;
+        const IDX_SUPPLY_AMT = col('공급가액') >= 0 ? col('공급가액') : 20;
+        const IDX_TAX_AMT = col('세액') >= 0 ? col('세액') : 21;
+        const IDX_TOTAL_AMT = col('합계금액') >= 0 ? col('합계금액') : 22;
+        const IDX_WAREHOUSE = col('창고') >= 0 ? col('창고') : 23;
+        const IDX_MANAGER = col('담당자') >= 0 ? col('담당자') : 37;
+        const IDX_DEPARTMENT = col('부서') >= 0 ? col('부서') : 38;
+        const IDX_PRICE = type === 'client' ? IDX_UNIT_PRICE : IDX_SELLING_PRICE;
+        console.log('[Upload] 컬럼 매핑:', { IDX_CLIENT_NAME, IDX_CLIENT_CODE, IDX_SHIP_DATE, IDX_ITEM_NO, IDX_ITEM_NAME, IDX_QUANTITY, IDX_MANAGER });
 
         const clients: Record<string, string> = {};
         const items: Array<{ client_code: string; item_no: string; item_name: string; supply_price: number | null }> = [];
