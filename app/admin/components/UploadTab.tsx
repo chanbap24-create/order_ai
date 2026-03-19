@@ -335,7 +335,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
             ship_date: toDate(r[IDX_SHIP_DATE]),
             item_no: itemNo,
             item_name: itemName,
-            quantity: toNum(r[IDX_QUANTITY]) ?? 0,
+            quantity: Math.round(toNum(r[IDX_QUANTITY]) ?? 0),
             unit_price: toNum(r[IDX_UNIT_PRICE]),
             selling_price: toNum(r[IDX_SELLING_PRICE]),
             supply_amount: toNum(r[IDX_SUPPLY_AMT]),

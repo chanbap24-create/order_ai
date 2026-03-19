@@ -779,7 +779,10 @@ export async function processShipmentsFromData(
 
   let inserted = 0;
   for (let i = 0; i < shipments.length; i += 500) {
-    const batch = shipments.slice(i, i + 500);
+    const batch = shipments.slice(i, i + 500).map(s => ({
+      ...s,
+      quantity: Math.round(s.quantity ?? 0),
+    }));
     const { error } = await supabase.from(table).insert(batch);
     if (error) {
       logger.error(`[Shipments] ${table} insert error at batch ${i}`, { error });
