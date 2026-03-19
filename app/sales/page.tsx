@@ -83,7 +83,7 @@ export default function SalesPage() {
       if (data.success) {
         setAuthenticated(true);
         setCurrentManager(data.manager);
-        setIsAdmin(data.role === 'admin' || data.role === 'executive');
+        setIsAdmin(data.role === 'admin' || data.role === 'executive' || data.department === '마케팅부');
         setUserRole(data.role || '');
         setUserDepartment(data.department || '');
         if (data.role === 'executive') setActiveTab('analysis');
