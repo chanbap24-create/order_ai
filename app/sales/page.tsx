@@ -57,7 +57,7 @@ export default function SalesPage() {
       if (authData?.authenticated) {
         setAuthenticated(true);
         setCurrentManager(authData.manager);
-        setIsAdmin(authData.role === 'admin' || authData.role === 'executive');
+        setIsAdmin(authData.role === 'admin' || authData.role === 'executive' || authData.department === '마케팅부');
         setUserRole(authData.role || '');
         setUserDepartment(authData.department || '');
         if (authData.role === 'executive') setActiveTab('analysis');
