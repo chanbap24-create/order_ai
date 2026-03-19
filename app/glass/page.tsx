@@ -1122,6 +1122,28 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         </div>
       </div>
 
+      {/* ═══ API 에러 표시 ═══ */}
+      {data && !data.success && (
+        <div style={{
+          marginTop: 16, padding: "14px 18px", borderRadius: 12,
+          background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.15)",
+          color: "#dc2626", fontSize: 14, fontWeight: 500,
+        }}>
+          {data.error || "알 수 없는 오류가 발생했습니다."}
+        </div>
+      )}
+
+      {/* ═══ API 응답 디버그 (임시) ═══ */}
+      {data && !data.items && !needsClientPick && data.success && (
+        <div style={{
+          marginTop: 16, padding: "14px 18px", borderRadius: 12,
+          background: "rgba(217,119,6,0.05)", border: "1px solid rgba(217,119,6,0.15)",
+          color: "#92400e", fontSize: 13,
+        }}>
+          API 응답은 성공했지만 품목이 없습니다. (status: {data.status || "없음"})
+        </div>
+      )}
+
       {/* =========================
           ✅ 거래처 선택 패널
       ========================= */}
