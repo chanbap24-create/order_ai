@@ -1348,11 +1348,44 @@ export default function MeetingTab({ currentManager, isAdmin }: { currentManager
 
             {/* 시간 */}
             <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>시간</label>
-            <input type="time" value={modalTime} onChange={e => setModalTime(e.target.value)} style={{
-              width: '100%', padding: '10px 12px', borderRadius: 8,
-              border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
-              marginBottom: 14, boxSizing: 'border-box',
-            }} />
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+              <select
+                value={modalTime ? modalTime.split(':')[0] : ''}
+                onChange={e => {
+                  const hh = e.target.value;
+                  const mm = modalTime ? modalTime.split(':')[1] || '00' : '00';
+                  setModalTime(hh ? `${hh}:${mm}` : '');
+                }}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 8,
+                  border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+                  background: '#fff',
+                }}
+              >
+                <option value="">시</option>
+                {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(h => (
+                  <option key={h} value={h}>{h}시</option>
+                ))}
+              </select>
+              <select
+                value={modalTime ? modalTime.split(':')[1] || '00' : ''}
+                onChange={e => {
+                  const hh = modalTime ? modalTime.split(':')[0] || '09' : '09';
+                  const mm = e.target.value;
+                  setModalTime(mm ? `${hh}:${mm}` : '');
+                }}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 8,
+                  border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+                  background: '#fff',
+                }}
+              >
+                <option value="">분</option>
+                {['00', '10', '20', '30', '40', '50'].map(m => (
+                  <option key={m} value={m}>{m}분</option>
+                ))}
+              </select>
+            </div>
 
             {/* 미팅 타입 */}
             <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 6 }}>미팅 타입</label>

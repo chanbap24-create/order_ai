@@ -259,6 +259,20 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
 
+        // 파일 타입 검증: 재고파일을 출고현황에 올린 경우 차단
+        const headerCheck = (rows[0] as unknown[]).map(v => String(v ?? '').trim());
+        const headerJoined = headerCheck.join('|');
+        if (headerJoined.includes('재고수량') || headerJoined.includes('가용재고')) {
+          alert('⚠️ 이 파일은 재고현황 파일입니다!\n\n"와인재고현황" 또는 "글라스재고현황" 영역에 업로드해주세요.');
+          updateCard(type, { status: 'error', fileName: file.name, message: '잘못된 파일 형식 - 재고현황 파일은 재고 영역에 업로드하세요.' });
+          return;
+        }
+        if (!headerJoined.includes('판매처') && !headerJoined.includes('출고일')) {
+          alert('⚠️ 출고현황 파일이 아닌 것 같습니다.\n\n헤더에 "판매처", "출고일" 등이 없습니다.\n감지된 헤더: ' + headerCheck.filter(Boolean).slice(0, 10).join(', '));
+          updateCard(type, { status: 'error', fileName: file.name, message: '잘못된 파일 형식 - 출고현황 헤더가 없습니다.' });
+          return;
+        }
+
         // 헤더 기반 동적 컬럼 매핑 (엑셀 형식 변경에 대응)
         const header = (rows[0] as unknown[]).map(v => String(v ?? '').trim());
         const col = (name: string): number => {
