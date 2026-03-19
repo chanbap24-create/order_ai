@@ -42,17 +42,22 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
     return <div style={{ padding: '16px 14px', textAlign: 'center', color: '#a8a098', fontSize: 13 }}>출고 건이 없습니다</div>;
   }
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-        <thead>
-          <tr style={{ background: '#fafaf8' }}>
-            <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>거래처</th>
-            <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>업종</th>
-            <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>공급금액</th>
-            <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>부가세</th>
-            <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>합계</th>
-          </tr>
-        </thead>
+    <div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+            <tr style={{ background: '#fafaf8' }}>
+              <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>거래처</th>
+              <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>업종</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>공급금액</th>
+              <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>부가세</th>
+              <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#8a8580', whiteSpace: 'nowrap' }}>합계</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div style={{ maxHeight: 400, overflowY: 'auto', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         {group.clients.map(c => {
           const key = prefix + (c.client_code || c.client_name);
           const isExp = expandedClient === key;
@@ -97,15 +102,20 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
             </tbody>
           );
         })}
-        <tfoot>
-          <tr style={{ borderTop: '2px solid rgba(90,21,21,0.1)' }}>
-            <td colSpan={2} style={{ padding: '10px', fontSize: 12, fontWeight: 700, color: '#2c1810' }}>합계</td>
-            <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#333' }}>{fmt(group.totals.supply)}</td>
-            <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#999' }}>{fmt(group.totals.tax)}</td>
-            <td style={{ padding: '10px', textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>{fmt(group.totals.total)}</td>
-          </tr>
-        </tfoot>
-      </table>
+        </table>
+      </div>
+      <div style={{ overflowX: 'auto', borderTop: '2px solid rgba(90,21,21,0.1)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <tfoot>
+            <tr>
+              <td colSpan={2} style={{ padding: '10px', fontSize: 12, fontWeight: 700, color: '#2c1810' }}>합계</td>
+              <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#333' }}>{fmt(group.totals.supply)}</td>
+              <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#999' }}>{fmt(group.totals.tax)}</td>
+              <td style={{ padding: '10px', textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>{fmt(group.totals.total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }
