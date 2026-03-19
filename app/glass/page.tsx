@@ -197,6 +197,13 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    if (res.status === 401) {
+      throw new Error("세션이 만료되었습니다. 페이지를 새로고침하여 다시 로그인해주세요.");
+    }
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || `서버 오류 (${res.status})`);
+    }
     const json = await res.json();
     return { res, json };
   }
@@ -275,6 +282,8 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         // 거래처 선택 단계에서는 학습 패널 닫기
         setShowLearnInput(false);
       }
+    } catch (err: any) {
+      alert(err?.message || "발주 분석 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
