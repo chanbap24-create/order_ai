@@ -231,7 +231,37 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           }
         }
 
+        // 파싱 결과 검증
+        if (payments.length === 0) {
+          alert('⚠️ 수금 데이터가 0건입니다. 파일을 확인해주세요.');
+          updateCard(type, { status: 'error', fileName: file.name, message: '수금 데이터 0건 - 파일 확인 필요' });
+          return;
+        }
+
         const currentPayMode = modeOverride || uploadMode[type] || 'replace';
+
+        // 교체 모드 안전장치: 기존 DB 데이터와 비교
+        if (currentPayMode === 'replace') {
+          const payTable = type === 'dl-payments' ? 'dl_payments' : 'payments';
+          try {
+            const checkRes = await fetch(`/api/admin/upload-data/check-range?table=${payTable}`);
+            const rangeData = await checkRes.json();
+            if (rangeData.count && rangeData.count > payments.length * 3) {
+              const ok = confirm(
+                `⚠️ 교체 모드 경고!\n\n` +
+                `현재 DB: ${rangeData.count}건 (${rangeData.minDate} ~ ${rangeData.maxDate})\n` +
+                `업로드 파일: ${payments.length}건\n\n` +
+                `기존 ${rangeData.count}건이 삭제되고 ${payments.length}건으로 교체됩니다.\n` +
+                `계속하시겠습니까?`
+              );
+              if (!ok) {
+                updateCard(type, { status: 'idle', fileName: '', message: '' });
+                return;
+              }
+            }
+          } catch { /* 체크 실패 시 그냥 진행 */ }
+        }
+
         // append 모드: 엑셀 데이터의 최소 payment_date 계산
         let payMinDate: string | undefined;
         if (currentPayMode === 'append') {
@@ -394,6 +424,28 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         }
 
         const currentMode = modeOverride || uploadMode[type] || 'replace';
+
+        // 교체 모드 안전장치: 기존 DB 데이터와 비교
+        if (currentMode === 'replace') {
+          const shipTable = type === 'client' ? 'shipments' : 'glass_shipments';
+          try {
+            const checkRes = await fetch(`/api/admin/upload-data/check-range?table=${shipTable}`);
+            const rangeData = await checkRes.json();
+            if (rangeData.count && rangeData.count > shipments.length * 3) {
+              const ok = confirm(
+                `⚠️ 교체 모드 경고!\n\n` +
+                `현재 DB: ${rangeData.count.toLocaleString()}건\n` +
+                `업로드 파일: ${shipments.length.toLocaleString()}건\n\n` +
+                `기존 데이터가 삭제되고 교체됩니다. 계속하시겠습니까?`
+              );
+              if (!ok) {
+                updateCard(type, { status: 'idle', fileName: '', message: '' });
+                return;
+              }
+            }
+          } catch { /* 체크 실패 시 그냥 진행 */ }
+        }
+
         updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중... (${currentMode === 'append' ? '누적' : '교체'})` });
 
         // 1) clients/items 업로드 (mode 전달)
