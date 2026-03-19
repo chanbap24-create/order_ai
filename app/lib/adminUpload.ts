@@ -782,6 +782,11 @@ export async function processShipmentsFromData(
     const batch = shipments.slice(i, i + 500).map(s => ({
       ...s,
       quantity: Math.round(s.quantity ?? 0),
+      unit_price: s.unit_price != null ? Math.round(s.unit_price) : null,
+      selling_price: s.selling_price != null ? Math.round(s.selling_price) : null,
+      supply_amount: s.supply_amount != null ? Math.round(s.supply_amount) : null,
+      tax_amount: s.tax_amount != null ? Math.round(s.tax_amount) : null,
+      total_amount: s.total_amount != null ? Math.round(s.total_amount) : null,
     }));
     const { error } = await supabase.from(table).insert(batch);
     if (error) {
