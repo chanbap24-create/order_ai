@@ -260,6 +260,7 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         requirePaymentConfirm: requirePaymentConfirm || undefined,
         requireInvoice: requireInvoice || undefined,
       });
+      console.log("[Glass] API 응답:", JSON.stringify(json).substring(0, 500));
       setData(json);
 
       // 새 결과 나오면 pick 상태는 초기화 (새 주문이니까)
