@@ -104,7 +104,11 @@ export async function POST(
 
     return NextResponse.json({ success: true, type, ...result });
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     logger.error("Admin upload-data error", e instanceof Error ? e : undefined);
-    return handleApiError(e);
+    return NextResponse.json(
+      { success: false, error: msg },
+      { status: 500 }
+    );
   }
 }
