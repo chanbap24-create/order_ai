@@ -358,6 +358,27 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           });
         }
 
+        // 파싱 결과 검증: ship_date null이 대부분이면 컬럼 매핑 오류
+        const nullDates = shipments.filter(s => !s.ship_date).length;
+        const sample = shipments[0];
+        if (nullDates > shipments.length * 0.5 || !sample?.ship_date) {
+          const msg = `⚠️ 컬럼 매핑 오류 감지!\n\n` +
+            `헤더 매핑: 판매처=[${IDX_CLIENT_NAME}], 판매처번호=[${IDX_CLIENT_CODE}], 출고일=[${IDX_SHIP_DATE}], 품번=[${IDX_ITEM_NO}], 품명=[${IDX_ITEM_NAME}], 출고수량=[${IDX_QUANTITY}], 담당자=[${IDX_MANAGER}]\n\n` +
+            `첫 행 데이터:\n` +
+            `  판매처: ${sample?.client_name}\n` +
+            `  판매처번호: ${sample?.client_code}\n` +
+            `  출고일: ${sample?.ship_date}\n` +
+            `  품번: ${sample?.item_no}\n` +
+            `  품명: ${sample?.item_name}\n` +
+            `  수량: ${sample?.quantity}\n` +
+            `  담당자: ${sample?.manager}\n\n` +
+            `ship_date NULL: ${nullDates}/${shipments.length}행\n\n` +
+            `엑셀 헤더: ${header.filter(Boolean).join(', ')}`;
+          alert(msg);
+          updateCard(type, { status: 'error', fileName: file.name, message: '컬럼 매핑 오류 - 엑셀 형식을 확인해주세요.' });
+          return;
+        }
+
         const currentMode = modeOverride || uploadMode[type] || 'replace';
         updateCard(type, { status: 'uploading', fileName: file.name, message: `${Object.keys(clients).length}개 거래처, ${items.length}개 품목 업로드 중... (${currentMode === 'append' ? '누적' : '교체'})` });
 
