@@ -222,33 +222,33 @@ export async function GET(req: NextRequest) {
         }
         if (filterType && wineType !== filterType) continue;
 
-        const absQty = Math.abs(qty);
-        // selling_price가 총액인지 단가인지 판별:
-        // supply_amount == selling_price → 둘 다 총액
-        // selling_price * qty == supply_amount → selling_price는 단가
+        // 총액 판별: sp*qty≈sa → sp는 단가, sa가 총액. 아니면 sp 자체가 총액.
         const sp = r.selling_price || 0;
         const sa = r.supply_amount || 0;
+        const absQty = Math.abs(qty);
         let amount: number;
-        if (Math.abs(qty) <= 1) {
-          amount = Math.abs(sp); // qty=1이면 단가=총액
-        } else if (sa > 0 && Math.abs(sp * qty - sa) < 100) {
-          amount = Math.abs(sa); // sp*qty≈sa → sp는 단가, sa가 총액
+        if (absQty <= 1) {
+          amount = sp; // qty=1이면 단가=총액 (부호 유지: 반품은 음수)
+        } else if (sa !== 0 && Math.abs(sp * absQty - Math.abs(sa)) < 100) {
+          amount = qty > 0 ? Math.abs(sa) : -Math.abs(sa); // sp는 단가, sa가 총액
         } else {
-          amount = Math.abs(sp); // sp 자체가 총액
+          amount = sp; // sp 자체가 총액 (부호 유지)
         }
-        totalQty += absQty;
+
+        // 순수 판매량/금액 (반품은 차감)
+        totalQty += qty; // 반품 차감
         if (country) matchedCountry += absQty;
         if (region) matchedRegion += absQty;
         if (wineType) matchedType += absQty;
 
         const month = (r.ship_date || '').slice(0, 7);
-        monthlyQty[month] = (monthlyQty[month] || 0) + absQty;
+        monthlyQty[month] = (monthlyQty[month] || 0) + qty;
 
         const key = r.item_no;
         if (!itemAgg[key]) {
           itemAgg[key] = { item_no: r.item_no, item_name: r.item_name || '', qty: 0, amount: 0, country: country || '', region, wineType };
         }
-        itemAgg[key].qty += absQty;
+        itemAgg[key].qty += qty; // 반품 차감
         itemAgg[key].amount += amount;
       }
       if (data.length < batch) break;
@@ -263,6 +263,7 @@ export async function GET(req: NextRequest) {
     let totalAmount = 0;
 
     for (const item of Object.values(itemAgg)) {
+      if (item.qty <= 0) continue; // 반품이 판매보다 많은 품목 제외
       totalAmount += item.amount;
       if (item.country) {
         if (!countryAgg[item.country]) countryAgg[item.country] = { qty: 0, amount: 0, items: 0, types: {} };
@@ -312,7 +313,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.qty - a.qty);
 
     // 품목별
-    const topItems = Object.values(itemAgg).sort((a, b) => b.qty - a.qty)
+    const topItems = Object.values(itemAgg).filter(i => i.qty > 0).sort((a, b) => b.qty - a.qty)
       .map(({ item_no, item_name, qty, amount, country, region, wineType }) => ({
         item_no, item_name, qty, amount, avg_price: qty > 0 ? Math.round(amount / qty) : 0,
         country, region: region ? resolveRegionGroup(country || '', region) : null, wine_type: wineType,
