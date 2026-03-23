@@ -11,84 +11,66 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    if (tab === 'DL') {
-      // 글라스: glass_shipments에서 직접 집계
-      const { data, error } = await supabase
-        .from('glass_shipments')
-        .select('item_no, item_name, ship_date, unit_price, quantity')
-        .eq('client_code', clientCode)
-        .order('ship_date', { ascending: false });
-      if (error) throw error;
+    const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
+    const invTable = tab === 'DL' ? 'inventory_dl' : 'inventory_cdv';
 
-      const map = new Map<string, {
-        item_no: string;
-        item_name: string;
-        supply_price: number;
-        buy_count: number;
-        last_ship_date: string;
-      }>();
+    // 출고 이력 조회
+    const { data, error } = await supabase
+      .from(shipTable)
+      .select('item_no, item_name, ship_date, selling_price, quantity')
+      .eq('client_code', clientCode)
+      .order('ship_date', { ascending: false });
+    if (error) throw error;
 
-      for (const row of (data || [])) {
-        const existing = map.get(row.item_no);
-        if (!existing) {
-          map.set(row.item_no, {
-            item_no: row.item_no,
-            item_name: row.item_name,
-            supply_price: row.unit_price || 0,
-            buy_count: 1,
-            last_ship_date: row.ship_date || '',
-          });
-        } else {
-          existing.buy_count += 1;
-        }
+    // 품목별 그룹핑
+    const map = new Map<string, {
+      item_no: string;
+      item_name: string;
+      supply_price: number;
+      buy_count: number;
+      last_ship_date: string;
+      last_selling_price: number;
+    }>();
+
+    for (const row of (data || [])) {
+      const existing = map.get(row.item_no);
+      if (!existing) {
+        map.set(row.item_no, {
+          item_no: row.item_no,
+          item_name: row.item_name,
+          supply_price: 0,
+          buy_count: 1,
+          last_ship_date: row.ship_date || '',
+          last_selling_price: row.selling_price || 0,
+        });
+      } else {
+        existing.buy_count += 1;
       }
-
-      const items = [...map.values()].sort((a, b) =>
-        b.last_ship_date.localeCompare(a.last_ship_date)
-      );
-
-      return NextResponse.json({ items: items.slice(0, 200) });
-    } else {
-      // 와인: shipments 테이블에서 직접 집계
-      const { data, error } = await supabase
-        .from('shipments')
-        .select('item_no, item_name, ship_date, unit_price, quantity')
-        .eq('client_code', clientCode)
-        .order('ship_date', { ascending: false });
-      if (error) throw error;
-
-      // 품목별 그룹핑: 최근 출고일, 횟수, 최근 단가
-      const map = new Map<string, {
-        item_no: string;
-        item_name: string;
-        supply_price: number;
-        buy_count: number;
-        last_ship_date: string;
-      }>();
-
-      for (const row of (data || [])) {
-        const existing = map.get(row.item_no);
-        if (!existing) {
-          map.set(row.item_no, {
-            item_no: row.item_no,
-            item_name: row.item_name,
-            supply_price: row.unit_price || 0,
-            buy_count: 1,
-            last_ship_date: row.ship_date || '',
-          });
-        } else {
-          existing.buy_count += 1;
-          // 최근 출고일의 단가 유지 (이미 ship_date 내림차순)
-        }
-      }
-
-      // 최근 출고 순으로 정렬
-      const items = [...map.values()].sort((a, b) =>
-        b.last_ship_date.localeCompare(a.last_ship_date)
-      );
-
-      return NextResponse.json({ items: items.slice(0, 200) });
     }
+
+    // inventory에서 실제 공급가 조회
+    const itemNos = [...map.keys()];
+    if (itemNos.length > 0) {
+      // 배치 조회 (500개씩)
+      for (let i = 0; i < itemNos.length; i += 500) {
+        const batch = itemNos.slice(i, i + 500);
+        const { data: invData } = await supabase
+          .from(invTable)
+          .select('item_no, supply_price')
+          .in('item_no', batch);
+        for (const inv of (invData || [])) {
+          const item = map.get(inv.item_no);
+          if (item) item.supply_price = inv.supply_price || 0;
+        }
+      }
+    }
+
+    const items = [...map.values()]
+      .sort((a, b) => b.last_ship_date.localeCompare(a.last_ship_date))
+      .slice(0, 200)
+      .map(({ last_selling_price, ...rest }) => rest);
+
+    return NextResponse.json({ items });
   } catch (error: any) {
     return NextResponse.json({ items: [], error: error.message }, { status: 500 });
   }
