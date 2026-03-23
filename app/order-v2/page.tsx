@@ -411,18 +411,16 @@ export default function OrderV2Page() {
 
   const totalAmount = orderLines.reduce((s, ol, idx) => s + getItemPrice(idx) * ol.quantity, 0);
 
-  // DL 단위: 레스토랑/글라스 시리즈=잔, 디캔터/박스/쇼핑백 등=개, CDV=병
+  // DL 단위: 레스토랑 시리즈(0xxx 모델)만 "잔", 나머지 전부 "개", CDV=병
   const getUnit = (itemNo?: string, itemName?: string) => {
     if (tab !== 'DL') return '병';
     const name = itemName || '';
-    // 디캔터, 박스, 쇼핑백 등 비글라스 제품은 "개"
-    if (/디캔터|박스|쇼핑백|클리너|캐링백|세트|밸류팩|폴리싱|클로스|린넨/i.test(name)) return '개';
-    // 레스토랑 시리즈 (이름에 레스토랑/글라스 포함, 또는 RD 코드, 또는 0xxx/xx 형식 품명)
-    if (/레스토랑|글라스|glass/i.test(name)) return '잔';
-    if (/RD\s+\d{4}\/\d/i.test(name)) return '잔';
-    if (/0\d{3}\/\d/.test(name)) return '잔';
-    // 품번이 0으로 시작 (레스토랑 시리즈)
-    if (itemNo?.trim().startsWith('0')) return '잔';
+    // 디캔터는 무조건 "개"
+    if (/디캔터/i.test(name)) return '개';
+    // 레스토랑 시리즈: 품명에 "레스토랑" 포함 또는 모델번호가 0xxx/xx 형식
+    if (/레스토랑/i.test(name)) return '잔';
+    if (/\b0\d{3}\/\d/.test(name)) return '잔';
+    // 그 외 전부 "개" (6449, 6884, 4400 등 일반 시리즈 + 박스/쇼핑백 등)
     return '개';
   };
 
