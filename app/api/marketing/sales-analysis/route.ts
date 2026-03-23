@@ -32,9 +32,15 @@ function resolveWine(
   if (w) { country = w.country; region = w.region; wineType = w.wine_type; }
   if (!country) country = invMap.get(itemNo) || null;
   if (!country) {
+    // 빈티지 매칭: 품번 base 동일 + 품명 브랜드약어(앞 2글자) 동일해야 매칭
     const base = itemNo.slice(0, 2) + itemNo.slice(4);
+    const nameAbbr = (itemName.match(/^([A-Z]{2})\s/) || [])[1] || '';
     for (const [k, v] of wineMap) {
-      if (k.slice(0, 2) + k.slice(4) === base) { country = v.country; region = v.region; wineType = v.wine_type; break; }
+      if (k.slice(0, 2) + k.slice(4) === base) {
+        const vAbbr = ((v.item_name_kr || '').match(/^([A-Z]{2})\s/) || [])[1] || '';
+        if (nameAbbr && vAbbr && nameAbbr !== vAbbr) continue; // 브랜드 다르면 스킵
+        country = v.country; region = v.region; wineType = v.wine_type; break;
+      }
     }
   }
   if (!country) {
@@ -273,7 +279,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.qty - a.qty);
 
     // 품목별 TOP
-    const topItems = Object.values(itemAgg).sort((a, b) => b.qty - a.qty).slice(0, 30)
+    const topItems = Object.values(itemAgg).sort((a, b) => b.qty - a.qty)
       .map(({ item_no, item_name, qty, amount, country, region, wineType }) => ({ item_no, item_name, qty, amount, country, region, wine_type: wineType }));
 
     // 월별 추이
