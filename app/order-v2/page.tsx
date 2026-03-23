@@ -202,17 +202,28 @@ export default function OrderV2Page() {
   })();
 
   // 거래처 검색 (tab에 따라 CDV/DL 테이블)
+  const abortRef = useRef<AbortController | null>(null);
   const searchClients = useCallback(async (q: string) => {
+    // 이전 요청 취소
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const res = await fetch(`/api/order-v2/clients?q=${encodeURIComponent(q)}&tab=${tab}`);
+      const res = await fetch(`/api/order-v2/clients?q=${encodeURIComponent(q)}&tab=${tab}`, { signal: controller.signal });
       const json = await res.json();
-      setClientResults(json.clients || []);
-    } catch { setClientResults([]); }
+      if (!controller.signal.aborted) setClientResults(json.clients || []);
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') setClientResults([]);
+    }
   }, [tab]);
 
   useEffect(() => {
+    if (!showDropdown || !clientQuery.trim()) {
+      if (!clientQuery.trim()) setClientResults([]);
+      return;
+    }
     const timer = setTimeout(() => {
-      if (showDropdown) searchClients(clientQuery);
+      searchClients(clientQuery);
     }, 200);
     return () => clearTimeout(timer);
   }, [clientQuery, showDropdown, searchClients]);
