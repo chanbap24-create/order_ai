@@ -58,6 +58,27 @@ export async function GET(req: NextRequest) {
       if (!map.has(c.client_code)) map.set(c.client_code, c);
     }
 
+    // glass_clients/alias에 없으면 shipments 테이블에서 fallback 검색
+    if (map.size === 0) {
+      const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
+      let shipQuery = supabase
+        .from(shipTable)
+        .select('client_code, client_name');
+      shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', ['client_code']);
+      const { data: shipData } = await shipQuery.limit(200);
+
+      // DISTINCT by client_name
+      const seen = new Map<string, string>();
+      for (const r of (shipData || [])) {
+        if (r.client_name && !seen.has(r.client_name)) {
+          seen.set(r.client_name, r.client_code || r.client_name);
+        }
+      }
+      for (const [name, code] of seen) {
+        if (!map.has(code)) map.set(code, { client_code: code, client_name: name });
+      }
+    }
+
     return NextResponse.json({ clients: [...map.values()] });
   } catch (error: any) {
     return NextResponse.json({ clients: [], error: error.message }, { status: 500 });
