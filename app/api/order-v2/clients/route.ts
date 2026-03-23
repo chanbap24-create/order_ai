@@ -59,30 +59,28 @@ export async function GET(req: NextRequest) {
       }));
     }
 
+    // shipments 테이블에서도 항상 검색 (client_code가 null인 거래처 포함)
+    const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
+    let shipQuery = supabase
+      .from(shipTable)
+      .select('client_code, client_name');
+    shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', []);
+    const { data: shipData } = await shipQuery.limit(200);
+
     // 합치고 중복 제거
     const map = new Map<string, { client_code: string; client_name: string; matched_alias?: string }>();
     for (const c of [...(direct || []), ...aliasClients]) {
       if (!map.has(c.client_code)) map.set(c.client_code, c);
     }
-
-    // glass_clients/alias에 없으면 shipments 테이블에서 fallback 검색
-    if (map.size === 0) {
-      const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
-      let shipQuery = supabase
-        .from(shipTable)
-        .select('client_code, client_name');
-      shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', ['client_code']);
-      const { data: shipData } = await shipQuery.limit(200);
-
-      // DISTINCT by client_name
-      const seen = new Map<string, string>();
-      for (const r of (shipData || [])) {
-        if (r.client_name && !seen.has(r.client_name)) {
-          seen.set(r.client_name, r.client_code || r.client_name);
+    // shipments에서 발견된 거래처 추가 (client_name 기준 중복 제거)
+    const seenNames = new Set([...map.values()].map(c => c.client_name));
+    for (const r of (shipData || [])) {
+      if (r.client_name && !seenNames.has(r.client_name)) {
+        const key = r.client_code || `ship_${r.client_name}`;
+        if (!map.has(key)) {
+          map.set(key, { client_code: r.client_code || r.client_name, client_name: r.client_name });
+          seenNames.add(r.client_name);
         }
-      }
-      for (const [name, code] of seen) {
-        if (!map.has(code)) map.set(code, { client_code: code, client_name: name });
       }
     }
 
