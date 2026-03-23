@@ -66,11 +66,12 @@ export default function SalesAnalysisTab() {
     finally { setLoading(false); }
   };
 
+  const y = kstNow.getUTCFullYear();
   const quickRanges = [
-    { label: '1년', start: `${kstNow.getUTCFullYear() - 1}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01` },
-    { label: '2년', start: twoYearsAgo },
-    { label: '3년', start: `${kstNow.getUTCFullYear() - 3}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01` },
-    { label: '올해', start: `${kstNow.getUTCFullYear()}-01-01` },
+    { label: '올해', start: `${y}-01-01`, end: `${y}-12-31` },
+    { label: '1년', start: `${y - 1}-01-01`, end: `${y - 1}-12-31` },
+    { label: '2년', start: `${y - 2}-01-01`, end: `${y - 1}-12-31` },
+    { label: '3년', start: `${y - 3}-01-01`, end: `${y - 1}-12-31` },
   ];
 
   const maxCountryQty = data?.countries[0]?.qty || 1;
@@ -90,7 +91,7 @@ export default function SalesAnalysisTab() {
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
           {quickRanges.map(r => (
-            <button key={r.label} onClick={() => { setStartDate(r.start); setEndDate(today); }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)', background: startDate === r.start ? 'rgba(90,21,21,0.06)' : 'transparent', fontSize: 11, color: '#5A1515', cursor: 'pointer', fontWeight: 500 }}>{r.label}</button>
+            <button key={r.label} onClick={() => { setStartDate(r.start); setEndDate(r.end); }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)', background: startDate === r.start && endDate === r.end ? 'rgba(90,21,21,0.06)' : 'transparent', fontSize: 11, color: '#5A1515', cursor: 'pointer', fontWeight: 500 }}>{r.label}</button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
