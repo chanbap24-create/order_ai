@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 // GET: 품목 검색 (자동완성)
 // ?q=XXX&warehouse=CDV
@@ -29,10 +30,12 @@ export async function GET(req: NextRequest) {
     }
 
     // item_name ILIKE 검색 - 고유 품목 추출
-    const { data: nameMatch } = await supabase
+    const words = splitSearchWords(q);
+    let nameQuery = supabase
       .from(table)
-      .select('item_no, item_name')
-      .ilike('item_name', `%${q.trim().replace(/[%_,.()"\\]/g, '')}%`)
+      .select('item_no, item_name');
+    nameQuery = applyMultiWordSearch(nameQuery, words, 'item_name', ['item_no']);
+    const { data: nameMatch } = await nameQuery
       .order('ship_date', { ascending: false })
       .limit(200);
 

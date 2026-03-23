@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,8 +28,8 @@ export async function GET(request: NextRequest) {
 
     // Text search (optional)
     if (q.trim()) {
-      const safe = q.trim().toLowerCase().replace(/[%_,.()"\\]/g, '');
-      query = query.or(`item_name.ilike.%${safe}%,item_no.ilike.%${safe}%`);
+      const words = splitSearchWords(q);
+      query = applyMultiWordSearch(query, words, 'item_name', ['item_no']);
     }
 
     // Supply price range

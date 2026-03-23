@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 // 와인 검색 API (수동 품목 변경용)
 export async function GET(req: NextRequest) {
@@ -12,11 +13,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const safe = q.trim().replace(/[%_,.()"\\]/g, '');
-    const { data, error } = await supabase
+    const words = splitSearchWords(q);
+    let dbQuery = supabase
       .from(table)
-      .select('item_no, item_name, supply_price, available_stock')
-      .or(`item_name.ilike.%${safe}%,item_no.ilike.%${safe}%`)
+      .select('item_no, item_name, supply_price, available_stock');
+    dbQuery = applyMultiWordSearch(dbQuery, words, 'item_name', ['item_no']);
+    const { data, error } = await dbQuery
       .order('item_name', { ascending: true })
       .limit(20);
 

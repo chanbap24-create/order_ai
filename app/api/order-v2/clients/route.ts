@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 // 거래처 검색 API (자동완성용) - tab에 따라 CDV/DL 테이블 분리
 export async function GET(req: NextRequest) {
@@ -20,38 +21,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ clients: data || [] });
     }
 
-    const safe = q.trim().replace(/[%_,.()"\\]/g, '');
-    // 공백으로 분리하여 각 단어를 모두 포함하는 거래처 검색
-    const words = safe.split(/\s+/).filter(Boolean);
+    const words = splitSearchWords(q);
 
     // 거래처 테이블에서 검색
     let directQuery = supabase
       .from(clientTable)
       .select('client_code, client_name');
-    if (words.length <= 1) {
-      directQuery = directQuery.or(`client_name.ilike.%${safe}%,client_code.ilike.%${safe}%`);
-    } else {
-      // 여러 단어: 모든 단어가 이름에 포함되거나, 전체 문자열이 코드에 포함
-      for (const w of words) {
-        directQuery = directQuery.ilike('client_name', `%${w}%`);
-      }
-    }
+    directQuery = applyMultiWordSearch(directQuery, words, 'client_name', ['client_code']);
     const { data: direct, error: e1 } = await directQuery
       .order('client_name', { ascending: true })
       .limit(20);
     if (e1) throw e1;
 
-    // alias 테이블에서도 검색 (각 단어 모두 포함)
+    // alias 테이블에서도 검색
     let aliasQuery = supabase
       .from(aliasTable)
       .select('client_code, alias');
-    if (words.length <= 1) {
-      aliasQuery = aliasQuery.ilike('alias', `%${safe}%`);
-    } else {
-      for (const w of words) {
-        aliasQuery = aliasQuery.ilike('alias', `%${w}%`);
-      }
-    }
+    aliasQuery = applyMultiWordSearch(aliasQuery, words, 'alias', []);
     const { data: aliases, error: e2 } = await aliasQuery.limit(20);
     if (e2) throw e2;
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { sanitizeFilterValue } from '@/app/lib/validation';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 // GET: 거래처 목록 조회 (검색, 필터, 정렬)
 export async function GET(req: NextRequest) {
@@ -57,8 +58,8 @@ export async function GET(req: NextRequest) {
         .select('client_code, client_name, created_at', { count: 'exact' });
 
       if (search) {
-        const safe = sanitizeFilterValue(search);
-        glassQuery = glassQuery.or(`client_name.ilike.%${safe}%,client_code.ilike.%${safe}%`);
+        const words = splitSearchWords(search);
+        glassQuery = applyMultiWordSearch(glassQuery, words, 'client_name', ['client_code']);
       }
       if (managerClientCodes) {
         glassQuery = glassQuery.in('client_code', managerClientCodes);
@@ -82,11 +83,11 @@ export async function GET(req: NextRequest) {
 
       // glass_clients에 없으면 glass_shipments에서 이름 검색 (client_code null인 경우)
       if (search) {
-        const safe = sanitizeFilterValue(search);
+        const words = splitSearchWords(search);
         let shipQuery = supabase
           .from('glass_shipments')
-          .select('client_name, client_code')
-          .ilike('client_name', `%${safe}%`);
+          .select('client_name, client_code');
+        shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', []);
         if (manager) {
           shipQuery = shipQuery.eq('manager', manager);
         }
@@ -123,8 +124,8 @@ export async function GET(req: NextRequest) {
 
     // 검색
     if (search) {
-      const safe = sanitizeFilterValue(search);
-      query = query.or(`client_name.ilike.%${safe}%,client_code.ilike.%${safe}%,contact_name.ilike.%${safe}%`);
+      const words = splitSearchWords(search);
+      query = applyMultiWordSearch(query, words, 'client_name', ['client_code', 'contact_name']);
     }
 
     // 필터

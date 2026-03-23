@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { sanitizeFilterValue } from '@/app/lib/validation';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +50,10 @@ export async function GET(request: NextRequest) {
 
     // Apply search filter
     if (search) {
-      const safe = sanitizeFilterValue(search);
-      const searchFilter = `item_no.ilike.%${safe}%,item_name.ilike.%${safe}%`;
-      countQuery = countQuery.or(searchFilter);
-      dataQuery = dataQuery.or(searchFilter);
-      statsQuery = statsQuery.or(searchFilter);
+      const words = splitSearchWords(search);
+      countQuery = applyMultiWordSearch(countQuery, words, 'item_name', ['item_no']);
+      dataQuery = applyMultiWordSearch(dataQuery, words, 'item_name', ['item_no']);
+      statsQuery = applyMultiWordSearch(statsQuery, words, 'item_name', ['item_no']);
     }
 
     // Apply stock filter

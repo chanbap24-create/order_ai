@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { sanitizeFilterValue } from '@/app/lib/validation';
+import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,8 +27,8 @@ export async function GET(request: NextRequest) {
       .select('*');
 
     if (query.trim()) {
-      const safe = sanitizeFilterValue(query.toLowerCase());
-      dbQuery = dbQuery.or(`item_name.ilike.%${safe}%,item_no.ilike.%${safe}%`);
+      const words = splitSearchWords(query);
+      dbQuery = applyMultiWordSearch(dbQuery, words, 'item_name', ['item_no']);
     }
 
     if (filterCountry) {
