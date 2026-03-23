@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
-// 브랜드약어 → 국가 수동 매핑
 const BRAND_COUNTRY: Record<string, string> = {
   CH:'프랑스',LV:'프랑스',VA:'프랑스',ST:'스페인',MS:'이탈리아',WM:'프랑스',
   DE:'프랑스',HP:'미국',IC:'프랑스',DC:'프랑스',VC:'프랑스',DD:'프랑스',
@@ -22,27 +21,54 @@ function inferType(name: string): string | null {
   return null;
 }
 
+// 와인 정보 매칭
+function resolveWine(
+  itemNo: string, itemName: string,
+  wineMap: Map<string, any>, invMap: Map<string, string>, brandCountry: Map<string, string>,
+): { country: string | null; region: string | null; wineType: string | null } {
+  let country: string | null = null, region: string | null = null, wineType: string | null = null;
+
+  const w = wineMap.get(itemNo);
+  if (w) { country = w.country; region = w.region; wineType = w.wine_type; }
+  if (!country) country = invMap.get(itemNo) || null;
+  if (!country) {
+    const base = itemNo.slice(0, 2) + itemNo.slice(4);
+    for (const [k, v] of wineMap) {
+      if (k.slice(0, 2) + k.slice(4) === base) { country = v.country; region = v.region; wineType = v.wine_type; break; }
+    }
+  }
+  if (!country) {
+    const m = (itemName || '').match(/^([A-Z]{2,3})\s/);
+    if (m && brandCountry.has(m[1])) country = brandCountry.get(m[1])!;
+  }
+  if (!wineType) wineType = inferType(itemName || '');
+  return { country, region, wineType };
+}
+
+// GET /api/marketing/sales-analysis?start_date=2024-01-01&end_date=2026-03-31&country=프랑스&region=Bourgogne&wine_type=레드
+// 필터 없으면 전체 조회. 필터 있으면 해당 조건만.
+// mode=options → 선택 가능한 국가/지역/타입 목록 반환
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const years = parseInt(searchParams.get('years') || '2');
-    const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    const startDate = `${now.getUTCFullYear() - years}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    const mode = searchParams.get('mode');
+    const startDate = searchParams.get('start_date');
+    const endDate = searchParams.get('end_date');
+    const filterCountry = searchParams.get('country') || '';
+    const filterRegion = searchParams.get('region') || '';
+    const filterType = searchParams.get('wine_type') || '';
 
-    // 1. wines 테이블 로드
-    const { data: wines } = await supabase
-      .from('wines')
+    // wines/inventory 로드
+    const { data: wines } = await supabase.from('wines')
       .select('item_code, item_name_kr, country, region, wine_type')
       .not('item_code', 'like', 'D%');
-    const wineMap = new Map<string, typeof wines extends (infer T)[] | null ? T : never>();
+    const wineMap = new Map<string, any>();
     for (const w of (wines || [])) wineMap.set(w.item_code, w);
 
-    // 2. inventory_cdv
     const { data: inv } = await supabase.from('inventory_cdv').select('item_no, country');
     const invMap = new Map<string, string>();
     for (const r of (inv || [])) if (r.country) invMap.set(r.item_no, r.country);
 
-    // 3. 브랜드약어 매핑 (wines + 수동)
     const brandCountry = new Map<string, string>();
     for (const w of (wines || [])) {
       const m = (w.item_name_kr || '').match(/^([A-Z]{2})\s/);
@@ -52,21 +78,45 @@ export async function GET(req: NextRequest) {
       if (!brandCountry.has(k)) brandCountry.set(k, v);
     }
 
-    // 4. shipments 집계
-    type MonthData = { qty: number; amount: number };
-    const countryData: Record<string, { qty: number; amount: number; months: Record<string, MonthData> }> = {};
-    const regionData: Record<string, Record<string, { qty: number }>> = {};
-    const typeData: Record<string, { qty: number; months: Record<string, MonthData> }> = {};
-    let totalQty = 0;
-    let matchedCountry = 0, matchedRegion = 0, matchedType = 0;
+    // mode=options: 선택 가능한 필터 값 목록
+    if (mode === 'options') {
+      const countries = new Set<string>();
+      const regionsByCountry: Record<string, Set<string>> = {};
+      const types = new Set<string>();
+      for (const w of (wines || [])) {
+        if (w.country) { countries.add(w.country); }
+        if (w.country && w.region) {
+          if (!regionsByCountry[w.country]) regionsByCountry[w.country] = new Set();
+          regionsByCountry[w.country].add(w.region);
+        }
+        if (w.wine_type) types.add(w.wine_type);
+      }
+      const regionsObj: Record<string, string[]> = {};
+      for (const [c, s] of Object.entries(regionsByCountry)) regionsObj[c] = [...s].sort();
+      return NextResponse.json({
+        countries: [...countries].sort(),
+        regions: regionsObj,
+        types: [...types].sort(),
+      });
+    }
 
-    const batch = 1000;
+    // 기간 필수
+    if (!startDate || !endDate) {
+      return NextResponse.json({ error: 'start_date, end_date required' }, { status: 400 });
+    }
+
+    // shipments 집계
+    type ItemAgg = { item_no: string; item_name: string; qty: number; amount: number; country: string; region: string | null; wineType: string | null };
+    const itemAgg: Record<string, ItemAgg> = {};
+    const monthlyQty: Record<string, number> = {};
+    let totalQty = 0, matchedCountry = 0, matchedRegion = 0, matchedType = 0;
+
     let offset = 0;
+    const batch = 1000;
     while (true) {
-      const { data, error } = await supabase
-        .from('shipments')
+      const { data, error } = await supabase.from('shipments')
         .select('item_no, item_name, quantity, selling_price, ship_date')
-        .gte('ship_date', startDate)
+        .gte('ship_date', startDate).lte('ship_date', endDate)
         .range(offset, offset + batch - 1);
       if (error) throw error;
       if (!data || data.length === 0) break;
@@ -76,81 +126,78 @@ export async function GET(req: NextRequest) {
         if (/^7[0-9A-Z]/.test(r.item_no) && (r.item_name || '').includes('특판')) continue;
         const qty = r.quantity || 0;
         if (qty === 0) continue;
+
+        const { country, region, wineType } = resolveWine(r.item_no, r.item_name || '', wineMap, invMap, brandCountry);
+
+        // 필터 적용
+        if (filterCountry && country !== filterCountry) continue;
+        if (filterRegion && (!region || !region.toLowerCase().includes(filterRegion.toLowerCase()))) continue;
+        if (filterType && wineType !== filterType) continue;
+
         const absQty = Math.abs(qty);
         const amount = Math.abs((r.selling_price || 0) * qty);
-        const month = (r.ship_date || '').slice(0, 7);
         totalQty += absQty;
+        if (country) matchedCountry += absQty;
+        if (region) matchedRegion += absQty;
+        if (wineType) matchedType += absQty;
 
-        // 매칭
-        let country: string | null = null;
-        let region: string | null = null;
-        let wineType: string | null = null;
+        const month = (r.ship_date || '').slice(0, 7);
+        monthlyQty[month] = (monthlyQty[month] || 0) + absQty;
 
-        const w = wineMap.get(r.item_no);
-        if (w) { country = w.country; region = w.region; wineType = w.wine_type; }
-        if (!country) { country = invMap.get(r.item_no) || null; }
-        if (!country) {
-          const base = r.item_no.slice(0, 2) + r.item_no.slice(4);
-          for (const [k, v] of wineMap) {
-            if (k.slice(0, 2) + k.slice(4) === base) {
-              country = v.country; region = v.region; wineType = v.wine_type; break;
-            }
-          }
+        const key = r.item_no;
+        if (!itemAgg[key]) {
+          itemAgg[key] = { item_no: r.item_no, item_name: r.item_name || '', qty: 0, amount: 0, country: country || '', region, wineType };
         }
-        if (!country) {
-          const m = (r.item_name || '').match(/^([A-Z]{2,3})\s/);
-          if (m && brandCountry.has(m[1])) country = brandCountry.get(m[1])!;
-        }
-        if (!wineType) wineType = inferType(r.item_name || '');
-
-        if (country) {
-          matchedCountry += absQty;
-          if (!countryData[country]) countryData[country] = { qty: 0, amount: 0, months: {} };
-          countryData[country].qty += absQty;
-          countryData[country].amount += amount;
-          if (!countryData[country].months[month]) countryData[country].months[month] = { qty: 0, amount: 0 };
-          countryData[country].months[month].qty += absQty;
-          countryData[country].months[month].amount += amount;
-
-          if (region) {
-            matchedRegion += absQty;
-            if (!regionData[country]) regionData[country] = {};
-            if (!regionData[country][region]) regionData[country][region] = { qty: 0 };
-            regionData[country][region].qty += absQty;
-          }
-        }
-
-        if (wineType) {
-          matchedType += absQty;
-          if (!typeData[wineType]) typeData[wineType] = { qty: 0, months: {} };
-          typeData[wineType].qty += absQty;
-          if (!typeData[wineType].months[month]) typeData[wineType].months[month] = { qty: 0, amount: 0 };
-          typeData[wineType].months[month].qty += absQty;
-          typeData[wineType].months[month].amount += amount;
-        }
+        itemAgg[key].qty += absQty;
+        itemAgg[key].amount += amount;
       }
       if (data.length < batch) break;
       offset += batch;
     }
 
-    // 정렬
-    const countries = Object.entries(countryData)
+    // 국가별 집계
+    const countryAgg: Record<string, { qty: number; amount: number; items: number }> = {};
+    const regionAgg: Record<string, Record<string, number>> = {};
+    const typeAgg: Record<string, number> = {};
+
+    for (const item of Object.values(itemAgg)) {
+      if (item.country) {
+        if (!countryAgg[item.country]) countryAgg[item.country] = { qty: 0, amount: 0, items: 0 };
+        countryAgg[item.country].qty += item.qty;
+        countryAgg[item.country].amount += item.amount;
+        countryAgg[item.country].items += 1;
+        if (item.region) {
+          if (!regionAgg[item.country]) regionAgg[item.country] = {};
+          regionAgg[item.country][item.region] = (regionAgg[item.country][item.region] || 0) + item.qty;
+        }
+      }
+      if (item.wineType) {
+        typeAgg[item.wineType] = (typeAgg[item.wineType] || 0) + item.qty;
+      }
+    }
+
+    const countries = Object.entries(countryAgg)
       .map(([name, d]) => ({ name, ...d }))
       .sort((a, b) => b.qty - a.qty);
 
     const regions: Record<string, { name: string; qty: number }[]> = {};
-    for (const [country, regs] of Object.entries(regionData)) {
-      regions[country] = Object.entries(regs)
-        .map(([name, d]) => ({ name, ...d }))
-        .sort((a, b) => b.qty - a.qty);
+    for (const [c, regs] of Object.entries(regionAgg)) {
+      regions[c] = Object.entries(regs).map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty);
     }
 
-    const types = Object.entries(typeData)
-      .map(([name, d]) => ({ name, ...d }))
+    const types = Object.entries(typeAgg)
+      .map(([name, qty]) => ({ name, qty }))
       .sort((a, b) => b.qty - a.qty);
 
+    // 품목별 TOP
+    const topItems = Object.values(itemAgg).sort((a, b) => b.qty - a.qty).slice(0, 30)
+      .map(({ item_no, item_name, qty, amount, country, region, wineType }) => ({ item_no, item_name, qty, amount, country, region, wine_type: wineType }));
+
+    // 월별 추이
+    const monthly = Object.entries(monthlyQty).sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, qty]) => ({ month, qty }));
+
     return NextResponse.json({
-      period: { start: startDate, years },
       total_qty: totalQty,
       match_rate: {
         country: totalQty > 0 ? Math.round(matchedCountry / totalQty * 100) : 0,
@@ -160,6 +207,8 @@ export async function GET(req: NextRequest) {
       countries,
       regions,
       types,
+      top_items: topItems,
+      monthly,
     });
   } catch (err) {
     console.error('GET /api/marketing/sales-analysis error:', err);
