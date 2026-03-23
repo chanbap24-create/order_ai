@@ -27,13 +27,29 @@ export async function POST(req: NextRequest) {
     // 2. 거래처 입고내역 (CDV/DL 테이블 분리)
     let purchaseHistory: any[] = [];
     if (client_code) {
-      const statsTable = tab === 'DL' ? 'glass_client_item_stats' : 'client_item_stats';
-      const { data: stats } = await supabase
-        .from(statsTable)
-        .select('item_no, item_name')
-        .eq('client_code', client_code)
-        .limit(100);
-      purchaseHistory = stats || [];
+      if (tab === 'DL') {
+        // glass_shipments에서 직접 집계 (고유 품목)
+        const { data: ships } = await supabase
+          .from('glass_shipments')
+          .select('item_no, item_name')
+          .eq('client_code', client_code)
+          .order('ship_date', { ascending: false })
+          .limit(1000);
+        const seen = new Set<string>();
+        for (const s of (ships || [])) {
+          if (s.item_no && !seen.has(s.item_no)) {
+            seen.add(s.item_no);
+            purchaseHistory.push({ item_no: s.item_no, item_name: s.item_name });
+          }
+        }
+      } else {
+        const { data: stats } = await supabase
+          .from('client_item_stats')
+          .select('item_no, item_name')
+          .eq('client_code', client_code)
+          .limit(100);
+        purchaseHistory = stats || [];
+      }
     }
 
     // 3. 와인 리스트 텍스트 (품번|품명)
