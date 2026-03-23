@@ -21,21 +21,14 @@ export async function GET(req: NextRequest) {
       .order('ship_date', { ascending: false });
     if (error) throw error;
 
-    // 실거래 단가 추출: 시기에 따라 컬럼 의미가 다름
+    // 실거래 단가(거래명세표 판매단가) 추출
+    // 시기에 따라 unit_price/selling_price 의미가 다르므로
+    // 두 값 중 작은 양수 = 건당 판매단가, 큰 값 = 총액(공급가액)
     const getUnitPrice = (row: any): number => {
       const up = row.unit_price || 0;
       const sp = row.selling_price || 0;
-      const qty = row.quantity || 1;
-
-      if (tab === 'DL') {
-        // 글라스: 두 값 중 작은 양수가 실거래 단가 (큰 쪽은 총액)
-        if (up > 0 && sp > 0) return Math.min(up, sp);
-        return up || sp || 0;
-      } else {
-        // 와인: selling_price는 항상 총액, selling_price / qty = 실거래 단가
-        if (sp > 0 && qty > 0) return Math.round(sp / qty);
-        return up || 0;
-      }
+      if (up > 0 && sp > 0) return Math.min(up, sp);
+      return up || sp || 0;
     };
 
     // 품목별 그룹핑: 최근 출고의 거래 단가 사용
