@@ -12,16 +12,31 @@ export async function GET(req: NextRequest) {
 
   try {
     const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
-    // 글라스: unit_price = 거래처 실거래 단가, 와인: selling_price = 거래처 실거래 단가
-    const priceCol = tab === 'DL' ? 'unit_price' : 'selling_price';
 
-    // 출고 이력 조회
+    // 출고 이력 조회 (unit_price, selling_price 둘 다 필요)
     const { data, error } = await supabase
       .from(shipTable)
-      .select(`item_no, item_name, ship_date, ${priceCol}, quantity`)
+      .select('item_no, item_name, ship_date, unit_price, selling_price, quantity')
       .eq('client_code', clientCode)
       .order('ship_date', { ascending: false });
     if (error) throw error;
+
+    // 실거래 단가 추출: 시기에 따라 컬럼 의미가 다름
+    const getUnitPrice = (row: any): number => {
+      const up = row.unit_price || 0;
+      const sp = row.selling_price || 0;
+      const qty = row.quantity || 1;
+
+      if (tab === 'DL') {
+        // 글라스: 두 값 중 작은 양수가 실거래 단가 (큰 쪽은 총액)
+        if (up > 0 && sp > 0) return Math.min(up, sp);
+        return up || sp || 0;
+      } else {
+        // 와인: selling_price는 항상 총액, selling_price / qty = 실거래 단가
+        if (sp > 0 && qty > 0) return Math.round(sp / qty);
+        return up || 0;
+      }
+    };
 
     // 품목별 그룹핑: 최근 출고의 거래 단가 사용
     const map = new Map<string, {
@@ -33,13 +48,12 @@ export async function GET(req: NextRequest) {
     }>();
 
     for (const row of (data || [])) {
-      const price = (row as any)[priceCol] || 0;
       const existing = map.get(row.item_no);
       if (!existing) {
         map.set(row.item_no, {
           item_no: row.item_no,
           item_name: row.item_name,
-          supply_price: price,
+          supply_price: getUnitPrice(row),
           buy_count: 1,
           last_ship_date: row.ship_date || '',
         });

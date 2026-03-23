@@ -52,19 +52,21 @@ export async function GET(req: NextRequest) {
     // 품목명 (shipments에서 가져오기)
     const itemName = allRows[0]?.item_name || wineInfo?.item_name_kr || itemNo;
 
-    // 단가/금액 정규화: 와인은 selling_price가 실거래 단가, 글라스는 unit_price가 실거래 단가
+    // 단가/금액 정규화: 시기에 따라 컬럼 의미가 다르므로 실거래 단가 추출
     const isDL = warehouse === 'DL';
     for (const r of allRows) {
+      const up = r.unit_price || 0;
+      const sp = r.selling_price || 0;
+      const qty = r.quantity || 1;
+
       if (isDL) {
-        // 글라스: unit_price = 실거래 단가, supply_amount = unit_price * qty
-        r.supply_amount = (r.unit_price || 0) * (r.quantity || 0);
+        // 글라스: 두 값 중 작은 양수가 실거래 단가 (큰 쪽은 총액)
+        r.unit_price = (up > 0 && sp > 0) ? Math.min(up, sp) : (up || sp || 0);
       } else {
-        // 와인: selling_price = 실거래 단가, unit_price/supply_amount은 출하건 전체라 부정확
-        if (r.selling_price > 0) {
-          r.unit_price = r.selling_price;
-          r.supply_amount = r.selling_price * (r.quantity || 0);
-        }
+        // 와인: selling_price는 항상 총액, selling_price / qty = 실거래 단가
+        r.unit_price = (sp > 0 && qty > 0) ? Math.round(sp / qty) : up;
       }
+      r.supply_amount = r.unit_price * Math.abs(qty);
     }
 
     // 거래처별 집계
