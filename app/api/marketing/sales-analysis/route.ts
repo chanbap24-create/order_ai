@@ -32,10 +32,23 @@ function inferVolume(itemName: string): string {
   return '750ml';
 }
 
-// 와인 정보 매칭
+// 빈티지 매칭용 사전 계산 캐시
+function buildVintageMap(wineMap: Map<string, any>): Map<string, { abbr: string; data: any }[]> {
+  const vintageMap = new Map<string, { abbr: string; data: any }[]>();
+  for (const [k, v] of wineMap) {
+    const base = k.slice(0, 2) + k.slice(4);
+    const abbr = ((v.item_name_kr || '').match(/^([A-Z]{2})\s/) || [])[1] || '';
+    if (!vintageMap.has(base)) vintageMap.set(base, []);
+    vintageMap.get(base)!.push({ abbr, data: v });
+  }
+  return vintageMap;
+}
+
+// 와인 정보 매칭 (캐시 기반 O(1) 빈티지 매칭)
 function resolveWine(
   itemNo: string, itemName: string,
-  wineMap: Map<string, any>, invMap: Map<string, string>, brandCountry: Map<string, string>,
+  wineMap: Map<string, any>, invMap: Map<string, string>,
+  brandCountry: Map<string, string>, vintageMap: Map<string, { abbr: string; data: any }[]>,
 ): { country: string | null; region: string | null; wineType: string | null } {
   let country: string | null = null, region: string | null = null, wineType: string | null = null;
 
@@ -43,14 +56,13 @@ function resolveWine(
   if (w) { country = w.country; region = w.region; wineType = w.wine_type; }
   if (!country) country = invMap.get(itemNo) || null;
   if (!country) {
-    // 빈티지 매칭: 품번 base 동일 + 품명 브랜드약어(앞 2글자) 동일해야 매칭
     const base = itemNo.slice(0, 2) + itemNo.slice(4);
     const nameAbbr = (itemName.match(/^([A-Z]{2})\s/) || [])[1] || '';
-    for (const [k, v] of wineMap) {
-      if (k.slice(0, 2) + k.slice(4) === base) {
-        const vAbbr = ((v.item_name_kr || '').match(/^([A-Z]{2})\s/) || [])[1] || '';
-        if (nameAbbr && vAbbr && nameAbbr !== vAbbr) continue; // 브랜드 다르면 스킵
-        country = v.country; region = v.region; wineType = v.wine_type; break;
+    const candidates = vintageMap.get(base);
+    if (candidates) {
+      for (const c of candidates) {
+        if (nameAbbr && c.abbr && nameAbbr !== c.abbr) continue;
+        country = c.data.country; region = c.data.region; wineType = c.data.wine_type; break;
       }
     }
   }
@@ -253,6 +265,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'start_date, end_date required' }, { status: 400 });
     }
 
+    // 빈티지 매칭 캐시 사전 계산 + 품번별 매칭 결과 캐시
+    const vintageMap = buildVintageMap(wineMap);
+    const resolveCache = new Map<string, { country: string | null; region: string | null; wineType: string | null }>();
+
     // shipments 집계
     type ItemAgg = { item_no: string; item_name: string; qty: number; amount: number; country: string; region: string | null; wineType: string | null };
     const itemAgg: Record<string, ItemAgg> = {};
@@ -260,10 +276,10 @@ export async function GET(req: NextRequest) {
     let totalQty = 0, matchedCountry = 0, matchedRegion = 0, matchedType = 0;
 
     let offset = 0;
-    const batch = 1000;
+    const batch = 5000;
     while (true) {
       const { data, error } = await supabase.from('shipments')
-        .select('item_no, item_name, quantity, selling_price, ship_date')
+        .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
         .gte('ship_date', startDate).lte('ship_date', endDate)
         .range(offset, offset + batch - 1);
       if (error) throw error;
@@ -275,7 +291,12 @@ export async function GET(req: NextRequest) {
         const qty = r.quantity || 0;
         if (qty === 0) continue;
 
-        const { country, region, wineType } = resolveWine(r.item_no, r.item_name || '', wineMap, invMap, brandCountry);
+        let resolved = resolveCache.get(r.item_no);
+        if (!resolved) {
+          resolved = resolveWine(r.item_no, r.item_name || '', wineMap, invMap, brandCountry, vintageMap);
+          resolveCache.set(r.item_no, resolved);
+        }
+        const { country, region, wineType } = resolved;
 
         // 필터 적용
         if (filterCountry && country !== filterCountry) continue;
