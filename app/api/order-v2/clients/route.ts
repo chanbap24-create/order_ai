@@ -41,19 +41,26 @@ export async function GET(req: NextRequest) {
     const { data: aliases, error: e2 } = await aliasQuery.limit(20);
     if (e2) throw e2;
 
-    // alias로 찾은 거래처 코드의 이름 조회
-    const aliasCodes = (aliases || []).map(a => a.client_code).filter(c => !direct?.some(d => d.client_code === c));
+    // alias → code → name 매핑 (alias명 보존)
+    const aliasMap = new Map<string, string>(); // code → alias
+    for (const a of (aliases || [])) {
+      if (!aliasMap.has(a.client_code)) aliasMap.set(a.client_code, a.alias);
+    }
+    const aliasCodes = [...aliasMap.keys()].filter(c => !direct?.some(d => d.client_code === c));
     let aliasClients: any[] = [];
     if (aliasCodes.length > 0) {
       const { data } = await supabase
         .from(clientTable)
         .select('client_code, client_name')
         .in('client_code', aliasCodes);
-      aliasClients = data || [];
+      aliasClients = (data || []).map(c => ({
+        ...c,
+        matched_alias: aliasMap.get(c.client_code) || null,
+      }));
     }
 
     // 합치고 중복 제거
-    const map = new Map<string, { client_code: string; client_name: string }>();
+    const map = new Map<string, { client_code: string; client_name: string; matched_alias?: string }>();
     for (const c of [...(direct || []), ...aliasClients]) {
       if (!map.has(c.client_code)) map.set(c.client_code, c);
     }

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 interface Client {
   client_code: string;
   client_name: string;
+  matched_alias?: string;
 }
 
 interface Candidate {
@@ -617,7 +618,14 @@ export default function OrderV2Page() {
                       borderBottom: '1px solid rgba(90,21,21,0.04)',
                       transition: 'background 0.15s ease',
                     }}>
-                    <span style={{ fontWeight: 600 }}>{c.client_name}</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {c.client_name}
+                      {c.matched_alias && (
+                        <span style={{ fontWeight: 400, fontSize: 11, color: '#8a8580', marginLeft: 6 }}>
+                          ({c.matched_alias})
+                        </span>
+                      )}
+                    </span>
                     <span style={{ fontSize: 11, color: '#a8a098', fontFamily: "'DM Sans', monospace" }}>{c.client_code}</span>
                   </button>
                 ))}
