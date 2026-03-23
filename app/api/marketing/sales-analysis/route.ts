@@ -45,7 +45,81 @@ function resolveWine(
   return { country, region, wineType };
 }
 
-// GET /api/marketing/sales-analysis?start_date=2024-01-01&end_date=2026-03-31&country=프랑스&region=Bourgogne&wine_type=레드
+// 지역 그룹: label → 검색 키워드들 (해당 키워드가 region 값에 포함되면 매칭)
+const REGION_GROUPS: Record<string, { label: string; keywords: string[] }[]> = {
+  '프랑스': [
+    { label: '부르고뉴', keywords: ['Bourgogne','Burgundy','Chablis','Nuits','Beaune','Beaujolais','Chalonnaise','Mâconnais','Maconnais','Meursault','Mersault','Puligny','Chassagne','Volnay','Pommard','Gevrey','Chambertin','Chambolle','Musigny','Vosne','Romanee','Romanée','Corton','Aloxe','Montrachet','Aligote','Aligoté','Fixin','Marsannay','Monthelie','Auxey','Rully','Mercurey','Saint Aubin','Chorey','Savigny','Santenay','Clos de Vougeot','Irancy'] },
+    { label: '보르도', keywords: ['Bordeaux','Médoc','Medoc','Graves','Sauternes','Pauillac','Saint-Emilion','Saint Emilion','Pomerol','Margaux','Haut-Médoc','Pessac'] },
+    { label: '론', keywords: ['Rhône','Rhone','Condrieu','Hermitage','Cornas','Saint Joseph','Chateauneuf','Châteauneuf','Cotes du Rhone','Côtes du Rhône','Luberon','Gigondas','Vacqueyras'] },
+    { label: '샴페인', keywords: ['Champagne','Charly-sur-Marne'] },
+    { label: '알자스', keywords: ['Alsace'] },
+    { label: '루아르', keywords: ['Loire','Sancerre','Chinon','Vouvray','Muscadet'] },
+    { label: '랑그독', keywords: ['Languedoc'] },
+    { label: '프로방스', keywords: ['Provence'] },
+    { label: '크레망', keywords: ['Crémant','Cremant'] },
+  ],
+  '이탈리아': [
+    { label: '토스카나', keywords: ['Toscan','Tuscan','Chianti','Bolgheri','Montalcino','Montepulciano'] },
+    { label: '피에몬테', keywords: ['Piemont','Piedmont','Barolo','Barbaresco','Asti','Langhe'] },
+    { label: '베네토', keywords: ['Veneto','Valpolicella','Soave','Prosecco'] },
+    { label: '시칠리아', keywords: ['Sicil'] },
+    { label: '풀리아', keywords: ['Puglia'] },
+    { label: '캄파니아', keywords: ['Campania'] },
+  ],
+  '칠레': [
+    { label: '센트럴 밸리', keywords: ['Central'] },
+    { label: '마이포', keywords: ['Maipo'] },
+    { label: '콜차구아', keywords: ['Colchagua'] },
+    { label: '카사블랑카', keywords: ['Casablanca'] },
+    { label: '아콩카과', keywords: ['Aconcagua'] },
+    { label: '레이다', keywords: ['Leyda'] },
+  ],
+  '포르투갈': [
+    { label: '도우로', keywords: ['Douro'] },
+    { label: '알렌테주', keywords: ['Alentejo'] },
+    { label: '다옹', keywords: ['Dao','Dão'] },
+    { label: '마데이라', keywords: ['Madeira'] },
+  ],
+  '호주': [
+    { label: '바로사', keywords: ['Barossa'] },
+    { label: '맥라렌 베일', keywords: ['McLaren'] },
+    { label: '마가렛 리버', keywords: ['Margaret'] },
+    { label: '이든 밸리', keywords: ['Eden'] },
+  ],
+  '미국': [
+    { label: '나파 밸리', keywords: ['Napa'] },
+    { label: '소노마', keywords: ['Sonoma'] },
+    { label: '캘리포니아', keywords: ['California'] },
+    { label: '오레곤', keywords: ['Oregon'] },
+  ],
+  '뉴질랜드': [
+    { label: '말보로', keywords: ['Marlborough'] },
+    { label: '혹스 베이', keywords: ['Hawke'] },
+  ],
+  '스페인': [
+    { label: '리오하', keywords: ['Rioja'] },
+    { label: '프리오랏', keywords: ['Priorat'] },
+    { label: '리베라 델 두에로', keywords: ['Ribera'] },
+  ],
+};
+
+// region 값이 특정 그룹에 속하는지 확인
+function matchRegionGroup(region: string, keywords: string[]): boolean {
+  const r = region.toLowerCase();
+  return keywords.some(kw => r.includes(kw.toLowerCase()));
+}
+
+// region 값을 그룹 label로 변환
+function resolveRegionGroup(country: string, region: string): string {
+  const groups = REGION_GROUPS[country];
+  if (!groups) return region;
+  for (const g of groups) {
+    if (matchRegionGroup(region, g.keywords)) return g.label;
+  }
+  return region;
+}
+
+// GET /api/marketing/sales-analysis?start_date=2024-01-01&end_date=2026-03-31&country=프랑스&region=부르고뉴&wine_type=레드
 // 필터 없으면 전체 조회. 필터 있으면 해당 조건만.
 // mode=options → 선택 가능한 국가/지역/타입 목록 반환
 export async function GET(req: NextRequest) {
@@ -78,21 +152,19 @@ export async function GET(req: NextRequest) {
       if (!brandCountry.has(k)) brandCountry.set(k, v);
     }
 
-    // mode=options: 선택 가능한 필터 값 목록
+    // mode=options: 선택 가능한 필터 값 목록 (지역 그룹 기반)
     if (mode === 'options') {
       const countries = new Set<string>();
-      const regionsByCountry: Record<string, Set<string>> = {};
       const types = new Set<string>();
       for (const w of (wines || [])) {
-        if (w.country) { countries.add(w.country); }
-        if (w.country && w.region) {
-          if (!regionsByCountry[w.country]) regionsByCountry[w.country] = new Set();
-          regionsByCountry[w.country].add(w.region);
-        }
+        if (w.country) countries.add(w.country);
         if (w.wine_type) types.add(w.wine_type);
       }
+      // 지역은 그룹 label로 반환
       const regionsObj: Record<string, string[]> = {};
-      for (const [c, s] of Object.entries(regionsByCountry)) regionsObj[c] = [...s].sort();
+      for (const [c, groups] of Object.entries(REGION_GROUPS)) {
+        regionsObj[c] = groups.map(g => g.label);
+      }
       return NextResponse.json({
         countries: [...countries].sort(),
         regions: regionsObj,
@@ -131,7 +203,17 @@ export async function GET(req: NextRequest) {
 
         // 필터 적용
         if (filterCountry && country !== filterCountry) continue;
-        if (filterRegion && (!region || !region.toLowerCase().includes(filterRegion.toLowerCase()))) continue;
+        if (filterRegion && country) {
+          if (!region) continue;
+          // 필터가 지역 그룹 label인지 확인
+          const groups = REGION_GROUPS[country];
+          const group = groups?.find(g => g.label === filterRegion);
+          if (group) {
+            if (!matchRegionGroup(region, group.keywords)) continue;
+          } else {
+            if (!region.toLowerCase().includes(filterRegion.toLowerCase())) continue;
+          }
+        }
         if (filterType && wineType !== filterType) continue;
 
         const absQty = Math.abs(qty);
@@ -168,7 +250,8 @@ export async function GET(req: NextRequest) {
         countryAgg[item.country].items += 1;
         if (item.region) {
           if (!regionAgg[item.country]) regionAgg[item.country] = {};
-          regionAgg[item.country][item.region] = (regionAgg[item.country][item.region] || 0) + item.qty;
+          const groupLabel = resolveRegionGroup(item.country, item.region);
+          regionAgg[item.country][groupLabel] = (regionAgg[item.country][groupLabel] || 0) + item.qty;
         }
       }
       if (item.wineType) {
