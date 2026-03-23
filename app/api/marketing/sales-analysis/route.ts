@@ -21,6 +21,17 @@ function inferType(name: string): string | null {
   return null;
 }
 
+// 품명에서 용량 추출
+function inferVolume(itemName: string): string {
+  const n = itemName || '';
+  if (/3\s*L\b|3000\s*ml/i.test(n)) return '3L';
+  if (/1\.5\s*L\b|1500\s*ml/i.test(n)) return '1.5L';
+  if (/500\s*ml/i.test(n)) return '500ml';
+  if (/375\s*ml/i.test(n)) return '375ml';
+  if (/187\s*ml/i.test(n)) return '187ml';
+  return '750ml';
+}
+
 // 와인 정보 매칭
 function resolveWine(
   itemNo: string, itemName: string,
@@ -137,6 +148,7 @@ export async function GET(req: NextRequest) {
     const filterCountry = searchParams.get('country') || '';
     const filterRegion = searchParams.get('region') || '';
     const filterType = searchParams.get('wine_type') || '';
+    const filterVolume = searchParams.get('volume') || '';
 
     // wines/inventory 로드
     const { data: wines } = await supabase.from('wines')
@@ -175,6 +187,7 @@ export async function GET(req: NextRequest) {
         countries: [...countries].sort(),
         regions: regionsObj,
         types: [...types].sort(),
+        volumes: ['750ml', '375ml', '500ml', '1.5L', '3L', '187ml'],
       });
     }
 
@@ -221,6 +234,10 @@ export async function GET(req: NextRequest) {
           }
         }
         if (filterType && wineType !== filterType) continue;
+        if (filterVolume) {
+          const vol = inferVolume(r.item_name || '');
+          if (vol !== filterVolume) continue;
+        }
 
         // 총액 판별: sp*qty≈sa → sp는 단가, sa가 총액. 아니면 sp 자체가 총액.
         const sp = r.selling_price || 0;
