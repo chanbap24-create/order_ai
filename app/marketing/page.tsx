@@ -2,20 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import ImportForecastTab from '@/app/admin/components/ImportForecastTab';
-
-const inputStyle: React.CSSProperties = {
-  flex: '1 1 120px',
-  padding: '10px 14px',
-  borderRadius: 10,
-  border: '1.5px solid rgba(90,21,21,0.08)',
-  fontSize: 16,
-  outline: 'none',
-  background: '#faf9f7',
-  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-};
+import SalesAnalysisTab from '@/app/marketing/components/SalesAnalysisTab';
 
 export default function MarketingPage() {
   const [currentManager, setCurrentManager] = useState('');
+  const [activeTab, setActiveTab] = useState<'forecast' | 'analysis'>('forecast');
   const [showPwChange, setShowPwChange] = useState(false);
   const [pwCurrent, setPwCurrent] = useState('');
   const [pwNew, setPwNew] = useState('');
@@ -56,33 +47,22 @@ export default function MarketingPage() {
     }
   };
 
-  const focusStyle = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(90,21,21,0.25)';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(90,21,21,0.06)';
-  };
-  const blurStyle = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(90,21,21,0.08)';
-    e.currentTarget.style.boxShadow = 'none';
-  };
-
   return (
-    <div style={{ paddingTop: 72, minHeight: '100vh', background: '#f5f3f0' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingTop: 8 }}>
+    <div style={{ paddingTop: 72, minHeight: '100vh', background: '#fff' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, paddingTop: 8 }}>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#111', margin: 0, fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.02em' }}>Marketing</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1a1a2e', margin: 0, fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.01em' }}>Marketing</h1>
-            <span style={{ fontSize: 12, color: '#a8a098', padding: '2px 8px', background: '#fff', borderRadius: 6, border: '1px solid #e8e4e0' }}>수입량 예측 분석</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {currentManager && (
-              <span style={{ fontSize: 13, color: '#5A1515', fontWeight: 600 }}>{currentManager}</span>
+              <span style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>{currentManager}</span>
             )}
             <button
               onClick={() => setShowPwChange(!showPwChange)}
               style={{
-                padding: '6px 12px', borderRadius: 8, border: '1px solid #e8e4e0',
-                background: showPwChange ? '#5A1515' : '#fff', color: showPwChange ? '#fff' : '#8a8580',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                padding: '5px 10px', borderRadius: 6, border: '1px solid #e0e0e0',
+                background: showPwChange ? '#111' : '#fff', color: showPwChange ? '#fff' : '#999',
+                fontSize: 11, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
               }}
             >
               비밀번호 변경
@@ -90,30 +70,29 @@ export default function MarketingPage() {
           </div>
         </div>
 
+        {/* Password Change */}
         {showPwChange && (
           <div style={{
-            background: '#fff', borderRadius: 14,
-            border: '1px solid rgba(90,21,21,0.06)',
-            boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
-            padding: 18, marginBottom: 20,
+            background: '#fafafa', borderRadius: 8,
+            border: '1px solid #eee',
+            padding: '16px 20px', marginBottom: 24,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', marginBottom: 14 }}>
-              비밀번호 변경
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <input type="password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)}
-                placeholder="현재 비밀번호" style={inputStyle} onFocus={focusStyle} onBlur={blurStyle} />
+                placeholder="현재 비밀번호"
+                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 13, outline: 'none', background: '#fff' }} />
               <input type="password" value={pwNew} onChange={e => setPwNew(e.target.value)}
-                placeholder="새 비밀번호" style={inputStyle} onFocus={focusStyle} onBlur={blurStyle} />
+                placeholder="새 비밀번호"
+                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 13, outline: 'none', background: '#fff' }} />
               <input type="password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)}
-                placeholder="새 비밀번호 확인" style={inputStyle} onFocus={focusStyle} onBlur={blurStyle}
+                placeholder="새 비밀번호 확인"
+                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 13, outline: 'none', background: '#fff' }}
                 onKeyDown={e => { if (e.key === 'Enter') handlePwChange(); }} />
               <button onClick={handlePwChange} disabled={pwLoading}
                 style={{
-                  padding: '10px 20px', borderRadius: 10, border: 'none',
-                  background: pwLoading ? '#c4a0a0' : '#5A1515', color: 'white',
-                  fontSize: 13, fontWeight: 600, cursor: pwLoading ? 'default' : 'pointer',
-                  whiteSpace: 'nowrap', transition: 'background 0.2s ease',
+                  padding: '8px 16px', borderRadius: 6, border: 'none',
+                  background: pwLoading ? '#ccc' : '#111', color: '#fff',
+                  fontSize: 12, fontWeight: 600, cursor: pwLoading ? 'default' : 'pointer',
                 }}>
                 {pwLoading ? '변경 중...' : '변경'}
               </button>
@@ -123,7 +102,19 @@ export default function MarketingPage() {
           </div>
         )}
 
-        <ImportForecastTab />
+        {/* 탭 */}
+        <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.04)', borderRadius: 8, padding: 2, marginBottom: 20, width: 'fit-content' }}>
+          {([['forecast', '수입량 예측'], ['analysis', '판매 분석']] as const).map(([t, label]) => (
+            <button key={t} onClick={() => setActiveTab(t)} style={{
+              padding: '8px 20px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: activeTab === t ? 700 : 500,
+              background: activeTab === t ? '#fff' : 'transparent', color: activeTab === t ? '#111' : '#888',
+              cursor: 'pointer', boxShadow: activeTab === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {activeTab === 'forecast' && <ImportForecastTab />}
+        {activeTab === 'analysis' && <SalesAnalysisTab />}
       </div>
     </div>
   );
