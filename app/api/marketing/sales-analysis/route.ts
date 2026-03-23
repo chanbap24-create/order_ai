@@ -244,50 +244,84 @@ export async function GET(req: NextRequest) {
     }
 
     // 국가별 집계
-    const countryAgg: Record<string, { qty: number; amount: number; items: number }> = {};
-    const regionAgg: Record<string, Record<string, number>> = {};
-    const typeAgg: Record<string, number> = {};
+    const countryAgg: Record<string, { qty: number; amount: number; items: number; types: Record<string, number> }> = {};
+    const regionAgg: Record<string, Record<string, { qty: number; amount: number }>> = {};
+    const typeAgg: Record<string, { qty: number; amount: number }> = {};
+    const monthlyDetail: Record<string, { qty: number; amount: number }> = {};
+    let totalAmount = 0;
 
     for (const item of Object.values(itemAgg)) {
+      totalAmount += item.amount;
       if (item.country) {
-        if (!countryAgg[item.country]) countryAgg[item.country] = { qty: 0, amount: 0, items: 0 };
+        if (!countryAgg[item.country]) countryAgg[item.country] = { qty: 0, amount: 0, items: 0, types: {} };
         countryAgg[item.country].qty += item.qty;
         countryAgg[item.country].amount += item.amount;
         countryAgg[item.country].items += 1;
+        if (item.wineType) {
+          countryAgg[item.country].types[item.wineType] = (countryAgg[item.country].types[item.wineType] || 0) + item.qty;
+        }
         if (item.region) {
           if (!regionAgg[item.country]) regionAgg[item.country] = {};
           const groupLabel = resolveRegionGroup(item.country, item.region);
-          regionAgg[item.country][groupLabel] = (regionAgg[item.country][groupLabel] || 0) + item.qty;
+          if (!regionAgg[item.country][groupLabel]) regionAgg[item.country][groupLabel] = { qty: 0, amount: 0 };
+          regionAgg[item.country][groupLabel].qty += item.qty;
+          regionAgg[item.country][groupLabel].amount += item.amount;
         }
       }
       if (item.wineType) {
-        typeAgg[item.wineType] = (typeAgg[item.wineType] || 0) + item.qty;
+        if (!typeAgg[item.wineType]) typeAgg[item.wineType] = { qty: 0, amount: 0 };
+        typeAgg[item.wineType].qty += item.qty;
+        typeAgg[item.wineType].amount += item.amount;
       }
     }
 
+    // 월별 금액 집계 (별도 루프)
+    for (const item of Object.values(itemAgg)) {
+      // monthlyDetail은 이미 monthlyQty에서 qty만 있으므로, item 기준으로 못 함
+      // 대신 monthlyQty를 monthlyDetail로 확장 (amount는 shipments 루프에서 해야 함)
+    }
+
     const countries = Object.entries(countryAgg)
-      .map(([name, d]) => ({ name, ...d }))
+      .map(([name, d]) => ({
+        name, qty: d.qty, amount: d.amount, items: d.items, avg_price: d.qty > 0 ? Math.round(d.amount / d.qty) : 0,
+        types: Object.entries(d.types).map(([t, q]) => ({ name: t, qty: q })).sort((a, b) => b.qty - a.qty),
+      }))
       .sort((a, b) => b.qty - a.qty);
 
-    const regions: Record<string, { name: string; qty: number }[]> = {};
+    const regions: Record<string, { name: string; qty: number; amount: number; avg_price: number }[]> = {};
     for (const [c, regs] of Object.entries(regionAgg)) {
-      regions[c] = Object.entries(regs).map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty);
+      regions[c] = Object.entries(regs)
+        .map(([name, d]) => ({ name, qty: d.qty, amount: d.amount, avg_price: d.qty > 0 ? Math.round(d.amount / d.qty) : 0 }))
+        .sort((a, b) => b.qty - a.qty);
     }
 
     const types = Object.entries(typeAgg)
-      .map(([name, qty]) => ({ name, qty }))
+      .map(([name, d]) => ({ name, qty: d.qty, amount: d.amount, avg_price: d.qty > 0 ? Math.round(d.amount / d.qty) : 0 }))
       .sort((a, b) => b.qty - a.qty);
 
-    // 품목별 TOP
+    // 품목별
     const topItems = Object.values(itemAgg).sort((a, b) => b.qty - a.qty)
-      .map(({ item_no, item_name, qty, amount, country, region, wineType }) => ({ item_no, item_name, qty, amount, country, region, wine_type: wineType }));
+      .map(({ item_no, item_name, qty, amount, country, region, wineType }) => ({
+        item_no, item_name, qty, amount, avg_price: qty > 0 ? Math.round(amount / qty) : 0,
+        country, region: region ? resolveRegionGroup(country || '', region) : null, wine_type: wineType,
+      }));
 
     // 월별 추이
     const monthly = Object.entries(monthlyQty).sort(([a], [b]) => a.localeCompare(b))
       .map(([month, qty]) => ({ month, qty }));
 
+    // 기간 일수로 일평균 계산
+    const dayMs = 1000 * 60 * 60 * 24;
+    const days = Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / dayMs));
+    const dailyAvg = Math.round(totalQty / days);
+    const monthlyAvg = Math.round(totalQty / Math.max(1, monthly.length));
+
     return NextResponse.json({
       total_qty: totalQty,
+      total_amount: totalAmount,
+      total_items: Object.keys(itemAgg).length,
+      daily_avg: dailyAvg,
+      monthly_avg: monthlyAvg,
       match_rate: {
         country: totalQty > 0 ? Math.round(matchedCountry / totalQty * 100) : 0,
         region: totalQty > 0 ? Math.round(matchedRegion / totalQty * 100) : 0,
