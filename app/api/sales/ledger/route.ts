@@ -161,9 +161,8 @@ export async function GET(req: NextRequest) {
       const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
       refDate = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-01`;
     } else {
-      const now = new Date();
-      const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-      refDate = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+      // carryover 레코드 없음: 모든 과거 거래를 순방향으로 합산하기 위해 충분히 이른 날짜 사용
+      refDate = '2020-01-01';
     }
 
     // 과거 월 조회 시 startDate~refDate 사이 매출/수금을 역산

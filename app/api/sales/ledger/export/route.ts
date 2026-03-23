@@ -79,11 +79,16 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     if (coName) for (const c of coName) carryover += (c.carryover_amount || 0);
   }
 
-  // carryover = 현재 월 시작 잔액. 과거 월 조회 시 역산 필요.
-  // KST(UTC+9) 기준 — Vercel(UTC) 환경에서도 한국 날짜 사용
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const refDate = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  // carryover 기준월 결정: carryover 레코드가 있으면 현재 월, 없으면 모든 과거 거래를 합산
+  let refDate: string;
+  if (carryover !== 0) {
+    const now = new Date();
+    const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    refDate = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  } else {
+    // carryover 없음: 과거 모든 거래를 순방향 합산
+    refDate = '2020-01-01';
+  }
   let prevBalance = carryover;
   if (startDate < refDate) {
     let adjSales = 0, adjPay = 0;
@@ -110,6 +115,32 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
       af += batch;
     }
     prevBalance = carryover - adjSales + adjPay;
+  } else if (startDate > refDate) {
+    // 순방향: refDate ~ startDate 사이 매출/수금을 합산
+    let adjSales = 0, adjPay = 0;
+    let af = 0;
+    while (true) {
+      const { data, error } = await supabase.from(table).select('total_amount')
+        .in('client_code', allCodes).gte('ship_date', refDate).lt('ship_date', startDate)
+        .range(af, af + batch - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) adjSales += (r.total_amount || 0);
+      if (data.length < batch) break;
+      af += batch;
+    }
+    af = 0;
+    while (true) {
+      const { data, error } = await supabase.from(payTable).select('amount')
+        .in('client_code', allCodes).gte('payment_date', refDate).lt('payment_date', startDate)
+        .range(af, af + batch - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) adjPay += (r.amount || 0);
+      if (data.length < batch) break;
+      af += batch;
+    }
+    prevBalance = carryover + adjSales - adjPay;
   }
 
   // 수금 내역
