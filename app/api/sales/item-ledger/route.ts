@@ -52,14 +52,25 @@ export async function GET(req: NextRequest) {
     // 품목명 (shipments에서 가져오기)
     const itemName = allRows[0]?.item_name || wineInfo?.item_name_kr || itemNo;
 
-    // 단가/금액 정규화: 거래명세표 기준 판매단가 추출
-    // 두 값 중 작은 양수 = 건당 판매단가, 큰 값 = 총액(공급가액)
+    // 단가/금액 정규화: 거래명세표 기준 판매단가 + 총액 추출
     for (const r of allRows) {
       const up = r.unit_price || 0;
       const sp = r.selling_price || 0;
+      const sa = r.supply_amount || 0;
       const qty = r.quantity || 1;
+      const absQty = Math.abs(qty);
+
+      // 판매 단가: min(unit_price, selling_price) — 두 값 중 작은 양수
       r.unit_price = (up > 0 && sp > 0) ? Math.min(up, sp) : (up || sp || 0);
-      r.supply_amount = r.unit_price * Math.abs(qty);
+
+      // 총액: selling_price가 총액인지 단가인지 판별
+      if (absQty <= 1) {
+        r.supply_amount = Math.abs(sp) || Math.abs(up);
+      } else if (sa > 0 && Math.abs(sp * absQty - sa) < 100) {
+        r.supply_amount = Math.abs(sa); // sp*qty≈sa → sp는 단가, sa가 총액
+      } else {
+        r.supply_amount = Math.abs(sp) || (Math.abs(r.unit_price) * absQty);
+      }
     }
 
     // 거래처별 집계

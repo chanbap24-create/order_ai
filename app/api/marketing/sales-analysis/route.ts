@@ -223,7 +223,19 @@ export async function GET(req: NextRequest) {
         if (filterType && wineType !== filterType) continue;
 
         const absQty = Math.abs(qty);
-        const amount = Math.abs((r.selling_price || 0) * qty);
+        // selling_price가 총액인지 단가인지 판별:
+        // supply_amount == selling_price → 둘 다 총액
+        // selling_price * qty == supply_amount → selling_price는 단가
+        const sp = r.selling_price || 0;
+        const sa = r.supply_amount || 0;
+        let amount: number;
+        if (Math.abs(qty) <= 1) {
+          amount = Math.abs(sp); // qty=1이면 단가=총액
+        } else if (sa > 0 && Math.abs(sp * qty - sa) < 100) {
+          amount = Math.abs(sa); // sp*qty≈sa → sp는 단가, sa가 총액
+        } else {
+          amount = Math.abs(sp); // sp 자체가 총액
+        }
         totalQty += absQty;
         if (country) matchedCountry += absQty;
         if (region) matchedRegion += absQty;
