@@ -52,6 +52,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 2-1. DL: 거래처 업장 여부 판단 (레스토랑 시리즈 구매 비율)
+    const isRestaurantClient = tab === 'DL' && purchaseHistory.length > 0 &&
+      purchaseHistory.filter(h => (h.item_name || '').includes('레스토랑')).length / purchaseHistory.length > 0.3;
+
     // 3. 와인 리스트 텍스트 (품번|품명)
     const wineListText = (wines || []).map(w =>
       `${w.item_no}|${w.item_name}`
@@ -72,6 +76,7 @@ export async function POST(req: NextRequest) {
 - 핵심: 발주에서 "0884/67 6"처럼 모델번호+수량으로 올 수 있음. 이때 품명 안에 해당 모델번호가 포함된 품목을 매칭 (예: "0884/67"→품명에 "0884/67"이 포함된 항목)
 - 모델번호 패턴: XXXX/XX 형식 (예: 6884/0, 0884/67, 4884/15D, 1490/13)
 - 동일 모델의 일반/레스토랑 버전이 모두 있으면 반드시 둘 다 후보에 포함 (예: 6884/0 퍼포먼스 + 0884/0 퍼포먼스 레스토랑)
+${isRestaurantClient ? '- ★ 이 거래처는 업장(레스토랑/바)입니다. 레스토랑 시리즈(0xxx 모델번호, 품명에 "레스토랑" 포함)를 일반 버전보다 반드시 먼저 배치하세요' : ''}
 - 2nd/전시 버전은 후보에서 제외
 - 수량 미명시→1
 - 약어/줄임말 해석 (퍼포→퍼포먼스, 카베→카베르네, 피노→피노누아, 샴페→샴페인, 샤도→샤르도네, 소블→소비뇽 블랑, 시라→시라/시라즈, 리슬→리슬링)
@@ -177,6 +182,19 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
           ...(imp ? { incoming: { arrival_date: imp.arrival_date, total_btls: imp.total_btls } } : {}),
         };
       });
+
+      // ── DL 업장: 레스토랑 시리즈 우선 정렬 ──
+      if (isRestaurantClient && candidates.length > 1) {
+        // 레스토랑 버전(품명에 "레스토랑" 포함)을 앞으로, 동일 confidence 내에서
+        const restoIdx = candidates.findIndex((c: any) =>
+          (c.item_name || '').includes('레스토랑') && !(c.item_name || '').includes('2nd') && !(c.item_name || '').includes('전시')
+        );
+        if (restoIdx > 0) {
+          const resto = candidates.splice(restoIdx, 1)[0];
+          resto.reasoning = (resto.reasoning || '') + ' [업장 거래처→레스토랑 시리즈 우선]';
+          candidates.unshift(resto);
+        }
+      }
 
       // ── 빈티지 자동 확정 로직 ──
       if (tab !== 'DL' && candidates.length > 1) {
