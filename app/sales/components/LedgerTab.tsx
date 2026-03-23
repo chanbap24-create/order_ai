@@ -420,7 +420,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
       </div>
 
       {/* 결과 테이블 */}
-      {client && rows.length > 0 && (
+      {client && (rows.length > 0 || prevBalance !== 0 || payments.length > 0) && (
         <div style={{
           background: '#fff',
           borderRadius: 14,
@@ -539,7 +539,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
       )}
 
       {/* 결과 없음 */}
-      {client && rows.length === 0 && !loading && (
+      {client && rows.length === 0 && prevBalance === 0 && payments.length === 0 && !loading && (
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
           textAlign: 'center', color: '#8a8580', fontSize: 14,
