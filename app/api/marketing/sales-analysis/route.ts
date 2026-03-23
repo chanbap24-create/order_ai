@@ -120,6 +120,53 @@ const REGION_GROUPS: Record<string, { label: string; keywords: string[] }[]> = {
   ],
 };
 
+// 하위 지역 그룹: 지역 > 세부 지역
+const SUB_REGION_GROUPS: Record<string, Record<string, { label: string; keywords: string[] }[]>> = {
+  '프랑스': {
+    '부르고뉴': [
+      { label: '샤블리', keywords: ['Chablis'] },
+      { label: '코트 드 뉘', keywords: ['Nuits','Gevrey','Chambertin','Chambolle','Musigny','Vosne','Romanee','Romanée','Fixin','Marsannay','Clos de Vougeot','Nuits St'] },
+      { label: '코트 드 본', keywords: ['Beaune','Meursault','Mersault','Puligny','Chassagne','Volnay','Pommard','Corton','Aloxe','Montrachet','Monthelie','Auxey','Saint Aubin','Chorey','Savigny','Santenay','Blagny'] },
+      { label: '보졸레', keywords: ['Beaujolais'] },
+      { label: '마코네', keywords: ['Mâconnais','Maconnais','Macon'] },
+      { label: '부르고뉴 기타', keywords: ['Bourgogne','Burgundy','Aligote','Aligoté','Rully','Mercurey','Chalonnaise','Irancy','Auxerre','Crémant de Bourgogne'] },
+    ],
+    '보르도': [
+      { label: '메독', keywords: ['Médoc','Medoc','Margaux','Pauillac','Saint-Julien','Saint-Estephe','Haut-Médoc'] },
+      { label: '우안', keywords: ['Saint-Emilion','Saint Emilion','Pomerol'] },
+      { label: '그라브/소테른', keywords: ['Graves','Sauternes','Pessac','Barsac'] },
+      { label: '보르도 기타', keywords: ['Bordeaux'] },
+    ],
+    '론': [
+      { label: '북부 론', keywords: ['Northern Rhône','Condrieu','Hermitage','Cornas','Saint Joseph','Cote Rotie','Côte-Rôtie'] },
+      { label: '남부 론', keywords: ['Southern Rhône','Chateauneuf','Châteauneuf','Gigondas','Vacqueyras','Luberon','Cotes du Rhone','Côtes du Rhône','Ventoux'] },
+    ],
+  },
+  '이탈리아': {
+    '토스카나': [
+      { label: '키안티', keywords: ['Chianti'] },
+      { label: '볼게리', keywords: ['Bolgheri'] },
+      { label: '몬탈치노', keywords: ['Montalcino'] },
+      { label: '토스카나 기타', keywords: ['Toscan','Tuscan'] },
+    ],
+    '피에몬테': [
+      { label: '바롤로', keywords: ['Barolo'] },
+      { label: '바르바레스코', keywords: ['Barbaresco'] },
+      { label: '피에몬테 기타', keywords: ['Piemont','Piedmont','Asti','Langhe'] },
+    ],
+  },
+};
+
+// 하위 지역 그룹 label로 변환
+function resolveSubRegion(country: string, regionGroup: string, region: string): string {
+  const subs = SUB_REGION_GROUPS[country]?.[regionGroup];
+  if (!subs) return region;
+  for (const s of subs) {
+    if (matchRegionGroup(region, s.keywords)) return s.label;
+  }
+  return region;
+}
+
 // region 값이 특정 그룹에 속하는지 확인
 function matchRegionGroup(region: string, keywords: string[]): boolean {
   const r = region.toLowerCase();
@@ -149,6 +196,7 @@ export async function GET(req: NextRequest) {
     const filterRegion = searchParams.get('region') || '';
     const filterType = searchParams.get('wine_type') || '';
     const filterVolume = searchParams.get('volume') || '';
+    const filterSubRegion = searchParams.get('sub_region') || '';
 
     // wines/inventory 로드
     const { data: wines } = await supabase.from('wines')
@@ -183,9 +231,18 @@ export async function GET(req: NextRequest) {
       for (const [c, groups] of Object.entries(REGION_GROUPS)) {
         regionsObj[c] = groups.map(g => g.label);
       }
+      // 하위 지역 label 목록
+      const subRegionsObj: Record<string, Record<string, string[]>> = {};
+      for (const [c, regionMap] of Object.entries(SUB_REGION_GROUPS)) {
+        subRegionsObj[c] = {};
+        for (const [rg, subs] of Object.entries(regionMap)) {
+          subRegionsObj[c][rg] = subs.map(s => s.label);
+        }
+      }
       return NextResponse.json({
         countries: [...countries].sort(),
         regions: regionsObj,
+        sub_regions: subRegionsObj,
         types: [...types].sort(),
         volumes: ['750ml', '375ml', '500ml', '1.5L', '3L', '187ml'],
       });
@@ -237,6 +294,17 @@ export async function GET(req: NextRequest) {
         if (filterVolume) {
           const vol = inferVolume(r.item_name || '');
           if (vol !== filterVolume) continue;
+        }
+        if (filterSubRegion && country && region) {
+          const regionGroup = resolveRegionGroup(country, region);
+          const subs = SUB_REGION_GROUPS[country]?.[regionGroup];
+          if (subs) {
+            const sub = subs.find(s => s.label === filterSubRegion);
+            if (sub && !matchRegionGroup(region, sub.keywords)) continue;
+            if (!sub) continue;
+          } else {
+            continue;
+          }
         }
 
         // 총액 판별: sp*qty≈sa → sp는 단가, sa가 총액. 아니면 sp 자체가 총액.
@@ -293,9 +361,13 @@ export async function GET(req: NextRequest) {
         if (item.region) {
           if (!regionAgg[item.country]) regionAgg[item.country] = {};
           const groupLabel = resolveRegionGroup(item.country, item.region);
-          if (!regionAgg[item.country][groupLabel]) regionAgg[item.country][groupLabel] = { qty: 0, amount: 0 };
-          regionAgg[item.country][groupLabel].qty += item.qty;
-          regionAgg[item.country][groupLabel].amount += item.amount;
+          // 지역 필터가 있으면 하위 지역으로 세분화
+          const displayLabel = filterRegion
+            ? resolveSubRegion(item.country, groupLabel, item.region)
+            : groupLabel;
+          if (!regionAgg[item.country][displayLabel]) regionAgg[item.country][displayLabel] = { qty: 0, amount: 0 };
+          regionAgg[item.country][displayLabel].qty += item.qty;
+          regionAgg[item.country][displayLabel].amount += item.amount;
         }
       }
       if (item.wineType) {

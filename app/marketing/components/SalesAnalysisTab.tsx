@@ -15,7 +15,7 @@ interface AnalysisData {
   countries: CountryRow[]; regions: Record<string, RegionRow[]>;
   types: TypeRow[]; top_items: TopItem[]; monthly: MonthlyRow[];
 }
-interface FilterOptions { countries: string[]; regions: Record<string, string[]>; types: string[]; volumes: string[] }
+interface FilterOptions { countries: string[]; regions: Record<string, string[]>; sub_regions: Record<string, Record<string, string[]>>; types: string[]; volumes: string[] }
 
 function fmt(n: number) { return n.toLocaleString(); }
 function fmtM(n: number) { return n >= 100000000 ? (n / 100000000).toFixed(1) + '억' : n >= 10000 ? Math.round(n / 10000).toLocaleString() + '만' : fmt(n); }
@@ -33,6 +33,7 @@ export default function SalesAnalysisTab() {
   const [endDate, setEndDate] = useState(today);
   const [country, setCountry] = useState('');
   const [region, setRegion] = useState('');
+  const [subRegion, setSubRegion] = useState('');
   const [wineType, setWineType] = useState('');
   const [volume, setVolume] = useState('');
   const [data, setData] = useState<AnalysisData | null>(null);
@@ -43,8 +44,10 @@ export default function SalesAnalysisTab() {
   const [itemShowAll, setItemShowAll] = useState(false);
 
   useEffect(() => { fetch('/api/marketing/sales-analysis?mode=options').then(r => r.json()).then(setOptions).catch(() => {}); }, []);
-  useEffect(() => { setRegion(''); }, [country]);
+  useEffect(() => { setRegion(''); setSubRegion(''); }, [country]);
+  useEffect(() => { setSubRegion(''); }, [region]);
   const availableRegions = country && options?.regions[country] ? options.regions[country] : [];
+  const availableSubRegions = country && region && options?.sub_regions?.[country]?.[region] ? options.sub_regions[country][region] : [];
 
   const handleSearch = async () => {
     setLoading(true); setSearched(true); setItemShowAll(false);
@@ -54,6 +57,7 @@ export default function SalesAnalysisTab() {
       if (region) params.set('region', region);
       if (wineType) params.set('wine_type', wineType);
       if (volume) params.set('volume', volume);
+      if (subRegion) params.set('sub_region', subRegion);
       const res = await fetch(`/api/marketing/sales-analysis?${params}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
@@ -91,9 +95,9 @@ export default function SalesAnalysisTab() {
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
           <div style={{ flex: '1 1 140px' }}><label style={labelStyle}>국가</label><select value={country} onChange={e => setCountry(e.target.value)} style={inputStyle}><option value="">전체</option>{(options?.countries || []).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-          <div style={{ flex: '1 1 180px' }}><label style={labelStyle}>지역</label><select value={region} onChange={e => setRegion(e.target.value)} disabled={!country || availableRegions.length === 0} style={{ ...inputStyle, color: country ? '#2c1810' : '#ccc' }}><option value="">전체</option>{availableRegions.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+          <div style={{ flex: '1 1 130px' }}><label style={labelStyle}>지역</label><select value={region} onChange={e => setRegion(e.target.value)} disabled={!country || availableRegions.length === 0} style={{ ...inputStyle, color: country ? '#2c1810' : '#ccc' }}><option value="">전체</option>{availableRegions.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+          <div style={{ flex: '1 1 130px' }}><label style={labelStyle}>세부 지역</label><select value={subRegion} onChange={e => setSubRegion(e.target.value)} disabled={!region || availableSubRegions.length === 0} style={{ ...inputStyle, color: region && availableSubRegions.length > 0 ? '#2c1810' : '#ccc' }}><option value="">전체</option>{availableSubRegions.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
           <div style={{ flex: '1 1 120px' }}><label style={labelStyle}>타입</label><select value={wineType} onChange={e => setWineType(e.target.value)} style={inputStyle}><option value="">전체</option>{(options?.types || []).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-          <div style={{ flex: '0 1 100px' }}><label style={labelStyle}>단위</label><select value={volume} onChange={e => setVolume(e.target.value)} style={inputStyle}><option value="">전체</option>{(options?.volumes || []).map(v => <option key={v} value={v}>{v}</option>)}</select></div>
         </div>
         <button onClick={handleSearch} disabled={loading} style={{ padding: '10px 28px', borderRadius: 10, border: 'none', background: loading ? '#c4a0a0' : '#5A1515', color: '#fff', fontSize: 14, fontWeight: 600, cursor: loading ? 'default' : 'pointer' }}>
           {loading ? '분석 중...' : '조회'}
