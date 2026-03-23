@@ -798,24 +798,21 @@ export default function OrderV2Page() {
                 color: '#a8a098',
                 letterSpacing: '0.06em', textTransform: 'uppercase',
               }}>발주 내용</label>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button onClick={pasteFromClipboard} style={{
-                  padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.12)',
-                  background: '#fff', fontSize: 11, fontWeight: 600, color: '#5A1515',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#a8a098', fontWeight: 500 }}>자동붙여넣기</span>
+                <div onClick={toggleAutoPaste} style={{
+                  width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+                  background: autoPaste ? '#16a34a' : '#d8d3ce',
+                  position: 'relative', transition: 'background 0.2s ease',
                 }}>
-                  <span style={{ fontSize: 13 }}>&#x1F4CB;</span> 붙여넣기
-                </button>
-                <button onClick={toggleAutoPaste} style={{
-                  padding: '3px 10px', borderRadius: 6,
-                  border: autoPaste ? '1px solid rgba(22,163,74,0.3)' : '1px solid rgba(90,21,21,0.12)',
-                  background: autoPaste ? 'rgba(22,163,74,0.06)' : '#fff',
-                  fontSize: 11, fontWeight: 600,
-                  color: autoPaste ? '#16a34a' : '#a8a098',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                }}>
-                  <span style={{ fontSize: 10 }}>{autoPaste ? '●' : '○'}</span> 자동붙여넣기
-                </button>
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 2,
+                    left: autoPaste ? 18 : 2,
+                    transition: 'left 0.2s ease',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  }} />
+                </div>
               </div>
             </div>
             <textarea value={orderText} onChange={e => setOrderText(e.target.value)}
@@ -833,7 +830,12 @@ export default function OrderV2Page() {
           </div>
 
           {/* 버튼 */}
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={pasteFromClipboard} style={{
+              padding: '13px 18px', borderRadius: 10, border: '1px solid rgba(90,21,21,0.15)',
+              background: '#fff', fontSize: 13, fontWeight: 600, color: '#5A1515',
+              cursor: 'pointer', whiteSpace: 'nowrap',
+            }}>붙여넣기</button>
             <button onClick={handleParse} disabled={loading || !orderText.trim()}
               className="order-btn-parse"
               style={{
