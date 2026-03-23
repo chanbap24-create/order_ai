@@ -106,6 +106,7 @@ export async function POST(req: Request) {
     } = body;
 
     // ── Supabase에서 데이터 보강 ──
+    var supplierKr = '';
     if (item_code) {
       // 1) wines 테이블: 브랜드, 영문명, 한글명, 지역, 국가, 이미지
       const { data: wine } = await supabase
@@ -122,6 +123,8 @@ export async function POST(req: Request) {
         if (!country) country = wine.country || wine.country_en || '';
         if (!image_url && wine.image_url) image_url = wine.image_url;
       }
+      // supplier_kr 보존 (상품명에 생산자명 추가용)
+      var supplierKr = wine?.supplier_kr || '';
 
       // 2) inventory_cdv에서 판매가 보강
       if (!retail_price) {
@@ -160,9 +163,20 @@ export async function POST(req: Request) {
       vintage = extractVintage(item_code);
     }
 
-    // 영어 2글자 약어 제거
+    // 영어 2글자 약어 제거 후 생산자명 추가
     korean_name = removePrefix(korean_name);
     product_name = removePrefix(product_name);
+
+    // 생산자명이 있으면 상품명 앞에 추가
+    // 예: "BL 볼네 1er Cru 클로 데 슌" → "메종 로쉬 벨렌, 볼네 1er Cru 클로 데 슌"
+    if (typeof supplierKr === 'string' && supplierKr) {
+      if (product_name && !product_name.startsWith(supplierKr)) {
+        product_name = `${supplierKr}, ${product_name}`;
+      }
+      if (korean_name && !korean_name.startsWith(supplierKr)) {
+        korean_name = `${supplierKr}, ${korean_name}`;
+      }
+    }
 
     // product_name이 비어있으면 korean_name 사용
     if (!product_name && korean_name) {
