@@ -130,6 +130,37 @@ export default function OrderV2Page() {
   const [orderText, setOrderText] = useState('');
   const [tab, setTab] = useState<'CDV' | 'DL'>('CDV');
 
+  // 자동 붙여넣기
+  const [autoPaste, setAutoPaste] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('order_auto_paste') === '1';
+    return false;
+  });
+  const autoPasteRan = useRef(false);
+
+  useEffect(() => {
+    if (autoPaste && !autoPasteRan.current && !orderText) {
+      autoPasteRan.current = true;
+      navigator.clipboard.readText().then(text => {
+        if (text?.trim()) setOrderText(text.trim());
+      }).catch(() => {});
+    }
+  }, [autoPaste]);
+
+  const toggleAutoPaste = () => {
+    const next = !autoPaste;
+    setAutoPaste(next);
+    localStorage.setItem('order_auto_paste', next ? '1' : '0');
+  };
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text?.trim()) setOrderText(text.trim());
+    } catch {
+      alert('클립보드 접근 권한이 필요합니다.');
+    }
+  };
+
   // 결과
   const [orderLines, setOrderLines] = useState<OrderLine[]>([]);
   const [loading, setLoading] = useState(false);
@@ -761,11 +792,32 @@ export default function OrderV2Page() {
 
           {/* 발주 내용 */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{
-              display: 'block', fontSize: 11, fontWeight: 600,
-              color: '#a8a098', marginBottom: 7,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-            }}>발주 내용</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+              <label style={{
+                fontSize: 11, fontWeight: 600,
+                color: '#a8a098',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+              }}>발주 내용</label>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button onClick={pasteFromClipboard} style={{
+                  padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.12)',
+                  background: '#fff', fontSize: 11, fontWeight: 600, color: '#5A1515',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  <span style={{ fontSize: 13 }}>&#x1F4CB;</span> 붙여넣기
+                </button>
+                <button onClick={toggleAutoPaste} style={{
+                  padding: '3px 10px', borderRadius: 6,
+                  border: autoPaste ? '1px solid rgba(22,163,74,0.3)' : '1px solid rgba(90,21,21,0.12)',
+                  background: autoPaste ? 'rgba(22,163,74,0.06)' : '#fff',
+                  fontSize: 11, fontWeight: 600,
+                  color: autoPaste ? '#16a34a' : '#a8a098',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  <span style={{ fontSize: 10 }}>{autoPaste ? '●' : '○'}</span> 자동붙여넣기
+                </button>
+              </div>
+            </div>
             <textarea value={orderText} onChange={e => setOrderText(e.target.value)}
               className="order-input"
               placeholder="카톡/문자 발주 내용을 붙여넣으세요"
