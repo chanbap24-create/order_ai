@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       // 총액: selling_price가 총액인지 단가인지 판별
       if (absQty <= 1) {
         r.supply_amount = Math.abs(sp) || Math.abs(up);
-      } else if (sa > 0 && Math.abs(sp * absQty - sa) < 100) {
+      } else if (sa > 0 && Math.abs(sp * absQty - sa) < 100 && sa > Math.abs(sp)) {
         r.supply_amount = Math.abs(sa); // sp*qty≈sa → sp는 단가, sa가 총액
       } else {
         r.supply_amount = Math.abs(sp) || (Math.abs(r.unit_price) * absQty);

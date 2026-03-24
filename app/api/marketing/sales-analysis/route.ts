@@ -347,7 +347,7 @@ export async function GET(req: NextRequest) {
         let amount: number;
         if (absQty <= 1) {
           amount = sp; // qty=1이면 단가=총액 (부호 유지: 반품은 음수)
-        } else if (sa !== 0 && Math.abs(sp * absQty - Math.abs(sa)) < 100) {
+        } else if (sa !== 0 && Math.abs(sp * absQty - Math.abs(sa)) < 100 && Math.abs(sa) > Math.abs(sp)) {
           amount = qty > 0 ? Math.abs(sa) : -Math.abs(sa); // sp는 단가, sa가 총액
         } else {
           amount = sp; // sp 자체가 총액 (부호 유지)
