@@ -210,14 +210,13 @@ export async function GET(req: NextRequest) {
     const filterVolume = searchParams.get('volume') || '';
     const filterSubRegion = searchParams.get('sub_region') || '';
 
-    // wines/inventory 로드
-    const { data: wines } = await supabase.from('wines')
-      .select('item_code, item_name_kr, country, region, wine_type')
-      .not('item_code', 'like', 'D%');
+    // wines/inventory 병렬 로드
+    const [{ data: wines }, { data: inv }] = await Promise.all([
+      supabase.from('wines').select('item_code, item_name_kr, country, region, wine_type').not('item_code', 'like', 'D%'),
+      supabase.from('inventory_cdv').select('item_no, country'),
+    ]);
     const wineMap = new Map<string, any>();
     for (const w of (wines || [])) wineMap.set(w.item_code, w);
-
-    const { data: inv } = await supabase.from('inventory_cdv').select('item_no, country');
     const invMap = new Map<string, string>();
     for (const r of (inv || [])) if (r.country) invMap.set(r.item_no, r.country);
 
@@ -275,17 +274,30 @@ export async function GET(req: NextRequest) {
     const monthlyQty: Record<string, number> = {};
     let totalQty = 0, matchedCountry = 0, matchedRegion = 0, matchedType = 0;
 
-    let offset = 0;
-    const batch = 1000; // Supabase 최대 반환 제한이 1000건
-    while (true) {
-      const { data, error } = await supabase.from('shipments')
-        .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
-        .gte('ship_date', startDate).lte('ship_date', endDate)
-        .range(offset, offset + batch - 1);
-      if (error) throw error;
-      if (!data || data.length === 0) break;
+    // shipments 병렬 fetch: 먼저 총 건수 → 병렬로 모든 페이지 동시 요청
+    const { count: shipCount } = await supabase.from('shipments')
+      .select('*', { count: 'exact', head: true })
+      .gte('ship_date', startDate).lte('ship_date', endDate);
+    const batch = 1000;
+    const pages = Math.ceil((shipCount || 0) / batch);
+    const concurrency = 6;
+    const allShipments: any[] = [];
+    for (let i = 0; i < pages; i += concurrency) {
+      const promises = [];
+      for (let j = i; j < Math.min(i + concurrency, pages); j++) {
+        promises.push(
+          supabase.from('shipments')
+            .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
+            .gte('ship_date', startDate).lte('ship_date', endDate)
+            .range(j * batch, (j + 1) * batch - 1)
+            .then(r => r.data || [])
+        );
+      }
+      const results = await Promise.all(promises);
+      for (const r of results) allShipments.push(...r);
+    }
 
-      for (const r of data) {
+    for (const r of allShipments) {
         if (!r.item_no || r.item_no.length < 5 || r.item_no.startsWith('D') || r.item_no.startsWith('9F')) continue;
         if (/^7[0-9A-Z]/.test(r.item_no) && (r.item_name || '').includes('특판')) continue;
         const qty = r.quantity || 0;
@@ -357,8 +369,6 @@ export async function GET(req: NextRequest) {
         itemAgg[key].qty += qty; // 반품 차감
         itemAgg[key].amount += amount;
       }
-      if (data.length < batch) break;
-      offset += batch;
     }
 
     // 국가별 집계
