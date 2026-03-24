@@ -123,6 +123,11 @@ export default function MonthlyCompareChart({
                   {fmtM(curA)}
                   {prevA > 0 && <span style={{ marginLeft: 4, fontWeight: 600, color: aGrowth >= 0 ? '#16a34a' : '#dc2626' }}>{aGrowth >= 0 ? '+' : ''}{aGrowth}%</span>}
                 </div>
+                {prevQ > 0 && (
+                  <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(0,0,0,0.04)', color: '#bbb', fontSize: 10 }}>
+                    {prevYear}: {fmt(prevQ)}병 / {fmtM(prevA)}
+                  </div>
+                )}
               </div>
             );
           })}
