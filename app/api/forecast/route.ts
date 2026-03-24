@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server';
 
 const MANAGERS = ['백근철', '성창우', '김효직', '김기범', '조성재', '김동현', '박경아', '송원상'];
 
+// 브랜드 약어 → 국가 매핑 (sales-analysis와 동일)
+const BRAND_COUNTRY: Record<string, string> = {
+  CH:'프랑스',LV:'프랑스',VA:'프랑스',ST:'스페인',MS:'이탈리아',WM:'프랑스',
+  DE:'프랑스',HP:'미국',IC:'프랑스',DC:'프랑스',VC:'프랑스',DD:'프랑스',
+  GH:'포르투갈',MM:'스페인',MR:'프랑스',MG:'프랑스',MB:'미국',CF:'프랑스',
+  AD:'미국',TM:'미국',DF:'프랑스',OR:'이탈리아',CC:'프랑스',CO:'포르투갈',
+  VG:'프랑스',LM:'프랑스',SM:'스페인',BL:'프랑스',RB:'프랑스',CK:'아르헨티나',
+  SU:'프랑스',RO:'호주',LG:'프랑스',BR:'이탈리아',CD:'프랑스',CP:'프랑스',
+  RG:'미국',BS:'이탈리아',AS:'이탈리아',AZ:'이탈리아',GT:'호주',FC:'이탈리아',
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -106,18 +117,80 @@ export async function POST(request: Request) {
     for (const w of wines || []) {
       wineMap[w.item_code] = { name: w.item_name_kr, price: w.supply_price, importCost: w.avg_import_cost || 0, region: w.region, grape: w.grape_varieties, type: w.wine_type, country: w.country || null, brand: w.supplier_kr || null };
     }
+
+    // ── 4-stage matching: 빈티지 변형 품번도 포함하여 출고 커버리지 확대 ──
+    // Stage 1: 이미 매칭된 itemCodes (직접 매칭)
+    // Stage 2-4: 빈티지 변형 품번 추가
+    const allWinesRes = await supabase.from('wines').select('item_code, item_name_kr, supply_price, avg_import_cost, region, grape_varieties, wine_type, country, supplier_kr').not('item_code', 'like', 'D%');
+    const allWinesList = allWinesRes.data || [];
+
+    // 매칭된 와인의 빈티지 베이스 추출 (prefix 2자 + suffix from pos 4)
+    const matchedBases = new Set<string>();
+    const matchedAbbrSet = new Set<string>(); // 매칭된 와인의 브랜드 약어
+    for (const code of itemCodes) {
+      if (code.length >= 5) matchedBases.add(code.slice(0, 2) + code.slice(4));
+      const w = wineMap[code];
+      if (w?.name) {
+        const m = w.name.match(/^([A-Z]{2})\s/);
+        if (m) matchedAbbrSet.add(m[1]);
+      }
+    }
+
+    // 전체 와인에서 같은 빈티지 베이스를 공유하는 다른 빈티지 품번 찾기
+    const extraItemCodes: string[] = [];
+    for (const w of allWinesList) {
+      if (wineMap[w.item_code]) continue; // 이미 직접 매칭됨
+      if (w.item_code.length < 5) continue;
+      const base = w.item_code.slice(0, 2) + w.item_code.slice(4);
+      if (matchedBases.has(base)) {
+        // 브랜드 약어 확인: 이름 앞 약어가 매칭된 와인의 약어와 일치하는지 확인
+        const nameAbbr = ((w.item_name_kr || '').match(/^([A-Z]{2})\s/) || [])[1] || '';
+        if (nameAbbr && matchedAbbrSet.size > 0 && !matchedAbbrSet.has(nameAbbr)) continue;
+        // 가격 범위 확인
+        if (w.supply_price >= pMin && w.supply_price < pMax) {
+          extraItemCodes.push(w.item_code);
+          wineMap[w.item_code] = {
+            name: w.item_name_kr, price: w.supply_price, importCost: w.avg_import_cost || 0,
+            region: w.region, grape: w.grape_varieties, type: w.wine_type,
+            country: w.country || null, brand: w.supplier_kr || null,
+          };
+        }
+      }
+    }
+
+    // inventory_cdv에서 country 매칭되는 추가 품번 찾기 (wines 테이블에 없는 품번)
+    const invRes = await supabase.from('inventory_cdv').select('item_no, country').eq('country', country);
+    const invItems = invRes.data || [];
+    const invCountryMap = new Map<string, string>();
+    for (const inv of invItems) {
+      if (inv.country) invCountryMap.set(inv.item_no, inv.country);
+    }
+
+    // 브랜드 약어 → 국가 매핑 구축 (매칭된 와인 기준 + fallback BRAND_COUNTRY)
+    const brandCountryMap = new Map<string, string>();
+    for (const w of allWinesList) {
+      const m = (w.item_name_kr || '').match(/^([A-Z]{2})\s/);
+      if (m && w.country) brandCountryMap.set(m[1], w.country);
+    }
+    for (const [k, v] of Object.entries(BRAND_COUNTRY)) {
+      if (!brandCountryMap.has(k)) brandCountryMap.set(k, v);
+    }
+
+    // 모든 매칭된 품번 합치기
+    const expandedItemCodes = [...new Set([...itemCodes, ...extraItemCodes])];
+
     const getWineName = (itemNo: string) => wineMap[itemNo]?.name || itemNo;
 
     // 제외 와인 필터링: 출고 조회 대상에서 제외하되, 전체 매칭 수는 별도 보존
-    const allMatchedCount = itemCodes.length;
+    const allMatchedCount = expandedItemCodes.length;
     const excludeSet = new Set<string>(excludeWineNames || []);
     const activeItemCodes = excludeSet.size > 0
-      ? itemCodes.filter(code => !excludeSet.has(wineMap[code]?.name))
-      : itemCodes;
+      ? expandedItemCodes.filter(code => !excludeSet.has(wineMap[code]?.name))
+      : expandedItemCodes;
 
     // 제외된 와인 정보 (UI에서 재포함 버튼 표시용)
     const excludedWineList = excludeSet.size > 0
-      ? itemCodes.filter(code => excludeSet.has(wineMap[code]?.name))
+      ? expandedItemCodes.filter(code => excludeSet.has(wineMap[code]?.name))
           .reduce((acc, code) => {
             const name = wineMap[code]?.name;
             if (name && !acc.find(w => w.item_name === name)) {
@@ -132,7 +205,7 @@ export async function POST(request: Request) {
     }
 
     // ── 2단계: 전체 출고 데이터 조회 (재고소진 + 러닝커브용 전체 이력) ──
-    type Shipment = { ship_date: string; quantity: number; item_no: string; client_name: string; manager: string; unit_price: number | null; selling_price: number | null; business_type: string | null };
+    type Shipment = { ship_date: string; quantity: number; item_no: string; client_name: string; manager: string; unit_price: number | null; selling_price: number | null; supply_amount: number | null; business_type: string | null };
     const allShipments: Shipment[] = [];
 
     // activeItemCodes를 100개씩 청크로 나눠 병렬 조회
@@ -147,7 +220,7 @@ export async function POST(request: Request) {
       while (true) {
         const { data: page } = await supabase
           .from('shipments')
-          .select('ship_date, quantity, item_no, client_name, manager, unit_price, selling_price, business_type')
+          .select('ship_date, quantity, item_no, client_name, manager, unit_price, selling_price, supply_amount, business_type')
           .in('item_no', chunk)
           .gte('ship_date', '2020-01-01')
           .lte('ship_date', analysisEnd)
@@ -308,13 +381,22 @@ export async function POST(request: Request) {
             wineStats[wineName].totalListAmt += listPrice * qty;
             wineStats[wineName].totalListQty += qty;
           }
-          // 실제 출고 공급가 (selling_price 기준)
-          // 2025/08~ : selling_price = 병당 공급가 (q열 판매단가)
-          // ~2025/07 : selling_price = 총 공급액 → selling_price / qty = 병당 공급가
-          const sell = s.selling_price || 0;
-          let perUnitPrice = 0;
-          if (sell > 0) {
-            perUnitPrice = s.ship_date >= '2025-08-01' ? sell : Math.round(sell / qty);
+          // 실제 출고 공급가: selling_price(sp)와 supply_amount(sa)로 총액 판별 후 단가 산출
+          const sp = s.selling_price || 0;
+          const sa = s.supply_amount || 0;
+          const unitP = s.unit_price || 0;
+          let totalAmount: number;
+          if (qty <= 1) {
+            totalAmount = sp; // qty=1이면 단가=총액
+          } else if (sa > 0 && Math.abs(sp * qty - Math.abs(sa)) < 100) {
+            totalAmount = Math.abs(sa); // sp는 단가, sa가 총액
+          } else {
+            totalAmount = sp; // sp 자체가 총액
+          }
+          let perUnitPrice = qty > 0 ? Math.round(totalAmount / qty) : 0;
+          // unit_price와 비교하여 더 낮은 값 사용 (할인 반영)
+          if (unitP > 0 && perUnitPrice > 0) {
+            perUnitPrice = Math.min(perUnitPrice, unitP);
           }
           if (perUnitPrice > 0 && (listPrice === 0 || perUnitPrice <= listPrice)) {
             wineStats[wineName].totalUnitAmt += perUnitPrice * qty;
