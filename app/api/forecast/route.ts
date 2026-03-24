@@ -334,6 +334,21 @@ export async function POST(request: Request) {
     // ── 4단계: 러닝커브 (신규 품목일 때만, 보정제외 시 스킵) ──
     const learningCurve = (isNewItem && !noCorrection) ? calcLearningCurve(filteredShipments, getWineName) : null;
 
+    // ── 4-1단계: 월별 판매 추이 (와인명 기준 그룹핑, 빈티지 통합) ──
+    const monthlyTotal: Record<string, number> = {};
+    const yearlyTotal: Record<string, number> = {};
+    for (const s of filteredShipments) {
+      if (s.ship_date < analysisStart || s.ship_date > analysisEnd) continue;
+      const qty = s.quantity || 0;
+      if (qty <= 0) continue;
+      const ym = s.ship_date.slice(0, 7);
+      const yr = s.ship_date.slice(0, 4);
+      monthlyTotal[ym] = (monthlyTotal[ym] || 0) + qty;
+      yearlyTotal[yr] = (yearlyTotal[yr] || 0) + qty;
+    }
+    const monthlySeries = Object.entries(monthlyTotal).sort(([a], [b]) => a.localeCompare(b)).map(([month, qty]) => ({ month, qty }));
+    const yearlySeries = Object.entries(yearlyTotal).sort(([a], [b]) => a.localeCompare(b)).map(([year, qty]) => ({ year, qty }));
+
     // ── 5단계: 영업사원별 분석 (보정 적용) ──
     const periodShipments = filteredShipments.filter(s => s.ship_date >= analysisStart && s.ship_date <= analysisEnd);
     const managerGroups: Record<string, Shipment[]> = {};
@@ -563,6 +578,8 @@ export async function POST(request: Request) {
       priceStats: { avg: avgSupplyPrice, min: minSupplyPrice, max: maxSupplyPrice },
       businessTypes: allBusinessTypes,
       learningCurve: learningCurve ? { ratio: learningCurve.ratio, sampleSize: learningCurve.sampleSize, details: learningCurve.details.slice(0, 5) } : null,
+      monthlySeries,
+      yearlySeries,
     });
   } catch (err) {
     console.error('Forecast error:', err);

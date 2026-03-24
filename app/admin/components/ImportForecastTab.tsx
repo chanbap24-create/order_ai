@@ -114,6 +114,8 @@ export default function ImportForecastTab() {
   const [stockoutInfo, setStockoutInfo] = useState<StockoutInfo | null>(null);
   const [trend, setTrend] = useState<{ year: string; prevYear: string; items: Record<string, { cur: number; prev: number; pct: number }> } | null>(null);
   const [learningCurve, setLearningCurve] = useState<LearningCurve | null>(null);
+  const [monthlySeries, setMonthlySeries] = useState<{ month: string; qty: number }[]>([]);
+  const [yearlySeries, setYearlySeries] = useState<{ year: string; qty: number }[]>([]);
   const [activeManager, setActiveManager] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'wines' | 'years' | 'clients' | 'channels'>('wines');
   const [expandedWine, setExpandedWine] = useState<string | null>(null);
@@ -210,6 +212,8 @@ export default function ImportForecastTab() {
       if (data.businessTypes?.length) setBusinessTypes(data.businessTypes);
       setPriceStats(data.priceStats || null);
       setLearningCurve(data.learningCurve || null);
+      setMonthlySeries(data.monthlySeries || []);
+      setYearlySeries(data.yearlySeries || []);
       if (data.excludedWines?.length) {
         setExcludedWineDetails(data.excludedWines);
       }
@@ -1528,6 +1532,83 @@ export default function ImportForecastTab() {
       {results !== null && results.length === 0 && !message && (
         <div style={{ textAlign: 'center', padding: 48, color: '#999', fontSize: 13, background: '#fafafa', borderRadius: 6, border: '1px solid #eee' }}>
           해당 조건의 판매 이력이 없습니다.<br /><span style={{ fontSize: 11 }}>조건을 조정해 보세요.</span>
+        </div>
+      )}
+
+      {/* ── 월별 판매 추이 차트 ── */}
+      {monthlySeries.length > 0 && (
+        <div style={{ marginTop: 24, background: '#fff', borderRadius: 6, border: '1px solid #e0e0e0', padding: '16px 20px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#222', marginBottom: 12 }}>월별 판매 추이 (빈티지 통합)</div>
+          {/* 연도별 합계 */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            {yearlySeries.map(y => (
+              <div key={y.year} style={{ fontSize: 11, color: '#666' }}>
+                <span style={{ fontWeight: 600, color: '#222' }}>{y.year}</span> {y.qty.toLocaleString()}병
+              </div>
+            ))}
+            {yearlySeries.length >= 2 && (() => {
+              const last = yearlySeries[yearlySeries.length - 1];
+              const prev = yearlySeries[yearlySeries.length - 2];
+              const growth = prev.qty > 0 ? Math.round((last.qty - prev.qty) / prev.qty * 100) : 0;
+              return <div style={{ fontSize: 11, fontWeight: 600, color: growth >= 0 ? '#16a34a' : '#dc2626' }}>YoY {growth >= 0 ? '+' : ''}{growth}%</div>;
+            })()}
+          </div>
+          {/* 봉 차트 */}
+          {(() => {
+            const maxQty = Math.max(...monthlySeries.map(m => m.qty), 1);
+            const avgQty = Math.round(monthlySeries.reduce((s, m) => s + m.qty, 0) / monthlySeries.length);
+            // 3개월 이동평균 (추세선)
+            const ma3 = monthlySeries.map((m, i) => {
+              if (i < 2) return m.qty;
+              return Math.round((monthlySeries[i - 2].qty + monthlySeries[i - 1].qty + m.qty) / 3);
+            });
+            return (
+              <div>
+                <div style={{ position: 'relative', height: 160, display: 'flex', alignItems: 'flex-end', gap: 1, paddingBottom: 20 }}>
+                  {/* 평균선 */}
+                  <div style={{ position: 'absolute', left: 0, right: 0, bottom: 20 + (avgQty / maxQty * 140), height: 1, borderTop: '1px dashed #ccc', zIndex: 1 }}>
+                    <span style={{ position: 'absolute', right: 0, top: -12, fontSize: 9, color: '#bbb' }}>avg {avgQty}</span>
+                  </div>
+                  {monthlySeries.map((m, i) => {
+                    const h = Math.max(2, m.qty / maxQty * 140);
+                    const yr = m.month.slice(0, 4);
+                    const prevYr = i > 0 ? monthlySeries[i - 1].month.slice(0, 4) : yr;
+                    const isNewYear = yr !== prevYr;
+                    // 추세선 위치
+                    const maH = ma3[i] / maxQty * 140;
+                    const prevMaH = i > 0 ? ma3[i - 1] / maxQty * 140 : maH;
+                    return (
+                      <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', borderLeft: isNewYear ? '1px solid #e0e0e0' : 'none' }}>
+                        {/* 추세선 점 */}
+                        <div style={{ position: 'absolute', bottom: maH + 18, width: 4, height: 4, borderRadius: '50%', background: '#e74c3c', zIndex: 2 }} />
+                        {/* 추세선 연결 */}
+                        {i > 0 && (
+                          <svg style={{ position: 'absolute', bottom: 20, left: '-50%', width: '100%', height: 140, zIndex: 1, overflow: 'visible', pointerEvents: 'none' }}>
+                            <line x1="50%" y1={140 - prevMaH} x2="150%" y2={140 - maH} stroke="#e74c3c" strokeWidth="1.5" opacity="0.5" />
+                          </svg>
+                        )}
+                        {/* 봉 */}
+                        <div title={`${m.month}: ${m.qty.toLocaleString()}병`} style={{ width: '80%', height: h, background: m.qty >= avgQty ? '#5A1515' : '#C4A0A0', borderRadius: '2px 2px 0 0', cursor: 'default', transition: 'height 0.3s' }} />
+                        {/* 라벨 (3개월마다) */}
+                        {(i % 3 === 0 || isNewYear) && (
+                          <div style={{ fontSize: 8, color: '#bbb', marginTop: 2, whiteSpace: 'nowrap' }}>{m.month.slice(2)}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 10, color: '#999' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 10, height: 8, borderRadius: 1, background: '#5A1515', display: 'inline-block' }} /> 평균 이상
+                    <span style={{ width: 10, height: 8, borderRadius: 1, background: '#C4A0A0', display: 'inline-block', marginLeft: 6 }} /> 평균 이하
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 8, height: 2, background: '#e74c3c', display: 'inline-block' }} /> 3개월 이동평균
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
