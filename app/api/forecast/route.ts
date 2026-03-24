@@ -177,10 +177,18 @@ export async function POST(request: Request) {
           'Meursault': ['Mersault'],
           'Bourgogne': ['Burgundy', 'Aligote', 'Monthelie', 'Auxerre'],
           'Barossa': ['Barossa Valley'],
+          'Rhône': ['Rhone'],
+          'Châteauneuf': ['Chateauneuf'],
+          'Côte': ['Cote'],
+          'Côtes': ['Cotes'],
         };
         for (const [key, extras] of Object.entries(extraKeywords)) {
           if (allKeywords.has(key)) { for (const e of extras) allKeywords.add(e); }
         }
+        // 모든 키워드에 대해 악센트 제거 버전도 추가
+        const deaccent = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const withDeaccent = [...allKeywords].map(k => deaccent(k)).filter(k => k.length > 3);
+        for (const k of withDeaccent) allKeywords.add(k);
         regionKeywords = [...allKeywords];
       }
     }
