@@ -337,19 +337,29 @@ export async function POST(request: Request) {
     // ── 4-1단계: 월별 판매 추이 (와인명 기준 그룹핑, 빈티지 통합) ──
     // 분석 기간 + 전년도 데이터도 수집 (YoY 비교용)
     const prevYearStart = `${Number(yearFrom) - 1}-01-01`;
-    const monthlyTotal: Record<string, number> = {};
-    const yearlyTotal: Record<string, number> = {};
+    const monthlyData: Record<string, { qty: number; amount: number }> = {};
+    const yearlyData: Record<string, { qty: number; amount: number }> = {};
     for (const s of filteredShipments) {
       if (s.ship_date < prevYearStart || s.ship_date > analysisEnd) continue;
       const qty = s.quantity || 0;
       if (qty <= 0) continue;
+      const sp = s.selling_price || 0;
+      const sa = s.supply_amount || 0;
+      let amount: number;
+      if (qty <= 1) amount = sp;
+      else if (sa !== 0 && Math.abs(sp * qty - Math.abs(sa)) < 100) amount = Math.abs(sa);
+      else amount = sp;
       const ym = s.ship_date.slice(0, 7);
       const yr = s.ship_date.slice(0, 4);
-      monthlyTotal[ym] = (monthlyTotal[ym] || 0) + qty;
-      yearlyTotal[yr] = (yearlyTotal[yr] || 0) + qty;
+      if (!monthlyData[ym]) monthlyData[ym] = { qty: 0, amount: 0 };
+      monthlyData[ym].qty += qty;
+      monthlyData[ym].amount += amount;
+      if (!yearlyData[yr]) yearlyData[yr] = { qty: 0, amount: 0 };
+      yearlyData[yr].qty += qty;
+      yearlyData[yr].amount += amount;
     }
-    const monthlySeries = Object.entries(monthlyTotal).sort(([a], [b]) => a.localeCompare(b)).map(([month, qty]) => ({ month, qty }));
-    const yearlySeries = Object.entries(yearlyTotal).sort(([a], [b]) => a.localeCompare(b)).map(([year, qty]) => ({ year, qty }));
+    const monthlySeries = Object.entries(monthlyData).sort(([a], [b]) => a.localeCompare(b)).map(([month, d]) => ({ month, qty: d.qty, amount: d.amount }));
+    const yearlySeries = Object.entries(yearlyData).sort(([a], [b]) => a.localeCompare(b)).map(([year, d]) => ({ year, qty: d.qty, amount: d.amount }));
 
     // ── 5단계: 영업사원별 분석 (보정 적용) ──
     const periodShipments = filteredShipments.filter(s => s.ship_date >= analysisStart && s.ship_date <= analysisEnd);

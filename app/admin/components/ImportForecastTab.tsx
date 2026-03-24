@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import MonthlyCompareChart from './MonthlyCompareChart';
 
 interface YearDetail { year: string; qty: number; correctedQty: number; items: number; clients: number; qtyPerItem: number; qtyPerItemCorrected: number; }
 interface WineDetail { item_code: string; item_name: string; supply_price: number; avg_import_cost: number; avg_selling_price: number; region: string | null; total_qty: number; corrected_qty: number; stockout_factor: number; client_count: number; years_sold: number; annual_avg: number; annual_avg_corrected: number; }
@@ -1539,22 +1540,7 @@ export default function ImportForecastTab() {
       {monthlySeries.length > 0 && (
         <div style={{ marginTop: 24, background: '#fff', borderRadius: 6, border: '1px solid #e0e0e0', padding: '16px 20px' }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#222', marginBottom: 12 }}>월별 판매 추이 (빈티지 통합)</div>
-          {/* 연도별 합계 */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-            {yearlySeries.map(y => (
-              <div key={y.year} style={{ fontSize: 11, color: '#666' }}>
-                <span style={{ fontWeight: 600, color: '#222' }}>{y.year}</span> {y.qty.toLocaleString()}병
-              </div>
-            ))}
-            {yearlySeries.length >= 2 && (() => {
-              const last = yearlySeries[yearlySeries.length - 1];
-              const prev = yearlySeries[yearlySeries.length - 2];
-              const growth = prev.qty > 0 ? Math.round((last.qty - prev.qty) / prev.qty * 100) : 0;
-              return <div style={{ fontSize: 11, fontWeight: 600, color: growth >= 0 ? '#16a34a' : '#dc2626' }}>YoY {growth >= 0 ? '+' : ''}{growth}%</div>;
-            })()}
-          </div>
-          {/* 봉 차트 (CSS only, SVG 없음) */}
-          <MonthlyChart data={monthlySeries} startYear={startYear} endYear={endYear} />
+          <MonthlyCompareChart data={monthlySeries} yearly={yearlySeries} startYear={startYear} endYear={endYear} />
         </div>
       )}
 
@@ -1749,79 +1735,6 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
 }
 
 // ── 브랜드 소진 분석 ──
-function MonthlyChart({ data, startYear, endYear }: { data: { month: string; qty: number }[]; startYear: string; endYear: string }) {
-  if (data.length === 0) return null;
-
-  // 연도별로 그룹핑
-  const byYear: Record<string, Record<string, number>> = {};
-  for (const m of data) {
-    const yr = m.month.slice(0, 4);
-    const mo = m.month.slice(5, 7);
-    if (!byYear[yr]) byYear[yr] = {};
-    byYear[yr][mo] = m.qty;
-  }
-
-  const years = Object.keys(byYear).sort();
-  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const monthLabels = ['1','2','3','4','5','6','7','8','9','10','11','12'];
-
-  // 분석 기간의 마지막 연도와 전년도
-  const curYear = endYear || years[years.length - 1];
-  const prevYear = String(Number(curYear) - 1);
-  const curData = byYear[curYear] || {};
-  const prevData = byYear[prevYear] || {};
-
-  const allVals = [...Object.values(curData), ...Object.values(prevData)];
-  const maxQty = Math.max(...allVals, 1);
-  const curTotal = Object.values(curData).reduce((s, v) => s + v, 0);
-  const prevTotal = Object.values(prevData).reduce((s, v) => s + v, 0);
-  const yoyGrowth = prevTotal > 0 ? Math.round((curTotal - prevTotal) / prevTotal * 100) : 0;
-
-  return (
-    <div>
-      {/* 연도 요약 */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 10, fontSize: 11, alignItems: 'center' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 2, background: '#5A1515', display: 'inline-block' }} />
-          <span style={{ fontWeight: 600 }}>{curYear}</span> {curTotal.toLocaleString()}병
-        </span>
-        {prevTotal > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: '#D8CCC0', display: 'inline-block' }} />
-            <span style={{ fontWeight: 600 }}>{prevYear}</span> {prevTotal.toLocaleString()}병
-          </span>
-        )}
-        {prevTotal > 0 && (
-          <span style={{ fontWeight: 600, color: yoyGrowth >= 0 ? '#16a34a' : '#dc2626' }}>
-            YoY {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth}%
-          </span>
-        )}
-      </div>
-      {/* 12개월 비교 차트 */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, minHeight: 150, position: 'relative' }}>
-        {months.map((mo, i) => {
-          const cur = curData[mo] || 0;
-          const prev = prevData[mo] || 0;
-          const curH = maxQty > 0 ? Math.max(cur > 0 ? 2 : 0, cur / maxQty * 110) : 0;
-          const prevH = maxQty > 0 ? Math.max(prev > 0 ? 2 : 0, prev / maxQty * 110) : 0;
-          const moGrowth = prev > 0 ? Math.round((cur - prev) / prev * 100) : 0;
-          return (
-            <div key={mo} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-              <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end', width: '100%', justifyContent: 'center', height: 110 }}>
-                {prevTotal > 0 && (
-                  <div title={`${prevYear}-${mo}: ${prev.toLocaleString()}병`} style={{ width: '35%', height: prevH, background: '#D8CCC0', borderRadius: '2px 2px 0 0' }} />
-                )}
-                <div title={`${curYear}-${mo}: ${cur.toLocaleString()}병 ${prev > 0 ? `(${moGrowth >= 0 ? '+' : ''}${moGrowth}%)` : ''}`}
-                  style={{ width: prevTotal > 0 ? '35%' : '70%', height: curH, background: '#5A1515', borderRadius: '2px 2px 0 0' }} />
-              </div>
-              <div style={{ fontSize: 9, color: '#999', marginTop: 3 }}>{monthLabels[i]}월</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function BrandVelocitySection({ startYear, endYear }: { startYear: string; endYear: string }) {
   const [brands, setBrands] = useState<{
