@@ -104,60 +104,38 @@ export default function MonthlyCompareChart({
 
       {/* 분기별 소계 */}
       {prevQtyTotal > 0 && (
-        <div style={{ marginTop: 12 }}>
-          {/* 헤더 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 10, color: '#bbb', fontWeight: 500, padding: '0 0 4px' }}>
-            <div></div>
-            {quarters.map(q => <div key={q.label} style={{ textAlign: 'center', fontWeight: 600 }}>{q.label}</div>)}
-          </div>
-          {/* 병수 행 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 11, padding: '6px 0', borderTop: '1px solid #eee' }}>
-            <div style={{ color: '#D8CCC0', fontWeight: 600, fontSize: 10 }}>{prevYear}</div>
-            {quarters.map(q => {
-              const prevQ = q.months.reduce((s, m) => s + (prevData[m]?.qty || 0), 0);
-              return <div key={q.label} style={{ textAlign: 'center', color: '#999' }}>{fmt(prevQ)}</div>;
-            })}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 11, padding: '4px 0' }}>
-            <div style={{ color: '#5A1515', fontWeight: 600, fontSize: 10 }}>{curYear}</div>
-            {quarters.map(q => {
-              const curQ = q.months.reduce((s, m) => s + (curData[m]?.qty || 0), 0);
-              return <div key={q.label} style={{ textAlign: 'center', color: '#333', fontWeight: 600 }}>{fmt(curQ)}</div>;
-            })}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 10, padding: '2px 0 6px', borderBottom: '1px solid #eee' }}>
-            <div style={{ color: '#999' }}>병수</div>
-            {quarters.map(q => {
-              const curQ = q.months.reduce((s, m) => s + (curData[m]?.qty || 0), 0);
-              const prevQ = q.months.reduce((s, m) => s + (prevData[m]?.qty || 0), 0);
-              const g = prevQ > 0 ? Math.round((curQ - prevQ) / prevQ * 100) : 0;
-              return <div key={q.label} style={{ textAlign: 'center', fontWeight: 600, color: g >= 0 ? '#16a34a' : '#dc2626' }}>{prevQ > 0 ? `${g >= 0 ? '+' : ''}${g}%` : '-'}</div>;
-            })}
-          </div>
-          {/* 매출 행 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 11, padding: '6px 0' }}>
-            <div style={{ color: '#D8CCC0', fontWeight: 600, fontSize: 10 }}>{prevYear}</div>
-            {quarters.map(q => {
-              const prevA = q.months.reduce((s, m) => s + (prevData[m]?.amount || 0), 0);
-              return <div key={q.label} style={{ textAlign: 'center', color: '#999' }}>{fmtM(prevA)}</div>;
-            })}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 11, padding: '4px 0' }}>
-            <div style={{ color: '#5A1515', fontWeight: 600, fontSize: 10 }}>{curYear}</div>
-            {quarters.map(q => {
-              const curA = q.months.reduce((s, m) => s + (curData[m]?.amount || 0), 0);
-              return <div key={q.label} style={{ textAlign: 'center', color: '#333', fontWeight: 600 }}>{fmtM(curA)}</div>;
-            })}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(4, 1fr)', gap: 6, fontSize: 10, padding: '2px 0' }}>
-            <div style={{ color: '#999' }}>매출</div>
-            {quarters.map(q => {
-              const curA = q.months.reduce((s, m) => s + (curData[m]?.amount || 0), 0);
-              const prevA = q.months.reduce((s, m) => s + (prevData[m]?.amount || 0), 0);
-              const g = prevA > 0 ? Math.round((curA - prevA) / prevA * 100) : 0;
-              return <div key={q.label} style={{ textAlign: 'center', fontWeight: 600, color: g >= 0 ? '#16a34a' : '#dc2626' }}>{prevA > 0 ? `${g >= 0 ? '+' : ''}${g}%` : '-'}</div>;
-            })}
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 12 }}>
+          {quarters.map(q => {
+            const curQ = q.months.reduce((s, m) => s + (curData[m]?.qty || 0), 0);
+            const prevQ = q.months.reduce((s, m) => s + (prevData[m]?.qty || 0), 0);
+            const curA = q.months.reduce((s, m) => s + (curData[m]?.amount || 0), 0);
+            const prevA = q.months.reduce((s, m) => s + (prevData[m]?.amount || 0), 0);
+            const qG = prevQ > 0 ? Math.round((curQ - prevQ) / prevQ * 100) : 0;
+            const aG = prevA > 0 ? Math.round((curA - prevA) / prevA * 100) : 0;
+            return (
+              <div key={q.label} style={{ background: '#faf9f7', borderRadius: 8, padding: '10px 10px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>{q.label}</div>
+                {/* 헤더 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 9, color: '#bbb', fontWeight: 500, marginBottom: 3 }}>
+                  <div style={{ textAlign: 'right' }}>{prevYear}</div>
+                  <div style={{ textAlign: 'right' }}>{curYear}</div>
+                  <div style={{ textAlign: 'right' }}></div>
+                </div>
+                {/* 병수 행 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 11, marginBottom: 3, alignItems: 'baseline' }}>
+                  <div style={{ textAlign: 'right', color: '#999' }}>{fmt(prevQ)}</div>
+                  <div style={{ textAlign: 'right', color: '#2c1810', fontWeight: 600 }}>{fmt(curQ)}</div>
+                  <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: qG >= 0 ? '#16a34a' : '#dc2626' }}>{prevQ > 0 ? `${qG >= 0 ? '+' : ''}${qG}%` : ''}</div>
+                </div>
+                {/* 매출 행 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 10, alignItems: 'baseline' }}>
+                  <div style={{ textAlign: 'right', color: '#bbb' }}>{fmtM(prevA)}</div>
+                  <div style={{ textAlign: 'right', color: '#666', fontWeight: 600 }}>{fmtM(curA)}</div>
+                  <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: aG >= 0 ? '#16a34a' : '#dc2626' }}>{prevA > 0 ? `${aG >= 0 ? '+' : ''}${aG}%` : ''}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

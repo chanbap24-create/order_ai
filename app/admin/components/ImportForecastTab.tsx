@@ -75,6 +75,38 @@ const REGIONS: Record<string, { label: string; search: string }[]> = {
   ],
 };
 
+const SUB_REGIONS: Record<string, Record<string, { label: string; search: string }[]>> = {
+  '프랑스': {
+    '부르고뉴': [
+      { label: '샤블리', search: 'Chablis' },
+      { label: '코트 드 뉘', search: 'Nuits,Gevrey,Chambertin,Chambolle,Musigny,Vosne,Romanee,Romanée,Fixin,Marsannay,Clos de Vougeot,Nuits St' },
+      { label: '코트 드 본', search: 'Beaune,Meursault,Mersault,Puligny,Chassagne,Volnay,Pommard,Corton,Aloxe,Montrachet,Monthelie,Auxey,Saint Aubin,Chorey,Savigny,Santenay,Blagny' },
+      { label: '보졸레', search: 'Beaujolais' },
+      { label: '마코네', search: 'Mâconnais,Maconnais,Macon' },
+    ],
+    '보르도': [
+      { label: '메독', search: 'Médoc,Medoc,Margaux,Pauillac,Saint-Julien,Saint-Estephe,Haut-Médoc' },
+      { label: '우안', search: 'Saint-Emilion,Saint Emilion,Pomerol' },
+      { label: '그라브/소테른', search: 'Graves,Sauternes,Pessac,Barsac' },
+    ],
+    '론': [
+      { label: '북부 론', search: 'Northern Rhône,Condrieu,Hermitage,Cornas,Saint Joseph,Cote Rotie,Côte-Rôtie' },
+      { label: '남부 론', search: 'Southern Rhône,Chateauneuf,Châteauneuf,Gigondas,Vacqueyras,Luberon,Ventoux' },
+    ],
+  },
+  '이탈리아': {
+    '토스카나': [
+      { label: '키안티', search: 'Chianti' },
+      { label: '볼게리', search: 'Bolgheri' },
+      { label: '몬탈치노', search: 'Montalcino' },
+    ],
+    '피에몬테': [
+      { label: '바롤로', search: 'Barolo' },
+      { label: '바르바레스코', search: 'Barbaresco' },
+    ],
+  },
+};
+
 const PRICE_PRESETS = [
   { label: '~1만', min: 0, max: 10000 },
   { label: '1~2만', min: 10000, max: 20000 },
@@ -100,7 +132,11 @@ export default function ImportForecastTab() {
   const [country, setCountry] = useState('');
   const [regionLabel, setRegionLabel] = useState('');
   const [regionSearch, setRegionSearch] = useState('');
+  const [subRegionLabel, setSubRegionLabel] = useState('');
   const [wineType, setWineType] = useState('');
+  const [brand, setBrand] = useState('');
+  const [brandInput, setBrandInput] = useState('');
+  const [brandList, setBrandList] = useState<{ name: string; abbr: string; country: string; count: number }[]>([]);
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [startYear, setStartYear] = useState(String(CY - 1));
@@ -157,10 +193,34 @@ export default function ImportForecastTab() {
 
   const handleRegionChange = (label: string) => {
     setRegionLabel(label);
+    setSubRegionLabel('');
     const found = (REGIONS[country] || []).find(r => r.label === label);
     setRegionSearch(found?.search || '');
     setResults(null); setExcludedWines(new Set()); setExcludedWineDetails([]); setPendingRecalc(false);
   };
+
+  const handleSubRegionChange = (label: string) => {
+    setSubRegionLabel(label);
+    if (label) {
+      const found = (SUB_REGIONS[country]?.[regionLabel] || []).find(r => r.label === label);
+      if (found) {
+        // 세부 지역 키워드로 regionSearch를 대체
+        setRegionSearch(found.search);
+      }
+    } else {
+      // 세부 지역 해제 → 상위 지역 키워드로 복원
+      const found = (REGIONS[country] || []).find(r => r.label === regionLabel);
+      setRegionSearch(found?.search || '');
+    }
+    setResults(null); setExcludedWines(new Set()); setExcludedWineDetails([]); setPendingRecalc(false);
+  };
+
+  const availableSubRegions = country && regionLabel ? (SUB_REGIONS[country]?.[regionLabel] || []) : [];
+
+  // 브랜드 목록 로드 (1회)
+  useEffect(() => {
+    fetch('/api/forecast/brands/list').then(r => r.json()).then(d => setBrandList(d.brands || [])).catch(() => {});
+  }, []);
 
   const setPricePreset = (min: number, max: number) => {
     setPriceMin(String(min)); setPriceMax(String(max)); setResults(null); setExcludedWines(new Set()); setExcludedWineDetails([]); setPendingRecalc(false);
@@ -187,13 +247,13 @@ export default function ImportForecastTab() {
   };
 
   const doFetch = async (excludeNames: string[], bulk?: boolean) => {
-    if (!country || (!priceMin && !priceMax)) return;
+    if (!country && !brand) return;
     const useBulk = bulk !== undefined ? bulk : excludeBulk;
     setLoading(true); setMessage('');
     try {
       const res = await fetch('/api/forecast', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country, regionSearch: regionSearch || null, wineType: wineType || null, priceMin: Number(priceMin) || 0, priceMax: Number(priceMax) || 999999999, startYear: Number(startYear), endYear: Number(endYear), isNewItem, excludeWineNames: excludeNames, excludeBulkSales: useBulk, bulkThreshold, excludeSamples, noCorrection, excludeBusinessTypes: [...excludedBizTypes] }),
+        body: JSON.stringify({ country: country || null, regionSearch: regionSearch || null, isSubRegion: !!subRegionLabel, wineType: wineType || null, brand: brand || null, priceMin: Number(priceMin) || 0, priceMax: Number(priceMax) || 999999999, startYear: Number(startYear), endYear: Number(endYear), isNewItem, excludeWineNames: excludeNames, excludeBulkSales: useBulk, bulkThreshold, excludeSamples, noCorrection, excludeBusinessTypes: [...excludedBizTypes] }),
       });
       const data = await res.json();
       setResults(data.stats || []);
@@ -355,7 +415,7 @@ export default function ImportForecastTab() {
       ws2.addRow({
         name: w.item_name, code: w.item_code, region: w.region || '',
         supply: w.supply_price, avg: w.avg_selling_price,
-        disc: w.supply_price > 0 ? (w.avg_selling_price - w.supply_price) / w.supply_price : 0,
+        disc: w.supply_price > 0 && w.avg_selling_price > 0 ? (w.avg_selling_price - w.supply_price) / w.supply_price : 0,
         clients: w.client_count, years: w.years_sold,
         total: w.total_qty, corrected: w.corrected_qty, annual: w.annual_avg_corrected,
         factor: w.stockout_factor > 1 ? `×${w.stockout_factor}` : '',
@@ -636,7 +696,7 @@ export default function ImportForecastTab() {
                 Excel
               </button>
             )}
-            <button onClick={handleCalculate} disabled={!country || (!priceMin && !priceMax) || loading}
+            <button onClick={handleCalculate} disabled={(!country && !brand) || loading}
               style={{
                 padding: '7px 20px', fontSize: 13, fontWeight: 600,
                 background: (!country || (!priceMin && !priceMax)) ? '#e0e0e0' : '#5A1515',
@@ -650,26 +710,34 @@ export default function ImportForecastTab() {
         </div>
 
         <div style={{ padding: '16px 24px 20px' }}>
-          {/* 국가 · 지역 · 타입 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+          {/* 국가 · 지역 · 세부지역 · 타입 · 브랜드 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 0.8fr 0.8fr', gap: 10, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>국가</label>
-              <select value={country} onChange={e => { setCountry(e.target.value); setRegionLabel(''); setRegionSearch(''); setResults(null); }}
+              <select value={country} onChange={e => { setCountry(e.target.value); setRegionLabel(''); setSubRegionLabel(''); setRegionSearch(''); setResults(null); }}
                 style={selectStyle}>
-                <option value="">국가 선택</option>
+                <option value="">선택</option>
                 {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>지역 <span style={{ fontWeight: 400, color: '#ccc' }}>(선택)</span></label>
+              <label style={labelStyle}>지역</label>
               <select value={regionLabel} onChange={e => handleRegionChange(e.target.value)} disabled={!country}
                 style={{ ...selectStyle, opacity: country ? 1 : 0.5 }}>
-                <option value="">전체 지역</option>
+                <option value="">전체</option>
                 {(REGIONS[country] || []).map(r => <option key={r.label} value={r.label}>{r.label}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>타입 <span style={{ fontWeight: 400, color: '#ccc' }}>(선택)</span></label>
+              <label style={labelStyle}>세부 지역</label>
+              <select value={subRegionLabel} onChange={e => handleSubRegionChange(e.target.value)} disabled={!regionLabel || availableSubRegions.length === 0}
+                style={{ ...selectStyle, opacity: regionLabel && availableSubRegions.length > 0 ? 1 : 0.5 }}>
+                <option value="">전체</option>
+                {availableSubRegions.map(r => <option key={r.label} value={r.label}>{r.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>타입</label>
               <select value={wineType} onChange={e => { setWineType(e.target.value); setResults(null); }}
                 style={selectStyle}>
                 <option value="">전체</option>
@@ -679,6 +747,28 @@ export default function ImportForecastTab() {
                 <option value="로제">로제</option>
                 <option value="주정강화">주정강화</option>
               </select>
+            </div>
+            <div>
+              <label style={labelStyle}>브랜드</label>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <input value={brandInput}
+                  onChange={e => {
+                    const raw = e.target.value.toUpperCase();
+                    setBrandInput(raw);
+                    const v = raw.replace(/[^A-Z]/g, '').slice(0, 3);
+                    const match = v ? brandList.find(b => b.abbr === v) : null;
+                    setBrand(match ? match.name : '');
+                    setResults(null);
+                  }}
+                  onBlur={e => { const v = e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3); setBrandInput(v); }}
+                  style={{ ...inputStyle, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}
+                />
+                {brandInput && (
+                  <button onClick={() => { setBrand(''); setBrandInput(''); setResults(null); }}
+                    style={{ padding: '4px 6px', borderRadius: 4, border: '1px solid #e0e0e0', background: '#fff', fontSize: 10, color: '#999', cursor: 'pointer', flexShrink: 0 }}>X</button>
+                )}
+              </div>
+              {brand && <div style={{ fontSize: 10, color: '#5A1515', fontWeight: 600, marginTop: 2 }}>{brand}</div>}
             </div>
           </div>
 
@@ -870,6 +960,14 @@ export default function ImportForecastTab() {
               )}
             </div>
           </div>
+
+          {/* ── 월별 판매 추이 차트 ── */}
+          {monthlySeries.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 6, border: '1px solid #e0e0e0', padding: '16px 20px', marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#222', marginBottom: 12 }}>월별 판매 추이 (빈티지 통합)</div>
+              <MonthlyCompareChart data={monthlySeries} yearly={yearlySeries} startYear={startYear} endYear={endYear} />
+            </div>
+          )}
 
           {/* ── 시뮬레이션 ── */}
           <SimulationCard
@@ -1163,7 +1261,7 @@ export default function ImportForecastTab() {
                           <div style={{ textAlign: 'right', fontSize: 12, color: '#999' }}>{w.supply_price?.toLocaleString()}</div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 12, color: '#222', fontWeight: 500 }}>{w.avg_selling_price?.toLocaleString()}</div>
-                            {w.avg_selling_price !== w.supply_price && (
+                            {w.avg_selling_price !== w.supply_price && w.supply_price > 0 && (
                               <div style={{ fontSize: 10, color: w.avg_selling_price < w.supply_price ? '#e67e22' : '#27ae60' }}>
                                 {w.avg_selling_price < w.supply_price ? '' : '+'}{Math.round((w.avg_selling_price - w.supply_price) / w.supply_price * 100)}%
                               </div>
@@ -1533,14 +1631,6 @@ export default function ImportForecastTab() {
       {results !== null && results.length === 0 && !message && (
         <div style={{ textAlign: 'center', padding: 48, color: '#999', fontSize: 13, background: '#fafafa', borderRadius: 6, border: '1px solid #eee' }}>
           해당 조건의 판매 이력이 없습니다.<br /><span style={{ fontSize: 11 }}>조건을 조정해 보세요.</span>
-        </div>
-      )}
-
-      {/* ── 월별 판매 추이 차트 ── */}
-      {monthlySeries.length > 0 && (
-        <div style={{ marginTop: 24, background: '#fff', borderRadius: 6, border: '1px solid #e0e0e0', padding: '16px 20px' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#222', marginBottom: 12 }}>월별 판매 추이 (빈티지 통합)</div>
-          <MonthlyCompareChart data={monthlySeries} yearly={yearlySeries} startYear={startYear} endYear={endYear} />
         </div>
       )}
 

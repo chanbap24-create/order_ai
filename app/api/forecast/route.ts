@@ -14,19 +14,74 @@ const BRAND_COUNTRY: Record<string, string> = {
   RG:'미국',BS:'이탈리아',AS:'이탈리아',AZ:'이탈리아',GT:'호주',FC:'이탈리아',
 };
 
+// ── 4-stage 와인 정보 매칭 (sales-analysis와 동일) ──
+
+function inferType(name: string): string | null {
+  const n = (name || '').toLowerCase();
+  if (/로제|rosé|rosato/.test(n)) return '로제';
+  if (/스파클링|브륏|brut|크레망|crémant|샴페인|champagne|프로세코|카바|cava/.test(n)) return '스파클링';
+  if (/포트|포르트|마데이라|셰리|주정강화|토니|tawny/.test(n)) return '주정강화';
+  if (/소비뇽 블랑|샤르도네|리슬링|비오니에|피노 그리|그뤼너|게뷔르츠|모스카토|블랑|비앙코|branco|blanc|white|알바리뇨|베르멘티노|토론테스|화이트/.test(n)) return '화이트';
+  if (/카베르네|메를로|피노누아|피노 누아|시라|시라즈|템프라니요|산지오베제|네비올로|말벡|진판델|그르나슈|클라렛|레드|rosso|tinto|rouge|가메|바르베라|돌체토|아글리아니코|카르메네르/.test(n)) return '레드';
+  return null;
+}
+
+function buildVintageMap(wineMap: Map<string, any>): Map<string, { abbr: string; data: any }[]> {
+  const vintageMap = new Map<string, { abbr: string; data: any }[]>();
+  for (const [k, v] of wineMap) {
+    const base = k.slice(0, 2) + k.slice(4);
+    const abbr = ((v.item_name_kr || '').match(/^([A-Z]{2})\s/) || [])[1] || '';
+    if (!vintageMap.has(base)) vintageMap.set(base, []);
+    vintageMap.get(base)!.push({ abbr, data: v });
+  }
+  return vintageMap;
+}
+
+function resolveWine(
+  itemNo: string, itemName: string,
+  wineMap: Map<string, any>, invMap: Map<string, string>,
+  brandCountry: Map<string, string>, vintageMap: Map<string, { abbr: string; data: any }[]>,
+): { country: string | null; region: string | null; wineType: string | null; wineData: any | null } {
+  let country: string | null = null, region: string | null = null, wineType: string | null = null;
+  let wineData: any | null = null;
+
+  const w = wineMap.get(itemNo);
+  if (w) { country = w.country; region = w.region; wineType = w.wine_type; wineData = w; }
+  if (!country) country = invMap.get(itemNo) || null;
+  if (!country) {
+    const base = itemNo.slice(0, 2) + itemNo.slice(4);
+    const nameAbbr = (itemName.match(/^([A-Z]{2})\s/) || [])[1] || '';
+    const candidates = vintageMap.get(base);
+    if (candidates) {
+      for (const c of candidates) {
+        if (nameAbbr && c.abbr && nameAbbr !== c.abbr) continue;
+        country = c.data.country; region = c.data.region; wineType = c.data.wine_type;
+        if (!wineData) wineData = c.data;
+        break;
+      }
+    }
+  }
+  if (!country) {
+    const m = (itemName || '').match(/^([A-Z]{2,3})\s/);
+    if (m && brandCountry.has(m[1])) country = brandCountry.get(m[1])!;
+  }
+  if (!wineType) wineType = inferType(itemName || '');
+  return { country, region, wineType, wineData };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { country, regionSearch, wineType, supplyPrice, priceMin, priceMax, startYear, endYear, isNewItem, excludeWineNames, excludeBulkSales, bulkThreshold: rawBulkThreshold, excludeSamples, noCorrection, excludeBusinessTypes } = body;
+    const { country, regionSearch, wineType, brand, supplyPrice, priceMin, priceMax, startYear, endYear, isNewItem, excludeWineNames, excludeBulkSales, bulkThreshold: rawBulkThreshold, excludeSamples, noCorrection, excludeBusinessTypes } = body;
     const bulkThreshold = Number(rawBulkThreshold) || 60;
 
-    if (!country) {
-      return NextResponse.json({ error: '국가는 필수입니다' }, { status: 400 });
+    if (!country && !brand) {
+      return NextResponse.json({ error: '국가 또는 브랜드를 선택해주세요' }, { status: 400 });
     }
 
-    // 공급가 범위 결정
+    // 공급가 범위 결정 (미입력 시 전체)
     let pMin: number, pMax: number, priceLabel: string;
-    if (priceMin !== undefined || priceMax !== undefined) {
+    if (priceMin !== undefined && priceMax !== undefined && (Number(priceMin) > 0 || Number(priceMax) < 999999999)) {
       pMin = Number(priceMin) || 0;
       pMax = Number(priceMax) || 999999999;
       priceLabel = `${pMin.toLocaleString()}~${pMax.toLocaleString()}원`;
@@ -34,7 +89,7 @@ export async function POST(request: Request) {
       const range = getPriceRange(supplyPrice);
       pMin = range.min; pMax = range.max; priceLabel = range.label;
     } else {
-      return NextResponse.json({ error: '가격 범위를 지정해주세요' }, { status: 400 });
+      pMin = 0; pMax = 999999999; priceLabel = '전체 가격';
     }
 
     const priceRange = { label: priceLabel, min: pMin, max: pMax };
@@ -43,154 +98,214 @@ export async function POST(request: Request) {
     const analysisStart = `${yearFrom}-01-01`;
     const analysisEnd = `${yearTo}-12-31`;
 
-    // ── 1단계: wines 조회 ──
-    let wineQuery = supabase
-      .from('wines')
-      .select('item_code, item_name_kr, supply_price, avg_import_cost, region, grape_varieties, wine_type, country, supplier_kr')
-      .eq('country', country)
-      .gte('supply_price', pMin)
-      .lt('supply_price', pMax)
-      .limit(500);
+    // ── 1단계: wines + inventory_cdv 전체 로드 (4-stage 매칭용) ──
+    const [{ data: allWines }, { data: inv }] = await Promise.all([
+      supabase.from('wines')
+        .select('item_code, item_name_kr, supply_price, avg_import_cost, region, grape_varieties, wine_type, country, supplier_kr')
+        .not('item_code', 'like', 'D%'),
+      supabase.from('inventory_cdv').select('item_no, country'),
+    ]);
 
+    // wineMap: item_code → wine info (전체 wines 테이블)
+    const wineMapForResolve = new Map<string, any>();
+    for (const w of (allWines || [])) wineMapForResolve.set(w.item_code, w);
+
+    // invMap: item_no → country
+    const invMap = new Map<string, string>();
+    for (const r of (inv || [])) if (r.country) invMap.set(r.item_no, r.country);
+
+    // brandCountry: 브랜드 약어 → 국가
+    const brandCountry = new Map<string, string>();
+    for (const w of (allWines || [])) {
+      const m = (w.item_name_kr || '').match(/^([A-Z]{2})\s/);
+      if (m && w.country) brandCountry.set(m[1], w.country);
+    }
+    for (const [k, v] of Object.entries(BRAND_COUNTRY)) {
+      if (!brandCountry.has(k)) brandCountry.set(k, v);
+    }
+
+    // 빈티지 매칭 캐시 + resolve 캐시
+    const vintageMap = buildVintageMap(wineMapForResolve);
+    const resolveCache = new Map<string, { country: string | null; region: string | null; wineType: string | null; wineData: any | null }>();
+
+    // 지역 검색 키워드 확장 (regionSearch가 있을 때)
+    let regionKeywords: string[] | null = null;
     if (regionSearch) {
       const searchTerms = regionSearch.split(',').map((k: string) => k.trim());
-      const countryMap: Record<string, string> = {
-        '프랑스': '프랑스 France', '이탈리아': '이탈리아 Italy', '칠레': '칠레 Chile',
-        '포르투갈': '포르투갈 Portugal', '호주': '호주 Australia', '미국': '미국 USA',
-        '뉴질랜드': '뉴질랜드 New Zealand', '스페인': '스페인 Spain',
-        '아르헨티나': '아르헨티나 Argentina', '독일': '독일 Germany',
-      };
-      const regionCountry = countryMap[country] || country;
-      const { data: wineRegions } = await supabase
-        .from('wine_regions')
-        .select('major_region, sub_region, appellation')
-        .eq('country', regionCountry);
+      const isSubRegion = body.isSubRegion;
 
-      const matchedMajors = new Set<string>();
-      for (const wr of wineRegions || []) {
-        for (const term of searchTerms) {
-          if (wr.major_region && (wr.major_region.includes(term) || term.includes(wr.major_region.split(' ')[0]))) {
-            matchedMajors.add(wr.major_region);
-          }
-        }
-      }
+      if (isSubRegion) {
+        regionKeywords = searchTerms;
+      } else {
+        // 상위 지역: wine_regions에서 하위 키워드 확장
+        const countryMap: Record<string, string> = {
+          '프랑스': '프랑스 France', '이탈리아': '이탈리아 Italy', '칠레': '칠레 Chile',
+          '포르투갈': '포르투갈 Portugal', '호주': '호주 Australia', '미국': '미국 USA',
+          '뉴질랜드': '뉴질랜드 New Zealand', '스페인': '스페인 Spain',
+          '아르헨티나': '아르헨티나 Argentina', '독일': '독일 Germany',
+        };
+        const regionCountry = countryMap[country] || country;
+        const { data: wineRegions } = await supabase
+          .from('wine_regions')
+          .select('major_region, sub_region, appellation')
+          .eq('country', regionCountry);
 
-      const allKeywords = new Set<string>(searchTerms);
-      for (const wr of wineRegions || []) {
-        if (matchedMajors.has(wr.major_region)) {
-          if (wr.sub_region) {
-            const parts = wr.sub_region.split(/[\s-]+/);
-            for (const p of parts) {
-              const cleaned = p.replace(/[^A-Za-zÀ-ÿ]/g, '');
-              if (cleaned.length > 2 && /[A-Za-z]/.test(cleaned)) allKeywords.add(cleaned);
+        const matchedMajors = new Set<string>();
+        for (const wr of wineRegions || []) {
+          for (const term of searchTerms) {
+            if (wr.major_region && (wr.major_region.includes(term) || term.includes(wr.major_region.split(' ')[0]))) {
+              matchedMajors.add(wr.major_region);
             }
           }
         }
-      }
 
-      const extraKeywords: Record<string, string[]> = {
-        'Meursault': ['Mersault'],
-        'Bourgogne': ['Burgundy', 'Aligote', 'Monthelie', 'Auxerre'],
-        'Barossa': ['Barossa Valley'],
-      };
-      for (const [key, extras] of Object.entries(extraKeywords)) {
-        if (allKeywords.has(key)) { for (const e of extras) allKeywords.add(e); }
+        const allKeywords = new Set<string>(searchTerms);
+        for (const wr of wineRegions || []) {
+          if (matchedMajors.has(wr.major_region)) {
+            if (wr.sub_region) {
+              const stopWords = new Set(['Saint', 'Les', 'Grand', 'Premier', 'Cru', 'Villages', 'Côtes', 'Cotes', 'Haut']);
+              const parts = wr.sub_region.split(/[\s-]+/);
+              for (const p of parts) {
+                const cleaned = p.replace(/[^A-Za-zÀ-ÿ]/g, '');
+                if (cleaned.length > 3 && /[A-Za-z]/.test(cleaned) && !stopWords.has(cleaned)) allKeywords.add(cleaned);
+              }
+            }
+          }
+        }
+
+        const extraKeywords: Record<string, string[]> = {
+          'Meursault': ['Mersault'],
+          'Bourgogne': ['Burgundy', 'Aligote', 'Monthelie', 'Auxerre'],
+          'Barossa': ['Barossa Valley'],
+        };
+        for (const [key, extras] of Object.entries(extraKeywords)) {
+          if (allKeywords.has(key)) { for (const e of extras) allKeywords.add(e); }
+        }
+        regionKeywords = [...allKeywords];
       }
-      const orFilter = [...allKeywords].map(k => `region.ilike.%${k}%`).join(',');
-      wineQuery = wineQuery.or(orFilter);
     }
 
-    if (wineType) wineQuery = wineQuery.eq('wine_type', wineType);
+    // ── 2단계: 전체 출고 데이터 조회 (shipments-first, 2020-01-01 ~ analysisEnd) ──
+    type Shipment = { ship_date: string; quantity: number; item_no: string; item_name: string; client_name: string; manager: string; unit_price: number | null; selling_price: number | null; supply_amount: number | null; business_type: string | null };
+    const allShipments: Shipment[] = [];
 
-    const { data: wines, error: wineErr } = await wineQuery;
-    if (wineErr) return NextResponse.json({ error: 'DB 오류', detail: wineErr.message }, { status: 500 });
-
-    const itemCodes = wines?.map(w => w.item_code) || [];
-    if (itemCodes.length === 0) {
-      const msg = regionSearch
-        ? `해당 지역의 와인이 DB에 없습니다. 지역을 '전체'로 변경해 보세요.`
-        : `해당 조건의 와인이 DB에 없습니다 (${country}, ${priceRange.label}).`;
-      return NextResponse.json({ stats: [], priceRange, matchedItems: 0, message: msg });
+    // 먼저 총 건수 파악 → 병렬 페이지네이션
+    const { count: shipCount } = await supabase.from('shipments')
+      .select('*', { count: 'exact', head: true })
+      .gte('ship_date', '2020-01-01').lte('ship_date', analysisEnd);
+    const batch = 1000;
+    const pages = Math.ceil((shipCount || 0) / batch);
+    const concurrency = 6;
+    for (let i = 0; i < pages; i += concurrency) {
+      const promises = [];
+      for (let j = i; j < Math.min(i + concurrency, pages); j++) {
+        promises.push(
+          supabase.from('shipments')
+            .select('ship_date, quantity, item_no, item_name, client_name, manager, unit_price, selling_price, supply_amount, business_type')
+            .gte('ship_date', '2020-01-01').lte('ship_date', analysisEnd)
+            .range(j * batch, (j + 1) * batch - 1)
+            .then(r => r.data || [])
+        );
+      }
+      const results = await Promise.all(promises);
+      for (const r of results) allShipments.push(...r);
     }
 
+    // ── 3단계: 4-stage 매칭 + 필터링으로 대상 출고 건 선별 ──
+    // wineMap: 필터 매칭된 품번의 와인 정보 (이름, 가격 등 조회용)
     const wineMap: Record<string, { name: string; price: number; importCost: number; region: string | null; grape: string | null; type: string | null; country: string | null; brand: string | null }> = {};
-    for (const w of wines || []) {
-      wineMap[w.item_code] = { name: w.item_name_kr, price: w.supply_price, importCost: w.avg_import_cost || 0, region: w.region, grape: w.grape_varieties, type: w.wine_type, country: w.country || null, brand: w.supplier_kr || null };
-    }
+    const matchedItemCodes = new Set<string>();
+    const filteredShipmentIndices = new Set<number>();
 
-    // ── 4-stage matching: 빈티지 변형 품번도 포함하여 출고 커버리지 확대 ──
-    // Stage 1: 이미 매칭된 itemCodes (직접 매칭)
-    // Stage 2-4: 빈티지 변형 품번 추가
-    const allWinesRes = await supabase.from('wines').select('item_code, item_name_kr, supply_price, avg_import_cost, region, grape_varieties, wine_type, country, supplier_kr').not('item_code', 'like', 'D%');
-    const allWinesList = allWinesRes.data || [];
+    for (let idx = 0; idx < allShipments.length; idx++) {
+      const s = allShipments[idx];
+      if (!s.item_no || s.item_no.length < 5 || s.item_no.startsWith('D') || s.item_no.startsWith('9F')) continue;
+      if (/^7[0-9A-Z]/.test(s.item_no) && (s.item_name || '').includes('특판')) continue;
 
-    // 매칭된 와인의 빈티지 베이스 추출 (prefix 2자 + suffix from pos 4)
-    const matchedBases = new Set<string>();
-    const matchedAbbrSet = new Set<string>(); // 매칭된 와인의 브랜드 약어
-    for (const code of itemCodes) {
-      if (code.length >= 5) matchedBases.add(code.slice(0, 2) + code.slice(4));
-      const w = wineMap[code];
-      if (w?.name) {
-        const m = w.name.match(/^([A-Z]{2})\s/);
-        if (m) matchedAbbrSet.add(m[1]);
+      // 4-stage resolve
+      let resolved = resolveCache.get(s.item_no);
+      if (!resolved) {
+        resolved = resolveWine(s.item_no, s.item_name || '', wineMapForResolve, invMap, brandCountry, vintageMap);
+        resolveCache.set(s.item_no, resolved);
       }
-    }
+      const { country: rCountry, region: rRegion, wineType: rType, wineData } = resolved;
 
-    // 전체 와인에서 같은 빈티지 베이스를 공유하는 다른 빈티지 품번 찾기
-    const extraItemCodes: string[] = [];
-    for (const w of allWinesList) {
-      if (wineMap[w.item_code]) continue; // 이미 직접 매칭됨
-      if (w.item_code.length < 5) continue;
-      const base = w.item_code.slice(0, 2) + w.item_code.slice(4);
-      if (matchedBases.has(base)) {
-        // 브랜드 약어 확인: 이름 앞 약어가 매칭된 와인의 약어와 일치하는지 확인
-        const nameAbbr = ((w.item_name_kr || '').match(/^([A-Z]{2})\s/) || [])[1] || '';
-        if (nameAbbr && matchedAbbrSet.size > 0 && !matchedAbbrSet.has(nameAbbr)) continue;
-        // 가격 범위 확인
-        if (w.supply_price >= pMin && w.supply_price < pMax) {
-          extraItemCodes.push(w.item_code);
-          wineMap[w.item_code] = {
-            name: w.item_name_kr, price: w.supply_price, importCost: w.avg_import_cost || 0,
-            region: w.region, grape: w.grape_varieties, type: w.wine_type,
-            country: w.country || null, brand: w.supplier_kr || null,
+      // 필터 적용: country
+      if (country && rCountry !== country) continue;
+      // 필터 적용: brand (supplier_kr)
+      if (brand && wineData?.supplier_kr !== brand) continue;
+      // 필터 적용: wineType
+      if (wineType && rType !== wineType) continue;
+      // 필터 적용: region (키워드 기반)
+      if (regionKeywords && regionKeywords.length > 0) {
+        if (!rRegion) continue;
+        const rLower = rRegion.toLowerCase();
+        const matched = regionKeywords.some(kw => rLower.includes(kw.toLowerCase()));
+        if (!matched) continue;
+      }
+      // 필터 적용: price (wines 테이블의 supply_price 기준)
+      if (pMin > 0 || pMax < 999999999) {
+        const sp = wineData?.supply_price;
+        // supply_price가 0이거나 null이면 통과 (가격 미등록), 있으면 범위 체크
+        if (sp && sp > 0 && (sp < pMin || sp >= pMax)) continue;
+      }
+
+      // 이 출고 건은 필터 통과 → 대상에 포함
+      filteredShipmentIndices.add(idx);
+      matchedItemCodes.add(s.item_no);
+
+      // wineMap 구축 (이름/가격 조회용)
+      if (!wineMap[s.item_no]) {
+        if (wineData) {
+          wineMap[s.item_no] = {
+            name: wineData.item_name_kr || s.item_name || s.item_no,
+            price: wineData.supply_price || 0,
+            importCost: wineData.avg_import_cost || 0,
+            region: wineData.region || rRegion,
+            grape: wineData.grape_varieties || null,
+            type: wineData.wine_type || rType,
+            country: wineData.country || rCountry,
+            brand: wineData.supplier_kr || null,
+          };
+        } else {
+          wineMap[s.item_no] = {
+            name: s.item_name || s.item_no,
+            price: 0,
+            importCost: 0,
+            region: rRegion,
+            grape: null,
+            type: rType,
+            country: rCountry,
+            brand: null,
           };
         }
       }
     }
 
-    // inventory_cdv에서 country 매칭되는 추가 품번 찾기 (wines 테이블에 없는 품번)
-    const invRes = await supabase.from('inventory_cdv').select('item_no, country').eq('country', country);
-    const invItems = invRes.data || [];
-    const invCountryMap = new Map<string, string>();
-    for (const inv of invItems) {
-      if (inv.country) invCountryMap.set(inv.item_no, inv.country);
-    }
+    const activeItemCodes = [...matchedItemCodes];
+    const allMatchedCount = activeItemCodes.length;
 
-    // 브랜드 약어 → 국가 매핑 구축 (매칭된 와인 기준 + fallback BRAND_COUNTRY)
-    const brandCountryMap = new Map<string, string>();
-    for (const w of allWinesList) {
-      const m = (w.item_name_kr || '').match(/^([A-Z]{2})\s/);
-      if (m && w.country) brandCountryMap.set(m[1], w.country);
+    if (allMatchedCount === 0) {
+      const msg = regionSearch
+        ? `해당 지역의 와인 출고 이력이 없습니다. 지역을 '전체'로 변경해 보세요.`
+        : `해당 조건의 와인 출고 이력이 없습니다 (${country || brand}, ${priceRange.label}).`;
+      return NextResponse.json({ stats: [], priceRange, matchedItems: 0, message: msg });
     }
-    for (const [k, v] of Object.entries(BRAND_COUNTRY)) {
-      if (!brandCountryMap.has(k)) brandCountryMap.set(k, v);
-    }
-
-    // 모든 매칭된 품번 합치기
-    const expandedItemCodes = [...new Set([...itemCodes, ...extraItemCodes])];
 
     const getWineName = (itemNo: string) => wineMap[itemNo]?.name || itemNo;
 
-    // 제외 와인 필터링: 출고 조회 대상에서 제외하되, 전체 매칭 수는 별도 보존
-    const allMatchedCount = expandedItemCodes.length;
+    // 제외 와인 필터링
     const excludeSet = new Set<string>(excludeWineNames || []);
-    const activeItemCodes = excludeSet.size > 0
-      ? expandedItemCodes.filter(code => !excludeSet.has(wineMap[code]?.name))
-      : expandedItemCodes;
+    const excludedCodes = new Set<string>();
+    if (excludeSet.size > 0) {
+      for (const code of activeItemCodes) {
+        if (excludeSet.has(wineMap[code]?.name)) excludedCodes.add(code);
+      }
+    }
 
     // 제외된 와인 정보 (UI에서 재포함 버튼 표시용)
     const excludedWineList = excludeSet.size > 0
-      ? expandedItemCodes.filter(code => excludeSet.has(wineMap[code]?.name))
+      ? activeItemCodes.filter(code => excludedCodes.has(code))
           .reduce((acc, code) => {
             const name = wineMap[code]?.name;
             if (name && !acc.find(w => w.item_name === name)) {
@@ -200,44 +315,22 @@ export async function POST(request: Request) {
           }, [] as { item_name: string; supply_price: number; region: string | null }[])
       : [];
 
-    if (activeItemCodes.length === 0) {
+    // 필터링된 출고 건만 추출 (제외 와인 반영)
+    let filteredShipments = allShipments.filter((s, idx) => {
+      if (!filteredShipmentIndices.has(idx)) return false;
+      if (excludedCodes.has(s.item_no)) return false;
+      return true;
+    });
+
+    const activeCount = activeItemCodes.length - excludedCodes.size;
+    if (activeCount === 0) {
       return NextResponse.json({ stats: [], priceRange, matchedItems: 0, allMatchedItems: allMatchedCount, excludedWines: excludedWineList, message: '모든 와인이 제외되었습니다.' });
     }
-
-    // ── 2단계: 전체 출고 데이터 조회 (재고소진 + 러닝커브용 전체 이력) ──
-    type Shipment = { ship_date: string; quantity: number; item_no: string; client_name: string; manager: string; unit_price: number | null; selling_price: number | null; supply_amount: number | null; business_type: string | null };
-    const allShipments: Shipment[] = [];
-
-    // activeItemCodes를 100개씩 청크로 나눠 병렬 조회
-    const chunks: string[][] = [];
-    for (let i = 0; i < activeItemCodes.length; i += 100) {
-      chunks.push(activeItemCodes.slice(i, i + 100));
-    }
-
-    const chunkResults = await Promise.all(chunks.map(async (chunk) => {
-      const rows: Shipment[] = [];
-      let from = 0;
-      while (true) {
-        const { data: page } = await supabase
-          .from('shipments')
-          .select('ship_date, quantity, item_no, client_name, manager, unit_price, selling_price, supply_amount, business_type')
-          .in('item_no', chunk)
-          .gte('ship_date', '2020-01-01')
-          .lte('ship_date', analysisEnd)
-          .range(from, from + 999);
-        if (!page || page.length === 0) break;
-        rows.push(...page);
-        if (page.length < 1000) break;
-        from += 1000;
-      }
-      return rows;
-    }));
-    for (const rows of chunkResults) allShipments.push(...rows);
 
     // ── 업종 목록 추출 + 거래처-업종 매핑 ──
     const businessTypeSet = new Set<string>();
     const clientBusinessType: Record<string, string> = {};
-    for (const s of allShipments) {
+    for (const s of filteredShipments) {
       const bt = (s.business_type || '').trim() || '(미분류)';
       businessTypeSet.add(bt);
       if (s.client_name && !clientBusinessType[s.client_name]) clientBusinessType[s.client_name] = bt;
@@ -246,12 +339,12 @@ export async function POST(request: Request) {
 
     // ── 업종 필터링 ──
     const excludeBT = new Set<string>(excludeBusinessTypes || []);
-    let filteredShipments = excludeBT.size > 0
-      ? allShipments.filter(s => {
-          const bt = (s.business_type || '').trim() || '(미분류)';
-          return !excludeBT.has(bt);
-        })
-      : allShipments;
+    if (excludeBT.size > 0) {
+      filteredShipments = filteredShipments.filter(s => {
+        const bt = (s.business_type || '').trim() || '(미분류)';
+        return !excludeBT.has(bt);
+      });
+    }
 
     // ── 특판 제외: 1일 1거래처 1와인 bulkThreshold병 이상 (분석 기간 내만 대상) ──
     let bulkExcluded = { count: 0, qty: 0 };
@@ -326,16 +419,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // 트렌드는 별도 API(/api/forecast/trends)에서 전체 데이터 기준으로 계산
-
-    // ── 3단계: 재고 소진 보정 ──
+    // ── 재고 소진 보정 ──
     const stockoutCorrections = noCorrection ? {} : calcStockoutCorrections(filteredShipments, getWineName);
 
-    // ── 4단계: 러닝커브 (신규 품목일 때만, 보정제외 시 스킵) ──
+    // ── 러닝커브 (신규 품목일 때만, 보정제외 시 스킵) ──
     const learningCurve = (isNewItem && !noCorrection) ? calcLearningCurve(filteredShipments, getWineName) : null;
 
-    // ── 4-1단계: 월별 판매 추이 (와인명 기준 그룹핑, 빈티지 통합) ──
-    // 분석 기간 + 전년도 데이터도 수집 (YoY 비교용)
+    // ── 월별 판매 추이 (와인명 기준 그룹핑, 빈티지 통합) ──
     const prevYearStart = `${Number(yearFrom) - 1}-01-01`;
     const monthlyData: Record<string, { qty: number; amount: number }> = {};
     const yearlyData: Record<string, { qty: number; amount: number }> = {};
@@ -361,7 +451,7 @@ export async function POST(request: Request) {
     const monthlySeries = Object.entries(monthlyData).sort(([a], [b]) => a.localeCompare(b)).map(([month, d]) => ({ month, qty: d.qty, amount: d.amount }));
     const yearlySeries = Object.entries(yearlyData).sort(([a], [b]) => a.localeCompare(b)).map(([year, d]) => ({ year, qty: d.qty, amount: d.amount }));
 
-    // ── 5단계: 영업사원별 분석 (보정 적용) ──
+    // ── 영업사원별 분석 (보정 적용) ──
     const periodShipments = filteredShipments.filter(s => s.ship_date >= analysisStart && s.ship_date <= analysisEnd);
     const managerGroups: Record<string, Shipment[]> = {};
     for (const s of periodShipments) {
@@ -414,14 +504,13 @@ export async function POST(request: Request) {
           const unitP = s.unit_price || 0;
           let totalAmount: number;
           if (qty <= 1) {
-            totalAmount = sp; // qty=1이면 단가=총액
+            totalAmount = sp;
           } else if (sa > 0 && Math.abs(sp * qty - Math.abs(sa)) < 100) {
-            totalAmount = Math.abs(sa); // sp는 단가, sa가 총액
+            totalAmount = Math.abs(sa);
           } else {
-            totalAmount = sp; // sp 자체가 총액
+            totalAmount = sp;
           }
           let perUnitPrice = qty > 0 ? Math.round(totalAmount / qty) : 0;
-          // unit_price와 비교하여 더 낮은 값 사용 (할인 반영)
           if (unitP > 0 && perUnitPrice > 0) {
             perUnitPrice = Math.min(perUnitPrice, unitP);
           }
@@ -581,7 +670,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       stats: results,
       priceRange,
-      matchedItems: activeItemCodes.length,
+      matchedItems: activeCount,
       allMatchedItems: allMatchedCount,
       excludedWines: excludedWineList,
       stockoutInfo,
@@ -637,7 +726,6 @@ function calcStockoutCorrections(
     }
 
     // 공백 전후 판매 존재 확인 → 재고 소진 판정
-    // 최소 2개월 연속 판매 후에야 "본격 판매"로 인정 (샘플/빈티지 전환 대기 제외)
     const monthSet = new Set(months);
     let stockoutMonths = 0;
     let consecutiveGap = 0;
