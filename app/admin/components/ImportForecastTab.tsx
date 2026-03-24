@@ -1554,7 +1554,7 @@ export default function ImportForecastTab() {
             })()}
           </div>
           {/* 봉 차트 (CSS only, SVG 없음) */}
-          <MonthlyChart data={monthlySeries} />
+          <MonthlyChart data={monthlySeries} startYear={startYear} endYear={endYear} />
         </div>
       )}
 
@@ -1749,34 +1749,75 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
 }
 
 // ── 브랜드 소진 분석 ──
-function MonthlyChart({ data }: { data: { month: string; qty: number }[] }) {
+function MonthlyChart({ data, startYear, endYear }: { data: { month: string; qty: number }[]; startYear: string; endYear: string }) {
   if (data.length === 0) return null;
-  const maxQty = Math.max(...data.map(m => m.qty), 1);
-  const avgQty = Math.round(data.reduce((s, m) => s + m.qty, 0) / data.length);
-  const avgPct = (avgQty / maxQty * 100);
+
+  // 연도별로 그룹핑
+  const byYear: Record<string, Record<string, number>> = {};
+  for (const m of data) {
+    const yr = m.month.slice(0, 4);
+    const mo = m.month.slice(5, 7);
+    if (!byYear[yr]) byYear[yr] = {};
+    byYear[yr][mo] = m.qty;
+  }
+
+  const years = Object.keys(byYear).sort();
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const monthLabels = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+
+  // 분석 기간의 마지막 연도와 전년도
+  const curYear = endYear || years[years.length - 1];
+  const prevYear = String(Number(curYear) - 1);
+  const curData = byYear[curYear] || {};
+  const prevData = byYear[prevYear] || {};
+
+  const allVals = [...Object.values(curData), ...Object.values(prevData)];
+  const maxQty = Math.max(...allVals, 1);
+  const curTotal = Object.values(curData).reduce((s, v) => s + v, 0);
+  const prevTotal = Object.values(prevData).reduce((s, v) => s + v, 0);
+  const yoyGrowth = prevTotal > 0 ? Math.round((curTotal - prevTotal) / prevTotal * 100) : 0;
+
   return (
     <div>
-      <div style={{ position: 'relative', height: 140, display: 'flex', alignItems: 'flex-end', gap: 1, paddingBottom: 18 }}>
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 + avgPct / 100 * 120, height: 1, borderTop: '1px dashed #ccc', zIndex: 1 }}>
-          <span style={{ position: 'absolute', right: 0, top: -12, fontSize: 9, color: '#bbb' }}>avg {avgQty}</span>
-        </div>
-        {data.map((m, i) => {
-          const h = Math.max(2, m.qty / maxQty * 120);
-          const yr = m.month.slice(0, 4);
-          const prevYr = i > 0 ? data[i - 1].month.slice(0, 4) : yr;
+      {/* 연도 요약 */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 10, fontSize: 11, alignItems: 'center' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: '#5A1515', display: 'inline-block' }} />
+          <span style={{ fontWeight: 600 }}>{curYear}</span> {curTotal.toLocaleString()}병
+        </span>
+        {prevTotal > 0 && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: '#D8CCC0', display: 'inline-block' }} />
+            <span style={{ fontWeight: 600 }}>{prevYear}</span> {prevTotal.toLocaleString()}병
+          </span>
+        )}
+        {prevTotal > 0 && (
+          <span style={{ fontWeight: 600, color: yoyGrowth >= 0 ? '#16a34a' : '#dc2626' }}>
+            YoY {yoyGrowth >= 0 ? '+' : ''}{yoyGrowth}%
+          </span>
+        )}
+      </div>
+      {/* 12개월 비교 차트 */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 130, paddingBottom: 20, position: 'relative' }}>
+        {months.map((mo, i) => {
+          const cur = curData[mo] || 0;
+          const prev = prevData[mo] || 0;
+          const curH = maxQty > 0 ? Math.max(cur > 0 ? 2 : 0, cur / maxQty * 110) : 0;
+          const prevH = maxQty > 0 ? Math.max(prev > 0 ? 2 : 0, prev / maxQty * 110) : 0;
+          const moGrowth = prev > 0 ? Math.round((cur - prev) / prev * 100) : 0;
           return (
-            <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: yr !== prevYr ? '1px solid #e0e0e0' : 'none' }}>
-              <div title={`${m.month}: ${m.qty.toLocaleString()}병`} style={{ width: '80%', height: h, background: m.qty >= avgQty ? '#5A1515' : '#C4A0A0', borderRadius: '2px 2px 0 0' }} />
-              {(i % 3 === 0 || yr !== prevYr) && <div style={{ fontSize: 8, color: '#bbb', marginTop: 2 }}>{m.month.slice(2)}</div>}
+            <div key={mo} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+              <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end', width: '100%', justifyContent: 'center', height: 110 }}>
+                {prevTotal > 0 && (
+                  <div title={`${prevYear}-${mo}: ${prev.toLocaleString()}병`} style={{ width: '35%', height: prevH, background: '#D8CCC0', borderRadius: '2px 2px 0 0' }} />
+                )}
+                <div title={`${curYear}-${mo}: ${cur.toLocaleString()}병 ${prev > 0 ? `(${moGrowth >= 0 ? '+' : ''}${moGrowth}%)` : ''}`}
+                  style={{ width: prevTotal > 0 ? '35%' : '70%', height: curH, background: '#5A1515', borderRadius: '2px 2px 0 0' }} />
+              </div>
+              <div style={{ fontSize: 9, color: '#999', marginTop: 3 }}>{monthLabels[i]}월</div>
             </div>
           );
         })}
-      </div>
-      <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#999' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 10, height: 8, borderRadius: 1, background: '#5A1515', display: 'inline-block' }} /> 평균 이상
-          <span style={{ width: 10, height: 8, borderRadius: 1, background: '#C4A0A0', display: 'inline-block', marginLeft: 6 }} /> 평균 이하
-        </span>
       </div>
     </div>
   );

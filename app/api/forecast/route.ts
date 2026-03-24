@@ -335,10 +335,12 @@ export async function POST(request: Request) {
     const learningCurve = (isNewItem && !noCorrection) ? calcLearningCurve(filteredShipments, getWineName) : null;
 
     // ── 4-1단계: 월별 판매 추이 (와인명 기준 그룹핑, 빈티지 통합) ──
+    // 분석 기간 + 전년도 데이터도 수집 (YoY 비교용)
+    const prevYearStart = `${Number(yearFrom) - 1}-01-01`;
     const monthlyTotal: Record<string, number> = {};
     const yearlyTotal: Record<string, number> = {};
     for (const s of filteredShipments) {
-      if (s.ship_date < analysisStart || s.ship_date > analysisEnd) continue;
+      if (s.ship_date < prevYearStart || s.ship_date > analysisEnd) continue;
       const qty = s.quantity || 0;
       if (qty <= 0) continue;
       const ym = s.ship_date.slice(0, 7);
