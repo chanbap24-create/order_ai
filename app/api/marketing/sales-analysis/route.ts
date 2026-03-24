@@ -276,7 +276,7 @@ export async function GET(req: NextRequest) {
     let totalQty = 0, matchedCountry = 0, matchedRegion = 0, matchedType = 0;
 
     let offset = 0;
-    const batch = 5000;
+    const batch = 1000; // Supabase 최대 반환 제한이 1000건
     while (true) {
       const { data, error } = await supabase.from('shipments')
         .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
