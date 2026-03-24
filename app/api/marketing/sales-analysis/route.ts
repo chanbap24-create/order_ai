@@ -369,7 +369,6 @@ export async function GET(req: NextRequest) {
         itemAgg[key].qty += qty; // 반품 차감
         itemAgg[key].amount += amount;
       }
-    }
 
     // 국가별 집계
     const countryAgg: Record<string, { qty: number; amount: number; items: number; types: Record<string, number> }> = {};
