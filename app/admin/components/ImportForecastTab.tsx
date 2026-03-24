@@ -24,7 +24,7 @@ interface SampleInfo { excluded: number; qty: number; }
 interface PriceStats { avg: number; min: number; max: number; }
 interface LearningCurve { ratio: number; sampleSize: number; details: { name: string; year1: number; mature: number; ratio: number }[]; }
 
-const COUNTRIES = ['프랑스','이탈리아','칠레','포르투갈','호주','미국','뉴질랜드','스페인','아르헨티나','독일'];
+const COUNTRIES = ['프랑스','이탈리아','칠레','포르투갈','호주','미국','뉴질랜드','스페인','아르헨티나','독일','영국'];
 
 const REGIONS: Record<string, { label: string; search: string }[]> = {
   '프랑스': [
