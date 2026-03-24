@@ -1798,7 +1798,7 @@ function MonthlyChart({ data, startYear, endYear }: { data: { month: string; qty
         )}
       </div>
       {/* 12개월 비교 차트 */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 130, paddingBottom: 20, position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, minHeight: 150, position: 'relative' }}>
         {months.map((mo, i) => {
           const cur = curData[mo] || 0;
           const prev = prevData[mo] || 0;
