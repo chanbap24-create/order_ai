@@ -163,7 +163,7 @@ export async function POST(request: Request) {
         for (const wr of wineRegions || []) {
           if (matchedMajors.has(wr.major_region)) {
             if (wr.sub_region) {
-              const stopWords = new Set(['Saint', 'Les', 'Grand', 'Premier', 'Cru', 'Villages', 'Côtes', 'Cotes', 'Haut']);
+              const stopWords = new Set(['Saint', 'Les', 'Grand', 'Premier', 'Cru', 'Villages', 'Côtes', 'Cotes', 'Haut', 'Côte', 'Blanc', 'Blancs', 'Muscat', 'Château', 'Pape', 'Joseph', 'Grillet']);
               const parts = wr.sub_region.split(/[\s-]+/);
               for (const p of parts) {
                 const cleaned = p.replace(/[^A-Za-zÀ-ÿ]/g, '');
