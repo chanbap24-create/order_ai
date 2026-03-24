@@ -185,31 +185,40 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── 2단계: 전체 출고 데이터 조회 (shipments-first, 2020-01-01 ~ analysisEnd) ──
+    // ── 2단계: 출고 데이터 조회 (2단계 전략) ──
+    // 1) 분석 기간(+전년) shipments → 4단계 매칭 → 대상 품번 확정
+    // 2) 확정된 품번으로 2020~ 과거 데이터 추가 조회 (재고소진/러닝커브용)
     type Shipment = { ship_date: string; quantity: number; item_no: string; item_name: string; client_name: string; manager: string; unit_price: number | null; selling_price: number | null; supply_amount: number | null; business_type: string | null };
-    const allShipments: Shipment[] = [];
 
-    // 먼저 총 건수 파악 → 병렬 페이지네이션
-    const { count: shipCount } = await supabase.from('shipments')
-      .select('*', { count: 'exact', head: true })
-      .gte('ship_date', '2020-01-01').lte('ship_date', analysisEnd);
-    const batch = 1000;
-    const pages = Math.ceil((shipCount || 0) / batch);
-    const concurrency = 6;
-    for (let i = 0; i < pages; i += concurrency) {
-      const promises = [];
-      for (let j = i; j < Math.min(i + concurrency, pages); j++) {
-        promises.push(
-          supabase.from('shipments')
-            .select('ship_date, quantity, item_no, item_name, client_name, manager, unit_price, selling_price, supply_amount, business_type')
-            .gte('ship_date', '2020-01-01').lte('ship_date', analysisEnd)
-            .range(j * batch, (j + 1) * batch - 1)
-            .then(r => r.data || [])
-        );
+    const prevYearStart = `${Math.max(Number(yearFrom) - 1, 2020)}-01-01`;
+    const fetchShipments = async (startD: string, endD: string): Promise<Shipment[]> => {
+      const { count: shipCount } = await supabase.from('shipments')
+        .select('*', { count: 'exact', head: true })
+        .gte('ship_date', startD).lte('ship_date', endD);
+      const batch = 1000;
+      const pages = Math.ceil((shipCount || 0) / batch);
+      const concurrency = 6;
+      const all: Shipment[] = [];
+      for (let i = 0; i < pages; i += concurrency) {
+        const promises = [];
+        for (let j = i; j < Math.min(i + concurrency, pages); j++) {
+          promises.push(
+            supabase.from('shipments')
+              .select('ship_date, quantity, item_no, item_name, client_name, manager, unit_price, selling_price, supply_amount, business_type')
+              .gte('ship_date', startD).lte('ship_date', endD)
+              .range(j * batch, (j + 1) * batch - 1)
+              .then(r => r.data || [])
+          );
+        }
+        const results = await Promise.all(promises);
+        for (const r of results) all.push(...r);
       }
-      const results = await Promise.all(promises);
-      for (const r of results) allShipments.push(...r);
-    }
+      return all;
+    };
+
+    // 1) 분석 기간 + 전년 조회 (매칭/필터용)
+    const periodShipmentsRaw = await fetchShipments(prevYearStart, analysisEnd);
+    const allShipments: Shipment[] = [...periodShipmentsRaw];
 
     // ── 3단계: 4-stage 매칭 + 필터링으로 대상 출고 건 선별 ──
     // wineMap: 필터 매칭된 품번의 와인 정보 (이름, 가격 등 조회용)
@@ -285,6 +294,31 @@ export async function POST(request: Request) {
     const activeItemCodes = [...matchedItemCodes];
     const allMatchedCount = activeItemCodes.length;
 
+    // 2) 매칭된 품번으로 2020~ 과거 데이터 추가 조회 (재고소진/러닝커브용)
+    if (activeItemCodes.length > 0 && prevYearStart > '2020-01-01') {
+      const chunks: string[][] = [];
+      for (let i = 0; i < activeItemCodes.length; i += 100) {
+        chunks.push(activeItemCodes.slice(i, i + 100));
+      }
+      const pastResults = await Promise.all(chunks.map(async (chunk) => {
+        const rows: Shipment[] = [];
+        let from = 0;
+        while (true) {
+          const { data: page } = await supabase.from('shipments')
+            .select('ship_date, quantity, item_no, item_name, client_name, manager, unit_price, selling_price, supply_amount, business_type')
+            .in('item_no', chunk)
+            .gte('ship_date', '2020-01-01').lt('ship_date', prevYearStart)
+            .range(from, from + 999);
+          if (!page || page.length === 0) break;
+          rows.push(...page);
+          if (page.length < 1000) break;
+          from += 1000;
+        }
+        return rows;
+      }));
+      for (const rows of pastResults) allShipments.push(...rows);
+    }
+
     if (allMatchedCount === 0) {
       const msg = regionSearch
         ? `해당 지역의 와인 출고 이력이 없습니다. 지역을 '전체'로 변경해 보세요.`
@@ -316,10 +350,13 @@ export async function POST(request: Request) {
       : [];
 
     // 필터링된 출고 건만 추출 (제외 와인 반영)
+    // filteredShipmentIndices: 분석 기간 매칭 건, 과거 데이터: matchedItemCodes에 포함된 품번이면 통과
     let filteredShipments = allShipments.filter((s, idx) => {
-      if (!filteredShipmentIndices.has(idx)) return false;
       if (excludedCodes.has(s.item_no)) return false;
-      return true;
+      if (filteredShipmentIndices.has(idx)) return true;
+      // 과거 추가 조회 데이터: 매칭된 품번이면 포함
+      if (matchedItemCodes.has(s.item_no)) return true;
+      return false;
     });
 
     const activeCount = activeItemCodes.length - excludedCodes.size;
@@ -426,7 +463,6 @@ export async function POST(request: Request) {
     const learningCurve = (isNewItem && !noCorrection) ? calcLearningCurve(filteredShipments, getWineName) : null;
 
     // ── 월별 판매 추이 (와인명 기준 그룹핑, 빈티지 통합) ──
-    const prevYearStart = `${Number(yearFrom) - 1}-01-01`;
     const monthlyData: Record<string, { qty: number; amount: number }> = {};
     const yearlyData: Record<string, { qty: number; amount: number }> = {};
     for (const s of filteredShipments) {
