@@ -1,5 +1,6 @@
 import { supabase } from '@/app/lib/db';
 import { NextResponse } from 'next/server';
+import { getSellingUnitPrice, getSellingTotal } from '@/app/lib/priceUtils';
 
 const MANAGERS = ['백근철', '성창우', '김효직', '김기범', '조성재', '김동현', '박경아', '송원상'];
 
@@ -477,14 +478,7 @@ export async function POST(request: Request) {
       if (s.ship_date < prevYearStart || s.ship_date > analysisEnd) continue;
       const qty = s.quantity || 0;
       if (qty <= 0) continue;
-      const sp = s.selling_price || 0;
-      const sa = s.supply_amount || 0;
-      const up = s.unit_price || 0;
-      let amount: number;
-      if (qty <= 1) amount = sp > 0 ? sp : up;
-      else if (sa > 0 && sa > sp && Math.abs(sp * qty - sa) < 100) amount = sa; // sp=단가, sa=총액
-      else if (sp > up * 2 && up > 0) amount = sp; // sp=총액
-      else amount = sp > 0 ? sp * qty : up * qty; // sp=단가, 총액 계산
+      const amount = getSellingTotal(s.unit_price || 0, s.selling_price || 0, s.supply_amount || 0, qty);
       const ym = s.ship_date.slice(0, 7);
       const yr = s.ship_date.slice(0, 4);
       if (!monthlyData[ym]) monthlyData[ym] = { qty: 0, amount: 0 };
@@ -544,22 +538,8 @@ export async function POST(request: Request) {
             wineStats[wineName].totalListAmt += listPrice * qty;
             wineStats[wineName].totalListQty += qty;
           }
-          // 실제 판매 단가 산출
-          const sp = s.selling_price || 0;
-          const sa = s.supply_amount || 0;
-          const unitP = s.unit_price || 0;
-          let perUnitPrice = 0;
-          if (qty <= 1) {
-            perUnitPrice = sp > 0 ? sp : unitP;
-          } else if (sa > 0 && sa > sp && Math.abs(sp * qty - sa) < 100) {
-            perUnitPrice = sp; // sp=단가, sa=총액
-          } else if (sp > unitP * 2 && unitP > 0) {
-            perUnitPrice = Math.round(sp / qty); // sp=총액, up=비정상
-          } else if (unitP > 0 && sp > 0) {
-            perUnitPrice = Math.min(unitP, sp);
-          } else {
-            perUnitPrice = sp || unitP;
-          }
+          // 실제 판매 단가 산출 (priceUtils)
+          const perUnitPrice = getSellingUnitPrice(s.unit_price || 0, s.selling_price || 0, s.supply_amount || 0, qty);
           if (perUnitPrice > 0 && (listPrice === 0 || perUnitPrice <= listPrice * 1.5)) {
             wineStats[wineName].totalUnitAmt += perUnitPrice * qty;
             wineStats[wineName].totalUnitQty += qty;

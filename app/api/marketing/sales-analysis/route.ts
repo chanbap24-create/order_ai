@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { getSellingTotal } from '@/app/lib/priceUtils';
 
 const BRAND_COUNTRY: Record<string, string> = {
   CH:'프랑스',LV:'프랑스',VA:'프랑스',ST:'스페인',MS:'이탈리아',WM:'프랑스',
@@ -287,7 +288,7 @@ export async function GET(req: NextRequest) {
       for (let j = i; j < Math.min(i + concurrency, pages); j++) {
         promises.push(
           supabase.from('shipments')
-            .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
+            .select('item_no, item_name, quantity, unit_price, selling_price, supply_amount, ship_date')
             .gte('ship_date', startDate).lte('ship_date', endDate)
             .range(j * batch, (j + 1) * batch - 1)
             .then(r => r.data || [])
@@ -340,18 +341,8 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 총액 판별: sp*qty≈sa → sp는 단가, sa가 총액. 아니면 sp 자체가 총액.
-        const sp = r.selling_price || 0;
-        const sa = r.supply_amount || 0;
-        const absQty = Math.abs(qty);
-        let amount: number;
-        if (absQty <= 1) {
-          amount = sp; // qty=1이면 단가=총액 (부호 유지: 반품은 음수)
-        } else if (sa !== 0 && Math.abs(sp * absQty - Math.abs(sa)) < 100 && Math.abs(sa) > Math.abs(sp)) {
-          amount = qty > 0 ? Math.abs(sa) : -Math.abs(sa); // sp는 단가, sa가 총액
-        } else {
-          amount = sp; // sp 자체가 총액 (부호 유지)
-        }
+        // 총액 판별 (priceUtils)
+        const amount = getSellingTotal(r.unit_price || 0, r.selling_price || 0, r.supply_amount || 0, qty);
 
         // 순수 판매량/금액 (반품은 차감)
         totalQty += qty; // 반품 차감
