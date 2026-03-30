@@ -117,9 +117,14 @@ function log(msg) {
           await switchEntity(page, config.entity);
         }
 
-        // 페이지 이동
+        // 페이지 이동 (DL 전환 직후엔 2번 로드하여 캐시된 CDV 데이터 제거)
         await page.goto(`${BASE_URL}${config.url}`, { waitUntil: 'networkidle', timeout: 30000 });
         await page.waitForTimeout(3000);
+        if (config.entity === 'DL' && config.type === 'release') {
+          log('  DL 출고현황 — 페이지 재로드 (CDV 캐시 방지)');
+          await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+          await page.waitForTimeout(3000);
+        }
 
         // 권한 요청 등 팝업 다이얼로그 자동 닫기
         await dismissPopups(page);
