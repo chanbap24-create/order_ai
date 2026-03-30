@@ -192,11 +192,27 @@ function log(msg) {
       }
     }
 
-    // ── DL: 별도 세션으로 재로그인 후 다운로드 ──
+    // ── DL: 완전히 새 브라우저 컨텍스트로 재로그인 ──
     if (dlTargets.length > 0) {
-      log('\n═══ DL 세션 시작 (별도 로그인) ═══');
-      // 기존 페이지에서 엔티티 전환
+      log('\n═══ DL 세션 시작 (새 브라우저 세션) ═══');
+      // 기존 페이지 닫고 새 컨텍스트 생성
+      await page.close();
+      await context.close();
+      context = await browser.newContext({ acceptDownloads: true });
+      page = await context.newPage();
+
+      // DL로 새로 로그인
+      await page.goto(`${BASE_URL}/kr/login`, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.waitForTimeout(2000);
+      await page.fill('input[type="text"], input[name="email"]', EMAIL);
+      await page.fill('input[type="password"]', PASSWORD);
+      await page.click('button[type="submit"]');
+      await page.waitForTimeout(5000);
+      log('  DL 세션 로그인 완료');
+
+      // 엔티티 전환
       await switchEntity(page, 'DL');
+      currentEntity = 'DL';
 
       for (const config of dlTargets) {
         log(`\n─── ${config.label} ───`);
@@ -216,7 +232,7 @@ function log(msg) {
           });
           if (!clicked) await page.click('button:has-text("조회")', { timeout: 10000 });
           log('  조회 → 데이터 로딩 대기...');
-          await page.waitForTimeout(10000);
+          await page.waitForTimeout(7000);
 
           const cellCount = await page.evaluate(() => document.querySelectorAll('.ht_master td').length);
           log(`  데이터 셀: ${cellCount}`);
