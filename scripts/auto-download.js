@@ -70,12 +70,12 @@ function log(msg) {
   log('ABCosmos 자동 다운로드 시작');
 
   const browser = await chromium.launch({ headless: HEADLESS });
-  const context = await browser.newContext({
+  let context = await browser.newContext({
     viewport: { width: 1400, height: 900 },
     acceptDownloads: true,
     permissions: [],               // 알림 권한 요청 차단
   });
-  const page = await context.newPage();
+  let page = await context.newPage();
 
   // 알림 권한 다이얼로그 자동 닫기
   page.on('dialog', async dialog => {
@@ -198,16 +198,20 @@ function log(msg) {
       // 기존 페이지 닫고 새 컨텍스트 생성
       await page.close();
       await context.close();
-      context = await browser.newContext({ acceptDownloads: true });
+      context = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true, permissions: [] });
       page = await context.newPage();
+      page.on('dialog', async dialog => { await dialog.dismiss(); });
 
-      // DL로 새로 로그인
+      // DL로 새로 로그인 (기존 로그인과 동일 방식)
       await page.goto(`${BASE_URL}/kr/login`, { waitUntil: 'networkidle', timeout: 30000 });
-      await page.waitForTimeout(2000);
-      await page.fill('input[type="text"], input[name="email"]', EMAIL);
-      await page.fill('input[type="password"]', PASSWORD);
-      await page.click('button[type="submit"]');
+      await page.waitForTimeout(3000);
+      const dlInputs = await page.$$('input');
+      if (dlInputs.length < 2) throw new Error('DL 로그인 input 찾기 실패');
+      await dlInputs[0].fill(EMAIL);
+      await dlInputs[1].fill(PASSWORD);
+      await page.click('button:has-text("로그인")');
       await page.waitForTimeout(5000);
+      if (page.url().includes('/login')) throw new Error('DL 로그인 실패');
       log('  DL 세션 로그인 완료');
 
       // 엔티티 전환
