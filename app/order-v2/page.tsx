@@ -131,6 +131,7 @@ export default function OrderV2Page() {
   // 발주
   const [orderText, setOrderText] = useState('');
   const [tab, setTab] = useState<'CDV' | 'DL'>('CDV');
+  const orderTextRef = useRef<HTMLTextAreaElement>(null);
 
   // 자동 붙여넣기
   const [autoPaste, setAutoPaste] = useState(() => {
@@ -155,6 +156,15 @@ export default function OrderV2Page() {
   };
 
   const pasteFromClipboard = async () => {
+    // textarea에 포커스 후 execCommand로 붙여넣기 (브라우저 권한 팝업 없음)
+    const ta = orderTextRef.current;
+    if (ta) {
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('paste');
+      if (ok) return;
+    }
+    // execCommand 미지원 시 Clipboard API fallback
     try {
       const text = await navigator.clipboard.readText();
       if (text?.trim()) setOrderText(text.trim());
@@ -818,7 +828,7 @@ export default function OrderV2Page() {
                 </div>
               </div>
             </div>
-            <textarea value={orderText} onChange={e => setOrderText(e.target.value)}
+            <textarea ref={orderTextRef} value={orderText} onChange={e => setOrderText(e.target.value)}
               className="order-input"
               placeholder="카톡/문자 발주 내용을 붙여넣으세요"
               rows={6}
