@@ -221,8 +221,43 @@ function log(msg) {
       for (const config of dlTargets) {
         log(`\n─── ${config.label} ───`);
         try {
-          await page.goto(`${BASE_URL}${config.url}`, { waitUntil: 'networkidle', timeout: 30000 });
-          await page.waitForTimeout(3000);
+          // DL 출고현황: 사이드바 메뉴 클릭으로 진입 (URL 직접 이동 시 CDV 캐시 문제)
+          if (config.type === 'release') {
+            log('  메뉴 클릭: 판매관리 → 거래명세서');
+            // 판매관리 메뉴 클릭
+            await page.evaluate(() => {
+              const links = document.querySelectorAll('a, span, div, li, button');
+              for (const el of links) {
+                if (el.textContent?.trim() === '판매관리' || el.textContent?.trim().includes('판매관리')) {
+                  el.click(); return true;
+                }
+              }
+              return false;
+            });
+            await page.waitForTimeout(2000);
+            // 거래명세서 메뉴 클릭
+            const navOk = await page.evaluate(() => {
+              const links = document.querySelectorAll('a, span, div, li, button');
+              for (const el of links) {
+                const t = el.textContent?.trim();
+                if (t === '거래명세서' || t === '출고현황') {
+                  el.click(); return true;
+                }
+              }
+              return false;
+            });
+            if (navOk) {
+              await page.waitForTimeout(5000);
+              log('  메뉴 진입 완료');
+            } else {
+              log('  ⚠ 메뉴 클릭 실패, URL 이동 시도');
+              await page.goto(`${BASE_URL}${config.url}`, { waitUntil: 'networkidle', timeout: 30000 });
+              await page.waitForTimeout(3000);
+            }
+          } else {
+            await page.goto(`${BASE_URL}${config.url}`, { waitUntil: 'networkidle', timeout: 30000 });
+            await page.waitForTimeout(3000);
+          }
 
           await dismissPopups(page);
           await setQueryConditions(page, config);
