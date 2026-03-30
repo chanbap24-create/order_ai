@@ -49,6 +49,11 @@ const PAGES = [
 
 // ── 유틸 ──
 function today() { return new Date().toISOString().slice(0, 10); }
+function weekLater() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
 function firstOfMonth() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -329,7 +334,36 @@ async function setQueryConditions(page, config) {
       await page.waitForTimeout(500);
     }
 
-    log(`  조회 기간: ${firstOfMonth()} ~ ${today()}`);
+    // 종료일을 7일 후로 변경 (출고 예정 포함)
+    const endDate = weekLater();
+    const changed = await page.evaluate((end) => {
+      // 날짜 input 필드 찾기 (보통 2번째가 종료일)
+      const dateInputs = document.querySelectorAll('input[type="date"], input[type="text"]');
+      const candidates = [];
+      for (const inp of dateInputs) {
+        const val = inp.value || '';
+        // 날짜 형식 (YYYY-MM-DD 또는 YYYY.MM.DD 또는 YYYYMMDD)
+        if (/^\d{4}[-./]?\d{2}[-./]?\d{2}$/.test(val.replace(/\s/g, ''))) {
+          candidates.push(inp);
+        }
+      }
+      // 종료일 = 두번째 날짜 input
+      if (candidates.length >= 2) {
+        const endInput = candidates[1];
+        const nativeSet = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+        nativeSet.call(endInput, end);
+        endInput.dispatchEvent(new Event('input', { bubbles: true }));
+        endInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }
+      return false;
+    }, endDate);
+    if (changed) {
+      log(`  종료일 → ${endDate} (7일 후)`);
+      await page.waitForTimeout(500);
+    }
+
+    log(`  조회 기간: ${firstOfMonth()} ~ ${endDate}`);
   } else if (config.type === 'stock') {
     log('  재고 조회 (기준일: 오늘)');
   } else if (config.type === 'payment') {
