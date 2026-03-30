@@ -153,42 +153,9 @@ const FILE_KEY_MAP = {
 };
 
 async function uploadFiles(files, logs) {
-  // 로컬 Next.js dev 서버를 띄워서 업로드 (admin 인증 없이 localhost 사용)
-  const LOCAL = 'http://localhost:3000';
-
-  // dev 서버 체크
-  let localOk = false;
-  try {
-    const r = await fetch(`${LOCAL}/api/sync-inventory`, { method: 'GET' });
-    localOk = r.ok;
-  } catch { /* not running */ }
-
-  // dev 서버가 없으면 임시로 시작
-  let devServer = null;
-  if (!localOk) {
-    log('  로컬 서버 시작 중...');
-    devServer = spawn('npx', ['next', 'dev', '-p', '3000'], {
-      cwd: PROJECT_DIR,
-      env: { ...process.env },
-      stdio: 'ignore',
-      detached: true,
-    });
-    // 서버 준비 대기 (최대 30초)
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 1000));
-      try {
-        const r = await fetch(`${LOCAL}/api/sync-inventory`);
-        if (r.ok) { localOk = true; break; }
-      } catch { /* not ready */ }
-    }
-    if (!localOk) {
-      logs.push('✗ 로컬 서버 시작 실패');
-      if (devServer) { devServer.kill(); }
-      return;
-    }
-    log('  로컬 서버 준비 완료');
-  }
-
+  // 다운로드된 파일을 XLSX 파싱 → Vercel API로 JSON 전송 (로컬 서버 불필요)
+  const XLSX = require('xlsx');
+  const { HEADER_MAP, TEXT_COLUMNS } = require(path.join(PROJECT_DIR, 'app/lib/inventoryHeaders'));
   const dlDir = path.join(PROJECT_DIR, 'downloads');
 
   for (const fileName of files) {
@@ -202,34 +169,79 @@ async function uploadFiles(files, logs) {
     try {
       const filePath = path.join(dlDir, fileName);
       const buffer = fs.readFileSync(filePath);
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const wb = XLSX.read(buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
+      // 재고현황: 헤더 기반 파싱 → JSON API 전송
+      if (uploadType === 'downloads' || uploadType === 'dl') {
+        const headers = rawRows[0].map(v => String(v ?? '').trim());
+        const colMap = [];
+        for (let idx = 0; idx < headers.length; idx++) {
+          const h = headers[idx];
+          if (!h) continue;
+          const dbCol = HEADER_MAP[h];
+          if (dbCol) colMap.push({ idx, dbCol });
+        }
+
+        const rows = [];
+        for (let i = 1; i < rawRows.length; i++) {
+          const r = rawRows[i];
+          const obj = {};
+          for (const cm of colMap) {
+            const raw = r[cm.idx];
+            if (TEXT_COLUMNS.has(cm.dbCol)) {
+              obj[cm.dbCol] = cm.dbCol === 'item_no'
+                ? String(raw ?? '').trim().replace(/\.0$/, '')
+                : String(raw ?? '').trim();
+            } else {
+              if (raw == null) { obj[cm.dbCol] = null; continue; }
+              const s = String(raw).replace(/,/g, '').trim();
+              const n = Number(s);
+              obj[cm.dbCol] = Number.isFinite(n) ? n : null;
+            }
+          }
+          if (!obj.item_no) continue;
+          obj.updated_at = new Date().toISOString();
+          rows.push(obj);
+        }
+
+        // 2000건씩 청크 전송
+        const CHUNK = 2000;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+          const chunk = rows.slice(i, i + CHUNK);
+          const res = await fetch(`${API_BASE}/api/admin/upload-data/${uploadType}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: chunk, append: i > 0 }),
+          });
+          if (!res.ok) throw new Error(await res.text().then(t => t.slice(0, 200)));
+        }
+        logs.push(`✓ ${fileName} → ${uploadType} (${rows.length}건)`);
+        log(`  ✓ ${fileName} → ${uploadType} (${rows.length}건)`);
+        continue;
+      }
+
+      // 출고현황/수금내역: 기존 웹 UI와 동일하게 handleUpload 로직을 에이전트에서 수행하기엔 복잡
+      // → FormData로 Vercel에 직접 전송 (remote-sync API 경유)
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const formData = new FormData();
       formData.append('file', blob, fileName);
+      formData.append('type', uploadType);
 
-      // 로컬 서버로 업로드 (인증 불필요)
-      const res = await fetch(`${LOCAL}/api/admin/upload/${uploadType}`, {
+      const res = await fetch(`${API_BASE}/api/admin/remote-sync/upload`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err.slice(0, 200));
-      }
-
-      logs.push(`✓ ${fileName} → ${uploadType} 업로드 완료`);
+      if (!res.ok) throw new Error(await res.text().then(t => t.slice(0, 200)));
+      const result = await res.json();
+      logs.push(`✓ ${fileName} → ${uploadType} (${result.items || result.inserted || '?'}건)`);
       log(`  ✓ ${fileName} → ${uploadType}`);
     } catch (err) {
       logs.push(`✗ ${fileName} 업로드 실패: ${err.message}`);
       log(`  ✗ ${fileName}: ${err.message}`);
     }
-  }
-
-  // 임시로 시작한 dev 서버 종료
-  if (devServer) {
-    log('  로컬 서버 종료');
-    devServer.kill();
   }
 }
 
