@@ -155,7 +155,19 @@ const FILE_KEY_MAP = {
 async function uploadFiles(files, logs) {
   // 다운로드된 파일을 XLSX 파싱 → Vercel API로 JSON 전송 (로컬 서버 불필요)
   const XLSX = require('xlsx');
-  const { HEADER_MAP, TEXT_COLUMNS } = require(path.join(PROJECT_DIR, 'app/lib/inventoryHeaders'));
+  // inventoryHeaders.ts는 TypeScript라 직접 require 불가 — 인라인 정의
+  const HEADER_MAP = {
+    '품번':'item_no','품명':'item_name','브랜드':'brand','수입사':'importer','용량':'volume_ml',
+    '빈티지':'vintage','알콜도수%':'alcohol_content','국가':'country','표준바코드':'barcode',
+    '재고수량(A)':'total_stock','재고수량(가용재고제외)(B)':'stock_excl_available','출고예정(C)':'pending_shipment','가용재고(B-C)':'available_stock',
+    '재고수량(B)':'total_stock','재고수량(가용재고제외)':'stock_excl_available','출고예정(B)':'pending_shipment','가용재고(A-B)':'available_stock',
+    '30일출고':'sales_30days','90일/3평균출고':'avg_sales_90d','365일/12평균출고':'avg_sales_365d',
+    '공급가':'supply_price','판매가':'retail_price','할인공급가':'discount_price','도매장가':'wholesale_price','최저판매가':'min_price','미착품재고':'incoming_stock',
+    '보세(용마)':'bonded_warehouse','용마로지스':'yongma_logistics','용마(리져브)':'yongma_reserve','용마(마케팅부)':'yongma_marketing','용마(영업1부)':'yongma_sales1','용마(영업2부)':'yongma_sales2','안성창고(CDV)':'anseong_warehouse',
+    '보세(GIG)':'bonded_warehouse','안성창고(DL)':'anseong_warehouse','GIG':'gig_warehouse','GIG(마케팅부)':'gig_marketing','GIG(영업1부)':'gig_sales1',
+    '안성창고':'anseong_warehouse','GIG마케팅':'gig_marketing','GIG영업1':'gig_sales1',
+  };
+  const TEXT_COLUMNS = new Set(['item_no','item_name','brand','importer','volume_ml','vintage','alcohol_content','country','barcode']);
   const dlDir = path.join(PROJECT_DIR, 'downloads');
 
   for (const fileName of files) {
@@ -210,10 +222,10 @@ async function uploadFiles(files, logs) {
         const CHUNK = 2000;
         for (let i = 0; i < rows.length; i += CHUNK) {
           const chunk = rows.slice(i, i + CHUNK);
-          const res = await fetch(`${API_BASE}/api/admin/upload-data/${uploadType}`, {
+          const res = await fetch(`${API_BASE}/api/admin/remote-sync/upload`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rows: chunk, append: i > 0 }),
+            body: JSON.stringify({ type: uploadType, rows: chunk, append: i > 0 }),
           });
           if (!res.ok) throw new Error(await res.text().then(t => t.slice(0, 200)));
         }
