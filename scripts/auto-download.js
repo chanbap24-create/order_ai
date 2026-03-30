@@ -288,44 +288,47 @@ async function switchEntity(page, targetEntity) {
     await page.mouse.click(target.x + 10, target.y + target.h / 2);
     await page.waitForTimeout(5000);
 
-    // 페이지 새로고침으로 엔티티 전환 확정
-    await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+    // 엔티티 전환 확정: 메인 페이지로 이동 후 확인
+    await page.waitForTimeout(3000);
+    await page.goto(`${BASE_URL}/kr/main`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
 
     // 전환 검증: 현재 페이지에 대상 엔티티명이 표시되는지 확인
-    const verified = await page.evaluate((name) => {
-      return document.body.innerText.includes(name);
-    }, targetName);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const verified = await page.evaluate((name) => {
+        return document.body.innerText.includes(name);
+      }, targetName);
 
-    if (verified) {
-      currentEntity = targetEntity;
-      log(`  ✓ 엔티티 전환 완료: ${targetEntity} (검증됨)`);
-    } else {
-      // 재시도: 한번 더 클릭
-      log(`  ⚠ 엔티티 전환 미확인, 재시도...`);
-      await page.mouse.click(40, 40);
-      await page.waitForTimeout(2000);
-      const retry = await page.evaluate((name) => {
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-        while (walker.nextNode()) {
-          if (walker.currentNode.textContent?.includes(name)) {
-            const el = walker.currentNode.parentElement;
-            const rect = el?.getBoundingClientRect();
-            if (rect && rect.width > 0 && el.tagName === 'P') {
-              el.click();
-              return true;
+      if (verified) {
+        currentEntity = targetEntity;
+        log(`  ✓ 엔티티 전환 완료: ${targetEntity} (검증됨, 시도 ${attempt + 1})`);
+        break;
+      }
+
+      if (attempt < 2) {
+        log(`  ⚠ 엔티티 전환 미확인 (시도 ${attempt + 1}), 재시도...`);
+        // 프로필 아이콘 다시 클릭
+        await page.mouse.click(40, 40);
+        await page.waitForTimeout(2000);
+
+        // 대상 엔티티 클릭
+        await page.evaluate((name) => {
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) {
+            if (walker.currentNode.textContent?.includes(name)) {
+              const el = walker.currentNode.parentElement;
+              const rect = el?.getBoundingClientRect();
+              if (rect && rect.width > 0) { el.click(); return; }
             }
           }
-        }
-        return false;
-      }, targetName);
-      if (retry) {
+        }, targetName);
         await page.waitForTimeout(5000);
-        await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+        await page.goto(`${BASE_URL}/kr/main`, { waitUntil: 'networkidle', timeout: 30000 });
         await page.waitForTimeout(3000);
+      } else {
+        log(`  ✗ 엔티티 전환 3회 실패 — ${targetEntity} 관련 파일 스킵됩니다`);
+        throw new Error(`엔티티 전환 실패: ${targetEntity}`);
       }
-      currentEntity = targetEntity;
-      log(`  ✓ 엔티티 전환 재시도 완료: ${targetEntity}`);
     }
   } else {
     throw new Error(`엔티티 "${targetName}" 옵션을 찾을 수 없음`);
@@ -396,31 +399,50 @@ async function setQueryConditions(page, config) {
 
     // 종료일을 7일 후로 변경 (출고 예정 포함)
     const endDate = weekLater();
-    const changed = await page.evaluate((end) => {
-      // 날짜 input 필드 찾기 (보통 2번째가 종료일)
-      const dateInputs = document.querySelectorAll('input[type="date"], input[type="text"]');
+    const dateInfo = await page.evaluate((end) => {
+      // 모든 input 필드 수집
+      const allInputs = document.querySelectorAll('input');
       const candidates = [];
-      for (const inp of dateInputs) {
-        const val = inp.value || '';
-        // 날짜 형식 (YYYY-MM-DD 또는 YYYY.MM.DD 또는 YYYYMMDD)
-        if (/^\d{4}[-./]?\d{2}[-./]?\d{2}$/.test(val.replace(/\s/g, ''))) {
-          candidates.push(inp);
+      for (const inp of allInputs) {
+        const val = (inp.value || '').replace(/\s/g, '');
+        // 날짜 형식: YYYY-MM-DD, YYYY.MM.DD, YYYYMMDD, YYYY/MM/DD
+        if (/^\d{4}[-./]?\d{2}[-./]?\d{2}$/.test(val)) {
+          candidates.push({ val, type: inp.type, placeholder: inp.placeholder });
         }
       }
+      if (candidates.length < 2) return { found: false, candidates };
+
       // 종료일 = 두번째 날짜 input
-      if (candidates.length >= 2) {
-        const endInput = candidates[1];
-        const nativeSet = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-        nativeSet.call(endInput, end);
-        endInput.dispatchEvent(new Event('input', { bubbles: true }));
-        endInput.dispatchEvent(new Event('change', { bubbles: true }));
-        return true;
+      let idx = 0;
+      for (const inp of allInputs) {
+        const val = (inp.value || '').replace(/\s/g, '');
+        if (/^\d{4}[-./]?\d{2}[-./]?\d{2}$/.test(val)) {
+          idx++;
+          if (idx === 2) {
+            // 기존 날짜 형식 유지 (구분자 동일하게)
+            const sep = val.includes('-') ? '-' : val.includes('.') ? '.' : val.includes('/') ? '/' : '';
+            const parts = end.split('-');
+            const formatted = sep ? parts.join(sep) : parts.join('');
+
+            // React 호환 값 설정
+            const nativeSet = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+            nativeSet.call(inp, formatted);
+            inp.dispatchEvent(new Event('input', { bubbles: true }));
+            inp.dispatchEvent(new Event('change', { bubbles: true }));
+            // blur 이벤트도 트리거 (React DatePicker 호환)
+            inp.dispatchEvent(new Event('blur', { bubbles: true }));
+            return { found: true, oldVal: val, newVal: formatted, candidates };
+          }
+        }
       }
-      return false;
+      return { found: false, candidates };
     }, endDate);
-    if (changed) {
-      log(`  종료일 → ${endDate} (7일 후)`);
+
+    if (dateInfo.found) {
+      log(`  종료일 변경: ${dateInfo.oldVal} → ${dateInfo.newVal}`);
       await page.waitForTimeout(500);
+    } else {
+      log(`  ⚠ 날짜 필드를 찾을 수 없음 (후보: ${JSON.stringify(dateInfo.candidates)})`);
     }
 
     log(`  조회 기간: ${firstOfMonth()} ~ ${endDate}`);

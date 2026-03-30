@@ -182,6 +182,30 @@ async function uploadFiles(files, logs) {
       const filePath = path.join(dlDir, fileName);
       const buffer = fs.readFileSync(filePath);
       const wb = XLSX.read(buffer, { type: 'buffer' });
+
+      // 출고현황: CDV/DL 엔티티 검증 (잘못된 데이터 업로드 방지)
+      if (uploadType === 'client' || uploadType === 'dl-client') {
+        const vws = wb.Sheets[wb.SheetNames[0]];
+        const vrows = XLSX.utils.sheet_to_json(vws, { header: 1, defval: '' });
+        const warehouses = new Set();
+        for (let vi = 1; vi < Math.min(50, vrows.length); vi++) {
+          const wh = String(vrows[vi]?.[23] || '').trim();
+          if (wh) warehouses.add(wh);
+        }
+        const whText = [...warehouses].join('|');
+        const isCDV = whText.includes('용마') || whText.includes('CDV');
+        const isDL = whText.includes('GIG') || whText.includes('DL');
+        if (uploadType === 'dl-client' && isCDV && !isDL) {
+          logs.push(`SKIP: ${fileName} → CDV 데이터가 DL로 잘못 들어감 방지`);
+          log(`  ⚠ SKIP: ${fileName} (CDV 데이터 — DL 엔티티 전환 실패)`);
+          continue;
+        }
+        if (uploadType === 'client' && isDL && !isCDV) {
+          logs.push(`SKIP: ${fileName} → DL 데이터가 CDV로 잘못 들어감 방지`);
+          log(`  ⚠ SKIP: ${fileName} (DL 데이터 — CDV 엔티티 전환 실패)`);
+          continue;
+        }
+      }
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
