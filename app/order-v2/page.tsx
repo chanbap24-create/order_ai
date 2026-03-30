@@ -23,6 +23,8 @@ interface OrderLine {
   quantity: number;
   candidates: Candidate[];
   selectedIdx: number; // 선택된 후보 인덱스 (-1이면 미선택)
+  qty_warning?: string; // 수량 크로스체크 경고
+  qty_original_llm?: number; // LLM이 원래 반환한 수량 (보정 전)
 }
 
 interface SearchResult {
@@ -359,6 +361,7 @@ export default function OrderV2Page() {
         quantity: ol.quantity || 1,
         candidates: ol.candidates || [],
         selectedIdx: ol.candidates?.length > 0 ? 0 : -1, // 첫번째 후보 자동선택
+        ...(ol.qty_warning ? { qty_warning: ol.qty_warning, qty_original_llm: ol.qty_original_llm } : {}),
       }));
       setOrderLines(lines);
       setUsage(json.usage || null);
@@ -1157,10 +1160,20 @@ export default function OrderV2Page() {
 
                         {/* 수량 */}
                         <span style={{
-                          fontSize: 13, fontWeight: 700, color: '#5A1515',
+                          fontSize: 13, fontWeight: 700,
+                          color: ol.qty_warning ? '#D32F2F' : '#5A1515',
                           flexShrink: 0, minWidth: 32, textAlign: 'right',
-                        }}>
+                          position: 'relative',
+                        }}
+                          title={ol.qty_warning || ''}
+                        >
                           {ol.quantity}{getUnit(sel?.item_no, sel?.item_name)}
+                          {ol.qty_warning && (
+                            <span style={{
+                              fontSize: 9, color: '#D32F2F', fontWeight: 700,
+                              marginLeft: 2, verticalAlign: 'super',
+                            }}>⚠️{ol.qty_original_llm}</span>
+                          )}
                         </span>
 
                         {/* 신뢰도 */}

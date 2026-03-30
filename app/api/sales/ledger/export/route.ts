@@ -69,24 +69,31 @@ export async function fetchLedgerData(clientCode: string, startDate: string, end
     allRows.sort((a, b) => a.ship_date.localeCompare(b.ship_date) || (a.item_name || '').localeCompare(b.item_name || ''));
   }
 
-  // 이월 미수금
+  // 이월 미수금 (created_at 포함 — refDate 결정에 필요)
   let carryover = 0;
-  const { data: co } = await supabase.from(carryoverTable).select('carryover_amount').in('client_code', allCodes);
-  if (co) for (const c of co) carryover += (c.carryover_amount || 0);
+  let earliestCreatedAt: string | null = null;
+  const { data: co } = await supabase.from(carryoverTable).select('carryover_amount, created_at').in('client_code', allCodes);
+  if (co) for (const c of co) {
+    carryover += (c.carryover_amount || 0);
+    if (c.created_at && (!earliestCreatedAt || c.created_at < earliestCreatedAt)) earliestCreatedAt = c.created_at;
+  }
   if (clientName) {
-    const { data: coName } = await supabase.from(carryoverTable).select('carryover_amount')
+    const { data: coName } = await supabase.from(carryoverTable).select('carryover_amount, created_at')
       .eq('client_name', clientName).not('client_code', 'in', `(${allCodes.map(sanitizeCode).join(',')})`);
-    if (coName) for (const c of coName) carryover += (c.carryover_amount || 0);
+    if (coName) for (const c of coName) {
+      carryover += (c.carryover_amount || 0);
+      if (c.created_at && (!earliestCreatedAt || c.created_at < earliestCreatedAt)) earliestCreatedAt = c.created_at;
+    }
   }
 
-  // carryover 기준월 결정: carryover 레코드가 있으면 현재 월, 없으면 모든 과거 거래를 합산
+  // carryover 기준월 결정: 화면(ledger/route.ts)과 동일하게 created_at 기반
   let refDate: string;
-  if (carryover !== 0) {
-    const now = new Date();
-    const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    refDate = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  if (earliestCreatedAt) {
+    const d = new Date(earliestCreatedAt);
+    const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+    refDate = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-01`;
   } else {
-    // carryover 없음: 과거 모든 거래를 순방향 합산
+    // carryover 레코드 없음: 모든 과거 거래를 순방향으로 합산
     refDate = '2020-01-01';
   }
   let prevBalance = carryover;

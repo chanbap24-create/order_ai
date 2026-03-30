@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getClaudeClient } from '@/app/lib/claudeClient';
+import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -238,6 +239,18 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
         candidates,
       };
     });
+
+    // ── 수량 크로스체크: 규칙기반 파서로 원문 수량 재검증 ──
+    const qtyChecks = crossCheckQuantities(orderLines);
+    for (let i = 0; i < orderLines.length; i++) {
+      const check = qtyChecks[i];
+      if (check.mismatch && check.ruleQty !== null) {
+        // 규칙기반 수량으로 자동 보정 + 경고 플래그
+        orderLines[i].quantity = check.ruleQty;
+        orderLines[i].qty_warning = check.warning;
+        orderLines[i].qty_original_llm = check.llmQty;
+      }
+    }
 
     const usage = {
       input_tokens: response.usage?.input_tokens || 0,
