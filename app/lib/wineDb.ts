@@ -114,6 +114,7 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
     if (!code || code.length < 5) return false;
     if (code.startsWith('D') || code.startsWith('9F')) return false;
     if (/^7[0-9A-Z]/.test(code) && (w.item_name_kr || '').includes('특판')) return false;
+    if ((w.item_name_kr || '').includes('더미')) return false;
     // 노트 필터
     if (filters?.hasNote === true) return w.tasting_note_id !== null;
     if (filters?.hasNote === false) return w.tasting_note_id === null;
