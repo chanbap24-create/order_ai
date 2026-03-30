@@ -591,7 +591,7 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
         }
 
         // 브라우저에서 parseInventorySheet 동일 로직 수행
-        const { HEADER_MAP, TEXT_COLUMNS } = await import('@/app/lib/adminUpload');
+        const { HEADER_MAP, TEXT_COLUMNS } = await import('@/app/lib/inventoryHeaders');
         const colMap: Array<{ idx: number; dbCol: string }> = [];
         for (let idx = 0; idx < headers.length; idx++) {
           const h = headers[idx];
