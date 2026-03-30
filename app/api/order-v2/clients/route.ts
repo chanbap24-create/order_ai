@@ -23,23 +23,28 @@ export async function GET(req: NextRequest) {
 
     const words = splitSearchWords(q);
 
-    // 거래처 테이블에서 검색
-    let directQuery = supabase
-      .from(clientTable)
-      .select('client_code, client_name');
+    // 3개 쿼리 병렬 실행 (순차→병렬 최적화)
+    let directQuery = supabase.from(clientTable).select('client_code, client_name');
     directQuery = applyMultiWordSearch(directQuery, words, 'client_name', ['client_code']);
-    const { data: direct, error: e1 } = await directQuery
-      .order('client_name', { ascending: true })
-      .limit(20);
-    if (e1) throw e1;
 
-    // alias 테이블에서도 검색
-    let aliasQuery = supabase
-      .from(aliasTable)
-      .select('client_code, alias');
+    let aliasQuery = supabase.from(aliasTable).select('client_code, alias');
     aliasQuery = applyMultiWordSearch(aliasQuery, words, 'alias', []);
-    const { data: aliases, error: e2 } = await aliasQuery.limit(20);
-    if (e2) throw e2;
+
+    const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
+    let shipQuery = supabase.from(shipTable).select('client_code, client_name');
+    shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', []);
+
+    const [directRes, aliasRes, shipRes] = await Promise.all([
+      directQuery.order('client_name', { ascending: true }).limit(20),
+      aliasQuery.limit(20),
+      shipQuery.limit(50),
+    ]);
+
+    if (directRes.error) throw directRes.error;
+    if (aliasRes.error) throw aliasRes.error;
+    const direct = directRes.data;
+    const aliases = aliasRes.data;
+    const shipData = shipRes.data;
 
     // alias → code → name 매핑 (alias명 보존)
     const aliasMap = new Map<string, string>(); // code → alias
@@ -58,14 +63,6 @@ export async function GET(req: NextRequest) {
         matched_alias: aliasMap.get(c.client_code) || null,
       }));
     }
-
-    // shipments 테이블에서도 항상 검색 (client_code가 null인 거래처 포함)
-    const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
-    let shipQuery = supabase
-      .from(shipTable)
-      .select('client_code, client_name');
-    shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', []);
-    const { data: shipData } = await shipQuery.limit(200);
 
     // 합치고 중복 제거
     const map = new Map<string, { client_code: string; client_name: string; matched_alias?: string }>();

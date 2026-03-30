@@ -258,7 +258,7 @@ export default function OrderV2Page() {
     }
     const timer = setTimeout(() => {
       searchClients(clientQuery);
-    }, 200);
+    }, 300);
     return () => clearTimeout(timer);
   }, [clientQuery, showDropdown, searchClients]);
 
