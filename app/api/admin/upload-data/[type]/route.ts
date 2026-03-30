@@ -5,8 +5,9 @@ import { processClientFromData, processDlClientFromData, processShipmentsFromDat
 import type { ShipmentRow, PaymentRow, CarryoverRow } from "@/app/lib/adminUpload";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
+import { supabase } from "@/app/lib/db";
 
-const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments', 'dl-payments'] as const;
+const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments', 'dl-payments', 'downloads', 'dl'] as const;
 
 export async function POST(
   request: NextRequest,
@@ -23,6 +24,34 @@ export async function POST(
     }
 
     const body = await request.json();
+
+    // 재고현황 업로드 (브라우저에서 파싱된 JSON 수신)
+    if (type === 'downloads' || type === 'dl') {
+      const { rows, append } = body as { rows: Record<string, unknown>[]; append?: boolean };
+      if (!rows || !Array.isArray(rows)) {
+        return NextResponse.json({ success: false, error: '재고 데이터(rows)가 필요합니다.' }, { status: 400 });
+      }
+      // 빈 배열이면 이전 청크에서 이미 처리 완료 — 성공 응답만 반환
+      if (rows.length === 0) {
+        return NextResponse.json({ success: true, type, items: 0 });
+      }
+      logger.info(`Admin upload-data: type=${type}, rows=${rows.length}, append=${!!append}`);
+
+      // append=true이면 기존 데이터 유지하고 upsert만
+      const table = type === 'downloads' ? 'inventory_cdv' : 'inventory_dl';
+      if (!append) {
+        // 첫 번째 청크: 기존 데이터 삭제
+        await supabase.from(table).delete().not('item_no', 'is', null);
+      }
+      // upsert
+      for (let i = 0; i < rows.length; i += 500) {
+        const { error } = await supabase.from(table).upsert(rows.slice(i, i + 500), { onConflict: 'item_no' });
+        if (error) throw new Error(`${table} upsert failed: ${error.message}`);
+      }
+
+      // wine detection은 클라이언트에서 모든 청크 완료 후 /downloads-detect로 별도 호출
+      return NextResponse.json({ success: true, type, items: rows.length });
+    }
 
     // 수금내역 업로드 (이월 미수금 포함)
     if (type === 'payments') {

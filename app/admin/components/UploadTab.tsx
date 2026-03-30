@@ -574,6 +574,97 @@ export default function UploadTab({ onUploadComplete }: UploadTabProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ items }),
         });
+      }
+      // 재고현황 (downloads/dl): 브라우저에서 파싱 후 JSON 전송 (FormData 크기 제한 우회)
+      else if (type === 'downloads' || type === 'dl') {
+        updateCard(type, { status: 'uploading', fileName: file.name, message: '재고 파일 분석 중...' });
+        const XLSX = await import('xlsx');
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+
+        // 헤더 매핑 검증
+        const headers = (rawRows[0] as unknown[]).map(v => String(v ?? '').trim());
+        if (!headers.includes('품번') || !headers.includes('품명')) {
+          throw new Error('재고현황 파일이 아닙니다. 헤더에 "품번", "품명"이 필요합니다.');
+        }
+
+        // 브라우저에서 parseInventorySheet 동일 로직 수행
+        const { HEADER_MAP, TEXT_COLUMNS } = await import('@/app/lib/adminUpload');
+        const colMap: Array<{ idx: number; dbCol: string }> = [];
+        for (let idx = 0; idx < headers.length; idx++) {
+          const h = headers[idx];
+          if (!h) continue;
+          const dbCol = HEADER_MAP[h];
+          if (dbCol) colMap.push({ idx, dbCol });
+        }
+
+        const normCode = (x: unknown) => String(x ?? '').trim().replace(/\.0$/, '');
+        const normText = (x: unknown) => String(x ?? '').trim();
+        const toNumber = (x: unknown): number | null => {
+          if (x == null) return null;
+          const s = String(x).replace(/,/g, '').trim();
+          if (!s || s === '-') return null;
+          const n = Number(s);
+          return Number.isFinite(n) ? n : null;
+        };
+
+        const inventoryRows: Record<string, unknown>[] = [];
+        for (let i = 1; i < rawRows.length; i++) {
+          const r = rawRows[i] as unknown[];
+          const obj: Record<string, unknown> = {};
+          for (const cm of colMap) {
+            const raw = r[cm.idx];
+            if (TEXT_COLUMNS.has(cm.dbCol)) {
+              obj[cm.dbCol] = cm.dbCol === 'item_no' ? normCode(raw) : normText(raw);
+            } else {
+              obj[cm.dbCol] = toNumber(raw);
+            }
+          }
+          if (!obj.item_no) continue;
+          obj.updated_at = new Date().toISOString();
+          inventoryRows.push(obj);
+        }
+
+        if (inventoryRows.length === 0) {
+          throw new Error('파싱된 재고 데이터가 0건입니다. 파일을 확인해주세요.');
+        }
+
+        updateCard(type, { status: 'uploading', fileName: file.name, message: `${inventoryRows.length}건 재고 업로드 중...` });
+
+        // 2000건씩 청크 전송 (Vercel body 크기 제한 대응)
+        const CHUNK = 2000;
+        let totalInserted = 0;
+        for (let i = 0; i < inventoryRows.length; i += CHUNK) {
+          const chunk = inventoryRows.slice(i, i + CHUNK);
+          const chunkRes = await fetch(`/api/admin/upload-data/${type}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: chunk, append: i > 0 }),
+          });
+          if (!chunkRes.ok) {
+            const err = await chunkRes.json().catch(() => ({ error: '알 수 없는 오류' }));
+            throw new Error(err.error || `재고 업로드 실패 (batch ${i})`);
+          }
+          totalInserted += chunk.length;
+          updateCard(type, { status: 'uploading', fileName: file.name, message: `${totalInserted}/${inventoryRows.length}건 업로드 중...` });
+        }
+
+        // Downloads 업로드 완료 후 신규 와인 감지 실행
+        let extraInfo = {};
+        if (type === 'downloads') {
+          try {
+            updateCard(type, { status: 'uploading', fileName: file.name, message: '신규 와인 감지 중...' });
+            const detectRes = await fetch('/api/admin/upload/downloads-detect', { method: 'POST' });
+            if (detectRes.ok) extraInfo = await detectRes.json();
+          } catch { /* non-fatal */ }
+        }
+
+        res = new Response(JSON.stringify({ success: true, type, items: totalInserted, ...extraInfo }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       } else {
         // 그 외: 기존 FormData 방식
         const formData = new FormData();

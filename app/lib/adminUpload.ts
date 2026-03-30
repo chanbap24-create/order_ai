@@ -67,7 +67,7 @@ function toNumber(x: unknown): number | null {
 
 /* ─── 재고 엑셀 헤더 → DB 컬럼 매핑 (동적 파싱) ─── */
 // 관리자 업로드 엑셀 + 번들 엑셀 양쪽 포맷 모두 지원
-const HEADER_MAP: Record<string, string> = {
+export const HEADER_MAP: Record<string, string> = {
   // 기본 정보
   '품번': 'item_no',
   '품명': 'item_name',
@@ -119,7 +119,7 @@ const HEADER_MAP: Record<string, string> = {
   'GIG영업1': 'gig_sales1',
 };
 
-const TEXT_COLUMNS = new Set([
+export const TEXT_COLUMNS = new Set([
   'item_no', 'item_name', 'brand', 'importer', 'volume_ml',
   'vintage', 'alcohol_content', 'country', 'barcode',
 ]);
@@ -534,6 +534,92 @@ async function processDownloads(buf: Buffer) {
     logger.info(`[Downloads] Recorded CDV inventory value: ${cdvTotal}`);
   } catch (e) {
     logger.warn("[Downloads] Failed to record inventory value (non-fatal)", { error: e });
+  }
+
+  return { items: inventoryRows.length };
+}
+
+/**
+ * 브라우저에서 파싱된 재고 데이터를 받아 inventory_cdv에 저장
+ * FormData 크기 제한 문제를 우회하기 위해 JSON으로 전달받음
+ */
+export async function processDownloadsFromData(inventoryRows: Record<string, unknown>[]) {
+  if (!inventoryRows || inventoryRows.length === 0) throw new Error("재고 데이터가 없습니다.");
+
+  // wines 기준선 세팅
+  try {
+    ensureWineTables();
+    const { count: wineCount } = await supabase.from('wines').select('*', { count: 'exact', head: true });
+    if ((wineCount ?? 0) === 0) {
+      const { data: oldItems, error: oldError } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country')
+        .not('item_no', 'is', null).neq('item_no', '');
+      if (!oldError && oldItems && oldItems.length > 0) {
+        const baselineRows = oldItems.map((item: { item_no: string; item_name: string; supply_price: number | null; available_stock: number | null; vintage: string | null; alcohol_content: string | null; country: string | null }) => {
+          const { kr, en } = getCountryPair(item.country || '');
+          return { item_code: item.item_no, item_name_kr: item.item_name, country: kr || item.country, country_en: en, vintage: item.vintage, alcohol: item.alcohol_content, supply_price: item.supply_price, available_stock: item.available_stock, status: 'active' };
+        });
+        for (let i = 0; i < baselineRows.length; i += 500) {
+          await supabase.from('wines').upsert(baselineRows.slice(i, i + 500), { onConflict: 'item_code', ignoreDuplicates: true });
+        }
+      }
+    }
+  } catch (e) {
+    logger.warn("[Downloads] Baseline setup failed (non-fatal)", { error: e });
+  }
+
+  await supabase.from('inventory_cdv').delete().not('item_no', 'is', null);
+
+  for (let i = 0; i < inventoryRows.length; i += 500) {
+    const { error } = await supabase.from('inventory_cdv').upsert(inventoryRows.slice(i, i + 500), { onConflict: 'item_no' });
+    if (error) throw new Error(`inventory_cdv upsert failed: ${error.message}`);
+  }
+
+  // CDV 재고금액 기록
+  let cdvTotal = 0;
+  for (const row of inventoryRows) {
+    const supply = Number(row.supply_price) || 0;
+    const bonded = Number(row.bonded_warehouse) || 0;
+    const yongma = Number(row.yongma_logistics) || 0;
+    cdvTotal += (bonded + yongma) * supply;
+  }
+  try {
+    await recordInventoryValuePartial('cdv', cdvTotal);
+  } catch (e) {
+    logger.warn("[Downloads] Failed to record inventory value (non-fatal)", { error: e });
+  }
+
+  return { items: inventoryRows.length };
+}
+
+/**
+ * 브라우저에서 파싱된 재고 데이터를 받아 inventory_dl에 저장
+ */
+export async function processDlFromData(inventoryRows: Record<string, unknown>[]) {
+  if (!inventoryRows || inventoryRows.length === 0) throw new Error("재고 데이터가 없습니다.");
+
+  await supabase.from('inventory_dl').delete().not('item_no', 'is', null);
+
+  for (let i = 0; i < inventoryRows.length; i += 500) {
+    const { error } = await supabase.from('inventory_dl').upsert(inventoryRows.slice(i, i + 500), { onConflict: 'item_no' });
+    if (error) throw new Error(`inventory_dl upsert failed: ${error.message}`);
+  }
+
+  // DL 재고금액 기록
+  let dlTotal = 0;
+  for (const row of inventoryRows) {
+    const supply = Number(row.supply_price) || 0;
+    const anseong = Number(row.anseong_warehouse) || 0;
+    const gig = Number(row.gig_warehouse) || 0;
+    const gigMkt = Number(row.gig_marketing) || 0;
+    const gigSales = Number(row.gig_sales1) || 0;
+    dlTotal += (anseong + gig + gigMkt + gigSales) * supply;
+  }
+  try {
+    await recordInventoryValuePartial('dl', dlTotal);
+  } catch (e) {
+    logger.warn("[DL] Failed to record inventory value (non-fatal)", { error: e });
   }
 
   return { items: inventoryRows.length };
