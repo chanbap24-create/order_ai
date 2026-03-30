@@ -242,8 +242,42 @@ function log(msg) {
               }
               const whText = [...warehouses].join('|');
               if ((whText.includes('용마') || whText.includes('CDV')) && !whText.includes('GIG') && !whText.includes('DL')) {
-                log(`  ⚠ 엔티티 불일치! 실제 창고: ${whText}`);
-                results[config.key] = { success: false, reason: `엔티티 불일치 (${whText})` };
+                log(`  ⚠ 1차 조회에서 CDV 데이터 감지 — 페이지 새로고침 후 재조회`);
+                // 페이지 새로고침 → 재조회 → 재다운로드
+                await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+                await page.waitForTimeout(3000);
+                await dismissPopups(page);
+                await setQueryConditions(page, config);
+                await page.evaluate(() => {
+                  for (const btn of document.querySelectorAll('button')) {
+                    if (btn.textContent?.trim() === '조회') { btn.click(); return; }
+                  }
+                });
+                log('  재조회 → 데이터 로딩 대기...');
+                await page.waitForTimeout(10000);
+
+                // 재다운로드
+                const retryPath = await downloadXLSX(page, config.key);
+                if (retryPath) {
+                  const rwb = XLSX.readFile(retryPath);
+                  const rws = rwb.Sheets[rwb.SheetNames[0]];
+                  const rrows = XLSX.utils.sheet_to_json(rws, { header: 1, defval: '' });
+                  const rWH = new Set();
+                  for (let ri = 1; ri < Math.min(50, rrows.length); ri++) {
+                    const w = String(rrows[ri]?.[23] || '').trim();
+                    if (w) rWH.add(w);
+                  }
+                  const rWhText = [...rWH].join('|');
+                  if ((rWhText.includes('용마') || rWhText.includes('CDV')) && !rWhText.includes('GIG')) {
+                    log(`  ✗ 재시도에도 CDV 데이터 (${rWhText}) — 스킵`);
+                    results[config.key] = { success: false, reason: `재시도 후에도 CDV 데이터` };
+                    continue;
+                  }
+                  log(`  ✓ 재시도 성공! 창고: ${rWhText}`);
+                  results[config.key] = { success: true, filePath: retryPath };
+                  continue;
+                }
+                results[config.key] = { success: false, reason: '재시도 다운로드 실패' };
                 continue;
               }
             }
