@@ -17,7 +17,7 @@ const fs = require('fs');
 
 // ── 설정 ──
 const POLL_INTERVAL = 30_000; // 30초
-const API_BASE = process.env.API_BASE || 'https://order-ai-five.vercel.app';
+const API_BASE = process.env.API_BASE || 'https://order-ai-one.vercel.app';
 const API_URL = `${API_BASE}/api/admin/remote-sync`;
 const SCRIPT_DIR = __dirname;
 const PROJECT_DIR = path.join(SCRIPT_DIR, '..');
@@ -153,6 +153,42 @@ const FILE_KEY_MAP = {
 };
 
 async function uploadFiles(files, logs) {
+  // 로컬 Next.js dev 서버를 띄워서 업로드 (admin 인증 없이 localhost 사용)
+  const LOCAL = 'http://localhost:3000';
+
+  // dev 서버 체크
+  let localOk = false;
+  try {
+    const r = await fetch(`${LOCAL}/api/sync-inventory`, { method: 'GET' });
+    localOk = r.ok;
+  } catch { /* not running */ }
+
+  // dev 서버가 없으면 임시로 시작
+  let devServer = null;
+  if (!localOk) {
+    log('  로컬 서버 시작 중...');
+    devServer = spawn('npx', ['next', 'dev', '-p', '3000'], {
+      cwd: PROJECT_DIR,
+      env: { ...process.env },
+      stdio: 'ignore',
+      detached: true,
+    });
+    // 서버 준비 대기 (최대 30초)
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      try {
+        const r = await fetch(`${LOCAL}/api/sync-inventory`);
+        if (r.ok) { localOk = true; break; }
+      } catch { /* not ready */ }
+    }
+    if (!localOk) {
+      logs.push('✗ 로컬 서버 시작 실패');
+      if (devServer) { devServer.kill(); }
+      return;
+    }
+    log('  로컬 서버 준비 완료');
+  }
+
   const dlDir = path.join(PROJECT_DIR, 'downloads');
 
   for (const fileName of files) {
@@ -171,15 +207,15 @@ async function uploadFiles(files, logs) {
       const formData = new FormData();
       formData.append('file', blob, fileName);
 
-      // 로컬 Next.js 서버가 아닌 Vercel 프로덕션으로 직접 업로드
-      const res = await fetch(`${API_BASE}/api/admin/upload/${uploadType}`, {
+      // 로컬 서버로 업로드 (인증 불필요)
+      const res = await fetch(`${LOCAL}/api/admin/upload/${uploadType}`, {
         method: 'POST',
         body: formData,
       });
 
       if (!res.ok) {
         const err = await res.text();
-        throw new Error(err);
+        throw new Error(err.slice(0, 200));
       }
 
       logs.push(`✓ ${fileName} → ${uploadType} 업로드 완료`);
@@ -188,6 +224,12 @@ async function uploadFiles(files, logs) {
       logs.push(`✗ ${fileName} 업로드 실패: ${err.message}`);
       log(`  ✗ ${fileName}: ${err.message}`);
     }
+  }
+
+  // 임시로 시작한 dev 서버 종료
+  if (devServer) {
+    log('  로컬 서버 종료');
+    devServer.kill();
   }
 }
 

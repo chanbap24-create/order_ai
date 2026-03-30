@@ -74,6 +74,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── /api/admin/remote-sync → 로컬 에이전트 폴링용 공개 ──
+  if (pathname === '/api/admin/remote-sync') {
+    return NextResponse.next();
+  }
+
   // ── /api/admin 중 세일즈도 읽기 가능한 경로 (GET only) ──
   const ADMIN_READ_ALLOWED = ['/api/admin/upload-data/import-schedule'];
   if (ADMIN_READ_ALLOWED.includes(pathname) && request.method === 'GET') {
