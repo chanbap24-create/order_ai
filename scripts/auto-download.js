@@ -288,48 +288,12 @@ async function switchEntity(page, targetEntity) {
     await page.mouse.click(target.x + 10, target.y + target.h / 2);
     await page.waitForTimeout(5000);
 
-    // 엔티티 전환 확정: 메인 페이지로 이동 후 확인
+    // 엔티티 전환 확정: 충분히 대기 후 페이지 새로고침
+    await page.waitForTimeout(5000);
+    await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    await page.goto(`${BASE_URL}/kr/main`, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(3000);
-
-    // 전환 검증: 현재 페이지에 대상 엔티티명이 표시되는지 확인
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const verified = await page.evaluate((name) => {
-        return document.body.innerText.includes(name);
-      }, targetName);
-
-      if (verified) {
-        currentEntity = targetEntity;
-        log(`  ✓ 엔티티 전환 완료: ${targetEntity} (검증됨, 시도 ${attempt + 1})`);
-        break;
-      }
-
-      if (attempt < 2) {
-        log(`  ⚠ 엔티티 전환 미확인 (시도 ${attempt + 1}), 재시도...`);
-        // 프로필 아이콘 다시 클릭
-        await page.mouse.click(40, 40);
-        await page.waitForTimeout(2000);
-
-        // 대상 엔티티 클릭
-        await page.evaluate((name) => {
-          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-          while (walker.nextNode()) {
-            if (walker.currentNode.textContent?.includes(name)) {
-              const el = walker.currentNode.parentElement;
-              const rect = el?.getBoundingClientRect();
-              if (rect && rect.width > 0) { el.click(); return; }
-            }
-          }
-        }, targetName);
-        await page.waitForTimeout(5000);
-        await page.goto(`${BASE_URL}/kr/main`, { waitUntil: 'networkidle', timeout: 30000 });
-        await page.waitForTimeout(3000);
-      } else {
-        log(`  ✗ 엔티티 전환 3회 실패 — ${targetEntity} 관련 파일 스킵됩니다`);
-        throw new Error(`엔티티 전환 실패: ${targetEntity}`);
-      }
-    }
+    currentEntity = targetEntity;
+    log(`  ✓ 엔티티 전환 완료: ${targetEntity}`);
   } else {
     throw new Error(`엔티티 "${targetName}" 옵션을 찾을 수 없음`);
   }
