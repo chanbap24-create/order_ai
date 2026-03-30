@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processUpload, isValidUploadType } from '@/app/lib/adminUpload';
+import { processUpload, isValidUploadType, processShipmentsFromData } from '@/app/lib/adminUpload';
+import type { ShipmentRow } from '@/app/lib/adminUpload';
 import { logger } from '@/app/lib/logger';
 import { detectNewWines, detectPriceChanges } from '@/app/lib/wineDetection';
 import { supabase } from '@/app/lib/db';
+import * as XLSX from 'xlsx';
 
 // 원격 동기화 에이전트 전용 파일 업로드 (인증 면제 — middleware에서 처리)
 // 지원 타입: client, dl-client, downloads, dl, riedel, english + payments, dl-payments (JSON)
@@ -63,7 +65,81 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     logger.info(`[RemoteSync] Upload: type=${type}, file=${file.name}, size=${file.size}`);
 
-    // processUpload이 지원하는 타입만 사용
+    // 출고현황: 거래처+품목 + shipments 모두 처리
+    if (type === 'client' || type === 'dl-client') {
+      // 1) 거래처+품목 마스터
+      const result = await processUpload(type, buffer);
+
+      // 2) shipments 파싱 + DB insert (append 모드)
+      try {
+        const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' });
+        const header = (rows[0] as unknown[]).map(v => String(v ?? '').trim());
+        const col = (name: string) => { const e = header.indexOf(name); return e >= 0 ? e : header.findIndex(h => h.startsWith(name)); };
+
+        const IDX_CLIENT_NAME = col('판매처') >= 0 && col('판매처') !== col('판매처번호') ? col('판매처') : 4;
+        const IDX_CLIENT_CODE = col('판매처번호') >= 0 ? col('판매처번호') : 5;
+        const IDX_SHIP_DATE = col('출고일') >= 0 ? col('출고일') : 6;
+        const IDX_BIZ_TYPE = col('업종구분') >= 0 ? col('업종구분') : 7;
+        const IDX_ITEM_NO = col('품번') >= 0 ? col('품번') : 12;
+        const IDX_ITEM_NAME = col('품명') >= 0 ? col('품명') : 13;
+        const IDX_SELLING_PRICE = col('판매단가') >= 0 ? col('판매단가') : 16;
+        const IDX_QUANTITY = col('출고수량') >= 0 ? col('출고수량') : 18;
+        const IDX_UNIT_PRICE = col('기준단가') >= 0 ? col('기준단가') : 19;
+        const IDX_SUPPLY_AMT = col('공급가액') >= 0 ? col('공급가액') : 20;
+        const IDX_TAX_AMT = col('세액') >= 0 ? col('세액') : 21;
+        const IDX_TOTAL_AMT = col('합계금액') >= 0 ? col('합계금액') : 22;
+        const IDX_WAREHOUSE = col('창고') >= 0 ? col('창고') : 23;
+        const IDX_MANAGER = col('담당자') >= 0 ? col('담당자') : 37;
+        const IDX_DEPARTMENT = col('부서') >= 0 ? col('부서') : 38;
+        const IDX_PRICE = type === 'client' ? IDX_UNIT_PRICE : IDX_SELLING_PRICE;
+
+        const toStr = (v: unknown) => String(v ?? '').trim();
+        const toCode = (v: unknown) => String(v ?? '').trim().replace(/\.0$/, '');
+        const toNum = (v: unknown) => { const n = parseFloat(String(v)); return isFinite(n) ? n : null; };
+        const toDate = (v: unknown): string | null => {
+          if (v == null) return null;
+          if (typeof v === 'number') { const d = new Date((v - 25569) * 86400000); return !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : null; }
+          if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+          const s = String(v).trim(); return /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(s) ? s.replace(/\//g, '-') : null;
+        };
+
+        const shipments: ShipmentRow[] = [];
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i] as unknown[];
+          const clientName = toStr(r[IDX_CLIENT_NAME]);
+          const clientCode = toCode(r[IDX_CLIENT_CODE]);
+          const shipDate = toDate(r[IDX_SHIP_DATE]);
+          const itemNo = toCode(r[IDX_ITEM_NO]);
+          const itemName = toStr(r[IDX_ITEM_NAME]);
+          const quantity = toNum(r[IDX_QUANTITY]);
+          if (!clientCode || !itemNo || !shipDate || !quantity) continue;
+          shipments.push({
+            client_name: clientName, client_code: clientCode, ship_date: shipDate,
+            item_no: itemNo, item_name: itemName, quantity: quantity || 0,
+            unit_price: toNum(r[IDX_PRICE]), selling_price: toNum(r[IDX_SELLING_PRICE]),
+            supply_amount: toNum(r[IDX_SUPPLY_AMT]), tax_amount: toNum(r[IDX_TAX_AMT]), total_amount: toNum(r[IDX_TOTAL_AMT]),
+            business_type: toStr(r[IDX_BIZ_TYPE]), manager: toStr(r[IDX_MANAGER]),
+            department: toStr(r[IDX_DEPARTMENT]), warehouse: toStr(r[IDX_WAREHOUSE]),
+          });
+        }
+
+        if (shipments.length > 0) {
+          const table = type === 'client' ? 'shipments' : 'glass_shipments';
+          const minDate = shipments.map(s => s.ship_date).filter(Boolean).sort()[0];
+          const shipResult = await processShipmentsFromData(shipments, table, false, minDate || undefined);
+          logger.info(`[RemoteSync] ${type} shipments: ${shipResult.inserted}건 (minDate: ${minDate})`);
+          return NextResponse.json({ success: true, type, ...result, shipments: shipResult.inserted });
+        }
+      } catch (e) {
+        logger.error('[RemoteSync] Shipment parsing failed', e instanceof Error ? e : undefined);
+      }
+
+      return NextResponse.json({ success: true, type, ...result });
+    }
+
+    // 기타 processUpload 지원 타입
     if (isValidUploadType(type)) {
       const result = await processUpload(type, buffer);
 
