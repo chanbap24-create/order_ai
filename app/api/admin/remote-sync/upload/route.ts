@@ -24,13 +24,24 @@ export async function POST(req: NextRequest) {
         const { rows, append } = body;
         if (!rows?.length) return NextResponse.json({ success: true, items: 0 });
         const table = type === 'downloads' ? 'inventory_cdv' : 'inventory_dl';
+
+        // CDV 전용 컬럼이 DL에 들어가는 문제 방지: 테이블에 없는 컬럼 제거
+        const CDV_ONLY_COLS = ['yongma_logistics', 'yongma_reserve', 'yongma_marketing', 'yongma_sales1', 'yongma_sales2'];
+        const DL_ONLY_COLS = ['gig_warehouse', 'gig_marketing', 'gig_sales1'];
+        const removeCols = type === 'dl' ? CDV_ONLY_COLS : DL_ONLY_COLS;
+        const cleanRows = rows.map((r: Record<string, unknown>) => {
+          const clean = { ...r };
+          for (const col of removeCols) delete clean[col];
+          return clean;
+        });
+
         if (!append) await supabase.from(table).delete().not('item_no', 'is', null);
-        for (let i = 0; i < rows.length; i += 500) {
-          const { error } = await supabase.from(table).upsert(rows.slice(i, i + 500), { onConflict: 'item_no' });
+        for (let i = 0; i < cleanRows.length; i += 500) {
+          const { error } = await supabase.from(table).upsert(cleanRows.slice(i, i + 500), { onConflict: 'item_no' });
           if (error) throw new Error(`${table} upsert: ${error.message}`);
         }
-        logger.info(`[RemoteSync] ${type}: ${rows.length}건 upsert`);
-        return NextResponse.json({ success: true, items: rows.length });
+        logger.info(`[RemoteSync] ${type}: ${cleanRows.length}건 upsert`);
+        return NextResponse.json({ success: true, items: cleanRows.length });
       }
 
       return NextResponse.json({ error: `JSON 모드에서 지원하지 않는 타입: ${type}` }, { status: 400 });
