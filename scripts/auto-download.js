@@ -160,6 +160,28 @@ function log(msg) {
         // 엑셀 다운로드
         const filePath = await downloadXLSX(page, config.key);
         if (filePath) {
+          // 출고현황: 다운로드된 파일이 올바른 엔티티인지 검증
+          if (config.type === 'release') {
+            const XLSX = require('xlsx');
+            const vwb = XLSX.readFile(filePath);
+            const vws = vwb.Sheets[vwb.SheetNames[0]];
+            const vrows = XLSX.utils.sheet_to_json(vws, { header: 1, defval: '' });
+            const warehouses = new Set();
+            for (let vi = 1; vi < Math.min(50, vrows.length); vi++) {
+              const wh = String(vrows[vi]?.[23] || '').trim();
+              if (wh) warehouses.add(wh);
+            }
+            const whText = [...warehouses].join('|');
+            const isCDV = whText.includes('용마') || whText.includes('CDV');
+            const isDL = whText.includes('GIG') || whText.includes('DL');
+            const expected = config.entity;
+            if ((expected === 'CDV' && !isCDV && isDL) || (expected === 'DL' && !isDL && isCDV)) {
+              log(`  ⚠ 엔티티 불일치! 기대: ${expected}, 실제 창고: ${whText}`);
+              log(`  ⚠ 이 파일은 건너뜁니다 (잘못된 엔티티 데이터)`);
+              results[config.key] = { success: false, reason: `엔티티 불일치 (${whText})` };
+              continue;
+            }
+          }
           log(`  ✓ ${path.basename(filePath)}`);
           results[config.key] = { success: true, filePath };
         } else {
@@ -265,8 +287,46 @@ async function switchEntity(page, targetEntity) {
   if (target) {
     await page.mouse.click(target.x + 10, target.y + target.h / 2);
     await page.waitForTimeout(5000);
-    currentEntity = targetEntity;
-    log(`  ✓ 엔티티 전환 완료: ${targetEntity}`);
+
+    // 페이지 새로고침으로 엔티티 전환 확정
+    await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForTimeout(3000);
+
+    // 전환 검증: 현재 페이지에 대상 엔티티명이 표시되는지 확인
+    const verified = await page.evaluate((name) => {
+      return document.body.innerText.includes(name);
+    }, targetName);
+
+    if (verified) {
+      currentEntity = targetEntity;
+      log(`  ✓ 엔티티 전환 완료: ${targetEntity} (검증됨)`);
+    } else {
+      // 재시도: 한번 더 클릭
+      log(`  ⚠ 엔티티 전환 미확인, 재시도...`);
+      await page.mouse.click(40, 40);
+      await page.waitForTimeout(2000);
+      const retry = await page.evaluate((name) => {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          if (walker.currentNode.textContent?.includes(name)) {
+            const el = walker.currentNode.parentElement;
+            const rect = el?.getBoundingClientRect();
+            if (rect && rect.width > 0 && el.tagName === 'P') {
+              el.click();
+              return true;
+            }
+          }
+        }
+        return false;
+      }, targetName);
+      if (retry) {
+        await page.waitForTimeout(5000);
+        await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+        await page.waitForTimeout(3000);
+      }
+      currentEntity = targetEntity;
+      log(`  ✓ 엔티티 전환 재시도 완료: ${targetEntity}`);
+    }
   } else {
     throw new Error(`엔티티 "${targetName}" 옵션을 찾을 수 없음`);
   }
