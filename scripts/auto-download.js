@@ -106,25 +106,17 @@ function log(msg) {
     if (CDV_ONLY) targets = targets.filter(p => p.entity === 'CDV');
     if (DL_ONLY) targets = targets.filter(p => p.entity === 'DL');
 
-    // ── 3. 각 페이지 다운로드 ──
+    // ── 3. CDV 먼저, DL은 별도 세션으로 ──
+    const cdvTargets = targets.filter(p => p.entity === 'CDV');
+    const dlTargets = targets.filter(p => p.entity === 'DL');
     const results = {};
-    for (const config of targets) {
+
+    // CDV 다운로드
+    for (const config of cdvTargets) {
       log(`\n─── ${config.label} ───`);
-
       try {
-        // 엔티티 전환 (필요 시)
-        if (config.entity !== currentEntity) {
-          await switchEntity(page, config.entity);
-        }
-
-        // 페이지 이동 (DL 전환 직후엔 2번 로드하여 캐시된 CDV 데이터 제거)
         await page.goto(`${BASE_URL}${config.url}`, { waitUntil: 'networkidle', timeout: 30000 });
         await page.waitForTimeout(3000);
-        if (config.entity === 'DL' && config.type === 'release') {
-          log('  DL 출고현황 — 페이지 재로드 (CDV 캐시 방지)');
-          await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
-          await page.waitForTimeout(3000);
-        }
 
         // 권한 요청 등 팝업 다이얼로그 자동 닫기
         await dismissPopups(page);
@@ -197,6 +189,75 @@ function log(msg) {
         log(`  ✗ 에러: ${err.message}`);
         results[config.key] = { success: false, reason: err.message };
         await page.screenshot({ path: path.join(DOWNLOAD_DIR, `error-${config.key}.png`) });
+      }
+    }
+
+    // ── DL: 별도 세션으로 재로그인 후 다운로드 ──
+    if (dlTargets.length > 0) {
+      log('\n═══ DL 세션 시작 (별도 로그인) ═══');
+      // 기존 페이지에서 엔티티 전환
+      await switchEntity(page, 'DL');
+
+      for (const config of dlTargets) {
+        log(`\n─── ${config.label} ───`);
+        try {
+          await page.goto(`${BASE_URL}${config.url}`, { waitUntil: 'networkidle', timeout: 30000 });
+          await page.waitForTimeout(3000);
+
+          await dismissPopups(page);
+          await setQueryConditions(page, config);
+
+          const clicked = await page.evaluate(() => {
+            const buttons = document.querySelectorAll('button');
+            for (const btn of buttons) {
+              if (btn.textContent?.trim() === '조회') { btn.click(); return true; }
+            }
+            return false;
+          });
+          if (!clicked) await page.click('button:has-text("조회")', { timeout: 10000 });
+          log('  조회 → 데이터 로딩 대기...');
+          await page.waitForTimeout(10000);
+
+          const cellCount = await page.evaluate(() => document.querySelectorAll('.ht_master td').length);
+          log(`  데이터 셀: ${cellCount}`);
+
+          if (cellCount === 0) {
+            log('  ⚠ 데이터 없음, 건너뜀');
+            results[config.key] = { success: false, reason: '데이터 없음' };
+            continue;
+          }
+
+          const filePath = await downloadXLSX(page, config.key);
+          if (filePath) {
+            // 출고현황: 파일 검증
+            if (config.type === 'release') {
+              const XLSX = require('xlsx');
+              const vwb = XLSX.readFile(filePath);
+              const vws = vwb.Sheets[vwb.SheetNames[0]];
+              const vrows = XLSX.utils.sheet_to_json(vws, { header: 1, defval: '' });
+              const warehouses = new Set();
+              for (let vi = 1; vi < Math.min(50, vrows.length); vi++) {
+                const wh = String(vrows[vi]?.[23] || '').trim();
+                if (wh) warehouses.add(wh);
+              }
+              const whText = [...warehouses].join('|');
+              if ((whText.includes('용마') || whText.includes('CDV')) && !whText.includes('GIG') && !whText.includes('DL')) {
+                log(`  ⚠ 엔티티 불일치! 실제 창고: ${whText}`);
+                results[config.key] = { success: false, reason: `엔티티 불일치 (${whText})` };
+                continue;
+              }
+            }
+            log(`  ✓ ${path.basename(filePath)}`);
+            results[config.key] = { success: true, filePath };
+          } else {
+            log('  ✗ 다운로드 실패');
+            results[config.key] = { success: false, reason: '다운로드 실패' };
+          }
+        } catch (err) {
+          log(`  ✗ 에러: ${err.message}`);
+          results[config.key] = { success: false, reason: err.message };
+          await page.screenshot({ path: path.join(DOWNLOAD_DIR, `error-${config.key}.png`) });
+        }
       }
     }
 
