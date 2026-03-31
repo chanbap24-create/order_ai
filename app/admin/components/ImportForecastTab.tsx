@@ -151,8 +151,8 @@ export default function ImportForecastTab() {
   const [stockoutInfo, setStockoutInfo] = useState<StockoutInfo | null>(null);
   const [trend, setTrend] = useState<{ year: string; prevYear: string; items: Record<string, { cur: number; prev: number; pct: number }> } | null>(null);
   const [learningCurve, setLearningCurve] = useState<LearningCurve | null>(null);
-  const [monthlySeries, setMonthlySeries] = useState<{ month: string; qty: number }[]>([]);
-  const [yearlySeries, setYearlySeries] = useState<{ year: string; qty: number }[]>([]);
+  const [monthlySeries, setMonthlySeries] = useState<{ month: string; qty: number; amount: number }[]>([]);
+  const [yearlySeries, setYearlySeries] = useState<{ year: string; qty: number; amount: number }[]>([]);
   const [activeManager, setActiveManager] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'wines' | 'years' | 'clients' | 'channels'>('wines');
   const [expandedWine, setExpandedWine] = useState<string | null>(null);
