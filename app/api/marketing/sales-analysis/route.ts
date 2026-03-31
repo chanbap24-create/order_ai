@@ -50,12 +50,21 @@ function buildVintageMap(wineMap: Map<string, any>): Map<string, { abbr: string;
 }
 
 // 와인 정보 매칭 (캐시 기반 O(1) 빈티지 매칭)
+// 품명에서 브랜드 코드 추출: "CH 찰스 하이직 브륏" → "CH"
+function extractBrandCode(itemName: string): string | null {
+  const m = (itemName || '').match(/^([A-Z]{2,3})\s/);
+  return m ? m[1] : null;
+}
+
 function resolveWine(
   itemNo: string, itemName: string,
   wineMap: Map<string, any>, invMap: Map<string, string>,
   brandCountry: Map<string, string>, vintageMap: Map<string, { abbr: string; data: any }[]>,
-): { country: string | null; region: string | null; wineType: string | null } {
+): { country: string | null; region: string | null; wineType: string | null; brandCode: string | null } {
   let country: string | null = null, region: string | null = null, wineType: string | null = null;
+
+  // 브랜드 코드: 품명에서 직접 추출 (wines 테이블 무관)
+  const brandCode = extractBrandCode(itemName);
 
   const w = wineMap.get(itemNo);
   if (w) { country = w.country; region = w.region; wineType = w.wine_type; }
@@ -72,13 +81,12 @@ function resolveWine(
     }
   }
   if (!country) {
-    const m = (itemName || '').match(/^([A-Z]{2,3})\s/);
-    if (m && brandCountry.has(m[1])) country = brandCountry.get(m[1])!;
+    if (brandCode && brandCountry.has(brandCode)) country = brandCountry.get(brandCode)!;
   }
-  // 품번 첫 글자 기반 분류 우선, wines 테이블 값은 폴백
+  // 품번 첫 글자 기반 분류 우선
   const codeCategory = getItemCategory(itemNo);
   if (codeCategory) wineType = codeCategory;
-  return { country, region, wineType };
+  return { country, region, wineType, brandCode };
 }
 
 // 지역 그룹: label → 검색 키워드들 (해당 키워드가 region 값에 포함되면 매칭)
@@ -216,10 +224,11 @@ export async function GET(req: NextRequest) {
     const filterType = searchParams.get('wine_type') || '';
     const filterVolume = searchParams.get('volume') || '';
     const filterSubRegion = searchParams.get('sub_region') || '';
+    const filterBrand = searchParams.get('brand') || '';
 
     // wines/inventory 병렬 로드
     const [{ data: wines }, { data: inv }] = await Promise.all([
-      supabase.from('wines').select('item_code, item_name_kr, country, region, wine_type').not('item_code', 'like', 'D%'),
+      supabase.from('wines').select('item_code, item_name_kr, country, region, wine_type, supplier_kr, supplier').not('item_code', 'like', 'D%'),
       supabase.from('inventory_cdv').select('item_no, country'),
     ]);
     const wineMap = new Map<string, any>();
@@ -234,6 +243,21 @@ export async function GET(req: NextRequest) {
     }
     for (const [k, v] of Object.entries(BRAND_COUNTRY)) {
       if (!brandCountry.has(k)) brandCountry.set(k, v);
+    }
+
+    // 브랜드 코드 → 한글명 매핑 (wines 테이블에서 자동 생성)
+    const brandNameMap = new Map<string, string>(); // CH → 찰스하이직
+    for (const w of (wines || [])) {
+      const m = (w.item_name_kr || '').match(/^([A-Z]{2,3})\s+(.+)/);
+      if (m) {
+        const code = m[1];
+        if (!brandNameMap.has(code)) {
+          // supplier_kr 우선, 없으면 품명에서 첫 단어
+          const supplierKr = w.supplier_kr || w.supplier || '';
+          const nameFirst = m[2].split(/\s/)[0];
+          brandNameMap.set(code, supplierKr || nameFirst);
+        }
+      }
     }
 
     // mode=options: 선택 가능한 필터 값 목록 (지역 그룹 기반)
@@ -256,11 +280,17 @@ export async function GET(req: NextRequest) {
           subRegionsObj[c][rg] = subs.map(s => s.label);
         }
       }
+      // 브랜드 목록: code + name
+      const brands = [...brandNameMap.entries()]
+        .map(([code, name]) => ({ code, name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
       return NextResponse.json({
         countries: [...countries].sort(),
         regions: regionsObj,
         sub_regions: subRegionsObj,
         types: [...types].sort(),
+        brands,
         volumes: ['750ml', '375ml', '500ml', '1.5L', '3L', '187ml'],
       });
     }
@@ -315,9 +345,10 @@ export async function GET(req: NextRequest) {
           resolved = resolveWine(r.item_no, r.item_name || '', wineMap, invMap, brandCountry, vintageMap);
           resolveCache.set(r.item_no, resolved);
         }
-        const { country, region, wineType } = resolved;
+        const { country, region, wineType, brandCode } = resolved;
 
         // 필터 적용
+        if (filterBrand && brandCode !== filterBrand) continue;
         if (filterCountry && country !== filterCountry) continue;
         if (filterRegion && country) {
           if (!region) continue;
@@ -361,7 +392,7 @@ export async function GET(req: NextRequest) {
 
         const key = r.item_no;
         if (!itemAgg[key]) {
-          itemAgg[key] = { item_no: r.item_no, item_name: r.item_name || '', qty: 0, amount: 0, country: country || '', region, wineType };
+          itemAgg[key] = { item_no: r.item_no, item_name: r.item_name || '', qty: 0, amount: 0, country: country || '', region, wineType, brandCode };
         }
         itemAgg[key].qty += qty; // 반품 차감
         itemAgg[key].amount += amount;
@@ -430,9 +461,10 @@ export async function GET(req: NextRequest) {
 
     // 품목별
     const topItems = Object.values(itemAgg).filter(i => i.qty > 0).sort((a, b) => b.qty - a.qty)
-      .map(({ item_no, item_name, qty, amount, country, region, wineType }) => ({
+      .map(({ item_no, item_name, qty, amount, country, region, wineType, brandCode: bc }) => ({
         item_no, item_name, qty, amount, avg_price: qty > 0 ? Math.round(amount / qty) : 0,
         country, region: region ? resolveRegionGroup(country || '', region) : null, wine_type: wineType,
+        brand_code: bc, brand_name: bc ? brandNameMap.get(bc) || bc : null,
       }));
 
     // 월별 추이

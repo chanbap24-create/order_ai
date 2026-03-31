@@ -15,7 +15,7 @@ interface AnalysisData {
   countries: CountryRow[]; regions: Record<string, RegionRow[]>;
   types: TypeRow[]; top_items: TopItem[]; monthly: MonthlyRow[];
 }
-interface FilterOptions { countries: string[]; regions: Record<string, string[]>; sub_regions: Record<string, Record<string, string[]>>; types: string[]; volumes: string[] }
+interface FilterOptions { countries: string[]; regions: Record<string, string[]>; sub_regions: Record<string, Record<string, string[]>>; types: string[]; brands: { code: string; name: string }[]; volumes: string[] }
 
 function fmt(n: number) { return n.toLocaleString(); }
 function fmtM(n: number) { return n >= 100000000 ? (n / 100000000).toFixed(1) + '억' : n >= 10000 ? Math.round(n / 10000).toLocaleString() + '만' : fmt(n); }
@@ -43,6 +43,7 @@ export default function SalesAnalysisTab() {
   const [region, setRegion] = useState('');
   const [subRegion, setSubRegion] = useState('');
   const [wineType, setWineType] = useState('');
+  const [brand, setBrand] = useState('');
   const [volume, setVolume] = useState('');
   const [data, setData] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,6 +65,7 @@ export default function SalesAnalysisTab() {
       if (country) params.set('country', country);
       if (region) params.set('region', region);
       if (wineType) params.set('wine_type', wineType);
+      if (brand) params.set('brand', brand);
       if (volume) params.set('volume', volume);
       if (subRegion) params.set('sub_region', subRegion);
       const res = await fetch(`/api/marketing/sales-analysis?${params}`);
@@ -107,6 +109,7 @@ export default function SalesAnalysisTab() {
           <div style={{ flex: '1 1 130px' }}><label style={labelStyle}>지역</label><select value={region} onChange={e => setRegion(e.target.value)} disabled={!country || availableRegions.length === 0} style={{ ...inputStyle, color: country ? '#2c1810' : '#ccc' }}><option value="">전체</option>{availableRegions.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
           <div style={{ flex: '1 1 130px' }}><label style={labelStyle}>세부 지역</label><select value={subRegion} onChange={e => setSubRegion(e.target.value)} disabled={!region || availableSubRegions.length === 0} style={{ ...inputStyle, color: region && availableSubRegions.length > 0 ? '#2c1810' : '#ccc' }}><option value="">전체</option>{availableSubRegions.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
           <div style={{ flex: '1 1 120px' }}><label style={labelStyle}>타입</label><select value={wineType} onChange={e => setWineType(e.target.value)} style={inputStyle}><option value="">전체</option>{(options?.types || []).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+          <div style={{ flex: '1 1 160px' }}><label style={labelStyle}>브랜드</label><select value={brand} onChange={e => setBrand(e.target.value)} style={inputStyle}><option value="">전체</option>{(options?.brands || []).map((b: {code: string; name: string}) => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}</select></div>
         </div>
         <button onClick={handleSearch} disabled={loading} style={{ padding: '10px 28px', borderRadius: 10, border: 'none', background: loading ? '#c4a0a0' : '#5A1515', color: '#fff', fontSize: 14, fontWeight: 600, cursor: loading ? 'default' : 'pointer' }}>
           {loading ? '분석 중...' : '조회'}
