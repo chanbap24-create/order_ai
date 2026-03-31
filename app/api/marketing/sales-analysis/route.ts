@@ -12,14 +12,17 @@ const BRAND_COUNTRY: Record<string, string> = {
   RG:'미국',BS:'이탈리아',AS:'이탈리아',AZ:'이탈리아',GT:'호주',FC:'이탈리아',RF:'영국',
 };
 
-function inferType(name: string): string | null {
-  const n = (name || '').toLowerCase();
-  if (/로제|rosé|rosato/.test(n)) return '로제';
-  if (/스파클링|브륏|brut|크레망|crémant|샴페인|champagne|프로세코|카바|cava/.test(n)) return '스파클링';
-  if (/포트|포르트|마데이라|셰리|주정강화|토니|tawny/.test(n)) return '주정강화';
-  if (/소비뇽 블랑|샤르도네|리슬링|비오니에|피노 그리|그뤼너|게뷔르츠|모스카토|블랑|비앙코|branco|blanc|white|알바리뇨|베르멘티노|토론테스|화이트/.test(n)) return '화이트';
-  if (/카베르네|메를로|피노누아|피노 누아|시라|시라즈|템프라니요|산지오베제|네비올로|말벡|진판델|그르나슈|클라렛|레드|rosso|tinto|rouge|가메|바르베라|돌체토|아글리아니코|카르메네르/.test(n)) return '레드';
-  return null;
+// 품번 첫 글자 기반 상품 분류
+const ITEM_CATEGORY_MAP: Record<string, string> = {
+  '0': 'Champagne', '1': 'Sparkling', '2': 'Red', '3': 'White',
+  '4': 'Rosé', '5': 'Icewine', '6': 'Grappa',
+  'A': 'Port', 'Z': '타사제품',
+};
+const WINE_CODES = new Set('0123456AZ'.split(''));
+
+function getItemCategory(itemNo: string): string | null {
+  const first = (itemNo || '').charAt(0).toUpperCase();
+  return ITEM_CATEGORY_MAP[first] || null;
 }
 
 // 품명에서 용량 추출
@@ -71,7 +74,9 @@ function resolveWine(
     const m = (itemName || '').match(/^([A-Z]{2,3})\s/);
     if (m && brandCountry.has(m[1])) country = brandCountry.get(m[1])!;
   }
-  if (!wineType) wineType = inferType(itemName || '');
+  // 품번 첫 글자 기반 분류 우선, wines 테이블 값은 폴백
+  const codeCategory = getItemCategory(itemNo);
+  if (codeCategory) wineType = codeCategory;
   return { country, region, wineType };
 }
 
@@ -233,11 +238,10 @@ export async function GET(req: NextRequest) {
     // mode=options: 선택 가능한 필터 값 목록 (지역 그룹 기반)
     if (mode === 'options') {
       const countries = new Set<string>();
-      const types = new Set<string>();
       for (const w of (wines || [])) {
         if (w.country) countries.add(w.country);
-        if (w.wine_type) types.add(w.wine_type);
       }
+      const types = new Set(Object.values(ITEM_CATEGORY_MAP));
       // 지역은 그룹 label로 반환
       const regionsObj: Record<string, string[]> = {};
       for (const [c, groups] of Object.entries(REGION_GROUPS)) {
@@ -299,8 +303,9 @@ export async function GET(req: NextRequest) {
     }
 
     for (const r of allShipments) {
-        if (!r.item_no || r.item_no.length < 5 || r.item_no.startsWith('D') || r.item_no.startsWith('9F')) continue;
-        if (/^7[0-9A-Z]/.test(r.item_no) && (r.item_name || '').includes('특판')) continue;
+        if (!r.item_no || r.item_no.length < 5) continue;
+        const firstChar = r.item_no.charAt(0).toUpperCase();
+        if (!WINE_CODES.has(firstChar)) continue;
         const qty = r.quantity || 0;
         if (qty === 0) continue;
 
