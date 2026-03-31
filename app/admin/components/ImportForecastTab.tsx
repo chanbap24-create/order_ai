@@ -180,7 +180,7 @@ export default function ImportForecastTab() {
   const [excludedWineDetails, setExcludedWineDetails] = useState<ExcludedWine[]>([]);
   const [pendingRecalc, setPendingRecalc] = useState(false);
   const [allMatchedItems, setAllMatchedItems] = useState(0);
-  const [excludeBulk, setExcludeBulk] = useState(true);
+  const [excludeBulk, setExcludeBulk] = useState(false);
   const [bulkThreshold, setBulkThreshold] = useState(60);
   const [bulkInfo, setBulkInfo] = useState<BulkInfo | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
