@@ -472,7 +472,7 @@ export default function InventoryPage() {
         if (typeof s.hideNoSupplyPrice === 'boolean') setHideNoSupplyPrice(s.hideNoSupplyPrice);
         if (typeof s.hideNoStock === 'boolean') setHideNoStock(s.hideNoStock);
         if (typeof s.showOnlyBondedStock === 'boolean') setShowOnlyBondedStock(s.showOnlyBondedStock);
-        if (s.advancedFilters) setAdvancedFilters(s.advancedFilters);
+        if (s.advancedFilters) setAdvancedFilters(prev => ({ ...prev, ...s.advancedFilters }));
         if (s.results && s.results.length > 0) {
           setResults(s.results);
           setHasSearched(true);
@@ -1039,7 +1039,7 @@ export default function InventoryPage() {
       if (lo !== null && v < lo) return false;
       if (hi !== null && v > hi) return false;
     }
-    if (advancedFilters.category.enabled && advancedFilters.category.value) {
+    if (advancedFilters.category?.enabled && advancedFilters.category?.value) {
       if (getItemCategory(item.item_no) !== advancedFilters.category.value) return false;
     }
     if (advancedFilters.country.enabled && advancedFilters.country.value) {
@@ -1609,15 +1609,15 @@ export default function InventoryPage() {
               {/* 분류 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 80, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={advancedFilters.category.enabled}
-                    onChange={(e) => setAdvancedFilters(f => ({ ...f, category: { ...f.category, enabled: e.target.checked } }))}
+                  <input type="checkbox" checked={advancedFilters.category?.enabled || false}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, category: { ...(f.category || { enabled: false, value: '' }), enabled: e.target.checked } }))}
                     style={{ accentColor: '#5A1515' }} />
                   분류
                 </label>
-                <select value={advancedFilters.category.value}
-                  onChange={(e) => setAdvancedFilters(f => ({ ...f, category: { ...f.category, value: e.target.value } }))}
-                  disabled={!advancedFilters.category.enabled}
-                  style={{ width: 150, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 14, color: '#333', opacity: advancedFilters.category.enabled ? 1 : 0.4 }}>
+                <select value={advancedFilters.category?.value || ''}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, category: { ...(f.category || { enabled: false, value: '' }), value: e.target.value } }))}
+                  disabled={!advancedFilters.category?.enabled}
+                  style={{ width: 150, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 14, color: '#333', opacity: advancedFilters.category?.enabled ? 1 : 0.4 }}>
                   <option value="">전체</option>
                   {Object.entries(ITEM_CATEGORY_MAP).map(([k, v]) => <option key={k} value={v}>{v}</option>)}
                 </select>
