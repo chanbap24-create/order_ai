@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { getSellingTotal } from '@/app/lib/priceUtils';
+// 매출 = supply_amount (공급가액, 부가세 제외)
 
 const BRAND_COUNTRY: Record<string, string> = {
   CH:'프랑스',LV:'프랑스',VA:'프랑스',ST:'스페인',MS:'이탈리아',WM:'프랑스',
@@ -379,7 +379,7 @@ export async function GET(req: NextRequest) {
         }
 
         // 총액 판별 (priceUtils)
-        const amount = getSellingTotal(r.unit_price || 0, r.selling_price || 0, r.supply_amount || 0, qty);
+        const amount = r.supply_amount || 0;
 
         // 순수 판매량/금액 (반품은 차감)
         totalQty += qty; // 반품 차감
