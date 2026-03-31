@@ -149,7 +149,7 @@ type QuoteColumnKey =
   | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
   | 'supply_price' | 'min_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'retail_discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
-  | 'retail_normal_total' | 'retail_discount_total'
+  | 'min_price_total' | 'retail_normal_total' | 'retail_discount_total'
   | 'note' | 'tasting_note' | 'grape_varieties';
 
 interface QuoteColumnConfig {
@@ -180,6 +180,7 @@ const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: 'quantity', label: '수량', editable: true, type: 'number' },
   { key: 'normal_total', label: '정상공급가합계', type: 'computed' },
   { key: 'discount_total', label: '할인공급가합계', type: 'computed' },
+  { key: 'min_price_total', label: '최저판매가합계', type: 'computed' },
   { key: 'retail_normal_total', label: '정상판매가합계', type: 'computed' },
   { key: 'retail_discount_total', label: '할인판매가합계', type: 'computed' },
   { key: 'tasting_note', label: '테이스팅노트', type: 'text' },
@@ -1102,6 +1103,7 @@ export default function InventoryPage() {
       case 'retail_discounted_price': return calcDiscountedPrice(item.retail_price || 0, item.discount_rate);
       case 'normal_total': return item.supply_price * item.quantity;
       case 'discount_total': return calcDiscountedPrice(item.supply_price, item.discount_rate, item.discounted_price) * item.quantity;
+      case 'min_price_total': return (item.min_price || 0) * item.quantity;
       case 'retail_normal_total': return (item.retail_price || 0) * item.quantity;
       case 'retail_discount_total': return calcDiscountedPrice(item.retail_price || 0, item.discount_rate) * item.quantity;
       case 'discount_rate': return item.discount_rate;
