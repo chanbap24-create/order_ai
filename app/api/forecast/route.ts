@@ -46,9 +46,13 @@ function resolveWine(
   itemNo: string, itemName: string,
   wineMap: Map<string, any>, invMap: Map<string, string>,
   brandCountry: Map<string, string>, vintageMap: Map<string, { abbr: string; data: any }[]>,
-): { country: string | null; region: string | null; wineType: string | null; wineData: any | null } {
+): { country: string | null; region: string | null; wineType: string | null; wineData: any | null; brandCode: string | null } {
   let country: string | null = null, region: string | null = null, wineType: string | null = null;
   let wineData: any | null = null;
+
+  // 브랜드 코드: 품명에서 직접 추출
+  const brandMatch = (itemName || '').match(/^([A-Z]{2,3})\s/);
+  const brandCode = brandMatch ? brandMatch[1] : null;
 
   const w = wineMap.get(itemNo);
   if (w) { country = w.country; region = w.region; wineType = w.wine_type; wineData = w; }
@@ -73,7 +77,7 @@ function resolveWine(
   // 품번 첫 글자 기반 분류 우선
   const codeCategory = getItemCategory(itemNo);
   if (codeCategory) wineType = codeCategory;
-  return { country, region, wineType, wineData };
+  return { country, region, wineType, wineData, brandCode };
 }
 
 export async function POST(request: Request) {
@@ -253,12 +257,12 @@ export async function POST(request: Request) {
         resolved = resolveWine(s.item_no, s.item_name || '', wineMapForResolve, invMap, brandCountry, vintageMap);
         resolveCache.set(s.item_no, resolved);
       }
-      const { country: rCountry, region: rRegion, wineType: rType, wineData } = resolved;
+      const { country: rCountry, region: rRegion, wineType: rType, wineData, brandCode: rBrand } = resolved;
 
       // 필터 적용: country
       if (country && rCountry !== country) continue;
-      // 필터 적용: brand (supplier_kr)
-      if (brand && wineData?.supplier_kr !== brand) continue;
+      // 필터 적용: brand (품명 2글자 코드 기반)
+      if (brand && rBrand !== brand) continue;
       // 필터 적용: wineType
       if (wineType && rType !== wineType) continue;
       // 필터 적용: region (키워드 기반)

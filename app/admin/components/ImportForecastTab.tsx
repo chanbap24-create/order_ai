@@ -764,7 +764,7 @@ export default function ImportForecastTab() {
                     setBrandInput(raw);
                     const v = raw.replace(/[^A-Z]/g, '').slice(0, 3);
                     const match = v ? brandList.find(b => b.abbr === v) : null;
-                    setBrand(match ? match.name : '');
+                    setBrand(match ? match.abbr : '');
                     setResults(null);
                   }}
                   onBlur={e => { const v = e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3); setBrandInput(v); }}
@@ -775,7 +775,7 @@ export default function ImportForecastTab() {
                     style={{ padding: '4px 6px', borderRadius: 4, border: '1px solid #e0e0e0', background: '#fff', fontSize: 10, color: '#999', cursor: 'pointer', flexShrink: 0 }}>X</button>
                 )}
               </div>
-              {brand && <div style={{ fontSize: 10, color: '#5A1515', fontWeight: 600, marginTop: 2 }}>{brand}</div>}
+              {brand && <div style={{ fontSize: 10, color: '#5A1515', fontWeight: 600, marginTop: 2 }}>{brandList.find(b => b.abbr === brand)?.name || brand} ({brand})</div>}
             </div>
           </div>
 
