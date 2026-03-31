@@ -1049,7 +1049,7 @@ export default function InventoryPage() {
   });
 
   // Quote columns
-  const visibleQuoteCols = QUOTE_COLUMNS.filter(c => visibleQuoteColumns.includes(c.key));
+  const visibleQuoteCols = visibleQuoteColumns.map(key => QUOTE_COLUMNS.find(c => c.key === key)).filter(Boolean) as QuoteColumnConfig[];
 
   // Totals
   const totalNormal = quoteItems.reduce((s, i) => s + i.supply_price * i.quantity, 0);
