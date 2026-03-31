@@ -15,10 +15,11 @@ const BRAND_COUNTRY: Record<string, string> = {
 // 품번 첫 글자 기반 상품 분류
 const ITEM_CATEGORY_MAP: Record<string, string> = {
   '0': 'Champagne', '1': 'Sparkling', '2': 'Red', '3': 'White',
-  '4': 'Rosé', '5': 'Icewine', '6': 'Grappa',
+  '4': 'Rosé', '5': 'Icewine', '6': 'Grappa', '7': 'Set',
+  '8': 'POS Material', '9': '자재',
   'A': 'Port', 'Z': '타사제품',
 };
-const WINE_CODES = new Set('0123456AZ'.split(''));
+const WINE_CODES = new Set('0123456789AZ'.split(''));
 
 function getItemCategory(itemNo: string): string | null {
   const first = (itemNo || '').charAt(0).toUpperCase();

@@ -748,6 +748,9 @@ export default function ImportForecastTab() {
                 <option value="Rosé">Rosé</option>
                 <option value="Icewine">Icewine</option>
                 <option value="Grappa">Grappa</option>
+                <option value="Set">Set</option>
+                <option value="POS Material">POS Material</option>
+                <option value="자재">자재</option>
                 <option value="Port">Port</option>
                 <option value="타사제품">타사제품</option>
               </select>

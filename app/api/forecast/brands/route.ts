@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     for (const s of allShips) {
       if (!s.item_no || s.item_no.length < 5) continue;
       const firstChar = s.item_no.charAt(0).toUpperCase();
-      if (!'0123456AZ'.includes(firstChar)) continue;
+      if (!'0123456789AZ'.includes(firstChar)) continue;
       const qty = s.quantity || 0;
       if (qty <= 0) continue;
 
