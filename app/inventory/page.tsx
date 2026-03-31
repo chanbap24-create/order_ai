@@ -2062,13 +2062,23 @@ export default function InventoryPage() {
                       <thead>
                         <tr style={{ background: '#fafaf8' }}>
                           <th style={{ ...qThStyle, width: 60 }}>순서</th>
-                          {visibleQuoteCols.map(col => (
+                          {visibleQuoteCols.map((col, ci) => (
                             <th key={col.key} style={{
                               ...qThStyle,
                               textAlign: (col.type === 'currency' || col.type === 'computed') ? 'right'
                                 : col.type === 'number' || col.type === 'percent' ? 'center' : 'center',
                             }}>
-                              {col.label}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                                <button
+                                  onClick={() => { if (ci === 0) return; setVisibleQuoteColumns(prev => { const a = [...prev]; [a[ci-1], a[ci]] = [a[ci], a[ci-1]]; return a; }); }}
+                                  style={{ background: 'none', border: 'none', cursor: ci === 0 ? 'default' : 'pointer', padding: 0, fontSize: 9, color: ci === 0 ? '#ddd' : '#999', lineHeight: 1 }}
+                                >◀</button>
+                                <span>{col.label}</span>
+                                <button
+                                  onClick={() => { if (ci === visibleQuoteCols.length-1) return; setVisibleQuoteColumns(prev => { const a = [...prev]; [a[ci], a[ci+1]] = [a[ci+1], a[ci]]; return a; }); }}
+                                  style={{ background: 'none', border: 'none', cursor: ci === visibleQuoteCols.length-1 ? 'default' : 'pointer', padding: 0, fontSize: 9, color: ci === visibleQuoteCols.length-1 ? '#ddd' : '#999', lineHeight: 1 }}
+                                >▶</button>
+                              </div>
                             </th>
                           ))}
                           <th style={{ ...qThStyle, width: 36 }}></th>
