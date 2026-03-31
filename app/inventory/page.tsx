@@ -123,8 +123,8 @@ const INV_COLUMNS: InvColumnConfig[] = [
   { key: 'avg_sales_365d', label: '365일평균출고' },
 ];
 
-const DEFAULT_INV_CDV: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 'total_stock', 'bonded_warehouse', 'sales_30days'];
-const DEFAULT_INV_DL: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 'total_stock', 'anseong_warehouse', 'sales_30days'];
+const DEFAULT_INV_CDV: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 'min_price', 'total_stock', 'bonded_warehouse', 'sales_30days'];
+const DEFAULT_INV_DL: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 'min_price', 'total_stock', 'anseong_warehouse', 'sales_30days'];
 
 // ══════════════════════════════════════════
 // QUOTE COLUMNS
