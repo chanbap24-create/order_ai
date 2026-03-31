@@ -109,11 +109,11 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
       tasting_notes: undefined,
     };
   }).filter((w: any) => {
-    // 비와인 품목 제외 (쇼핑백, 보틀스토퍼, 악세서리 등)
+    // 와인 분류만 표시: 0(Champagne) 1(Sparkling) 2(Red) 3(White) 4(Rosé) 5(Icewine) 6(Grappa) Z(타사제품)
     const code = w.item_code || '';
     if (!code || code.length < 5) return false;
-    if (code.startsWith('D') || code.startsWith('9F')) return false;
-    if (/^7[0-9A-Z]/.test(code) && (w.item_name_kr || '').includes('특판')) return false;
+    const first = code.charAt(0).toUpperCase();
+    if (!'0123456AZ'.includes(first)) return false;
     if ((w.item_name_kr || '').includes('더미')) return false;
     // 노트 필터
     if (filters?.hasNote === true) return w.tasting_note_id !== null;
