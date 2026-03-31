@@ -485,7 +485,11 @@ export async function POST(request: Request) {
       if (s.ship_date < prevYearStart || s.ship_date > analysisEnd) continue;
       const qty = s.quantity || 0;
       if (qty <= 0) continue;
-      const amount = getSellingTotal(s.unit_price || 0, s.selling_price || 0, s.supply_amount || 0, qty);
+      // 매출 = 공급가액 (시기별 컬럼 차이 반영)
+      const isNewFormat = s.ship_date >= '2025-08-01';
+      const amount = isNewFormat
+        ? (s.supply_amount || 0)
+        : (s.selling_price || s.supply_amount || 0);
       const ym = s.ship_date.slice(0, 7);
       const yr = s.ship_date.slice(0, 4);
       if (!monthlyData[ym]) monthlyData[ym] = { qty: 0, amount: 0 };
@@ -545,8 +549,10 @@ export async function POST(request: Request) {
             wineStats[wineName].totalListAmt += listPrice * qty;
             wineStats[wineName].totalListQty += qty;
           }
-          // 실제 판매 단가 산출 (priceUtils)
-          const perUnitPrice = getSellingUnitPrice(s.unit_price || 0, s.selling_price || 0, s.supply_amount || 0, qty);
+          // 실제 판매 단가 산출 (날짜 기반)
+          const isNew = s.ship_date >= '2025-08-01';
+          const totalAmt = isNew ? (s.supply_amount || 0) : (s.selling_price || s.supply_amount || 0);
+          const perUnitPrice = Math.abs(qty) > 0 ? Math.round(Math.abs(totalAmt) / Math.abs(qty)) : 0;
           if (perUnitPrice > 0 && (listPrice === 0 || perUnitPrice <= listPrice * 1.5)) {
             wineStats[wineName].totalUnitAmt += perUnitPrice * qty;
             wineStats[wineName].totalUnitQty += qty;
