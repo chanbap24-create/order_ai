@@ -145,7 +145,7 @@ const DEFAULT_INV_DL: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 
 // ══════════════════════════════════════════
 
 type QuoteColumnKey =
-  | 'item_code' | 'barcode' | 'country' | 'brand' | 'region' | 'image_url'
+  | 'item_code' | 'category' | 'barcode' | 'country' | 'brand' | 'region' | 'image_url'
   | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
   | 'supply_price' | 'min_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'retail_discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
@@ -161,6 +161,7 @@ interface QuoteColumnConfig {
 
 const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: 'item_code', label: '품목코드' },
+  { key: 'category', label: '분류' },
   { key: 'barcode', label: '바코드' },
   { key: 'country', label: '국가' },
   { key: 'brand', label: '브랜드' },
@@ -1107,6 +1108,7 @@ export default function InventoryPage() {
       case 'retail_normal_total': return (item.retail_price || 0) * item.quantity;
       case 'retail_discount_total': return calcDiscountedPrice(item.retail_price || 0, item.discount_rate) * item.quantity;
       case 'discount_rate': return item.discount_rate;
+      case 'category': return getItemCategory(item.item_code);
       case 'grape_varieties': return wineProfiles[item.item_code]?.grape_varieties || '';
       default: return (item as any)[key] ?? '';
     }
