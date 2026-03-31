@@ -54,6 +54,7 @@ interface QuoteItem {
   english_name: string;
   korean_name: string;
   supply_price: number;
+  min_price: number;
   retail_price: number;
   discount_rate: number;
   discounted_price: number;
@@ -72,7 +73,7 @@ type WarehouseTab = 'CDV' | 'DL';
 // ══════════════════════════════════════════
 
 type InvColumnKey =
-  | 'item_no' | 'item_name' | 'brand' | 'importer' | 'volume_ml' | 'barcode'
+  | 'item_no' | 'item_name' | 'category' | 'brand' | 'importer' | 'volume_ml' | 'barcode'
   | 'supply_price' | 'discount_price' | 'wholesale_price' | 'retail_price' | 'min_price'
   | 'total_stock' | 'stock_excl_available' | 'pending_shipment' | 'available_stock'
   | 'bonded_warehouse' | 'anseong_warehouse' | 'incoming_stock'
@@ -80,6 +81,18 @@ type InvColumnKey =
   | 'yongma_logistics' | 'yongma_reserve' | 'yongma_marketing' | 'yongma_sales1' | 'yongma_sales2'
   | 'gig_warehouse' | 'gig_marketing' | 'gig_sales1'
   | 'vintage' | 'alcohol_content' | 'country';
+
+// 품번 첫 글자 → 상품 분류
+const ITEM_CATEGORY_MAP: Record<string, string> = {
+  '0': 'Champagne', '1': 'Sparkling', '2': 'Red', '3': 'White',
+  '4': 'Rosé', '5': 'Icewine', '6': 'Grappa', '7': 'Set',
+  '8': 'POS Material', '9': '자재', 'A': 'Port', 'D': '대유',
+  'E': '자재(대유)', 'Z': '타사제품',
+};
+function getItemCategory(itemNo: string): string {
+  const first = (itemNo || '').charAt(0).toUpperCase();
+  return ITEM_CATEGORY_MAP[first] || first || '-';
+}
 
 interface InvColumnConfig {
   key: InvColumnKey;
@@ -91,6 +104,7 @@ interface InvColumnConfig {
 const INV_COLUMNS: InvColumnConfig[] = [
   { key: 'item_no', label: '품번' },
   { key: 'item_name', label: '품명' },
+  { key: 'category', label: '분류' },
   { key: 'brand', label: '브랜드' },
   { key: 'importer', label: '수입사' },
   { key: 'volume_ml', label: '용량' },
@@ -133,7 +147,7 @@ const DEFAULT_INV_DL: InvColumnKey[] = ['item_no', 'item_name', 'supply_price', 
 type QuoteColumnKey =
   | 'item_code' | 'barcode' | 'country' | 'brand' | 'region' | 'image_url'
   | 'vintage' | 'product_name' | 'english_name' | 'korean_name'
-  | 'supply_price' | 'retail_price' | 'discount_rate'
+  | 'supply_price' | 'min_price' | 'retail_price' | 'discount_rate'
   | 'discounted_price' | 'retail_discounted_price' | 'quantity' | 'normal_total' | 'discount_total'
   | 'retail_normal_total' | 'retail_discount_total'
   | 'note' | 'tasting_note' | 'grape_varieties';
@@ -158,6 +172,7 @@ const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: 'english_name', label: '영문명' },
   { key: 'korean_name', label: '한글명' },
   { key: 'supply_price', label: '공급가', type: 'currency' },
+  { key: 'min_price', label: '최저판매가', type: 'currency' },
   { key: 'retail_price', label: '판매가', type: 'currency' },
   { key: 'discount_rate', label: '할인율', editable: true, type: 'percent' },
   { key: 'discounted_price', label: '할인가', editable: true, type: 'computed' },
@@ -279,6 +294,7 @@ export default function InventoryPage() {
     supplyPrice: { enabled: false, min: '', max: '' },
     retailPrice: { enabled: false, min: '', max: '' },
     minPrice: { enabled: false, min: '', max: '' },
+    category: { enabled: false, value: '' },
     country: { enabled: false, value: '' },
   });
   const [countryList, setCountryList] = useState<string[]>([]);
@@ -658,6 +674,7 @@ export default function InventoryPage() {
           item_code: inv.item_no,
           product_name: inv.item_name,
           supply_price: inv.supply_price,
+          min_price: inv.min_price || 0,
           retail_price: inv.retail_price || 0,
           country: inv.country || '',
           vintage: inv.vintage || '',
@@ -1022,6 +1039,9 @@ export default function InventoryPage() {
       if (lo !== null && v < lo) return false;
       if (hi !== null && v > hi) return false;
     }
+    if (advancedFilters.category.enabled && advancedFilters.category.value) {
+      if (getItemCategory(item.item_no) !== advancedFilters.category.value) return false;
+    }
     if (advancedFilters.country.enabled && advancedFilters.country.value) {
       if ((item.country || '') !== advancedFilters.country.value) return false;
     }
@@ -1046,6 +1066,7 @@ export default function InventoryPage() {
     switch (key) {
       case 'item_no': return item.item_no;
       case 'item_name': return item.item_name;
+      case 'category': return getItemCategory(item.item_no);
       case 'brand': case 'importer': case 'volume_ml': case 'barcode':
         return item[key] || '-';
       case 'supply_price': case 'discount_price': case 'wholesale_price':
@@ -1585,6 +1606,23 @@ export default function InventoryPage() {
                   style={{ width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 16, textAlign: 'right', opacity: advancedFilters.minPrice.enabled ? 1 : 0.4 }} />
               </div>
 
+              {/* 분류 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 80, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={advancedFilters.category.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, category: { ...f.category, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }} />
+                  분류
+                </label>
+                <select value={advancedFilters.category.value}
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, category: { ...f.category, value: e.target.value } }))}
+                  disabled={!advancedFilters.category.enabled}
+                  style={{ width: 150, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 14, color: '#333', opacity: advancedFilters.category.enabled ? 1 : 0.4 }}>
+                  <option value="">전체</option>
+                  {Object.entries(ITEM_CATEGORY_MAP).map(([k, v]) => <option key={k} value={v}>{v}</option>)}
+                </select>
+              </div>
+
               {/* 국가 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 80, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
@@ -1952,7 +1990,38 @@ export default function InventoryPage() {
                     marginBottom: 12, padding: 14, background: '#fafaf8',
                     borderRadius: 8, border: '1px solid #F0EFED',
                   }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 8, color: '#2D2D2D' }}>견적 컬럼</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 8, color: '#2D2D2D' }}>견적 컬럼 (체크 + 순서 변경)</div>
+                    {/* 활성 컬럼 순서 변경 */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: 4 }}>표시 순서 (◀▶ 로 이동)</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {visibleQuoteColumns.map((key, idx) => {
+                          const col = QUOTE_COLUMNS.find(c => c.key === key);
+                          if (!col) return null;
+                          return (
+                            <div key={key} style={{
+                              display: 'flex', alignItems: 'center', gap: 2,
+                              padding: '3px 6px', borderRadius: 6,
+                              background: '#fff', border: '1px solid rgba(90,21,21,0.2)',
+                              fontSize: 11,
+                            }}>
+                              <button
+                                onClick={() => { if (idx === 0) return; setVisibleQuoteColumns(prev => { const a = [...prev]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; return a; }); }}
+                                disabled={idx === 0}
+                                style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', padding: '0 2px', fontSize: 11, color: idx === 0 ? '#ddd' : '#5A1515' }}
+                              >◀</button>
+                              <span style={{ fontWeight: 600, color: '#2D2D2D' }}>{col.label}</span>
+                              <button
+                                onClick={() => { if (idx === visibleQuoteColumns.length-1) return; setVisibleQuoteColumns(prev => { const a = [...prev]; [a[idx], a[idx+1]] = [a[idx+1], a[idx]]; return a; }); }}
+                                disabled={idx === visibleQuoteColumns.length - 1}
+                                style={{ background: 'none', border: 'none', cursor: idx === visibleQuoteColumns.length-1 ? 'default' : 'pointer', padding: '0 2px', fontSize: 11, color: idx === visibleQuoteColumns.length-1 ? '#ddd' : '#5A1515' }}
+                              >▶</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* 컬럼 표시/숨김 */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {QUOTE_COLUMNS.map(col => (
                         <label key={col.key} style={{
@@ -2322,7 +2391,38 @@ export default function InventoryPage() {
                     marginBottom: 12, padding: 14, background: '#fafaf8',
                     borderRadius: 8, border: '1px solid #F0EFED',
                   }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 8, color: '#2D2D2D' }}>견적 컬럼</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 8, color: '#2D2D2D' }}>견적 컬럼 (체크 + 순서 변경)</div>
+                    {/* 활성 컬럼 순서 변경 */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: 4 }}>표시 순서 (◀▶ 로 이동)</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {visibleQuoteColumns.map((key, idx) => {
+                          const col = QUOTE_COLUMNS.find(c => c.key === key);
+                          if (!col) return null;
+                          return (
+                            <div key={key} style={{
+                              display: 'flex', alignItems: 'center', gap: 2,
+                              padding: '3px 6px', borderRadius: 6,
+                              background: '#fff', border: '1px solid rgba(90,21,21,0.2)',
+                              fontSize: 11,
+                            }}>
+                              <button
+                                onClick={() => { if (idx === 0) return; setVisibleQuoteColumns(prev => { const a = [...prev]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; return a; }); }}
+                                disabled={idx === 0}
+                                style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', padding: '0 2px', fontSize: 11, color: idx === 0 ? '#ddd' : '#5A1515' }}
+                              >◀</button>
+                              <span style={{ fontWeight: 600, color: '#2D2D2D' }}>{col.label}</span>
+                              <button
+                                onClick={() => { if (idx === visibleQuoteColumns.length-1) return; setVisibleQuoteColumns(prev => { const a = [...prev]; [a[idx], a[idx+1]] = [a[idx+1], a[idx]]; return a; }); }}
+                                disabled={idx === visibleQuoteColumns.length - 1}
+                                style={{ background: 'none', border: 'none', cursor: idx === visibleQuoteColumns.length-1 ? 'default' : 'pointer', padding: '0 2px', fontSize: 11, color: idx === visibleQuoteColumns.length-1 ? '#ddd' : '#5A1515' }}
+                              >▶</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* 컬럼 표시/숨김 */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {QUOTE_COLUMNS.map(col => (
                         <label key={col.key} style={{

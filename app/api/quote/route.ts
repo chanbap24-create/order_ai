@@ -97,6 +97,7 @@ export async function POST(req: Request) {
       english_name = '',
       korean_name = '',
       supply_price = 0,
+      min_price = 0,
       retail_price = 0,
       discount_rate = 0,
       quantity = 1,
@@ -126,14 +127,15 @@ export async function POST(req: Request) {
       // supplier_kr 보존 (상품명에 생산자명 추가용)
       var supplierKr = wine?.supplier_kr || '';
 
-      // 2) inventory_cdv에서 판매가 보강
-      if (!retail_price) {
+      // 2) inventory_cdv에서 판매가/최저판매가 보강
+      if (!retail_price || !min_price) {
         const { data: inv } = await supabase
           .from('inventory_cdv')
-          .select('retail_price')
+          .select('retail_price, min_price')
           .eq('item_no', item_code)
           .maybeSingle();
-        if (inv?.retail_price) retail_price = inv.retail_price;
+        if (inv?.retail_price && !retail_price) retail_price = inv.retail_price;
+        if (inv?.min_price && !min_price) min_price = inv.min_price;
       }
 
       // 3) inventory_dl에서 판매가 보강 (CDV에 없으면)
@@ -184,6 +186,7 @@ export async function POST(req: Request) {
     }
 
     const price = Number(supply_price) || 0;
+    const mPrice = Number(min_price) || 0;
     const rPrice = Number(retail_price) || 0;
     const rate = Number(discount_rate) || 0;
     const qty = Number(quantity) || 1;
@@ -230,7 +233,7 @@ export async function POST(req: Request) {
       .insert({
         item_code, country, brand, region, image_url, vintage,
         product_name, english_name, korean_name,
-        supply_price: price, retail_price: rPrice, discount_rate: rate, discounted_price,
+        supply_price: price, min_price: mPrice, retail_price: rPrice, discount_rate: rate, discounted_price,
         quantity: qty, note, tasting_note, sort_order: nextSort, manager
       })
       .select()
