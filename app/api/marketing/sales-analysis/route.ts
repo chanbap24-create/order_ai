@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-// 매출 = supply_amount (공급가액, 부가세 제외)
+// 매출 기준: 공급가액(부가세 제외) — 시기별 컬럼 상이 (memory: project_shipment_price_format.md)
 
 const BRAND_COUNTRY: Record<string, string> = {
   CH:'프랑스',LV:'프랑스',VA:'프랑스',ST:'스페인',MS:'이탈리아',WM:'프랑스',
@@ -379,7 +379,13 @@ export async function GET(req: NextRequest) {
         }
 
         // 총액 판별 (priceUtils)
-        const amount = r.supply_amount || 0;
+        // 매출 = 공급가액 (시기별 컬럼 차이 반영)
+        // 2025-08~: supply_amount = Q(판매단가) × 수량
+        // ~2025-07: selling_price = Q(판매단가) × 수량, supply_amount = R(기준단가) 또는 비정상
+        const isNewFormat = r.ship_date >= '2025-08-01';
+        const amount = isNewFormat
+          ? (r.supply_amount || 0)
+          : (r.selling_price || r.supply_amount || 0);
 
         // 순수 판매량/금액 (반품은 차감)
         totalQty += qty; // 반품 차감
