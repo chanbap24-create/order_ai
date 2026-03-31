@@ -278,6 +278,7 @@ export default function InventoryPage() {
     vintage: { enabled: false, min: '', max: '' },
     supplyPrice: { enabled: false, min: '', max: '' },
     retailPrice: { enabled: false, min: '', max: '' },
+    minPrice: { enabled: false, min: '', max: '' },
     country: { enabled: false, value: '' },
   });
   const [countryList, setCountryList] = useState<string[]>([]);
@@ -592,6 +593,7 @@ export default function InventoryPage() {
         if (f.vintage.enabled) { if (f.vintage.min !== '') params.set('vintageMin', f.vintage.min); if (f.vintage.max !== '') params.set('vintageMax', f.vintage.max); }
         if (f.supplyPrice.enabled) { if (f.supplyPrice.min !== '') params.set('supplyPriceMin', f.supplyPrice.min); if (f.supplyPrice.max !== '') params.set('supplyPriceMax', f.supplyPrice.max); }
         if (f.retailPrice.enabled) { if (f.retailPrice.min !== '') params.set('retailPriceMin', f.retailPrice.min); if (f.retailPrice.max !== '') params.set('retailPriceMax', f.retailPrice.max); }
+        if (f.minPrice.enabled) { if (f.minPrice.min !== '') params.set('minPriceMin', f.minPrice.min); if (f.minPrice.max !== '') params.set('minPriceMax', f.minPrice.max); }
         if (f.country.enabled && f.country.value) params.set('country', f.country.value);
         endpoint = `/api/inventory/filter?${params.toString()}`;
       } else {
@@ -1010,6 +1012,13 @@ export default function InventoryPage() {
       const v = item.retail_price || 0;
       const lo = advancedFilters.retailPrice.min !== '' ? Number(advancedFilters.retailPrice.min) : null;
       const hi = advancedFilters.retailPrice.max !== '' ? Number(advancedFilters.retailPrice.max) : null;
+      if (lo !== null && v < lo) return false;
+      if (hi !== null && v > hi) return false;
+    }
+    if (advancedFilters.minPrice.enabled) {
+      const v = item.min_price || 0;
+      const lo = advancedFilters.minPrice.min !== '' ? Number(advancedFilters.minPrice.min) : null;
+      const hi = advancedFilters.minPrice.max !== '' ? Number(advancedFilters.minPrice.max) : null;
       if (lo !== null && v < lo) return false;
       if (hi !== null && v > hi) return false;
     }
@@ -1555,6 +1564,25 @@ export default function InventoryPage() {
                   onChange={(e) => setAdvancedFilters(f => ({ ...f, retailPrice: { ...f.retailPrice, max: e.target.value } }))}
                   disabled={!advancedFilters.retailPrice.enabled}
                   style={{ width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 16, textAlign: 'right', opacity: advancedFilters.retailPrice.enabled ? 1 : 0.4 }} />
+              </div>
+
+              {/* 최저판매가 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 80, fontSize: '0.75rem', color: '#555', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={advancedFilters.minPrice.enabled}
+                    onChange={(e) => setAdvancedFilters(f => ({ ...f, minPrice: { ...f.minPrice, enabled: e.target.checked } }))}
+                    style={{ accentColor: '#5A1515' }} />
+                  최저판매가
+                </label>
+                <input type="number" value={advancedFilters.minPrice.min} placeholder="최소"
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, minPrice: { ...f.minPrice, min: e.target.value } }))}
+                  disabled={!advancedFilters.minPrice.enabled}
+                  style={{ width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 16, textAlign: 'right', opacity: advancedFilters.minPrice.enabled ? 1 : 0.4 }} />
+                <span style={{ fontSize: '0.7rem', color: '#aaa' }}>~</span>
+                <input type="number" value={advancedFilters.minPrice.max} placeholder="최대"
+                  onChange={(e) => setAdvancedFilters(f => ({ ...f, minPrice: { ...f.minPrice, max: e.target.value } }))}
+                  disabled={!advancedFilters.minPrice.enabled}
+                  style={{ width: 80, height: 30, borderRadius: 6, border: '1px solid #E5E5E5', padding: '0 6px', fontSize: 16, textAlign: 'right', opacity: advancedFilters.minPrice.enabled ? 1 : 0.4 }} />
               </div>
 
               {/* 국가 */}
