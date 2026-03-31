@@ -699,9 +699,9 @@ export default function ImportForecastTab() {
             <button onClick={handleCalculate} disabled={(!country && !brand) || loading}
               style={{
                 padding: '7px 20px', fontSize: 13, fontWeight: 600,
-                background: (!country || (!priceMin && !priceMax)) ? '#e0e0e0' : '#5A1515',
+                background: ((!country && !brand) || (!priceMin && !priceMax)) ? '#e0e0e0' : '#5A1515',
                 color: '#fff', border: 'none', borderRadius: 6,
-                cursor: (!country || (!priceMin && !priceMax)) ? 'default' : 'pointer',
+                cursor: ((!country && !brand) || (!priceMin && !priceMax)) ? 'default' : 'pointer',
                 transition: 'all 0.15s',
               }}>
               {loading ? '분석 중...' : '분석'}
