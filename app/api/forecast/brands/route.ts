@@ -72,7 +72,9 @@ export async function GET(req: NextRequest) {
     const brandAgg: Record<string, BrandAgg> = {};
 
     for (const s of allShips) {
-      if (!s.item_no || s.item_no.length < 5 || s.item_no.startsWith('D') || s.item_no.startsWith('9F')) continue;
+      if (!s.item_no || s.item_no.length < 5) continue;
+      const firstChar = s.item_no.charAt(0).toUpperCase();
+      if (!'0123456AZ'.includes(firstChar)) continue;
       const qty = s.quantity || 0;
       if (qty <= 0) continue;
 

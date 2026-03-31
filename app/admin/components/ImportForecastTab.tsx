@@ -741,11 +741,15 @@ export default function ImportForecastTab() {
               <select value={wineType} onChange={e => { setWineType(e.target.value); setResults(null); }}
                 style={selectStyle}>
                 <option value="">전체</option>
-                <option value="레드">레드</option>
-                <option value="화이트">화이트</option>
-                <option value="스파클링">스파클링</option>
-                <option value="로제">로제</option>
-                <option value="주정강화">주정강화</option>
+                <option value="Champagne">Champagne</option>
+                <option value="Sparkling">Sparkling</option>
+                <option value="Red">Red</option>
+                <option value="White">White</option>
+                <option value="Rosé">Rosé</option>
+                <option value="Icewine">Icewine</option>
+                <option value="Grappa">Grappa</option>
+                <option value="Port">Port</option>
+                <option value="타사제품">타사제품</option>
               </select>
             </div>
             <div>

@@ -17,14 +17,17 @@ const BRAND_COUNTRY: Record<string, string> = {
 
 // ── 4-stage 와인 정보 매칭 (sales-analysis와 동일) ──
 
-function inferType(name: string): string | null {
-  const n = (name || '').toLowerCase();
-  if (/로제|rosé|rosato/.test(n)) return '로제';
-  if (/스파클링|브륏|brut|크레망|crémant|샴페인|champagne|프로세코|카바|cava/.test(n)) return '스파클링';
-  if (/포트|포르트|마데이라|셰리|주정강화|토니|tawny/.test(n)) return '주정강화';
-  if (/소비뇽 블랑|샤르도네|리슬링|비오니에|피노 그리|그뤼너|게뷔르츠|모스카토|블랑|비앙코|branco|blanc|white|알바리뇨|베르멘티노|토론테스|화이트/.test(n)) return '화이트';
-  if (/카베르네|메를로|피노누아|피노 누아|시라|시라즈|템프라니요|산지오베제|네비올로|말벡|진판델|그르나슈|클라렛|레드|rosso|tinto|rouge|가메|바르베라|돌체토|아글리아니코|카르메네르/.test(n)) return '레드';
-  return null;
+// 품번 첫 글자 기반 상품 분류
+const ITEM_CATEGORY_MAP: Record<string, string> = {
+  '0': 'Champagne', '1': 'Sparkling', '2': 'Red', '3': 'White',
+  '4': 'Rosé', '5': 'Icewine', '6': 'Grappa',
+  'A': 'Port', 'Z': '타사제품',
+};
+const WINE_CODES = new Set('0123456AZ'.split(''));
+
+function getItemCategory(itemNo: string): string | null {
+  const first = (itemNo || '').charAt(0).toUpperCase();
+  return ITEM_CATEGORY_MAP[first] || null;
 }
 
 function buildVintageMap(wineMap: Map<string, any>): Map<string, { abbr: string; data: any }[]> {
@@ -66,7 +69,9 @@ function resolveWine(
     const m = (itemName || '').match(/^([A-Z]{2,3})\s/);
     if (m && brandCountry.has(m[1])) country = brandCountry.get(m[1])!;
   }
-  if (!wineType) wineType = inferType(itemName || '');
+  // 품번 첫 글자 기반 분류 우선
+  const codeCategory = getItemCategory(itemNo);
+  if (codeCategory) wineType = codeCategory;
   return { country, region, wineType, wineData };
 }
 
@@ -237,8 +242,9 @@ export async function POST(request: Request) {
 
     for (let idx = 0; idx < allShipments.length; idx++) {
       const s = allShipments[idx];
-      if (!s.item_no || s.item_no.length < 5 || s.item_no.startsWith('D') || s.item_no.startsWith('9F')) continue;
-      if (/^7[0-9A-Z]/.test(s.item_no) && (s.item_name || '').includes('특판')) continue;
+      if (!s.item_no || s.item_no.length < 5) continue;
+      const firstChar = s.item_no.charAt(0).toUpperCase();
+      if (!WINE_CODES.has(firstChar)) continue;
 
       // 4-stage resolve
       let resolved = resolveCache.get(s.item_no);
