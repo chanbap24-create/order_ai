@@ -228,7 +228,7 @@ export async function GET(req: NextRequest) {
 
     // wines/inventory 병렬 로드
     const [{ data: wines }, { data: inv }] = await Promise.all([
-      supabase.from('wines').select('item_code, item_name_kr, country, region, wine_type, supplier_kr, supplier').not('item_code', 'like', 'D%'),
+      supabase.from('wines').select('item_code, item_name_kr, country, region, wine_type, supplier_kr, supplier, brand').not('item_code', 'like', 'D%'),
       supabase.from('inventory_cdv').select('item_no, country'),
     ]);
     const wineMap = new Map<string, any>();
@@ -245,18 +245,11 @@ export async function GET(req: NextRequest) {
       if (!brandCountry.has(k)) brandCountry.set(k, v);
     }
 
-    // 브랜드 코드 → 한글명 매핑 (wines 테이블에서 자동 생성)
+    // 브랜드 코드 → 한글명 매핑 (wines.brand + wines.supplier_kr)
     const brandNameMap = new Map<string, string>(); // CH → 찰스하이직
     for (const w of (wines || [])) {
-      const m = (w.item_name_kr || '').match(/^([A-Z]{2,3})\s+(.+)/);
-      if (m) {
-        const code = m[1];
-        if (!brandNameMap.has(code)) {
-          // supplier_kr 우선, 없으면 품명에서 첫 단어
-          const supplierKr = w.supplier_kr || w.supplier || '';
-          const nameFirst = m[2].split(/\s/)[0];
-          brandNameMap.set(code, supplierKr || nameFirst);
-        }
+      if (w.brand && w.supplier_kr && !brandNameMap.has(w.brand)) {
+        brandNameMap.set(w.brand, w.supplier_kr);
       }
     }
 
