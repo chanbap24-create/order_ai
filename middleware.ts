@@ -74,6 +74,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── /api/marketing/* → 공개 (읽기 전용 분석) ──
+  if (pathname.startsWith('/api/marketing')) {
+    return NextResponse.next();
+  }
+
   // ── /api/admin/remote-sync → 로컬 에이전트 폴링/업로드용 공개 ──
   if (pathname.startsWith('/api/admin/remote-sync')) {
     return NextResponse.next();

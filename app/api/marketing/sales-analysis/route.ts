@@ -331,6 +331,7 @@ export async function GET(req: NextRequest) {
         const firstChar = r.item_no.charAt(0).toUpperCase();
         if (!WINE_CODES.has(firstChar)) continue;
         const qty = r.quantity || 0;
+        const absQty = Math.abs(qty);
         if (qty === 0) continue;
 
         let resolved = resolveCache.get(r.item_no);
