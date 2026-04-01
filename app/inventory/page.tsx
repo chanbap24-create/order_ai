@@ -1771,6 +1771,14 @@ export default function InventoryPage() {
                         }}>
                           {item.item_name}
                         </span>
+                        {(item as any).item_name_en && (
+                          <span style={{
+                            fontSize: '0.68rem', color: '#999', fontWeight: 400,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1,
+                          }}>
+                            {(item as any).item_name_en}
+                          </span>
+                        )}
                         {importScheduleMap[item.item_no] && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setShowImportPopup(showImportPopup === item.item_no ? null : item.item_no); }}
