@@ -25,31 +25,42 @@ export async function POST(req: NextRequest) {
       .order('item_no', { ascending: true });
     if (wineErr) throw wineErr;
 
-    // 2. 거래처 입고내역 (CDV/DL 테이블 분리)
+    // 2. 거래처 입고내역 (shipments에서 직접 조회 — 전체 이력 포함)
     let purchaseHistory: any[] = [];
-    if (client_code) {
-      if (tab === 'DL') {
-        // glass_shipments에서 직접 집계 (고유 품목)
+    if (client_code || client_name) {
+      const shipTable = tab === 'DL' ? 'glass_shipments' : 'shipments';
+      const seen = new Set<string>();
+
+      // client_code로 조회
+      if (client_code) {
         const { data: ships } = await supabase
-          .from('glass_shipments')
+          .from(shipTable)
           .select('item_no, item_name')
           .eq('client_code', client_code)
           .order('ship_date', { ascending: false })
-          .limit(1000);
-        const seen = new Set<string>();
+          .limit(5000);
         for (const s of (ships || [])) {
           if (s.item_no && !seen.has(s.item_no)) {
             seen.add(s.item_no);
             purchaseHistory.push({ item_no: s.item_no, item_name: s.item_name });
           }
         }
-      } else {
-        const { data: stats } = await supabase
-          .from('client_item_stats')
+      }
+
+      // client_name으로 추가 조회 (코드 없는 과거 데이터 포함)
+      if (client_name && purchaseHistory.length < 50) {
+        const { data: nameShips } = await supabase
+          .from(shipTable)
           .select('item_no, item_name')
-          .eq('client_code', client_code)
-          .limit(100);
-        purchaseHistory = stats || [];
+          .eq('client_name', client_name)
+          .order('ship_date', { ascending: false })
+          .limit(3000);
+        for (const s of (nameShips || [])) {
+          if (s.item_no && !seen.has(s.item_no)) {
+            seen.add(s.item_no);
+            purchaseHistory.push({ item_no: s.item_no, item_name: s.item_name });
+          }
+        }
       }
     }
 
