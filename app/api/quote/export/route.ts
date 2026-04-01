@@ -36,6 +36,7 @@ interface ColDef {
 const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: null, label: 'No.', width: 5, type: 'index' },
   { uiKey: 'item_code', label: '품목코드', width: 11, type: 'text', dataField: 'item_code' },
+  { uiKey: 'category', label: '분류', width: 12, type: 'text' },
   { uiKey: 'barcode', label: '바코드', width: 15, type: 'text', dataField: 'barcode' },
   { uiKey: 'country', label: '국가', width: 8, type: 'text', dataField: 'country' },
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
@@ -47,6 +48,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'english_name', label: '영문명', width: 30, type: 'text', dataField: 'english_name' },
   { uiKey: 'korean_name', label: '한글명', width: 30, type: 'text', dataField: 'korean_name' },
   { uiKey: 'supply_price', label: '공급가', width: 12, type: 'currency', dataField: 'supply_price' },
+  { uiKey: 'min_price', label: '최저판매가', width: 12, type: 'currency', dataField: 'min_price' },
   { uiKey: 'retail_price', label: '소비자가', width: 12, type: 'currency', dataField: 'retail_price' },
   { uiKey: 'discount_rate', label: '할인율', width: 8, type: 'percent', dataField: 'discount_rate' },
   { uiKey: 'discounted_price', label: '할인가', width: 12, type: 'formula' },
@@ -54,6 +56,7 @@ const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'quantity', label: '수량', width: 6, type: 'number', dataField: 'quantity' },
   { uiKey: 'normal_total', label: '정상공급가합계', width: 14, type: 'formula' },
   { uiKey: 'discount_total', label: '할인공급가합계', width: 14, type: 'formula' },
+  { uiKey: 'min_price_total', label: '최저판매가합계', width: 14, type: 'formula' },
   { uiKey: 'retail_normal_total', label: '정상소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'retail_discount_total', label: '할인소비자가합계', width: 15, type: 'formula' },
   { uiKey: 'tasting_note', label: '테이스팅노트', width: 18, type: 'link' },
@@ -641,6 +644,14 @@ async function buildQuote(
             const dp = Math.round((item.supply_price || 0) * (1 - (item.discount_rate || 0)));
             sc(row, c, dp * (item.quantity || 0), { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
           }
+        } else if (col.uiKey === 'min_price_total') {
+          if (pos['min_price'] && pos['quantity']) {
+            const mp = colLetter(pos['min_price']);
+            const qty = colLetter(pos['quantity']);
+            sf(row, c, `IFERROR(${mp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill });
+          } else {
+            sc(row, c, (item.min_price || 0) * (item.quantity || 0), { border: THIN, fmt: CURR, fill: rowFill });
+          }
         } else if (col.uiKey === 'retail_normal_total') {
           if (pos['retail_price'] && pos['quantity']) {
             const rp = colLetter(pos['retail_price']);
@@ -683,6 +694,14 @@ async function buildQuote(
         } else {
           sc(row, c, '', { border: THIN, fill: rowFill });
         }
+        continue;
+      }
+
+      // 분류: 품번 첫 글자 기반 계산 컬럼
+      if (col.uiKey === 'category') {
+        const CATS: Record<string, string> = { '0':'Champagne','1':'Sparkling','2':'Red','3':'White','4':'Rosé','5':'Icewine','6':'Grappa','7':'Set','8':'POS Material','9':'자재','A':'Port','Z':'타사제품' };
+        const cat = CATS[(item.item_code || '').charAt(0).toUpperCase()] || '-';
+        sc(row, c, cat, { border: THIN, align: 'center', fill: rowFill });
         continue;
       }
 
