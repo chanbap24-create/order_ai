@@ -49,6 +49,20 @@ function buildVintageMap(wineMap: Map<string, any>): Map<string, { abbr: string;
   return vintageMap;
 }
 
+// 국가명 정규화
+const COUNTRY_NORMALIZE: Record<string, string> = {
+  'United States': '미국', 'USA': '미국', 'US': '미국',
+  'France': '프랑스', 'Italy': '이탈리아', 'Spain': '스페인',
+  'Germany': '독일', 'Australia': '호주', 'Chile': '칠레',
+  'Argentina': '아르헨티나', 'Portugal': '포르투갈',
+  'New Zealand': '뉴질랜드', 'Austria': '오스트리아',
+  'South Africa': '남아공', 'Hungary': '헝가리', 'UK': '영국',
+};
+function normalizeCountry(c: string | null): string | null {
+  if (!c) return null;
+  return COUNTRY_NORMALIZE[c] || c;
+}
+
 // 와인 정보 매칭 (캐시 기반 O(1) 빈티지 매칭)
 // 품명에서 브랜드 코드 추출: "CH 찰스 하이직 브륏" → "CH"
 function extractBrandCode(itemName: string): string | null {
@@ -86,7 +100,7 @@ function resolveWine(
   // 품번 첫 글자 기반 분류 우선
   const codeCategory = getItemCategory(itemNo);
   if (codeCategory) wineType = codeCategory;
-  return { country, region, wineType, brandCode };
+  return { country: normalizeCountry(country), region, wineType, brandCode };
 }
 
 // 지역 그룹: label → 검색 키워드들 (해당 키워드가 region 값에 포함되면 매칭)
