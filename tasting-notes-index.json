@@ -1452,6 +1452,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "0018802": {
+      "exists": true,
+      "filename": "0018802.pdf",
+      "size_kb": 499,
+      "pages": 1,
+      "wine_name": ""
+    },
     "0021009": {
       "exists": true,
       "filename": "0021009.pdf",
@@ -1575,6 +1582,20 @@
       "exists": true,
       "filename": "00NV809.pdf",
       "size_kb": 188,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "00NV810": {
+      "exists": true,
+      "filename": "00NV810.pdf",
+      "size_kb": 279,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "00NV811": {
+      "exists": true,
+      "filename": "00NV811.pdf",
+      "size_kb": 290,
       "pages": 1,
       "wine_name": ""
     },
