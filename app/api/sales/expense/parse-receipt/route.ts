@@ -70,8 +70,16 @@ export async function POST(request: Request) {
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+
+    // 연도를 현재 연도로 강제 적용 (OCR 연도 오인식 방지)
+    let fixedDate = parsed.date || '';
+    if (fixedDate && /^\d{4}-\d{2}-\d{2}$/.test(fixedDate)) {
+      const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      fixedDate = `${kst.getUTCFullYear()}-${fixedDate.slice(5)}`;
+    }
+
     return NextResponse.json({
-      date: parsed.date || '',
+      date: fixedDate,
       description: parsed.description || '',
       amount: Number(parsed.amount) || 0,
       account_category: parsed.account_category || '복리후생비',
