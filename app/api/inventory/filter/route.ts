@@ -75,6 +75,20 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // wines 테이블에서 영문명 보강
+    const itemNos = results.map((r: any) => r.item_no).filter(Boolean);
+    if (itemNos.length > 0) {
+      const { data: wineData } = await supabase
+        .from('wines')
+        .select('item_code, item_name_en')
+        .in('item_code', itemNos);
+      if (wineData) {
+        const enMap: Record<string, string> = {};
+        for (const w of wineData) if (w.item_name_en) enMap[w.item_code] = w.item_name_en;
+        results = results.map((r: any) => ({ ...r, item_name_en: enMap[r.item_no] || null }));
+      }
+    }
+
     return NextResponse.json({ results, count: results.length });
   } catch (error) {
     console.error('Inventory filter error:', error);
