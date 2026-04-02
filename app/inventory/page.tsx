@@ -1655,6 +1655,8 @@ export default function InventoryPage() {
                   vintage: { enabled: false, min: '', max: '' },
                   supplyPrice: { enabled: false, min: '', max: '' },
                   retailPrice: { enabled: false, min: '', max: '' },
+                  minPrice: { enabled: false, min: '', max: '' },
+                  category: { enabled: false, value: '' },
                   country: { enabled: false, value: '' },
                 })}
                 style={{
