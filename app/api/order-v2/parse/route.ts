@@ -209,6 +209,7 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       }
 
       // ── 빈티지 자동 확정 로직 ──
+      // 재고가 가장 많은 빈티지를 우선 선택 (신규 빈티지 재고 반영)
       if (tab !== 'DL' && candidates.length > 1) {
         const first = candidates[0];
         const firstBase = getWineBase(first.item_no);
@@ -217,28 +218,15 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
         const sameWineCands = candidates.filter((c: any) => getWineBase(c.item_no) === firstBase);
 
         if (sameWineCands.length > 1) {
-          // 1) 거래처가 특정 빈티지를 구매한 이력이 있으면 그것을 우선 선택
-          const historyMatch = sameWineCands.find((c: any) => historySet.has(c.item_no.trim().toUpperCase()));
-          if (historyMatch) {
-            const hIdx = candidates.indexOf(historyMatch);
-            if (hIdx > 0) {
-              // 해당 후보를 맨 앞으로
-              candidates.splice(hIdx, 1);
-              candidates.unshift(historyMatch);
-              historyMatch.reasoning = (historyMatch.reasoning || '') + ' [거래처 구매이력 빈티지]';
-            }
-          } else {
-            // 2) 이전 빈티지 재고 0이면 → 재고 있는 최신 빈티지 선택
-            if (first.available_stock <= 0) {
-              const withStock = sameWineCands.find((c: any) => c.available_stock > 0);
-              if (withStock) {
-                const wsIdx = candidates.indexOf(withStock);
-                if (wsIdx > 0) {
-                  candidates.splice(wsIdx, 1);
-                  candidates.unshift(withStock);
-                  withStock.reasoning = (withStock.reasoning || '') + ' [이전 빈티지 재고 없음→최신 빈티지]';
-                }
-              }
+          // 재고가 가장 많은 빈티지를 우선 선택
+          const bestStock = [...sameWineCands].sort((a, b) => (b.available_stock || 0) - (a.available_stock || 0))[0];
+
+          if (bestStock && bestStock !== first && (bestStock.available_stock || 0) > (first.available_stock || 0)) {
+            const bsIdx = candidates.indexOf(bestStock);
+            if (bsIdx > 0) {
+              candidates.splice(bsIdx, 1);
+              candidates.unshift(bestStock);
+              bestStock.reasoning = (bestStock.reasoning || '') + ` [재고 최다 빈티지: ${bestStock.available_stock}병]`;
             }
           }
         }
