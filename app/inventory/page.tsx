@@ -336,6 +336,7 @@ export default function InventoryPage() {
   const [visibleQuoteColumns, setVisibleQuoteColumns] = useState<QuoteColumnKey[]>(DEFAULT_QUOTE_VISIBLE);
   const [showQuoteColumnSettings, setShowQuoteColumnSettings] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingNotes, setExportingNotes] = useState(false);
   const [tastingNoteSet, setTastingNoteSet] = useState<Set<string>>(new Set());
   const [wineProfiles, setWineProfiles] = useState<Record<string, { grape_varieties: string; description_kr: string }>>({});
 
@@ -961,6 +962,35 @@ export default function InventoryPage() {
     }
   }
 
+  // ── Tasting Notes PDF 합본 다운로드 ──
+  async function handleTastingNotesPdf() {
+    setExportingNotes(true);
+    try {
+      const mgr = getManagerParam();
+      const res = await fetch(`/api/quote/tasting-notes-pdf?client_name=${encodeURIComponent(clientName)}${mgr ? `&manager=${encodeURIComponent(mgr)}` : ''}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: '다운로드 실패' }));
+        alert(err.error || '다운로드 실패');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      link.download = `테이스팅노트_${dateStr}_${clientName || '미지정'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Tasting notes PDF failed:', e);
+      alert('테이스팅 노트 다운로드에 실패했습니다.');
+    } finally {
+      setExportingNotes(false);
+    }
+  }
+
   // ══════════════════════════════════════
   // COMPUTED VALUES
   // ══════════════════════════════════════
@@ -1332,6 +1362,26 @@ export default function InventoryPage() {
               }}
             >
               {exporting ? '...' : 'Excel'}
+            </button>
+
+            {/* Tasting Notes PDF */}
+            <button
+              onClick={handleTastingNotesPdf}
+              disabled={exportingNotes || quoteItems.length === 0}
+              style={{
+                padding: '5px 10px',
+                borderRadius: 6,
+                border: 'none',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                cursor: quoteItems.length > 0 && !exportingNotes ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s ease',
+                background: quoteItems.length > 0 ? '#8B1538' : '#E5E5E5',
+                color: quoteItems.length > 0 ? 'white' : '#999',
+                opacity: exportingNotes ? 0.6 : 1,
+              }}
+            >
+              {exportingNotes ? '...' : 'T-Note'}
             </button>
           </div>
         </div>
@@ -2605,6 +2655,19 @@ export default function InventoryPage() {
                     }}
                   >
                     {exporting ? '생성 중...' : 'Excel 출력'}
+                  </button>
+                  <button
+                    onClick={handleTastingNotesPdf}
+                    disabled={exportingNotes || quoteItems.length === 0}
+                    style={{
+                      flex: 1, height: 44, borderRadius: 8, border: 'none',
+                      background: quoteItems.length > 0 ? '#8B1538' : '#E5E5E5',
+                      color: quoteItems.length > 0 ? 'white' : '#999',
+                      fontSize: 14, fontWeight: 600, cursor: quoteItems.length > 0 ? 'pointer' : 'not-allowed',
+                      opacity: exportingNotes ? 0.6 : 1,
+                    }}
+                  >
+                    {exportingNotes ? '생성 중...' : 'T-Note'}
                   </button>
                   {quoteItems.length > 0 && (
                     <button
