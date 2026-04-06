@@ -337,6 +337,7 @@ export default function InventoryPage() {
   const [showQuoteColumnSettings, setShowQuoteColumnSettings] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingNotes, setExportingNotes] = useState(false);
+  const [noteMenuOpen, setNoteMenuOpen] = useState(false);
   const [tastingNoteSet, setTastingNoteSet] = useState<Set<string>>(new Set());
   const [wineProfiles, setWineProfiles] = useState<Record<string, { grape_varieties: string; description_kr: string }>>({});
 
@@ -962,12 +963,13 @@ export default function InventoryPage() {
     }
   }
 
-  // ── Tasting Notes PDF 합본 다운로드 ──
-  async function handleTastingNotesPdf() {
+  // ── Tasting Notes 합본 다운로드 (PDF / PPTX) ──
+  async function handleTastingNotesDownload(format: 'pdf' | 'pptx') {
     setExportingNotes(true);
     try {
       const mgr = getManagerParam();
-      const res = await fetch(`/api/quote/tasting-notes-pdf?client_name=${encodeURIComponent(clientName)}${mgr ? `&manager=${encodeURIComponent(mgr)}` : ''}`);
+      const endpoint = format === 'pptx' ? '/api/quote/tasting-notes-pptx' : '/api/quote/tasting-notes-pdf';
+      const res = await fetch(`${endpoint}?client_name=${encodeURIComponent(clientName)}${mgr ? `&manager=${encodeURIComponent(mgr)}` : ''}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: '다운로드 실패' }));
         alert(err.error || '다운로드 실패');
@@ -978,13 +980,13 @@ export default function InventoryPage() {
       const link = document.createElement('a');
       link.href = url;
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      link.download = `테이스팅노트_${dateStr}_${clientName || '미지정'}.pdf`;
+      link.download = `테이스팅노트_${dateStr}_${clientName || '미지정'}.${format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Tasting notes PDF failed:', e);
+      console.error(`Tasting notes ${format} failed:`, e);
       alert('테이스팅 노트 다운로드에 실패했습니다.');
     } finally {
       setExportingNotes(false);
@@ -1364,25 +1366,45 @@ export default function InventoryPage() {
               {exporting ? '...' : 'Excel'}
             </button>
 
-            {/* Tasting Notes PDF */}
-            <button
-              onClick={handleTastingNotesPdf}
-              disabled={exportingNotes || quoteItems.length === 0}
-              style={{
-                padding: '5px 10px',
-                borderRadius: 6,
-                border: 'none',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                cursor: quoteItems.length > 0 && !exportingNotes ? 'pointer' : 'not-allowed',
-                transition: 'all 0.2s ease',
-                background: quoteItems.length > 0 ? '#8B1538' : '#E5E5E5',
-                color: quoteItems.length > 0 ? 'white' : '#999',
-                opacity: exportingNotes ? 0.6 : 1,
-              }}
-            >
-              {exportingNotes ? '...' : 'T-Note'}
-            </button>
+            {/* Tasting Notes dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setNoteMenuOpen(!noteMenuOpen)}
+                disabled={exportingNotes || quoteItems.length === 0}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  cursor: quoteItems.length > 0 && !exportingNotes ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s ease',
+                  background: quoteItems.length > 0 ? '#8B1538' : '#E5E5E5',
+                  color: quoteItems.length > 0 ? 'white' : '#999',
+                  opacity: exportingNotes ? 0.6 : 1,
+                }}
+              >
+                {exportingNotes ? '...' : 'T-Note ▾'}
+              </button>
+              {noteMenuOpen && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                  background: 'white', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                  border: '1px solid #eee', zIndex: 100, overflow: 'hidden', minWidth: 120,
+                }}>
+                  <button onClick={() => { setNoteMenuOpen(false); handleTastingNotesDownload('pdf'); }}
+                    style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'white', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f5f0ea')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                  >PDF 합본</button>
+                  <button onClick={() => { setNoteMenuOpen(false); handleTastingNotesDownload('pptx'); }}
+                    style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'white', fontSize: 13, cursor: 'pointer', textAlign: 'left', borderTop: '1px solid #f0f0f0' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f5f0ea')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                  >PPTX 합본</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2656,19 +2678,35 @@ export default function InventoryPage() {
                   >
                     {exporting ? '생성 중...' : 'Excel 출력'}
                   </button>
-                  <button
-                    onClick={handleTastingNotesPdf}
-                    disabled={exportingNotes || quoteItems.length === 0}
-                    style={{
-                      flex: 1, height: 44, borderRadius: 8, border: 'none',
-                      background: quoteItems.length > 0 ? '#8B1538' : '#E5E5E5',
-                      color: quoteItems.length > 0 ? 'white' : '#999',
-                      fontSize: 14, fontWeight: 600, cursor: quoteItems.length > 0 ? 'pointer' : 'not-allowed',
-                      opacity: exportingNotes ? 0.6 : 1,
-                    }}
-                  >
-                    {exportingNotes ? '생성 중...' : 'T-Note'}
-                  </button>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <button
+                      onClick={() => setNoteMenuOpen(!noteMenuOpen)}
+                      disabled={exportingNotes || quoteItems.length === 0}
+                      style={{
+                        width: '100%', height: 44, borderRadius: 8, border: 'none',
+                        background: quoteItems.length > 0 ? '#8B1538' : '#E5E5E5',
+                        color: quoteItems.length > 0 ? 'white' : '#999',
+                        fontSize: 14, fontWeight: 600, cursor: quoteItems.length > 0 ? 'pointer' : 'not-allowed',
+                        opacity: exportingNotes ? 0.6 : 1,
+                      }}
+                    >
+                      {exportingNotes ? '생성 중...' : 'T-Note ▾'}
+                    </button>
+                    {noteMenuOpen && (
+                      <div style={{
+                        position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 4,
+                        background: 'white', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                        border: '1px solid #eee', zIndex: 100, overflow: 'hidden',
+                      }}>
+                        <button onClick={() => { setNoteMenuOpen(false); handleTastingNotesDownload('pdf'); }}
+                          style={{ display: 'block', width: '100%', padding: '12px 16px', border: 'none', background: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'center' }}
+                        >PDF 합본</button>
+                        <button onClick={() => { setNoteMenuOpen(false); handleTastingNotesDownload('pptx'); }}
+                          style={{ display: 'block', width: '100%', padding: '12px 16px', border: 'none', background: 'white', fontSize: 14, cursor: 'pointer', textAlign: 'center', borderTop: '1px solid #f0f0f0' }}
+                        >PPTX 합본</button>
+                      </div>
+                    )}
+                  </div>
                   {quoteItems.length > 0 && (
                     <button
                       onClick={clearAllQuote}
