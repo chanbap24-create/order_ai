@@ -509,7 +509,11 @@ async function buildQuote(
   ws.getCell(`${unitStartCol}20`).value = doc.unit;
   ws.getCell(`${unitStartCol}20`).font = { name: FONT, size: 10 };
   ws.getCell(`${unitStartCol}20`).alignment = { horizontal: 'right', vertical: 'middle' };
-  ws.getCell(`${unitStartCol}20`).border = { bottom: { style: 'medium' } };
+  // Row 20 전체: 흰색 배경 + 아래 굵은 테두리 통일
+  for (let c = 1; c <= totalCols; c++) {
+    ws.getRow(20).getCell(c).fill = WHITE_FILL;
+    ws.getRow(20).getCell(c).border = { bottom: { style: 'medium' } };
+  }
 
   // ── Column headers (Row 21) ──
   const hBorder: Partial<ExcelJS.Borders> = {
