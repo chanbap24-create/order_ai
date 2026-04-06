@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
     const pptxBuffers: ArrayBuffer[] = [];
     for (const itemCode of itemCodes) {
       try {
-        const res = await fetch(`${TASTING_NOTE_BASE_URL}/${itemCode}.pptx`);
+        const res = await fetch(`${TASTING_NOTE_BASE_URL}/${itemCode}.pptx?t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) continue;
         pptxBuffers.push(await res.arrayBuffer());
       } catch {

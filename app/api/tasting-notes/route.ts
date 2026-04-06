@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         const pdfNote = indexCache.notes[itemNo];
         if (pdfNote?.exists) {
           const baseUrl = indexCache.base_url || GITHUB_RELEASE_URL;
-          pdfUrl = `${baseUrl}/${pdfNote.filename}`;
+          pdfUrl = `${baseUrl}/${pdfNote.filename}?v=${Date.now()}`;
         }
       }
 

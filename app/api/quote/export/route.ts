@@ -683,7 +683,7 @@ async function buildQuote(
         const itemCode = item.item_code || '';
         if (itemCode) {
           const exists = tastingNoteSet.has(itemCode);
-          const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf`;
+          const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf?v=${Date.now()}`;
           const cell = row.getCell(c);
           if (exists) {
             cell.value = { text: '테이스팅노트', hyperlink: pdfUrl } as ExcelJS.CellHyperlinkValue;

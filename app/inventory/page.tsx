@@ -2233,7 +2233,7 @@ export default function InventoryPage() {
                                     />
                                   ) : col.key === 'tasting_note' && item.item_code ? (
                                     <a
-                                      href={`${TASTING_NOTE_BASE_URL}/${item.item_code}.pdf`}
+                                      href={`${TASTING_NOTE_BASE_URL}/${item.item_code}.pdf?v=${Date.now()}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       onClick={e => e.stopPropagation()}

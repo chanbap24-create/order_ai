@@ -58,8 +58,8 @@ export async function GET(request: NextRequest) {
 
     for (const itemCode of itemCodes) {
       try {
-        const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf`;
-        const res = await fetch(pdfUrl);
+        const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf?t=${Date.now()}`;
+        const res = await fetch(pdfUrl, { cache: 'no-store' });
         if (!res.ok) {
           skipped.push(itemCode);
           continue;
