@@ -23,8 +23,9 @@ async function loadTastingNoteIndex(): Promise<Set<string>> {
 }
 
 /**
- * PPTX 파일들을 병합 (JSZip 기반 슬라이드 XML 합치기)
- * 첫 번째 PPTX를 base로 하고, 나머지 PPTX의 슬라이드를 추가
+ * 여러 PPTX 파일을 하나로 병합 (같은 pptxgenjs 템플릿 전제)
+ * - base(첫 파일)의 테마/레이아웃/마스터를 그대로 유지
+ * - 추가 파일에서 slide XML + 미디어만 복사하여 추가
  */
 async function mergePptxFiles(pptxBuffers: ArrayBuffer[]): Promise<Buffer> {
   if (pptxBuffers.length === 1) {
@@ -33,148 +34,106 @@ async function mergePptxFiles(pptxBuffers: ArrayBuffer[]): Promise<Buffer> {
 
   const baseZip = await JSZip.loadAsync(pptxBuffers[0]);
 
-  // base의 기존 슬라이드 수 파악
-  let slideCount = 0;
-  let relCount = 0;
-  baseZip.folder('ppt/slides')?.forEach((path) => {
-    if (/^slide\d+\.xml$/.test(path)) slideCount++;
-  });
-  baseZip.folder('ppt/slides/_rels')?.forEach((path) => {
-    if (/^slide\d+\.xml\.rels$/.test(path)) relCount++;
-  });
+  // base 상태 파악
+  let slideCount = 1; // base에 slide1이 있음
+  let mediaCount = 0;
+  baseZip.folder('ppt/media')?.forEach(() => { mediaCount++; });
 
-  // [Content_Types].xml 파싱
-  let contentTypesXml = await baseZip.file('[Content_Types].xml')!.async('string');
-
-  // presentation.xml 파싱
-  let presentationXml = await baseZip.file('ppt/presentation.xml')!.async('string');
-
-  // presentation.xml.rels 파싱
+  // base의 presentation.xml.rels에서 최대 rId 파악
   let presRelsXml = await baseZip.file('ppt/_rels/presentation.xml.rels')!.async('string');
-
-  // base의 최대 rId 번호 파악
   let maxRId = 0;
-  const ridMatches = presRelsXml.matchAll(/Id="rId(\d+)"/g);
-  for (const m of ridMatches) {
+  for (const m of presRelsXml.matchAll(/Id="rId(\d+)"/g)) {
     maxRId = Math.max(maxRId, parseInt(m[1], 10));
   }
 
-  // 미디어 파일 인덱스 (충돌 방지)
-  let mediaIndex = 0;
-  baseZip.folder('ppt/media')?.forEach(() => { mediaIndex++; });
-
-  for (let fileIdx = 1; fileIdx < pptxBuffers.length; fileIdx++) {
-    const srcZip = await JSZip.loadAsync(pptxBuffers[fileIdx]);
-
-    // 소스 PPTX의 슬라이드 목록
-    const srcSlides: string[] = [];
-    srcZip.folder('ppt/slides')?.forEach((path) => {
-      if (/^slide\d+\.xml$/.test(path)) srcSlides.push(path);
-    });
-    srcSlides.sort((a, b) => {
-      const na = parseInt(a.match(/\d+/)![0], 10);
-      const nb = parseInt(b.match(/\d+/)![0], 10);
-      return na - nb;
-    });
-
-    for (const srcSlideName of srcSlides) {
-      slideCount++;
-      maxRId++;
-      const newSlideName = `slide${slideCount}.xml`;
-      const newRId = `rId${maxRId}`;
-
-      // 슬라이드 XML 복사
-      let slideXml = await srcZip.file(`ppt/slides/${srcSlideName}`)!.async('string');
-
-      // 슬라이드 내 미디어 참조 처리
-      const srcSlideRelsPath = `ppt/slides/_rels/${srcSlideName}.rels`;
-      const srcSlideRelsFile = srcZip.file(srcSlideRelsPath);
-      let newSlideRelsXml = '';
-
-      if (srcSlideRelsFile) {
-        let slideRelsXml = await srcSlideRelsFile.async('string');
-
-        // 미디어 파일 복사 및 참조 갱신
-        const mediaMatches = slideRelsXml.matchAll(/Target="\.\.\/media\/([^"]+)"/g);
-        for (const mm of mediaMatches) {
-          const srcMediaName = mm[1];
-          const srcMediaFile = srcZip.file(`ppt/media/${srcMediaName}`);
-          if (srcMediaFile) {
-            mediaIndex++;
-            const ext = srcMediaName.split('.').pop() || 'png';
-            const newMediaName = `merged${mediaIndex}.${ext}`;
-            const mediaData = await srcMediaFile.async('uint8array');
-            baseZip.file(`ppt/media/${newMediaName}`, mediaData);
-            slideRelsXml = slideRelsXml.replace(
-              `../media/${srcMediaName}`,
-              `../media/${newMediaName}`
-            );
-
-            // Content_Types에 확장자 추가 (중복 무시)
-            if (!contentTypesXml.includes(`Extension="${ext}"`)) {
-              const mimeMap: Record<string, string> = {
-                png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-                gif: 'image/gif', tiff: 'image/tiff', svg: 'image/svg+xml',
-                emf: 'image/x-emf', wmf: 'image/x-wmf',
-              };
-              const mime = mimeMap[ext] || 'application/octet-stream';
-              contentTypesXml = contentTypesXml.replace(
-                '</Types>',
-                `<Default Extension="${ext}" ContentType="${mime}"/></Types>`
-              );
-            }
-          }
-        }
-
-        // slideLayout 참조를 base의 slideLayout1로 치환
-        slideRelsXml = slideRelsXml.replace(
-          /Target="\.\.\/slideLayouts\/slideLayout\d+\.xml"/g,
-          'Target="../slideLayouts/slideLayout1.xml"'
-        );
-
-        newSlideRelsXml = slideRelsXml;
-      }
-
-      // 슬라이드 파일 추가
-      baseZip.file(`ppt/slides/${newSlideName}`, slideXml);
-      if (newSlideRelsXml) {
-        baseZip.file(`ppt/slides/_rels/${newSlideName}.rels`, newSlideRelsXml);
-      }
-
-      // Content_Types에 슬라이드 추가
-      contentTypesXml = contentTypesXml.replace(
-        '</Types>',
-        `<Override PartName="/ppt/slides/${newSlideName}" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/></Types>`
-      );
-
-      // presentation.xml에 슬라이드 참조 추가
-      presentationXml = presentationXml.replace(
-        '</p:sldIdLst>',
-        `<p:sldId id="${256 + slideCount}" r:id="${newRId}"/></p:sldIdLst>`
-      );
-
-      // presentation.xml.rels에 관계 추가
-      presRelsXml = presRelsXml.replace(
-        '</Relationships>',
-        `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/${newSlideName}"/></Relationships>`
-      );
-    }
+  // presentation.xml에서 최대 sldId 파악
+  let presentationXml = await baseZip.file('ppt/presentation.xml')!.async('string');
+  let maxSldId = 256;
+  for (const m of presentationXml.matchAll(/p:sldId id="(\d+)"/g)) {
+    maxSldId = Math.max(maxSldId, parseInt(m[1], 10));
   }
 
-  // 업데이트된 파일 저장
-  baseZip.file('[Content_Types].xml', contentTypesXml);
-  baseZip.file('ppt/presentation.xml', presentationXml);
-  baseZip.file('ppt/_rels/presentation.xml.rels', presRelsXml);
+  let contentTypesXml = await baseZip.file('[Content_Types].xml')!.async('string');
 
-  const merged = await baseZip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
-  return merged;
+  for (let fi = 1; fi < pptxBuffers.length; fi++) {
+    const srcZip = await JSZip.loadAsync(pptxBuffers[fi]);
+
+    // 소스에서 slide1.xml (각 파일에 1장만 있음)
+    const srcSlideFile = srcZip.file('ppt/slides/slide1.xml');
+    if (!srcSlideFile) continue;
+
+    slideCount++;
+    maxRId++;
+    maxSldId++;
+    const newSlideName = `slide${slideCount}.xml`;
+    const newRId = `rId${maxRId}`;
+
+    // 1) 소스 슬라이드의 rels 파일 읽기 → 미디어 파일 복사 + 참조 갱신
+    const srcSlideRelsFile = srcZip.file('ppt/slides/_rels/slide1.xml.rels');
+    let newSlideRelsXml = '';
+
+    if (srcSlideRelsFile) {
+      let relsXml = await srcSlideRelsFile.async('string');
+
+      // 미디어 파일 복사 (image1.jpg → merged_5.jpg 등)
+      const mediaRefs = [...relsXml.matchAll(/Target="\.\.\/media\/([^"]+)"/g)];
+      for (const ref of mediaRefs) {
+        const srcMediaName = ref[1];
+        const srcMediaFile = srcZip.file(`ppt/media/${srcMediaName}`);
+        if (srcMediaFile) {
+          mediaCount++;
+          const ext = srcMediaName.split('.').pop() || 'png';
+          const newMediaName = `merged_${mediaCount}.${ext}`;
+          const data = await srcMediaFile.async('uint8array');
+          baseZip.file(`ppt/media/${newMediaName}`, data);
+          relsXml = relsXml.split(`../media/${srcMediaName}`).join(`../media/${newMediaName}`);
+        }
+      }
+
+      // slideLayout 참조는 base의 slideLayout1을 사용 (같은 템플릿이므로)
+      newSlideRelsXml = relsXml;
+    }
+
+    // 2) 슬라이드 XML 복사
+    const slideXml = await srcSlideFile.async('string');
+    baseZip.file(`ppt/slides/${newSlideName}`, slideXml);
+
+    // 3) 슬라이드 rels 복사
+    if (newSlideRelsXml) {
+      baseZip.file(`ppt/slides/_rels/${newSlideName}.rels`, newSlideRelsXml);
+    }
+
+    // 4) [Content_Types].xml에 새 슬라이드 추가
+    contentTypesXml = contentTypesXml.replace(
+      '</Types>',
+      `<Override PartName="/ppt/slides/${newSlideName}" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/></Types>`
+    );
+
+    // 5) presentation.xml.rels에 새 슬라이드 관계 추가
+    presRelsXml = presRelsXml.replace(
+      '</Relationships>',
+      `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/${newSlideName}"/></Relationships>`
+    );
+
+    // 6) presentation.xml의 sldIdLst에 추가
+    presentationXml = presentationXml.replace(
+      '</p:sldIdLst>',
+      `<p:sldId id="${maxSldId}" r:id="${newRId}"/></p:sldIdLst>`
+    );
+  }
+
+  // 변경된 XML 저장
+  baseZip.file('[Content_Types].xml', contentTypesXml);
+  baseZip.file('ppt/_rels/presentation.xml.rels', presRelsXml);
+  baseZip.file('ppt/presentation.xml', presentationXml);
+
+  return baseZip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 }
 
 export async function GET(request: NextRequest) {
   try {
     const manager = request.nextUrl.searchParams.get('manager') || '';
 
-    // 견적서 품목 조회 (sort_order 순)
     let query = supabase
       .from('quote_items')
       .select('item_code, product_name, sort_order')
@@ -188,7 +147,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '견적서에 품목이 없습니다.' }, { status: 400 });
     }
 
-    // 테이스팅 노트 존재 여부 확인
     const noteIndex = await loadTastingNoteIndex();
     const itemCodes = quoteRows
       .map((r: any) => r.item_code)
@@ -200,15 +158,13 @@ export async function GET(request: NextRequest) {
 
     // 개별 PPTX 다운로드
     const pptxBuffers: ArrayBuffer[] = [];
-    const skipped: string[] = [];
-
     for (const itemCode of itemCodes) {
       try {
         const res = await fetch(`${TASTING_NOTE_BASE_URL}/${itemCode}.pptx`);
-        if (!res.ok) { skipped.push(itemCode); continue; }
+        if (!res.ok) continue;
         pptxBuffers.push(await res.arrayBuffer());
       } catch {
-        skipped.push(itemCode);
+        // skip
       }
     }
 
@@ -216,7 +172,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'PPTX 파일을 다운로드할 수 없습니다.' }, { status: 500 });
     }
 
-    // PPTX 병합
     const mergedBuffer = await mergePptxFiles(pptxBuffers);
 
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
