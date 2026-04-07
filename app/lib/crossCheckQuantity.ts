@@ -35,14 +35,35 @@ function extractQtyFromQuery(query: string): number | null {
     raw = yFront[2].trim();
   }
 
-  // 말미 연도 떼기
+  // 말미 연도 떼기 (4자리)
   const yBack = raw.match(/^(.+?)\s+(19\d{2}|20\d{2})\s*$/);
   if (yBack) {
     yearHint = yearHint ?? yBack[2];
     raw = yBack[1].trim();
   }
 
+  // 말미 2자리 빈티지 떼기: "와인명 22 3병" → 22는 빈티지, "와인명 22" → 22는 빈티지
+  // 뒤에 수량+단위가 있으면 2자리는 빈티지 확정
   const UNIT = '(?:병|개|본|잔|ea|EA|pcs|PCS|박스|box|BOX|케이스|보틀|바틀|case|CASE|bt|btl|cs|CS)';
+  const vintageQtyMatch = raw.match(new RegExp(`^(.+?)\\s+(\\d{2})\\s+(\\d{1,4})\\s*${UNIT}\\s*$`));
+  if (vintageQtyMatch) {
+    const v = parseInt(vintageQtyMatch[2], 10);
+    if (v >= 10 && v <= 30) {
+      // 2자리 빈티지 + 수량+단위 패턴 확정
+      return parseInt(vintageQtyMatch[3], 10);
+    }
+  }
+
+  // 말미가 2자리 숫자만인 경우: "와인명 22" → 와인 빈티지일 가능성 높음 (수량이면 보통 단위 붙임)
+  const vintageOnlyMatch = raw.match(/^(.+?)\s+(\d{2})\s*$/);
+  if (vintageOnlyMatch) {
+    const v = parseInt(vintageOnlyMatch[2], 10);
+    if (v >= 10 && v <= 30) {
+      // 2자리 빈티지로 판단 → 수량 추출 불가 (null)
+      yearHint = yearHint ?? `20${vintageOnlyMatch[2]}`;
+      raw = vintageOnlyMatch[1].trim();
+    }
+  }
 
   // 패턴 1: cs 패턴 — "xxx cs12"
   const csMatch = raw.match(new RegExp(`^.+?\\s*(?:cs|CS)\\s*(\\d+)\\s*$`));
