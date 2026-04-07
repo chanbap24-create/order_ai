@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     if (parsedUrl.protocol !== 'https:') {
       return NextResponse.json({ error: 'HTTPS URL만 허용됩니다.' }, { status: 400 });
     }
-    if (!pdfUrl.endsWith('.pdf') && !pdfUrl.endsWith('.pptx')) {
+    if (!parsedUrl.pathname.endsWith('.pdf') && !parsedUrl.pathname.endsWith('.pptx')) {
       return NextResponse.json({ error: '올바른 파일 형식이 아닙니다.' }, { status: 400 });
     }
 
