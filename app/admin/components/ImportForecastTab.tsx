@@ -1685,6 +1685,7 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
   learningCurve: LearningCurve | null;
   priceStats: PriceStats | null;
 }) {
+  const [simOpen, setSimOpen] = useState(false);
   const [importCases, setImportCases] = useState(10);
   const [bottlesPerCase, setBottlesPerCase] = useState(12);
   // 수입원가: wine_details에서 avg_import_cost 평균 계산 (없으면 공급가 fallback)
@@ -1726,10 +1727,15 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
 
   return (
     <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e8e8e8', marginBottom: 16, overflow: 'hidden' }}>
-      <div style={{ padding: '12px 24px', borderBottom: '1px solid #eee' }}>
+      <div
+        onClick={() => setSimOpen(!simOpen)}
+        style={{ padding: '12px 24px', borderBottom: simOpen ? '1px solid #eee' : 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <div style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>투자 시뮬레이션</div>
+        <span style={{ fontSize: 11, color: '#999' }}>{simOpen ? '▲' : '▼'}</span>
       </div>
 
+      {simOpen && <>
       {/* 입력 */}
       <div style={{ padding: '14px 24px', display: 'flex', gap: 20, flexWrap: 'wrap', borderBottom: '1px solid #eee' }}>
         <div style={{ flex: 1, minWidth: 140 }}>
@@ -1827,6 +1833,7 @@ function SimulationCard({ mergedData, results, isNewItem, learningCurve, priceSt
         </div>
         )}
       </div>
+      </>}
     </div>
   );
 }
