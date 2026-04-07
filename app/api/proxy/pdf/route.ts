@@ -58,10 +58,10 @@ export async function GET(request: NextRequest) {
     // 파일 데이터 가져오기
     const fileBuffer = await response.arrayBuffer();
     
-    // 파일 확장자 확인
-    const isPdf = pdfUrl.endsWith('.pdf');
+    // 파일 확장자 확인 (쿼리 파라미터 무시)
+    const isPdf = parsedUrl.pathname.endsWith('.pdf');
     const contentType = isPdf ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-    const fileName = pdfUrl.split('/').pop() || 'file';
+    const fileName = parsedUrl.pathname.split('/').pop() || 'file';
 
     console.log('✅ File loaded successfully, size:', fileBuffer.byteLength);
 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': contentDisposition,
-        'Cache-Control': 'public, max-age=86400', // 24시간 캐시
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       }
     });
 
