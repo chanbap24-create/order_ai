@@ -976,15 +976,6 @@ export default function ImportForecastTab() {
             </div>
           )}
 
-          {/* ── 시뮬레이션 ── */}
-          <SimulationCard
-            mergedData={mergedData}
-            results={results}
-            isNewItem={isNewItem}
-            learningCurve={learningCurve}
-            priceStats={priceStats}
-          />
-
           {/* ── 보정 정보 ── */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', fontSize: 11, color: '#666' }}>
             {stockoutInfo && stockoutInfo.correctedWines > 0 && (
@@ -1640,6 +1631,15 @@ export default function ImportForecastTab() {
           해당 조건의 판매 이력이 없습니다.<br /><span style={{ fontSize: 11 }}>조건을 조정해 보세요.</span>
         </div>
       )}
+
+      {/* ── 시뮬레이션 ── */}
+      <SimulationCard
+        mergedData={mergedData}
+        results={results}
+        isNewItem={isNewItem}
+        learningCurve={learningCurve}
+        priceStats={priceStats}
+      />
 
       {/* ── 브랜드 소진 분석 ── */}
       <BrandVelocitySection startYear={startYear} endYear={endYear} />
