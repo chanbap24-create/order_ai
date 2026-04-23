@@ -64,12 +64,13 @@ export async function POST() {
       }
     }
 
-    // 5. shipments에서 담당자(manager) + 업종(business_type) 동기화
-    // Wine: shipments에서 최근 담당자 & 업종
+    // 5. shipments 에서 담당자(manager) + 업종(business_type) 동기화
+    // wine/glass 두 테이블을 병렬 스캔 (기존: 순차)
     const batchSize2 = 1000;
     const clientInfo = new Map<string, { manager: string; business_type: string }>();
 
-    for (const table of ['shipments', 'glass_shipments']) {
+    async function collectFrom(table: string) {
+      const out: Array<{ client_code: string; manager: string; business_type: string }> = [];
       let from = 0;
       while (true) {
         const { data: rows, error: shipErr } = await supabase
@@ -84,16 +85,27 @@ export async function POST() {
 
         for (const s of rows) {
           if (!s.client_code) continue;
-          if (!clientInfo.has(s.client_code)) {
-            clientInfo.set(s.client_code, {
-              manager: s.manager || '',
-              business_type: s.business_type || '',
-            });
-          }
+          out.push({
+            client_code: s.client_code,
+            manager: s.manager || '',
+            business_type: s.business_type || '',
+          });
         }
 
         if (rows.length < batchSize2) break;
         from += batchSize2;
+      }
+      return out;
+    }
+
+    const [wineRows, glassRows] = await Promise.all([
+      collectFrom('shipments'),
+      collectFrom('glass_shipments'),
+    ]);
+    // ship_date 내림차순이 이미 적용되어 있으므로 먼저 만난 항목을 유지 (첫 항목 우선)
+    for (const s of [...wineRows, ...glassRows]) {
+      if (!clientInfo.has(s.client_code)) {
+        clientInfo.set(s.client_code, { manager: s.manager, business_type: s.business_type });
       }
     }
 
@@ -110,22 +122,23 @@ export async function POST() {
       if (info.business_type) bizUpdated++;
     }
 
-    // 각 그룹마다 단일 UPDATE (동일 manager+business_type를 공유하는 코드들을 .in()으로 일괄)
+    // 각 그룹마다 단일 UPDATE (동일 manager+business_type 를 공유하는 코드들을 .in() 일괄)
+    // 그룹 × chunk 단위 update 를 모두 병렬 실행 (기존: 순차 await)
+    const updatePromises: Promise<unknown>[] = [];
     for (const [key, codes] of groupMap) {
       const [manager, business_type] = key.split('|');
       const updates: Record<string, string> = {};
       if (manager) updates.manager = manager;
       if (business_type) updates.business_type = business_type;
 
-      // Supabase .in()은 최대 크기 제한이 있으므로 200개씩 나눠서
       for (let j = 0; j < codes.length; j += 200) {
         const chunk = codes.slice(j, j + 200);
-        await supabase
-          .from('client_details')
-          .update(updates)
-          .in('client_code', chunk);
+        updatePromises.push(
+          supabase.from('client_details').update(updates).in('client_code', chunk),
+        );
       }
     }
+    await Promise.all(updatePromises);
 
     return NextResponse.json({
       success: true,
