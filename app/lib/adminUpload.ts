@@ -3,6 +3,7 @@
 // 실제 구현은 admin-upload/ 하위 모듈에 분산되어 있고, 이 파일은 배럴 + 메인 디스패처.
 
 import { logger } from "@/app/lib/logger";
+import { validateXlsxBuffer } from "@/app/lib/validators";
 
 import { saveUploadedFile } from "./admin-upload/storage";
 import { UPLOAD_TYPES, type UploadType } from "./admin-upload/types";
@@ -31,6 +32,12 @@ export {
 
 export async function processUpload(type: UploadType, fileBuffer: Buffer) {
   logger.info(`Admin upload: processing type=${type}, size=${fileBuffer.length}`);
+
+  // 파일 크기/MIME 검증 (zip bomb + 잘못된 파일 차단)
+  const check = validateXlsxBuffer(fileBuffer);
+  if (!check.ok) {
+    throw new Error(`업로드 파일 검증 실패: ${check.error}`);
+  }
 
   // 업로드 파일을 /tmp에 저장 (동기화 시 최신 파일 사용 가능)
   saveUploadedFile(type, fileBuffer);

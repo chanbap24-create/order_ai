@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidClientCode, isValidDate } from '@/app/lib/validators';
 import { fetchLedgerData } from './lib/fetchLedger';
 import { groupData } from './lib/groupData';
 import { generateExcel } from './lib/generateExcel';
@@ -24,13 +25,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'client_code, start_date, end_date required' }, { status: 400 });
     }
 
-    // 입력값 검증
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
-      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+    // 입력값 whitelist 검증 (PostgREST 필터 인젝션 방지)
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      return NextResponse.json({ error: 'Invalid date format (YYYY-MM-DD)' }, { status: 400 });
     }
-    if (clientCode.length > 50) {
-      return NextResponse.json({ error: 'Invalid client_code' }, { status: 400 });
+    if (!isValidClientCode(clientCode)) {
+      return NextResponse.json({ error: 'Invalid client_code format' }, { status: 400 });
+    }
+    if (clientType !== 'wine' && clientType !== 'glass') {
+      return NextResponse.json({ error: 'Invalid type (wine|glass)' }, { status: 400 });
     }
 
     const { client, rows, payments, prevBalance } = await fetchLedgerData(clientCode, startDate, endDate, clientType);

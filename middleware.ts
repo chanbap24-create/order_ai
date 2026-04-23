@@ -3,7 +3,10 @@ import type { NextRequest } from 'next/server';
 
 const SALES_COOKIE = 'sales_auth';
 const ADMIN_COOKIE = 'admin_auth';
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// AUTH_SECRET 우선. 폴백은 SUPABASE_SERVICE_ROLE_KEY (env.ts 경고). auth.ts와 동일해야 함.
+const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// 원격 동기화 에이전트용 bearer 토큰 (선택).
+const REMOTE_SYNC_TOKEN = process.env.REMOTE_SYNC_TOKEN || '';
 const SALES_MAX_AGE = 7 * 24 * 60 * 60 * 1000;  // 7일
 const ADMIN_MAX_AGE = 24 * 60 * 60 * 1000;       // 24시간
 
@@ -79,9 +82,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── /api/admin/remote-sync → 로컬 에이전트 폴링/업로드용 공개 ──
+  // ── /api/admin/remote-sync → 로컬 에이전트 전용: Bearer 토큰 or admin_auth ──
+  // REMOTE_SYNC_TOKEN 미설정 시 외부 공개를 차단 (admin_auth 쿠키만 허용).
   if (pathname.startsWith('/api/admin/remote-sync')) {
-    return NextResponse.next();
+    const authHeader = request.headers.get('authorization') || '';
+    if (REMOTE_SYNC_TOKEN && authHeader === `Bearer ${REMOTE_SYNC_TOKEN}`) {
+      return NextResponse.next();
+    }
+    // 폴백: 웹 UI에서 호출하는 경우 admin_auth 쿠키 검증
+    const adminToken = request.cookies.get(ADMIN_COOKIE)?.value;
+    if (adminToken) {
+      const ap = await verifyToken(adminToken);
+      if (ap?.role === 'admin' && (!ap.ts || Date.now() - ap.ts <= ADMIN_MAX_AGE)) {
+        return NextResponse.next();
+      }
+    }
+    return NextResponse.json(
+      { error: '원격 동기화 인증이 필요합니다. REMOTE_SYNC_TOKEN 또는 관리자 세션 필요.' },
+      { status: 401 },
+    );
   }
 
   // ── /api/admin 중 세일즈도 읽기 가능한 경로 (GET only) ──

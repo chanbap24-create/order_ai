@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { isValidItemNo } from '@/app/lib/validators';
 
 import { fetchAll, fetchInventoryInStock, fetchWinesByCodes } from './lib/fetchers';
 import { loadStockRules, minStockForPrice } from './lib/stockRules';
@@ -14,6 +15,9 @@ export async function GET(req: NextRequest) {
     const itemNo = searchParams.get('item_no');
     if (!itemNo) {
       return NextResponse.json({ error: 'item_no 파라미터가 필요합니다.' }, { status: 400 });
+    }
+    if (!isValidItemNo(itemNo)) {
+      return NextResponse.json({ error: 'Invalid item_no format' }, { status: 400 });
     }
 
     // Phase 1: 대상 와인/재고 + 설정 + 산지 + 재고 병렬 로드

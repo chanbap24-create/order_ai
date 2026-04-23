@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isValidManager, isValidItemNo } from '@/app/lib/validators';
 import { scanManagerAlerts } from './lib/scan';
 import { dismissItems, restoreItems, fetchDismissedList } from './lib/dismiss';
 
@@ -12,6 +13,13 @@ export async function POST(req: Request) {
 
     if (!manager) {
       return NextResponse.json({ error: '담당자를 선택해주세요.' }, { status: 400 });
+    }
+    if (!isValidManager(manager)) {
+      return NextResponse.json({ error: 'Invalid manager name' }, { status: 400 });
+    }
+    // dismissed_items 는 배열 + 각 요소는 item_no 형식
+    if (!Array.isArray(dismissedItems) || dismissedItems.some((x) => !isValidItemNo(x))) {
+      return NextResponse.json({ error: 'Invalid dismissed_items' }, { status: 400 });
     }
 
     const { alerts, autoRestored } = await scanManagerAlerts(manager, dismissedItems);
@@ -40,6 +48,12 @@ export async function PATCH(req: Request) {
     const { item_nos, action, items } = await req.json();
     if (!item_nos || !Array.isArray(item_nos) || item_nos.length === 0) {
       return NextResponse.json({ error: 'item_nos 배열이 필요합니다.' }, { status: 400 });
+    }
+    if (item_nos.some((x: unknown) => !isValidItemNo(x))) {
+      return NextResponse.json({ error: 'Invalid item_no in item_nos' }, { status: 400 });
+    }
+    if (action !== 'dismiss' && action !== 'restore') {
+      return NextResponse.json({ error: 'Invalid action (dismiss|restore)' }, { status: 400 });
     }
 
     if (action === 'dismiss') {

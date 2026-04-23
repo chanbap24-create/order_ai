@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSellingUnitPrice, getSellingTotal } from '@/app/lib/priceUtils';
+import { isValidItemNo, isValidDate } from '@/app/lib/validators';
 
 // GET: 품목별 판매현황 조회
 // ?item_no=XXX&start_date=2025-01-01&end_date=2026-02-28&warehouse=CDV
@@ -17,6 +18,17 @@ export async function GET(req: NextRequest) {
         { error: 'item_no, start_date, end_date are required' },
         { status: 400 }
       );
+    }
+
+    // whitelist 검증
+    if (!isValidItemNo(itemNo)) {
+      return NextResponse.json({ error: 'Invalid item_no format' }, { status: 400 });
+    }
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      return NextResponse.json({ error: 'Invalid date format (YYYY-MM-DD)' }, { status: 400 });
+    }
+    if (warehouse !== 'CDV' && warehouse !== 'DL') {
+      return NextResponse.json({ error: 'Invalid warehouse (CDV|DL)' }, { status: 400 });
     }
 
     const table = warehouse === 'DL' ? 'glass_shipments' : 'shipments';

@@ -19,10 +19,23 @@ const fs = require('fs');
 const POLL_INTERVAL = 30_000; // 30초
 const API_BASE = process.env.API_BASE || 'https://order-ai-one.vercel.app';
 const API_URL = `${API_BASE}/api/admin/remote-sync`;
+// 원격 동기화 API bearer 토큰. Vercel env + 로컬 .env 에서 동일하게 설정.
+const REMOTE_SYNC_TOKEN = process.env.REMOTE_SYNC_TOKEN || '';
 const SCRIPT_DIR = __dirname;
 const PROJECT_DIR = path.join(SCRIPT_DIR, '..');
 
 const log = (msg) => console.log(`[${new Date().toLocaleTimeString('ko-KR')}] ${msg}`);
+
+// 모든 remote-sync 요청에 자동 Bearer 헤더 부착
+function authHeaders(extra = {}) {
+  const h = { ...extra };
+  if (REMOTE_SYNC_TOKEN) h['Authorization'] = `Bearer ${REMOTE_SYNC_TOKEN}`;
+  return h;
+}
+
+if (!REMOTE_SYNC_TOKEN) {
+  log('⚠️  REMOTE_SYNC_TOKEN 미설정 - 서버가 401 반환할 수 있습니다. Vercel env 확인하세요.');
+}
 
 let isRunning = false;
 
@@ -30,7 +43,7 @@ async function poll() {
   if (isRunning) return;
 
   try {
-    const res = await fetch(`${API_URL}?action=poll`);
+    const res = await fetch(`${API_URL}?action=poll`, { headers: authHeaders() });
     const { request } = await res.json();
 
     if (!request) return; // 대기 중인 요청 없음
@@ -41,7 +54,7 @@ async function poll() {
     // 상태를 'running'으로 업데이트
     await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ id: request.id, status: 'running' }),
     });
 
@@ -63,7 +76,7 @@ async function poll() {
       // 완료 상태 업데이트
       await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           id: request.id,
           status: 'done',
@@ -77,7 +90,7 @@ async function poll() {
       log(`❌ 동기화 실패: ${err.message}`);
       await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           id: request.id,
           status: 'error',
@@ -248,7 +261,7 @@ async function uploadFiles(files, logs) {
           const chunk = rows.slice(i, i + CHUNK);
           const res = await fetch(`${API_BASE}/api/admin/remote-sync/upload`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ type: uploadType, rows: chunk, append: i > 0 }),
           });
           if (!res.ok) throw new Error(await res.text().then(t => t.slice(0, 200)));
@@ -267,6 +280,7 @@ async function uploadFiles(files, logs) {
 
       const res = await fetch(`${API_BASE}/api/admin/remote-sync/upload`, {
         method: 'POST',
+        headers: authHeaders(),
         body: formData,
       });
 

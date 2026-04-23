@@ -72,3 +72,19 @@ nul
 
 # Python packages (runtime install)
 .python_packages/
+
+# Local backups / temp data (secret leak 방지)
+/backups/
+/supabase/.temp/
+/output/tasting-notes/*.pptx
+/output/tasting-notes/*.pdf
+
+# Claude Code worktrees (토큰/히스토리 잔존 위험)
+/.claude/worktrees/
+
+# bkit 런타임 상태 (재생성 가능, 공유 불필요)
+/.bkit/runtime/
+/.bkit/snapshots/
+
+# Agent state / memory
+/.agents/.claude/skills/*/state/

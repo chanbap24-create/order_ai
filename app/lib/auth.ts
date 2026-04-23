@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
 const COOKIE_NAME = 'sales_auth';
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// AUTH_SECRET 우선, 폴백은 SUPABASE_SERVICE_ROLE_KEY (env.ts에서 경고 로그)
+const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7일
 
 // ── 비밀번호 해시 (bcrypt) ──

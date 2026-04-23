@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { isValidClientCode } from '@/app/lib/validators';
 
 import { fetchAll, fetchInventoryInStock, fetchWinesByCodes } from './lib/fetchers';
 import { extractGrapesFromName, extractTypeFromName } from './lib/patterns';
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
     const { client_code } = await req.json();
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
+    }
+    if (!isValidClientCode(client_code)) {
+      return NextResponse.json({ error: 'Invalid client_code format' }, { status: 400 });
     }
 
     // Phase 1: 거래처 + 출고 + 재고 + 산지 병렬 로드
