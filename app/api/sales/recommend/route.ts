@@ -16,6 +16,41 @@ async function fetchAll<T>(table: string, select: string): Promise<T[]> {
   return all;
 }
 
+// ═══ inventory_cdv: 재고 있는 품목만 서버에서 필터 후 pagination ═══
+async function fetchInventoryInStock<T>(select: string): Promise<T[]> {
+  const all: T[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('inventory_cdv')
+      .select(select)
+      .or('available_stock.gt.0,bonded_warehouse.gt.0')
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+// ═══ wines 조회: 주어진 item_code 집합에 한정 (.in() 500 제한 고려) ═══
+async function fetchWinesByCodes<T>(codes: string[], select: string): Promise<T[]> {
+  if (codes.length === 0) return [];
+  const all: T[] = [];
+  for (let i = 0; i < codes.length; i += 500) {
+    const batch = codes.slice(i, i + 500);
+    const { data, error } = await supabase
+      .from('wines')
+      .select(select)
+      .in('item_code', batch);
+    if (error || !data) continue;
+    all.push(...(data as T[]));
+  }
+  return all;
+}
+
 // ── 와인 이름에서 품종 추출 ──
 const GRAPE_PATTERNS: { pattern: RegExp; grape: string }[] = [
   { pattern: /카베르네\s?소비뇽|cabernet\s?sauvignon/i, grape: 'Cabernet Sauvignon' },
@@ -231,16 +266,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
 
-    // ── 병렬 데이터 로드 ──
-    const [{ W, SR }, { data: clientDetail }, { data: clientBasic }, { data: shipments }, rawInventory, wines, regionRows] = await Promise.all([
+    // ── Phase 1: 거래처 + 출고 + 재고(있는 것만) + 산지 병렬 로드 ──
+    // 전체 inventory_cdv (약 5k rows) 대신 재고 보유 품목으로 DB 레벨 필터
+    const [{ W, SR }, { data: clientDetail }, { data: clientBasic }, { data: shipments }, rawInventory, regionRows] = await Promise.all([
       loadSettings(),
       supabase.from('client_details').select('*').eq('client_code', client_code).maybeSingle(),
       supabase.from('clients').select('*').eq('client_code', client_code).maybeSingle(),
       supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', client_code),
-      fetchAll('inventory_cdv', 'item_no, item_name, country, supply_price, available_stock, bonded_warehouse, sales_30days, avg_sales_90d, avg_sales_365d'),
-      fetchAll('wines', 'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en'),
+      fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, sales_30days, avg_sales_90d, avg_sales_365d'),
       fetchAll('wine_regions', 'sub_region, major_region, appellation, cru_vineyard, classification'),
     ]);
+
+    // ── Phase 2: wines 를 (구매이력 ∪ 현 재고) 품목으로 한정 조회 ──
+    const relevantCodes = new Set<string>();
+    for (const s of (shipments || []) as Array<{ item_no?: string }>) {
+      if (s.item_no) relevantCodes.add(s.item_no);
+    }
+    for (const inv of rawInventory) {
+      const code = (inv as { item_no?: string }).item_no;
+      if (code) relevantCodes.add(code);
+    }
+    const wines = await fetchWinesByCodes<Record<string, unknown>>(
+      Array.from(relevantCodes),
+      'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en',
+    );
 
     const allRegionRows = (regionRows || []) as WineRegionRow[];
     const clientName = clientDetail?.client_name || clientBasic?.client_name || client_code;
