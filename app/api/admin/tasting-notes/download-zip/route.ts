@@ -20,32 +20,38 @@ export async function POST(request: NextRequest) {
     const zip = new JSZip();
     let addedCount = 0;
 
-    for (const wineId of wineIds) {
-      try {
-        // PPTX 확인/생성
-        let pptxBuffer = readOutputFile(wineId, "pptx");
-        if (!pptxBuffer) {
-          pptxBuffer = await generateSingleWinePpt(wineId);
-          const pptxPath = savePptx(wineId, pptxBuffer);
-          convertToPdf(pptxPath);
-        }
+    // PPT 생성은 CPU/메모리 부하가 크므로 3개씩만 병렬 (기존: 1개씩 순차)
+    const CONCURRENCY = 3;
+    for (let i = 0; i < wineIds.length; i += CONCURRENCY) {
+      const batch = wineIds.slice(i, i + CONCURRENCY);
+      const entries = await Promise.all(
+        batch.map(async (wineId: string) => {
+          try {
+            let pptxBuffer = readOutputFile(wineId, "pptx");
+            if (!pptxBuffer) {
+              pptxBuffer = await generateSingleWinePpt(wineId);
+              const pptxPath = savePptx(wineId, pptxBuffer);
+              convertToPdf(pptxPath);
+            }
 
-        if (format === "pdf") {
-          const pdfBuffer = readOutputFile(wineId, "pdf");
-          if (pdfBuffer) {
-            zip.file(`${wineId}.pdf`, pdfBuffer);
-            addedCount++;
-          } else {
-            // PDF 없으면 PPTX 포함
-            zip.file(`${wineId}.pptx`, pptxBuffer);
-            addedCount++;
+            if (format === "pdf") {
+              const pdfBuffer = readOutputFile(wineId, "pdf");
+              if (pdfBuffer) return { name: `${wineId}.pdf`, buf: pdfBuffer };
+              // PDF 없으면 PPTX 포함
+              return { name: `${wineId}.pptx`, buf: pptxBuffer };
+            }
+            return { name: `${wineId}.pptx`, buf: pptxBuffer };
+          } catch (e) {
+            logger.warn(`[ZIP] Skipping ${wineId}`, { error: e });
+            return null;
           }
-        } else {
-          zip.file(`${wineId}.pptx`, pptxBuffer);
+        }),
+      );
+      for (const entry of entries) {
+        if (entry) {
+          zip.file(entry.name, entry.buf);
           addedCount++;
         }
-      } catch (e) {
-        logger.warn(`[ZIP] Skipping ${wineId}`, { error: e });
       }
     }
 

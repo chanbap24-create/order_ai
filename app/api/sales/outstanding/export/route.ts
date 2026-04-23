@@ -21,18 +21,33 @@ export async function POST(req: NextRequest) {
     const zip = new JSZip();
     const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
 
-    for (const code of client_codes) {
-      try {
-        const { client, rows, payments, prevBalance } = await fetchLedgerData(code, start_date, end_date, type);
-        const grouped = groupData(rows, payments);
-        const buf = isPdf
-          ? await generatePDF(client, grouped, prevBalance, start_date, end_date)
-          : await generateExcel(client, grouped, prevBalance, start_date, end_date);
-
-        const safeName = (client.client_name || code).replace(/[\\/:*?"<>|]/g, '_');
-        zip.file(`${prefix}_매출처원장_${safeName}_${start_date.slice(0, 7)}.${ext}`, buf);
-      } catch (e) {
-        console.error(`Export error for ${code}:`, e);
+    // CPU/메모리 보호를 위해 5개씩 병렬 처리 (기존: 1개씩 순차)
+    const CONCURRENCY = 5;
+    for (let i = 0; i < client_codes.length; i += CONCURRENCY) {
+      const batch = client_codes.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async (code: string) => {
+          try {
+            const { client, rows, payments, prevBalance } = await fetchLedgerData(
+              code, start_date, end_date, type,
+            );
+            const grouped = groupData(rows, payments);
+            const buf = isPdf
+              ? await generatePDF(client, grouped, prevBalance, start_date, end_date)
+              : await generateExcel(client, grouped, prevBalance, start_date, end_date);
+            const safeName = (client.client_name || code).replace(/[\\/:*?"<>|]/g, '_');
+            return {
+              name: `${prefix}_매출처원장_${safeName}_${start_date.slice(0, 7)}.${ext}`,
+              buf,
+            };
+          } catch (e) {
+            console.error(`Export error for ${code}:`, e);
+            return null;
+          }
+        }),
+      );
+      for (const r of results) {
+        if (r) zip.file(r.name, r.buf);
       }
     }
 
