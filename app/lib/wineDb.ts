@@ -68,9 +68,31 @@ export async function upsertWine(wine: Partial<Wine> & { item_code: string }) {
 }
 
 export async function deleteWine(itemCode: string) {
-  await supabase.from('tasting_notes').delete().eq('wine_id', itemCode);
-  await supabase.from('wine_images').delete().eq('wine_id', itemCode);
+  // 관련 테이블 삭제는 독립적이므로 병렬 수행 (3 왕복 → 1 왕복)
+  await Promise.all([
+    supabase.from('tasting_notes').delete().eq('wine_id', itemCode),
+    supabase.from('wine_images').delete().eq('wine_id', itemCode),
+  ]);
   await supabase.from('wines').delete().eq('item_code', itemCode);
+}
+
+/**
+ * 다건 삭제를 일괄 쿼리로 처리 (Supabase .in() 500개 제한 고려).
+ * 기존: N×3 sequential → 변경: ceil(N/500)×3 parallel.
+ */
+export async function deleteWines(itemCodes: string[]): Promise<number> {
+  if (itemCodes.length === 0) return 0;
+  const BATCH = 500;
+
+  for (let i = 0; i < itemCodes.length; i += BATCH) {
+    const batch = itemCodes.slice(i, i + BATCH);
+    await Promise.all([
+      supabase.from('tasting_notes').delete().in('wine_id', batch),
+      supabase.from('wine_images').delete().in('wine_id', batch),
+    ]);
+    await supabase.from('wines').delete().in('item_code', batch);
+  }
+  return itemCodes.length;
 }
 
 /* ─── Tasting Notes CRUD ─── */
