@@ -1,0 +1,57 @@
+'use client';
+
+import dynamic from 'next/dynamic';
+import type { SalesTabId } from '../../components/SalesTabs';
+
+const MeetingTab = dynamic(() => import('../../components/MeetingTab'), {
+  ssr: false,
+  loading: () => <div style={{ padding: 40, textAlign: 'center', color: '#a8a098', fontSize: 14 }}>로딩 중...</div>,
+});
+const BriefingTab = dynamic(() => import('../../components/BriefingTab'), { ssr: false });
+const ShipmentTab = dynamic(() => import('../../components/ShipmentTab'), { ssr: false });
+const AlertTab = dynamic(() => import('../../components/AlertTab'), { ssr: false });
+const AnalysisTab = dynamic(() => import('../../components/AnalysisTab'), { ssr: false });
+const LedgerTab = dynamic(() => import('../../components/LedgerTab'), { ssr: false });
+const ItemLedgerTab = dynamic(() => import('../../components/ItemLedgerTab'), { ssr: false });
+const OutstandingTab = dynamic(() => import('../../components/OutstandingTab'), { ssr: false });
+const ClientListTab = dynamic(() => import('../../components/ClientListTab'), { ssr: false });
+const ExpenseTab = dynamic(() => import('../../components/ExpenseTab'), { ssr: false });
+
+type Props = {
+  activeTab: SalesTabId;
+  currentManager: string;
+  isAdmin: boolean;
+  userRole: string;
+  userDepartment: string;
+  managerList: string[];
+  onAlertCountChange: (count: number) => void;
+};
+
+export function TabContent(p: Props) {
+  const meetingAdmin = p.userRole === 'executive' ? false : p.isAdmin;
+
+  switch (p.activeTab) {
+    case 'meetings':
+      return <MeetingTab currentManager={p.currentManager} isAdmin={meetingAdmin} initialManagers={p.managerList} />;
+    case 'briefing':
+      return <BriefingTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'shipments':
+      return <ShipmentTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'analysis':
+      return <AnalysisTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'ledger':
+      return <LedgerTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'item-ledger':
+      return <ItemLedgerTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'outstanding':
+      return <OutstandingTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'client-list':
+      return <ClientListTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'alerts':
+      return <AlertTab currentManager={p.currentManager} isAdmin={p.isAdmin} onCountChange={p.onAlertCountChange} />;
+    case 'expense':
+      return <ExpenseTab currentManager={p.currentManager} isAdmin={p.isAdmin} department={p.userDepartment} />;
+    default:
+      return null;
+  }
+}
