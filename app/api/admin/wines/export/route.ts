@@ -243,6 +243,7 @@ export async function GET(request: NextRequest) {
         if (colNum === 1) {
           cell.font = { ...fontBase, size: 9, color: { argb: C.gray } };
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.numFmt = '@'; // 텍스트 서식 (앞자리 0 보존)
         }
         if (colNum === 8) {
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
@@ -251,6 +252,7 @@ export async function GET(request: NextRequest) {
         if (colNum === 7) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
           cell.font = { ...fontBase, size: 10, color: { argb: C.gray } };
+          cell.numFmt = '@'; // 텍스트 서식 (빈티지 숫자 변환 방지)
         }
         if (colNum === 2) {
           cell.font = { ...fontBase, size: 10, bold: isNewCountry, color: { argb: isNewCountry ? C.burgundy : C.gray } };

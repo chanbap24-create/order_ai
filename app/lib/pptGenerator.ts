@@ -93,36 +93,56 @@ function addVLine(
   });
 }
 
-// ─── 라벨 뱃지 (버건디 배경 둥근 사각형 + 흰 텍스트) ───
+// ─── 라벨 뱃지 (아웃라인 스타일) ───
 function addLabelBadge(
   slide: Slide,
   text: string,
   x: number,
   y: number,
   w: number,
-  h: number = 0.22
+  h: number = 0.22,
+  style: "outline" | "solid" = "outline"
 ) {
-  slide.addShape("roundRect", {
-    x,
-    y,
-    w,
-    h,
-    fill: { color: C.BURGUNDY },
-    rectRadius: 0.05,
-    line: { width: 0 },
-  });
-  slide.addText(text, {
-    x,
-    y,
-    w,
-    h,
-    fontSize: 8.5,
-    fontFace: FONT_MAIN,
-    color: C.TEXT_ON_DARK,
-    bold: true,
-    align: "center",
-    valign: "middle",
-  });
+  if (style === "solid") {
+    slide.addShape("roundRect", {
+      x,
+      y,
+      w,
+      h,
+      fill: { color: C.BURGUNDY },
+      rectRadius: 0.04,
+      line: { width: 0 },
+    });
+    slide.addText(text, {
+      x, y, w, h,
+      fontSize: 7.5,
+      fontFace: FONT_EN,
+      color: C.TEXT_ON_DARK,
+      bold: true,
+      align: "center",
+      valign: "middle",
+      charSpacing: 1.5,
+    });
+  } else {
+    slide.addShape("roundRect", {
+      x,
+      y,
+      w,
+      h,
+      fill: { color: C.BURGUNDY_LIGHT, transparency: 50 },
+      rectRadius: 0.04,
+      line: { color: C.BURGUNDY, width: 0.75 },
+    });
+    slide.addText(text, {
+      x, y, w, h,
+      fontSize: 7.5,
+      fontFace: FONT_MAIN,
+      color: C.BURGUNDY_DARK,
+      bold: true,
+      align: "center",
+      valign: "middle",
+    });
+  }
 }
 
 // ─── 슬라이드 데이터 인터페이스 ───
@@ -156,14 +176,14 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   const slide = pptx.addSlide();
   slide.background = { color: C.WHITE };
 
-  // 1. 좌측 병 영역 배경 패널
+  // 1. 좌측 병 영역 배경 패널 (경계선 없이 색상만)
   slide.addShape("rect", {
     x: 0,
     y: 0.9,
     w: 2.1,
     h: 8.1,
-    fill: { color: C.BG_BOTTLE_AREA, transparency: 40 },
-    line: { width: 0 },
+    fill: { color: C.BG_BOTTLE_AREA, transparency: 30 },
+    line: { type: "none" },
   });
 
   // 2. HEADER - 로고
@@ -179,49 +199,67 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     /* 로고 없으면 무시 */
   }
 
-  // 3. 와이너리 태그라인
+  // 3. 와이너리 태그라인 (1줄로 제한)
   const wineryDesc = data.wineryDescription || "";
   if (wineryDesc) {
     let tagline = wineryDesc.split(".")[0].trim();
     if (!tagline) tagline = wineryDesc.split("。")[0].trim();
+    // 50자 초과 시 말줄임
+    if (tagline && tagline.length > 50) {
+      tagline = tagline.substring(0, 48) + "…";
+    }
     if (tagline) {
       slide.addText(tagline, {
         x: 2.2,
-        y: 0.2,
-        w: 4.9,
+        y: 0.32,
+        w: 5.0,
         h: 0.24,
-        fontSize: 9,
+        fontSize: 8,
         color: C.TEXT_MUTED,
         italic: true,
         fontFace: FONT_EN,
+        autoFit: true,
       });
     }
   }
 
-  // 4-5. 헤더 구분선 (버건디 + 골드 이중선)
-  addLine(slide, 0.2, 0.84, 7.1, C.BURGUNDY, 1.0);
-  addLine(slide, 0.2, 0.87, 7.1, C.GOLD_LIGHT, 0.75);
+  // 4-5. 헤더 구분선 (골드 단선)
+  addLine(slide, 0.2, 0.84, 7.1, C.GOLD, 1.5);
 
   // ════════════════════════════════════════════
-  // 6. 와인명 카드 배경 (둥근 사각형)
+  // 6. 와인명 카드 배경 (보더 없는 깔끔한 스타일)
   // ════════════════════════════════════════════
   slide.addShape("roundRect", {
-    x: 2.05,
-    y: 0.97,
-    w: 5.2,
-    h: 0.82,
-    fill: { color: C.BURGUNDY_LIGHT, transparency: 20 },
-    rectRadius: 0.05,
-    line: { color: C.CARD_BORDER, width: 0.5 },
+    x: 2.2,
+    y: 0.95,
+    w: 5.05,
+    h: 0.85,
+    fill: { color: C.BURGUNDY_LIGHT, transparency: 40 },
+    rectRadius: 0.06,
+    line: { width: 0 },
   });
 
-  // 7. 와인명 텍스트 (한글 + 영문 - 반드시 줄바꿈 분리)
+  // 좌측 와인명 포인트 바
+  slide.addShape("rect", {
+    x: 2.2,
+    y: 0.99,
+    w: 0.06,
+    h: 0.77,
+    fill: { color: C.BURGUNDY },
+    line: { width: 0 },
+  });
+
+  // 7. 와인명 텍스트 (한글 + 영문) — 길이에 따라 폰트 자동 조절
   const nameKrClean = data.nameKr.replace(/^[A-Za-z]{2}\s+/, "");
+  const totalLen = nameKrClean.length + (data.nameEn?.length || 0);
+  const krFontSize = totalLen > 40 ? 13 : totalLen > 28 ? 14 : 17;
+  const enFontSize = totalLen > 40 ? 8.5 : totalLen > 28 ? 9.5 : 11;
+
   const nameRuns: PptxGenJS.TextProps[] = [
     {
       text: data.nameEn ? nameKrClean + "\n" : nameKrClean,
       options: {
-        fontSize: 18,
+        fontSize: krFontSize,
         fontFace: FONT_MAIN,
         color: C.BURGUNDY_DARK,
         bold: true,
@@ -232,132 +270,141 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
     nameRuns.push({
       text: data.nameEn,
       options: {
-        fontSize: 12,
+        fontSize: enFontSize,
         fontFace: FONT_EN,
-        color: "666666",
+        color: C.TEXT_SECONDARY,
         italic: true,
       },
     });
   }
   slide.addText(nameRuns, {
-    x: 2.2,
-    y: 1.0,
-    w: 4.9,
-    h: 0.78,
-    valign: "top",
+    x: 2.4,
+    y: 0.98,
+    w: 4.7,
+    h: 0.8,
+    valign: "middle",
     wrap: true,
+    autoFit: true,
   });
 
-  // 8. 와인명 하단 구분선
-  addLine(slide, 2.2, 1.88, 4.9, C.DIVIDER, 0.75);
+  // 8. 와인명 하단 골드 구분선
+  addLine(slide, 2.35, 1.88, 4.9, C.GOLD, 0.75);
 
   // ════════════════════════════════════════════
-  // 9-10. 지역
+  // 정보 섹션 (등간격 0.45 리듬)
   // ════════════════════════════════════════════
-  addLabelBadge(slide, "지역", 2.12, 1.97, 0.55);
+  const SEC_X = 2.35;     // 뱃지 시작
+  const VAL_X = 2.95;     // 값 시작
+  const SEC_W = 4.75;     // 값 넓이
+  const SEC_Y0 = 1.97;    // 첫 섹션 Y
+  const SEC_GAP = 0.45;   // 섹션 간격
 
+  const ROW_H = 0.22;      // 통일된 행 높이
+  const DIV_OFFSET = 0.32;  // 구분선 오프셋
+
+  // ── 지역 ──
+  addLabelBadge(slide, "지역", SEC_X, SEC_Y0, 0.62, ROW_H);
   const countryEn = data.countryEn || data.country || "";
   const regionText = data.region
     ? `${countryEn}, ${data.region}`
     : countryEn || "-";
   slide.addText(regionText, {
-    x: 2.75,
-    y: 1.96,
-    w: 4.4,
-    h: 0.24,
+    x: VAL_X,
+    y: SEC_Y0,
+    w: SEC_W,
+    h: ROW_H,
     fontSize: 9.5,
     fontFace: FONT_MAIN,
     color: C.TEXT_PRIMARY,
+    autoFit: true,
+    valign: "middle",
   });
+  addLine(slide, SEC_X, SEC_Y0 + DIV_OFFSET, 4.9, C.DIVIDER_LIGHT, 0.4);
 
-  // 구분선
-  addLine(slide, 2.2, 2.35, 4.9, C.DIVIDER_LIGHT, 0.5);
-
-  // 11-12. 품종
-  addLabelBadge(slide, "품종", 2.12, 2.42, 0.55);
+  // ── 품종 ──
+  const Y_GRAPE = SEC_Y0 + SEC_GAP;
+  addLabelBadge(slide, "품종", SEC_X, Y_GRAPE, 0.62, ROW_H);
   slide.addText(data.grapeVarieties || "-", {
-    x: 2.75,
-    y: 2.41,
-    w: 4.4,
-    h: 0.4,
+    x: VAL_X,
+    y: Y_GRAPE,
+    w: SEC_W,
+    h: ROW_H,
     fontSize: 9.5,
     fontFace: FONT_MAIN,
     color: C.TEXT_PRIMARY,
-    wrap: true,
+    autoFit: true,
+    valign: "middle",
   });
+  addLine(slide, SEC_X, Y_GRAPE + DIV_OFFSET, 4.9, C.DIVIDER_LIGHT, 0.4);
 
-  // ════════════════════════════════════════════
-  // 13-14. 빈티지
-  // ════════════════════════════════════════════
-  addLabelBadge(slide, "빈티지", 2.12, 2.9, 0.65);
-
+  // ── 빈티지 ──
+  const Y_VINT = SEC_Y0 + SEC_GAP * 2;
+  addLabelBadge(slide, "빈티지", SEC_X, Y_VINT, 0.62, ROW_H);
   const vintage = data.vintage || "-";
   slide.addText(vintage, {
-    x: 2.85,
-    y: 2.86,
-    w: 0.75,
-    h: 0.28,
-    fontSize: 13,
-    fontFace: FONT_MAIN,
+    x: 3.05,
+    y: Y_VINT,
+    w: 0.7,
+    h: ROW_H,
+    fontSize: 14,
+    fontFace: FONT_EN,
     color: C.BURGUNDY,
     bold: true,
+    valign: "middle",
   });
+  addLine(slide, SEC_X, Y_VINT + DIV_OFFSET, 4.9, C.DIVIDER_LIGHT, 0.4);
 
-  if (data.vintageNote) {
-    slide.addText(data.vintageNote, {
-      x: 3.65,
-      y: 2.88,
-      w: 3.5,
-      h: 0.4,
-      fontSize: 8,
-      fontFace: FONT_MAIN,
-      color: C.TEXT_SECONDARY,
-      wrap: true,
-    });
-  }
-
-  // ════════════════════════════════════════════
-  // 15-16. 양조
-  // ════════════════════════════════════════════
-  addLabelBadge(slide, "양조", 2.12, 3.3, 0.55);
-
+  // ── 양조 ──
+  const Y_WINE = SEC_Y0 + SEC_GAP * 3;
+  addLabelBadge(slide, "양조", SEC_X, Y_WINE, 0.62, ROW_H);
   let winemakingText = data.winemaking || "-";
   if (data.alcoholPercentage) {
-    winemakingText += `\n알코올: ${data.alcoholPercentage}`;
+    winemakingText += `  |  Alc. ${data.alcoholPercentage}`;
   }
   slide.addText(winemakingText, {
-    x: 2.15,
-    y: 3.56,
-    w: 5.0,
-    h: 0.85,
+    x: SEC_X,
+    y: Y_WINE + 0.26,
+    w: 4.85,
+    h: 0.9,
     fontSize: 9,
     fontFace: FONT_MAIN,
     color: C.TEXT_PRIMARY,
-    lineSpacing: 12,
+    lineSpacingMultiple: 1.3,
     wrap: true,
+    autoFit: true,
   });
 
   // ════════════════════════════════════════════
-  // TASTING NOTE (디자인 업그레이드)
+  // TASTING NOTE
   // ════════════════════════════════════════════
+  const TN_Y = 4.5;   // 양조 바로 아래로 올림
+  const TN_H = 4.4;   // 어워드 선(9.05) 직전까지
 
-  // 배경: 웜 그레이
+  // 배경: 보더 없는 웜 그레이
   slide.addShape("roundRect", {
-    x: 2.05,
-    y: 4.9,
-    w: 5.2,
-    h: 3.2,
+    x: 2.2,
+    y: TN_Y,
+    w: 5.05,
+    h: TN_H,
     fill: { color: C.BG_WARM_GRAY },
-    rectRadius: 0.05,
-    line: { color: C.CARD_BORDER, width: 0.5 },
+    rectRadius: 0.06,
+    line: { width: 0 },
   });
 
-  // 좌측 세로 포인트 바 (2pt, #5A1515)
-  addVLine(slide, 2.12, 5.22, 8.0, C.WINE_ACCENT, 2.0);
+  // 좌측 세로 포인트 바 (골드)
+  slide.addShape("rect", {
+    x: 2.2,
+    y: TN_Y,
+    w: 0.06,
+    h: TN_H,
+    fill: { color: C.GOLD },
+    line: { width: 0 },
+  });
 
-  addLabelBadge(slide, "TASTING NOTE", 2.12, 4.95, 1.32);
+  // TASTING NOTE 타이틀 (solid 스타일)
+  addLabelBadge(slide, "TASTING NOTE", 2.35, TN_Y + 0.07, 1.32, 0.22, "solid");
 
-  // 테이스팅 노트 내용
+  // 테이스팅 노트 내용 (Color / Nose / Palate 분리 배치)
   const tastingItems: [string, string][] = [
     ["Color", data.colorNote || ""],
     ["Nose", data.noseNote || ""],
@@ -369,25 +416,35 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   for (const [label, value] of tastingItems) {
     if (!value) continue;
 
-    const labelOpts: PptxGenJS.TextPropsOptions = {
-      fontSize: 8.5,
-      fontFace: FONT_EN,
-      color: C.BURGUNDY,
-      italic: true,
-      bold: false,
-    };
     if (!isFirst) {
-      labelOpts.breakLine = true;
-      labelOpts.paraSpaceBefore = 6;
+      // 섹션 간 빈 줄로 여백 확보
+      tastingRuns.push({
+        text: "\n",
+        options: { fontSize: 5, breakLine: true },
+      });
     }
-    tastingRuns.push({ text: label, options: labelOpts });
 
+    // 라벨: 대문자 + 골드 대시 접두어
+    tastingRuns.push({
+      text: `— ${label.toUpperCase()}`,
+      options: {
+        fontSize: 8,
+        fontFace: FONT_EN,
+        color: C.GOLD,
+        bold: true,
+        breakLine: !isFirst,
+        charSpacing: 2,
+      },
+    });
+
+    // 내용
     tastingRuns.push({
       text: `\n${value}`,
       options: {
         fontSize: 9,
         fontFace: FONT_MAIN,
         color: C.TEXT_PRIMARY,
+        lineSpacingMultiple: 1.3,
       },
     });
 
@@ -402,42 +459,30 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
   }
 
   slide.addText(tastingRuns, {
-    x: 2.25,
-    y: 5.35,
-    w: 4.85,
-    h: 2.69,
+    x: 2.45,
+    y: TN_Y + 0.4,
+    w: 4.65,
+    h: TN_H - 0.5,
     valign: "top",
     wrap: true,
-    margin: 0,
+    margin: [0, 5, 0, 5],
+    autoFit: true,
   });
 
-  // 푸드 페어링 (미드도트 구분)
-  addLabelBadge(slide, "푸드 페어링", 2.12, 8.36, 0.95);
-  const foodText = (data.foodPairing || "-").replace(/, /g, " · ").replace(/,/g, " · ");
-  slide.addText(foodText, {
-    x: 2.15,
-    y: 8.6,
-    w: 5.0,
-    h: 0.36,
-    fontSize: 9,
-    fontFace: FONT_MAIN,
-    color: C.TEXT_PRIMARY,
-    lineSpacing: 12,
-    wrap: true,
-  });
-
-  // 수상내역 (배지 스타일)
-  addLine(slide, 0.15, 9.04, 7.2, C.GOLD_LIGHT, 0.5);
+  // 수상내역 (상단선 y=9.05, 하단 푸터선 y=9.5 → 중앙 배치)
+  addLine(slide, 0.3, 9.05, 6.9, C.GOLD_LIGHT, 0.5);
 
   const awards = data.awards || "";
   if (awards && awards !== "N/A") {
-    addLabelBadge(slide, "AWARDS", 0.2, 9.1, 0.72, 0.2);
+    // 상단선(9.05)~푸터선(9.5) 사이 높이=0.45, 중앙 배치
+    const AWARD_Y = 9.12;
+    const AWARD_H = 0.32;
 
     try {
       slide.addImage({
         data: "image/jpeg;base64," + ICON_AWARD_BASE64,
-        x: 0.98,
-        y: 9.09,
+        x: 0.3,
+        y: AWARD_Y + 0.04,
         w: 0.2,
         h: 0.24,
       });
@@ -445,48 +490,64 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
       /* ignore */
     }
 
+    slide.addText("AWARDS", {
+      x: 0.54,
+      y: AWARD_Y,
+      w: 0.9,
+      h: AWARD_H,
+      fontSize: 7.5,
+      fontFace: FONT_EN,
+      color: C.BURGUNDY,
+      bold: true,
+      charSpacing: 1.5,
+      valign: "middle",
+    });
+
     slide.addText(awards, {
-      x: 1.22,
-      y: 9.09,
-      w: 5.9,
-      h: 0.36,
-      fontSize: 9,
+      x: 1.45,
+      y: AWARD_Y,
+      w: 5.7,
+      h: AWARD_H,
+      fontSize: 8.5,
       fontFace: FONT_MAIN,
       color: C.TEXT_PRIMARY,
       lineSpacing: 12,
       wrap: true,
+      autoFit: true,
+      valign: "middle",
     });
   }
 
   // ════════════════════════════════════════════
-  // 21-23. FOOTER
+  // FOOTER
   // ════════════════════════════════════════════
-  addLine(slide, 0.2, 9.52, 7.1, C.BURGUNDY, 2.0);
-  addLine(slide, 0.2, 9.55, 7.1, C.GOLD_LIGHT, 0.75);
+  addLine(slide, 0.3, 9.5, 6.9, C.GOLD, 1.0);
 
-  // Footer 로고
+  // Footer 로고 (헤더 로고와 동일 x선상)
   try {
     slide.addImage({
       data: "image/png;base64," + LOGO_CAVEDEVIN_BASE64,
-      x: 0.09,
-      y: 9.68,
-      w: 0.95,
-      h: 0.25,
+      x: 0.3,
+      y: 9.58,
+      w: 1.1,
+      h: 0.42,
+      sizing: { type: "contain", w: 1.1, h: 0.42 },
     });
   } catch {
     /* ignore */
   }
 
-  // 회사 정보
+  // 회사 정보 (우측 정렬)
   slide.addText("T. 02-786-3136  |  www.cavedevin.com", {
-    x: 1.12,
-    y: 9.69,
-    w: 2.76,
-    h: 0.24,
-    fontSize: 7,
-    fontFace: FONT_MAIN,
+    x: 4.2,
+    y: 9.62,
+    w: 3.0,
+    h: 0.3,
+    fontSize: 7.5,
+    fontFace: FONT_EN,
     color: C.TEXT_MUTED,
     align: "right",
+    valign: "middle",
   });
 
   // ════════════════════════════════════════════
@@ -499,8 +560,8 @@ function addTastingNoteSlide(pptx: any, data: SlideData) {
         x: 0.25,
         y: 2.0,
         w: 1.6,
-        h: 5.5,
-        sizing: { type: "contain", w: 1.6, h: 5.5 },
+        h: 6.6,
+        sizing: { type: "contain", w: 1.6, h: 6.6 },
       });
     } catch (e) {
       logger.warn(`[PPT] Failed to add bottle image: ${e}`);

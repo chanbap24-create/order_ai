@@ -1,0 +1,237 @@
+import { useCallback, useEffect, useState } from "react";
+import { applyClientFilters } from "../lib/filterResults";
+import type { AdvancedFilters, InventoryItem, WarehouseTab } from "../types";
+import { EMPTY_ADVANCED_FILTERS } from "../types";
+import type { ImportScheduleItem } from "./useImportSchedule";
+
+type SavedSearchState = {
+  searchQuery?: string;
+  activeTab?: WarehouseTab;
+  hideNoSupplyPrice?: boolean;
+  hideNoStock?: boolean;
+  showOnlyBondedStock?: boolean;
+  advancedFilters?: Partial<AdvancedFilters>;
+  results?: InventoryItem[];
+};
+
+const SESSION_KEY = "inv_search_state";
+
+type Params = {
+  activeTab: WarehouseTab;
+  /** CDV 탭에서 수입 일정과 병합 검색하기 위한 맵 */
+  importScheduleMap: Record<string, ImportScheduleItem[]>;
+  /** 검색 결과의 각 CDV 품번에 대해 테이스팅 노트 여부를 체크 + 맵 갱신 */
+  onCheckTastingNote: (itemNo: string) => void;
+};
+
+/**
+ * 재고 검색 + 고급 필터 + 클라이언트 측 필터링 + sessionStorage 복원/저장.
+ */
+export function useInventorySearch(p: Params) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState<InventoryItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState("");
+  const [hideNoSupplyPrice, setHideNoSupplyPrice] = useState(true);
+  const [hideNoStock, setHideNoStock] = useState(true);
+  const [showOnlyBondedStock, setShowOnlyBondedStock] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(
+    EMPTY_ADVANCED_FILTERS,
+  );
+
+  // sessionStorage 복원 (1회)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (!saved) return;
+      const s: SavedSearchState = JSON.parse(saved);
+      if (s.searchQuery) setSearchQuery(s.searchQuery);
+      if (typeof s.hideNoSupplyPrice === "boolean") setHideNoSupplyPrice(s.hideNoSupplyPrice);
+      if (typeof s.hideNoStock === "boolean") setHideNoStock(s.hideNoStock);
+      if (typeof s.showOnlyBondedStock === "boolean") setShowOnlyBondedStock(s.showOnlyBondedStock);
+      if (s.advancedFilters) {
+        setAdvancedFilters((prev) => ({ ...prev, ...s.advancedFilters } as AdvancedFilters));
+      }
+      if (s.results && s.results.length > 0) {
+        setResults(s.results);
+        setHasSearched(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // sessionStorage 저장 (debounced via dep change)
+  useEffect(() => {
+    try {
+      const state: SavedSearchState = {
+        searchQuery,
+        activeTab: p.activeTab,
+        hideNoSupplyPrice,
+        hideNoStock,
+        showOnlyBondedStock,
+        advancedFilters,
+        results,
+      };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+    } catch {
+      // ignore
+    }
+  }, [
+    searchQuery,
+    p.activeTab,
+    hideNoSupplyPrice,
+    hideNoStock,
+    showOnlyBondedStock,
+    advancedFilters,
+    results,
+  ]);
+
+  const handleSearch = useCallback(async () => {
+    const hasFilters = Object.values(advancedFilters).some((f) => (f as any).enabled);
+    if (!searchQuery.trim() && !hasFilters) {
+      setError("검색어 또는 필터 조건을 설정해주세요.");
+      return;
+    }
+    setIsSearching(true);
+    setError("");
+    setHasSearched(true);
+    try {
+      let endpoint: string;
+      if (hasFilters) {
+        const params = new URLSearchParams();
+        params.set("tab", p.activeTab);
+        if (searchQuery.trim()) params.set("q", searchQuery);
+        const f = advancedFilters;
+        const appendRange = (
+          prefix: string,
+          r: { enabled: boolean; min: string; max: string },
+        ) => {
+          if (!r.enabled) return;
+          if (r.min !== "") params.set(`${prefix}Min`, r.min);
+          if (r.max !== "") params.set(`${prefix}Max`, r.max);
+        };
+        appendRange("stock", f.stock);
+        appendRange("sales30", f.sales30);
+        appendRange("sales90", f.sales90);
+        appendRange("vintage", f.vintage);
+        appendRange("supplyPrice", f.supplyPrice);
+        appendRange("retailPrice", f.retailPrice);
+        appendRange("minPrice", f.minPrice);
+        if (f.country.enabled && f.country.value) params.set("country", f.country.value);
+        endpoint = `/api/inventory/filter?${params.toString()}`;
+      } else {
+        endpoint =
+          p.activeTab === "CDV"
+            ? `/api/inventory/search?q=${encodeURIComponent(searchQuery)}`
+            : `/api/inventory/dl/search?q=${encodeURIComponent(searchQuery)}`;
+      }
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "검색 중 오류가 발생했습니다.");
+      }
+      const items: InventoryItem[] = data.results || [];
+
+      // CDV 탭에서는 재고가 없는 미착품(수입 일정에만 있는 품목)도 병합
+      if (p.activeTab === "CDV") {
+        const existingCodes = new Set(items.map((i) => i.item_no));
+        const q = searchQuery.toLowerCase();
+        for (const [code, schedules] of Object.entries(p.importScheduleMap)) {
+          if (existingCodes.has(code)) continue;
+          const s = schedules[0];
+          const matchCode = code.toLowerCase().includes(q);
+          const matchBrand = s.brand_code.toLowerCase() === q;
+          const matchName =
+            q.length >= 3 &&
+            (s.item_name_kr.toLowerCase().includes(q) ||
+              s.item_name_en.toLowerCase().includes(q));
+          if (matchCode || matchBrand || matchName) {
+            items.push({
+              item_no: code,
+              item_name: s.item_name_kr || s.item_name_en,
+              brand: s.brand_code,
+              vintage: s.vintage,
+              supply_price: 0,
+              discount_price: 0,
+              wholesale_price: 0,
+              retail_price: 0,
+              min_price: 0,
+              available_stock: 0,
+              incoming_stock: 0,
+              sales_30days: 0,
+              total_stock: 0,
+              alcohol_content: "",
+              country: "",
+              _isImportOnly: true,
+            } as InventoryItem & { _isImportOnly?: boolean });
+          }
+        }
+      }
+
+      setResults(items);
+      if (p.activeTab === "CDV") {
+        items.forEach((item) => {
+          fetch(`/api/tasting-notes?item_no=${item.item_no}`)
+            .then((res) => res.json())
+            .then((d) => {
+              if (d.success) p.onCheckTastingNote(item.item_no);
+            })
+            .catch(() => {});
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "검색 중 오류가 발생했습니다.");
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, advancedFilters, p.activeTab, p.importScheduleMap]);
+
+  /** 탭 전환 시 초기화 (search query/results/hasSearched) */
+  const resetForTabSwitch = useCallback(() => {
+    setResults([]);
+    setHasSearched(false);
+    setSearchQuery("");
+  }, []);
+
+  /** 클라이언트 필터 적용된 결과 */
+  const filteredResults = applyClientFilters({
+    results,
+    activeTab: p.activeTab,
+    hideNoSupplyPrice,
+    hideNoStock,
+    showOnlyBondedStock,
+    advancedFilters,
+    importScheduleMap: p.importScheduleMap,
+  });
+
+  const activeFilterCount = Object.values(advancedFilters).filter(
+    (f) => (f as any).enabled,
+  ).length;
+
+  return {
+    searchQuery,
+    setSearchQuery,
+    results,
+    setResults,
+    filteredResults,
+    isSearching,
+    hasSearched,
+    error,
+    hideNoSupplyPrice,
+    setHideNoSupplyPrice,
+    hideNoStock,
+    setHideNoStock,
+    showOnlyBondedStock,
+    setShowOnlyBondedStock,
+    advancedFilters,
+    setAdvancedFilters,
+    activeFilterCount,
+    handleSearch,
+    resetForTabSwitch,
+  };
+}
+
