@@ -165,58 +165,53 @@ export async function GET(req: NextRequest) {
       refDate = '2020-01-01';
     }
 
-    // 과거 월 조회 시 startDate~refDate 사이 매출/수금을 역산
+    // 과거/미래 월 조회 시 startDate ↔ refDate 구간의 매출/수금을 역산
+    // shipments / payments 페이지네이션은 서로 독립적이므로 병렬 수행
+    async function sumShipments(fromDate: string, toDate: string) {
+      let total = 0;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(table).select('total_amount')
+          .in('client_code', allCodes).gte('ship_date', fromDate).lt('ship_date', toDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) total += (r.total_amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      return total;
+    }
+    async function sumPayments(fromDate: string, toDate: string) {
+      let total = 0;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase.from(payTable).select('amount')
+          .in('client_code', allCodes).gte('payment_date', fromDate).lt('payment_date', toDate)
+          .range(from, from + batch - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) total += (r.amount || 0);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      return total;
+    }
+
     let adjSales = 0, adjPay = 0;
     if (startDate < refDate) {
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase.from(table).select('total_amount')
-          .in('client_code', allCodes).gte('ship_date', startDate).lt('ship_date', refDate)
-          .range(from, from + batch - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) adjSales += (r.total_amount || 0);
-        if (data.length < batch) break;
-        from += batch;
-      }
-      from = 0;
-      while (true) {
-        const { data, error } = await supabase.from(payTable).select('amount')
-          .in('client_code', allCodes).gte('payment_date', startDate).lt('payment_date', refDate)
-          .range(from, from + batch - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) adjPay += (r.amount || 0);
-        if (data.length < batch) break;
-        from += batch;
-      }
+      [adjSales, adjPay] = await Promise.all([
+        sumShipments(startDate, refDate),
+        sumPayments(startDate, refDate),
+      ]);
     } else if (startDate > refDate) {
-      // 미래 월 조회: carryover 이후 거래를 순방향 계산
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase.from(table).select('total_amount')
-          .in('client_code', allCodes).gte('ship_date', refDate).lt('ship_date', startDate)
-          .range(from, from + batch - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) adjSales += (r.total_amount || 0);
-        if (data.length < batch) break;
-        from += batch;
-      }
-      from = 0;
-      while (true) {
-        const { data, error } = await supabase.from(payTable).select('amount')
-          .in('client_code', allCodes).gte('payment_date', refDate).lt('payment_date', startDate)
-          .range(from, from + batch - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const r of data) adjPay += (r.amount || 0);
-        if (data.length < batch) break;
-        from += batch;
-      }
+      const [s, p] = await Promise.all([
+        sumShipments(refDate, startDate),
+        sumPayments(refDate, startDate),
+      ]);
       // 순방향: 잔액 = carryover + sales - payments
-      adjSales = -adjSales;
-      adjPay = -adjPay;
+      adjSales = -s;
+      adjPay = -p;
     }
 
     const allRows = [...codeShips, ...nameShips];
