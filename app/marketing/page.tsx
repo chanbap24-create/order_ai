@@ -1,8 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ImportForecastTab from '@/app/admin/components/ImportForecastTab';
-import SalesAnalysisTab from '@/app/marketing/components/SalesAnalysisTab';
+import dynamic from 'next/dynamic';
+
+const tabLoader = () => (
+  <div style={{ padding: 40, textAlign: 'center', color: '#a8a098', fontSize: 14 }}>로딩 중...</div>
+);
+
+const ImportForecastTab = dynamic(() => import('@/app/admin/components/ImportForecastTab'), { ssr: false, loading: tabLoader });
+const SalesAnalysisTab = dynamic(() => import('@/app/marketing/components/SalesAnalysisTab'), { ssr: false, loading: tabLoader });
 
 export default function MarketingPage() {
   const [currentManager, setCurrentManager] = useState('');

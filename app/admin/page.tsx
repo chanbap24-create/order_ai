@@ -1,22 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import type { TabId } from '@/app/types/wine';
 import AdminTabs from './components/AdminTabs';
 import UploadTab from './components/UploadTab';
-import DashboardTab from './components/DashboardTab';
-import NewWineTab from './components/NewWineTab';
-import AllWinesTab from './components/AllWinesTab';
-import TastingNoteTab from './components/TastingNoteTab';
-import PriceListTab from './components/PriceListTab';
-import ChangeLogTab from './components/ChangeLogTab';
-import ClientAnalysisTab from './components/ClientAnalysisTab';
-import RecommendSettingsTab from './components/RecommendSettingsTab';
-import WineRegionsTab from './components/WineRegionsTab';
-import BrandTab from './components/BrandTab';
-import CompanyEventsTab from './components/CompanyEventsTab';
-import ImportForecastTab from './components/ImportForecastTab';
 import '@/app/styles/design-system.css';
+
+const tabLoader = () => (
+  <div style={{ padding: 40, textAlign: 'center', color: '#a8a098', fontSize: 14 }}>로딩 중...</div>
+);
+
+const DashboardTab = dynamic(() => import('./components/DashboardTab'), { ssr: false, loading: tabLoader });
+const NewWineTab = dynamic(() => import('./components/NewWineTab'), { ssr: false, loading: tabLoader });
+const AllWinesTab = dynamic(() => import('./components/AllWinesTab'), { ssr: false, loading: tabLoader });
+const TastingNoteTab = dynamic(() => import('./components/TastingNoteTab'), { ssr: false, loading: tabLoader });
+const PriceListTab = dynamic(() => import('./components/PriceListTab'), { ssr: false, loading: tabLoader });
+const ChangeLogTab = dynamic(() => import('./components/ChangeLogTab'), { ssr: false, loading: tabLoader });
+const ClientAnalysisTab = dynamic(() => import('./components/ClientAnalysisTab'), { ssr: false, loading: tabLoader });
+const RecommendSettingsTab = dynamic(() => import('./components/RecommendSettingsTab'), { ssr: false, loading: tabLoader });
+const WineRegionsTab = dynamic(() => import('./components/WineRegionsTab'), { ssr: false, loading: tabLoader });
+const BrandTab = dynamic(() => import('./components/BrandTab'), { ssr: false, loading: tabLoader });
+const CompanyEventsTab = dynamic(() => import('./components/CompanyEventsTab'), { ssr: false, loading: tabLoader });
+const ImportForecastTab = dynamic(() => import('./components/ImportForecastTab'), { ssr: false, loading: tabLoader });
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');

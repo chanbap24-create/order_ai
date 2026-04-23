@@ -1,11 +1,19 @@
 'use client';
 
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import Card from '@/app/components/ui/Card';
 import type { InvPeriod } from '../types';
+
+const BarChart = dynamic(() => import('recharts').then(m => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import('recharts').then(m => m.Bar), { ssr: false });
+const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });
+const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false });
+const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
+const Legend = dynamic(() => import('recharts').then(m => m.Legend), { ssr: false });
+const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 
 type Props = {
   invChangeData: Array<{ date: string; cdv: number; dl: number }>;

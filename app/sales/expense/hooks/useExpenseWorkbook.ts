@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
-import ExcelJS from "exceljs";
+import type ExcelJSType from "exceljs";
 import type { ExpenseItem, SaveStatus } from "../types";
 import { getCurrentMonthSheet, writeItemToSheet } from "../lib/excelOps";
+
+/** ExcelJS 는 910KB 라이브러리 — 실제로 파일을 읽거나 쓸 때만 dynamic import */
+let excelJsPromise: Promise<typeof import("exceljs").default> | null = null;
+async function loadExcelJS() {
+  if (!excelJsPromise) {
+    excelJsPromise = import("exceljs").then(m => m.default);
+  }
+  return excelJsPromise;
+}
 
 type Params = {
   currentManager: string;
@@ -10,7 +19,7 @@ type Params = {
 
 /** 엑셀 워크북 자동 로드 + 업로드 + 시트 선택 + 서버 저장 + 다운로드 */
 export function useExpenseWorkbook(p: Params) {
-  const [workbook, setWorkbook] = useState<ExcelJS.Workbook | null>(null);
+  const [workbook, setWorkbook] = useState<ExcelJSType.Workbook | null>(null);
   const [fileName, setFileName] = useState("");
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState("");
@@ -31,6 +40,7 @@ export function useExpenseWorkbook(p: Params) {
         );
         const data = await res.json();
         if (data.exists && data.data) {
+          const ExcelJS = await loadExcelJS();
           const buffer = Uint8Array.from(atob(data.data), (c) => c.charCodeAt(0));
           const wb = new ExcelJS.Workbook();
           await wb.xlsx.load(buffer.buffer as ArrayBuffer);
@@ -53,6 +63,7 @@ export function useExpenseWorkbook(p: Params) {
     if (!file) return;
     setExcelLoading(true);
     try {
+      const ExcelJS = await loadExcelJS();
       const buffer = await file.arrayBuffer();
       const wb = new ExcelJS.Workbook();
       await wb.xlsx.load(buffer);
