@@ -19,15 +19,20 @@ import { MeetingModal } from '../meeting/components/MeetingModal';
 import { MeetingDetailPanel } from '../meeting/components/MeetingDetailPanel';
 import { ToastBar } from '../meeting/components/ToastBar';
 
-type Props = { currentManager: string; isAdmin: boolean };
+type Props = {
+  currentManager: string;
+  isAdmin: boolean;
+  /** page.tsx에서 이미 로드한 managers. 있으면 중복 fetch 방지. */
+  initialManagers?: string[];
+};
 
-export default function MeetingTab({ currentManager, isAdmin }: Props) {
+export default function MeetingTab({ currentManager, isAdmin, initialManagers }: Props) {
   const [toast, setToast] = useState('');
   const [pendingCalUrl, setPendingCalUrl] = useState('');
   const [importDetailDate, setImportDetailDate] = useState<string | null>(null);
   const [showImportPanel, setShowImportPanel] = useState(false);
 
-  const data = useMeetings({ isAdmin, currentManager });
+  const data = useMeetings({ isAdmin, currentManager, initialManagers });
   const { quoteCols, setQuoteCols } = useQuoteColumns();
 
   const detail = useMeetingDetail({
@@ -35,15 +40,19 @@ export default function MeetingTab({ currentManager, isAdmin }: Props) {
     setToast,
   });
 
+  const { reminderToast, setReminderToast, requestPermissionNow } = useReminders(
+    data.meetings,
+    detail.openDetail,
+  );
+
   const modal = useMeetingModal({
     currentManager,
     filterManager: data.filterManager,
     loadMeetings: data.loadMeetings,
     setToast,
     setPendingCalUrl,
+    onFirstSave: requestPermissionNow,
   });
-
-  const { reminderToast, setReminderToast } = useReminders(data.meetings, detail.openDetail);
 
   // ── 토스트 자동 소멸 ──
   useEffect(() => {

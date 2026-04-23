@@ -1,17 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Meeting, ReminderToast } from "../types";
 import { DEFAULT_REMINDER_MINUTES, MEETING_TYPES } from "../constants";
 import { formatDate } from "../lib/format";
 
+/** 첫 폴링 지연 (ms) — hydration + 첫 렌더 완료 후 백그라운드 시작 */
+const WARMUP_DELAY_MS = 30000;
+const POLL_INTERVAL_MS = 60000;
+
 /**
- * 브라우저 알림 권한 + 60초 폴링 리마인더.
+ * 브라우저 알림 + 60초 폴링 리마인더.
+ * - Notification 권한 요청은 mount 즉시가 아니라 **사용자 트리거** 시점으로 연기 (requestPermissionNow 호출)
+ * - 첫 폴링은 30초 지연 후 시작 (초기 로딩 블로킹 방지)
  */
 export function useReminders(meetings: Meeting[], onOpenDetail: (m: Meeting) => void) {
   const notifiedIdsRef = useRef<Set<number>>(new Set());
   const [reminderToast, setReminderToast] = useState<ReminderToast | null>(null);
 
-  // 권한 요청 (1회)
-  useEffect(() => {
+  // 사용자 트리거로 권한 요청 (saveMeeting 등에서 호출)
+  const requestPermissionNow = useCallback(() => {
     if (
       typeof window !== "undefined" &&
       "Notification" in window &&
@@ -21,7 +27,6 @@ export function useReminders(meetings: Meeting[], onOpenDetail: (m: Meeting) => 
     }
   }, []);
 
-  // 폴링
   useEffect(() => {
     const checkReminders = () => {
       const now = new Date();
@@ -77,10 +82,14 @@ export function useReminders(meetings: Meeting[], onOpenDetail: (m: Meeting) => 
       }
     };
 
-    checkReminders();
-    const interval = setInterval(checkReminders, 60000);
-    return () => clearInterval(interval);
+    // 초기 로딩 블로킹 방지: WARMUP_DELAY_MS 지연 후 첫 체크 시작
+    const warmup = setTimeout(checkReminders, WARMUP_DELAY_MS);
+    const interval = setInterval(checkReminders, POLL_INTERVAL_MS);
+    return () => {
+      clearTimeout(warmup);
+      clearInterval(interval);
+    };
   }, [meetings, onOpenDetail]);
 
-  return { reminderToast, setReminderToast };
+  return { reminderToast, setReminderToast, requestPermissionNow };
 }

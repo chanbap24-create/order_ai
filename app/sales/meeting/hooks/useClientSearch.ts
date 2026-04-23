@@ -3,12 +3,16 @@ import type { ClientOption } from "../types";
 
 /**
  * 거래처 목록 프리로드 (담당자별 1회) + 로컬 검색 필터링.
+ *
+ * 성능 최적화: mount 시가 아니라 **첫 모달 오픈 시점**에 `ensureLoaded()` 호출.
+ * 500개+ 페이로드를 초기 네트워크 경로에서 제거.
  */
 export function useClientSearch(manager: string) {
   const cache = useRef<{ manager: string; clients: ClientOption[] }>({
     manager: "",
     clients: [],
   });
+  const inflightRef = useRef<Promise<void> | null>(null);
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<ClientOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -16,19 +20,27 @@ export function useClientSearch(manager: string) {
 
   const loadAll = useCallback(async (mgr: string) => {
     if (cache.current.manager === mgr && cache.current.clients.length > 0) return;
-    try {
-      const params = new URLSearchParams({ limit: "500", type: "wine" });
-      if (mgr) params.set("manager", mgr);
-      const res = await fetch(`/api/sales/clients?${params}`);
-      const json = await res.json();
-      cache.current = { manager: mgr, clients: json.clients || [] };
-    } catch {
-      /* ignore */
-    }
+    if (inflightRef.current) return inflightRef.current;
+    const promise = (async () => {
+      try {
+        const params = new URLSearchParams({ limit: "500", type: "wine" });
+        if (mgr) params.set("manager", mgr);
+        const res = await fetch(`/api/sales/clients?${params}`);
+        const json = await res.json();
+        cache.current = { manager: mgr, clients: json.clients || [] };
+      } catch {
+        /* ignore */
+      } finally {
+        inflightRef.current = null;
+      }
+    })();
+    inflightRef.current = promise;
+    return promise;
   }, []);
 
-  useEffect(() => {
-    loadAll(manager);
+  /** 모달 오픈 시점에 호출. 이미 같은 manager로 로드되어 있으면 no-op. */
+  const ensureLoaded = useCallback(() => {
+    void loadAll(manager);
   }, [manager, loadAll]);
 
   useEffect(() => {
@@ -59,5 +71,10 @@ export function useClientSearch(manager: string) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  return { search, setSearch, options, showDropdown, setShowDropdown, dropdownRef };
+  return {
+    search, setSearch,
+    options, showDropdown, setShowDropdown,
+    dropdownRef,
+    ensureLoaded,
+  };
 }

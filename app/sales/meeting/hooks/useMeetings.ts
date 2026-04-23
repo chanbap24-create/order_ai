@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import type { ImportScheduleItem } from "@/app/types/wine";
 import type { Meeting, ViewMode } from "../types";
 import { formatDate, getMonthRange, getWeekRange } from "../lib/format";
+import { CACHE_TTL, getCached, setCached } from "../lib/cache";
 
 type Params = {
   isAdmin: boolean;
   currentManager: string;
+  /** 상위에서 미리 로드한 담당자 목록 (중복 fetch 방지) */
+  initialManagers?: string[];
 };
 
 /**
@@ -18,50 +21,63 @@ export function useMeetings(p: Params) {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [weekBase, setWeekBase] = useState(new Date());
   const [filterManager, setFilterManager] = useState(p.isAdmin ? "" : p.currentManager);
-  const [managers, setManagers] = useState<string[]>([]);
+  const [managers, setManagers] = useState<string[]>(p.initialManagers || []);
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [importItems, setImportItems] = useState<ImportScheduleItem[]>([]);
 
   const { start: weekStart, end: weekEnd } =
     viewMode === "week" ? getWeekRange(weekBase) : getMonthRange(weekBase);
 
-  // admin: 담당자 목록
+  // admin: 담당자 목록 (initialManagers로 hydrate된 경우 fetch 생략)
   useEffect(() => {
     if (!p.isAdmin) return;
+    if (p.initialManagers && p.initialManagers.length > 0) return;
     fetch("/api/sales/clients/managers")
       .then((r) => r.json())
       .then((d) => {
         if (d.managers) setManagers(d.managers);
       })
       .catch(() => {});
-  }, [p.isAdmin]);
+  }, [p.isAdmin, p.initialManagers]);
 
-  // 공휴일
+  // 공휴일 (24h 캐시: 즉시 표시 → 백그라운드 갱신)
   useEffect(() => {
     const year = weekBase.getFullYear();
+    const cacheKey = `holidays_${year}`;
+    const cached = getCached<Record<string, string>>(cacheKey, CACHE_TTL.HOLIDAYS);
+    if (cached) setHolidays((prev) => ({ ...prev, ...cached }));
     fetch(`/api/sales/holidays?year=${year}`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.holidays) setHolidays((prev) => ({ ...prev, ...d.holidays }));
+        if (d.holidays) {
+          setHolidays((prev) => ({ ...prev, ...d.holidays }));
+          setCached(cacheKey, d.holidays);
+        }
       })
       .catch(() => {});
   }, [weekBase]);
 
-  // 수입일정 (현재월 ±3개월)
+  // 수입일정 (1h 캐시, 현재월+다음월)
   useEffect(() => {
+    const s = new Date(weekBase.getFullYear(), weekBase.getMonth(), 1);
+    const e = new Date(weekBase.getFullYear(), weekBase.getMonth() + 2, 0);
+    const cacheKey = `import_schedule_${formatDate(s)}_${formatDate(e)}`;
+    const cached = getCached<ImportScheduleItem[]>(cacheKey, CACHE_TTL.IMPORT_SCHEDULE);
+    if (cached) setImportItems(cached);
+
     const fetchImport = async () => {
       try {
-        const s = new Date(weekBase.getFullYear(), weekBase.getMonth() - 1, 1);
-        const e = new Date(weekBase.getFullYear(), weekBase.getMonth() + 4, 0);
         const params = new URLSearchParams({
           start_date: formatDate(s),
           end_date: formatDate(e),
         });
         const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`);
         const json = await res.json();
-        setImportItems(json.items || []);
+        const items: ImportScheduleItem[] = json.items || [];
+        setImportItems(items);
+        setCached(cacheKey, items);
       } catch {
-        setImportItems([]);
+        if (!cached) setImportItems([]);
       }
     };
     fetchImport();

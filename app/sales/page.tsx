@@ -5,8 +5,11 @@ import dynamic from 'next/dynamic';
 import SalesTabs from './components/SalesTabs';
 import type { SalesTabId } from './components/SalesTabs';
 
-// 첫 화면(미팅)만 즉시 로드, 나머지는 lazy
-import MeetingTab from './components/MeetingTab';
+// 모든 탭 lazy 로드 (초기 번들 최소화)
+const MeetingTab = dynamic(() => import('./components/MeetingTab'), {
+  ssr: false,
+  loading: () => <div style={{ padding: 40, textAlign: 'center', color: '#a8a098', fontSize: 14 }}>로딩 중...</div>,
+});
 const BriefingTab = dynamic(() => import('./components/BriefingTab'), { ssr: false });
 const ShipmentTab = dynamic(() => import('./components/ShipmentTab'), { ssr: false });
 const AlertTab = dynamic(() => import('./components/AlertTab'), { ssr: false });
@@ -49,8 +52,18 @@ export default function SalesPage() {
     setAlertCount(count);
   }, []);
 
-  // ── 세션 확인 + 담당자 목록 병렬 로드 ──
+  // ── 세션 확인 + 담당자 목록 병렬 로드 (managers 30min 캐시 즉시 표시 → 백그라운드 갱신) ──
   useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? sessionStorage.getItem('sales_managers_cache') : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as { value: string[]; at: number };
+        if (parsed && Date.now() - parsed.at < 30 * 60 * 1000 && Array.isArray(parsed.value)) {
+          setManagerList(parsed.value);
+        }
+      }
+    } catch { /* ignore */ }
+
     const authP = fetch('/api/auth/me').then(r => r.json()).catch(() => null);
     const mgrP = fetch('/api/sales/clients/managers').then(r => r.json()).catch(() => null);
     Promise.all([authP, mgrP]).then(([authData, mgrData]) => {
@@ -62,7 +75,12 @@ export default function SalesPage() {
         setUserDepartment(authData.department || '');
         if (authData.role === 'executive') setActiveTab('analysis');
       }
-      if (mgrData?.managers) setManagerList(mgrData.managers);
+      if (mgrData?.managers) {
+        setManagerList(mgrData.managers);
+        try {
+          sessionStorage.setItem('sales_managers_cache', JSON.stringify({ value: mgrData.managers, at: Date.now() }));
+        } catch { /* ignore */ }
+      }
       setAuthChecking(false);
     });
   }, []);
@@ -457,7 +475,7 @@ export default function SalesPage() {
         <SalesTabs activeTab={activeTab} onTabChange={setActiveTab} alertCount={alertCount} userRole={userRole} />
 
         {/* 탭 콘텐츠 */}
-        {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={userRole === 'executive' ? false : isAdmin} />}
+        {activeTab === 'meetings' && <MeetingTab currentManager={currentManager} isAdmin={userRole === 'executive' ? false : isAdmin} initialManagers={managerList} />}
         {activeTab === 'briefing' && <BriefingTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'shipments' && <ShipmentTab currentManager={currentManager} isAdmin={isAdmin} />}
         {activeTab === 'analysis' && <AnalysisTab currentManager={currentManager} isAdmin={isAdmin} />}

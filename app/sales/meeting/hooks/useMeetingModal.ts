@@ -10,6 +10,8 @@ type Params = {
   loadMeetings: () => void;
   setToast: (t: string) => void;
   setPendingCalUrl: (u: string) => void;
+  /** 첫 미팅 생성 시 Notification 권한 요청 트리거 */
+  onFirstSave?: () => void;
 };
 
 /**
@@ -34,6 +36,8 @@ export function useMeetingModal(p: Params) {
   const clientSearch = useClientSearch(p.filterManager);
 
   const openCreateModal = (date?: string) => {
+    // 첫 모달 오픈 시점에 거래처 목록 프리로드 (500개 payload 지연 로드)
+    clientSearch.ensureLoaded();
     setEditingId(null);
     setModalDate(date || formatDate(new Date()));
     setModalTime("10:00");
@@ -50,6 +54,7 @@ export function useMeetingModal(p: Params) {
   };
 
   const openEditModal = (m: Meeting) => {
+    clientSearch.ensureLoaded();
     setEditingId(m.id);
     setModalDate(m.meeting_date?.slice(0, 10) || formatDate(new Date()));
     setModalTime(m.meeting_time || "10:00");
@@ -69,6 +74,8 @@ export function useMeetingModal(p: Params) {
   };
 
   const saveMeeting = async () => {
+    // 첫 저장 시 Notification 권한 요청 (사용자 상호작용 시점)
+    p.onFirstSave?.();
     let clientToUse = modalClient;
 
     if (newClientMode) {
