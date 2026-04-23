@@ -107,17 +107,22 @@ export async function POST(req: NextRequest) {
 
     const codes = Array.from(clientCodes);
 
-    // 3. 거래처별 업종 조회
+    // 3. 거래처별 업종 + 현재 등급 + 이름 조회 (후속 루프의 N+1 SELECT 제거용)
     const bizTypeMap: Record<string, string> = {};
+    const currentMap: Record<string, { importance: number; client_name: string }> = {};
     for (let i = 0; i < codes.length; i += 100) {
       const batch = codes.slice(i, i + 100);
       const { data } = await supabase
         .from('client_details')
-        .select('client_code, business_type')
+        .select('client_code, business_type, importance, client_name')
         .in('client_code', batch);
 
       for (const d of (data || [])) {
         bizTypeMap[d.client_code] = d.business_type || '_all';
+        currentMap[d.client_code] = {
+          importance: d.importance || 3,
+          client_name: d.client_name || '',
+        };
       }
     }
 
@@ -207,47 +212,57 @@ export async function POST(req: NextRequest) {
       businessType: string;
     }[] = [];
 
+    // 변경이 필요한 항목만 수집 후 병렬 UPDATE (기존: N×(SELECT+UPDATE) 순차)
+    const now = new Date().toISOString();
+    type Change = {
+      code: string; name?: string; sales: number; listings: number;
+      oldGrade: number; newGrade: number;
+      salesGrade: number; listingGrade: number; businessType: string;
+    };
+    const pending: Change[] = [];
+
     for (const code of codes) {
       const sales = salesMap[code] || 0;
       const listings = listingMap[code]?.size || 0;
       const biz = bizTypeMap[code] || '_all';
-
-      // 업종별 규칙 매칭: 업종 정확 → _all 폴백
       const rule = ruleMap.get(biz) || fallbackRule;
 
       const salesGrade = gradeFromSales(sales, rule);
       const listingGrade = gradeFromListings(listings, rule);
-      const newImportance = Math.min(salesGrade, listingGrade); // 더 좋은(낮은 숫자) 등급
+      const newImportance = Math.min(salesGrade, listingGrade);
 
-      // 현재 등급 조회
-      const { data: current } = await supabase
-        .from('client_details')
-        .select('importance, client_name')
-        .eq('client_code', code)
-        .single();
-
-      const oldImportance = current?.importance || 3;
+      const current = currentMap[code];
+      const oldImportance = current?.importance ?? 3;
 
       if (oldImportance !== newImportance) {
+        pending.push({
+          code,
+          name: current?.client_name,
+          sales,
+          listings,
+          oldGrade: oldImportance,
+          newGrade: newImportance,
+          salesGrade,
+          listingGrade,
+          businessType: biz,
+        });
+      }
+    }
+
+    // 병렬 UPDATE (Supabase bulk update by different values 는 지원 안 되므로 Promise.all)
+    const updateResults = await Promise.all(
+      pending.map(async (p) => {
         const { error } = await supabase
           .from('client_details')
-          .update({ importance: newImportance, updated_at: new Date().toISOString() })
-          .eq('client_code', code);
-
-        if (!error) {
-          updated++;
-          results.push({
-            code,
-            name: current?.client_name,
-            sales,
-            listings,
-            oldGrade: oldImportance,
-            newGrade: newImportance,
-            salesGrade,
-            listingGrade,
-            businessType: biz,
-          });
-        }
+          .update({ importance: p.newGrade, updated_at: now })
+          .eq('client_code', p.code);
+        return { change: p, ok: !error };
+      }),
+    );
+    for (const r of updateResults) {
+      if (r.ok) {
+        updated++;
+        results.push(r.change);
       }
     }
 
