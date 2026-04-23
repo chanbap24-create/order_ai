@@ -37,7 +37,23 @@ export async function POST(req: Request) {
     const retailPriceMap = getDownloadsRetailPriceMap();
     const dlRetailMap = getDlRetailPriceMap();
 
+    // ── Phase 1: 모든 item_code 에 대한 기존 레코드 한 번에 조회 (N+1 제거) ──
+    const itemCodes = items
+      .map((i: any) => i.item_no || i.item_code || '')
+      .filter(Boolean);
+    const { data: existingRows } = await supabase
+      .from('quote_items')
+      .select('id, item_code, quantity')
+      .in('item_code', itemCodes);
+    const existingMap = new Map<string, { id: number; quantity: number }>();
+    for (const row of existingRows || []) {
+      existingMap.set(row.item_code, { id: row.id, quantity: row.quantity });
+    }
+
     const addedItems: any[] = [];
+    const toInsert: Record<string, unknown>[] = [];
+    const updatePromises: Promise<unknown>[] = [];
+    const now = new Date().toISOString();
 
     for (const item of items) {
       const itemCode = item.item_no || item.item_code || '';
@@ -45,62 +61,63 @@ export async function POST(req: Request) {
 
       // 마스터 시트에서 보강
       const master = masterItems.find(m => m.itemNo === itemCode);
-      let brand = master?.producer || '';
-      let english_name = master?.englishName || '';
-      let korean_name = removePrefix(master?.koreanName || item.item_name || '');
-      let region = master?.region || '';
-      let country = master?.country || item.country || '';
+      const brand = master?.producer || '';
+      const english_name = master?.englishName || '';
+      const korean_name = removePrefix(master?.koreanName || item.item_name || '');
+      const region = master?.region || '';
+      const country = master?.country || item.country || '';
       const vintage = extractVintage(itemCode);
       const product_name = korean_name;
 
       const supply_price = item.price || master?.supplyPrice || 0;
-      let retail_price = retailPriceMap.get(itemCode) || dlRetailMap.get(itemCode) || 0;
+      const retail_price = retailPriceMap.get(itemCode) || dlRetailMap.get(itemCode) || 0;
 
-      // 중복 체크: 이미 quote_items에 같은 item_code 있으면 수량 합산
-      const { data: existing } = await supabase
-        .from('quote_items')
-        .select('id, quantity')
-        .eq('item_code', itemCode)
-        .maybeSingle();
-
+      const existing = existingMap.get(itemCode);
       if (existing) {
         const newQty = existing.quantity + 1;
-        await supabase
-          .from('quote_items')
-          .update({ quantity: newQty, updated_at: new Date().toISOString() })
-          .eq('id', existing.id);
+        updatePromises.push(
+          supabase
+            .from('quote_items')
+            .update({ quantity: newQty, updated_at: now })
+            .eq('id', existing.id),
+        );
         addedItems.push({ item_code: itemCode, merged: true, quantity: newQty });
         continue;
       }
 
-      const { data: inserted, error: insertError } = await supabase
-        .from('quote_items')
-        .insert({
-          item_code: itemCode,
-          country,
-          brand,
-          region,
-          image_url: '',
-          vintage,
-          product_name,
-          english_name,
-          korean_name,
-          supply_price: Number(supply_price) || 0,
-          retail_price: Number(retail_price) || 0,
-          discount_rate: 0,
-          discounted_price: Number(supply_price) || 0,
-          quantity: 1,
-          note: '',
-          tasting_note: '',
-        })
-        .select()
-        .single();
+      toInsert.push({
+        item_code: itemCode,
+        country,
+        brand,
+        region,
+        image_url: '',
+        vintage,
+        product_name,
+        english_name,
+        korean_name,
+        supply_price: Number(supply_price) || 0,
+        retail_price: Number(retail_price) || 0,
+        discount_rate: 0,
+        discounted_price: Number(supply_price) || 0,
+        quantity: 1,
+        note: '',
+        tasting_note: '',
+      });
+    }
 
+    // Phase 2: 기존 레코드 update 병렬 + 신규 레코드 일괄 insert
+    await Promise.all(updatePromises);
+
+    if (toInsert.length > 0) {
+      const { data: insertedRows, error: insertError } = await supabase
+        .from('quote_items')
+        .insert(toInsert)
+        .select();
       if (insertError) {
-        console.error('Quote insert error:', insertError);
-        continue;
+        console.error('Quote bulk insert error:', insertError);
+      } else if (insertedRows) {
+        addedItems.push(...insertedRows);
       }
-      addedItems.push(inserted);
     }
 
     // recommendations 테이블에 이력 저장
