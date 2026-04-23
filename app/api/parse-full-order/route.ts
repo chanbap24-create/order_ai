@@ -22,26 +22,6 @@ import { getDeliveryDateKST } from "./parse/deliveryDate";
 import { resolveClient } from "./parse/resolveClient";
 import { formatStaffMessage } from "./parse/formatStaffMessage";
 
-/**
- * 번역 전 약어 사전 확장: 메시지 내 와인 약어를 한국어로 미리 확장
- * → 한국어 비율 높아져서 불필요한 GPT 번역 방지 (at, bs 등 브랜드코드 보호)
- * 예: "at rdm 6" → "at 로쏘 디 몬탈치노 6" (rdm만 확장, at는 유지)
- */
-function preExpandAbbreviationsInMessage(text: string): string {
-  return text.replace(/\S+/g, (token) => {
-    // 숫자/한글만으로 된 토큰은 스킵
-    if (/^\d+$/.test(token) || /^[가-힣]+$/.test(token)) return token;
-    // 후행 구두점 분리
-    const match = token.match(/^(.+?)([.,;:!?병]+)?$/);
-    if (!match) return token;
-    const core = match[1];
-    const suffix = match[2] || '';
-    const result = expandFromDict(core);
-    if (result) return result.wineName + suffix;
-    return token;
-  });
-}
-
 // GET 메소드 추가 (API 상태 확인용)
 export async function GET() {
   // Excel 파일 존재 확인
