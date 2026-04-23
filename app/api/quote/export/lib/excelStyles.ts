@@ -58,11 +58,18 @@ type FormulaOptions = {
   color?: string;
   fill?: ExcelJS.Fill;
   size?: number;
+  // 수식의 계산된 결과값 (카톡/모바일 프리뷰어는 수식 계산 엔진이 없어
+  // 캐시된 result 없으면 공란으로 보임). 숫자면 같이 저장.
+  result?: number | string;
 };
 
 export function sf(row: ExcelJS.Row, col: number, formula: string, o?: FormulaOptions) {
   const cell = row.getCell(col);
-  cell.value = { formula } as ExcelJS.CellFormulaValue;
+  if (o?.result !== undefined && o.result !== null && o.result !== '') {
+    cell.value = { formula, result: o.result } as ExcelJS.CellFormulaValue;
+  } else {
+    cell.value = { formula } as ExcelJS.CellFormulaValue;
+  }
   if (o?.border) cell.border = o.border;
   if (o?.fmt) cell.numFmt = o.fmt;
   cell.alignment = { horizontal: 'right', vertical: 'middle' };

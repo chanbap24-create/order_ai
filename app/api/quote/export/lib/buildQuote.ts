@@ -24,7 +24,7 @@ export async function buildQuote(
 
   const { DS } = await buildDataRows(wb, ws, items, activeCols, pos, tastingNoteSet);
 
-  buildSummary(ws, activeCols, pos, items.length, DS, doc);
+  buildSummary(ws, activeCols, pos, items, DS, doc);
 
   ws.pageSetup = { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
 }

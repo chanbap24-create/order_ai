@@ -2,14 +2,50 @@ import type ExcelJS from 'exceljs';
 import type { ColDef, DocSettings } from './types';
 import { THIN, CURR, SUMMARY_FILL, WHITE_FILL, FONT, colLetter, sc, sf } from './excelStyles';
 
+/**
+ * 합계 행 열별 result를 계산 (모바일/카톡 프리뷰어용 캐시값).
+ *  - quantity : 수량 합
+ *  - normal_total : supply * qty 합
+ *  - discount_total : supply * (1 - discount) * qty 합 (discounted_price 우선)
+ *  - retail_normal_total : retail * qty 합
+ *  - retail_discount_total : retail * (1 - discount) * qty 합
+ */
+function computeSumResults(items: Record<string, unknown>[]): Record<string, number> {
+  const n = (item: Record<string, unknown>, k: string) => Number(item[k] || 0);
+  let qty = 0, normal = 0, discount = 0, retailNormal = 0, retailDiscount = 0;
+  for (const item of items) {
+    const q = n(item, 'quantity');
+    const sp = n(item, 'supply_price');
+    const dr = n(item, 'discount_rate');
+    const rp = n(item, 'retail_price');
+    const dp = n(item, 'discounted_price') > 0
+      ? n(item, 'discounted_price')
+      : Math.round(sp * (1 - dr));
+
+    qty += q;
+    normal += sp * q;
+    discount += dp * q;
+    retailNormal += rp * q;
+    retailDiscount += Math.round(rp * (1 - dr)) * q;
+  }
+  return {
+    quantity: qty,
+    normal_total: normal,
+    discount_total: discount,
+    retail_normal_total: retailNormal,
+    retail_discount_total: retailDiscount,
+  };
+}
+
 export function buildSummary(
   ws: ExcelJS.Worksheet,
   activeCols: ColDef[],
   pos: Record<string, number>,
-  itemsLength: number,
+  items: Record<string, unknown>[],
   DS: number,
   doc: DocSettings,
 ): void {
+  const itemsLength = items.length;
   if (itemsLength === 0) return;
   const totalCols = activeCols.length;
   const lastCol = colLetter(totalCols);
@@ -27,6 +63,8 @@ export function buildSummary(
   const labelCol = pos['product_name'] || pos['korean_name'] || pos['english_name'] || pos['item_code'] || 1;
   sc(row, labelCol, '합계', { border: THIN, fill: SUMMARY_FILL, bold: true, size: 11 });
 
+  const sumResults = computeSumResults(items);
+
   const sumKeys: Array<[string, string?]> = [
     ['quantity'],
     ['normal_total', CURR],
@@ -39,6 +77,7 @@ export function buildSummary(
       const cl = colLetter(pos[key]);
       sf(row, pos[key], `SUM(${cl}${DS}:${cl}${sumR - 1})`, {
         border: THIN, fmt, bold: true, fill: SUMMARY_FILL,
+        result: sumResults[key] ?? 0,
       });
     }
   }

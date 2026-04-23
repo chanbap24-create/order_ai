@@ -155,13 +155,17 @@ function renderFormulaCell(
 ) {
   const n = (k: string) => Number(item[k] || 0);
 
+  // 모바일/카톡 프리뷰어는 수식 계산 엔진이 없어 `{ formula, result }` 형태로 캐시값 필수.
+  // 각 수식 옆에 동일한 결과를 계산해서 result로 전달.
+
   if (col.uiKey === 'discounted_price') {
     if (n('discounted_price') > 0) {
       sc(row, c, n('discounted_price'), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
     } else if (pos['supply_price'] && pos['discount_rate']) {
       const sp = colLetter(pos['supply_price']);
       const dr = colLetter(pos['discount_rate']);
-      sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
+      const result = Math.round(n('supply_price') * (1 - n('discount_rate')));
+      sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill, result });
     } else {
       sc(row, c, Math.round(n('supply_price') * (1 - n('discount_rate'))), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
     }
@@ -171,7 +175,8 @@ function renderFormulaCell(
     if (pos['retail_price'] && pos['discount_rate']) {
       const rp = colLetter(pos['retail_price']);
       const dr = colLetter(pos['discount_rate']);
-      sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
+      const result = Math.round(n('retail_price') * (1 - n('discount_rate')));
+      sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill, result });
     } else {
       sc(row, c, Math.round(n('retail_price') * (1 - n('discount_rate'))), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });
     }
@@ -181,7 +186,8 @@ function renderFormulaCell(
     if (pos['supply_price'] && pos['quantity']) {
       const sp = colLetter(pos['supply_price']);
       const qty = colLetter(pos['quantity']);
-      sf(row, c, `IFERROR(${sp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill });
+      const result = n('supply_price') * n('quantity');
+      sf(row, c, `IFERROR(${sp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill, result });
     } else {
       sc(row, c, n('supply_price') * n('quantity'), { border: THIN, fmt: CURR, fill: rowFill });
     }
@@ -192,11 +198,14 @@ function renderFormulaCell(
       const sp = colLetter(pos['supply_price']);
       const dr = colLetter(pos['discount_rate']);
       const qty = colLetter(pos['quantity']);
-      sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
+      const result = Math.round(n('supply_price') * (1 - n('discount_rate')) * n('quantity'));
+      sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL, result });
     } else if (pos['discounted_price'] && pos['quantity']) {
       const dp = colLetter(pos['discounted_price']);
       const qty = colLetter(pos['quantity']);
-      sf(row, c, `IFERROR(${dp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
+      const dpVal = n('discounted_price') > 0 ? n('discounted_price') : Math.round(n('supply_price') * (1 - n('discount_rate')));
+      const result = dpVal * n('quantity');
+      sf(row, c, `IFERROR(${dp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL, result });
     } else {
       const dp = Math.round(n('supply_price') * (1 - n('discount_rate')));
       sc(row, c, dp * n('quantity'), { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
@@ -207,7 +216,8 @@ function renderFormulaCell(
     if (pos['min_price'] && pos['quantity']) {
       const mp = colLetter(pos['min_price']);
       const qty = colLetter(pos['quantity']);
-      sf(row, c, `IFERROR(${mp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill });
+      const result = n('min_price') * n('quantity');
+      sf(row, c, `IFERROR(${mp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill, result });
     } else {
       sc(row, c, n('min_price') * n('quantity'), { border: THIN, fmt: CURR, fill: rowFill });
     }
@@ -217,7 +227,8 @@ function renderFormulaCell(
     if (pos['retail_price'] && pos['quantity']) {
       const rp = colLetter(pos['retail_price']);
       const qty = colLetter(pos['quantity']);
-      sf(row, c, `IFERROR(${rp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill });
+      const result = n('retail_price') * n('quantity');
+      sf(row, c, `IFERROR(${rp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: rowFill, result });
     } else {
       sc(row, c, n('retail_price') * n('quantity'), { border: THIN, fmt: CURR, fill: rowFill });
     }
@@ -228,7 +239,8 @@ function renderFormulaCell(
       const rp = colLetter(pos['retail_price']);
       const dr = colLetter(pos['discount_rate']);
       const qty = colLetter(pos['quantity']);
-      sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
+      const result = Math.round(n('retail_price') * (1 - n('discount_rate')) * n('quantity'));
+      sf(row, c, `IFERROR(${rp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL, result });
     } else {
       const rdp = Math.round(n('retail_price') * (1 - n('discount_rate')));
       sc(row, c, rdp * n('quantity'), { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
