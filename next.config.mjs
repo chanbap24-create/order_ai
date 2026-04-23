@@ -59,9 +59,11 @@ const nextConfig = {
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
+      // Google Fonts CSS 허용 (layout.tsx에서 DM Sans/Cormorant Garamond 로드)
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
+      // Google Fonts 웹폰트 파일 허용
+      "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self'",
       "media-src 'self'",
       "object-src 'none'",
