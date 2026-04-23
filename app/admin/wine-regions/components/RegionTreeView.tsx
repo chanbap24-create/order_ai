@@ -1,0 +1,194 @@
+'use client';
+
+import type { RegionTree, WineRegion } from '../types';
+import { getCountryFlag } from '../constants';
+import { RegionItem } from './RegionItem';
+
+type Props = {
+  tree: RegionTree;
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  hideCountryLevel: boolean;
+  onEdit: (r: WineRegion) => void;
+  onDelete: (id: number) => void;
+};
+
+export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onEdit, onDelete }: Props) {
+  return (
+    <div>
+      {Array.from(tree.entries()).map(([country, majorMap]) => (
+        <CountryNode
+          key={country}
+          country={country}
+          majorMap={majorMap}
+          expanded={expanded}
+          onToggle={onToggle}
+          hideCountryLevel={hideCountryLevel}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CountryNode({
+  country, majorMap, expanded, onToggle, hideCountryLevel, onEdit, onDelete,
+}: {
+  country: string;
+  majorMap: Map<string, Map<string, WineRegion[]>>;
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  hideCountryLevel: boolean;
+  onEdit: (r: WineRegion) => void;
+  onDelete: (id: number) => void;
+}) {
+  const showCountryLevel = !hideCountryLevel;
+  const isCountryOpen = !showCountryLevel || expanded.has(country);
+  const countryCount = Array.from(majorMap.values()).reduce(
+    (sum, subMap) => sum + Array.from(subMap.values()).reduce((s, items) => s + items.length, 0), 0,
+  );
+
+  const majorContent = Array.from(majorMap.entries()).map(([major, subMap]) => (
+    <MajorNode
+      key={`${country}>${major}`}
+      countryKey={country}
+      major={major}
+      subMap={subMap}
+      showCountryLevel={showCountryLevel}
+      expanded={expanded}
+      onToggle={onToggle}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
+  ));
+
+  if (!showCountryLevel) return <>{majorContent}</>;
+
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div
+        onClick={() => onToggle(country)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px',
+          background: isCountryOpen ? '#2c1810' : 'rgba(90,21,21,0.06)',
+          color: isCountryOpen ? '#fff' : '#2c1810',
+          borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 15,
+          transition: 'all 0.15s',
+        }}
+      >
+        <span style={{
+          display: 'inline-block',
+          transform: isCountryOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 0.15s', fontSize: 12,
+        }}>
+          ▶
+        </span>
+        <span>{getCountryFlag(country)}</span>
+        <span style={{ flex: 1 }}>{country}</span>
+        <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>{countryCount}</span>
+      </div>
+      {isCountryOpen && <div style={{ marginTop: 4 }}>{majorContent}</div>}
+    </div>
+  );
+}
+
+function MajorNode({
+  countryKey, major, subMap, showCountryLevel, expanded, onToggle, onEdit, onDelete,
+}: {
+  countryKey: string;
+  major: string;
+  subMap: Map<string, WineRegion[]>;
+  showCountryLevel: boolean;
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  onEdit: (r: WineRegion) => void;
+  onDelete: (id: number) => void;
+}) {
+  const majorKey = `${countryKey}>${major}`;
+  const isMajorOpen = expanded.has(majorKey);
+  const majorCount = Array.from(subMap.values()).reduce((s, items) => s + items.length, 0);
+
+  return (
+    <div style={{ marginBottom: 4, marginLeft: showCountryLevel ? 16 : 0 }}>
+      <div
+        onClick={() => onToggle(majorKey)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 12px',
+          background: isMajorOpen ? '#5A1515' : '#F5F4F2',
+          color: isMajorOpen ? '#fff' : '#2c1810',
+          borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14,
+          transition: 'all 0.15s',
+        }}
+      >
+        <span style={{
+          display: 'inline-block',
+          transform: isMajorOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 0.15s', fontSize: 12,
+        }}>
+          ▶
+        </span>
+        <span style={{ flex: 1 }}>{major}</span>
+        <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.7 }}>{majorCount}</span>
+      </div>
+      {isMajorOpen && Array.from(subMap.entries()).map(([sub, items]) => (
+        <SubNode
+          key={`${majorKey}>${sub}`}
+          majorKey={majorKey}
+          sub={sub}
+          items={items}
+          expanded={expanded}
+          onToggle={onToggle}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ))}
+    </div>
+  );
+}
+
+function SubNode({
+  majorKey, sub, items, expanded, onToggle, onEdit, onDelete,
+}: {
+  majorKey: string;
+  sub: string;
+  items: WineRegion[];
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  onEdit: (r: WineRegion) => void;
+  onDelete: (id: number) => void;
+}) {
+  const subKey = `${majorKey}>${sub}`;
+  const isSubOpen = expanded.has(subKey);
+
+  return (
+    <div style={{ marginLeft: 16, marginTop: 2 }}>
+      <div
+        onClick={() => onToggle(subKey)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px',
+          background: isSubOpen ? '#F8F0F0' : '#FAFAFA',
+          borderRadius: 4, cursor: 'pointer', fontWeight: 500, fontSize: 13, color: '#444',
+        }}
+      >
+        <span style={{
+          display: 'inline-block',
+          transform: isSubOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 0.15s', fontSize: 10, color: '#a8a098',
+        }}>
+          ▶
+        </span>
+        <span style={{ flex: 1 }}>{sub}</span>
+        <span style={{ fontSize: 11, color: '#aaa' }}>{items.length}</span>
+      </div>
+      {isSubOpen && (
+        <div style={{ marginLeft: 20, padding: '4px 0' }}>
+          {items.map(r => <RegionItem key={r.id} region={r} onEdit={onEdit} onDelete={onDelete} />)}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,70 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ClientOption } from '../types';
+
+export function useClientSearch(filterManager: string, preselected?: ClientOption | null) {
+  const [clientSearch, setClientSearch] = useState(preselected?.client_name || '');
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [clientLoading, setClientLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(preselected || null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchClients = useCallback(async (q: string) => {
+    setClientLoading(true);
+    try {
+      const params = new URLSearchParams({ search: q, limit: '50', type: 'wine' });
+      if (filterManager) params.set('manager', filterManager);
+      const res = await fetch(`/api/sales/clients?${params}`);
+      const json = await res.json();
+      setClientOptions(json.clients || []);
+      setShowDropdown(true);
+    } catch {
+      setClientOptions([]);
+    } finally {
+      setClientLoading(false);
+    }
+  }, [filterManager]);
+
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (clientSearch.length >= 1) {
+      searchTimer.current = setTimeout(() => searchClients(clientSearch), 300);
+    } else {
+      setClientOptions([]);
+      setShowDropdown(false);
+    }
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [clientSearch, searchClients]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectClient = (c: ClientOption) => {
+    setSelectedClient(c);
+    setClientSearch(c.client_name);
+    setShowDropdown(false);
+  };
+
+  const clearClient = () => {
+    setSelectedClient(null);
+    setClientSearch('');
+  };
+
+  return {
+    clientSearch, setClientSearch,
+    clientOptions, clientLoading,
+    showDropdown, setShowDropdown,
+    selectedClient, setSelectedClient, selectClient, clearClient,
+    dropdownRef,
+  };
+}
