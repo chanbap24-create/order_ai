@@ -1,0 +1,29 @@
+name: Secret Scan (gitleaks)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 매주 월요일 09:00 KST (00:00 UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 전체 히스토리 스캔
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 공개 레포용. 조직 플랜 있으면 GITLEAKS_LICENSE 설정.
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+          GITLEAKS_ENABLE_SUMMARY: true

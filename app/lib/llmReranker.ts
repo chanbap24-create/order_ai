@@ -4,6 +4,7 @@
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
 import { supabase } from "@/app/lib/db";
+import { sanitizeUserInput, extractJsonObject } from "@/app/lib/promptSafety";
 
 const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
@@ -199,6 +200,10 @@ export async function expandQueryWithLLM(
 
   // 4) LLM 폴백 (사전/DB 모두 없는 경우만)
   try {
+    // 프롬프트 인젝션 방어: 사용자 입력 sanitize
+    const safeQuery = sanitizeUserInput(query);
+    if (!safeQuery || safeQuery.length < 2) return null;
+
     const client = getClaudeClient();
     const response = await client.messages.create({
       model: CLAUDE_MODEL,
@@ -206,7 +211,7 @@ export async function expandQueryWithLLM(
       messages: [
         {
           role: "user",
-          content: `와인 주문에서 고객이 "${query}"라고 입력했습니다. 이것이 어떤 와인/품종인지 해석해주세요.
+          content: `와인 주문에서 고객이 "${safeQuery}"라고 입력했습니다. 이것이 어떤 와인/품종인지 해석해주세요.
 search_keywords에는 실제 재고 검색에 도움될 한글/영문 키워드를 넣어주세요.
 반드시 JSON만 응답: {"wine_name":"정식명(한글)","wine_name_en":"English name","search_keywords":["키워드1","키워드2","키워드3"],"confidence":0.0-1.0}`
         }
@@ -214,20 +219,27 @@ search_keywords에는 실제 재고 검색에 도움될 한글/영문 키워드�
     });
 
     const raw = response.content[0]?.type === "text" ? response.content[0].text : "";
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    const parsed = extractJsonObject<{
+      wine_name?: unknown;
+      wine_name_en?: unknown;
+      search_keywords?: unknown;
+      confidence?: unknown;
+    }>(raw);
+    if (!parsed) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // 필드 타입 검증 (LLM이 스키마 위반 시 null)
+    const wineName = typeof parsed.wine_name === 'string' ? parsed.wine_name : '';
+    const wineNameEn = typeof parsed.wine_name_en === 'string' ? parsed.wine_name_en : '';
+    const keywords = Array.isArray(parsed.search_keywords)
+      ? parsed.search_keywords.filter((k): k is string => typeof k === 'string')
+      : [];
+    const confidenceNum = typeof parsed.confidence === 'number' ? parsed.confidence : 0;
 
     const result: ExpandResult = {
       originalQuery: query,
-      expandedQueries: [
-        parsed.wine_name || "",
-        parsed.wine_name_en || "",
-        ...(parsed.search_keywords || []),
-      ].filter((q: string) => q && q.length >= 2),
-      wineName: parsed.wine_name || query,
-      confidence: Math.max(0, Math.min(1, parsed.confidence || 0)),
+      expandedQueries: [wineName, wineNameEn, ...keywords].filter((q) => q && q.length >= 2),
+      wineName: wineName || query,
+      confidence: Math.max(0, Math.min(1, confidenceNum)),
     };
 
     expandCache.set(cacheKey, { result, ts: Date.now() });
@@ -284,7 +296,9 @@ export async function expandQueriesBatch(
   // 4) 3개 이상: 배치 LLM 호출 (1회)
   try {
     const client = getClaudeClient();
-    const queryList = needLLM.map((q, i) => `${i + 1}. "${q}"`).join('\n');
+    // 각 쿼리 sanitize (프롬프트 인젝션 방어)
+    const safeQueries = needLLM.map((q) => sanitizeUserInput(q));
+    const queryList = safeQueries.map((q, i) => `${i + 1}. "${q}"`).join('\n');
 
     const response = await client.messages.create({
       model: CLAUDE_MODEL,
@@ -304,25 +318,34 @@ ${queryList}
     const raw = response.content[0]?.type === "text" ? response.content[0].text : "";
     const arrMatch = raw.match(/\[[\s\S]*\]/);
     if (arrMatch) {
-      const parsed = JSON.parse(arrMatch[0]) as Array<{
-        idx: number; wine_name: string; wine_name_en: string;
-        keywords?: string[]; confidence: number;
-      }>;
+      let parsed: Array<{
+        idx?: unknown; wine_name?: unknown; wine_name_en?: unknown;
+        keywords?: unknown; confidence?: unknown;
+      }> = [];
+      try {
+        parsed = JSON.parse(arrMatch[0]);
+        if (!Array.isArray(parsed)) parsed = [];
+      } catch {
+        parsed = [];
+      }
 
       for (const item of parsed) {
-        const idx = (item.idx || 0) - 1;
+        const idxNum = typeof item.idx === 'number' ? item.idx : 0;
+        const idx = idxNum - 1;
         if (idx < 0 || idx >= needLLM.length) continue;
         const q = needLLM[idx];
+        const wineName = typeof item.wine_name === 'string' ? item.wine_name : '';
+        const wineNameEn = typeof item.wine_name_en === 'string' ? item.wine_name_en : '';
+        const keywords = Array.isArray(item.keywords)
+          ? item.keywords.filter((k): k is string => typeof k === 'string')
+          : [];
+        const conf = typeof item.confidence === 'number' ? item.confidence : 0;
 
         const result: ExpandResult = {
           originalQuery: q,
-          expandedQueries: [
-            item.wine_name || "",
-            item.wine_name_en || "",
-            ...(item.keywords || []),
-          ].filter((s: string) => s && s.length >= 2),
-          wineName: item.wine_name || q,
-          confidence: Math.max(0, Math.min(1, item.confidence || 0)),
+          expandedQueries: [wineName, wineNameEn, ...keywords].filter((s) => s && s.length >= 2),
+          wineName: wineName || q,
+          confidence: Math.max(0, Math.min(1, conf)),
         };
 
         expandCache.set(`expand::${q}`, { result, ts: Date.now() });
@@ -376,7 +399,10 @@ export async function rerankWithLLM(
       return `${i + 1}. [${c.item_no}] ${c.item_name}${price}${badge} (점수: ${(c.score ?? 0).toFixed(2)})`;
     }).join("\n");
 
-    const contextStr = context?.clientName ? `\n거래처: ${context.clientName}` : "";
+    // 프롬프트 인젝션 방어: 사용자 입력(query, clientName) sanitize
+    const safeQuery = sanitizeUserInput(query);
+    const safeClientName = context?.clientName ? sanitizeUserInput(context.clientName) : '';
+    const contextStr = safeClientName ? `\n거래처: ${safeClientName}` : "";
 
     const response = await client.messages.create({
       model: CLAUDE_MODEL,
@@ -384,7 +410,7 @@ export async function rerankWithLLM(
       messages: [
         {
           role: "user",
-          content: `고객이 "${query}"를 주문했습니다.${contextStr}
+          content: `고객이 "${safeQuery}"를 주문했습니다.${contextStr}
 
 후보:
 ${candidateList}
@@ -396,13 +422,13 @@ JSON만: {"best":번호(0=없음,1-${Math.min(candidates.length, 8)}),"confidenc
     });
 
     const raw = response.content[0]?.type === "text" ? response.content[0].text : "";
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    const parsed = extractJsonObject<{ best?: unknown; confidence?: unknown; reason?: unknown }>(raw);
+    if (!parsed) return null;
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    const bestNum = parsed.best || 0;
-    const confidence = Math.max(0, Math.min(1, parsed.confidence || 0));
-    const reasoning = String(parsed.reason || "").slice(0, 100);
+    const bestNum = typeof parsed.best === 'number' ? parsed.best : 0;
+    const confidenceRaw = typeof parsed.confidence === 'number' ? parsed.confidence : 0;
+    const confidence = Math.max(0, Math.min(1, confidenceRaw));
+    const reasoning = typeof parsed.reason === 'string' ? parsed.reason.slice(0, 100) : '';
 
     if (bestNum === 0 || confidence < 0.3) return null;
 

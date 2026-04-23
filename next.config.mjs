@@ -50,6 +50,27 @@ const nextConfig = {
   },
   // 보안 헤더: 모든 응답에 기본 공격 방어 강화
   async headers() {
+    // Content-Security-Policy:
+    //  - script-src: Next.js hydration/SWC 때문에 'unsafe-inline' 'unsafe-eval' 필요
+    //  - style-src: Tailwind JIT 때문에 'unsafe-inline' 필요
+    //  - img-src: base64 로고/Vivino 외부 이미지까지 허용 (data:/blob:/https:)
+    //  - connect-src: self 만 (외부 API는 모두 backend 경유)
+    //  - frame-ancestors 'none' (X-Frame-Options 상위 대체)
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "media-src 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests",
+    ].join('; ');
+
     return [
       {
         source: '/:path*',
@@ -70,6 +91,8 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
           },
+          // Content Security Policy (XSS/data exfiltration 방어)
+          { key: 'Content-Security-Policy', value: csp },
         ],
       },
     ];
