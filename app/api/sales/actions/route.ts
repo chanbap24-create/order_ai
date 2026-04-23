@@ -97,7 +97,28 @@ export async function GET(req: NextRequest) {
     const sixStr = sixMonthsAgo.toISOString().slice(0, 10);
     const twelveStr = twelveMonthsAgo.toISOString().slice(0, 10);
 
-    // 1. 최근 12개월 shipments 전체 조회 (페이지네이션)
+    // ── Phase 1: 독립적인 초기 조회들을 병렬 시작 ──
+    // 1a. shipments 12개월 전체 (페이지네이션) — manager 기준
+    // 1b. client_details 매니저 거래처 전체 (visit schedule 용)
+    // 1c. meetings 향후 7일 planned (meeting reminder 용)
+    const sevenDaysLater = new Date(kstNow);
+    sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+    const sevenStr = sevenDaysLater.toISOString().slice(0, 10);
+
+    const allDetailsPromise = supabase
+      .from('client_details')
+      .select('client_code, client_name, importance, visit_cycle_days, last_visit_date')
+      .eq('manager', manager);
+
+    const meetingPromise = supabase
+      .from('meetings')
+      .select('id, client_code, meeting_date, meeting_time, meeting_type, purpose, ai_briefing, status, manager, client_details(client_name, importance, manager)')
+      .eq('status', 'planned')
+      .gte('meeting_date', today)
+      .lte('meeting_date', sevenStr)
+      .order('meeting_date', { ascending: true });
+
+    // shipments 페이지네이션 (앞선 두 promise 가 백그라운드에서 진행)
     const allShipments: any[] = [];
     let from = 0;
     const batchSize = 1000;
@@ -175,13 +196,11 @@ export async function GET(req: NextRequest) {
     const visitCycleMap = new Map<string, number>();
     const lastVisitDateMap = new Map<string, string | null>();
 
-    // manager의 전체 거래처 목록도 가져온다 (shipments 없는 거래처 포함 → visit_schedules용)
+    // manager의 전체 거래처 목록 (shipments 없는 거래처 포함 → visit_schedules용)
+    // Phase 1 에서 시작한 allDetailsPromise 결과를 여기서 await
     const allClientDetails: { client_code: string; client_name: string; importance: number | null; visit_cycle_days: number; last_visit_date: string | null }[] = [];
     {
-      const { data: allDetails } = await supabase
-        .from('client_details')
-        .select('client_code, client_name, importance, visit_cycle_days, last_visit_date')
-        .eq('manager', manager);
+      const { data: allDetails } = await allDetailsPromise;
       for (const d of allDetails || []) {
         allClientDetails.push({
           client_code: d.client_code,
@@ -414,29 +433,23 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // ── 재고 조회: inventory_cdv + inventory_dl 에서 available_stock 가져오기 ──
+    // ── 재고 조회: inventory_cdv + inventory_dl 에서 available_stock ──
+    // 배치별로 CDV/DL 을 병렬 조회 후 CDV 우선 사용 (CDV에 없는 품목만 DL 로 fallback)
     const nudgeItemNos = [...new Set(reorderNudges.map(n => n.item_no))];
     const stockMap = new Map<string, number>();
 
     for (let i = 0; i < nudgeItemNos.length; i += 500) {
       const batch = nudgeItemNos.slice(i, i + 500);
-      const { data: cdvData } = await supabase
-        .from('inventory_cdv')
-        .select('item_no, available_stock')
-        .in('item_no', batch);
-      for (const d of cdvData || []) {
+      const [cdvRes, dlRes] = await Promise.all([
+        supabase.from('inventory_cdv').select('item_no, available_stock').in('item_no', batch),
+        supabase.from('inventory_dl').select('item_no, available_stock').in('item_no', batch),
+      ]);
+      for (const d of cdvRes.data || []) {
         stockMap.set(d.item_no, d.available_stock ?? 0);
       }
-      // inventory_dl fallback (CDV에 없는 품목만)
-      const missingInCdv = batch.filter(no => !stockMap.has(no));
-      if (missingInCdv.length > 0) {
-        const { data: dlData } = await supabase
-          .from('inventory_dl')
-          .select('item_no, available_stock')
-          .in('item_no', missingInCdv);
-        for (const d of dlData || []) {
-          stockMap.set(d.item_no, d.available_stock ?? 0);
-        }
+      for (const d of dlRes.data || []) {
+        // CDV 에 이미 있으면 유지 (CDV 우선)
+        if (!stockMap.has(d.item_no)) stockMap.set(d.item_no, d.available_stock ?? 0);
       }
     }
 
@@ -497,17 +510,8 @@ export async function GET(req: NextRequest) {
 
     const meetingReminders: MeetingReminder[] = [];
     try {
-      const sevenDaysLater = new Date(now);
-      sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
-      const sevenStr = sevenDaysLater.toISOString().slice(0, 10);
-
-      const { data: meetingData } = await supabase
-        .from('meetings')
-        .select('id, client_code, meeting_date, meeting_time, meeting_type, purpose, ai_briefing, status, manager, client_details(client_name, importance, manager)')
-        .eq('status', 'planned')
-        .gte('meeting_date', today)
-        .lte('meeting_date', sevenStr)
-        .order('meeting_date', { ascending: true });
+      // Phase 1 에서 시작한 meetingPromise 결과를 여기서 수거
+      const { data: meetingData } = await meetingPromise;
 
       for (const m of meetingData || []) {
         const cd = m.client_details as any;
@@ -677,21 +681,45 @@ export async function GET(req: NextRequest) {
       available_stock: number;
     }
 
-    // ── wines 메타 맵 (upsell + new_arrival 공용) ──
+    // ── wines 메타 + inventory_cdv 재고맵 병렬 조회 (upsell/new_arrival/season 공용) ──
     const wineMetaMap = new Map<string, { country: string; grapes: string[]; wineType: string }>();
-    try {
-      const allWines: any[] = [];
+    const fullInvMap = new Map<string, { item_name: string; supply_price: number; available_stock: number }>();
+
+    async function fetchAllWines() {
+      const all: any[] = [];
       let wFrom = 0;
       while (true) {
-        const { data: wData } = await supabase
+        const { data } = await supabase
           .from('wines')
           .select('item_code, item_name_kr, country, grape_varieties, wine_type')
           .range(wFrom, wFrom + 999);
-        if (!wData || wData.length === 0) break;
-        allWines.push(...wData);
-        if (wData.length < 1000) break;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < 1000) break;
         wFrom += 1000;
       }
+      return all;
+    }
+
+    async function fetchInStockInventory() {
+      const all: any[] = [];
+      let invFrom = 0;
+      while (true) {
+        const { data } = await supabase
+          .from('inventory_cdv')
+          .select('item_no, item_name, supply_price, available_stock')
+          .gt('available_stock', 0)
+          .range(invFrom, invFrom + 999);
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < 1000) break;
+        invFrom += 1000;
+      }
+      return all;
+    }
+
+    try {
+      const [allWines, allInv] = await Promise.all([fetchAllWines(), fetchInStockInventory()]);
       for (const w of allWines) {
         const grapes = w.grape_varieties
           ? w.grape_varieties.split(/[,\/]/).map((g: string) => g.trim()).filter(Boolean)
@@ -699,27 +727,15 @@ export async function GET(req: NextRequest) {
         const wType = w.wine_type || extractTypeFromName(w.item_name_kr || '');
         wineMetaMap.set(w.item_code, { country: w.country || '', grapes, wineType: wType });
       }
-    } catch (wineMetaErr) {
-      console.error('Wine meta map build error:', wineMetaErr);
-    }
-
-    // ── fullInvMap: inventory_cdv 재고+가격 전체 맵 (upsell + season 공유) ──
-    const fullInvMap = new Map<string, { item_name: string; supply_price: number; available_stock: number }>();
-    try {
-      let invFrom = 0;
-      while (true) {
-        const { data: invData } = await supabase
-          .from('inventory_cdv')
-          .select('item_no, item_name, supply_price, available_stock')
-          .gt('available_stock', 0)
-          .range(invFrom, invFrom + 999);
-        if (!invData || invData.length === 0) break;
-        for (const d of invData) fullInvMap.set(d.item_no, { item_name: d.item_name || d.item_no, supply_price: d.supply_price || 0, available_stock: d.available_stock || 0 });
-        if (invData.length < 1000) break;
-        invFrom += 1000;
+      for (const d of allInv) {
+        fullInvMap.set(d.item_no, {
+          item_name: d.item_name || d.item_no,
+          supply_price: d.supply_price || 0,
+          available_stock: d.available_stock || 0,
+        });
       }
-    } catch (invErr) {
-      console.error('fullInvMap build error:', invErr);
+    } catch (err) {
+      console.error('Wine meta / inventory build error:', err);
     }
 
     // ── clientPrefs: 거래처별 취향 프로필 (new_arrival + season 공유) ──
@@ -1097,34 +1113,34 @@ export async function GET(req: NextRequest) {
 
     const visitSchedules: VisitSchedule[] = [];
     try {
-      // 10-A: completed 미팅의 거래처별 최종 meeting_date 조회
-      const completedMeetingMap = new Map<string, string>();
-      {
-        const { data: completedMeetings } = await supabase
+      // 10-A, 10-B 두 meetings 쿼리 병렬 수행
+      const [completedRes, plannedRes] = await Promise.all([
+        supabase
           .from('meetings')
           .select('client_code, meeting_date')
           .eq('status', 'completed')
-          .order('meeting_date', { ascending: false });
-        for (const m of completedMeetings || []) {
-          if (!m.client_code) continue;
-          const mDate = m.meeting_date?.toString().slice(0, 10) || '';
-          if (!completedMeetingMap.has(m.client_code) || mDate > completedMeetingMap.get(m.client_code)!) {
-            completedMeetingMap.set(m.client_code, mDate);
-          }
-        }
-      }
-
-      // 10-B: planned 미팅이 있는 거래처 (제외 대상)
-      const plannedMeetingClients = new Set<string>();
-      {
-        const { data: plannedMeetings } = await supabase
+          .order('meeting_date', { ascending: false }),
+        supabase
           .from('meetings')
           .select('client_code')
           .eq('status', 'planned')
-          .gte('meeting_date', today);
-        for (const m of plannedMeetings || []) {
-          if (m.client_code) plannedMeetingClients.add(m.client_code);
+          .gte('meeting_date', today),
+      ]);
+
+      // completed 미팅의 거래처별 최종 meeting_date
+      const completedMeetingMap = new Map<string, string>();
+      for (const m of completedRes.data || []) {
+        if (!m.client_code) continue;
+        const mDate = m.meeting_date?.toString().slice(0, 10) || '';
+        if (!completedMeetingMap.has(m.client_code) || mDate > completedMeetingMap.get(m.client_code)!) {
+          completedMeetingMap.set(m.client_code, mDate);
         }
+      }
+
+      // planned 미팅이 있는 거래처 (제외 대상)
+      const plannedMeetingClients = new Set<string>();
+      for (const m of plannedRes.data || []) {
+        if (m.client_code) plannedMeetingClients.add(m.client_code);
       }
 
       // 10-C: 거래처별 마지막 접촉일 계산 및 스코어링
