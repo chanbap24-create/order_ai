@@ -96,10 +96,13 @@ const DEFAULT_STOCK_RULES = {
 };
 
 async function loadSettings() {
-  const { data: wRow } = await supabase.from('admin_settings').select('value').eq('key', 'recommend_weights').maybeSingle();
-  const { data: sRow } = await supabase.from('admin_settings').select('value').eq('key', 'recommend_stock_rules').maybeSingle();
-  const W = wRow ? { ...DEFAULT_W, ...JSON.parse(wRow.value) } : { ...DEFAULT_W };
-  const SR = sRow ? { ...DEFAULT_STOCK_RULES, ...JSON.parse(sRow.value) } : { ...DEFAULT_STOCK_RULES };
+  // 두 설정 row 병렬 조회
+  const [wRes, sRes] = await Promise.all([
+    supabase.from('admin_settings').select('value').eq('key', 'recommend_weights').maybeSingle(),
+    supabase.from('admin_settings').select('value').eq('key', 'recommend_stock_rules').maybeSingle(),
+  ]);
+  const W = wRes.data ? { ...DEFAULT_W, ...JSON.parse(wRes.data.value) } : { ...DEFAULT_W };
+  const SR = sRes.data ? { ...DEFAULT_STOCK_RULES, ...JSON.parse(sRes.data.value) } : { ...DEFAULT_STOCK_RULES };
   return { W, SR };
 }
 
@@ -126,22 +129,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'client_code 또는 meeting_id가 필요합니다.' }, { status: 400 });
     }
 
-    // ── 1. 거래처 매출 요약 ──
-    const { data: clientDetail } = await supabase
-      .from('client_details').select('*').eq('client_code', clientCode).maybeSingle();
-    const { data: clientBasic } = await supabase
-      .from('clients').select('*').eq('client_code', clientCode).maybeSingle();
-
+    // ── 1. 거래처 매출 요약 (병렬 조회) ──
+    const [clientDetailRes, clientBasicRes, shipmentsRes] = await Promise.all([
+      supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
+      supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
+      supabase
+        .from('shipments')
+        .select('item_no, item_name, unit_price, ship_date, quantity, total_amount')
+        .eq('client_code', clientCode)
+        .order('ship_date', { ascending: false }),
+    ]);
+    const clientDetail = clientDetailRes.data;
+    const clientBasic = clientBasicRes.data;
+    const shipments = shipmentsRes.data || [];
     const clientName = clientDetail?.client_name || clientBasic?.client_name || clientCode;
-
-    // shipments에서 구매 이력 분석
-    const { data: allShipments } = await supabase
-      .from('shipments')
-      .select('item_no, item_name, unit_price, ship_date, quantity, total_amount')
-      .eq('client_code', clientCode)
-      .order('ship_date', { ascending: false });
-
-    const shipments = allShipments || [];
 
     // 매출 통계
     let totalPurchases = 0;
@@ -152,18 +153,29 @@ export async function POST(req: NextRequest) {
     let lastOrderDate: string | null = null;
     const purchaseAgg: Record<string, { count: number; lastDate: string; totalPrice: number; name: string }> = {};
 
-    // wines 메타데이터 (region 포함)
-    const wines = await fetchAll('wines', 'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr');
+    // wines 메타데이터 — 구매 이력에 있는 item_code 만 조회 (전체 fetch 대신 .in() 배치)
+    const purchasedCodes = Array.from(
+      new Set(shipments.map(s => s.item_no).filter(Boolean) as string[]),
+    );
     const wineMap = new Map<string, any>();
-    for (const w of wines) {
-      if (!w.grape_varieties) {
-        const extracted = extractGrapesFromName(w.item_name_kr || '');
-        if (extracted.length > 0) w.grape_varieties = extracted.join(', ');
+    if (purchasedCodes.length > 0) {
+      for (let i = 0; i < purchasedCodes.length; i += 500) {
+        const batch = purchasedCodes.slice(i, i + 500);
+        const { data: batchWines } = await supabase
+          .from('wines')
+          .select('item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr')
+          .in('item_code', batch);
+        for (const w of batchWines || []) {
+          if (!w.grape_varieties) {
+            const extracted = extractGrapesFromName(w.item_name_kr || '');
+            if (extracted.length > 0) w.grape_varieties = extracted.join(', ');
+          }
+          if (!w.wine_type) {
+            w.wine_type = extractTypeFromName(w.item_name_kr || '');
+          }
+          wineMap.set(w.item_code, w);
+        }
       }
-      if (!w.wine_type) {
-        w.wine_type = extractTypeFromName(w.item_name_kr || '');
-      }
-      wineMap.set(w.item_code, w);
     }
 
     const now = new Date();
@@ -244,11 +256,16 @@ export async function POST(req: NextRequest) {
     };
 
     // ── 2. 추천 와인 Top 10 (recommend 로직 간소화) ──
-    const { W, SR } = await loadSettings();
-
-    const { data: rawInventory } = await supabase
-      .from('inventory_cdv')
-      .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d, brand');
+    // settings + inventory(재고 있는 것만) 병렬
+    const [settings, invRes] = await Promise.all([
+      loadSettings(),
+      supabase
+        .from('inventory_cdv')
+        .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d, brand')
+        .or('available_stock.gt.0,bonded_warehouse.gt.0'),
+    ]);
+    const { W, SR } = settings;
+    const rawInventory = invRes.data;
 
     function minStockForPrice(price: number): number {
       if (price >= 300000) return SR.price_300k;
