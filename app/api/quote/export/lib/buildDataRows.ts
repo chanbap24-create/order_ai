@@ -116,30 +116,32 @@ async function renderImageCell(
   const meta = await getBottleImageMeta(itemCode);
   if (meta) { origW = meta.width; origH = meta.height; }
 
-  const PT_EMU = 12700;
-  const PX_EMU = 9525;
-  const colWEmu = Math.round((10 * 7 + 5) * PX_EMU);
-  const rowHEmu = IMG_ROW_HEIGHT * PT_EMU;
-  const padEmu = 2 * PX_EMU;
+  // 공식 ExcelJS API: tl.col/row fractional + ext(width,height) 사용.
+  // 모든 뷰어(카톡/모바일 포함) 호환. nativeCol EMU 방식은 일부 뷰어가 무시함.
+  // 컬럼 10 = 75px, 행 높이 IMG_ROW_HEIGHT(pt) → px
+  const colWPx = 10 * 7 + 5;
+  const rowHPx = IMG_ROW_HEIGHT * (96 / 72);
+  const padPx = 2;
 
-  const availW = colWEmu - padEmu * 2;
-  const availH = rowHEmu - padEmu * 2;
+  const availW = colWPx - padPx * 2;
+  const availH = rowHPx - padPx * 2;
   const imgRatio = origW / origH;
-  let imgWEmu: number, imgHEmu: number;
+  let imgWPx: number, imgHPx: number;
   if (availW / availH > imgRatio) {
-    imgHEmu = availH;
-    imgWEmu = Math.round(imgHEmu * imgRatio);
+    imgHPx = availH;
+    imgWPx = imgHPx * imgRatio;
   } else {
-    imgWEmu = availW;
-    imgHEmu = Math.round(imgWEmu / imgRatio);
+    imgWPx = availW;
+    imgHPx = imgWPx / imgRatio;
   }
 
-  const offL = Math.round((colWEmu - imgWEmu) / 2);
-  const offT = Math.round((rowHEmu - imgHEmu) / 2);
+  // 셀 내부 중앙정렬: 행은 r-1 + offsetFraction, 열은 ci + offsetFraction
+  const offLFrac = ((colWPx - imgWPx) / 2) / colWPx;
+  const offTFrac = ((rowHPx - imgHPx) / 2) / rowHPx;
 
   ws.addImage(imgId, {
-    tl: { nativeCol: ci, nativeColOff: offL, nativeRow: r - 1, nativeRowOff: offT } as unknown as { col: number; row: number },
-    br: { nativeCol: ci, nativeColOff: offL + imgWEmu, nativeRow: r - 1, nativeRowOff: offT + imgHEmu } as unknown as { col: number; row: number },
+    tl: { col: ci + offLFrac, row: (r - 1) + offTFrac },
+    ext: { width: imgWPx, height: imgHPx },
     editAs: 'oneCell',
   });
 }

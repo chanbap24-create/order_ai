@@ -30,41 +30,36 @@ export function buildHeader(
     const rowHeight = imgH + 10;
     ws.getRow(1).height = rowHeight * 0.75;
 
-    const PX_EMU = 9525;
-    const PT_EMU = 12700;
-    const imgWEmu = imgW * PX_EMU;
-    const imgHEmu = imgH * PX_EMU;
+    // ExcelJS 공식 API: tl.col/row 는 fractional 지원 → 모든 뷰어(카톡/모바일 포함) 호환.
+    // 비공식 nativeCol/nativeColOff EMU 방식은 일부 뷰어가 무시해서 로고 누락.
+    // 각 열 width(px) = width * 7 + 5 (Excel 관례)
+    const colWidthsPx = activeCols.map((col) => col.width * 7 + 5);
+    const totalPxWidth = colWidthsPx.reduce((sum, w) => sum + w, 0);
 
-    let totalWEmu = 0;
-    const colOffsets: number[] = [0];
-    for (const col of activeCols) {
-      const colPxW = col.width * 7 + 5;
-      totalWEmu += colPxW * PX_EMU;
-      colOffsets.push(totalWEmu);
+    // 가로 중앙 위치(px)
+    const startXPx = Math.max(0, (totalPxWidth - imgW) / 2);
+
+    // fractional col 계산: 누적 폭이 startX 를 넘어가는 열의 비율 구하기
+    let colFrac = 0;
+    let running = 0;
+    for (let i = 0; i < colWidthsPx.length; i++) {
+      const w = colWidthsPx[i];
+      if (running + w > startXPx) {
+        colFrac = i + (startXPx - running) / w;
+        break;
+      }
+      running += w;
+      colFrac = i + 1;
     }
 
-    const logoLeftEmu = Math.round((totalWEmu - imgWEmu) / 2);
-    const logoRightEmu = logoLeftEmu + imgWEmu;
-
-    const row3HEmu = rowHeight * 0.75 * PT_EMU;
-    const logoTopEmu = Math.round((row3HEmu - imgHEmu) / 2);
-
-    let tlCol = 0, tlOff = logoLeftEmu;
-    for (let i = 0; i < activeCols.length; i++) {
-      if (tlOff < (colOffsets[i + 1] - colOffsets[i])) break;
-      tlOff -= (colOffsets[i + 1] - colOffsets[i]);
-      tlCol = i + 1;
-    }
-    let brCol = 0, brOff = logoRightEmu;
-    for (let i = 0; i < activeCols.length; i++) {
-      if (brOff < (colOffsets[i + 1] - colOffsets[i])) break;
-      brOff -= (colOffsets[i + 1] - colOffsets[i]);
-      brCol = i + 1;
-    }
+    // 행 1 높이(pt) 기준 세로 중앙
+    const rowHeightPx = rowHeight * 0.75 * (96 / 72); // pt → px 대략
+    const topOffsetPx = Math.max(0, (rowHeightPx - imgH) / 2);
+    const rowFrac = topOffsetPx / rowHeightPx;
 
     ws.addImage(logoId, {
-      tl: { nativeCol: tlCol, nativeColOff: tlOff, nativeRow: 0, nativeRowOff: Math.max(0, logoTopEmu) } as unknown as { col: number; row: number },
-      br: { nativeCol: brCol, nativeColOff: brOff, nativeRow: 0, nativeRowOff: Math.max(0, logoTopEmu) + imgHEmu } as unknown as { col: number; row: number },
+      tl: { col: colFrac, row: rowFrac },
+      ext: { width: imgW, height: imgH },
       editAs: 'oneCell',
     });
   } else {
