@@ -37,14 +37,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '담당자를 선택해주세요.' }, { status: 400 });
     }
 
-    const SR = await loadStockRules();
+    // ── 병렬 Phase 1: stockRules + dbDismissed + shipments 동시 진행 ──
+    // loadStockRules 와 dbDismissed 는 shipments 루프와 독립적이므로
+    // shipments 가 끝날 때까지 별도로 진행되도록 Promise 로 시작.
+    const srPromise = loadStockRules();
+    const dismissedPromise = supabase
+      .from('inventory_alerts')
+      .select('item_no, current_stock')
+      .eq('status', 'dismissed');
 
-    // 1. 해당 담당자의 최근 12개월 출고 기록 조회
+    // 1. 해당 담당자의 최근 12개월 출고 기록 조회 (페이지네이션)
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const cutoffDate = twelveMonthsAgo.toISOString().slice(0, 10);
 
-    // shipments에서 해당 담당자의 모든 출고 조회 (페이지네이션)
     const allShipments: any[] = [];
     let from = 0;
     const batchSize = 1000;
@@ -61,6 +67,10 @@ export async function POST(req: Request) {
       if (data.length < batchSize) break;
       from += batchSize;
     }
+
+    // 병렬로 진행했던 Phase 1 결과 수집
+    const [SR, dbDismissedRes] = await Promise.all([srPromise, dismissedPromise]);
+    const dbDismissed = dbDismissedRes.data || null;
 
     if (allShipments.length === 0) {
       return NextResponse.json({
@@ -94,13 +104,14 @@ export async function POST(req: Request) {
       if (s.ship_date && s.ship_date > cl.last_date) cl.last_date = s.ship_date;
     }
 
-    // 3. 재고 조회
-    const itemNos = Array.from(itemMap.keys());
-    const inventoryMap = new Map<string, any>();
+    // 3. 재고 조회 (shipments 품목 + dismissed 품목을 한 번에 UNION 하여 DB 왕복 감소)
+    const shipmentItemNos = Array.from(itemMap.keys());
+    const dismissedItemNos = (dbDismissed || []).map(d => d.item_no);
+    const allItemNos = Array.from(new Set([...shipmentItemNos, ...dismissedItemNos]));
 
-    // 배치로 조회 (Supabase .in()은 대량 제한 있을 수 있음)
-    for (let i = 0; i < itemNos.length; i += 500) {
-      const batch = itemNos.slice(i, i + 500);
+    const inventoryMap = new Map<string, any>();
+    for (let i = 0; i < allItemNos.length; i += 500) {
+      const batch = allItemNos.slice(i, i + 500);
       const { data: invData } = await supabase
         .from('inventory_cdv')
         .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d')
@@ -110,38 +121,20 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. DB에서 dismissed 목록 로드 + 재입고 자동 복원
-    const { data: dbDismissed } = await supabase
-      .from('inventory_alerts')
-      .select('item_no, current_stock')
-      .eq('status', 'dismissed');
-
-    // 재입고 감지: 삭제 시점 재고보다 현재 재고가 늘었으면 자동 복원
+    // 4. 재입고 자동 복원: inventoryMap 재사용 (별도 쿼리 불필요)
     const autoRestoreItems: string[] = [];
     if (dbDismissed && dbDismissed.length > 0) {
-      const dismissedNos = dbDismissed.map(d => d.item_no);
-      // 삭제된 품목의 현재 재고 조회
-      const dismissedInvMap = new Map<string, number>();
-      for (let i = 0; i < dismissedNos.length; i += 500) {
-        const batch = dismissedNos.slice(i, i + 500);
-        const { data: invData } = await supabase
-          .from('inventory_cdv')
-          .select('item_no, available_stock, bonded_warehouse')
-          .in('item_no', batch);
-        for (const inv of invData || []) {
-          dismissedInvMap.set(inv.item_no, (inv.available_stock || 0) + (inv.bonded_warehouse || 0));
-        }
-      }
-
       for (const d of dbDismissed) {
-        const currentStock = dismissedInvMap.get(d.item_no) ?? 0;
+        const inv = inventoryMap.get(d.item_no);
+        const currentStock = inv
+          ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0)
+          : 0;
         const dismissedStock = d.current_stock ?? 0;
         if (currentStock > dismissedStock) {
           autoRestoreItems.push(d.item_no);
         }
       }
 
-      // 자동 복원 실행
       if (autoRestoreItems.length > 0) {
         await supabase
           .from('inventory_alerts')
@@ -280,40 +273,51 @@ export async function PATCH(req: Request) {
         for (const it of items) nameMap.set(it.item_no, it.item_name || '');
       }
 
-      // 삭제 시점의 실제 재고량 조회 (재입고 감지용)
-      const stockAtDismiss = new Map<string, number>();
-      for (let i = 0; i < item_nos.length; i += 500) {
-        const batch = item_nos.slice(i, i + 500);
-        const { data: invData } = await supabase
-          .from('inventory_cdv')
-          .select('item_no, available_stock, bonded_warehouse')
-          .in('item_no', batch);
-        for (const inv of invData || []) {
-          stockAtDismiss.set(inv.item_no, (inv.available_stock || 0) + (inv.bonded_warehouse || 0));
-        }
-      }
+      // ── Phase 1: 재고 + 기존 alert 레코드 병렬 조회 ──
+      // 기존 N+1 (item_nos.length × 2 queries) → 2 parallel batched queries
+      const [invResults, existingResults] = await Promise.all([
+        (async () => {
+          const m = new Map<string, number>();
+          for (let i = 0; i < item_nos.length; i += 500) {
+            const batch = item_nos.slice(i, i + 500);
+            const { data } = await supabase
+              .from('inventory_cdv')
+              .select('item_no, available_stock, bonded_warehouse')
+              .in('item_no', batch);
+            for (const inv of data || []) {
+              m.set(inv.item_no, (inv.available_stock || 0) + (inv.bonded_warehouse || 0));
+            }
+          }
+          return m;
+        })(),
+        (async () => {
+          const s = new Set<string>();
+          for (let i = 0; i < item_nos.length; i += 500) {
+            const batch = item_nos.slice(i, i + 500);
+            const { data } = await supabase
+              .from('inventory_alerts')
+              .select('item_no')
+              .in('item_no', batch);
+            for (const r of data || []) s.add(r.item_no);
+          }
+          return s;
+        })(),
+      ]);
 
       const now = new Date().toISOString();
+      const existingNos = item_nos.filter((n: string) => existingResults.has(n));
+      const newNos = item_nos.filter((n: string) => !existingResults.has(n));
+
+      // ── Phase 2: 기존 레코드 일괄 UPDATE + 신규 레코드 일괄 INSERT ──
+      // 기존 UPDATE 는 item_name 이 레코드마다 다를 수 있어 품목별 루프가 필요하나
+      // Supabase 는 개별 업데이트를 병렬로 처리 가능.
       const errors: string[] = [];
-      for (const itemNo of item_nos) {
-        const itemName = nameMap.get(itemNo) || '';
-        const currentStock = stockAtDismiss.get(itemNo) ?? 0;
 
-        // 기존 레코드 조회 (중복 대비 limit 없이 전체 조회)
-        const { data: existingRows, error: findErr } = await supabase
-          .from('inventory_alerts')
-          .select('id')
-          .eq('item_no', itemNo);
-
-        if (findErr) {
-          console.error(`Dismiss find error for ${itemNo}:`, findErr);
-          errors.push(`${itemNo}: ${findErr.message}`);
-          continue;
-        }
-
-        if (existingRows && existingRows.length > 0) {
-          // 모든 중복 레코드를 한번에 dismissed로 업데이트 + 재고 스냅샷 저장
-          const { error: updErr } = await supabase
+      if (existingNos.length > 0) {
+        const updatePromises = existingNos.map((itemNo: string) => {
+          const itemName = nameMap.get(itemNo) || '';
+          const currentStock = invResults.get(itemNo) ?? 0;
+          return supabase
             .from('inventory_alerts')
             .update({
               status: 'dismissed',
@@ -322,31 +326,34 @@ export async function PATCH(req: Request) {
               ...(itemName ? { item_name: itemName } : {}),
             })
             .eq('item_no', itemNo);
-          if (updErr) {
-            console.error(`Dismiss update error for ${itemNo}:`, updErr);
-            errors.push(`${itemNo}: ${updErr.message}`);
-          }
-        } else {
-          const { error: insErr } = await supabase
-            .from('inventory_alerts')
-            .insert({
-              item_no: itemNo,
-              item_name: itemName,
-              alert_type: 'out_of_stock',
-              current_stock: currentStock,
-              threshold: 0,
-              affected_clients: [],
-              status: 'dismissed',
-              dismissed_at: now,
-            });
-          if (insErr) {
-            console.error(`Dismiss insert error for ${itemNo}:`, insErr);
-            errors.push(`${itemNo}: ${insErr.message}`);
-          }
-        }
+        });
+        const updateResults = await Promise.all(updatePromises);
+        updateResults.forEach((res, i) => {
+          if (res.error) errors.push(`${existingNos[i]}: ${res.error.message}`);
+        });
       }
+
+      if (newNos.length > 0) {
+        const insertRows = newNos.map((itemNo: string) => ({
+          item_no: itemNo,
+          item_name: nameMap.get(itemNo) || '',
+          alert_type: 'out_of_stock',
+          current_stock: invResults.get(itemNo) ?? 0,
+          threshold: 0,
+          affected_clients: [],
+          status: 'dismissed',
+          dismissed_at: now,
+        }));
+        const { error: insErr } = await supabase.from('inventory_alerts').insert(insertRows);
+        if (insErr) errors.push(`insert: ${insErr.message}`);
+      }
+
       if (errors.length > 0) {
-        return NextResponse.json({ success: false, error: errors.join('; '), dismissed: item_nos.length - errors.length }, { status: 500 });
+        return NextResponse.json({
+          success: false,
+          error: errors.join('; '),
+          dismissed: item_nos.length - errors.length,
+        }, { status: 500 });
       }
       return NextResponse.json({ success: true, dismissed: item_nos.length });
     }
