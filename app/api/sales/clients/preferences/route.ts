@@ -47,34 +47,26 @@ export async function GET(req: NextRequest) {
     // 고유 품목 코드
     const itemCodes = [...new Set(allShipments.filter(s => s.item_no).map(s => s.item_no))];
 
-    // wines 정보 가져오기 (배치)
+    // wines + tasting_notes 를 배치별로 병렬 조회 (기존: 2회 순차 배치 루프 → 배치당 2 병렬)
     const wineMap = new Map<string, { country: string; region: string; grape_varieties: string; wine_type: string; supply_price: number; item_name_kr: string; supplier: string; supplier_kr: string }>();
-    for (let i = 0; i < itemCodes.length; i += 100) {
-      const batch = itemCodes.slice(i, i + 100);
-      const { data: wines } = await supabase
-        .from('wines')
-        .select('item_code, country, region, grape_varieties, wine_type, supply_price, item_name_kr, supplier, supplier_kr')
-        .in('item_code', batch);
-      if (wines) {
-        for (const w of wines) {
-          wineMap.set(w.item_code, w);
-        }
-      }
-    }
-
-    // tasting_notes 가져오기
     const tasteMap = new Map<string, { nose_note: string; palate_note: string }>();
+
     for (let i = 0; i < itemCodes.length; i += 100) {
       const batch = itemCodes.slice(i, i + 100);
-      const { data: notes } = await supabase
-        .from('tasting_notes')
-        .select('wine_id, nose_note, palate_note')
-        .in('wine_id', batch);
-      if (notes) {
-        for (const n of notes) {
-          if (n.nose_note || n.palate_note) {
-            tasteMap.set(n.wine_id, { nose_note: n.nose_note || '', palate_note: n.palate_note || '' });
-          }
+      const [winesRes, notesRes] = await Promise.all([
+        supabase
+          .from('wines')
+          .select('item_code, country, region, grape_varieties, wine_type, supply_price, item_name_kr, supplier, supplier_kr')
+          .in('item_code', batch),
+        supabase
+          .from('tasting_notes')
+          .select('wine_id, nose_note, palate_note')
+          .in('wine_id', batch),
+      ]);
+      for (const w of winesRes.data || []) wineMap.set(w.item_code, w);
+      for (const n of notesRes.data || []) {
+        if (n.nose_note || n.palate_note) {
+          tasteMap.set(n.wine_id, { nose_note: n.nose_note || '', palate_note: n.palate_note || '' });
         }
       }
     }
