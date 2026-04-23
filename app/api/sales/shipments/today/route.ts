@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { getSellingUnitPrice, getSellingTotal } from '@/app/lib/priceUtils';
 
 interface ShipRow {
   client_code: string;
@@ -9,6 +10,7 @@ interface ShipRow {
   item_name: string;
   quantity: number;
   unit_price: number;
+  selling_price: number;
   supply_amount: number;
   tax_amount: number;
   total_amount: number;
@@ -29,6 +31,14 @@ function groupByClient(rows: ShipRow[]) {
   let totalSupply = 0, totalTax = 0, totalAmount = 0;
 
   for (const row of rows) {
+    // 시기별 가격 컬럼 포맷 차이(2025-08 전후) 정규화
+    // Q열(판매단가)과 Q*수량(판매총액)을 재계산 — 과거 기준단가(R) 표시 방지
+    const qty = row.quantity || 0;
+    const unitPrice = getSellingUnitPrice(row.unit_price, row.selling_price, row.supply_amount, qty);
+    const supplyTotal = getSellingTotal(row.unit_price, row.selling_price, row.supply_amount, qty);
+    const taxAmount = Math.round(supplyTotal * 0.1);
+    const totalWithVat = supplyTotal + taxAmount;
+
     const key = row.client_code || row.client_name;
     if (!map.has(key)) {
       map.set(key, {
@@ -40,19 +50,19 @@ function groupByClient(rows: ShipRow[]) {
       });
     }
     const g = map.get(key)!;
-    g.supply_amount += row.supply_amount || 0;
-    g.tax_amount += row.tax_amount || 0;
-    g.total_amount += row.total_amount || 0;
+    g.supply_amount += supplyTotal;
+    g.tax_amount += taxAmount;
+    g.total_amount += totalWithVat;
     g.items.push({
       item_no: row.item_no,
       item_name: row.item_name,
-      quantity: row.quantity,
-      unit_price: row.unit_price,
-      total_amount: row.total_amount || 0,
+      quantity: qty,
+      unit_price: unitPrice,
+      total_amount: totalWithVat,
     });
-    totalSupply += row.supply_amount || 0;
-    totalTax += row.tax_amount || 0;
-    totalAmount += row.total_amount || 0;
+    totalSupply += supplyTotal;
+    totalTax += taxAmount;
+    totalAmount += totalWithVat;
   }
 
   return {
@@ -74,7 +84,7 @@ export async function GET(req: NextRequest) {
   const from = (dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) ? dateFrom : todayDefault;
   const to = (dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) ? dateTo : from;
 
-  const cols = 'client_code, client_name, business_type, item_no, item_name, quantity, unit_price, supply_amount, tax_amount, total_amount, manager';
+  const cols = 'client_code, client_name, business_type, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager';
 
   let wineQuery = supabase.from('shipments').select(cols).gte('ship_date', from).lte('ship_date', to).limit(10000);
   let glassQuery = supabase.from('glass_shipments').select(cols).gte('ship_date', from).lte('ship_date', to).limit(10000);

@@ -54,9 +54,19 @@ export async function GET(req: NextRequest) {
     const itemName = allRows[0]?.item_name || wineInfo?.item_name_kr || itemNo;
 
     // 단가/금액 정규화: priceUtils 사용
+    // 시기별 가격 컬럼 포맷 차이(2025-08 전후) → Q(판매단가)와 Q*수량(판매총액) 재계산.
+    // 원본 unit_price/supply_amount를 getSellingTotal에 넘긴 뒤 mutate (순서 중요).
     for (const r of allRows) {
-      r.unit_price = getSellingUnitPrice(r.unit_price, r.selling_price, r.supply_amount, r.quantity);
-      r.supply_amount = Math.abs(getSellingTotal(r.unit_price, r.selling_price, r.supply_amount, r.quantity));
+      const rawUp = r.unit_price;
+      const rawSp = r.selling_price;
+      const rawSa = r.supply_amount;
+      const qty = r.quantity;
+      const unitPrice = getSellingUnitPrice(rawUp, rawSp, rawSa, qty);
+      const supplyTotal = Math.abs(getSellingTotal(rawUp, rawSp, rawSa, qty));
+      r.unit_price = unitPrice;
+      r.supply_amount = supplyTotal;
+      r.tax_amount = Math.round(supplyTotal * 0.1);
+      r.total_amount = supplyTotal + r.tax_amount;
     }
 
     // 거래처별 집계
