@@ -1,545 +1,98 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState } from 'react';
+import type { LedgerType } from '../ledger/types';
+import { getInitialDateRange } from '../ledger/lib/quickRanges';
+import { computeGrandTotal, groupData } from '../ledger/lib/groupData';
+import { printLedger } from '../ledger/lib/printLedger';
+import { useClientSearch } from '../ledger/hooks/useClientSearch';
+import { useLedgerQuery } from '../ledger/hooks/useLedgerQuery';
+import { useLedgerExport } from '../ledger/hooks/useLedgerExport';
+import { LedgerFilterCard } from '../ledger/components/LedgerFilterCard';
+import { LedgerResultCard } from '../ledger/components/LedgerResultCard';
 
-interface LedgerRow {
-  ship_date: string;
-  item_no: string;
-  item_name: string;
-  quantity: number;
-  unit_price: number;
-  selling_price: number | null;
-  supply_amount: number;
-  tax_amount: number;
-  total_amount: number;
-  manager: string;
-  warehouse: string;
-}
-
-interface PaymentRow {
-  client_code: string;
-  client_name: string;
-  payment_date: string;
-  amount: number;
-}
-
-interface ClientInfo {
-  client_code: string;
-  client_name: string;
-  client_type?: string;
-  manager?: string;
-  importance?: number;
-}
-
-interface SuggestionItem { code: string; name: string; type?: string; }
-
-// 월 키 추출 (YYYY-MM)
-function monthKey(date: string) { return date.slice(0, 7); }
-// 일 키 추출 (YYYY-MM-DD)
-function dayKey(date: string) { return date.slice(0, 10); }
-
-function fmt(n: number | null | undefined) { return (n ?? 0).toLocaleString(); }
-
-export default function LedgerTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
-  // 검색
-  const [clientSearch, setClientSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<SuggestionItem | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  // 기간 (KST)
-  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const firstOfMonth = `${kstNow.getUTCFullYear()}-${String(kstNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
-  const today = kstNow.toISOString().slice(0, 10);
+export default function LedgerTab({ currentManager: _cm, isAdmin: _admin }: { currentManager: string; isAdmin: boolean }) {
+  const { firstOfMonth, today } = getInitialDateRange();
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(today);
+  const [type, setType] = useState<LedgerType>('wine');
 
-  // 타입
-  const [type, setType] = useState<'wine' | 'glass'>('wine');
+  const search = useClientSearch(type);
+  const query = useLedgerQuery({
+    selectedClient: search.selectedClient,
+    startDate, endDate, type,
+  });
+  const xport = useLedgerExport({
+    selectedClient: search.selectedClient,
+    client: query.client,
+    startDate, endDate, type,
+  });
 
-  // 결과
-  const [loading, setLoading] = useState(false);
-  const [client, setClient] = useState<ClientInfo | null>(null);
-  const [rows, setRows] = useState<LedgerRow[]>([]);
-  const [payments, setPayments] = useState<PaymentRow[]>([]);
-  const [prevBalance, setPrevBalance] = useState(0);
-  const [error, setError] = useState('');
-
-  // 접기/펼치기
-  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
-  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
-
-
-  // 타입 변경 시 거래처 초기화
-  const handleTypeChange = (t: 'wine' | 'glass') => {
+  const handleTypeChange = (t: LedgerType) => {
     setType(t);
-    setClientSearch('');
-    setSelectedClient(null);
-    setSuggestions([]);
+    search.reset();
   };
 
-  // 거래처 검색
-  const searchTimer = useRef<any>(null);
-  const handleSearchChange = useCallback((val: string) => {
-    setClientSearch(val);
-    setSelectedClient(null);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (val.trim().length < 1) { setSuggestions([]); setShowSuggestions(false); return; }
-    searchTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/sales/clients?search=${encodeURIComponent(val)}&limit=15&type=${type}`);
-        const data = await res.json();
-        if (data.clients) {
-          setSuggestions(data.clients.map((c: any) => ({
-            code: c.client_code, name: c.client_name, type: c.client_type,
-          })));
-          setShowSuggestions(true);
-        }
-      } catch { /* ignore */ }
-    }, 300);
-  }, [type]);
+  const grouped = groupData(query.rows, query.payments);
+  const grandTotal = computeGrandTotal(query.rows, query.payments);
 
-  // 외부 클릭 닫기
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  // 거래처 선택
-  const selectClient = (item: SuggestionItem) => {
-    setSelectedClient(item);
-    setClientSearch(item.name);
-    setShowSuggestions(false);
-  };
-
-  // 조회
-  const handleSearch = async () => {
-    if (!selectedClient) { setError('거래처를 선택해주세요.'); return; }
-    setError('');
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        client_code: selectedClient.code,
-        start_date: startDate,
-        end_date: endDate,
-        type,
-      });
-      const res = await fetch(`/api/sales/ledger?${params}`);
-      const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setClient(data.client);
-      setRows(data.rows || []);
-      setPayments(data.payments || []);
-      setPrevBalance(data.prev_balance || 0);
-      setCollapsedMonths(new Set());
-      setCollapsedDays(new Set());
-    } catch (err) {
-      setError('조회 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 프린트
-  const handlePrint = () => {
-    if (!client) return;
-    const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
-    const title = `${prefix} 매출처원장 - ${client.client_name} (${startDate} ~ ${endDate})`;
-    const w = window.open('', '_blank', 'width=1000,height=700');
-    if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
-      @page { size: A4 landscape; margin: 10mm; }
-      body { font-family: 'Malgun Gothic','맑은 고딕',sans-serif; margin: 0; padding: 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      h2 { font-size: 15px; margin: 0 0 4px; color: #2c1810; }
-      .sub { font-size: 11px; color: #8a8580; margin-bottom: 12px; }
-      table { width: 100%; border-collapse: collapse; font-size: 10px; }
-      th { padding: 6px 8px; background: #f5f0f0; border-bottom: 2px solid #5A1515; font-weight: 700; color: #5A1515; text-align: right; white-space: nowrap; }
-      th:nth-child(1), th:nth-child(2) { text-align: left; }
-      td { padding: 5px 8px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: right; }
-      td:nth-child(1), td:nth-child(2) { text-align: left; }
-      tr.prev-row { background: rgba(90,21,21,0.03); }
-      tr.prev-row td { font-weight: 700; color: #5A1515; }
-      tr.day-summary { background: #fafafa; }
-      tr.day-summary td { font-weight: 600; font-size: 9px; }
-      tr.month-summary { background: #FFF8E1; }
-      tr.month-summary td { font-weight: 700; color: #5A1515; }
-      tr.grand-total { background: #5A1515; }
-      tr.grand-total td { color: #fff; font-weight: 700; }
-      .pay-row td { color: #1565C0; }
-      .bal-pos { color: #c62828; }
-      .bal-neg { color: #1565C0; }
-      .pay-val { color: #1565C0; }
-      @media print { body { padding: 0; } }
-    </style></head><body>`);
-    w.document.write(`<h2>${prefix} 매출처원장</h2>`);
-    w.document.write(`<div class="sub">${client.client_name} (${client.client_code}) &nbsp;|&nbsp; ${startDate} ~ ${endDate} &nbsp;|&nbsp; ${rows.length}건</div>`);
-    w.document.write('<table><thead><tr>');
-    ['일자','품목명','수량','단가','공급금액','부가세','합계','수금액','미수액'].forEach(h => w.document.write(`<th>${h}</th>`));
-    w.document.write('</tr></thead><tbody>');
-
-    const f = (n: number | null | undefined) => (n ?? 0).toLocaleString();
-    // 전월미수
-    if (prevBalance !== 0) {
-      const balClass = prevBalance > 0 ? 'bal-pos' : 'bal-neg';
-      w.document.write(`<tr class="prev-row"><td></td><td>전월미수</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="${balClass}">${f(prevBalance)}</td></tr>`);
-    }
-
-    let runBal = prevBalance;
-    for (const month of grouped) {
-      for (const day of month.days) {
-        for (let i = 0; i < day.rows.length; i++) {
-          const r = day.rows[i];
-          w.document.write(`<tr><td>${i === 0 ? day.date.slice(5) : ''}</td><td>${r.item_name}</td><td>${f(r.quantity)}</td><td>${f(r.selling_price ?? r.unit_price)}</td><td>${f(r.supply_amount)}</td><td>${f(r.tax_amount)}</td><td>${f(r.total_amount)}</td><td></td><td></td></tr>`);
-        }
-        for (let i = 0; i < day.paymentRows.length; i++) {
-          const p = day.paymentRows[i];
-          w.document.write(`<tr class="pay-row"><td>${day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}</td><td>입금</td><td></td><td></td><td></td><td></td><td></td><td class="pay-val">${f(p.amount)}</td><td></td></tr>`);
-        }
-        runBal += day.totals.total - day.totals.payment;
-        if (day.rows.length > 1 || day.paymentRows.length > 0) {
-          w.document.write(`<tr class="day-summary"><td colspan="2">${day.date.slice(5)} 일계</td><td>${f(day.totals.qty)}</td><td></td><td>${f(day.totals.supply)}</td><td>${f(day.totals.tax)}</td><td>${f(day.totals.total)}</td><td class="pay-val">${day.totals.payment ? f(day.totals.payment) : ''}</td><td class="bal-pos">${f(runBal)}</td></tr>`);
-        }
-      }
-      w.document.write(`<tr class="month-summary"><td colspan="2">${month.month} 월계</td><td>${f(month.totals.qty)}</td><td></td><td>${f(month.totals.supply)}</td><td>${f(month.totals.tax)}</td><td>${f(month.totals.total)}</td><td class="pay-val">${month.totals.payment ? f(month.totals.payment) : ''}</td><td class="bal-pos">${f(runBal)}</td></tr>`);
-    }
-
-    const finalBal = prevBalance + grandTotal.total - grandTotal.payment;
-    w.document.write(`<tr class="grand-total"><td colspan="2">[${client.client_name} 합계]</td><td>${f(grandTotal.qty)}</td><td></td><td>${f(grandTotal.supply)}</td><td>${f(grandTotal.tax)}</td><td>${f(grandTotal.total)}</td><td>${f(grandTotal.payment)}</td><td>${f(finalBal)}</td></tr>`);
-    w.document.write('</tbody></table></body></html>');
-    w.document.close();
-    setTimeout(() => { w.print(); }, 300);
-  };
-
-  // 내보내기
-  const [exporting, setExporting] = useState(false);
-  const handleExport = async (format: 'excel' | 'pdf') => {
-    if (!selectedClient || exporting) return;
-    setExporting(true);
-    try {
-      const params = new URLSearchParams({
-        client_code: selectedClient.code,
-        start_date: startDate,
-        end_date: endDate,
-        type,
-        format,
-      });
-      const res = await fetch(`/api/sales/ledger/export?${params}`);
-      if (!res.ok) throw new Error('다운로드 실패');
-      const blob = await res.blob();
-      const safeName = (client?.client_name || selectedClient.code).replace(/[\\/:*?"<>|]/g, '_');
-      const ext = format === 'pdf' ? 'pdf' : 'xlsx';
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const prefix = type === 'glass' ? '대유라이프' : '까브드뱅';
-      a.download = `${prefix}_매출처원장_${safeName}_${startDate.slice(0, 7)}.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
-    } catch (err) {
-      alert('다운로드 중 오류가 발생했습니다.');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  // 데이터 가공: 월별 → 일별 → 행
-  const grouped = groupData(rows, payments);
-
-  // 총합계
-  const totalPayment = payments.reduce((s, p) => s + (p.amount || 0), 0);
-  const grandTotal = {
-    qty: rows.reduce((s, r) => s + (r.quantity || 0), 0),
-    supply: rows.reduce((s, r) => s + (r.supply_amount || 0), 0),
-    tax: rows.reduce((s, r) => s + (r.tax_amount || 0), 0),
-    total: rows.reduce((s, r) => s + (r.total_amount || 0), 0),
-    payment: totalPayment,
-  };
-
-  const toggleMonth = (m: string) => {
-    setCollapsedMonths(prev => {
-      const next = new Set(prev);
-      next.has(m) ? next.delete(m) : next.add(m);
-      return next;
+  const onPrint = () => {
+    if (!query.client) return;
+    printLedger({
+      client: query.client,
+      type, startDate, endDate,
+      rowCount: query.rows.length,
+      prevBalance: query.prevBalance,
+      grouped, grandTotal,
     });
   };
-  const toggleDay = (d: string) => {
-    setCollapsedDays(prev => {
-      const next = new Set(prev);
-      next.has(d) ? next.delete(d) : next.add(d);
-      return next;
-    });
-  };
+
+  const hasResult = query.client && (
+    query.rows.length > 0 || query.prevBalance !== 0 || query.payments.length > 0
+  );
 
   return (
     <div>
-      {/* 필터 영역 */}
-      <div style={{
-        background: '#fff',
-        borderRadius: 14,
-        border: '1px solid rgba(90,21,21,0.06)',
-        boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
-        padding: 18,
-        marginBottom: 16,
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', marginBottom: 14 }}>
-          매출처원장
-        </div>
+      <LedgerFilterCard
+        type={type}
+        onTypeChange={handleTypeChange}
+        searchRef={search.searchRef}
+        clientSearch={search.clientSearch}
+        onSearchChange={search.handleSearchChange}
+        onSearchFocus={() => { if (search.suggestions.length > 0) search.setShowSuggestions(true); }}
+        selectedClient={search.selectedClient}
+        suggestions={search.suggestions}
+        showSuggestions={search.showSuggestions}
+        onSelectClient={search.selectClient}
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+        loading={query.loading}
+        onSearch={query.handleSearch}
+        error={query.error}
+      />
 
-        {/* 창고 선택 */}
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(90,21,21,0.04)', borderRadius: 8, padding: 2, marginBottom: 12, alignSelf: 'flex-start', width: 'fit-content' }}>
-          {([['wine', '까브드뱅'], ['glass', '대유라이프']] as const).map(([t, label]) => (
-            <button key={t} onClick={() => handleTypeChange(t)} style={{
-              padding: '8px 18px', borderRadius: 6, border: 'none',
-              fontSize: 13, fontWeight: type === t ? 700 : 500,
-              background: type === t ? '#fff' : 'transparent',
-              color: type === t ? '#5A1515' : '#8a8580',
-              cursor: 'pointer', boxShadow: type === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            }}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* 거래처 검색 */}
-        <div ref={searchRef} style={{ position: 'relative', marginBottom: 12 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            거래처
-          </label>
-          <input
-            value={clientSearch}
-            onChange={e => handleSearchChange(e.target.value)}
-            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-            placeholder="거래처명 또는 코드 검색"
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: selectedClient ? '1.5px solid rgba(90,21,21,0.25)' : '1.5px solid rgba(90,21,21,0.08)',
-              fontSize: 16,
-              outline: 'none',
-              boxSizing: 'border-box',
-              background: selectedClient ? 'rgba(90,21,21,0.02)' : '#faf9f7',
-            }}
-          />
-          {selectedClient && (
-            <span style={{
-              position: 'absolute', right: 12, top: 30,
-              fontSize: 11, color: '#5A1515', fontWeight: 600, background: 'rgba(90,21,21,0.06)',
-              padding: '2px 8px', borderRadius: 6,
-            }}>
-              {selectedClient.code}
-            </span>
-          )}
-          {showSuggestions && suggestions.length > 0 && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-              background: '#fff', borderRadius: 10,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-              border: '1px solid rgba(90,21,21,0.08)',
-              maxHeight: 250, overflowY: 'auto',
-            }}>
-              {suggestions.map((s, i) => (
-                <div key={i} onClick={() => selectClient(s)} style={{
-                  padding: '10px 14px', cursor: 'pointer',
-                  borderBottom: i < suggestions.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(90,21,21,0.03)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <span style={{ fontSize: 13, color: '#2c1810' }}>{s.name}</span>
-                  <span style={{ fontSize: 11, color: '#8a8580' }}>{s.code} · {s.type === 'glass' ? '글라스' : '와인'}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 기간 + 타입 */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: '1 1 130px' }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              시작일
-            </label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 10,
-                border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16,
-                outline: 'none', boxSizing: 'border-box', background: '#faf9f7',
-              }}
-            />
-          </div>
-          <div style={{ flex: '1 1 130px' }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              종료일
-            </label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 10,
-                border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16,
-                outline: 'none', boxSizing: 'border-box', background: '#faf9f7',
-              }}
-            />
-          </div>
-          <button onClick={handleSearch} disabled={loading} style={{
-            padding: '10px 24px', borderRadius: 10, border: 'none',
-            background: loading ? '#c4a0a0' : '#5A1515', color: '#fff',
-            fontSize: 14, fontWeight: 600, cursor: loading ? 'default' : 'pointer',
-            whiteSpace: 'nowrap', transition: 'background 0.2s',
-          }}>
-            {loading ? '조회 중...' : '조회'}
-          </button>
-        </div>
-
-        {/* 빠른 기간 버튼 */}
-        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-          {getQuickRanges().map(r => (
-            <button key={r.label} onClick={() => { setStartDate(r.start); setEndDate(r.end); }}
-              style={{
-                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
-                background: (startDate === r.start && endDate === r.end) ? 'rgba(90,21,21,0.06)' : 'transparent',
-                fontSize: 11, color: '#5A1515', cursor: 'pointer', fontWeight: 500,
-              }}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-
-        {error && (
-          <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, fontSize: 12, color: '#dc2626' }}>
-            {error}
-          </div>
-        )}
-      </div>
-
-      {/* 결과 테이블 */}
-      {client && (rows.length > 0 || prevBalance !== 0 || payments.length > 0) && (
-        <div style={{
-          background: '#fff',
-          borderRadius: 14,
-          border: '1px solid rgba(90,21,21,0.06)',
-          boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
-          overflow: 'hidden',
-        }}>
-          {/* 헤더 정보 */}
-          <div style={{
-            padding: '14px 18px',
-            borderBottom: '2px solid #5A1515',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            flexWrap: 'wrap', gap: 8,
-          }}>
-            <div>
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#2c1810' }}>{client.client_name}</span>
-              <span style={{ fontSize: 12, color: '#8a8580', marginLeft: 8 }}>{client.client_code}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, color: '#8a8580' }}>
-                {startDate} ~ {endDate} · {rows.length}건
-              </span>
-              <button onClick={() => handleExport('excel')} disabled={exporting} style={{
-                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.15)',
-                background: '#fff', fontSize: 11, fontWeight: 600, color: '#2e7d32', cursor: 'pointer',
-                opacity: exporting ? 0.5 : 1,
-              }}>{exporting ? '...' : 'Excel'}</button>
-              <button onClick={() => handleExport('pdf')} disabled={exporting} style={{
-                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.15)',
-                background: '#fff', fontSize: 11, fontWeight: 600, color: '#c62828', cursor: 'pointer',
-                opacity: exporting ? 0.5 : 1,
-              }}>PDF</button>
-              <button onClick={handlePrint} style={{
-                padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.15)',
-                background: '#fff', fontSize: 11, fontWeight: 600, color: '#5A1515', cursor: 'pointer',
-              }}>Print</button>
-            </div>
-          </div>
-
-          {/* 테이블 */}
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.1)' }}>
-                  <th style={thStyle}>일자</th>
-                  <th style={thStyle}>품목명</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>수량</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>단가</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>공급금액</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>부가세</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>합계</th>
-                  <th style={{ ...thStyle, textAlign: 'right', color: '#1565C0' }}>수금액</th>
-                  <th style={{ ...thStyle, textAlign: 'right', color: '#c62828' }}>미수액</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* 전월미수 행 */}
-                {prevBalance !== 0 && (
-                  <tr style={{ background: 'rgba(90,21,21,0.02)', borderBottom: '1px solid rgba(90,21,21,0.1)' }}>
-                    <td style={tdStyle}></td>
-                    <td style={{ ...tdStyle, fontWeight: 700, color: '#5A1515' }}>전월미수</td>
-                    <td style={tdStyle}></td>
-                    <td style={tdStyle}></td>
-                    <td style={tdStyle}></td>
-                    <td style={tdStyle}></td>
-                    <td style={tdStyle}></td>
-                    <td style={tdStyle}></td>
-                    <td style={{
-                      ...tdStyle, textAlign: 'right', fontWeight: 700,
-                      color: prevBalance > 0 ? '#c62828' : '#1565C0',
-                    }}>{fmt(prevBalance)}</td>
-                  </tr>
-                )}
-                {(() => {
-                  let runBal = prevBalance;
-                  return grouped.map(month => {
-                    const mCollapsed = collapsedMonths.has(month.month);
-                    const monthStartBal = runBal;
-                    runBal += month.totals.total - month.totals.payment;
-                    return (
-                      <MonthGroup
-                        key={month.month}
-                        month={month}
-                        collapsed={mCollapsed}
-                        collapsedDays={collapsedDays}
-                        onToggleMonth={() => toggleMonth(month.month)}
-                        onToggleDay={toggleDay}
-                        startBalance={monthStartBal}
-                        endBalance={runBal}
-                      />
-                    );
-                  });
-                })()}
-                {/* 총합계 */}
-                {(() => {
-                  const finalBalance = prevBalance + grandTotal.total - grandTotal.payment;
-                  return (
-                    <tr style={{ background: '#5A1515', fontWeight: 700 }}>
-                      <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={2}>
-                        [{client.client_name} 합계]
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.qty)}</td>
-                      <td style={{ ...tdStyle, color: '#fff' }}></td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.supply)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.tax)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandTotal.total)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#90CAF9' }}>{fmt(grandTotal.payment)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#FFCDD2' }}>{fmt(finalBalance)}</td>
-                    </tr>
-                  );
-                })()}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {hasResult && query.client && (
+        <LedgerResultCard
+          client={query.client}
+          startDate={startDate}
+          endDate={endDate}
+          rowCount={query.rows.length}
+          exporting={xport.exporting}
+          onExport={xport.handleExport}
+          onPrint={onPrint}
+          prevBalance={query.prevBalance}
+          grouped={grouped}
+          collapsedMonths={query.collapsedMonths}
+          collapsedDays={query.collapsedDays}
+          onToggleMonth={query.toggleMonth}
+          onToggleDay={query.toggleDay}
+          grandTotal={grandTotal}
+        />
       )}
 
-      {/* 결과 없음 */}
-      {client && rows.length === 0 && prevBalance === 0 && payments.length === 0 && !loading && (
+      {query.client && query.rows.length === 0 && query.prevBalance === 0 && query.payments.length === 0 && !query.loading && (
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
           textAlign: 'center', color: '#8a8580', fontSize: 14,
@@ -549,8 +102,7 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
         </div>
       )}
 
-      {/* 안내 */}
-      {!client && !loading && (
+      {!query.client && !query.loading && (
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
           textAlign: 'center', color: '#8a8580', fontSize: 13,
@@ -564,214 +116,3 @@ export default function LedgerTab({ currentManager, isAdmin }: { currentManager:
     </div>
   );
 }
-
-/* ━━━ 월별 그룹 컴포넌트 ━━━ */
-function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDay, startBalance, endBalance }: {
-  month: MonthData;
-  collapsed: boolean;
-  collapsedDays: Set<string>;
-  onToggleMonth: () => void;
-  onToggleDay: (d: string) => void;
-  startBalance: number;
-  endBalance: number;
-}) {
-  return (
-    <>
-      {!collapsed && (() => {
-        let dayBal = startBalance;
-        return month.days.map(day => {
-          dayBal += day.totals.total - day.totals.payment;
-          return <DayGroup key={day.date} day={day} collapsed={collapsedDays.has(day.date)} onToggle={() => onToggleDay(day.date)} endBalance={dayBal} />;
-        });
-      })()}
-      {/* 월계 */}
-      <tr style={{ background: '#FFF8E1', cursor: 'pointer' }} onClick={onToggleMonth}>
-        <td style={{ ...tdStyle, fontWeight: 700, color: '#5A1515' }} colSpan={2}>
-          <span style={{ marginRight: 6 }}>{collapsed ? '▶' : '▼'}</span>
-          {month.month} 월계
-        </td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.qty)}</td>
-        <td style={tdStyle}></td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.supply)}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.tax)}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.total)}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#1565C0' }}>{month.totals.payment ? fmt(month.totals.payment) : ''}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#c62828' }}>{fmt(endBalance)}</td>
-      </tr>
-    </>
-  );
-}
-
-/* ━━━ 일별 그룹 컴포넌트 ━━━ */
-function DayGroup({ day, collapsed, onToggle, endBalance }: { day: DayData; collapsed: boolean; onToggle: () => void; endBalance: number }) {
-  const showDaySummary = day.rows.length > 1 || day.paymentRows.length > 0;
-  return (
-    <>
-      {!collapsed && day.rows.map((r, i) => (
-        <tr key={`s${i}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-          <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>
-            {i === 0 ? day.date.slice(5) : ''}
-          </td>
-          <td style={{ ...tdStyle, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {r.item_name}
-          </td>
-          <td style={{ ...tdStyle, textAlign: 'right' }}>{fmt(r.quantity)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.selling_price ?? r.unit_price)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right' }}>{fmt(r.supply_amount)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.tax_amount)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{fmt(r.total_amount)}</td>
-          <td style={tdStyle}></td>
-          <td style={tdStyle}></td>
-        </tr>
-      ))}
-      {/* 수금 행 */}
-      {!collapsed && day.paymentRows.map((p, i) => (
-        <tr key={`p${i}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(21,101,192,0.03)' }}>
-          <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>
-            {day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}
-          </td>
-          <td style={{ ...tdStyle, color: '#1565C0', fontWeight: 600 }}>입금</td>
-          <td style={tdStyle}></td>
-          <td style={tdStyle}></td>
-          <td style={tdStyle}></td>
-          <td style={tdStyle}></td>
-          <td style={tdStyle}></td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#1565C0' }}>{fmt(p.amount)}</td>
-          <td style={tdStyle}></td>
-        </tr>
-      ))}
-      {/* 일계 */}
-      {showDaySummary && (
-        <tr style={{ background: 'rgba(90,21,21,0.02)', cursor: 'pointer' }} onClick={onToggle}>
-          <td style={{ ...tdStyle, fontWeight: 600, color: '#8a8580', fontSize: 11 }} colSpan={2}>
-            <span style={{ marginRight: 4 }}>{collapsed ? '▶' : '▼'}</span>
-            {day.date.slice(5)} 일계
-          </td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.qty)}</td>
-          <td style={tdStyle}></td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.supply)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.tax)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.total)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#1565C0' }}>{day.totals.payment ? fmt(day.totals.payment) : ''}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#c62828' }}>{fmt(endBalance)}</td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-/* ━━━ 데이터 그룹화 ━━━ */
-interface Totals { qty: number; supply: number; tax: number; total: number; payment: number; }
-interface DayData { date: string; rows: LedgerRow[]; paymentRows: PaymentRow[]; totals: Totals; }
-interface MonthData { month: string; days: DayData[]; totals: Totals; }
-
-function groupData(rows: LedgerRow[], payments: PaymentRow[]): MonthData[] {
-  // 수금을 날짜별로 묶기
-  const payByDay = new Map<string, PaymentRow[]>();
-  for (const p of payments) {
-    const d = dayKey(p.payment_date);
-    if (!payByDay.has(d)) payByDay.set(d, []);
-    payByDay.get(d)!.push(p);
-  }
-
-  const monthMap = new Map<string, Map<string, { rows: LedgerRow[]; pays: PaymentRow[] }>>();
-
-  // 출고 행 분류
-  for (const r of rows) {
-    const m = monthKey(r.ship_date);
-    const d = dayKey(r.ship_date);
-    if (!monthMap.has(m)) monthMap.set(m, new Map());
-    const dayMap = monthMap.get(m)!;
-    if (!dayMap.has(d)) dayMap.set(d, { rows: [], pays: [] });
-    dayMap.get(d)!.rows.push(r);
-  }
-
-  // 수금 행 분류 (출고가 없는 날도 포함)
-  for (const [d, pays] of payByDay) {
-    const m = monthKey(d);
-    if (!monthMap.has(m)) monthMap.set(m, new Map());
-    const dayMap = monthMap.get(m)!;
-    if (!dayMap.has(d)) dayMap.set(d, { rows: [], pays: [] });
-    dayMap.get(d)!.pays = pays;
-  }
-
-  const result: MonthData[] = [];
-  for (const [m, dayMap] of monthMap) {
-    const days: DayData[] = [];
-    const mTotals: Totals = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
-
-    // 날짜 순 정렬
-    const sortedDays = [...dayMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-
-    for (const [d, { rows: dRows, pays }] of sortedDays) {
-      const dTotals: Totals = { qty: 0, supply: 0, tax: 0, total: 0, payment: 0 };
-      for (const r of dRows) {
-        dTotals.qty += r.quantity || 0;
-        dTotals.supply += r.supply_amount || 0;
-        dTotals.tax += r.tax_amount || 0;
-        dTotals.total += r.total_amount || 0;
-      }
-      for (const p of pays) {
-        dTotals.payment += p.amount || 0;
-      }
-      mTotals.qty += dTotals.qty;
-      mTotals.supply += dTotals.supply;
-      mTotals.tax += dTotals.tax;
-      mTotals.total += dTotals.total;
-      mTotals.payment += dTotals.payment;
-      days.push({ date: d, rows: dRows, paymentRows: pays, totals: dTotals });
-    }
-    result.push({ month: m, days, totals: mTotals });
-  }
-  // 월 순 정렬
-  result.sort((a, b) => a.month.localeCompare(b.month));
-  return result;
-}
-
-/* ━━━ 빠른 기간 ━━━ */
-function getQuickRanges() {
-  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const y = kstNow.getUTCFullYear();
-  const m = kstNow.getUTCMonth(); // 0-indexed
-  const today = kstNow.toISOString().slice(0, 10);
-
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  const curStart = `${y}-${pad(m + 1)}-01`;
-  const prevStart = m === 0 ? `${y - 1}-12-01` : `${y}-${pad(m)}-01`;
-  const prevEnd = new Date(y, m, 0); // 이전 달 마지막 날
-  const prevEndStr = `${prevEnd.getFullYear()}-${pad(prevEnd.getMonth() + 1)}-${pad(prevEnd.getDate())}`;
-
-  const q = Math.floor(m / 3);
-  const qStartMonth = q * 3 + 1; // 1-indexed
-  const qStartYear = y;
-  const qStart = `${qStartYear}-${pad(qStartMonth)}-01`;
-
-  return [
-    { label: '이번 달', start: curStart, end: today },
-    { label: '지난 달', start: prevStart, end: prevEndStr },
-    { label: '이번 분기', start: qStart, end: today },
-    { label: '올해', start: `${y}-01-01`, end: today },
-    { label: '작년', start: `${y - 1}-01-01`, end: `${y - 1}-12-31` },
-    { label: '전체', start: '2020-01-01', end: today },
-  ];
-}
-
-/* ━━━ 스타일 ━━━ */
-const thStyle: React.CSSProperties = {
-  padding: '10px 12px',
-  fontSize: 11,
-  fontWeight: 700,
-  color: '#5A1515',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  fontSize: 12,
-  color: '#2c1810',
-  whiteSpace: 'nowrap',
-};
