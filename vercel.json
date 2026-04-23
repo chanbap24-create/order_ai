@@ -1,4 +1,5 @@
 {
+  "regions": ["icn1"],
   "crons": [
     {
       "path": "/api/sync-daily",
@@ -7,7 +8,7 @@
   ],
   "build": {
     "env": {
-      "FORCE_REBUILD": "2026-02-11-remove-pptxgenjs"
+      "FORCE_REBUILD": "2026-04-23-seoul-region"
     }
   }
 }

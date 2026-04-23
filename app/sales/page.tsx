@@ -20,12 +20,40 @@ const OutstandingTab = dynamic(() => import('./components/OutstandingTab'), { ss
 const ClientListTab = dynamic(() => import('./components/ClientListTab'), { ssr: false });
 const ExpenseTab = dynamic(() => import('./components/ExpenseTab'), { ssr: false });
 
+/** auth check 중 localStorage 힌트로 optimistic UI (흰 화면 최소화) */
+function readAuthHint(): { authenticated: boolean; manager: string; role: string; department: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('sales_auth_hint');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { authenticated: boolean; manager: string; role: string; department: string; at: number };
+    // 24시간 이내 힌트만 사용 (세션 만료는 서버가 체크)
+    if (Date.now() - parsed.at > 24 * 60 * 60 * 1000) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function saveAuthHint(v: { authenticated: boolean; manager: string; role: string; department: string }) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('sales_auth_hint', JSON.stringify({ ...v, at: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+function clearAuthHint() {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem('sales_auth_hint'); } catch { /* ignore */ }
+}
+
 export default function SalesPage() {
-  // ── 인증 상태 ──
+  // ── 인증 상태 (localStorage 힌트로 optimistic 초기값) ──
+  const hint = typeof window !== 'undefined' ? readAuthHint() : null;
   const [authChecking, setAuthChecking] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [currentManager, setCurrentManager] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [authenticated, setAuthenticated] = useState(!!hint?.authenticated);
+  const [currentManager, setCurrentManager] = useState(hint?.manager || '');
+  const [isAdmin, setIsAdmin] = useState(
+    hint ? (hint.role === 'admin' || hint.role === 'executive' || hint.department === '마케팅부') : false,
+  );
 
   // ── 로그인 폼 ──
   const [loginManager, setLoginManager] = useState('');
@@ -74,6 +102,17 @@ export default function SalesPage() {
         setUserRole(authData.role || '');
         setUserDepartment(authData.department || '');
         if (authData.role === 'executive') setActiveTab('analysis');
+        // 다음 방문 optimistic UI용 힌트 저장
+        saveAuthHint({
+          authenticated: true,
+          manager: authData.manager,
+          role: authData.role || '',
+          department: authData.department || '',
+        });
+      } else {
+        // 세션 만료 등으로 실제론 미인증
+        setAuthenticated(false);
+        clearAuthHint();
       }
       if (mgrData?.managers) {
         setManagerList(mgrData.managers);
@@ -105,6 +144,12 @@ export default function SalesPage() {
         setUserRole(data.role || '');
         setUserDepartment(data.department || '');
         if (data.role === 'executive') setActiveTab('analysis');
+        saveAuthHint({
+          authenticated: true,
+          manager: data.manager,
+          role: data.role || '',
+          department: data.department || '',
+        });
       } else {
         setLoginError(data.error || '로그인 실패');
       }
@@ -120,6 +165,7 @@ export default function SalesPage() {
     try {
       await fetch('/api/auth/login', { method: 'DELETE' });
     } catch { /* ignore */ }
+    clearAuthHint();
     setAuthenticated(false);
     setCurrentManager('');
     setIsAdmin(false);
@@ -127,7 +173,6 @@ export default function SalesPage() {
     setLoginPassword('');
     setActiveTab('meetings');
     setAlertCount(0);
-    setActionCount(0);
   };
 
   // ── 비밀번호 변경 ──
@@ -159,8 +204,8 @@ export default function SalesPage() {
     }
   };
 
-  // ── 로딩 중 ──
-  if (authChecking) {
+  // ── 로딩 중: optimistic 인증 힌트가 있으면 즉시 메인 UI 노출 (흰 화면 제거) ──
+  if (authChecking && !authenticated) {
     return (
       <div style={{
         minHeight: 'calc(100vh - 56px)',

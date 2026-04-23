@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
+// icn1 (서울) 리전 강제 + Node.js 런타임
+export const runtime = 'nodejs';
+export const preferredRegion = 'icn1';
+
 // GET: 미팅 목록 조회
 export async function GET(req: NextRequest) {
   try {
@@ -11,9 +15,10 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const clientCode = searchParams.get('client_code');
 
+    // 1) meetings만 먼저 조회 (nested join 제거로 Supabase 왕복 최소화)
     let query = supabase
       .from('meetings')
-      .select('*, client_details(client_name, importance, business_type, manager, contact_name)')
+      .select('*')
       .order('meeting_date', { ascending: true })
       .order('meeting_time', { ascending: true });
 
@@ -22,23 +27,49 @@ export async function GET(req: NextRequest) {
     if (status) query = query.eq('status', status);
     if (clientCode) query = query.eq('client_code', clientCode);
 
-    // manager 필터: meetings.manager 컬럼 직접 필터 + 회사 일정은 항상 포함
     if (manager) {
       const safeManager = String(manager).replace(/[,.()"\\]/g, '');
       query = query.or(`manager.eq.${safeManager},is_company_event.eq.true`);
     }
 
-    const { data, error } = await query;
+    const { data: rawMeetings, error } = await query;
     if (error) throw error;
 
-    let meetings = (data || []).map((m: any) => ({
-      ...m,
-      client_name: m.client_details?.client_name || m.client_code || (m.purpose?.split(' - ')?.[0]) || '(일정)',
-      client_importance: m.client_details?.importance || 3,
-      client_business_type: m.client_details?.business_type || '',
-      client_manager: m.client_details?.manager || m.manager || '',
-      client_contact: m.client_details?.contact_name || '',
-    }));
+    // 2) 고유 client_code만 모아 client_details 일괄 조회 (in 쿼리 1회)
+    const codes = [
+      ...new Set((rawMeetings || []).map(m => m.client_code).filter(Boolean) as string[]),
+    ];
+    const clientMap = new Map<
+      string,
+      { client_name: string; importance: number; business_type: string; manager: string; contact_name: string }
+    >();
+    if (codes.length > 0) {
+      const { data: clients } = await supabase
+        .from('client_details')
+        .select('client_code, client_name, importance, business_type, manager, contact_name')
+        .in('client_code', codes);
+      for (const c of clients || []) {
+        clientMap.set(c.client_code, {
+          client_name: c.client_name || '',
+          importance: c.importance || 3,
+          business_type: c.business_type || '',
+          manager: c.manager || '',
+          contact_name: c.contact_name || '',
+        });
+      }
+    }
+
+    const meetings = (rawMeetings || []).map((m: any) => {
+      const cd = m.client_code ? clientMap.get(m.client_code) : null;
+      return {
+        ...m,
+        client_name: cd?.client_name || m.client_code || (m.purpose?.split(' - ')?.[0]) || '(일정)',
+        client_importance: cd?.importance || 3,
+        client_business_type: cd?.business_type || '',
+        client_manager: cd?.manager || m.manager || '',
+        client_contact: cd?.contact_name || '',
+      };
+    });
 
     return NextResponse.json({ meetings });
   } catch (err) {
