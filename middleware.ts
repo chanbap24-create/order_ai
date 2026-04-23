@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { rateLimit, maybeCleanup } from '@/app/lib/rateLimit';
 
 const SALES_COOKIE = 'sales_auth';
 const ADMIN_COOKIE = 'admin_auth';
@@ -59,8 +60,71 @@ async function verifySalesToken(request: NextRequest): Promise<{ valid: boolean;
   return { valid: true, payload };
 }
 
+/**
+ * 요청별 IP 키 생성.
+ * Vercel은 x-forwarded-for 첫 IP가 실제 클라이언트.
+ */
+function clientIp(request: NextRequest): string {
+  const fwd = request.headers.get('x-forwarded-for') || '';
+  return fwd.split(',')[0].trim() || 'unknown';
+}
+
+/**
+ * 경로별 rate limit 체크.
+ *  - /api/auth/* : 로그인 무차별 대입 방어 (분당 10회)
+ *  - /api/admin/upload* : 업로드 스팸 방어 (분당 20회)
+ *  - 기타 /api/* : 일반 트래픽 (분당 240회 = 초당 4회)
+ * @returns null = 허용, NextResponse = 차단
+ */
+function applyRateLimit(request: NextRequest, pathname: string): NextResponse | null {
+  maybeCleanup();
+  const ip = clientIp(request);
+
+  let limit: number, windowMs: number, bucketKey: string;
+  if (pathname.startsWith('/api/auth/')) {
+    limit = 10;
+    windowMs = 60_000;
+    bucketKey = `auth:${ip}`;
+  } else if (pathname.startsWith('/api/admin/upload') || pathname.startsWith('/api/admin/remote-sync/upload')) {
+    limit = 20;
+    windowMs = 60_000;
+    bucketKey = `upload:${ip}`;
+  } else if (pathname.startsWith('/api/')) {
+    limit = 240;
+    windowMs = 60_000;
+    bucketKey = `api:${ip}`;
+  } else {
+    return null;
+  }
+
+  const { allowed, remaining, resetIn } = rateLimit(bucketKey, limit, windowMs);
+  if (!allowed) {
+    return new NextResponse(
+      JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(Math.ceil(resetIn / 1000)),
+          'X-RateLimit-Limit': String(limit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+        },
+      },
+    );
+  }
+
+  // 허용 시 헤더만 추가 (NextResponse.next()는 다음 블록에서 처리)
+  request.headers.set('x-ratelimit-remaining', String(remaining));
+  return null;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── Rate limit 체크 (API만) ──
+  const rlBlocked = applyRateLimit(request, pathname);
+  if (rlBlocked) return rlBlocked;
 
   // ── /api/auth/* → 항상 공개 ──
   if (pathname.startsWith('/api/auth/')) {

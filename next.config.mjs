@@ -48,6 +48,32 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  // 보안 헤더: 모든 응답에 기본 공격 방어 강화
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // 클릭재킹 방어 — iframe 임베딩 차단
+          { key: 'X-Frame-Options', value: 'DENY' },
+          // MIME sniffing 방어
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Referrer 최소화 (origin만 전달)
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // 기능 권한 최소화
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          // HSTS: 1년 강제 HTTPS (Vercel은 기본 HTTPS지만 명시)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
