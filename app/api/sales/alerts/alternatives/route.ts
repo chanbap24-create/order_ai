@@ -16,6 +16,41 @@ async function fetchAll<T>(table: string, select: string): Promise<T[]> {
   return all;
 }
 
+// inventory_cdv 를 재고 있는 품목만 서버에서 필터
+async function fetchInventoryInStock<T>(select: string): Promise<T[]> {
+  const all: T[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('inventory_cdv')
+      .select(select)
+      .or('available_stock.gt.0,bonded_warehouse.gt.0')
+      .range(from, from + PAGE - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+// wines 를 주어진 item_code 집합으로 한정 조회
+async function fetchWinesByCodes<T>(codes: string[], select: string): Promise<T[]> {
+  if (codes.length === 0) return [];
+  const all: T[] = [];
+  for (let i = 0; i < codes.length; i += 500) {
+    const batch = codes.slice(i, i + 500);
+    const { data, error } = await supabase
+      .from('wines')
+      .select(select)
+      .in('item_code', batch);
+    if (error || !data) continue;
+    all.push(...(data as T[]));
+  }
+  return all;
+}
+
 // ═══ 기본 설정 ═══
 const DEFAULT_STOCK_RULES = {
   price_300k: 6, price_200k: 12, price_100k: 60,
@@ -245,15 +280,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'item_no 파라미터가 필요합니다.' }, { status: 400 });
     }
 
-    // 병렬로 데이터 로드
-    const [SR, { data: targetWine }, { data: targetInv }, inventory, wines, regionRows] = await Promise.all([
+    // Phase 1: 대상 와인/재고 + 설정 + 산지 + 재고 있는 inventory 만 병렬 로드
+    const [SR, targetWineRes, targetInvRes, inventory, regionRows] = await Promise.all([
       loadStockRules(),
       supabase.from('wines').select('item_code, item_name_kr, item_name_en, grape_varieties, wine_type, country_en, region, supply_price').eq('item_code', itemNo).maybeSingle(),
       supabase.from('inventory_cdv').select('item_no, item_name, country, supply_price').eq('item_no', itemNo).maybeSingle(),
-      fetchAll('inventory_cdv', 'item_no, item_name, country, supply_price, available_stock, bonded_warehouse'),
-      fetchAll('wines', 'item_code, item_name_kr, item_name_en, grape_varieties, wine_type, country_en, region, supply_price'),
+      fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse'),
       fetchAll('wine_regions', 'sub_region, major_region, appellation, cru_vineyard, classification'),
     ]);
+    const targetWine = targetWineRes.data;
+    const targetInv = targetInvRes.data;
+
+    // Phase 2: 현재 재고 내 wines 만 .in() 으로 조회 (전체 wines fetchAll 대신)
+    const inventoryItemCodes = inventory
+      .map((i: Record<string, unknown>) => i.item_no as string | undefined)
+      .filter(Boolean) as string[];
+    // 대상 와인 자신은 targetWine 에서 이미 가지고 있으므로 제외 가능하나, 포함되어도 무해
+    const wines = await fetchWinesByCodes<Record<string, unknown>>(
+      inventoryItemCodes,
+      'item_code, item_name_kr, item_name_en, grape_varieties, wine_type, country_en, region, supply_price',
+    );
 
     const targetName = targetWine?.item_name_kr || targetInv?.item_name || itemNo;
     const targetFullName = `${targetWine?.item_name_kr || ''} ${targetWine?.item_name_en || ''}`;
