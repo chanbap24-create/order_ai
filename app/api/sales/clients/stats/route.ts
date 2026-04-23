@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
     if (code) {
       const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
 
-      const { data: recentShipments } = await supabase
+      // 최근 20건 조회 + 최근 1년 전체 페이지네이션 병렬 시작
+      const recentPromise = supabase
         .from(table)
         .select('item_no, item_name, quantity, selling_price, total_amount, ship_date, manager')
         .eq('client_code', code)
@@ -61,6 +62,8 @@ export async function GET(req: NextRequest) {
         if (data.length < shipBatch) break;
         shipFrom += shipBatch;
       }
+
+      const { data: recentShipments } = await recentPromise;
 
       let totalSales = 0;
       let recentQtr = 0;   // 최근 3개월
