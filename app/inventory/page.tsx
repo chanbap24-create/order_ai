@@ -19,6 +19,7 @@ import {
 } from './constants/columns';
 import { CDV_DOC_DEFAULTS } from './constants/docDefaults';
 import { calcDiscountedPrice } from './lib/priceCalc';
+import { CACHE_TTL, getCached, setCached } from '@/app/lib/sessionCache';
 import {
   renderInvCellValue as renderInvCellValueLib,
   getQuoteCellValue as getQuoteCellValueLib,
@@ -114,9 +115,17 @@ export default function InventoryPage() {
   // ══════════════════════════════════════
 
   useEffect(() => {
+    const cacheKey = `inventory_countries_${activeTab}`;
+    const cached = getCached<string[]>(cacheKey, CACHE_TTL.COUNTRIES);
+    if (cached) setCountryList(cached);
+
     fetch(`/api/inventory/countries?tab=${activeTab}`)
       .then(r => r.json())
-      .then(d => setCountryList(d.countries || []))
+      .then(d => {
+        const list = d.countries || [];
+        setCountryList(list);
+        setCached(cacheKey, list);
+      })
       .catch(() => {});
   }, [activeTab]);
 
