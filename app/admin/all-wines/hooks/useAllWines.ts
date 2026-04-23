@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CountryOption, WineRowExt } from '../types';
 
 export function useAllWines() {
   const [wines, setWines] = useState<WineRowExt[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [country, setCountry] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [countries, setCountries] = useState<CountryOption[]>([]);
@@ -16,13 +17,23 @@ export function useAllWines() {
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [hideZero, setHideZero] = useState(true);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // search 300ms debounce — 타이핑마다 API 호출 방지
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [search]);
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
     params.set('page', String(page));
     params.set('limit', '50');
-    if (search) params.set('search', search);
+    if (debouncedSearch) params.set('search', debouncedSearch);
     if (country) params.set('country', country);
     if (statusFilter) params.set('statusFilter', statusFilter);
     if (sortBy) { params.set('sortBy', sortBy); params.set('sortDir', sortDir); }
@@ -40,11 +51,11 @@ export function useAllWines() {
       console.error('[AllWinesTab] fetch error:', e);
     }
     setLoading(false);
-  }, [search, country, statusFilter, page, sortBy, sortDir, hideZero]);
+  }, [debouncedSearch, country, statusFilter, page, sortBy, sortDir, hideZero]);
 
   useEffect(() => { fetchWines(); }, [fetchWines]);
 
-  useEffect(() => { setPage(1); }, [search, country, statusFilter, hideZero]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, country, statusFilter, hideZero]);
 
   const handleSort = (col: string) => {
     if (sortBy === col) {
