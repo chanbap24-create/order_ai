@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { MonthData } from '../types';
 import { fmt } from '../lib/format';
 import { tdStyle } from '../lib/styles';
@@ -15,7 +16,7 @@ type Props = {
   endBalance: number;
 };
 
-export function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDay, startBalance, endBalance }: Props) {
+export const MonthGroup = memo(function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onToggleDay, startBalance, endBalance }: Props) {
   return (
     <>
       {!collapsed && (() => {
@@ -48,4 +49,4 @@ export function MonthGroup({ month, collapsed, collapsedDays, onToggleMonth, onT
       </tr>
     </>
   );
-}
+});

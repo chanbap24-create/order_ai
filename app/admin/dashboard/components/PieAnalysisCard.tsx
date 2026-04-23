@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import { PIE_COLORS } from '../constants';
 import { formatKrw } from '../lib/format';
@@ -12,7 +13,7 @@ type Props = {
   label?: string;
 };
 
-export function PieAnalysisCard({ title, data, total, label = '매출' }: Props) {
+export const PieAnalysisCard = memo(function PieAnalysisCard({ title, data, total, label = '매출' }: Props) {
   if (data.length === 0) return null;
   const chartData = data.slice(0, 10);
 
@@ -51,4 +52,4 @@ export function PieAnalysisCard({ title, data, total, label = '매출' }: Props)
       </div>
     </Card>
   );
-}
+});

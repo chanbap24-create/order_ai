@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { OutstandingClient, OutstandingTotals } from '../types';
 import { cardStyle, fmt, tdCenter, tdRight, tdStyle, tfRight, thStyle } from '../lib/format';
 
@@ -12,7 +13,7 @@ type Props = {
   onToggleOne: (code: string) => void;
 };
 
-export function OutstandingTable({ clients, totals, checked, allChecked, onToggleAll, onToggleOne }: Props) {
+export const OutstandingTable = memo(function OutstandingTable({ clients, totals, checked, allChecked, onToggleAll, onToggleOne }: Props) {
   return (
     <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
       <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -90,4 +91,4 @@ export function OutstandingTable({ clients, totals, checked, allChecked, onToggl
       </div>
     </div>
   );
-}
+});

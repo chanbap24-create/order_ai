@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import type { TopItem } from '../types';
 import { TYPE_COLORS, fmt, fmtM } from '../lib/format';
 
@@ -9,8 +10,8 @@ type Props = {
   onToggleShowAll: () => void;
 };
 
-export function TopItemsTable({ items, showAll, onToggleShowAll }: Props) {
-  const displayed = showAll ? items : items.slice(0, 50);
+export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onToggleShowAll }: Props) {
+  const displayed = useMemo(() => (showAll ? items : items.slice(0, 50)), [showAll, items]);
 
   return (
     <div style={{
@@ -73,4 +74,4 @@ export function TopItemsTable({ items, showAll, onToggleShowAll }: Props) {
       )}
     </div>
   );
-}
+});

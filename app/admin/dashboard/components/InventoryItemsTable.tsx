@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { DashboardStats } from '@/app/types/wine';
 import { formatKrw } from '../lib/format';
@@ -10,7 +11,7 @@ type Props = {
   color: string;
 };
 
-export function InventoryItemsTable({ items, label, color }: Props) {
+export const InventoryItemsTable = memo(function InventoryItemsTable({ items, label, color }: Props) {
   const isSlowMover = (it: typeof items[0]) => {
     const qty = it.qty || 0;
     const s90 = it.ship90 || 0;
@@ -56,4 +57,4 @@ export function InventoryItemsTable({ items, label, color }: Props) {
       </div>
     </Card>
   );
-}
+});

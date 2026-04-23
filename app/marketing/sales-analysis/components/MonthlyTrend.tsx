@@ -1,9 +1,10 @@
 'use client';
 
+import { memo } from 'react';
 import type { AnalysisData } from '../types';
 import { fmt, pct } from '../lib/format';
 
-export function MonthlyTrend({ data }: { data: AnalysisData }) {
+export const MonthlyTrend = memo(function MonthlyTrend({ data }: { data: AnalysisData }) {
   const maxMonthQty = Math.max(...data.monthly.map(m => m.qty), 1);
 
   return (
@@ -55,4 +56,4 @@ export function MonthlyTrend({ data }: { data: AnalysisData }) {
       </div>
     </div>
   );
-}
+});

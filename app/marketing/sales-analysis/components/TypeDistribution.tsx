@@ -1,9 +1,10 @@
 'use client';
 
+import { memo } from 'react';
 import type { AnalysisData } from '../types';
 import { TYPE_COLORS, fmt, fmtM, pct } from '../lib/format';
 
-export function TypeDistribution({ data }: { data: AnalysisData }) {
+export const TypeDistribution = memo(function TypeDistribution({ data }: { data: AnalysisData }) {
   if (data.types.length === 0) return null;
 
   return (
@@ -38,4 +39,4 @@ export function TypeDistribution({ data }: { data: AnalysisData }) {
       </div>
     </div>
   );
-}
+});

@@ -1,9 +1,10 @@
 'use client';
 
+import { memo } from 'react';
 import type { AnalysisData } from '../types';
 import { fmt, fmtM, pct } from '../lib/format';
 
-export function KpiCards({ data }: { data: AnalysisData }) {
+export const KpiCards = memo(function KpiCards({ data }: { data: AnalysisData }) {
   const cards = [
     { label: '총 판매량', value: fmt(data.total_qty) + '병', sub: '일 ' + fmt(data.daily_avg) + '병' },
     {
@@ -45,4 +46,4 @@ export function KpiCards({ data }: { data: AnalysisData }) {
       ))}
     </div>
   );
-}
+});

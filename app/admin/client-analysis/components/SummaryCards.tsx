@@ -1,10 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { AnalysisData } from '../types';
 import { formatKrw } from '../lib/format';
 
-export function SummaryCards({ data }: { data: AnalysisData }) {
+export const SummaryCards = memo(function SummaryCards({ data }: { data: AnalysisData }) {
   const s = data.summary;
   const avgPerClient = s.distinctClients > 0 ? Math.round(s.totalRevenue / s.distinctClients) : 0;
   const returnRate = s.positiveRevenue > 0 ? Math.round(s.returnAmount / s.positiveRevenue * 1000) / 10 : 0;
@@ -40,4 +41,4 @@ export function SummaryCards({ data }: { data: AnalysisData }) {
       ))}
     </div>
   );
-}
+});

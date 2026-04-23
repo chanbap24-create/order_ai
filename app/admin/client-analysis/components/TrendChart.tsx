@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { TrendPeriod, TrendPoint } from '../types';
 import { formatKrw, formatDateShort } from '../lib/format';
@@ -14,7 +15,7 @@ type Props = {
   onPeriodChange: (p: TrendPeriod) => void;
 };
 
-export function TrendChart({ dailyTrend, period, onPeriodChange }: Props) {
+export const TrendChart = memo(function TrendChart({ dailyTrend, period, onPeriodChange }: Props) {
   if (dailyTrend.length === 0) return null;
 
   const aggregated = aggregateTrend(dailyTrend, period);
@@ -79,4 +80,4 @@ export function TrendChart({ dailyTrend, period, onPeriodChange }: Props) {
       </div>
     </Card>
   );
-}
+});

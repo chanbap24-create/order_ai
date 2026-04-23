@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import dynamic from 'next/dynamic';
 import Card from '@/app/components/ui/Card';
 import type { InvPeriod } from '../types';
@@ -22,7 +23,7 @@ type Props = {
   onPeriodChange: (p: InvPeriod) => void;
 };
 
-export function InventoryCharts({ invChangeData, inventoryLineData, invPeriod, onPeriodChange }: Props) {
+export const InventoryCharts = memo(function InventoryCharts({ invChangeData, inventoryLineData, invPeriod, onPeriodChange }: Props) {
   if (invChangeData.length === 0 && inventoryLineData.length <= 1) return null;
 
   return (
@@ -99,4 +100,4 @@ export function InventoryCharts({ invChangeData, inventoryLineData, invPeriod, o
       )}
     </div>
   );
-}
+});

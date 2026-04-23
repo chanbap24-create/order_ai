@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { DayData } from '../types';
 import { fmt } from '../lib/format';
 import { tdStyle } from '../lib/styles';
@@ -11,7 +12,7 @@ type Props = {
   endBalance: number;
 };
 
-export function DayGroup({ day, collapsed, onToggle, endBalance }: Props) {
+export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBalance }: Props) {
   const showDaySummary = day.rows.length > 1 || day.paymentRows.length > 0;
 
   return (
@@ -65,4 +66,4 @@ export function DayGroup({ day, collapsed, onToggle, endBalance }: Props) {
       )}
     </>
   );
-}
+});

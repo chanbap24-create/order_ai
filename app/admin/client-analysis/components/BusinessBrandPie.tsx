@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { AnalysisData, BizView } from '../types';
 import { PIE_COLORS } from '../constants';
@@ -12,7 +13,7 @@ type Props = {
   onViewChange: (v: BizView) => void;
 };
 
-export function BusinessBrandPie({ data, view, onViewChange }: Props) {
+export const BusinessBrandPie = memo(function BusinessBrandPie({ data, view, onViewChange }: Props) {
   if (data.businessAnalysis.length === 0 && data.brandAnalysis.length === 0) return null;
 
   const chartData = view === 'business'
@@ -73,4 +74,4 @@ export function BusinessBrandPie({ data, view, onViewChange }: Props) {
       </div>
     </Card>
   );
-}
+});

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { TrendPoint } from '../types';
 import { formatKrw } from '../lib/format';
@@ -13,7 +14,7 @@ type Props = {
   startDate: string;
 };
 
-export function YoYChart({ thisYearTrend, lastYearTrend, startDate }: Props) {
+export const YoYChart = memo(function YoYChart({ thisYearTrend, lastYearTrend, startDate }: Props) {
   if (thisYearTrend.length === 0) return null;
 
   const thisYearMonthly = new Map<string, number>();
@@ -80,4 +81,4 @@ export function YoYChart({ thisYearTrend, lastYearTrend, startDate }: Props) {
       </div>
     </Card>
   );
-}
+});

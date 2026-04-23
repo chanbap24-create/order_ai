@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { AnalysisData, CountryRow, RegionRow } from '../types';
 import { TYPE_BG, TYPE_COLORS, fmt, fmtM, pct } from '../lib/format';
 
@@ -9,7 +10,7 @@ type Props = {
   onToggleCountry: (name: string) => void;
 };
 
-export function CountrySummary({ data, expandedCountry, onToggleCountry }: Props) {
+export const CountrySummary = memo(function CountrySummary({ data, expandedCountry, onToggleCountry }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {data.countries.map(c => {
@@ -28,9 +29,9 @@ export function CountrySummary({ data, expandedCountry, onToggleCountry }: Props
       })}
     </div>
   );
-}
+});
 
-function CountryRowView({
+const CountryRowView = memo(function CountryRowView({
   country: c, total, expanded, regions, onToggle,
 }: {
   country: CountryRow;
@@ -116,4 +117,4 @@ function CountryRowView({
       )}
     </div>
   );
-}
+});

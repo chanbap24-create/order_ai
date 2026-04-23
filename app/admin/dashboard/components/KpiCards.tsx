@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { DashboardStats, InventoryChange } from '@/app/types/wine';
 import { formatChangeKrw, formatKrw } from '../lib/format';
@@ -14,7 +15,7 @@ type Props = {
   dlChange: DashboardStats['dlChange'];
 };
 
-export function KpiCards(p: Props) {
+export const KpiCards = memo(function KpiCards(p: Props) {
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
@@ -60,7 +61,7 @@ export function KpiCards(p: Props) {
       </div>
     </>
   );
-}
+});
 
 function ChangeIndicator({ change }: { change: InventoryChange | null }) {
   if (!change || change.amount === 0) return null;

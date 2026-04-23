@@ -1,10 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { ManagerAnalysisItem } from '../types';
 import { formatKrw } from '../lib/format';
 
-export function ManagerAnalysisTable({ data }: { data: ManagerAnalysisItem[] }) {
+export const ManagerAnalysisTable = memo(function ManagerAnalysisTable({ data }: { data: ManagerAnalysisItem[] }) {
   if (data.length === 0) return null;
 
   return (
@@ -57,4 +58,4 @@ export function ManagerAnalysisTable({ data }: { data: ManagerAnalysisItem[] }) 
       </table>
     </Card>
   );
-}
+});
