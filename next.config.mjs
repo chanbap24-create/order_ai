@@ -55,7 +55,7 @@ const nextConfig = {
     //  - style-src: Tailwind JIT 때문에 'unsafe-inline' 필요
     //  - img-src: base64 로고/Vivino 외부 이미지까지 허용 (data:/blob:/https:)
     //  - connect-src: self 만 (외부 API는 모두 backend 경유)
-    //  - frame-ancestors 'none' (X-Frame-Options 상위 대체)
+    //  - frame-ancestors 'self' (같은 오리진 iframe 허용 — 테이스팅 노트 PDF 미리보기)
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -69,7 +69,9 @@ const nextConfig = {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'none'",
+      // 같은 오리진 iframe 허용 (PDF 미리보기 iframe, blob URL 등)
+      // 외부 도메인의 clickjacking 은 여전히 차단.
+      "frame-ancestors 'self'",
       "upgrade-insecure-requests",
     ].join('; ');
 
@@ -77,8 +79,8 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
-          // 클릭재킹 방어 — iframe 임베딩 차단
-          { key: 'X-Frame-Options', value: 'DENY' },
+          // 클릭재킹 방어 — 외부 도메인 embed 차단, 같은 오리진만 허용
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           // MIME sniffing 방어
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           // Referrer 최소화 (origin만 전달)
