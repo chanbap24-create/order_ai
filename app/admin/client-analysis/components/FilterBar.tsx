@@ -1,6 +1,7 @@
 'use client';
 
 import Card from '@/app/components/ui/Card';
+import { DateRangePresets } from '@/app/components/ui/DateRangePresets';
 import type { Filters, FilterState } from '../types';
 
 const selectStyle: React.CSSProperties = {
@@ -31,6 +32,17 @@ export function FilterBar({ filters, filterLoading, state, update, reset }: Prop
           필터 로딩 중...
         </div>
       ) : (
+        <>
+        <div style={{ marginBottom: 10 }}>
+          <DateRangePresets
+            startDate={state.startDate}
+            endDate={state.endDate}
+            onChange={(r) => {
+              update('startDate', r.startDate);
+              update('endDate', r.endDate);
+            }}
+          />
+        </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-end' }}>
           <div style={{ minWidth: 90 }}>
             <div style={labelStyle}>담당자</div>
@@ -80,6 +92,7 @@ export function FilterBar({ filters, filterLoading, state, update, reset }: Prop
             초기화
           </button>
         </div>
+        </>
       )}
     </Card>
   );

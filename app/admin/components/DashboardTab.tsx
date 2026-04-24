@@ -10,9 +10,15 @@ import { InventoryCharts } from '../dashboard/components/InventoryCharts';
 import { SourceToggle } from '../dashboard/components/SourceToggle';
 import { PieAnalysisCard } from '../dashboard/components/PieAnalysisCard';
 import { InventoryItemsTable } from '../dashboard/components/InventoryItemsTable';
+import Card from '@/app/components/ui/Card';
+import { DateRangePresets } from '@/app/components/ui/DateRangePresets';
+import { thisYear } from '@/app/lib/dateRangePresets';
 
 export default function DashboardTab() {
-  const { stats, analysis, glassAnalysis, loading } = useDashboardData();
+  const defaults = thisYear();
+  const [startDate, setStartDate] = useState(defaults.startDate);
+  const [endDate, setEndDate] = useState(defaults.endDate);
+  const { stats, analysis, glassAnalysis, loading } = useDashboardData(startDate, endDate);
   const [source, setSource] = useState<SourceMode>('all');
   const [invPeriod, setInvPeriod] = useState<InvPeriod>('daily');
   const [mounted, setMounted] = useState(false);
@@ -64,6 +70,31 @@ export default function DashboardTab() {
 
   return (
     <div>
+      <Card style={{ marginBottom: 16, padding: '12px 16px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+          <DateRangePresets
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(r) => { setStartDate(r.startDate); setEndDate(r.endDate); }}
+          />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={dateInputStyle}
+            />
+            <span style={{ color: 'var(--color-text-light)' }}>~</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={dateInputStyle}
+            />
+          </div>
+        </div>
+      </Card>
+
       <KpiCards
         totalRevenue={totalRevenue}
         totalInventory={totalInventory}
@@ -122,3 +153,13 @@ export default function DashboardTab() {
     </div>
   );
 }
+
+const dateInputStyle: React.CSSProperties = {
+  height: 30,
+  fontSize: 12,
+  padding: '0 8px',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-sm)',
+  background: 'var(--color-card)',
+  color: 'var(--color-text)',
+};
