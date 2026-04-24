@@ -33,9 +33,23 @@ export function setCached<T>(key: string, value: T) {
   }
 }
 
+export function clearCacheByPrefix(prefix: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(prefix)) keys.push(k);
+    }
+    for (const k of keys) sessionStorage.removeItem(k);
+  } catch { /* ignore */ }
+}
+
 export const CACHE_TTL = {
   HOLIDAYS: 24 * 60 * 60 * 1000, // 공휴일: 24시간
   IMPORT_SCHEDULE: 60 * 60 * 1000, // 수입일정: 1시간
   MANAGERS: 30 * 60 * 1000, // managers 30분
   COUNTRIES: 60 * 60 * 1000, // 국가 목록: 1시간
+  ADMIN_DASHBOARD: 60 * 1000, // 재고분석 대시보드: 60초
+  ADMIN_CLIENT_ANALYSIS: 30 * 1000, // 매출분석: 30초
 };
