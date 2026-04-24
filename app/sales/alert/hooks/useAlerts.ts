@@ -8,6 +8,33 @@ type Args = {
   onCountChange?: (count: number) => void;
 };
 
+/**
+ * 매니저별 알림 sessionStorage 캐시 (60초 TTL).
+ * 같은 매니저로 재진입 시 즉시 표시 + 백그라운드 refresh.
+ */
+const CACHE_PREFIX = 'sales_alerts:';
+const CACHE_TTL_MS = 60 * 1000;
+
+type Cached = { t: number; data: AlertsResponse };
+
+function readCache(manager: string): AlertsResponse | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(CACHE_PREFIX + manager);
+    if (!raw) return null;
+    const c = JSON.parse(raw) as Cached;
+    if (Date.now() - c.t > CACHE_TTL_MS) return null;
+    return c.data;
+  } catch { return null; }
+}
+
+function writeCache(manager: string, data: AlertsResponse) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(CACHE_PREFIX + manager, JSON.stringify({ t: Date.now(), data }));
+  } catch { /* quota or serialization fail */ }
+}
+
 export function useAlerts({ selectedManager, onCountChange }: Args) {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -15,9 +42,31 @@ export function useAlerts({ selectedManager, onCountChange }: Args) {
   const [counts, setCounts] = useState<AlertCounts>({ total: 0, low: 0, out: 0 });
   const [dismissMsg, setDismissMsg] = useState<string | null>(null);
 
-  const handleScan = useCallback(async () => {
+  const applyData = useCallback((data: AlertsResponse) => {
+    setAlerts(data.alerts || []);
+    setCounts({
+      total: data.total,
+      low: data.low_stock_count,
+      out: data.out_of_stock_count,
+    });
+    if (data.scanned_at) setLastScanned(data.scanned_at);
+    onCountChange?.(data.total);
+  }, [onCountChange]);
+
+  const handleScan = useCallback(async (opts?: { force?: boolean; silent?: boolean }) => {
     if (!selectedManager) return;
-    setScanning(true);
+    const force = opts?.force ?? false;
+    const silent = opts?.silent ?? false;
+
+    // 캐시 hit 시 즉시 표시
+    if (!force) {
+      const cached = readCache(selectedManager);
+      if (cached) {
+        applyData(cached);
+      }
+    }
+
+    if (!silent) setScanning(true);
     try {
       const res = await fetch('/api/sales/alerts', {
         method: 'POST',
@@ -25,27 +74,32 @@ export function useAlerts({ selectedManager, onCountChange }: Args) {
         body: JSON.stringify({ manager: selectedManager }),
       });
       const data: AlertsResponse = await res.json();
-      setAlerts(data.alerts || []);
-      setCounts({ total: data.total, low: data.low_stock_count, out: data.out_of_stock_count });
-      if (data.scanned_at) setLastScanned(data.scanned_at);
-      onCountChange?.(data.total);
+      applyData(data);
+      writeCache(selectedManager, data);
       if (data.auto_restored > 0) {
         setDismissMsg(`재입고 감지: ${data.auto_restored}개 품목이 자동 복원되었습니다.`);
         setTimeout(() => setDismissMsg(null), 4000);
       }
     } catch { /* ignore */ }
     finally {
-      setScanning(false);
+      if (!silent) setScanning(false);
     }
-  }, [selectedManager, onCountChange]);
+  }, [selectedManager, applyData]);
 
   const prevManager = useRef('');
   useEffect(() => {
     if (selectedManager && selectedManager !== prevManager.current) {
       prevManager.current = selectedManager;
-      handleScan();
+      // 캐시 있으면 즉시 + 백그라운드 refresh, 없으면 로딩 표시
+      const cached = readCache(selectedManager);
+      if (cached) {
+        applyData(cached);
+        void handleScan({ silent: true });
+      } else {
+        void handleScan();
+      }
     }
-  }, [selectedManager, handleScan]);
+  }, [selectedManager, handleScan, applyData]);
 
   const handleDismiss = useCallback(async (checked: Set<string>) => {
     if (checked.size === 0) return false;
@@ -73,6 +127,10 @@ export function useAlerts({ selectedManager, onCountChange }: Args) {
         out: prev.out - alerts.filter(a => checked.has(a.item_no) && a.alert_type === 'out_of_stock').length,
       }));
       onCountChange?.(newTotal);
+      // dismiss 이후 캐시 무효화 (다음 scan 시 서버 기준으로 갱신)
+      if (typeof window !== 'undefined' && selectedManager) {
+        try { sessionStorage.removeItem(CACHE_PREFIX + selectedManager); } catch { /* ignore */ }
+      }
       setDismissMsg(`${checked.size}개 와인이 제외되었습니다.`);
       setTimeout(() => setDismissMsg(null), 3000);
       return true;
@@ -82,7 +140,7 @@ export function useAlerts({ selectedManager, onCountChange }: Args) {
       setTimeout(() => setDismissMsg(null), 3000);
       return false;
     }
-  }, [alerts, onCountChange]);
+  }, [alerts, onCountChange, selectedManager]);
 
   return {
     alerts, scanning, lastScanned, counts, dismissMsg,

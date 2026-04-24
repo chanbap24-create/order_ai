@@ -1,5 +1,5 @@
 import { supabase } from '@/app/lib/db';
-import { loadStockRules, minStockForPrice } from './stockRules';
+import { loadStockRules, minStockForPrice, type StockRules } from './stockRules';
 
 interface ClientDetail {
   client_code: string;
@@ -29,60 +29,123 @@ export interface ScanResult {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Shipment = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type InventoryRow = any;
+
+const PAGE_SIZE = 1000;
+const INV_BATCH_SIZE = 500;
 
 /**
  * 담당자의 최근 12개월 출고 → 재고 부족 스캔.
- *  - stockRules + dbDismissed + shipments 병렬 로드
- *  - inventory 한 번에 일괄 조회 (shipments ∪ dismissed item_nos)
- *  - 재입고 자동 복원 (현재 재고 > dismissed 당시 재고)
- *  - 소진일 < 30일 or 재고 0 → 알림
+ *
+ *  최적화:
+ *  - shipments count + stockRules + dbDismissed 를 Promise.all 로 동시 시작
+ *  - shipments 페이지를 count 기준으로 계산해 Promise.all 로 전부 병렬 fetch
+ *  - inventory 배치도 Promise.all 로 병렬
  */
 export async function scanManagerAlerts(
   manager: string,
   dismissedItems: string[],
 ): Promise<ScanResult> {
-  const srPromise = loadStockRules();
-  const dismissedPromise = supabase
-    .from('inventory_alerts')
-    .select('item_no, current_stock')
-    .eq('status', 'dismissed');
+  const cutoffDate = buildCutoffDate();
 
-  // shipments 페이지네이션
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-  const cutoffDate = twelveMonthsAgo.toISOString().slice(0, 10);
+  // Phase 1: 독립 쿼리 3개 동시 시작 (count 전용 head:true 로 전송량 최소화)
+  const countQuery = supabase
+    .from('shipments')
+    .select('id', { count: 'exact', head: true })
+    .eq('manager', manager)
+    .gte('ship_date', cutoffDate);
 
-  const allShipments: Shipment[] = [];
-  let from = 0;
-  const batchSize = 1000;
-  while (true) {
-    const { data, error } = await supabase
-      .from('shipments')
-      .select('item_no, item_name, client_code, client_name, quantity, ship_date')
-      .eq('manager', manager)
-      .gte('ship_date', cutoffDate)
-      .range(from, from + batchSize - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    allShipments.push(...data);
-    if (data.length < batchSize) break;
-    from += batchSize;
-  }
+  const [SR, dbDismissedRes, countRes] = await Promise.all([
+    loadStockRules(),
+    supabase.from('inventory_alerts').select('item_no, current_stock').eq('status', 'dismissed'),
+    countQuery,
+  ]);
 
-  const [SR, dbDismissedRes] = await Promise.all([srPromise, dismissedPromise]);
   const dbDismissed = dbDismissedRes.data;
+  const totalCount = countRes.count ?? 0;
 
-  if (allShipments.length === 0) {
+  if (totalCount === 0) {
     return { alerts: [], autoRestored: 0 };
   }
 
+  // Phase 2: shipments 페이지 수 계산 후 모두 병렬 fetch
+  const allShipments = await fetchAllShipments(manager, cutoffDate, totalCount);
+
   // 품목별 거래처 집계
+  const itemMap = aggregateByItem(allShipments);
+
+  // Phase 3: inventory 일괄 조회 (shipments ∪ dismissed)
+  const shipmentItemNos = Array.from(itemMap.keys());
+  const dismissedItemNos = (dbDismissed || []).map((d) => d.item_no);
+  const allItemNos = Array.from(new Set([...shipmentItemNos, ...dismissedItemNos]));
+  const inventoryMap = await fetchInventoryParallel(allItemNos);
+
+  // Phase 4: 재입고 자동 복원
+  const autoRestoreItems = await autoRestoreDismissed(dbDismissed, inventoryMap);
+
+  const dismissedSet = new Set([
+    ...dismissedItems,
+    ...(dbDismissed || [])
+      .filter((d) => !autoRestoreItems.includes(d.item_no))
+      .map((d) => d.item_no),
+  ]);
+
+  // Phase 5: 부족 판별 + 정렬
+  const alerts = buildAlerts(itemMap, inventoryMap, dismissedSet, SR);
+
+  alerts.sort((a, b) => {
+    if (a.alert_type === 'out_of_stock' && b.alert_type !== 'out_of_stock') return -1;
+    if (a.alert_type !== 'out_of_stock' && b.alert_type === 'out_of_stock') return 1;
+    return b.total_shipped - a.total_shipped;
+  });
+
+  return { alerts, autoRestored: autoRestoreItems.length };
+}
+
+function buildCutoffDate(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 12);
+  return d.toISOString().slice(0, 10);
+}
+
+async function fetchAllShipments(
+  manager: string,
+  cutoffDate: string,
+  totalCount: number,
+): Promise<Shipment[]> {
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  if (totalPages === 0) return [];
+
+  const pageIndices = Array.from({ length: totalPages }, (_, i) => i);
+
+  const results = await Promise.all(
+    pageIndices.map((i) =>
+      supabase
+        .from('shipments')
+        .select('item_no, item_name, client_code, client_name, quantity, ship_date')
+        .eq('manager', manager)
+        .gte('ship_date', cutoffDate)
+        .order('id', { ascending: true })
+        .range(i * PAGE_SIZE, (i + 1) * PAGE_SIZE - 1),
+    ),
+  );
+
+  const out: Shipment[] = [];
+  for (const r of results) {
+    if (r.error) throw r.error;
+    if (r.data) out.push(...r.data);
+  }
+  return out;
+}
+
+function aggregateByItem(shipments: Shipment[]) {
   const itemMap = new Map<string, {
     item_name: string;
     clients: Map<string, { client_name: string; total_qty: number; last_date: string }>;
   }>();
 
-  for (const s of allShipments) {
+  for (const s of shipments) {
     if (!s.item_no) continue;
     if (!itemMap.has(s.item_no)) {
       itemMap.set(s.item_no, { item_name: s.item_name || '', clients: new Map() });
@@ -98,56 +161,66 @@ export async function scanManagerAlerts(
     cl.total_qty += (s.quantity || 1);
     if (s.ship_date && s.ship_date > cl.last_date) cl.last_date = s.ship_date;
   }
+  return itemMap;
+}
 
-  // inventory 일괄 조회 (shipments ∪ dismissed)
-  const shipmentItemNos = Array.from(itemMap.keys());
-  const dismissedItemNos = (dbDismissed || []).map((d) => d.item_no);
-  const allItemNos = Array.from(new Set([...shipmentItemNos, ...dismissedItemNos]));
+async function fetchInventoryParallel(itemNos: string[]): Promise<Map<string, InventoryRow>> {
+  const inventoryMap = new Map<string, InventoryRow>();
+  if (itemNos.length === 0) return inventoryMap;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inventoryMap = new Map<string, any>();
-  for (let i = 0; i < allItemNos.length; i += 500) {
-    const batch = allItemNos.slice(i, i + 500);
-    const { data: invData } = await supabase
-      .from('inventory_cdv')
-      .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d')
-      .in('item_no', batch);
-    for (const inv of invData || []) {
+  const batches: string[][] = [];
+  for (let i = 0; i < itemNos.length; i += INV_BATCH_SIZE) {
+    batches.push(itemNos.slice(i, i + INV_BATCH_SIZE));
+  }
+
+  const results = await Promise.all(
+    batches.map((batch) =>
+      supabase
+        .from('inventory_cdv')
+        .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d')
+        .in('item_no', batch),
+    ),
+  );
+
+  for (const r of results) {
+    for (const inv of r.data || []) {
       inventoryMap.set(inv.item_no, inv);
     }
   }
+  return inventoryMap;
+}
 
-  // 재입고 자동 복원
+async function autoRestoreDismissed(
+  dbDismissed: { item_no: string; current_stock: number | null }[] | null,
+  inventoryMap: Map<string, InventoryRow>,
+): Promise<string[]> {
   const autoRestoreItems: string[] = [];
-  if (dbDismissed && dbDismissed.length > 0) {
-    for (const d of dbDismissed) {
-      const inv = inventoryMap.get(d.item_no);
-      const currentStock = inv
-        ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0)
-        : 0;
-      const dismissedStock = d.current_stock ?? 0;
-      if (currentStock > dismissedStock) {
-        autoRestoreItems.push(d.item_no);
-      }
-    }
+  if (!dbDismissed || dbDismissed.length === 0) return autoRestoreItems;
 
-    if (autoRestoreItems.length > 0) {
-      await supabase
-        .from('inventory_alerts')
-        .delete()
-        .in('item_no', autoRestoreItems)
-        .eq('status', 'dismissed');
-    }
+  for (const d of dbDismissed) {
+    const inv = inventoryMap.get(d.item_no);
+    const currentStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) : 0;
+    const dismissedStock = d.current_stock ?? 0;
+    if (currentStock > dismissedStock) autoRestoreItems.push(d.item_no);
   }
 
-  const dismissedSet = new Set([
-    ...dismissedItems,
-    ...(dbDismissed || [])
-      .filter((d) => !autoRestoreItems.includes(d.item_no))
-      .map((d) => d.item_no),
-  ]);
+  if (autoRestoreItems.length > 0) {
+    await supabase
+      .from('inventory_alerts')
+      .delete()
+      .in('item_no', autoRestoreItems)
+      .eq('status', 'dismissed');
+  }
+  return autoRestoreItems;
+}
 
-  // 부족 판별
+function buildAlerts(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  itemMap: Map<string, any>,
+  inventoryMap: Map<string, InventoryRow>,
+  dismissedSet: Set<string>,
+  SR: StockRules,
+): AlertResult[] {
   const alerts: AlertResult[] = [];
 
   for (const [itemNo, entry] of itemMap) {
@@ -180,7 +253,9 @@ export async function scanManagerAlerts(
       ? Math.round(totalStock / dailySales)
       : null;
 
-    const clientList: ClientDetail[] = Array.from(entry.clients.entries())
+    const clientList: ClientDetail[] = Array.from(entry.clients.entries() as [string, {
+      client_name: string; total_qty: number; last_date: string;
+    }][])
       .map(([code, cl]) => ({
         client_code: code,
         client_name: cl.client_name,
@@ -206,12 +281,5 @@ export async function scanManagerAlerts(
     });
   }
 
-  // 정렬: 품절 우선 → 출고량 순
-  alerts.sort((a, b) => {
-    if (a.alert_type === 'out_of_stock' && b.alert_type !== 'out_of_stock') return -1;
-    if (a.alert_type !== 'out_of_stock' && b.alert_type === 'out_of_stock') return 1;
-    return b.total_shipped - a.total_shipped;
-  });
-
-  return { alerts, autoRestored: autoRestoreItems.length };
+  return alerts;
 }
