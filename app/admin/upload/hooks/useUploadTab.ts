@@ -9,6 +9,18 @@ import {
   uploadShipments,
   type UpdateCardFn,
 } from "../lib/uploadHandlers";
+import { broadcastDataInvalidation, clearCacheByPrefix } from "@/app/lib/sessionCache";
+
+// 업로드 type 과 브로드캐스트 key 매핑
+const INVALIDATION_KEY_MAP: Record<string, string> = {
+  "import-schedule": "import_schedule",
+  client: "shipments",
+  "dl-client": "shipments",
+  payments: "payments",
+  "dl-payments": "payments",
+  downloads: "inventory",
+  dl: "inventory",
+};
 
 type Props = {
   onUploadComplete?: (type: string, result: Record<string, unknown>) => void;
@@ -105,6 +117,18 @@ export function useUploadTab({ onUploadComplete }: Props) {
           .join(", ");
 
         updateCard(type, { status: "success", message: details || "업로드 완료" });
+
+        // 1) 같은 탭의 sessionStorage 캐시 즉시 정리
+        // 2) 다른 탭(재고/영업 미팅)에 storage 이벤트로 알림 → fresh fetch
+        const invKey = INVALIDATION_KEY_MAP[type];
+        if (invKey) {
+          if (invKey === "import_schedule") {
+            clearCacheByPrefix("inventory_import_schedule");
+            clearCacheByPrefix("import_schedule_");
+          }
+          broadcastDataInvalidation(invKey);
+        }
+
         onUploadComplete?.(type, json);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "네트워크 오류";

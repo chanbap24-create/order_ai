@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import type { ImportScheduleItem } from "@/app/types/wine";
 import type { Meeting, ViewMode } from "../types";
 import { formatDate, getMonthRange, getWeekRange } from "../lib/format";
-import { CACHE_TTL, getCached, setCached } from "../lib/cache";
+import {
+  CACHE_TTL, getCached, setCached,
+  subscribeDataInvalidation, clearCacheByPrefix,
+} from "../lib/cache";
 
 type Params = {
   isAdmin: boolean;
@@ -57,7 +60,7 @@ export function useMeetings(p: Params) {
       .catch(() => {});
   }, [weekBase]);
 
-  // 수입일정 (1h 캐시, 현재월+다음월)
+  // 수입일정 (2분 캐시 + admin 업로드 이벤트 수신 시 즉시 refetch)
   useEffect(() => {
     const s = new Date(weekBase.getFullYear(), weekBase.getMonth(), 1);
     const e = new Date(weekBase.getFullYear(), weekBase.getMonth() + 2, 0);
@@ -71,7 +74,7 @@ export function useMeetings(p: Params) {
           start_date: formatDate(s),
           end_date: formatDate(e),
         });
-        const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`);
+        const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`, { cache: "no-store" });
         const json = await res.json();
         const items: ImportScheduleItem[] = json.items || [];
         setImportItems(items);
@@ -81,6 +84,12 @@ export function useMeetings(p: Params) {
       }
     };
     fetchImport();
+
+    const unsub = subscribeDataInvalidation("import_schedule", () => {
+      clearCacheByPrefix("import_schedule_");
+      fetchImport();
+    });
+    return unsub;
   }, [weekBase]);
 
   const loadMeetings = useCallback(async () => {

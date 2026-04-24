@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { CACHE_TTL, getCached, setCached } from "@/app/lib/sessionCache";
+import { useCallback, useEffect, useState } from "react";
+import { CACHE_TTL, getCached, setCached, subscribeDataInvalidation, clearCacheByPrefix } from "@/app/lib/sessionCache";
 
 export type ImportScheduleItem = {
   arrival_date: string;
@@ -46,23 +46,32 @@ export function useImportSchedule() {
   });
   const [showImportPopup, setShowImportPopup] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const res = await fetch(
-          `/api/admin/upload-data/import-schedule?start_date=${today}`,
-        );
-        const data = await res.json();
-        if (!data.success || !data.items) return;
-        const map = buildMap(data.items);
-        setImportScheduleMap(map);
-        setCached(CACHE_KEY, map);
-      } catch {
-        // ignore
-      }
-    })();
+  const fetchSchedule = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await fetch(
+        `/api/admin/upload-data/import-schedule?start_date=${today}`,
+        { cache: "no-store" },
+      );
+      const data = await res.json();
+      if (!data.success || !data.items) return;
+      const map = buildMap(data.items);
+      setImportScheduleMap(map);
+      setCached(CACHE_KEY, map);
+    } catch {
+      // ignore
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSchedule();
+    // admin 업로드 완료 이벤트 수신 시 캐시 정리 + 즉시 refetch
+    const unsub = subscribeDataInvalidation("import_schedule", () => {
+      clearCacheByPrefix(CACHE_KEY);
+      fetchSchedule();
+    });
+    return unsub;
+  }, [fetchSchedule]);
 
   return { importScheduleMap, showImportPopup, setShowImportPopup };
 }
