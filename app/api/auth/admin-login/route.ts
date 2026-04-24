@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { verifyPassword, isLegacyHash, verifyLegacyPassword } from '@/app/lib/auth';
 import { rateLimit } from '@/app/lib/rateLimit';
+import { verifyToken as verifyTotp, verifyBackupCode } from '@/app/lib/totp';
 import { createHmac } from 'crypto';
 
 const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_COOKIE_NAME = 'admin_auth';
+const PENDING_COOKIE = 'admin_mfa_pending';
 
 function signPayload(payload: object): string {
   const json = JSON.stringify(payload);
@@ -14,21 +16,24 @@ function signPayload(payload: object): string {
   return `${b64}.${sig}`;
 }
 
+/**
+ * Admin 로그인 POST:
+ *  1단계: { password } → password 검증 → totp_enabled 이면 pending token 발급
+ *  2단계: { password, totp } 또는 { password, backup_code } → TOTP 검증 → admin_auth
+ *
+ * totp_enabled 가 false 면 password 만으로 admin_auth 발급 (첫 setup 유도용).
+ */
 export async function POST(req: Request) {
   try {
-    const { password } = await req.json();
+    const { password, totp, backup_code } = await req.json();
     if (!password) {
       return NextResponse.json({ error: '비밀번호를 입력해주세요.' }, { status: 400 });
     }
-    // bcrypt DoS 방지: 72바이트 제한
     if (typeof password !== 'string' || password.length > 72) {
       return NextResponse.json({ error: '비밀번호 형식이 올바르지 않습니다.' }, { status: 400 });
     }
 
-    // Admin DoS 방어: 계정 단위 잠금 대신 IP 단위 rate limit (분당 5회)
-    // 이전 로직은 5회 실패 시 admin 계정 자체를 5분 잠금 → 공격자가 일부러
-    // 틀린 비번으로 전체 admin 접근 차단(DoS) 가능. IP 단위로 바꿔 실제
-    // 공격자만 차단되도록 수정.
+    // IP 단위 rate limit (Admin DoS 방어)
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const { allowed, resetIn } = rateLimit(`admin-login:${ip}`, 5, 60_000);
     if (!allowed) {
@@ -38,10 +43,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // ADMIN 계정 조회 (잠금 컬럼 제거)
     const { data: user } = await supabase
       .from('sales_users')
-      .select('manager, password_hash, role')
+      .select('manager, password_hash, role, totp_secret, totp_enabled, totp_backup_codes')
       .eq('role', 'admin')
       .maybeSingle();
 
@@ -57,25 +61,85 @@ export async function POST(req: Request) {
     }
 
     if (!valid) {
-      // 계정 단위 카운터 제거 — IP 단위 rate limit 이 실패 횟수 통제.
-      // bcrypt 자체의 ~100ms 지연 + rate limit 5회/분 = 분당 최대 5회 시도.
       return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 401 });
     }
 
-    // 로그인 성공 → 남아있을지 모를 예전 failed_attempts/locked_until 정리 (best-effort)
     await supabase.from('sales_users').update({ failed_attempts: 0, locked_until: null }).eq('role', 'admin');
 
-    const token = signPayload({ role: 'admin', ts: Date.now() });
+    // MFA 미설정 상태: password 만으로 admin_auth 발급 + 프론트에서 setup 유도.
+    if (!user.totp_enabled || !user.totp_secret) {
+      const token = signPayload({ role: 'admin', ts: Date.now() });
+      const response = NextResponse.json({
+        success: true,
+        mfa_required: false,
+        mfa_setup_needed: true, // 프론트가 /api/auth/admin-mfa/setup 호출 유도
+      });
+      response.cookies.set(ADMIN_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24,
+      });
+      return response;
+    }
 
-    const response = NextResponse.json({ success: true });
+    // MFA 설정됨: TOTP 코드 또는 backup code 확인
+    if (!totp && !backup_code) {
+      // 1단계 완료 — pending token (짧게, 5분) 발급 + 프론트에 MFA 입력 요청
+      const pendingToken = signPayload({
+        stage: 'mfa_pending', role: 'admin', ts: Date.now(),
+      });
+      const response = NextResponse.json({ success: false, mfa_required: true });
+      response.cookies.set(PENDING_COOKIE, pendingToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 5, // 5분
+      });
+      return response;
+    }
+
+    // 2단계: TOTP 또는 backup code 검증
+    let mfaValid = false;
+    let updatedBackupCodes: string[] | null = null;
+    if (totp) {
+      mfaValid = verifyTotp(user.totp_secret, String(totp));
+    } else if (backup_code) {
+      const storedHashes = (user.totp_backup_codes || []) as string[];
+      const { valid: bcValid, matchedHash } = verifyBackupCode(String(backup_code), storedHashes);
+      mfaValid = bcValid;
+      if (bcValid && matchedHash) {
+        // 1회용 → 사용한 해시 제거
+        updatedBackupCodes = storedHashes.filter((h) => h !== matchedHash);
+      }
+    }
+
+    if (!mfaValid) {
+      return NextResponse.json({ error: 'MFA 코드가 올바르지 않습니다.', mfa_required: true }, { status: 401 });
+    }
+
+    if (updatedBackupCodes !== null) {
+      await supabase.from('sales_users')
+        .update({ totp_backup_codes: updatedBackupCodes })
+        .eq('role', 'admin');
+    }
+
+    const token = signPayload({ role: 'admin', ts: Date.now() });
+    const response = NextResponse.json({ success: true, mfa_required: false });
     response.cookies.set(ADMIN_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24, // 1일 (admin은 짧게)
+      maxAge: 60 * 60 * 24,
     });
-
+    // pending 쿠키 정리
+    response.cookies.set(PENDING_COOKIE, '', {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', path: '/', maxAge: 0,
+    });
     return response;
   } catch (error) {
     console.error('Admin login error:', error);
