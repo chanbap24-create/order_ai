@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidClientCode, isValidDate } from '@/app/lib/validators';
+import { requireClientAccess } from '@/app/lib/authz';
 import { fetchLedgerData } from './lib/fetchLedger';
 import { groupData } from './lib/groupData';
 import { generateExcel } from './lib/generateExcel';
@@ -35,6 +36,10 @@ export async function GET(req: NextRequest) {
     if (clientType !== 'wine' && clientType !== 'glass') {
       return NextResponse.json({ error: 'Invalid type (wine|glass)' }, { status: 400 });
     }
+
+    // IDOR 방어: 로그인한 매니저가 해당 거래처에 접근 권한이 있는지 확인
+    const accessCheck = await requireClientAccess(clientCode);
+    if (accessCheck) return accessCheck;
 
     const { client, rows, payments, prevBalance } = await fetchLedgerData(clientCode, startDate, endDate, clientType);
     const grouped = groupData(rows, payments);

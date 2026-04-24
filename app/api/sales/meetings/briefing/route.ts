@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { isValidClientCode } from '@/app/lib/validators';
+import { requireClientAccess } from '@/app/lib/authz';
 
 import { extractGrapesFromName, extractTypeFromName } from './lib/patterns';
 import { loadSettings, makeMinStockForPrice } from './lib/settings';
@@ -25,6 +27,13 @@ export async function POST(req: NextRequest) {
     if (!clientCode) {
       return NextResponse.json({ error: 'client_code 또는 meeting_id가 필요합니다.' }, { status: 400 });
     }
+
+    // 입력 검증 + IDOR 방어
+    if (!isValidClientCode(clientCode)) {
+      return NextResponse.json({ error: 'Invalid client_code format' }, { status: 400 });
+    }
+    const accessCheck = await requireClientAccess(clientCode);
+    if (accessCheck) return accessCheck;
 
     // 1. 거래처 + shipments 병렬 조회
     const [clientDetailRes, clientBasicRes, shipmentsRes] = await Promise.all([

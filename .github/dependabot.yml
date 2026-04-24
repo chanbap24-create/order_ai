@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # npm 패키지: 매주 월요일 KST 09:00 (UTC 00:00)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "00:00"
+      timezone: UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    # 주요 보안 업데이트는 별도 PR, 나머지는 그룹화해서 소음 줄임
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+    # major 업데이트는 수동 검토 (breaking change 가능)
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+
+  # GitHub Actions workflow 의존성
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - ci

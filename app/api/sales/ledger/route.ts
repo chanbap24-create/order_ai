@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { isValidClientCode, isValidDate } from '@/app/lib/validators';
+import { requireClientAccess } from '@/app/lib/authz';
 
 // GET: 매출처원장 조회
 // ?client_code=XXX&start_date=2026-01-01&end_date=2026-02-28&type=wine
@@ -18,14 +20,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 입력값 검증: date format, clientCode 길이 제한
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
-      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+    // 입력값 whitelist 검증
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      return NextResponse.json({ error: 'Invalid date format (YYYY-MM-DD)' }, { status: 400 });
     }
-    if (clientCode.length > 50) {
-      return NextResponse.json({ error: 'Invalid client_code' }, { status: 400 });
+    if (!isValidClientCode(clientCode)) {
+      return NextResponse.json({ error: 'Invalid client_code format' }, { status: 400 });
     }
+    if (clientType !== 'wine' && clientType !== 'glass') {
+      return NextResponse.json({ error: 'Invalid type (wine|glass)' }, { status: 400 });
+    }
+
+    // IDOR 방어: 본인 거래처만 접근
+    const accessCheck = await requireClientAccess(clientCode);
+    if (accessCheck) return accessCheck;
 
     // PostgREST 필터 인젝션 방지: .not('in', ...) 문자열에 사용되는 값 sanitize
     const sanitizeCode = (v: string) => v.replace(/[(),."\\]/g, '');

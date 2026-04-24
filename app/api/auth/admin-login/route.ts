@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { verifyPassword, isLegacyHash, verifyLegacyPassword } from '@/app/lib/auth';
+import { rateLimit } from '@/app/lib/rateLimit';
 import { createHmac } from 'crypto';
 
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_COOKIE_NAME = 'admin_auth';
 
 function signPayload(payload: object): string {
@@ -24,22 +25,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '비밀번호 형식이 올바르지 않습니다.' }, { status: 400 });
     }
 
-    // ADMIN 계정 조회
+    // Admin DoS 방어: 계정 단위 잠금 대신 IP 단위 rate limit (분당 5회)
+    // 이전 로직은 5회 실패 시 admin 계정 자체를 5분 잠금 → 공격자가 일부러
+    // 틀린 비번으로 전체 admin 접근 차단(DoS) 가능. IP 단위로 바꿔 실제
+    // 공격자만 차단되도록 수정.
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed, resetIn } = rateLimit(`admin-login:${ip}`, 5, 60_000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `로그인 시도가 너무 많습니다. ${Math.ceil(resetIn / 1000)}초 후 다시 시도해주세요.` },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(resetIn / 1000)) } },
+      );
+    }
+
+    // ADMIN 계정 조회 (잠금 컬럼 제거)
     const { data: user } = await supabase
       .from('sales_users')
-      .select('manager, password_hash, role, failed_attempts, locked_until')
+      .select('manager, password_hash, role')
       .eq('role', 'admin')
       .maybeSingle();
 
     if (!user) {
       return NextResponse.json({ error: '관리자 계정이 없습니다.' }, { status: 401 });
-    }
-
-    // 잠금 확인 (5회 실패 → 5분 잠금)
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      const remainMs = new Date(user.locked_until).getTime() - Date.now();
-      const remainMin = Math.ceil(remainMs / 60000);
-      return NextResponse.json({ error: `로그인이 잠금되었습니다. ${remainMin}분 후 다시 시도해주세요.` }, { status: 429 });
     }
 
     let valid = false;
@@ -50,23 +57,13 @@ export async function POST(req: Request) {
     }
 
     if (!valid) {
-      const attempts = (user.failed_attempts || 0) + 1;
-      const update: Record<string, any> = { failed_attempts: attempts };
-      if (attempts >= 5) {
-        update.locked_until = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-      }
-      await supabase.from('sales_users').update(update).eq('role', 'admin');
-      const remaining = 5 - attempts;
-      const msg = remaining > 0
-        ? `비밀번호가 틀렸습니다. (${attempts}/5회 실패)`
-        : '5회 실패하여 5분간 잠금됩니다.';
-      return NextResponse.json({ error: msg }, { status: 401 });
+      // 계정 단위 카운터 제거 — IP 단위 rate limit 이 실패 횟수 통제.
+      // bcrypt 자체의 ~100ms 지연 + rate limit 5회/분 = 분당 최대 5회 시도.
+      return NextResponse.json({ error: '비밀번호가 틀렸습니다.' }, { status: 401 });
     }
 
-    // 로그인 성공 → 실패 카운터 초기화
-    if (user.failed_attempts > 0 || user.locked_until) {
-      await supabase.from('sales_users').update({ failed_attempts: 0, locked_until: null }).eq('role', 'admin');
-    }
+    // 로그인 성공 → 남아있을지 모를 예전 failed_attempts/locked_until 정리 (best-effort)
+    await supabase.from('sales_users').update({ failed_attempts: 0, locked_until: null }).eq('role', 'admin');
 
     const token = signPayload({ role: 'admin', ts: Date.now() });
 

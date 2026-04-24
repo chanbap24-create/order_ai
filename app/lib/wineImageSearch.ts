@@ -2,6 +2,7 @@
 
 import { logger } from "@/app/lib/logger";
 import { getClaudeClient } from "@/app/lib/claudeClient";
+import { isSafeFetchUrl } from "@/app/lib/validators";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
@@ -228,6 +229,11 @@ No other text.`,
     const imgUrl = parsed?.image_url;
 
     if (imgUrl && typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
+      // SSRF 방어: LLM 이 반환한 URL을 그대로 fetch 하기 전 safety 검증
+      if (!isSafeFetchUrl(imgUrl)) {
+        logger.warn(`[WineryImage] Blocked unsafe URL: ${imgUrl}`);
+        return null;
+      }
       // 이미지 URL 유효성 검증 (HEAD 요청)
       try {
         const headRes = await fetch(imgUrl, { method: 'HEAD', headers: { "User-Agent": USER_AGENT } });
@@ -258,6 +264,11 @@ No other text.`,
  */
 export async function downloadImageAsBase64(imageUrl: string): Promise<{ base64: string; mimeType: string } | null> {
   try {
+    // SSRF 방어: DB wine.image_url 등 외부 제어 가능 경로
+    if (!isSafeFetchUrl(imageUrl)) {
+      logger.warn(`[WineImage] Blocked unsafe URL: ${imageUrl}`);
+      return null;
+    }
     const res = await fetch(imageUrl, {
       headers: { "User-Agent": USER_AGENT },
     });
