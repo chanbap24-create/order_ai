@@ -265,7 +265,10 @@ export default function AdminPage() {
     }}>
       <div style={{ maxWidth: 1250, margin: '0 auto', padding: '0 16px 24px' }}>
         {/* Header */}
-        <div style={{ marginTop: 16, marginBottom: 12 }}>
+        <div style={{
+          marginTop: 16, marginBottom: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
           <h1 style={{
             fontSize: '1.4rem',
             fontWeight: 700,
@@ -274,6 +277,14 @@ export default function AdminPage() {
             fontFamily: "'Cormorant Garamond', serif",
             letterSpacing: '-0.01em',
           }}>Admin</h1>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+            <a href="/admin/password" style={{ color: '#5A1515', textDecoration: 'none' }}>
+              🔑 비밀번호 변경
+            </a>
+            <a href="/admin/mfa-setup" style={{ color: '#5A1515', textDecoration: 'none' }}>
+              🔐 MFA 설정
+            </a>
+          </div>
         </div>
 
         {/* 탭 바 */}
