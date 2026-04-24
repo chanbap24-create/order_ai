@@ -60,18 +60,20 @@ export function useMeetings(p: Params) {
       .catch(() => {});
   }, [weekBase]);
 
-  // 수입일정: 업로드된 모든 입항일정을 한 번에 로드 (날짜 필터 없음).
+  // 수입일정: 오늘 이후 입항만 한 번에 로드 (지난 일정은 제외).
   // 사이드바(ImportSidebar)는 weekBase 와 무관하게 전체를 표시.
   // 월별 달력 뱃지는 importByDate 로 per-date 조회하므로 범위 넓어도 문제 없음.
   // 캐시 2분, admin 업로드 이벤트 수신 시 즉시 refetch.
   useEffect(() => {
-    const cacheKey = `import_schedule_all`;
+    const today = formatDate(new Date());
+    const cacheKey = `import_schedule_from_${today}`;
     const cached = getCached<ImportScheduleItem[]>(cacheKey, CACHE_TTL.IMPORT_SCHEDULE);
     if (cached && cached.length > 0) setImportItems(cached);
 
     const fetchImport = async () => {
       try {
-        const res = await fetch(`/api/admin/upload-data/import-schedule`, { cache: "no-store" });
+        const params = new URLSearchParams({ start_date: today });
+        const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`, { cache: "no-store" });
         if (!res.ok) {
           console.warn(`[useMeetings] import-schedule fetch failed: ${res.status}`);
           if (!cached) setImportItems([]);
