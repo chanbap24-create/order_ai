@@ -60,23 +60,18 @@ export function useMeetings(p: Params) {
       .catch(() => {});
   }, [weekBase]);
 
-  // 수입일정 (2분 캐시 + admin 업로드 이벤트 수신 시 즉시 refetch).
-  // 캐시 쓰지 않고 매 mount 시 fresh fetch — 이전 세션 캐시로 빈 배열이
-  // 떠있던 케이스 방지.
+  // 수입일정: 업로드된 모든 입항일정을 한 번에 로드 (날짜 필터 없음).
+  // 사이드바(ImportSidebar)는 weekBase 와 무관하게 전체를 표시.
+  // 월별 달력 뱃지는 importByDate 로 per-date 조회하므로 범위 넓어도 문제 없음.
+  // 캐시 2분, admin 업로드 이벤트 수신 시 즉시 refetch.
   useEffect(() => {
-    const s = new Date(weekBase.getFullYear(), weekBase.getMonth(), 1);
-    const e = new Date(weekBase.getFullYear(), weekBase.getMonth() + 2, 0);
-    const cacheKey = `import_schedule_${formatDate(s)}_${formatDate(e)}`;
+    const cacheKey = `import_schedule_all`;
     const cached = getCached<ImportScheduleItem[]>(cacheKey, CACHE_TTL.IMPORT_SCHEDULE);
-    if (cached && cached.length > 0) setImportItems(cached); // 빈 캐시는 무시
+    if (cached && cached.length > 0) setImportItems(cached);
 
     const fetchImport = async () => {
       try {
-        const params = new URLSearchParams({
-          start_date: formatDate(s),
-          end_date: formatDate(e),
-        });
-        const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`, { cache: "no-store" });
+        const res = await fetch(`/api/admin/upload-data/import-schedule`, { cache: "no-store" });
         if (!res.ok) {
           console.warn(`[useMeetings] import-schedule fetch failed: ${res.status}`);
           if (!cached) setImportItems([]);
@@ -103,7 +98,8 @@ export function useMeetings(p: Params) {
       fetchImport();
     });
     return unsub;
-  }, [weekBase]);
+    // weekBase 의존성 제거 — 월 이동 시 재조회 불필요 (전체 로드 후 per-date 조회)
+  }, []);
 
   const loadMeetings = useCallback(async () => {
     setLoading(true);

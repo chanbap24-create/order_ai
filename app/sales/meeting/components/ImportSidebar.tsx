@@ -32,9 +32,18 @@ export function ImportSidebar(p: Props) {
           fontSize: 13,
           fontWeight: 700,
           color: "#E65100",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        입항일
+        <span>입항일</span>
+        {p.importDates.length > 0 && (
+          <span style={{ fontSize: 11, fontWeight: 500, color: "#BF6000" }}>
+            {p.importDates.length}일 /{" "}
+            {Object.values(p.importByDate).reduce((a, v) => a + v.items.length, 0)}건
+          </span>
+        )}
       </div>
       <div style={{ maxHeight: 400, overflowY: "auto" }}>
         {p.importDates.length === 0 && (
