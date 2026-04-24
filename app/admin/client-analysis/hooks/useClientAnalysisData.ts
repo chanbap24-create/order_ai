@@ -48,14 +48,27 @@ export function useClientAnalysisData() {
   const [loading, setLoading] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false);
 
-  // Load filters (per type)
+  // Load filters (per type) — 10분 캐시 (distinct 담당자/부서/업종 목록은 거의 변하지 않음)
+  const FILTER_CACHE_KEY = `admin_client_filters:${type}`;
+  const FILTER_CACHE_TTL = 10 * 60 * 1000;
   useEffect(() => {
-    setFilterLoading(true);
+    const cached = getCached<Filters>(FILTER_CACHE_KEY, FILTER_CACHE_TTL);
+    if (cached) {
+      setFilters(cached);
+    } else {
+      setFilterLoading(true);
+    }
     fetch(`/api/admin/client-analysis/filters?type=${type}`)
       .then(r => r.json())
-      .then(d => { if (d.success) setFilters(d); })
+      .then(d => {
+        if (d.success) {
+          setFilters(d);
+          setCached(FILTER_CACHE_KEY, d);
+        }
+      })
       .catch(() => {})
       .finally(() => setFilterLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
   const applyCombined = useCallback((c: Combined) => {
