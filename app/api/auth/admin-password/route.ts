@@ -32,11 +32,18 @@ export async function GET() {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: '관리자 인증이 필요합니다.' }, { status: 401 });
   }
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('sales_users')
     .select('totp_enabled')
     .eq('role', 'admin')
     .maybeSingle();
+  if (error) {
+    console.error('[admin-password GET] select error:', error);
+    // totp_enabled 컬럼 미존재 → 마이그레이션 필요
+    if (error.message?.includes('totp_') || error.code === '42703') {
+      return NextResponse.json({ mfa_enabled: false, migration_needed: true });
+    }
+  }
   return NextResponse.json({ mfa_enabled: !!data?.totp_enabled });
 }
 
@@ -68,12 +75,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '새 비밀번호는 현재 비밀번호와 달라야 합니다.' }, { status: 400 });
     }
 
-    const { data: user } = await supabase
+    const { data: user, error: selErr } = await supabase
       .from('sales_users')
       .select('manager, password_hash, totp_secret, totp_enabled, totp_backup_codes')
       .eq('role', 'admin')
       .maybeSingle();
 
+    if (selErr) {
+      console.error('[admin-password] select error:', selErr);
+      // column "totp_xxx" does not exist → 마이그레이션 미실행
+      if (selErr.message?.includes('totp_') || selErr.code === '42703') {
+        return NextResponse.json(
+          { error: 'DB 마이그레이션이 필요합니다. Supabase에서 MFA 컬럼 마이그레이션을 실행해주세요.' },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({ error: `DB 오류: ${selErr.message}` }, { status: 500 });
+    }
     if (!user) {
       return NextResponse.json({ error: '관리자 계정이 없습니다.' }, { status: 404 });
     }

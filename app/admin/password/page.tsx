@@ -10,6 +10,7 @@ export default function AdminPasswordPage() {
   const [mfaCode, setMfaCode] = useState('');
   const [useBackupCode, setUseBackupCode] = useState(false);
   const [needsMfa, setNeedsMfa] = useState(false);
+  const [migrationNeeded, setMigrationNeeded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -20,6 +21,7 @@ export default function AdminPasswordPage() {
         if (!r.ok) { window.location.href = '/admin'; return; }
         const d = await r.json();
         setNeedsMfa(!!d.mfa_enabled);
+        setMigrationNeeded(!!d.migration_needed);
         setAuthChecked(true);
       })
       .catch(() => { window.location.href = '/admin'; });
@@ -94,6 +96,22 @@ export default function AdminPasswordPage() {
         <p style={{ fontSize: 12, color: '#8a8580', lineHeight: 1.6, marginBottom: 16 }}>
           보안을 위해 현재 비밀번호와 2단계 인증 코드를 모두 확인합니다.
         </p>
+        {migrationNeeded && (
+          <div style={{
+            background: '#fff3e0', border: '1px solid #ff9800', color: '#5d4037',
+            padding: 12, borderRadius: 6, fontSize: 12, marginBottom: 16, lineHeight: 1.5,
+          }}>
+            ⚠️ <b>DB 마이그레이션이 필요합니다.</b><br />
+            Supabase Dashboard → SQL Editor에서 아래를 실행해주세요:
+            <pre style={{
+              background: '#fff', padding: 8, borderRadius: 4, marginTop: 6,
+              fontSize: 11, overflow: 'auto',
+            }}>{`ALTER TABLE sales_users
+  ADD COLUMN IF NOT EXISTS totp_secret TEXT,
+  ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS totp_backup_codes TEXT[];`}</pre>
+          </div>
+        )}
 
         <Label>현재 비밀번호</Label>
         <input
