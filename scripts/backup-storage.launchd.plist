@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Order AI - Supabase Storage 자동 백업 launchd agent
+  매일 새벽 03:00 에 backup-storage.ts 실행.
+
+  설치:
+    cp scripts/backup-storage.launchd.plist ~/Library/LaunchAgents/com.orderai.backup-storage.plist
+    launchctl load -w ~/Library/LaunchAgents/com.orderai.backup-storage.plist
+
+  해제:
+    launchctl unload -w ~/Library/LaunchAgents/com.orderai.backup-storage.plist
+    rm ~/Library/LaunchAgents/com.orderai.backup-storage.plist
+
+  즉시 1회 실행 (테스트):
+    launchctl start com.orderai.backup-storage
+
+  로그 확인:
+    tail -f /Users/hajin/order_ai/backups/logs/backup-storage.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.orderai.backup-storage</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hajin/order_ai</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>-lc</string>
+        <string>/opt/homebrew/bin/npm run backup:storage</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/hajin/order_ai/backups/logs/backup-storage.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/hajin/order_ai/backups/logs/backup-storage.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Mac 이 sleep 에서 복귀하면 누락된 실행 기회를 즉시 보충 -->
+    <key>StartOnMount</key>
+    <false/>
+</dict>
+</plist>
