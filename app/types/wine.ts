@@ -151,7 +151,7 @@ export interface ImportScheduleItem {
   created_at?: string;
 }
 
-export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'price-list' | 'change-log' | 'client-analysis' | 'recommend-settings' | 'wine-regions' | 'brand-library' | 'company-events';
+export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'client-analysis' | 'recommend-settings' | 'wine-regions' | 'brand-library' | 'company-events' | 'import-forecast';
 
 export interface Brand {
   id: number;

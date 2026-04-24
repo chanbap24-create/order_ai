@@ -9,8 +9,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'all-wines', label: '와인리스트' },
   { id: 'new-wine', label: '신규와인' },
   { id: 'tasting-note', label: '테이스팅노트' },
-  { id: 'price-list', label: '가격리스트' },
-  { id: 'change-log', label: '변경이력' },
   { id: 'recommend-settings', label: 'AI추천설정' },
   { id: 'wine-regions', label: '와인산지DB' },
   { id: 'brand-library', label: '브랜드자료실' },

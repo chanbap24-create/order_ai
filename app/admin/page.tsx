@@ -15,8 +15,6 @@ const DashboardTab = dynamic(() => import('./components/DashboardTab'), { ssr: f
 const NewWineTab = dynamic(() => import('./components/NewWineTab'), { ssr: false, loading: tabLoader });
 const AllWinesTab = dynamic(() => import('./components/AllWinesTab'), { ssr: false, loading: tabLoader });
 const TastingNoteTab = dynamic(() => import('./components/TastingNoteTab'), { ssr: false, loading: tabLoader });
-const PriceListTab = dynamic(() => import('./components/PriceListTab'), { ssr: false, loading: tabLoader });
-const ChangeLogTab = dynamic(() => import('./components/ChangeLogTab'), { ssr: false, loading: tabLoader });
 const ClientAnalysisTab = dynamic(() => import('./components/ClientAnalysisTab'), { ssr: false, loading: tabLoader });
 const RecommendSettingsTab = dynamic(() => import('./components/RecommendSettingsTab'), { ssr: false, loading: tabLoader });
 const WineRegionsTab = dynamic(() => import('./components/WineRegionsTab'), { ssr: false, loading: tabLoader });
@@ -300,8 +298,6 @@ export default function AdminPage() {
         {activeTab === 'new-wine' && <NewWineTab />}
         {activeTab === 'all-wines' && <AllWinesTab />}
         {activeTab === 'tasting-note' && <TastingNoteTab />}
-        {activeTab === 'price-list' && <PriceListTab />}
-        {activeTab === 'change-log' && <ChangeLogTab />}
         {activeTab === 'client-analysis' && <ClientAnalysisTab />}
         {activeTab === 'recommend-settings' && <RecommendSettingsTab />}
         {activeTab === 'wine-regions' && <WineRegionsTab />}
