@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 import { ALL_EXCEL_COLUMNS, DEFAULT_DOC, type DocSettings } from './lib/types';
 import { loadTastingNoteIndex } from './lib/assets';
 import { buildQuote } from './lib/buildQuote';
+import { preloadBottleImages } from './lib/imagePreload';
 
 export async function GET(request: NextRequest) {
   try {
@@ -86,13 +87,22 @@ export async function GET(request: NextRequest) {
       ? ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || visibleColumns.includes(c.uiKey))
       : ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || !['retail_normal_total', 'retail_discount_total'].includes(c.uiKey || ''));
 
-    const tastingNoteSet = await loadTastingNoteIndex();
+    // 이미지 일괄 prefetch + tasting-note 인덱스를 병렬 로드.
+    // items 목록 기준 itemCodes 로 bottle_images 한 번에 조회 후 파일 병렬 읽기.
+    const itemCodesForImage = items.map((q) => String(q.item_code || '')).filter(Boolean);
+    const [tastingNoteSet, bottleImages] = await Promise.all([
+      loadTastingNoteIndex(),
+      preloadBottleImages(itemCodesForImage),
+    ]);
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Cave De Vin - Order AI';
     workbook.created = new Date();
 
-    await buildQuote(workbook, items, clientName, activeCols, docSettings, company, tastingNoteSet);
+    await buildQuote(
+      workbook, items, clientName, activeCols, docSettings, company,
+      tastingNoteSet, bottleImages,
+    );
 
     const buffer = await workbook.xlsx.writeBuffer();
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');

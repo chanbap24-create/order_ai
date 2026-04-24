@@ -121,11 +121,43 @@ export function useQuoteItems(p: Params) {
           }),
         });
         const data = await res.json();
-        if (!data.success) return;
+        if (!data.success || !data.item) return;
 
-        await fetchQuoteItems();
+        // 낙관적 업데이트: POST 응답 item 을 state 에 바로 반영.
+        // 기존에는 fetchQuoteItems() 로 전체 리스트 + wine-profiles 전부 재조회했는데
+        // POST 가 이미 enriched item 을 돌려주므로 불필요 (추가 300~600ms RTT 제거).
+        const newItem = data.item as QuoteItem;
+        setQuoteItems((prev) => {
+          if (data.merged) {
+            // 수량 합산된 경우: 기존 row 교체
+            return prev.map((it) => (it.id === newItem.id ? newItem : it));
+          }
+          // 신규 추가: 꼬리에 append (sort_order 가 가장 큼)
+          return [...prev, newItem];
+        });
+
+        // wine-profile 은 신규 추가 시에만 단건 조회 (합산은 이미 캐시돼 있음)
+        if (!data.merged && newItem.item_code && !wineProfiles[newItem.item_code]) {
+          void fetch(`/api/wine-profiles?item_codes=${encodeURIComponent(JSON.stringify([newItem.item_code]))}`)
+            .then((r) => r.json())
+            .then((wp) => {
+              if (wp?.success && Array.isArray(wp.profiles) && wp.profiles.length > 0) {
+                const q = wp.profiles[0];
+                setWineProfiles((prev) => ({
+                  ...prev,
+                  [q.item_code]: {
+                    grape_varieties: q.grape_varieties || "",
+                    description_kr: q.description_kr || "",
+                  },
+                }));
+              }
+            })
+            .catch(() => {
+              // 실패해도 추가 자체는 성공 상태 유지
+            });
+        }
+
         p.onAddSucceeded?.();
-
         setAddedItemNo(inv.item_no);
         if (addedFeedbackRef.current) clearTimeout(addedFeedbackRef.current);
         addedFeedbackRef.current = setTimeout(() => setAddedItemNo(null), 1200);
@@ -133,7 +165,7 @@ export function useQuoteItems(p: Params) {
         console.error("Failed to add item:", e);
       }
     },
-    [fetchQuoteItems, getManagerParam, p],
+    [getManagerParam, p, wineProfiles],
   );
 
   const deleteQuoteItem = useCallback(async (id: number) => {

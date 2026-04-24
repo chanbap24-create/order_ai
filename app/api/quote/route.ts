@@ -1,30 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
-
-// ── 유틸: 품목코드에서 빈티지 추출 ──
-// item_code[2:4]가 빈티지. 예: 0018801→18→2018, 2019416→19→2019, 00NV801→NV
-function extractVintage(itemCode: string): string {
-  if (!itemCode || itemCode.length < 4) return '';
-  const vPart = itemCode.substring(2, 4);
-  const upper = vPart.toUpperCase();
-
-  // NV, MV 그대로
-  if (upper === 'NV' || upper === 'MV') return upper;
-
-  // 숫자가 아니면 그대로
-  if (!/^\d{2}$/.test(vPart)) return vPart;
-
-  const num = parseInt(vPart);
-  return num >= 50 ? `19${vPart}` : `20${vPart}`;
-}
-
-// ── 유틸: 영어 2글자 약어 제거 ──
-function removePrefix(name: string): string {
-  if (!name) return '';
-  // "DA 마지 샹베르탱" → "마지 샹베르탱"
-  return name.replace(/^[A-Za-z]{2}\s+/, '').trim();
-}
+import { fetchBarcodes } from './lib/enrichment';
+import { addQuoteItem } from './lib/addItem';
+import { reorderQuoteItems, updateQuoteItem } from './lib/updateItem';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,37 +15,17 @@ export async function GET(req: NextRequest) {
       .select('*')
       .order('sort_order', { ascending: true })
       .order('id', { ascending: true });
-
-    if (mgr) {
-      query = query.eq('manager', mgr);
-    }
+    if (mgr) query = query.eq('manager', mgr);
 
     const { data: items, error } = await query;
     if (error) throw error;
 
-    // barcode 보강 (inventory_cdv → inventory_dl fallback)
-    const codes = (items || []).map((i: any) => i.item_code).filter(Boolean);
-    const barcodeMap: Record<string, string> = {};
-    if (codes.length > 0) {
-      const { data: invRows } = await supabase
-        .from('inventory_cdv')
-        .select('item_no, barcode')
-        .in('item_no', codes);
-      if (invRows) {
-        for (const r of invRows) { if (r.barcode) barcodeMap[r.item_no] = r.barcode; }
-      }
-      const missing = codes.filter((c: string) => !barcodeMap[c]);
-      if (missing.length > 0) {
-        const { data: dlRows } = await supabase
-          .from('inventory_dl')
-          .select('item_no, barcode')
-          .in('item_no', missing);
-        if (dlRows) {
-          for (const r of dlRows) { if (r.barcode) barcodeMap[r.item_no] = r.barcode; }
-        }
-      }
-    }
-    const enriched = (items || []).map((i: any) => ({
+    const codes = (items || [])
+      .map((i: { item_code: string | null }) => i.item_code || '')
+      .filter(Boolean);
+    const barcodeMap = await fetchBarcodes(codes);
+
+    const enriched = (items || []).map((i: { item_code: string }) => ({
       ...i,
       barcode: barcodeMap[i.item_code] || null,
     }));
@@ -76,7 +35,7 @@ export async function GET(req: NextRequest) {
     console.error('Quote GET error:', error);
     return NextResponse.json(
       { error: '견적서 조회 중 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -85,169 +44,13 @@ export async function POST(req: Request) {
   try {
     ensureQuoteTable();
     const body = await req.json();
-
-    let {
-      item_code = '',
-      country = '',
-      brand = '',
-      region = '',
-      image_url = '',
-      vintage = '',
-      product_name = '',
-      english_name = '',
-      korean_name = '',
-      supply_price = 0,
-      min_price = 0,
-      retail_price = 0,
-      discount_rate = 0,
-      quantity = 1,
-      note = '',
-      tasting_note = '',
-      manager = '',
-    } = body;
-
-    // ── Supabase에서 데이터 보강 ──
-    var supplierKr = '';
-    if (item_code) {
-      // 1) wines 테이블: 브랜드, 영문명, 한글명, 지역, 국가, 이미지
-      const { data: wine } = await supabase
-        .from('wines')
-        .select('item_name_en, item_name_kr, country, country_en, region, grape_varieties, wine_type, supplier, supplier_kr, supply_price, brand, image_url')
-        .eq('item_code', item_code)
-        .maybeSingle();
-
-      if (wine) {
-        if (!brand) brand = wine.supplier || wine.brand || '';
-        if (!english_name) english_name = wine.item_name_en || '';
-        if (!korean_name) korean_name = wine.item_name_kr || '';
-        if (!region) region = wine.region || '';
-        if (!country) country = wine.country || wine.country_en || '';
-        if (!image_url && wine.image_url) image_url = wine.image_url;
-      }
-      // supplier_kr 보존 (상품명에 생산자명 추가용)
-      var supplierKr = wine?.supplier_kr || '';
-
-      // 2) inventory_cdv에서 판매가/최저판매가 보강
-      if (!retail_price || !min_price) {
-        const { data: inv } = await supabase
-          .from('inventory_cdv')
-          .select('retail_price, min_price')
-          .eq('item_no', item_code)
-          .maybeSingle();
-        if (inv?.retail_price && !retail_price) retail_price = inv.retail_price;
-        if (inv?.min_price && !min_price) min_price = inv.min_price;
-      }
-
-      // 3) inventory_dl에서 판매가 보강 (CDV에 없으면)
-      if (!retail_price) {
-        const { data: dlInv } = await supabase
-          .from('inventory_dl')
-          .select('retail_price')
-          .eq('item_no', item_code)
-          .maybeSingle();
-        if (dlInv?.retail_price) retail_price = dlInv.retail_price;
-      }
-
-      // 4) 테이스팅 노트 보강
-      if (!tasting_note) {
-        const { data: tn } = await supabase
-          .from('tasting_notes')
-          .select('color_note, nose_note, palate_note')
-          .eq('wine_id', item_code)
-          .maybeSingle();
-        if (tn) {
-          const parts = [tn.color_note, tn.nose_note, tn.palate_note].filter(Boolean);
-          if (parts.length > 0) tasting_note = parts.join(' / ');
-        }
-      }
-
-      // 빈티지: 품목코드 3-4번째 자리에서 추출
-      vintage = extractVintage(item_code);
-    }
-
-    // 영어 2글자 약어 제거 후 생산자명 추가
-    korean_name = removePrefix(korean_name);
-    product_name = removePrefix(product_name);
-
-    // 생산자명이 있으면 상품명 앞에 추가
-    // 예: "BL 볼네 1er Cru 클로 데 슌" → "메종 로쉬 벨렌, 볼네 1er Cru 클로 데 슌"
-    if (typeof supplierKr === 'string' && supplierKr) {
-      if (product_name && !product_name.startsWith(supplierKr)) {
-        product_name = `${supplierKr}, ${product_name}`;
-      }
-      if (korean_name && !korean_name.startsWith(supplierKr)) {
-        korean_name = `${supplierKr}, ${korean_name}`;
-      }
-    }
-
-    // product_name이 비어있으면 korean_name 사용
-    if (!product_name && korean_name) {
-      product_name = korean_name;
-    }
-
-    const price = Number(supply_price) || 0;
-    const mPrice = Number(min_price) || 0;
-    const rPrice = Number(retail_price) || 0;
-    const rate = Number(discount_rate) || 0;
-    const qty = Number(quantity) || 1;
-    const discounted_price = Math.round(price * (1 - rate));
-
-    // 동일 item_code가 이미 있으면 수량 합산 (같은 매니저 범위)
-    if (item_code) {
-      let dupQuery = supabase
-        .from('quote_items')
-        .select('id, quantity')
-        .eq('item_code', item_code);
-      if (manager) dupQuery = dupQuery.eq('manager', manager);
-      const { data: existing } = await dupQuery.maybeSingle();
-
-      if (existing) {
-        const newQty = existing.quantity + qty;
-        await supabase
-          .from('quote_items')
-          .update({ quantity: newQty, updated_at: new Date().toISOString() })
-          .eq('id', existing.id);
-
-        const { data: updated } = await supabase
-          .from('quote_items')
-          .select('*')
-          .eq('id', existing.id)
-          .maybeSingle();
-
-        return NextResponse.json({ success: true, item: updated, merged: true });
-      }
-    }
-
-    // Get next sort_order (같은 매니저 범위)
-    let sortQuery = supabase
-      .from('quote_items')
-      .select('sort_order')
-      .order('sort_order', { ascending: false })
-      .limit(1);
-    if (manager) sortQuery = sortQuery.eq('manager', manager);
-    const { data: maxRow } = await sortQuery.maybeSingle();
-    const nextSort = (maxRow?.sort_order ?? 0) + 1;
-
-    const { data: inserted, error: insertError } = await supabase
-      .from('quote_items')
-      .insert({
-        item_code, country, brand, region, image_url, vintage,
-        product_name, english_name, korean_name,
-        supply_price: price, min_price: mPrice, retail_price: rPrice, discount_rate: rate, discounted_price,
-        quantity: qty, note, tasting_note, sort_order: nextSort, manager
-      })
-      .select()
-      .single();
-
-    if (insertError) throw insertError;
-
-    return NextResponse.json({ success: true, item: inserted });
-
+    const result = await addQuoteItem(body);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Quote POST error:', error);
     return NextResponse.json(
       { error: '견적서 추가 중 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -257,75 +60,22 @@ export async function PATCH(req: Request) {
     ensureQuoteTable();
     const body = await req.json();
 
-    // ── Reorder action: bulk update sort_order ──
     if (body.action === 'reorder' && Array.isArray(body.items)) {
-      for (const item of body.items) {
-        await supabase
-          .from('quote_items')
-          .update({ sort_order: item.sort_order })
-          .eq('id', item.id);
-      }
-      return NextResponse.json({ success: true });
+      return NextResponse.json(await reorderQuoteItems(body.items));
     }
 
     const { id, ...fields } = body;
-
     if (!id) {
       return NextResponse.json({ error: 'id가 필요합니다.' }, { status: 400 });
     }
 
-    const { data: existing } = await supabase
-      .from('quote_items')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (!existing) {
-      return NextResponse.json({ error: '항목을 찾을 수 없습니다.' }, { status: 404 });
-    }
-
-    const allowedFields = [
-      'item_code', 'country', 'brand', 'region', 'image_url', 'vintage',
-      'product_name', 'english_name', 'korean_name',
-      'supply_price', 'retail_price', 'discount_rate', 'quantity', 'note', 'tasting_note'
-    ];
-
-    const updateData: Record<string, any> = {};
-    for (const field of allowedFields) {
-      if (field in fields) {
-        updateData[field] = fields[field];
-      }
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: '수정할 필드가 없습니다.' }, { status: 400 });
-    }
-
-    // discounted_price 재계산
-    const newPrice = 'supply_price' in fields ? Number(fields.supply_price) : existing.supply_price;
-    const newRate = 'discount_rate' in fields ? Number(fields.discount_rate) : existing.discount_rate;
-    const discounted = Math.round(newPrice * (1 - newRate));
-    updateData.discounted_price = discounted;
-    updateData.updated_at = new Date().toISOString();
-
-    await supabase
-      .from('quote_items')
-      .update(updateData)
-      .eq('id', id);
-
-    const { data: updated } = await supabase
-      .from('quote_items')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    return NextResponse.json({ success: true, item: updated });
-
+    const { status, body: resp } = await updateQuoteItem(id, fields);
+    return NextResponse.json(resp, { status });
   } catch (error) {
     console.error('Quote PATCH error:', error);
     return NextResponse.json(
       { error: '견적서 수정 중 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -334,7 +84,6 @@ export async function DELETE(req: NextRequest) {
   try {
     ensureQuoteTable();
 
-    // Support both query param and body
     let id: string | null = req.nextUrl.searchParams.get('id');
     if (!id) {
       try {
@@ -344,7 +93,6 @@ export async function DELETE(req: NextRequest) {
         // no body
       }
     }
-
     if (!id) {
       return NextResponse.json({ error: 'id가 필요합니다.' }, { status: 400 });
     }
@@ -356,18 +104,16 @@ export async function DELETE(req: NextRequest) {
       .select();
 
     if (error) throw error;
-
     if (!data || data.length === 0) {
       return NextResponse.json({ error: '항목을 찾을 수 없습니다.' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
     console.error('Quote DELETE error:', error);
     return NextResponse.json(
       { error: '견적서 삭제 중 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

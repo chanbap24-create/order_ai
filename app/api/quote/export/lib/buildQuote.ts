@@ -3,6 +3,7 @@ import type { ColDef, DocSettings } from './types';
 import { buildHeader } from './buildHeader';
 import { buildDataRows } from './buildDataRows';
 import { buildSummary } from './buildSummary';
+import type { BottleImageMap } from './imagePreload';
 
 export async function buildQuote(
   wb: ExcelJS.Workbook,
@@ -12,6 +13,7 @@ export async function buildQuote(
   doc: DocSettings,
   company: string,
   tastingNoteSet: Set<string>,
+  bottleImages: BottleImageMap,
 ): Promise<void> {
   const ws = wb.addWorksheet('견적서');
   ws.columns = activeCols.map(c => ({ width: c.width }));
@@ -22,7 +24,7 @@ export async function buildQuote(
 
   buildHeader(wb, ws, activeCols, clientName, doc, company);
 
-  const { DS } = await buildDataRows(wb, ws, items, activeCols, pos, tastingNoteSet);
+  const { DS } = await buildDataRows(wb, ws, items, activeCols, pos, tastingNoteSet, bottleImages);
 
   buildSummary(ws, activeCols, pos, items, DS, doc);
 

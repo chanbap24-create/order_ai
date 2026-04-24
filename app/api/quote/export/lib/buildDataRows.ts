@@ -1,8 +1,7 @@
-import fs from 'fs';
-import path from 'path';
 import type ExcelJS from 'exceljs';
 import type { ColDef } from './types';
-import { getBottleImagePath, getBottleImageMeta, TASTING_NOTE_BASE_URL } from './assets';
+import { TASTING_NOTE_BASE_URL } from './assets';
+import type { BottleImageMap } from './imagePreload';
 import {
   THIN, CURR, PCT, HEADER_FILL, ALT_FILL, SUMMARY_FILL, FONT,
   colLetter, sc, sf,
@@ -22,6 +21,7 @@ export async function buildDataRows(
   activeCols: ColDef[],
   pos: Record<string, number>,
   tastingNoteSet: Set<string>,
+  bottleImages: BottleImageMap,
 ): Promise<{ DS: number }> {
   // Column headers (Row 21)
   const hBorder: Partial<ExcelJS.Borders> = {
@@ -57,7 +57,7 @@ export async function buildDataRows(
       }
 
       if (col.type === 'image') {
-        await renderImageCell(wb, ws, row, r, c, ci, item, rowFill);
+        renderImageCell(wb, ws, row, r, c, ci, item, rowFill, bottleImages);
         continue;
       }
 
@@ -84,7 +84,11 @@ export async function buildDataRows(
   return { DS };
 }
 
-async function renderImageCell(
+/**
+ * 이미지 셀 렌더링. DB/파일 I/O 없음 — 미리 preload 된 Map 에서 버퍼 꺼내 Excel 에 쓰기만.
+ * route.ts 의 preloadBottleImages 가 사전에 병렬 로드를 끝내둔다.
+ */
+function renderImageCell(
   wb: ExcelJS.Workbook,
   ws: ExcelJS.Worksheet,
   row: ExcelJS.Row,
@@ -93,28 +97,21 @@ async function renderImageCell(
   ci: number,
   item: Record<string, unknown>,
   rowFill: ExcelJS.Fill | undefined,
+  bottleImages: BottleImageMap,
 ) {
   const cell = row.getCell(c);
   cell.border = THIN;
   if (rowFill) cell.fill = rowFill;
+
   const itemCode = String(item.item_code || '');
   if (!itemCode) return;
 
-  const imgPath = await getBottleImagePath(itemCode);
-  if (!imgPath) return;
+  const pre = bottleImages.get(itemCode);
+  if (!pre) return; // preload 실패 or TIFF 제외 케이스
 
-  const rawExt = path.extname(imgPath).replace('.', '').toLowerCase();
-  if (rawExt === 'tiff' || rawExt === 'tif') {
-    sc(row, c, itemCode, { border: THIN, size: 8, color: 'FF999999', fill: rowFill });
-    return;
-  }
-
-  const imgBuf = fs.readFileSync(imgPath);
-  const ext = (rawExt === 'jpg' ? 'jpeg' : rawExt) as 'png' | 'jpeg' | 'gif';
-  const imgId = wb.addImage({ buffer: imgBuf, extension: ext });
-  let origW = 1, origH = 2;
-  const meta = await getBottleImageMeta(itemCode);
-  if (meta) { origW = meta.width; origH = meta.height; }
+  const imgId = wb.addImage({ buffer: pre.buffer, extension: pre.ext });
+  const origW = pre.width || 1;
+  const origH = pre.height || 2;
 
   // 공식 ExcelJS API: tl.col/row fractional + ext(width,height) 사용.
   // 모든 뷰어(카톡/모바일 포함) 호환. nativeCol EMU 방식은 일부 뷰어가 무시함.
@@ -126,7 +123,8 @@ async function renderImageCell(
   const availW = colWPx - padPx * 2;
   const availH = rowHPx - padPx * 2;
   const imgRatio = origW / origH;
-  let imgWPx: number, imgHPx: number;
+  let imgWPx: number;
+  let imgHPx: number;
   if (availW / availH > imgRatio) {
     imgHPx = availH;
     imgWPx = imgHPx * imgRatio;
@@ -135,7 +133,6 @@ async function renderImageCell(
     imgHPx = imgWPx / imgRatio;
   }
 
-  // 셀 내부 중앙정렬: 행은 r-1 + offsetFraction, 열은 ci + offsetFraction
   const offLFrac = ((colWPx - imgWPx) / 2) / colWPx;
   const offTFrac = ((rowHPx - imgHPx) / 2) / rowHPx;
 
