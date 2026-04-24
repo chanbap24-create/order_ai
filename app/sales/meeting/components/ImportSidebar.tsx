@@ -37,6 +37,11 @@ export function ImportSidebar(p: Props) {
         입항일
       </div>
       <div style={{ maxHeight: 400, overflowY: "auto" }}>
+        {p.importDates.length === 0 && (
+          <div style={{ padding: "16px 12px", textAlign: "center", color: "#a8a098", fontSize: 12 }}>
+            현재 월 + 다음 월 기준<br />수입 일정이 없습니다.
+          </div>
+        )}
         {p.importDates.map((dateStr) => {
           const info = p.importByDate[dateStr];
           const d = new Date(dateStr + "T00:00:00");

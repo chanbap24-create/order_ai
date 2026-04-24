@@ -60,13 +60,15 @@ export function useMeetings(p: Params) {
       .catch(() => {});
   }, [weekBase]);
 
-  // 수입일정 (2분 캐시 + admin 업로드 이벤트 수신 시 즉시 refetch)
+  // 수입일정 (2분 캐시 + admin 업로드 이벤트 수신 시 즉시 refetch).
+  // 캐시 쓰지 않고 매 mount 시 fresh fetch — 이전 세션 캐시로 빈 배열이
+  // 떠있던 케이스 방지.
   useEffect(() => {
     const s = new Date(weekBase.getFullYear(), weekBase.getMonth(), 1);
     const e = new Date(weekBase.getFullYear(), weekBase.getMonth() + 2, 0);
     const cacheKey = `import_schedule_${formatDate(s)}_${formatDate(e)}`;
     const cached = getCached<ImportScheduleItem[]>(cacheKey, CACHE_TTL.IMPORT_SCHEDULE);
-    if (cached) setImportItems(cached);
+    if (cached && cached.length > 0) setImportItems(cached); // 빈 캐시는 무시
 
     const fetchImport = async () => {
       try {
@@ -75,11 +77,22 @@ export function useMeetings(p: Params) {
           end_date: formatDate(e),
         });
         const res = await fetch(`/api/admin/upload-data/import-schedule?${params}`, { cache: "no-store" });
+        if (!res.ok) {
+          console.warn(`[useMeetings] import-schedule fetch failed: ${res.status}`);
+          if (!cached) setImportItems([]);
+          return;
+        }
         const json = await res.json();
+        if (!json.success) {
+          console.warn("[useMeetings] import-schedule response no-success:", json);
+          if (!cached) setImportItems([]);
+          return;
+        }
         const items: ImportScheduleItem[] = json.items || [];
         setImportItems(items);
         setCached(cacheKey, items);
-      } catch {
+      } catch (e) {
+        console.warn("[useMeetings] import-schedule fetch error:", e);
         if (!cached) setImportItems([]);
       }
     };

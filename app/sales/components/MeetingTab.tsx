@@ -146,13 +146,11 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
             onOpenMeeting={detail.openDetail}
             onOpenImport={setImportDetailDate}
           />
-          {importDates.length > 0 && (
-            <ImportSidebar
-              importDates={importDates}
-              importByDate={importByDate}
-              onOpenDate={setImportDetailDate}
-            />
-          )}
+          <ImportSidebar
+            importDates={importDates}
+            importByDate={importByDate}
+            onOpenDate={setImportDetailDate}
+          />
         </div>
       ) : (
         <WeekList
