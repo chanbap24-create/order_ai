@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid type (wine|glass)' }, { status: 400 });
     }
 
-    // IDOR 방어: 본인 거래처만 접근
-    const accessCheck = await requireClientAccess(clientCode);
+    // IDOR 방어: 본인 거래처만 접근 (wine/glass 코드 충돌 회피를 위해 type 전달)
+    const accessCheck = await requireClientAccess(clientCode, clientType as 'wine' | 'glass');
     if (accessCheck) return accessCheck;
 
     // PostgREST 필터 인젝션 방지: .not('in', ...) 문자열에 사용되는 값 sanitize

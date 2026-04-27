@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid type (wine|glass)' }, { status: 400 });
     }
 
-    // IDOR 방어: 로그인한 매니저가 해당 거래처에 접근 권한이 있는지 확인
-    const accessCheck = await requireClientAccess(clientCode);
+    // IDOR 방어: 로그인한 매니저가 해당 거래처에 접근 권한이 있는지 확인 (wine/glass 코드 충돌 회피)
+    const accessCheck = await requireClientAccess(clientCode, clientType as 'wine' | 'glass');
     if (accessCheck) return accessCheck;
 
     const { client, rows, payments, prevBalance } = await fetchLedgerData(clientCode, startDate, endDate, clientType);

@@ -14,32 +14,73 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession, type SalesSession } from '@/app/lib/auth';
 
+export type ClientType = 'wine' | 'glass';
+
 /**
  * admin/executive 는 전체 거래처 접근 가능.
- * 일반 user 는 client_details.manager === session.manager 인 거래처만.
+ * 일반 user 는 본인이 담당한 거래처만.
+ *
+ * 와인(까브드뱅)과 글라스(대유라이프)는 client_code 네임스페이스가 다르며 충돌이 존재한다
+ * (예: 30784 = 와인 코스트코 / 글라스 온6.5). 따라서 호출 측이 clientType 을 명시해야
+ * 올바른 테이블에서 매니저를 검증할 수 있다.
+ *
+ *  - wine  : client_details (client_type='wine') 의 manager 매칭
+ *  - glass : glass_shipments 의 최신 manager 매칭 (glass_clients 에는 manager 컬럼 없음)
+ *  - 미지정: 과거 동작 호환을 위해 client_details → glass_clients 순으로 확인
  */
 export async function canAccessClient(
   session: SalesSession,
   clientCode: string,
+  clientType?: ClientType,
 ): Promise<boolean> {
   if (!clientCode) return false;
   if (session.role === 'admin' || session.role === 'executive') return true;
 
-  // sales user: client_details.manager 매칭 확인
+  if (clientType === 'glass') {
+    // 글라스: 가장 최근 출고의 매니저로 본인 담당 여부 확인
+    const { data: ship } = await supabase
+      .from('glass_shipments')
+      .select('manager')
+      .eq('client_code', clientCode)
+      .not('manager', 'is', null)
+      .order('ship_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (ship?.manager) return ship.manager === session.manager;
+
+    // 출고 이력이 없으면 glass_clients 등록 여부만 확인 (manager 컬럼 부재 → 허용)
+    const { data: gc } = await supabase
+      .from('glass_clients')
+      .select('client_code')
+      .eq('client_code', clientCode)
+      .maybeSingle();
+    return !!gc;
+  }
+
+  if (clientType === 'wine') {
+    const { data } = await supabase
+      .from('client_details')
+      .select('manager')
+      .eq('client_code', clientCode)
+      .eq('client_type', 'wine')
+      .maybeSingle();
+    return !!data && data.manager === session.manager;
+  }
+
+  // type 미지정(과거 호환): wine 우선 → 없으면 glass
   const { data } = await supabase
     .from('client_details')
-    .select('manager')
+    .select('manager, client_type')
     .eq('client_code', clientCode)
     .maybeSingle();
 
   if (!data) {
-    // client_details 에 없는 경우: glass 거래처일 가능성
     const { data: glass } = await supabase
       .from('glass_clients')
       .select('client_code')
       .eq('client_code', clientCode)
       .maybeSingle();
-    // glass_clients 는 manager 필드 없음 → 일단 허용 (필요시 강화)
     return !!glass;
   }
 
@@ -50,13 +91,16 @@ export async function canAccessClient(
  * API route에서 호출: 세션 확인 + 거래처 접근 권한 확인.
  * 반환값이 NextResponse 면 그대로 return (401/403). null 이면 통과.
  */
-export async function requireClientAccess(clientCode: string): Promise<NextResponse | null> {
+export async function requireClientAccess(
+  clientCode: string,
+  clientType?: ClientType,
+): Promise<NextResponse | null> {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   }
 
-  const allowed = await canAccessClient(session, clientCode);
+  const allowed = await canAccessClient(session, clientCode, clientType);
   if (!allowed) {
     return NextResponse.json(
       { error: '해당 거래처에 접근할 권한이 없습니다.' },
