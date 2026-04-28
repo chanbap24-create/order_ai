@@ -67,14 +67,16 @@ export async function GET(req: NextRequest) {
 
     // 단가/금액 정규화: priceUtils 사용
     // 시기별 가격 컬럼 포맷 차이(2025-08 전후) → Q(판매단가)와 Q*수량(판매총액) 재계산.
-    // 원본 unit_price/supply_amount를 getSellingTotal에 넘긴 뒤 mutate (순서 중요).
+    // 부호는 quantity 기준으로 통일 (반품이면 supply_amount 음수). 거래처별 집계에서
+    // 평균단가가 반품으로 왜곡되지 않도록 핵심.
     for (const r of allRows) {
       const rawUp = r.unit_price;
       const rawSp = r.selling_price;
       const rawSa = r.supply_amount;
       const qty = r.quantity;
       const unitPrice = getSellingUnitPrice(rawUp, rawSp, rawSa, qty);
-      const supplyTotal = Math.abs(getSellingTotal(rawUp, rawSp, rawSa, qty));
+      const absTotal = Math.abs(getSellingTotal(rawUp, rawSp, rawSa, qty));
+      const supplyTotal = qty < 0 ? -absTotal : absTotal;
       r.unit_price = unitPrice;
       r.supply_amount = supplyTotal;
       r.tax_amount = Math.round(supplyTotal * 0.1);
