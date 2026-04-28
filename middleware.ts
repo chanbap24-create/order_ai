@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 import { rateLimit, maybeCleanup } from '@/app/lib/rateLimit';
+import { classifyFeature, trackFeatureUsage } from '@/app/lib/featureUsage';
 
 const SALES_COOKIE = 'sales_auth';
 const ADMIN_COOKIE = 'admin_auth';
@@ -119,7 +120,7 @@ function applyRateLimit(request: NextRequest, pathname: string): NextResponse | 
   return null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
   // ── Rate limit 체크 (API만) ──
@@ -204,6 +205,11 @@ export async function middleware(request: NextRequest) {
     const { valid, payload } = await verifySalesToken(request);
     if (!valid) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    }
+    // 사용량 추적 (best-effort, fire-and-forget)
+    const feature = classifyFeature(request.method, pathname);
+    if (feature && payload.manager) {
+      event.waitUntil(trackFeatureUsage(payload.manager, feature));
     }
     const response = NextResponse.next();
     response.headers.set('x-manager', payload.manager);
