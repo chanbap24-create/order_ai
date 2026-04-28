@@ -49,9 +49,9 @@ export function ItemCard({
         border: "1px solid #F0EFED",
         boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
         cursor: "default",
-        userSelect: onLongPress ? "none" : undefined,
-        WebkitTouchCallout: onLongPress ? "none" : undefined,
-        WebkitUserSelect: onLongPress ? "none" : undefined,
+        // 텍스트 복사 가능. long-press 는 longPress.ts 가 5px 이상 이동 시 자동 취소하므로
+        // 사용자가 텍스트 선택을 위해 드래그하면 popup 안 뜨고, 가만히 누르고 있으면 popup.
+        WebkitTouchCallout: onLongPress ? "none" : undefined, // iOS 컨텍스트 메뉴만 차단
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
