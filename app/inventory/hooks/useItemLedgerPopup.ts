@@ -3,26 +3,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { WarehouseTab } from '../types';
 import type { ClientSummary, ItemRow, Totals } from '@/app/sales/item-ledger/types';
+import { todayKst } from '@/app/lib/dateKst';
 
 type Range = { start: string; end: string; label: string };
 
-function pad(n: number) {
-  return String(n).padStart(2, '0');
-}
-
 export function getDefaultRanges(): Range[] {
-  const now = new Date(Date.now() + 9 * 60 * 60 * 1000); // KST
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth();
-  const today = `${y}-${pad(m + 1)}-${pad(now.getUTCDate())}`;
-  const sixMonthsAgo = new Date(Date.UTC(y, m - 5, 1));
-  const sixStart = `${sixMonthsAgo.getUTCFullYear()}-${pad(sixMonthsAgo.getUTCMonth() + 1)}-01`;
-  const yearStart = `${y}-01-01`;
-  const lastYearStart = `${y - 1}-01-01`;
+  const today = todayKst();
+  const [y, mStr] = today.split('-');
+  const yi = Number(y), mi = Number(mStr) - 1;
+  const six = new Date(Date.UTC(yi, mi - 5, 1));
+  const sixStart = `${six.getUTCFullYear()}-${String(six.getUTCMonth() + 1).padStart(2, '0')}-01`;
   return [
     { label: '최근 6개월', start: sixStart, end: today },
-    { label: '올해', start: yearStart, end: today },
-    { label: '작년부터', start: lastYearStart, end: today },
+    { label: '올해', start: `${y}-01-01`, end: today },
+    { label: '작년부터', start: `${yi - 1}-01-01`, end: today },
     { label: '전체', start: '2020-01-01', end: today },
   ];
 }

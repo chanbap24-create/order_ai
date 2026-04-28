@@ -20,7 +20,9 @@ type Params = {
   activeTab: WarehouseTab;
   /** CDV 탭에서 수입 일정과 병합 검색하기 위한 맵 */
   importScheduleMap: Record<string, ImportScheduleItem[]>;
-  /** 검색 결과의 각 CDV 품번에 대해 테이스팅 노트 여부를 체크 + 맵 갱신 */
+  /** 테이스팅 노트 인덱스 (page mount 시 한 번에 로드된 set). 검색 결과를 set 으로 매핑 — N+1 fetch 제거 */
+  tastingNoteSet: Set<string>;
+  /** 검색 결과 중 set 에 포함된 품번을 부모 맵에 마킹 */
   onCheckTastingNote: (itemNo: string) => void;
 };
 
@@ -53,16 +55,14 @@ export function useInventorySearch(p: Params) {
       if (s.advancedFilters) {
         setAdvancedFilters((prev) => ({ ...prev, ...s.advancedFilters } as AdvancedFilters));
       }
-      if (s.results && s.results.length > 0) {
-        setResults(s.results);
-        setHasSearched(true);
-      }
+      // results 는 sessionStorage 미저장(가격 leak 방지). hasSearched 는 false 유지 → 사용자 다시 검색 필요.
     } catch {
       // ignore
     }
   }, []);
 
-  // sessionStorage 저장 (debounced via dep change)
+  // sessionStorage 저장 (debounced via dep change). 가격/재고 등 민감 필드는 제외 — XSS 1회로
+  // 가격 정책 leak 방지. 복원 시에는 query/filter 만 살리고 results 는 재검색 트리거.
   useEffect(() => {
     try {
       const state: SavedSearchState = {
@@ -72,7 +72,7 @@ export function useInventorySearch(p: Params) {
         hideNoStock,
         showOnlyBondedStock,
         advancedFilters,
-        results,
+        // results 는 의도적으로 저장 안 함
       };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
     } catch {
@@ -85,7 +85,6 @@ export function useInventorySearch(p: Params) {
     hideNoStock,
     showOnlyBondedStock,
     advancedFilters,
-    results,
   ]);
 
   const handleSearch = useCallback(async () => {
@@ -171,18 +170,12 @@ export function useInventorySearch(p: Params) {
       }
 
       setResults(items);
-      if (p.activeTab === "CDV") {
-        // 가용성 체크는 사용자가 직접 누른 게 아니므로 사용량 카운터 제외 (X-Track-Skip)
-        items.forEach((item) => {
-          fetch(`/api/tasting-notes?item_no=${item.item_no}`, {
-            headers: { 'X-Track-Skip': '1' },
-          })
-            .then((res) => res.json())
-            .then((d) => {
-              if (d.success) p.onCheckTastingNote(item.item_no);
-            })
-            .catch(() => {});
-        });
+      // CDV: 검색 결과를 사전 로드된 인덱스(tastingNoteSet)에 대조해 마킹.
+      // 기존 N+1 fetch 제거 — 50~200건 검색마다 동일 수의 네트워크 요청 발생하던 문제.
+      if (p.activeTab === "CDV" && p.tastingNoteSet.size > 0) {
+        for (const item of items) {
+          if (p.tastingNoteSet.has(item.item_no)) p.onCheckTastingNote(item.item_no);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "검색 중 오류가 발생했습니다.");

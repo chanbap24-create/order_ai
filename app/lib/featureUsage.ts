@@ -27,12 +27,12 @@ export function classifyFeature(method: string, pathname: string): string | null
   if (pathname.startsWith('/api/auth/')) return null;
   if (pathname === '/api/sales/clients/managers') return null;
 
-  // ─ 세일즈 ─
+  // ─ 세일즈 (구체적 → 범용 순서) ─
   if (pathname === '/api/sales/ledger' && method === 'GET') return '매출처원장조회';
   if (pathname === '/api/sales/ledger/export') return '매출처원장내보내기';
   if (pathname === '/api/sales/item-ledger' && method === 'GET') return '품목별판매조회';
-  if (pathname === '/api/sales/recommend') return 'AI추천';
   if (pathname === '/api/sales/meetings/briefing') return 'AI미팅브리핑';
+  if (pathname.startsWith('/api/sales/recommend')) return 'AI추천';
   if (pathname.startsWith('/api/sales/meetings')) return method === 'GET' ? '미팅조회' : '미팅저장';
   if (pathname.startsWith('/api/sales/outstanding')) return '미수현황';
   if (pathname.startsWith('/api/sales/expense')) return '경비관리';
@@ -43,7 +43,6 @@ export function classifyFeature(method: string, pathname: string): string | null
   if (pathname.startsWith('/api/sales/dismissed')) return '미수해제';
   if (pathname.startsWith('/api/sales/clients/stats')) return '거래처통계';
   if (pathname.startsWith('/api/sales/clients')) return method === 'GET' ? '거래처조회' : '거래처저장';
-  if (pathname.startsWith('/api/sales/recommend')) return 'AI추천';
   if (pathname.startsWith('/api/sales')) return '세일즈기타';
 
   // ─ 인벤토리/재고 ─
@@ -80,7 +79,7 @@ const THROTTLE_MS = 3000; // 3초 윈도우 내 동일 (manager, feature) 중복
 export async function trackFeatureUsage(manager: string, feature: string): Promise<void> {
   if (!SUPABASE_URL || !SERVICE_KEY || !manager || !feature) return;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_feature_usage`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/increment_feature_usage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -95,6 +94,10 @@ export async function trackFeatureUsage(manager: string, feature: string): Promi
         p_throttle_ms: THROTTLE_MS,
       }),
     });
+    // body 명시적 drain — Edge fetch 에서 body 미소비 시 connection idle 잡힐 수 있음
+    if (res.body) {
+      try { await res.body.cancel(); } catch { /* ignore */ }
+    }
   } catch {
     // 무시 — 추적 실패가 사용자 요청에 영향 주지 않음
   }

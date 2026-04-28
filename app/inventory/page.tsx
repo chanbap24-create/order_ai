@@ -89,6 +89,7 @@ export default function InventoryPage() {
   const search = useInventorySearch({
     activeTab,
     importScheduleMap: importSchedule.importScheduleMap,
+    tastingNoteSet: tastingModal.tastingNoteSet,
     onCheckTastingNote: tastingModal.markAvailable,
   });
 

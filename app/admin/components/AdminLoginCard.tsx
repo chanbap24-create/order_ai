@@ -44,6 +44,7 @@ export default function AdminLoginCard(p: Props) {
         {!p.mfaRequired && (
           <input
             type="password"
+            autoComplete="current-password"
             value={p.pin}
             onChange={e => { p.setPin(e.target.value); p.setError(false); }}
             onKeyDown={e => { if (e.key === 'Enter') p.onLogin(); }}
@@ -61,6 +62,7 @@ export default function AdminLoginCard(p: Props) {
         {p.mfaRequired && (
           <input
             type="text"
+            autoComplete={p.useBackupCode ? 'off' : 'one-time-code'}
             inputMode={p.useBackupCode ? 'text' : 'numeric'}
             value={p.mfaCode}
             onChange={e => { p.setMfaCode(e.target.value); p.setMfaError(''); }}

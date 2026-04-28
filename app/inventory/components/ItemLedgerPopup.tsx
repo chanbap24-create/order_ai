@@ -12,12 +12,18 @@ type Props = {
 };
 
 export function ItemLedgerPopup({ popup, warehouse }: Props) {
-  // body scroll lock while open
+  // body scroll lock while open. 동시 열린 모달이 있어도 race 없이 작동하도록 카운터.
   useEffect(() => {
     if (!popup.open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    const body = document.body;
+    const cur = Number(body.dataset.scrollLock || '0') + 1;
+    body.dataset.scrollLock = String(cur);
+    if (cur === 1) body.style.overflow = 'hidden';
+    return () => {
+      const next = Math.max(0, Number(body.dataset.scrollLock || '0') - 1);
+      body.dataset.scrollLock = String(next);
+      if (next === 0) body.style.overflow = '';
+    };
   }, [popup.open]);
 
   if (!popup.open) return null;

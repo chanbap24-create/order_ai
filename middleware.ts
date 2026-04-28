@@ -5,8 +5,13 @@ import { classifyFeature, trackFeatureUsage } from '@/app/lib/featureUsage';
 
 const SALES_COOKIE = 'sales_auth';
 const ADMIN_COOKIE = 'admin_auth';
-// AUTH_SECRET 우선. 폴백은 SUPABASE_SERVICE_ROLE_KEY (env.ts 경고). auth.ts와 동일해야 함.
+// AUTH_SECRET 우선. 폴백은 SUPABASE_SERVICE_ROLE_KEY (auth.ts와 동일해야 함).
+// 프로덕션에서 AUTH_SECRET 미설정 시 service-role-key 가 HMAC 키로 사용되는데,
+// 그 키가 별도 경로로 leak 되면 세션 위조까지 동시에 가능해지므로 부팅 시 경고.
 const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+if (!process.env.AUTH_SECRET && process.env.NODE_ENV === 'production') {
+  console.warn('[middleware] AUTH_SECRET not set in production — falling back to SUPABASE_SERVICE_ROLE_KEY. Set AUTH_SECRET to a separate random value.');
+}
 // 원격 동기화 에이전트용 bearer 토큰 (선택).
 const REMOTE_SYNC_TOKEN = process.env.REMOTE_SYNC_TOKEN || '';
 const SALES_MAX_AGE = 7 * 24 * 60 * 60 * 1000;  // 7일
@@ -215,10 +220,9 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
         event.waitUntil(trackFeatureUsage(payload.manager, feature));
       }
     }
-    const response = NextResponse.next();
-    response.headers.set('x-manager', payload.manager);
-    response.headers.set('x-role', payload.role || 'user');
-    return response;
+    // 응답 헤더에 매니저/역할 노출 금지 (브라우저/확장 leak 방지).
+    // 라우트는 getSession() 으로 세션 정보를 직접 읽으므로 헤더 미노출이 안전.
+    return NextResponse.next();
   }
 
   // ── 페이지 보호: 쿠키 없으면 /sales로 리다이렉트 ──

@@ -35,8 +35,10 @@ export async function GET(req: NextRequest) {
     const accessCheck = await requireClientAccess(clientCode, clientType as 'wine' | 'glass');
     if (accessCheck) return accessCheck;
 
-    // PostgREST 필터 인젝션 방지: .not('in', ...) 문자열에 사용되는 값 sanitize
-    const sanitizeCode = (v: string) => v.replace(/[(),."\\]/g, '');
+    // PostgREST 필터 인젝션 방지: 화이트리스트 정규식 + sibling code 도 동일 검증.
+    // 영숫자/언더스코어/하이픈만 허용 (isValidClientCode 와 동일 정책).
+    const CODE_RE = /^[A-Za-z0-9_-]{1,30}$/;
+    const sanitizeCode = (v: string) => CODE_RE.test(v) ? v : '';
     const safeClientCode = sanitizeCode(clientCode);
 
     const isGlass = clientType === 'glass';
@@ -51,12 +53,15 @@ export async function GET(req: NextRequest) {
 
     let clientName = clientInfo?.client_name || searchParams.get('client_name') || '';
 
-    // 같은 거래처명의 모든 코드 수집 (가벼운 테이블에서만)
-    const allCodes: string[] = [safeClientCode];
+    // 같은 거래처명의 모든 코드 수집 (가벼운 테이블에서만). sibling code 도 화이트리스트 통과 강제.
+    const allCodes: string[] = [safeClientCode].filter(Boolean);
     if (clientName) {
       const detailTable = isGlass ? 'glass_client_carryover' : 'client_details';
       const { data: siblings } = await supabase.from(detailTable).select('client_code').eq('client_name', clientName);
-      if (siblings) for (const s of siblings) if (!allCodes.includes(s.client_code)) allCodes.push(s.client_code);
+      if (siblings) for (const s of siblings) {
+        const c = sanitizeCode(s.client_code || '');
+        if (c && !allCodes.includes(c)) allCodes.push(c);
+      }
     }
 
     const batch = 1000;

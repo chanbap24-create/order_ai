@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Section, PctBar } from './featureUsage/parts';
 import {
   labelStyle, dateInput, selectStyle, chipBtn, primaryBtn,
@@ -19,7 +19,7 @@ export default function FeatureUsageTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true); setError('');
     try {
       const params = new URLSearchParams({ start, end });
@@ -33,12 +33,15 @@ export default function FeatureUsageTab() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, end, manager]);
+
+  // start/end 동시 변경(quick range 버튼) 시 두 setState 가 두 번 fetch 트리거 → 200ms 디바운스
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => fetchData(), 200);
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, [fetchData]);
 
   // 매니저 × 기능 매트릭스
   const matrix = useMemo(() => {

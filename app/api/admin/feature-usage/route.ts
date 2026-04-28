@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { isValidDate } from '@/app/lib/validators';
+import { isValidDate, isValidManager } from '@/app/lib/validators';
 
 /**
  * GET /api/admin/feature-usage?start=YYYY-MM-DD&end=YYYY-MM-DD&manager=...
@@ -20,24 +20,28 @@ export async function GET(req: NextRequest) {
     if (start > end) {
       return NextResponse.json({ error: 'start must be <= end' }, { status: 400 });
     }
+    if (manager && !isValidManager(manager)) {
+      return NextResponse.json({ error: 'Invalid manager format' }, { status: 400 });
+    }
 
-    let q = supabase
-      .from('feature_usage_daily')
-      .select('usage_date, manager, feature, count, last_used_at')
-      .gte('usage_date', start)
-      .lte('usage_date', end)
-      .order('usage_date', { ascending: false })
-      .order('count', { ascending: false });
-
-    if (manager) q = q.eq('manager', manager);
-
-    // 페이지네이션 (안전상한)
+    // 페이지네이션 — 매 반복 새 빌더 인스턴스 생성 (supabase-js 빌더 재사용 시 누적/미실행 가능)
     type RowT = { usage_date: string; manager: string; feature: string; count: number; last_used_at: string };
     const rows: RowT[] = [];
     let from = 0;
     const batch = 1000;
+    const buildQuery = () => {
+      let q = supabase
+        .from('feature_usage_daily')
+        .select('usage_date, manager, feature, count, last_used_at')
+        .gte('usage_date', start)
+        .lte('usage_date', end)
+        .order('usage_date', { ascending: false })
+        .order('count', { ascending: false });
+      if (manager) q = q.eq('manager', manager);
+      return q;
+    };
     while (true) {
-      const { data, error } = await q.range(from, from + batch - 1);
+      const { data, error } = await buildQuery().range(from, from + batch - 1);
       if (error) throw error;
       if (!data || data.length === 0) break;
       rows.push(...data);

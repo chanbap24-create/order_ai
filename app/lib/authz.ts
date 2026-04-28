@@ -49,13 +49,10 @@ export async function canAccessClient(
 
     if (ship?.manager) return ship.manager === session.manager;
 
-    // 출고 이력이 없으면 glass_clients 등록 여부만 확인 (manager 컬럼 부재 → 허용)
-    const { data: gc } = await supabase
-      .from('glass_clients')
-      .select('client_code')
-      .eq('client_code', clientCode)
-      .maybeSingle();
-    return !!gc;
+    // 출고 이력이 없는 글라스 거래처(신규 등록 직후 등): default-deny.
+    // admin/executive 는 위에서 이미 통과했으므로 일반 user 가 신규 거래처 접근 시도하는 케이스.
+    // 매니저 부여 후 첫 출고가 발생하면 자동으로 통과됨.
+    return false;
   }
 
   if (clientType === 'wine') {

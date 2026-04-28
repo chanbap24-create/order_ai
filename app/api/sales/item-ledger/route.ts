@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSellingUnitPrice, getSellingTotal } from '@/app/lib/priceUtils';
 import { isValidItemNo, isValidDate } from '@/app/lib/validators';
+import { getManagerFilter } from '@/app/lib/authz';
+import { getSession } from '@/app/lib/auth';
 
 // GET: 품목별 판매현황 조회
 // ?item_no=XXX&start_date=2025-01-01&end_date=2026-02-28&warehouse=CDV
@@ -31,36 +33,52 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid warehouse (CDV|DL)' }, { status: 400 });
     }
 
+    // 인증/인가: 일반 user 는 본인 거래(manager) 만, admin/executive 는 전체 조회 가능
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    }
+    const managerFilter = await getManagerFilter(); // null = 전체
+
     const table = warehouse === 'DL' ? 'glass_shipments' : 'shipments';
 
-    // 출고 데이터 조회
-    const allRows: any[] = [];
-    let from = 0;
+    // 출고 페이지네이션 + wines 단건 조회를 병렬 실행
     const batch = 1000;
+    type ShipmentRow = {
+      ship_date: string; client_code: string; client_name: string; manager: string;
+      department: string; quantity: number; unit_price: number; selling_price: number;
+      supply_amount: number; tax_amount: number; total_amount: number;
+      item_name?: string;
+    };
+    const fetchAllShipments = async (): Promise<ShipmentRow[]> => {
+      const out: ShipmentRow[] = [];
+      let from = 0;
+      while (true) {
+        let query = supabase
+          .from(table)
+          .select('ship_date, client_code, client_name, manager, department, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount')
+          .eq('item_no', itemNo)
+          .gte('ship_date', startDate)
+          .lte('ship_date', endDate);
+        if (managerFilter) query = query.eq('manager', managerFilter);
+        query = query.order('ship_date', { ascending: true }).range(from, from + batch - 1);
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        out.push(...data);
+        if (data.length < batch) break;
+        from += batch;
+      }
+      return out;
+    };
+    const fetchWineInfo = async () =>
+      (await supabase
+        .from('wines')
+        .select('item_code, item_name_kr, item_name_en, vintage, country, region')
+        .eq('item_code', itemNo)
+        .maybeSingle()).data;
 
-    while (true) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('ship_date, client_code, client_name, manager, department, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount')
-        .eq('item_no', itemNo)
-        .gte('ship_date', startDate)
-        .lte('ship_date', endDate)
-        .order('ship_date', { ascending: true })
-        .range(from, from + batch - 1);
-
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-      allRows.push(...data);
-      if (data.length < batch) break;
-      from += batch;
-    }
-
-    // 품목 정보 (wines 테이블에서)
-    const { data: wineInfo } = await supabase
-      .from('wines')
-      .select('item_code, item_name_kr, item_name_en, vintage, country, region')
-      .eq('item_code', itemNo)
-      .maybeSingle();
+    const [allRows, wineInfo] = await Promise.all([fetchAllShipments(), fetchWineInfo()]);
 
     // 품목명 (shipments에서 가져오기)
     const itemName = allRows[0]?.item_name || wineInfo?.item_name_kr || itemNo;
