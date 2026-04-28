@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSellingUnitPrice, getSellingTotal } from '@/app/lib/priceUtils';
 import { isValidItemNo, isValidDate } from '@/app/lib/validators';
-import { getManagerFilter } from '@/app/lib/authz';
 import { getSession } from '@/app/lib/auth';
 
 // GET: 품목별 판매현황 조회
@@ -33,12 +32,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid warehouse (CDV|DL)' }, { status: 400 });
     }
 
-    // 인증/인가: 일반 user 는 본인 거래(manager) 만, admin/executive 는 전체 조회 가능
+    // 인증만 체크 — 품목별 판매현황은 회사 KPI 성격이라 매니저 무관 전수 조회 허용.
+    // (거래처별 매출처원장은 ledger route 에서 IDOR 방어 별도 적용 중)
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
-    const managerFilter = await getManagerFilter(); // null = 전체
 
     const table = warehouse === 'DL' ? 'glass_shipments' : 'shipments';
 
@@ -54,15 +53,14 @@ export async function GET(req: NextRequest) {
       const out: ShipmentRow[] = [];
       let from = 0;
       while (true) {
-        let query = supabase
+        const { data, error } = await supabase
           .from(table)
           .select('ship_date, client_code, client_name, manager, department, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount')
           .eq('item_no', itemNo)
           .gte('ship_date', startDate)
-          .lte('ship_date', endDate);
-        if (managerFilter) query = query.eq('manager', managerFilter);
-        query = query.order('ship_date', { ascending: true }).range(from, from + batch - 1);
-        const { data, error } = await query;
+          .lte('ship_date', endDate)
+          .order('ship_date', { ascending: true })
+          .range(from, from + batch - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
         out.push(...data);
