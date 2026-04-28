@@ -70,7 +70,13 @@ export function classifyFeature(method: string, pathname: string): string | null
 /**
  * fire-and-forget 카운터 증가. Edge에서 await 없이 호출되어 응답 지연 없음.
  * 실패해도 무시(추적은 best-effort).
+ *
+ * 서버 측 throttle: 같은 (date, manager, feature) 가 최근 THROTTLE_MS 내 다시
+ * 호출되면 last_used_at 만 갱신하고 count 는 증가시키지 않음. 페이지 로드 시
+ * 다발 fetch / 디바운스 검색 등에서도 "1 클릭 = 1 카운트" 보장.
  */
+const THROTTLE_MS = 3000; // 3초 윈도우 내 동일 (manager, feature) 중복 카운트 방지
+
 export async function trackFeatureUsage(manager: string, feature: string): Promise<void> {
   if (!SUPABASE_URL || !SERVICE_KEY || !manager || !feature) return;
   try {
@@ -86,6 +92,7 @@ export async function trackFeatureUsage(manager: string, feature: string): Promi
         p_date: todayKst(),
         p_manager: manager,
         p_feature: feature,
+        p_throttle_ms: THROTTLE_MS,
       }),
     });
   } catch {
