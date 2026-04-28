@@ -31,6 +31,8 @@ import { Header as InventoryHeader } from './components/Header';
 import { InventorySearchPanel } from './components/InventorySearchPanel';
 import { DesktopSidebarContainer } from './components/DesktopSidebarContainer';
 import { MobileOverlays } from './components/MobileOverlays';
+import { ItemLedgerPopup } from './components/ItemLedgerPopup';
+import { useItemLedgerPopup } from './hooks/useItemLedgerPopup';
 import { useServerPreferences } from './hooks/useServerPreferences';
 import { useInventoryPreferences } from './hooks/useInventoryPreferences';
 import { useTabSwitch } from './hooks/useTabSwitch';
@@ -65,6 +67,7 @@ export default function InventoryPage() {
   const { quoteManager, getManagerParam } = useQuoteManager();
   const importSchedule = useImportSchedule();
   const tastingModal = useTastingNoteModal();
+  const itemLedgerPopup = useItemLedgerPopup({ warehouse: activeTab });
 
   const quote = useQuoteItems({ quoteManager, getManagerParam });
   const layout = useInventoryLayout({ bottomSheetItem: quote.bottomSheetItem });
@@ -226,6 +229,7 @@ export default function InventoryPage() {
               importSchedule={importSchedule}
               addedItemNo={quote.addedItemNo}
               onAddToQuote={addToQuoteAndOpen}
+              onLongPressItem={itemLedgerPopup.openFor}
               renderCellValue={renderInvCellValueLib}
             />
           </div>
@@ -277,6 +281,7 @@ export default function InventoryPage() {
         />
       </div>
 
+      <ItemLedgerPopup popup={itemLedgerPopup} warehouse={activeTab} />
       <TastingNoteModal
         open={tastingModal.showTastingNote}
         onClose={tastingModal.close}

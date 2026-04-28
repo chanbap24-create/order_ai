@@ -39,6 +39,7 @@ type Props = {
   importSchedule: ReturnType<typeof useImportSchedule>;
   addedItemNo: string | null;
   onAddToQuote: (inv: InventoryItem) => Promise<void> | void;
+  onLongPressItem?: (itemNo: string, itemName: string) => void;
   renderCellValue: (item: InventoryItem, key: InvColumnKey) => any;
 };
 
@@ -104,6 +105,7 @@ export function InventorySearchPanel(p: Props) {
           onTastingNoteClick={p.tastingModal.openFor}
           onToggleImportPopup={p.importSchedule.setShowImportPopup}
           onAddToQuote={p.onAddToQuote}
+          onLongPressItem={p.onLongPressItem}
           renderCellValue={p.renderCellValue}
         />
       )}
