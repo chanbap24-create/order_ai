@@ -25,7 +25,8 @@ export function useTastingNoteModal() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch("/api/tasting-notes");
+        // 인덱스 사전 로드 — 사용자 액션 아니므로 추적 제외
+        const r = await fetch("/api/tasting-notes", { headers: { 'X-Track-Skip': '1' } });
         const data = await r.json();
         if (data.success && data.notes) {
           const s = new Set<string>();

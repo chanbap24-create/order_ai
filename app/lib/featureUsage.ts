@@ -46,9 +46,10 @@ export function classifyFeature(method: string, pathname: string): string | null
   if (pathname.startsWith('/api/sales/recommend')) return 'AI추천';
   if (pathname.startsWith('/api/sales')) return '세일즈기타';
 
-  // ─ 재고/검색 ─
-  if (pathname.startsWith('/api/inventory/search')) return '재고검색';
-  if (pathname.startsWith('/api/inventory')) return '재고조회';
+  // ─ 인벤토리/재고 ─
+  if (pathname.startsWith('/api/inventory/search')) return '인벤토리검색';
+  if (pathname.startsWith('/api/inventory/countries')) return null; // 백그라운드 메타
+  if (pathname.startsWith('/api/inventory')) return '인벤토리조회';
 
   // ─ 발주/견적 ─
   if (pathname.startsWith('/api/parse-order') || pathname.startsWith('/api/parse-glass-order')) return '발주파싱';

@@ -1,7 +1,7 @@
-/** 테이스팅 노트 인덱스: { item_no: true } 맵 */
+/** 테이스팅 노트 인덱스: { item_no: true } 맵 — 사용자 액션 아니므로 추적 제외 */
 export async function fetchTastingNoteIndex(): Promise<Record<string, boolean>> {
   try {
-    const res = await fetch("/api/tasting-notes");
+    const res = await fetch("/api/tasting-notes", { headers: { 'X-Track-Skip': '1' } });
     const json = await res.json();
     return json.available || {};
   } catch {

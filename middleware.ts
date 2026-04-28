@@ -13,12 +13,6 @@ const SALES_MAX_AGE = 7 * 24 * 60 * 60 * 1000;  // 7일
 const ADMIN_MAX_AGE = 24 * 60 * 60 * 1000;       // 24시간
 
 // --- base64url helpers (Edge Runtime) ---
-function base64urlDecode(b64url: string): string {
-  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
-  return atob(b64 + pad);
-}
-
 function base64urlToUint8Array(b64url: string): Uint8Array {
   const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
   const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
@@ -26,6 +20,11 @@ function base64urlToUint8Array(b64url: string): Uint8Array {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
+}
+
+// payload(JSON) 디코드. atob만 쓰면 UTF-8 멀티바이트(한글 등)가 latin-1로 오역됨 → TextDecoder 필수.
+function base64urlDecodeUtf8(b64url: string): string {
+  return new TextDecoder('utf-8').decode(base64urlToUint8Array(b64url));
 }
 
 // --- HMAC-SHA256 token verification (Web Crypto API) ---
@@ -45,7 +44,7 @@ async function verifyToken(token: string): Promise<{ manager?: string; role?: st
     const sigBytes = base64urlToUint8Array(sig);
     const valid = await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(b64));
     if (!valid) return null;
-    return JSON.parse(base64urlDecode(b64));
+    return JSON.parse(base64urlDecodeUtf8(b64));
   } catch {
     return null;
   }
@@ -137,13 +136,15 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // ── /api/forecast/* → 공개 (읽기 전용 통계) ──
-  if (pathname.startsWith('/api/forecast')) {
-    return NextResponse.next();
-  }
-
-  // ── /api/marketing/* → 공개 (읽기 전용 분석) ──
-  if (pathname.startsWith('/api/marketing')) {
+  // ── /api/forecast/* + /api/marketing/* → 인증 비강제. 단, 토큰 있으면 사용량 추적 ──
+  if (pathname.startsWith('/api/forecast') || pathname.startsWith('/api/marketing')) {
+    if (request.headers.get('x-track-skip') !== '1') {
+      const { valid: v2, payload: p2 } = await verifySalesToken(request);
+      if (v2 && p2?.manager) {
+        const f = classifyFeature(request.method, pathname);
+        if (f) event.waitUntil(trackFeatureUsage(p2.manager, f));
+      }
+    }
     return NextResponse.next();
   }
 
@@ -207,9 +208,12 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
     // 사용량 추적 (best-effort, fire-and-forget)
-    const feature = classifyFeature(request.method, pathname);
-    if (feature && payload.manager) {
-      event.waitUntil(trackFeatureUsage(payload.manager, feature));
+    // X-Track-Skip 헤더가 있으면 추적 제외 (배경 가용성 체크 같은 부수 호출용).
+    if (request.headers.get('x-track-skip') !== '1') {
+      const feature = classifyFeature(request.method, pathname);
+      if (feature && payload.manager) {
+        event.waitUntil(trackFeatureUsage(payload.manager, feature));
+      }
     }
     const response = NextResponse.next();
     response.headers.set('x-manager', payload.manager);
@@ -229,7 +233,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // 페이로드에 manager 필드가 있는지 기본 확인
   try {
     const b64 = token.split('.')[0];
-    const payload = JSON.parse(base64urlDecode(b64));
+    const payload = JSON.parse(base64urlDecodeUtf8(b64));
     if (!payload.manager) {
       const res = NextResponse.redirect(new URL('/sales', request.url));
       res.headers.set('Cache-Control', NO_CACHE);

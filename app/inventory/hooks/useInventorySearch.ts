@@ -172,8 +172,11 @@ export function useInventorySearch(p: Params) {
 
       setResults(items);
       if (p.activeTab === "CDV") {
+        // 가용성 체크는 사용자가 직접 누른 게 아니므로 사용량 카운터 제외 (X-Track-Skip)
         items.forEach((item) => {
-          fetch(`/api/tasting-notes?item_no=${item.item_no}`)
+          fetch(`/api/tasting-notes?item_no=${item.item_no}`, {
+            headers: { 'X-Track-Skip': '1' },
+          })
             .then((res) => res.json())
             .then((d) => {
               if (d.success) p.onCheckTastingNote(item.item_no);
