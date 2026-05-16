@@ -36,6 +36,18 @@ export function PageStyles() {
       .order-line-card:hover { border-color: rgba(90,21,21,0.12) !important; }
       .order-qty-btn:hover { background: rgba(90,21,21,0.04) !important; border-color: rgba(90,21,21,0.2) !important; }
       .order-history-row:hover { background: rgba(90,21,21,0.02) !important; }
+      /* 발주 원문 vs 발주 메시지 좌우 비교 grid (모바일에서 1열로 폴백) */
+      .order-compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items: stretch;
+      }
+      .order-compare-grid > * { margin-bottom: 0 !important; }
+      @media (max-width: 720px) {
+        .order-compare-grid { grid-template-columns: 1fr; gap: 0; }
+        .order-compare-grid > * { margin-bottom: 12px !important; }
+      }
     `}</style>
   );
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getClaudeClient } from '@/app/lib/claudeClient';
 import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
+import { reviewOrderLines } from '@/app/lib/orderReviewer';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -94,6 +95,11 @@ ${isRestaurantClient ? '- ★ 이 거래처는 업장(레스토랑/바)입니다
 - 약어/줄임말 해석 (퍼포→퍼포먼스, 카베→카베르네, 피노→피노누아, 샴페→샴페인, 샤도→샤르도네, 소블→소비뇽 블랑, 시라→시라/시라즈, 리슬→리슬링)
 - confidence: 0.9+=확실, 0.7~0.9=높음, 0.5~0.7=중간, <0.5=불확실
 
+★ Self-Check 단계 (반드시 수행):
+  1) 각 라인의 모델번호(XXXX/XX)가 1순위 후보의 item_name에 정확히 포함되는지 재확인
+  2) 포함 안 되면 후보 재배치 또는 confidence 하향
+  3) reasoning 끝에 [self-check OK] 또는 [self-check 재배치: 사유] 명시
+
 거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
 ${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
 글라스리스트(품번|품명):
@@ -113,6 +119,12 @@ JSON배열만 응답. 텍스트 없이. item_no는 글라스리스트에 있는 
 - 색상 구분 필수: 블랑코/브랑코/비앙코/blanc/branco/bianco=화이트, 틴토/로쏘/rouge/rosso/tinto=레드, 로제/rosé/rosato=로제. 색상이 명시되면 반드시 해당 색상 와인 우선
 - 2nd/전시 버전은 후보에서 제외
 - confidence: 0.9+=확실, 0.7~0.9=높음, 0.5~0.7=중간, <0.5=불확실
+
+★ Self-Check 단계 (반드시 수행, 추가 호출 아님 — 같은 응답 내):
+  1) 1차 매칭 후, 각 라인마다 "원문의 핵심 키워드"가 1순위 후보의 item_name에 포함되는지 직접 확인
+  2) 포함 안 되면 2~5순위 중 키워드가 포함된 후보를 1순위로 올림 (또는 confidence 하향)
+  3) 색상/빈티지/생산자가 원문과 정확히 일치하는지 한 번 더 검토
+  4) reasoning 끝에 [self-check OK] 또는 [self-check 재배치: 사유] 명시
 
 거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
 ${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
@@ -251,6 +263,10 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       }
     }
 
+    // ── 로컬 검수 에이전트: item_alias + 키워드 매칭 + 입고 이력 가중치로 후보 재점수 ──
+    // 추가 LLM 호출 없음. swap 발생 시 review_note에 사유 남김
+    const reviewResult = await reviewOrderLines(orderLines, historySet);
+
     const usage = {
       input_tokens: response.usage?.input_tokens || 0,
       output_tokens: response.usage?.output_tokens || 0,
@@ -262,6 +278,10 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       model: MODEL,
       client: { client_code, client_name },
       historyItemNos,
+      review: {
+        swapCount: reviewResult.swapCount,
+        warnCount: reviewResult.warnCount,
+      },
     });
   } catch (error: any) {
     console.error('Order v2 parse error:', error);

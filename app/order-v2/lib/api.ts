@@ -87,6 +87,7 @@ export async function parseOrder(params: {
     ...(ol.qty_warning
       ? { qty_warning: ol.qty_warning, qty_original_llm: ol.qty_original_llm }
       : {}),
+    ...(ol.review_note ? { review_note: ol.review_note } : {}),
   }));
 
   return {

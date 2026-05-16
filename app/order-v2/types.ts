@@ -28,6 +28,8 @@ export interface OrderLine {
   qty_warning?: string;
   /** LLM이 원래 반환한 수량 (보정 전) */
   qty_original_llm?: number;
+  /** 로컬 검수 에이전트가 1순위 변경/의심 표시한 사유 (있으면 UI에 뱃지 노출) */
+  review_note?: string;
 }
 
 export interface SearchResult {

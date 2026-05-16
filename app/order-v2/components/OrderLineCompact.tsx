@@ -69,6 +69,7 @@ export function OrderLineCompact({ line, tab, isExpanded, onToggle }: Props) {
             alignItems: "center",
             gap: 4,
             marginTop: 1,
+            flexWrap: "wrap",
           }}
         >
           {sel?.item_no || ""} · &quot;{line.query}&quot;
@@ -86,6 +87,7 @@ export function OrderLineCompact({ line, tab, isExpanded, onToggle }: Props) {
               입고
             </span>
           )}
+          {line.review_note && <ReviewBadge note={line.review_note} />}
         </span>
       </div>
 
@@ -120,6 +122,32 @@ export function OrderLineCompact({ line, tab, isExpanded, onToggle }: Props) {
 
       {sel && <ConfidenceBadge confidence={sel.confidence} />}
     </div>
+  );
+}
+
+function ReviewBadge({ note }: { note: string }) {
+  // ⚠로 시작하면 의심 표시(주황), 그 외는 검수 변경(보라)
+  const isWarn = note.startsWith("⚠");
+  const color = isWarn ? "#b45309" : "#5b21b6";
+  const bg = isWarn ? "#fef3c7" : "#ede9fe";
+  return (
+    <span
+      title={note}
+      style={{
+        fontSize: 8,
+        fontWeight: 700,
+        color,
+        background: bg,
+        padding: "0px 5px",
+        borderRadius: 3,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        maxWidth: 220,
+      }}
+    >
+      {note}
+    </span>
   );
 }
 

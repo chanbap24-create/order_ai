@@ -12,6 +12,7 @@ import {
   resolveDiscountChange,
 } from "./components/OrderLineCard";
 import { OrderTextareaSection } from "./components/OrderTextareaSection";
+import { OriginalTextCard } from "./components/OriginalTextCard";
 import { PageHeader } from "./components/PageHeader";
 import { PageStyles } from "./components/PageStyles";
 import { StaffMessageCard } from "./components/StaffMessageCard";
@@ -142,11 +143,14 @@ export default function OrderV2Page() {
               setDeliveryNotes={setDeliveryNotes}
             />
 
-            <StaffMessageCard
-              staffMessage={g.staffMessage}
-              copied={copied}
-              onCopy={g.copyMessage}
-            />
+            <div className="order-compare-grid" style={{ marginBottom: 16 }}>
+              <OriginalTextCard orderText={orderText} />
+              <StaffMessageCard
+                staffMessage={g.staffMessage}
+                copied={copied}
+                onCopy={g.copyMessage}
+              />
+            </div>
 
             <ItemListSection count={parse.orderLines.length}>
               {parse.orderLines.map((ol, lineIdx) => {
