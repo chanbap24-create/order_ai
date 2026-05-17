@@ -83,9 +83,19 @@ export async function GET(request: NextRequest) {
     const company = request.nextUrl.searchParams.get('company') || 'CDV';
 
     // columns 파라미터가 없으면 전체 열 표시 (기본 세트)
-    const activeCols = visibleColumns.length > 0
-      ? ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || visibleColumns.includes(c.uiKey))
-      : ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || !['retail_normal_total', 'retail_discount_total'].includes(c.uiKey || ''));
+    // 있으면 사용자가 ◀▶로 지정한 visibleColumns 배열 순서대로 출력.
+    // No.(uiKey=null) 같이 항상 표시되는 컬럼은 항상 맨 앞 고정.
+    let activeCols;
+    if (visibleColumns.length > 0) {
+      const alwaysShown = ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null);
+      const colMap = new Map(ALL_EXCEL_COLUMNS.map(c => [c.uiKey, c]));
+      const orderedUserCols = visibleColumns
+        .map(k => colMap.get(k))
+        .filter((c): c is typeof ALL_EXCEL_COLUMNS[number] => Boolean(c) && c!.uiKey !== null);
+      activeCols = [...alwaysShown, ...orderedUserCols];
+    } else {
+      activeCols = ALL_EXCEL_COLUMNS.filter(c => c.uiKey === null || !['retail_normal_total', 'retail_discount_total'].includes(c.uiKey || ''));
+    }
 
     // 이미지 일괄 prefetch + tasting-note 인덱스를 병렬 로드.
     // items 목록 기준 itemCodes 로 bottle_images 한 번에 조회 후 파일 병렬 읽기.
