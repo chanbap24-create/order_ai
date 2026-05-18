@@ -49,9 +49,27 @@ export async function canAccessClient(
 
     if (ship?.manager) return ship.manager === session.manager;
 
-    // 출고 이력이 없는 글라스 거래처(신규 등록 직후 등): default-deny.
-    // admin/executive 는 위에서 이미 통과했으므로 일반 user 가 신규 거래처 접근 시도하는 케이스.
-    // 매니저 부여 후 첫 출고가 발생하면 자동으로 통과됨.
+    // 출고 이력이 없는 글라스 거래처(신규 등록 직후 등): 거래명세표가 아직 업로드
+    // 되지 않은 상태이므로 마스터 데이터의 담당자란을 fallback 으로 사용.
+    //  ① client_details.manager — 거래명세표 업데이트 시 입력하는 담당자란
+    //  ② glass_client_carryover.manager — 이월 미수금 업로드 시 함께 들어가는 매니저
+    const { data: detail } = await supabase
+      .from('client_details')
+      .select('manager')
+      .eq('client_code', clientCode)
+      .not('manager', 'is', null)
+      .maybeSingle();
+    if (detail?.manager) return detail.manager === session.manager;
+
+    const { data: carry } = await supabase
+      .from('glass_client_carryover')
+      .select('manager')
+      .eq('client_code', clientCode)
+      .not('manager', 'is', null)
+      .maybeSingle();
+    if (carry?.manager) return carry.manager === session.manager;
+
+    // 어느 소스에도 담당자 정보가 없는 신규 거래처: default-deny.
     return false;
   }
 
