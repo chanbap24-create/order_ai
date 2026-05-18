@@ -66,11 +66,20 @@ export async function GET(request: NextRequest) {
       barcode: barcodeMap[String(q.item_code)] || null,
     }));
 
-    // Visible columns
+    // Visible columns — JSON.parse 후 형/길이 가드로 DoS·이상 입력 차단
     const columnsParam = request.nextUrl.searchParams.get('columns');
     let visibleColumns: string[] = [];
     if (columnsParam) {
-      try { visibleColumns = JSON.parse(columnsParam); } catch {}
+      try {
+        const parsed = JSON.parse(columnsParam);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length <= 50 &&
+          parsed.every((x) => typeof x === 'string' && x.length <= 60)
+        ) {
+          visibleColumns = parsed;
+        }
+      } catch {}
     }
 
     // Doc settings

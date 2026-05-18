@@ -77,29 +77,40 @@ async function getAliasMap(): Promise<AliasMap> {
 /**
  * query 텍스트에 포함된 모든 alias의 canonical을 수집.
  * 긴 alias부터 매칭해서 부분 alias로 인한 오매칭 방지.
- * 반환: { itemNos: 매칭된 품번들, names: 매칭된 텍스트 canonical들 }
+ *
+ * 2글자 alias(예: "샤도")는 다른 와인명에 우연히 부분 포함될 확률이 크므로
+ * 별도 "weak" 집합으로 분리해 가중치를 낮춘다 (false positive 방어).
  */
+const SHORT_ALIAS_LEN = 2; // 2글자 = weak, 3글자+ = strong
+
 function findAliasHits(
   query: string,
   aliasMap: AliasMap,
-): { itemNos: Set<string>; names: string[] } {
+): {
+  strongItemNos: Set<string>;
+  weakItemNos: Set<string>;
+  strongNames: string[];
+  weakNames: string[];
+} {
   const q = (query || "").toLowerCase();
-  const itemNos = new Set<string>();
-  const names: string[] = [];
-  if (!q) return { itemNos, names };
+  const strongItemNos = new Set<string>();
+  const weakItemNos = new Set<string>();
+  const strongNames: string[] = [];
+  const weakNames: string[] = [];
+  if (!q) return { strongItemNos, weakItemNos, strongNames, weakNames };
   for (const alias of aliasMap.aliasesSorted) {
     if (alias.length < 2) continue;
-    if (q.includes(alias)) {
-      const canonical = aliasMap.byAlias.get(alias);
-      if (!canonical) continue;
-      if (isItemNoFormat(canonical)) {
-        itemNos.add(canonical.toUpperCase());
-      } else {
-        names.push(canonical.toLowerCase());
-      }
+    if (!q.includes(alias)) continue;
+    const canonical = aliasMap.byAlias.get(alias);
+    if (!canonical) continue;
+    const isWeak = alias.length <= SHORT_ALIAS_LEN;
+    if (isItemNoFormat(canonical)) {
+      (isWeak ? weakItemNos : strongItemNos).add(canonical.toUpperCase());
+    } else {
+      (isWeak ? weakNames : strongNames).push(canonical.toLowerCase());
     }
   }
-  return { itemNos, names };
+  return { strongItemNos, weakItemNos, strongNames, weakNames };
 }
 
 // ────────────────────────────────────────────────
@@ -163,7 +174,11 @@ export async function reviewOrderLines<T extends ReviewerOrderLine>(
 
     const queryKeywords = extractKeywords(line.query || "");
     const aliasHits = findAliasHits(line.query || "", aliasMap);
-    const hasAliasMatch = aliasHits.itemNos.size > 0 || aliasHits.names.length > 0;
+    const hasStrongAlias =
+      aliasHits.strongItemNos.size > 0 || aliasHits.strongNames.length > 0;
+    const hasWeakAlias =
+      aliasHits.weakItemNos.size > 0 || aliasHits.weakNames.length > 0;
+    const hasAliasMatch = hasStrongAlias || hasWeakAlias;
 
     if (queryKeywords.length === 0 && !hasAliasMatch) continue;
 
@@ -174,18 +189,25 @@ export async function reviewOrderLines<T extends ReviewerOrderLine>(
       const overlap = keywordOverlap(queryKeywords, c.item_name || "");
       const inHistory = historySet.has(itemNo);
 
-      // alias 매칭 — 가장 강력한 신호 (사용자가 등록한 정확한 매핑)
-      const aliasItemNoHit = aliasHits.itemNos.has(itemNo);
-      const aliasNameHit = aliasHits.names.some((n) => name.includes(n));
-      const aliasHit = aliasItemNoHit || aliasNameHit;
+      // alias 매칭 — strong(3글자+)는 압도적, weak(2글자)는 false positive 가능성 있어 약하게
+      const aliasStrong =
+        aliasHits.strongItemNos.has(itemNo) ||
+        aliasHits.strongNames.some((n) => name.includes(n));
+      const aliasWeak =
+        aliasHits.weakItemNos.has(itemNo) ||
+        aliasHits.weakNames.some((n) => name.includes(n));
+      const aliasHit = aliasStrong || aliasWeak;
+      const aliasItemNoHit =
+        aliasHits.strongItemNos.has(itemNo) || aliasHits.weakItemNos.has(itemNo);
+      const aliasBonus = aliasStrong ? 0.45 : aliasWeak ? 0.2 : 0;
 
       const baseConfidence = Number(c.confidence) || 0;
       const reviewed =
         baseConfidence +
-        (aliasHit ? 0.45 : 0) + // alias 직접 매칭 — 압도적 가중치
+        aliasBonus + // alias 매칭 (strong/weak 차등)
         0.2 * overlap + // 키워드 overlap
         (inHistory ? 0.08 : 0); // 입고 이력
-      return { idx, reviewed, overlap, inHistory, aliasHit, aliasItemNoHit };
+      return { idx, reviewed, overlap, inHistory, aliasHit, aliasStrong, aliasItemNoHit };
     });
 
     // reviewed 가장 높은 후보 찾기
@@ -193,8 +215,9 @@ export async function reviewOrderLines<T extends ReviewerOrderLine>(
     const top = sorted[0];
     const origTop = scored[0]; // 원래 1순위
 
-    // 케이스 A: alias 히트가 있는 후보가 1순위가 아니면 강제 swap (margin 무시)
-    if (top.idx !== 0 && top.aliasHit && !origTop.aliasHit) {
+    // 케이스 A: strong alias 히트가 있는 후보가 1순위가 아니면 강제 swap (margin 무시)
+    // weak alias(2글자)는 false positive 가능성 있어 케이스 B의 margin 검증을 거침
+    if (top.idx !== 0 && top.aliasStrong && !origTop.aliasStrong) {
       const swapped = line.candidates[top.idx];
       line.candidates.splice(top.idx, 1);
       line.candidates.unshift(swapped);
@@ -226,10 +249,12 @@ export async function reviewOrderLines<T extends ReviewerOrderLine>(
       continue;
     }
 
-    // 케이스 C: alias 히트 자체가 어느 후보에도 없는데 query에 alias로 매핑된 표현이 있음
-    // → 후보 5개가 모두 alias 외 와인이라는 뜻 → 의심 표시
-    if (hasAliasMatch && !sorted.some((s) => s.aliasHit)) {
-      line.review_note = `⚠ 별칭(${aliasHits.itemNos.size + aliasHits.names.length}개)이 후보에 없음`;
+    // 케이스 C: strong alias 매핑이 있는데 어느 후보도 매칭 안 됨 → 의심
+    // (weak alias 단독은 false positive 가능성 때문에 워닝 트리거 안 함)
+    if (hasStrongAlias && !sorted.some((s) => s.aliasStrong)) {
+      const aliasCount =
+        aliasHits.strongItemNos.size + aliasHits.strongNames.length;
+      line.review_note = `⚠ 별칭(${aliasCount}개)이 후보에 없음`;
       warnCount++;
       continue;
     }
