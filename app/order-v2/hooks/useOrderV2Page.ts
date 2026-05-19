@@ -8,7 +8,7 @@ import {
   setSelectedSupplyPrice,
 } from "../lib/lineOps";
 import { buildStaffMessage } from "../lib/staffMessage";
-import type { OrderTab, SearchResult } from "../types";
+import type { HistoryItem, OrderLine, OrderTab, SearchResult } from "../types";
 import { useAutoPaste } from "./useAutoPaste";
 import { useClientHistory } from "./useClientHistory";
 import { useClientSearch } from "./useClientSearch";
@@ -99,6 +99,40 @@ export function useOrderV2Page() {
   const updatePrice = (lineIdx: number, price: number) =>
     parse.setOrderLines((prev) => setSelectedSupplyPrice(prev, lineIdx, price));
 
+  /**
+   * 입고내역 row 클릭 시 발주 라인으로 직접 추가.
+   * parse 없이도 즉시 라인이 생기고 selectedIdx=0 으로 확정 상태.
+   * 동일 item_no 가 이미 있으면 수량만 +1.
+   */
+  const addLineFromHistory = (item: HistoryItem) => {
+    parse.setOrderLines((prev) => {
+      const existing = prev.findIndex(
+        (ol) => ol.candidates[ol.selectedIdx]?.item_no === item.item_no,
+      );
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = { ...next[existing], quantity: next[existing].quantity + 1 };
+        return next;
+      }
+      const newLine: OrderLine = {
+        query: item.item_name,
+        quantity: 1,
+        candidates: [
+          {
+            item_no: item.item_no,
+            item_name: item.item_name,
+            confidence: 1,
+            supply_price: item.supply_price || 0,
+            available_stock: 0,
+            reasoning: "입고내역에서 직접 추가",
+          },
+        ],
+        selectedIdx: 0,
+      };
+      return [...prev, newLine];
+    });
+  };
+
   // 직원 메시지 빌드
   const staffMessage = buildStaffMessage({
     orderLines: parse.orderLines,
@@ -164,5 +198,6 @@ export function useOrderV2Page() {
     removeLine,
     updateQty,
     updatePrice,
+    addLineFromHistory,
   };
 }

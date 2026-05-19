@@ -99,6 +99,7 @@ export default function OrderV2Page() {
               showOld={history.showOld}
               setShowOld={history.setShowOld}
               toggle={history.toggle}
+              onPickItem={g.addLineFromHistory}
             />
           )}
 

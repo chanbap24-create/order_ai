@@ -13,6 +13,8 @@ type Props = {
   showOld: boolean;
   setShowOld: (v: boolean | ((p: boolean) => boolean)) => void;
   toggle: () => void;
+  /** 행 클릭 시 해당 품목을 발주 라인으로 추가 (선택적) */
+  onPickItem?: (item: HistoryItem) => void;
 };
 
 /** 거래처 입고내역 (최근 1년 + 1년 이전 접기/펼치기) */
@@ -25,6 +27,7 @@ export function ClientHistorySection({
   showOld,
   setShowOld,
   toggle,
+  onPickItem,
 }: Props) {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -91,7 +94,7 @@ export function ClientHistorySection({
             <>
               <div style={{ maxHeight: 300, overflowY: "auto" }}>
                 {recentItems.length > 0 ? (
-                  <HistoryTable tab={tab} items={recentItems} />
+                  <HistoryTable tab={tab} items={recentItems} onPickItem={onPickItem} />
                 ) : (
                   <div style={{ padding: 14, textAlign: "center", fontSize: 12, color: "#b8b0a8" }}>
                     최근 1년 내 입고내역 없음
@@ -121,7 +124,7 @@ export function ClientHistorySection({
                   </button>
                   {showOld && (
                     <div style={{ maxHeight: 250, overflowY: "auto" }}>
-                      <HistoryTable tab={tab} items={oldItems} />
+                      <HistoryTable tab={tab} items={oldItems} onPickItem={onPickItem} />
                     </div>
                   )}
                 </div>
@@ -150,7 +153,15 @@ function ChevronArrow({ open }: { open: boolean }) {
   );
 }
 
-function HistoryTable({ tab, items }: { tab: OrderTab; items: HistoryItem[] }) {
+function HistoryTable({
+  tab,
+  items,
+  onPickItem,
+}: {
+  tab: OrderTab;
+  items: HistoryItem[];
+  onPickItem?: (item: HistoryItem) => void;
+}) {
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
       <thead>
@@ -159,6 +170,7 @@ function HistoryTable({ tab, items }: { tab: OrderTab; items: HistoryItem[] }) {
           <Th align="right">공급가</Th>
           {tab === "CDV" && <Th align="right">횟수</Th>}
           <Th align="right">최근입고</Th>
+          {onPickItem && <Th align="right">추가</Th>}
         </tr>
       </thead>
       <tbody>
@@ -166,9 +178,12 @@ function HistoryTable({ tab, items }: { tab: OrderTab; items: HistoryItem[] }) {
           <tr
             key={i}
             className="order-history-row"
+            onClick={onPickItem ? () => onPickItem(h) : undefined}
+            title={onPickItem ? "클릭하면 발주 라인에 추가됩니다" : undefined}
             style={{
               borderBottom: "1px solid rgba(90,21,21,0.03)",
               transition: "background 0.15s ease",
+              cursor: onPickItem ? "pointer" : "default",
             }}
           >
             <td style={{ padding: "7px 12px", color: ORDER_COLORS.text }}>
@@ -212,6 +227,22 @@ function HistoryTable({ tab, items }: { tab: OrderTab; items: HistoryItem[] }) {
             >
               {h.last_ship_date ? h.last_ship_date.slice(0, 10) : "-"}
             </td>
+            {onPickItem && (
+              <td
+                style={{
+                  padding: "7px 12px",
+                  textAlign: "right",
+                  color: ORDER_COLORS.primary,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  width: 32,
+                }}
+                aria-hidden
+              >
+                +
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
