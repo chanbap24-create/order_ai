@@ -104,10 +104,7 @@ ${isRestaurantClient ? '- ★ 이 거래처는 업장(레스토랑/바)입니다
 - 약어/줄임말 해석 (퍼포→퍼포먼스, 카베→카베르네, 피노→피노누아, 샴페→샴페인, 샤도→샤르도네, 소블→소비뇽 블랑, 시라→시라/시라즈, 리슬→리슬링)
 - confidence: 0.9+=확실, 0.7~0.9=높음, 0.5~0.7=중간, <0.5=불확실
 
-★ Self-Check 단계 (반드시 수행):
-  1) 각 라인의 모델번호(XXXX/XX)가 1순위 후보의 item_name에 정확히 포함되는지 재확인
-  2) 포함 안 되면 후보 재배치 또는 confidence 하향
-  3) reasoning 끝에 [self-check OK] 또는 [self-check 재배치: 사유] 명시
+★ Self-Check: 1순위 후보의 item_name 에 모델번호(XXXX/XX) 포함 안 되면 후보 재배치.
 
 거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
 ${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
@@ -129,11 +126,7 @@ JSON배열만 응답. 텍스트 없이. item_no는 글라스리스트에 있는 
 - 2nd/전시 버전은 후보에서 제외
 - confidence: 0.9+=확실, 0.7~0.9=높음, 0.5~0.7=중간, <0.5=불확실
 
-★ Self-Check 단계 (반드시 수행, 추가 호출 아님 — 같은 응답 내):
-  1) 1차 매칭 후, 각 라인마다 "원문의 핵심 키워드"가 1순위 후보의 item_name에 포함되는지 직접 확인
-  2) 포함 안 되면 2~5순위 중 키워드가 포함된 후보를 1순위로 올림 (또는 confidence 하향)
-  3) 색상/빈티지/생산자가 원문과 정확히 일치하는지 한 번 더 검토
-  4) reasoning 끝에 [self-check OK] 또는 [self-check 재배치: 사유] 명시
+★ Self-Check: 원문 핵심 키워드/색상/빈티지가 1순위 후보 item_name 과 일치 안 하면 후보 재배치 또는 confidence 하향.
 
 거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
 ${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
@@ -155,7 +148,9 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       `<order_text>\n${order_text.trim()}\n</order_text>`;
     const response = await claude.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      // 4096 으로는 self-check + 후보 5개 출력 시 일부 케이스에서 truncate 되어
+      // JSON 닫힘 ']' 이 사라지고 파싱 실패가 발생했음. 8192 로 여유 확보.
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [
         { role: 'user', content: wrappedUserContent }
@@ -169,16 +164,36 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       .join('');
 
     let parsed: any[] = [];
+    let parseError: string | null = null;
     try {
+      // 우선 정상 매칭. 응답이 잘려서 마지막 ']' 가 없는 경우엔
+      // 마지막 정상 후보 객체까지만 잘라 복구 시도.
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        // 닫힘 ']' 없는 케이스: 마지막 ',' 또는 '}' 직후까지 자르고 ']' 직접 보강
+        const start = text.indexOf('[');
+        if (start >= 0) {
+          const tail = text.slice(start);
+          const lastBrace = tail.lastIndexOf('}');
+          if (lastBrace > 0) {
+            const repaired = tail.slice(0, lastBrace + 1) + ']';
+            parsed = JSON.parse(repaired);
+            parseError = '응답이 잘려 일부 라인만 복구됨';
+          }
+        }
       }
-    } catch {
+    } catch (e) {
       return NextResponse.json({
         error: 'AI 응답을 파싱할 수 없습니다.',
         raw: text,
+        detail: e instanceof Error ? e.message : String(e),
+        stop_reason: response.stop_reason,
       }, { status: 500 });
+    }
+    if (parseError) {
+      console.warn('[order-v2/parse] partial recovery:', parseError, 'stop_reason:', response.stop_reason);
     }
 
     // 8. 와인맵으로 가격/재고 보강 (trim + 대소문자 무시)
