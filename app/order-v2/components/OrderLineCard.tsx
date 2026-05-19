@@ -114,6 +114,7 @@ export function OrderLineCard(p: Props) {
               containerRef={p.searchRef}
               onOpen={p.onOpenSearch}
               onPick={p.onPickSearch}
+              historySet={p.historySet}
             />
           </div>
 

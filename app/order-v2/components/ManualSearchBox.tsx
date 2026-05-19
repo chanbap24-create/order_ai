@@ -15,6 +15,8 @@ type Props = {
   containerRef: RefObject<HTMLDivElement | null>;
   onOpen: () => void;
   onPick: (wine: SearchResult) => void;
+  /** 거래처 입고 이력 (item_no 대문자 trim). 검색 결과 row 에 "구매" 배지 노출용. */
+  historySet?: Set<string>;
 };
 
 /** "직접 검색하여 변경" — 닫힘 시 링크, 열림 시 입력 + 결과 목록 */
@@ -27,6 +29,7 @@ export function ManualSearchBox({
   containerRef,
   onOpen,
   onPick,
+  historySet,
 }: Props) {
   return (
     <div
@@ -91,31 +94,62 @@ export function ManualSearchBox({
                 boxShadow: "0 8px 24px rgba(90,21,21,0.08)",
               }}
             >
-              {results.map((sr) => (
-                <button
-                  key={sr.item_no}
-                  onClick={() => onPick(sr)}
-                  className="order-search-item"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "8px 12px",
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    borderBottom: "1px solid rgba(90,21,21,0.03)",
-                    transition: "background 0.15s ease",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 600, color: ORDER_COLORS.text }}>
-                    {sr.item_name}
-                  </div>
-                  <div style={{ fontSize: 10, color: ORDER_COLORS.textMuted, marginTop: 2 }}>
-                    {sr.item_no} · 공급가 {fmt(sr.supply_price || 0)} · 재고 {sr.available_stock || 0}
-                  </div>
-                </button>
-              ))}
+              {results.map((sr) => {
+                const purchased = historySet?.has(
+                  (sr.item_no || "").trim().toUpperCase(),
+                );
+                return (
+                  <button
+                    key={sr.item_no}
+                    onClick={() => onPick(sr)}
+                    className="order-search-item"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      borderBottom: "1px solid rgba(90,21,21,0.03)",
+                      transition: "background 0.15s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: ORDER_COLORS.text,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 0 }}>{sr.item_name}</span>
+                      {purchased && (
+                        <span
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: "#5A1515",
+                            background: "rgba(90,21,21,0.08)",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                          title="이 거래처가 이전에 구매한 품목"
+                        >
+                          구매
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10, color: ORDER_COLORS.textMuted, marginTop: 2 }}>
+                      {sr.item_no} · 공급가 {fmt(sr.supply_price || 0)} · 재고 {sr.available_stock || 0}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
           {query && !loading && results.length === 0 && (
