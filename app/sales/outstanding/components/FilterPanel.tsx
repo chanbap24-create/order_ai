@@ -12,6 +12,10 @@ type Props = {
   onEndDateChange: (v: string) => void;
   onTypeChange: (t: OutstandingType) => void;
   onSearch: () => void;
+  /** isAdmin/sales_admin 만 매니저 드롭다운 노출. 일반 user 에겐 undefined */
+  managers?: string[];
+  selectedManager?: string;
+  onManagerChange?: (m: string) => void;
 };
 
 export function FilterPanel(p: Props) {
@@ -24,6 +28,20 @@ export function FilterPanel(p: Props) {
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {p.managers && p.managers.length > 0 && p.onManagerChange && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580' }}>담당자</label>
+            <select
+              value={p.selectedManager || ''}
+              onChange={e => p.onManagerChange?.(e.target.value)}
+              style={{ ...dateInput, paddingRight: 32 }}
+            >
+              {p.managers.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#8a8580' }}>시작일</label>
           <input type="date" value={p.startDate} onChange={e => p.onStartDateChange(e.target.value)} style={dateInput} />

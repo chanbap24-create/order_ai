@@ -10,15 +10,23 @@ import { OutstandingTable } from '../outstanding/components/OutstandingTable';
 import { ExportButtons } from '../outstanding/components/ExportButtons';
 import { exportSummaryExcel } from '../outstanding/lib/summaryExcel';
 
-type Props = { currentManager: string; isAdmin: boolean };
+type Props = {
+  currentManager: string;
+  isAdmin: boolean;
+  /** isAdmin 인 경우 다른 매니저 미수도 볼 수 있도록 드롭다운에 넣을 매니저 목록 */
+  initialManagers?: string[];
+};
 
-export default function OutstandingTab({ currentManager, isAdmin: _isAdmin }: Props) {
+export default function OutstandingTab({ currentManager, isAdmin, initialManagers }: Props) {
   const { today, firstOfMonth } = getInitialDates();
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [type, setType] = useState<OutstandingType>('wine');
+  // isAdmin/sales_admin 일 때 선택한 매니저, 일반 user 는 본인 매니저 그대로.
+  const [selectedManager, setSelectedManager] = useState(currentManager);
 
-  const list = useOutstanding({ currentManager, startDate, endDate, type });
+  const effectiveManager = isAdmin ? selectedManager : currentManager;
+  const list = useOutstanding({ currentManager: effectiveManager, startDate, endDate, type });
   const xport = useBulkExport({ checked: list.checked, startDate, endDate, type });
   const [summaryExporting, setSummaryExporting] = useState(false);
 
@@ -32,7 +40,7 @@ export default function OutstandingTab({ currentManager, isAdmin: _isAdmin }: Pr
         startDate,
         endDate,
         type,
-        manager: currentManager,
+        manager: effectiveManager,
       });
     } catch (e) {
       console.error('summary excel export failed', e);
@@ -65,6 +73,9 @@ export default function OutstandingTab({ currentManager, isAdmin: _isAdmin }: Pr
         onEndDateChange={setEndDate}
         onTypeChange={setType}
         onSearch={list.fetchData}
+        managers={isAdmin ? initialManagers : undefined}
+        selectedManager={selectedManager}
+        onManagerChange={setSelectedManager}
       />
 
       {list.error && (

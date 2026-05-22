@@ -44,7 +44,7 @@ export function TabContent(p: Props) {
     case 'item-ledger':
       return <ItemLedgerTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'outstanding':
-      return <OutstandingTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+      return <OutstandingTab currentManager={p.currentManager} isAdmin={p.isAdmin} initialManagers={p.managerList} />;
     case 'client-list':
       return <ClientListTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'alerts':
