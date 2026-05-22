@@ -55,7 +55,9 @@ export async function GET(req: NextRequest) {
     if (clientType === 'glass') {
       let glassQuery = supabase
         .from('glass_clients')
-        .select('client_code, client_name, created_at', { count: 'exact' });
+        .select('client_code, client_name, created_at', { count: 'exact' })
+        // 비활성화된 옛 코드 ((X) prefix) 는 검색 결과에서 제외
+        .not('client_name', 'ilike', '(X)%');
 
       if (search) {
         const words = splitSearchWords(search);
@@ -86,7 +88,9 @@ export async function GET(req: NextRequest) {
         const words = splitSearchWords(search);
         let shipQuery = supabase
           .from('glass_shipments')
-          .select('client_name, client_code');
+          .select('client_name, client_code')
+          // 옛 코드 fallback 결과에서도 (X) 거래처 제외
+          .not('client_name', 'ilike', '(X)%');
         shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', []);
         if (manager) {
           shipQuery = shipQuery.eq('manager', manager);
@@ -120,7 +124,9 @@ export async function GET(req: NextRequest) {
     // ═══ Wine: 기존 client_details 조회 ═══
     let query = supabase
       .from('client_details')
-      .select('*', { count: 'exact' });
+      .select('*', { count: 'exact' })
+      // 비활성화된 옛 코드 ((X) prefix) 는 검색 결과에서 제외 (calc_wine_outstanding 과 동일 정책)
+      .not('client_name', 'ilike', '(X)%');
 
     // 검색
     if (search) {
