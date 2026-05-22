@@ -34,7 +34,8 @@ export async function canAccessClient(
   clientType?: ClientType,
 ): Promise<boolean> {
   if (!clientCode) return false;
-  if (session.role === 'admin' || session.role === 'executive') return true;
+  // admin/executive 는 모든 거래처, sales_admin 은 사무업무 처리용으로 영업 전체 거래처 접근.
+  if (session.role === 'admin' || session.role === 'executive' || session.role === 'sales_admin') return true;
 
   if (clientType === 'glass') {
     // 글라스: 가장 최근 출고의 매니저로 본인 담당 여부 확인
@@ -128,11 +129,11 @@ export async function requireClientAccess(
 
 /**
  * 현재 세션의 매니저 이름 반환 (route 내부에서 filter 걸 때 사용).
- * admin/executive 는 null 반환 → filter 안 걸기.
+ * admin/executive/sales_admin 는 null 반환 → filter 안 걸기 (모든 매니저 데이터 조회).
  */
 export async function getManagerFilter(): Promise<string | null> {
   const session = await getSession();
   if (!session) return null;
-  if (session.role === 'admin' || session.role === 'executive') return null;
+  if (session.role === 'admin' || session.role === 'executive' || session.role === 'sales_admin') return null;
   return session.manager;
 }

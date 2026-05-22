@@ -5,7 +5,8 @@ import type { SalesTabId } from '../../components/SalesTabs';
 import { clearAuthHint, readAuthHint, saveAuthHint } from '../lib/authHint';
 
 function computeIsAdmin(role: string, department: string) {
-  return role === 'admin' || role === 'executive' || department === '마케팅부';
+  // sales_admin = 사무업무 처리용. 영업 전체 데이터 조회 권한이 필요해 isAdmin 으로 취급.
+  return role === 'admin' || role === 'executive' || role === 'sales_admin' || department === '마케팅부';
 }
 
 export function useSalesAuth(setActiveTab: (t: SalesTabId) => void) {

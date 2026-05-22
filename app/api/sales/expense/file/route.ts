@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 본인 파일만 접근 가능 (admin/executive 제외)
-  if (session.role !== 'admin' && session.role !== 'executive' && session.manager !== manager) {
+  if (session.role !== 'admin' && session.role !== 'executive' && session.role !== 'sales_admin' && session.manager !== manager) {
     return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 });
   }
 
@@ -80,7 +80,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // 본인 파일만 수정 가능
-    if (session.role !== 'admin' && session.role !== 'executive' && session.manager !== manager) {
+    if (session.role !== 'admin' && session.role !== 'executive' && session.role !== 'sales_admin' && session.manager !== manager) {
       return NextResponse.json({ error: '접근 권한이 없습니다.' }, { status: 403 });
     }
 
