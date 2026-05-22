@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { OutstandingClient, OutstandingTotals } from '../types';
 import { cardStyle, fmt, tdCenter, tdRight, tdStyle, tfRight, thStyle } from '../lib/format';
 
@@ -13,7 +13,54 @@ type Props = {
   onToggleOne: (code: string) => void;
 };
 
+type SortKey =
+  | 'client_name'
+  | 'prev_balance'
+  | 'period_supply'
+  | 'period_tax'
+  | 'period_total'
+  | 'period_payment'
+  | 'outstanding';
+type SortDir = 'asc' | 'desc';
+type SortState = { key: SortKey; dir: SortDir } | null;
+
+const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' }[] = [
+  { key: 'client_name', label: '거래처명', align: 'left' },
+  { key: 'prev_balance', label: '전월미수', align: 'right' },
+  { key: 'period_supply', label: '판매', align: 'right' },
+  { key: 'period_tax', label: '부가세', align: 'right' },
+  { key: 'period_total', label: '판매계', align: 'right' },
+  { key: 'period_payment', label: '입금', align: 'right' },
+  { key: 'outstanding', label: '현미수', align: 'right' },
+];
+
 export const OutstandingTable = memo(function OutstandingTable({ clients, totals, checked, allChecked, onToggleAll, onToggleOne }: Props) {
+  const [sort, setSort] = useState<SortState>(null);
+
+  const handleSort = (key: SortKey) => {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: 'asc' };
+      if (prev.dir === 'asc') return { key, dir: 'desc' };
+      return null; // 같은 키 두 번째 토글 → 원본 순서 복귀
+    });
+  };
+
+  const sortedClients = useMemo(() => {
+    if (!sort) return clients;
+    const arr = [...clients];
+    const { key, dir } = sort;
+    const factor = dir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      const av = a[key];
+      const bv = b[key];
+      if (typeof av === 'string' && typeof bv === 'string') {
+        return av.localeCompare(bv, 'ko') * factor;
+      }
+      return (((av as number) || 0) - ((bv as number) || 0)) * factor;
+    });
+    return arr;
+  }, [clients, sort]);
+
   return (
     <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
       <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -28,17 +75,20 @@ export const OutstandingTable = memo(function OutstandingTable({ clients, totals
                   style={{ width: 16, height: 16, accentColor: '#5A1515', cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ ...thStyle, textAlign: 'left' }}>거래처명</th>
-              <th style={thStyle}>전월미수</th>
-              <th style={thStyle}>판매</th>
-              <th style={thStyle}>부가세</th>
-              <th style={thStyle}>판매계</th>
-              <th style={thStyle}>입금</th>
-              <th style={thStyle}>현미수</th>
+              {COLUMNS.map((col) => (
+                <SortableHeader
+                  key={col.key}
+                  label={col.label}
+                  align={col.align}
+                  active={sort?.key === col.key}
+                  dir={sort?.key === col.key ? sort.dir : null}
+                  onClick={() => handleSort(col.key)}
+                />
+              ))}
             </tr>
           </thead>
           <tbody>
-            {clients.map((c, i) => {
+            {sortedClients.map((c, i) => {
               const isChecked = checked.has(c.client_code);
               return (
                 <tr
@@ -92,3 +142,46 @@ export const OutstandingTable = memo(function OutstandingTable({ clients, totals
     </div>
   );
 });
+
+/** 정렬 가능한 헤더 셀. 클릭 시 onClick 발화. 활성 컬럼엔 ▲/▼ 표시. */
+function SortableHeader({
+  label,
+  align,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  align: 'left' | 'right';
+  active: boolean;
+  dir: SortDir | null;
+  onClick: () => void;
+}) {
+  return (
+    <th
+      style={{
+        ...thStyle,
+        textAlign: align,
+        cursor: 'pointer',
+        userSelect: 'none',
+        whiteSpace: 'nowrap',
+      }}
+      onClick={onClick}
+      title="클릭하여 정렬"
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {label}
+        <span
+          style={{
+            fontSize: 10,
+            opacity: active ? 1 : 0.3,
+            color: active ? '#5A1515' : '#8a8580',
+            width: 8,
+          }}
+        >
+          {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
+        </span>
+      </span>
+    </th>
+  );
+}
