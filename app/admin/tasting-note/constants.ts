@@ -2,6 +2,21 @@ import type { NoteFilter, TastingWineRow } from "./types";
 
 export const NOTE_FILTERS: NoteFilter[] = ["all", "with", "without", "db-only"];
 
+/**
+ * item_code 첫 글자별 카테고리 매핑.
+ * 와인으로 간주: Champagne(0), Sparkling(1), Red(2), White(3), Rosé(4), Icewine(5), Port(A).
+ * 와인 외(자재/세트/타사): Grappa(6), Set(7), POS(8), 자재(9), 타사(Z).
+ */
+const WINE_CODE_PREFIXES = new Set(['0', '1', '2', '3', '4', '5', 'A']);
+
+export function isWineCategory(itemCode: string | null | undefined): boolean {
+  if (!itemCode) return false;
+  return WINE_CODE_PREFIXES.has(itemCode.charAt(0).toUpperCase());
+}
+
+/** 재고 부족 필터 임계값 (병 수, 0 < x <= LOW_STOCK_THRESHOLD 면 부족) */
+export const LOW_STOCK_THRESHOLD = 10;
+
 export const NOTE_FILTER_LABELS: Record<NoteFilter, string> = {
   all: "전체",
   with: "작성완료",

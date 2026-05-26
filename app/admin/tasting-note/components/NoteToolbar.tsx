@@ -1,7 +1,7 @@
 "use client";
 
 import type { NoteFilter } from "../types";
-import { NOTE_FILTERS, NOTE_FILTER_LABELS } from "../constants";
+import { LOW_STOCK_THRESHOLD, NOTE_FILTERS, NOTE_FILTER_LABELS } from "../constants";
 import type { useTastingNoteBatch } from "../hooks/useTastingNoteBatch";
 
 type Props = {
@@ -12,6 +12,10 @@ type Props = {
   setSearch: (s: string) => void;
   hideZero: boolean;
   setHideZero: (b: boolean) => void;
+  wineOnly: boolean;
+  setWineOnly: (b: boolean) => void;
+  lowStock: boolean;
+  setLowStock: (b: boolean) => void;
   checkedSize: number;
   ops: ReturnType<typeof useTastingNoteBatch>;
 };
@@ -88,6 +92,7 @@ export function NoteToolbar(p: Props) {
         <div style={{ display: "inline-flex", background: "rgba(90,21,21,0.05)", borderRadius: 8, padding: 2 }}>
           <button
             onClick={() => p.setHideZero(!p.hideZero)}
+            title="재고 0 인 품목 숨기기"
             style={{
               ...btn,
               background: p.hideZero ? "white" : "transparent",
@@ -96,6 +101,30 @@ export function NoteToolbar(p: Props) {
             }}
           >
             재고만
+          </button>
+          <button
+            onClick={() => p.setWineOnly(!p.wineOnly)}
+            title="자재/세트/타사 제품 제외 — item_code 첫 글자가 와인 카테고리(0~5, A)인 것만"
+            style={{
+              ...btn,
+              background: p.wineOnly ? "white" : "transparent",
+              color: p.wineOnly ? "#5A1515" : "#a8a098",
+              boxShadow: p.wineOnly ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+            }}
+          >
+            와인만
+          </button>
+          <button
+            onClick={() => p.setLowStock(!p.lowStock)}
+            title={`재고 1 ~ ${LOW_STOCK_THRESHOLD} 병 사이만 — 우선 노트 작성 대상`}
+            style={{
+              ...btn,
+              background: p.lowStock ? "white" : "transparent",
+              color: p.lowStock ? "#5A1515" : "#a8a098",
+              boxShadow: p.lowStock ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+            }}
+          >
+            재고 ≤ {LOW_STOCK_THRESHOLD}병
           </button>
         </div>
       </div>

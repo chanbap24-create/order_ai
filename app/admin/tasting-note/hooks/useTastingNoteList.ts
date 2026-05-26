@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
+import { isWineCategory, LOW_STOCK_THRESHOLD } from "../constants";
 
-/** TastingNote 리스트: debounced search + ghIndex + hideZero 재고 필터 + 노트 필터 */
+/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStock 필터 + 노트 필터 */
 export function useTastingNoteList() {
   const [wines, setWines] = useState<TastingWineRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,10 @@ export function useTastingNoteList() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [hideZero, setHideZero] = useState(true);
+  // 미작성 탭은 와인 위주 업데이트를 위한 곳이라 기본 ON.
+  const [wineOnly, setWineOnly] = useState(true);
+  // 재고가 1 ~ LOW_STOCK_THRESHOLD 병인 와인만 보기 (기본 OFF).
+  const [lowStock, setLowStock] = useState(false);
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -57,22 +62,30 @@ export function useTastingNoteList() {
   const hasNote = (w: TastingWineRow) =>
     !!(w.tasting_note_id || ghIndex[w.item_code]);
 
+  /** hideZero/wineOnly/lowStock 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
+  const passesCategoryFilters = (w: TastingWineRow): boolean => {
+    const stock = (w.inv_available || 0) + (w.inv_bonded || 0);
+    if (hideZero && stock <= 0) return false;
+    if (wineOnly && !isWineCategory(w.item_code)) return false;
+    if (lowStock && (stock <= 0 || stock > LOW_STOCK_THRESHOLD)) return false;
+    return true;
+  };
+
   const filteredWines = wines.filter((w) => {
-    if (hideZero && ((w.inv_available || 0) + (w.inv_bonded || 0)) <= 0) return false;
+    if (!passesCategoryFilters(w)) return false;
     if (filterNote === "with") return hasNote(w);
     if (filterNote === "without") return !hasNote(w);
     if (filterNote === "db-only") return !!w.tasting_note_id && !ghIndex[w.item_code];
     return true;
   });
 
-  const stockFiltered = hideZero
-    ? wines.filter((w) => (w.inv_available || 0) + (w.inv_bonded || 0) > 0)
-    : wines;
+  // 노트 필터별 카운트는 카테고리·재고 1차 필터를 적용한 결과를 기준으로 계산.
+  const baseFiltered = wines.filter(passesCategoryFilters);
   const counts: Record<NoteFilter, number> = {
-    all: stockFiltered.length,
-    with: stockFiltered.filter((w) => hasNote(w)).length,
-    without: stockFiltered.filter((w) => !hasNote(w)).length,
-    "db-only": stockFiltered.filter(
+    all: baseFiltered.length,
+    with: baseFiltered.filter((w) => hasNote(w)).length,
+    without: baseFiltered.filter((w) => !hasNote(w)).length,
+    "db-only": baseFiltered.filter(
       (w) => !!w.tasting_note_id && !ghIndex[w.item_code],
     ).length,
   };
@@ -97,6 +110,8 @@ export function useTastingNoteList() {
     search, setSearch,
     filterNote, setFilterNote,
     hideZero, setHideZero,
+    wineOnly, setWineOnly,
+    lowStock, setLowStock,
     ghIndex, counts,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
