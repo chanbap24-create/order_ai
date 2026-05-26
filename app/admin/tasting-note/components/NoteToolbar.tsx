@@ -14,8 +14,6 @@ type Props = {
   setHideZero: (b: boolean) => void;
   wineOnly: boolean;
   setWineOnly: (b: boolean) => void;
-  hideLowStock: boolean;
-  setHideLowStock: (b: boolean) => void;
   lowStockThreshold: number;
   setLowStockThreshold: (n: number) => void;
   checkedSize: number;
@@ -117,19 +115,20 @@ export function NoteToolbar(p: Props) {
             와인만
           </button>
           <div
-            onClick={() => p.setHideLowStock(!p.hideLowStock)}
-            title="재고 N병 이하 와인 숨기기 — 곧 소진될 와인 제외. 옆 숫자로 기준 조정"
+            title="재고 N병 이하 와인 숨기기 — 0 이면 끔. 곧 소진될 와인을 노트 작성 대상에서 제외하기 위함"
             style={{
               ...btn,
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
-              background: p.hideLowStock ? "white" : "transparent",
-              color: p.hideLowStock ? "#5A1515" : "#a8a098",
-              boxShadow: p.hideLowStock ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+              background: p.lowStockThreshold > 0 ? "white" : "transparent",
+              color: p.lowStockThreshold > 0 ? "#5A1515" : "#a8a098",
+              boxShadow:
+                p.lowStockThreshold > 0 ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+              cursor: "default",
             }}
           >
-            <span>재고 &gt;</span>
+            <span>재고 ≤</span>
             <input
               type="number"
               min={0}
@@ -139,7 +138,6 @@ export function NoteToolbar(p: Props) {
                 const v = parseInt(e.target.value, 10);
                 p.setLowStockThreshold(Number.isFinite(v) && v >= 0 ? v : 0);
               }}
-              onClick={(e) => e.stopPropagation()}
               style={{
                 width: 44,
                 padding: "1px 4px",
@@ -148,9 +146,10 @@ export function NoteToolbar(p: Props) {
                 borderRadius: 4,
                 textAlign: "center",
                 color: "#2c1810",
+                background: "#fff",
               }}
             />
-            <span>병</span>
+            <span>병 숨김</span>
           </div>
         </div>
       </div>

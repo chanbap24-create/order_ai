@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
-import { isWineCategory, LOW_STOCK_THRESHOLD } from "../constants";
+import { isWineCategory } from "../constants";
 
-/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/hideLowStock 필터 + 노트 필터 */
+/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터 */
 export function useTastingNoteList() {
   const [wines, setWines] = useState<TastingWineRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +14,9 @@ export function useTastingNoteList() {
   const [hideZero, setHideZero] = useState(true);
   // 미작성 탭은 와인 위주 업데이트를 위한 곳이라 기본 ON.
   const [wineOnly, setWineOnly] = useState(true);
-  // 재고 lowStockThreshold 병 이하 와인을 숨기기 (기본 OFF).
-  // 노트 작성 우선순위가 낮은 곧 소진될 와인을 가리는 용도. 임계값은 사용자 조정.
-  const [hideLowStock, setHideLowStock] = useState(false);
-  const [lowStockThreshold, setLowStockThreshold] = useState<number>(LOW_STOCK_THRESHOLD);
+  // 재고 lowStockThreshold 병 이하 와인을 숨김. 0 이면 필터 OFF.
+  // 사용자가 input 으로 직접 조정 — 별도 토글 없이 값만으로 ON/OFF.
+  const [lowStockThreshold, setLowStockThreshold] = useState<number>(0);
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -64,12 +63,12 @@ export function useTastingNoteList() {
   const hasNote = (w: TastingWineRow) =>
     !!(w.tasting_note_id || ghIndex[w.item_code]);
 
-  /** hideZero/wineOnly/hideLowStock 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
+  /** hideZero/wineOnly/lowStockThreshold 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
   const passesCategoryFilters = (w: TastingWineRow): boolean => {
     const stock = (w.inv_available || 0) + (w.inv_bonded || 0);
     if (hideZero && stock <= 0) return false;
     if (wineOnly && !isWineCategory(w.item_code)) return false;
-    if (hideLowStock && stock <= lowStockThreshold) return false;
+    if (lowStockThreshold > 0 && stock <= lowStockThreshold) return false;
     return true;
   };
 
@@ -113,7 +112,6 @@ export function useTastingNoteList() {
     filterNote, setFilterNote,
     hideZero, setHideZero,
     wineOnly, setWineOnly,
-    hideLowStock, setHideLowStock,
     lowStockThreshold, setLowStockThreshold,
     ghIndex, counts,
     selectedId, setSelectedId,
