@@ -1,7 +1,7 @@
 "use client";
 
 import type { NoteFilter } from "../types";
-import { LOW_STOCK_THRESHOLD, NOTE_FILTERS, NOTE_FILTER_LABELS } from "../constants";
+import { NOTE_FILTERS, NOTE_FILTER_LABELS } from "../constants";
 import type { useTastingNoteBatch } from "../hooks/useTastingNoteBatch";
 
 type Props = {
@@ -14,8 +14,10 @@ type Props = {
   setHideZero: (b: boolean) => void;
   wineOnly: boolean;
   setWineOnly: (b: boolean) => void;
-  lowStock: boolean;
-  setLowStock: (b: boolean) => void;
+  hideLowStock: boolean;
+  setHideLowStock: (b: boolean) => void;
+  lowStockThreshold: number;
+  setLowStockThreshold: (n: number) => void;
   checkedSize: number;
   ops: ReturnType<typeof useTastingNoteBatch>;
 };
@@ -114,18 +116,42 @@ export function NoteToolbar(p: Props) {
           >
             와인만
           </button>
-          <button
-            onClick={() => p.setLowStock(!p.lowStock)}
-            title={`재고 1 ~ ${LOW_STOCK_THRESHOLD} 병 사이만 — 우선 노트 작성 대상`}
+          <div
+            onClick={() => p.setHideLowStock(!p.hideLowStock)}
+            title="재고 N병 이하 와인 숨기기 — 곧 소진될 와인 제외. 옆 숫자로 기준 조정"
             style={{
               ...btn,
-              background: p.lowStock ? "white" : "transparent",
-              color: p.lowStock ? "#5A1515" : "#a8a098",
-              boxShadow: p.lowStock ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              background: p.hideLowStock ? "white" : "transparent",
+              color: p.hideLowStock ? "#5A1515" : "#a8a098",
+              boxShadow: p.hideLowStock ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
             }}
           >
-            재고 ≤ {LOW_STOCK_THRESHOLD}병
-          </button>
+            <span>재고 &gt;</span>
+            <input
+              type="number"
+              min={0}
+              max={9999}
+              value={p.lowStockThreshold}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                p.setLowStockThreshold(Number.isFinite(v) && v >= 0 ? v : 0);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: 44,
+                padding: "1px 4px",
+                fontSize: 12,
+                border: "1px solid #d1d5db",
+                borderRadius: 4,
+                textAlign: "center",
+                color: "#2c1810",
+              }}
+            />
+            <span>병</span>
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>

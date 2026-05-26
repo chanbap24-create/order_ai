@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
 import { isWineCategory, LOW_STOCK_THRESHOLD } from "../constants";
 
-/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStock 필터 + 노트 필터 */
+/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/hideLowStock 필터 + 노트 필터 */
 export function useTastingNoteList() {
   const [wines, setWines] = useState<TastingWineRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,8 +14,10 @@ export function useTastingNoteList() {
   const [hideZero, setHideZero] = useState(true);
   // 미작성 탭은 와인 위주 업데이트를 위한 곳이라 기본 ON.
   const [wineOnly, setWineOnly] = useState(true);
-  // 재고가 1 ~ LOW_STOCK_THRESHOLD 병인 와인만 보기 (기본 OFF).
-  const [lowStock, setLowStock] = useState(false);
+  // 재고 lowStockThreshold 병 이하 와인을 숨기기 (기본 OFF).
+  // 노트 작성 우선순위가 낮은 곧 소진될 와인을 가리는 용도. 임계값은 사용자 조정.
+  const [hideLowStock, setHideLowStock] = useState(false);
+  const [lowStockThreshold, setLowStockThreshold] = useState<number>(LOW_STOCK_THRESHOLD);
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -62,12 +64,12 @@ export function useTastingNoteList() {
   const hasNote = (w: TastingWineRow) =>
     !!(w.tasting_note_id || ghIndex[w.item_code]);
 
-  /** hideZero/wineOnly/lowStock 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
+  /** hideZero/wineOnly/hideLowStock 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
   const passesCategoryFilters = (w: TastingWineRow): boolean => {
     const stock = (w.inv_available || 0) + (w.inv_bonded || 0);
     if (hideZero && stock <= 0) return false;
     if (wineOnly && !isWineCategory(w.item_code)) return false;
-    if (lowStock && (stock <= 0 || stock > LOW_STOCK_THRESHOLD)) return false;
+    if (hideLowStock && stock <= lowStockThreshold) return false;
     return true;
   };
 
@@ -111,7 +113,8 @@ export function useTastingNoteList() {
     filterNote, setFilterNote,
     hideZero, setHideZero,
     wineOnly, setWineOnly,
-    lowStock, setLowStock,
+    hideLowStock, setHideLowStock,
+    lowStockThreshold, setLowStockThreshold,
     ghIndex, counts,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
