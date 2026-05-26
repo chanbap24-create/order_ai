@@ -216,6 +216,13 @@ export function useTastingNoteBatch(p: Params) {
         } catch {
           /* ignore */
         }
+        // 결과 피드백 — 사용자가 반영 여부를 확실히 알 수 있게
+        alert(
+          `업로드 완료: ${data.fileName}` +
+            (data.format === "pdf" && data.indexTotal
+              ? `\n인덱스 갱신: ${data.indexTotal}건`
+              : ""),
+        );
       } else {
         alert(`업로드 실패: ${data.error || "알 수 없는 오류"}`);
       }
