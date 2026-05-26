@@ -18,6 +18,7 @@ export default function TastingNoteTab() {
     checkedIds: list.checkedIds,
     setCheckedIds: list.setCheckedIds,
     refreshList: list.fetchWines,
+    refreshGhIndex: list.refreshGhIndex,
     loadSelectedDetail: detail.loadWineDetail,
     selectedId: list.selectedId,
   });

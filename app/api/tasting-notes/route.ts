@@ -25,11 +25,13 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const itemNo = searchParams.get('item_no');
+    // refresh=1 시 메모리 캐시 + fetch 캐시 모두 무효화 (업로드 직후 즉시 반영용)
+    const forceRefresh = searchParams.get('refresh') === '1';
 
     // 특정 품목번호 조회
     if (itemNo) {
       // GitHub 인덱스도 백그라운드로 로드 (PDF 다운로드 URL 제공용)
-      await ensureIndexLoaded();
+      await ensureIndexLoaded(forceRefresh);
 
       let pdfUrl: string | undefined;
       if (indexCache?.notes) {
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 전체 목록 조회 - PDF + DB 합산
-    await ensureIndexLoaded();
+    await ensureIndexLoaded(forceRefresh);
 
     const pdfNotes = indexCache?.notes || {};
     const pdfSet = new Set(
@@ -125,13 +127,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** GitHub 인덱스 캐시 로드 */
-async function ensureIndexLoaded() {
+/** GitHub 인덱스 캐시 로드. force=true 면 메모리·fetch 캐시 모두 우회. */
+async function ensureIndexLoaded(force = false) {
   const now = Date.now();
-  if (indexCache && now - cacheTime <= CACHE_DURATION) return;
+  if (!force && indexCache && now - cacheTime <= CACHE_DURATION) return;
 
   try {
-    const response = await fetch(INDEX_URL, { next: { revalidate: 300 } });
+    // force 시 cache-buster query + no-store 로 GitHub CDN/Next fetch 캐시 모두 우회
+    const url = force ? `${INDEX_URL}?ts=${now}` : INDEX_URL;
+    const response = await fetch(
+      url,
+      force ? { cache: 'no-store' } : { next: { revalidate: 300 } },
+    );
     if (!response.ok) throw new Error(`Failed: ${response.status}`);
     indexCache = await response.json();
     cacheTime = now;

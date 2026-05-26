@@ -24,23 +24,33 @@ export function useTastingNoteList() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // GitHub 인덱스 로드 (1회)
-  useEffect(() => {
-    fetch("/api/tasting-notes")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && d.notes) {
-          const map: Record<string, boolean> = {};
-          for (const [code, info] of Object.entries(
-            d.notes as Record<string, { exists?: boolean }>,
-          )) {
-            if (info?.exists) map[code] = true;
-          }
-          setGhIndex(map);
+  /**
+   * GitHub PDF 인덱스 로드. force=true 시 서버·CDN 캐시까지 우회.
+   * 업로드 직후 호출하면 새로 올린 PDF 가 즉시 ghIndex 에 반영됨.
+   */
+  const refreshGhIndex = useCallback(async (force = false) => {
+    try {
+      const url = force ? "/api/tasting-notes?refresh=1" : "/api/tasting-notes";
+      const r = await fetch(url, { cache: "no-store" });
+      const d = await r.json();
+      if (d.success && d.notes) {
+        const map: Record<string, boolean> = {};
+        for (const [code, info] of Object.entries(
+          d.notes as Record<string, { exists?: boolean }>,
+        )) {
+          if (info?.exists) map[code] = true;
         }
-      })
-      .catch(() => {});
+        setGhIndex(map);
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
+
+  // 마운트 시 1회 로드 (캐시 허용)
+  useEffect(() => {
+    refreshGhIndex(false);
+  }, [refreshGhIndex]);
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
@@ -113,7 +123,7 @@ export function useTastingNoteList() {
     hideZero, setHideZero,
     wineOnly, setWineOnly,
     lowStockThreshold, setLowStockThreshold,
-    ghIndex, counts,
+    ghIndex, refreshGhIndex, counts,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
     fetchWines, hasNote,

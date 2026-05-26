@@ -6,6 +6,8 @@ type Params = {
   checkedIds: Set<string>;
   setCheckedIds: (s: Set<string>) => void;
   refreshList: () => void;
+  /** ghIndex 강제 재로딩 (PDF 업로드 후 호출하여 캐시 우회) */
+  refreshGhIndex?: (force?: boolean) => Promise<void> | void;
   loadSelectedDetail: (code: string) => Promise<void>;
   selectedId: string | null;
 };
@@ -152,6 +154,12 @@ export function useTastingNoteBatch(p: Params) {
         alert(
           `${label} 업로드 완료: 성공 ${data.uploaded}개, 실패 ${data.failed}개${failDetails ? "\n\n실패 상세:\n" + failDetails : ""}`,
         );
+        // 일괄 업로드도 ghIndex 강제 갱신
+        try {
+          await p.refreshGhIndex?.(true);
+        } catch {
+          /* ignore */
+        }
       } else {
         alert(`${label} 업로드 실패: ${data.error || "알 수 없는 오류"}`);
       }
@@ -201,8 +209,13 @@ export function useTastingNoteBatch(p: Params) {
       });
       const data = await res.json();
       if (data.success) {
-        // 인덱스 새로고침은 PDF 일 때 서버가 자동 수행. 리스트는 항상 갱신.
+        // 인덱스 새로고침은 PDF 일 때 서버가 자동 수행. 리스트 + 클라이언트 ghIndex 도 강제 갱신.
         p.refreshList();
+        try {
+          await p.refreshGhIndex?.(true);
+        } catch {
+          /* ignore */
+        }
       } else {
         alert(`업로드 실패: ${data.error || "알 수 없는 오류"}`);
       }
