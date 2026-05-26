@@ -10,7 +10,7 @@ type Params = {
   selectedId: string | null;
 };
 
-/** TastingNote 배치 작업: 일괄 조사 + PPT/PDF 다운로드 + GitHub 업로드 + 인덱스 */
+/** TastingNote 배치 작업: 일괄 조사 + PPT/PDF 다운로드 + GitHub 업로드 + 인덱스 + 단일 파일 업로드 */
 export function useTastingNoteBatch(p: Params) {
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, currentName: "" });
@@ -18,6 +18,8 @@ export function useTastingNoteBatch(p: Params) {
   const [dispatchingIndex, setDispatchingIndex] = useState(false);
   const [batchDownloading, setBatchDownloading] = useState<"pptx" | "pdf" | null>(null);
   const [generatingPpt, setGeneratingPpt] = useState(false);
+  // 행별 단일 파일 업로드 진행 중인 item_code (1번에 1개만 허용)
+  const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
 
   const batchResearch = async () => {
     const ids = [...p.checkedIds];
@@ -173,11 +175,50 @@ export function useTastingNoteBatch(p: Params) {
     setDispatchingIndex(false);
   };
 
+  /**
+   * 행별 단일 파일 업로드: 사용자가 PDF/PPTX 를 선택하면
+   * 파일명을 item_code 로 강제 변경하여 GitHub Release 에 업로드.
+   * 확장자(.pdf / .pptx)는 파일 이름으로 자동 인식.
+   */
+  const uploadFileForWine = async (itemCode: string, file: File) => {
+    const ext = file.name.toLowerCase().match(/\.(pdf|pptx)$/)?.[1];
+    if (!ext) {
+      alert("PDF 또는 PPTX 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    if (uploadingFileId) {
+      alert("다른 업로드가 진행 중입니다. 완료 후 시도해주세요.");
+      return;
+    }
+    setUploadingFileId(itemCode);
+    try {
+      const form = new FormData();
+      form.append("wineId", itemCode);
+      form.append("file", file);
+      const res = await fetch("/api/admin/tasting-notes/upload-single", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (data.success) {
+        // 인덱스 새로고침은 PDF 일 때 서버가 자동 수행. 리스트는 항상 갱신.
+        p.refreshList();
+      } else {
+        alert(`업로드 실패: ${data.error || "알 수 없는 오류"}`);
+      }
+    } catch (e) {
+      alert(`업로드 오류: ${e instanceof Error ? e.message : "알 수 없는 오류"}`);
+    }
+    setUploadingFileId(null);
+  };
+
   return {
     batchRunning, batchProgress,
     uploadingGithub, dispatchingIndex,
     batchDownloading,
     generatingPpt,
+    uploadingFileId,
     batchResearch, batchDownload, githubRelease, dispatchIndex, generatePpt,
+    uploadFileForWine,
   };
 }

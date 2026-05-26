@@ -13,6 +13,8 @@ type Props = {
   onSelect: (wine: TastingWineRow) => void;
   toggleCheck: (id: string) => void;
   toggleAllChecks: () => void;
+  uploadingFileId: string | null;
+  onUploadFile: (itemCode: string, file: File) => void;
 };
 
 export function NoteListPanel(p: Props) {
@@ -158,11 +160,71 @@ export function NoteListPanel(p: Props) {
                 >
                   {badge.label}
                 </span>
+                <UploadButton
+                  itemCode={w.item_code}
+                  uploading={p.uploadingFileId === w.item_code}
+                  disabled={p.uploadingFileId !== null && p.uploadingFileId !== w.item_code}
+                  onUpload={p.onUploadFile}
+                />
               </div>
             </div>
           );
         })
       )}
     </div>
+  );
+}
+
+/**
+ * 행별 파일 업로드 버튼.
+ * PDF/PPTX 만 accept, 클릭은 행 onSelect 로 전파되지 않게 stopPropagation.
+ * 업로드 중에는 ⏳, 평소엔 📤. 동시 업로드 1건 제한.
+ */
+function UploadButton({
+  itemCode,
+  uploading,
+  disabled,
+  onUpload,
+}: {
+  itemCode: string;
+  uploading: boolean;
+  disabled: boolean;
+  onUpload: (itemCode: string, file: File) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <button
+      type="button"
+      title="PDF/PPTX 파일을 업로드 (파일명은 자동으로 품목코드로 변경)"
+      disabled={uploading || disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        inputRef.current?.click();
+      }}
+      style={{
+        fontSize: 11,
+        padding: "2px 6px",
+        borderRadius: 4,
+        background: uploading ? "#fef3c7" : "#f3f4f6",
+        color: uploading ? "#d97706" : "#6b7280",
+        border: "1px solid #d1d5db",
+        cursor: uploading ? "wait" : disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.4 : 1,
+        lineHeight: 1,
+      }}
+    >
+      {uploading ? "⏳" : "📤"}
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onUpload(itemCode, file);
+        }}
+      />
+    </button>
   );
 }

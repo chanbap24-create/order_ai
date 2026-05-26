@@ -64,6 +64,8 @@ export default function TastingNoteTab() {
           }}
           toggleCheck={list.toggleCheck}
           toggleAllChecks={list.toggleAllChecks}
+          uploadingFileId={ops.uploadingFileId}
+          onUploadFile={ops.uploadFileForWine}
         />
 
         <WineEditPanel
