@@ -15,7 +15,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
     <>
       {/* 거래처 매출 요약 */}
       <div style={{ background: "#f8f6f0", borderRadius: 10, padding: 14, marginBottom: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#2c1810", marginBottom: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
           거래처 매출 요약
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12 }}>
@@ -67,7 +67,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
             border: "1px solid rgba(90,21,21,0.06)",
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#2c1810", marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
             최근 주문 내역
           </div>
           {briefing.recent_orders.map((o, i) => (
@@ -85,7 +85,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
             >
               <span
                 style={{
-                  color: "#2c1810",
+                  color: "var(--text-primary)",
                   flex: 1,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -94,7 +94,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
               >
                 {o.item_name}
               </span>
-              <span style={{ color: "#a8a098", flexShrink: 0, marginLeft: 8 }}>
+              <span style={{ color: "var(--text-muted)", flexShrink: 0, marginLeft: 8 }}>
                 {o.quantity}개 · {o.ship_date?.slice(5)}
               </span>
             </div>
@@ -107,7 +107,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
         style={{
           fontSize: 13,
           fontWeight: 700,
-          color: "#2c1810",
+          color: "var(--text-primary)",
           marginBottom: 8,
           display: "flex",
           justifyContent: "space-between",
@@ -115,7 +115,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
         }}
       >
         <span>추천 와인 {briefing.recommendations.length}개</span>
-        <span style={{ fontSize: 11, color: "#5A1515", fontWeight: 500 }}>
+        <span style={{ fontSize: 11, color: "var(--action)", fontWeight: 500 }}>
           {selectedRecs.size}개 선택
         </span>
       </div>
@@ -131,7 +131,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                 background: "#fff",
                 borderRadius: 8,
                 padding: "10px 12px",
-                border: isSelected ? "2px solid #5A1515" : "1px solid rgba(90,21,21,0.06)",
+                border: isSelected ? "2px solid var(--action)" : "1px solid rgba(90,21,21,0.06)",
                 cursor: "pointer",
                 display: "flex",
                 gap: 10,
@@ -144,8 +144,8 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                   height: 20,
                   borderRadius: 5,
                   flexShrink: 0,
-                  border: isSelected ? "2px solid #5A1515" : "2px solid #ddd",
-                  background: isSelected ? "#5A1515" : "#fff",
+                  border: isSelected ? "2px solid var(--action)" : "2px solid #ddd",
+                  background: isSelected ? "var(--action)" : "#fff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -164,7 +164,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#2c1810", marginBottom: 3 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 3 }}>
                   <span
                     style={{
                       color: r.score >= 20 ? "#c62828" : "#888",
@@ -177,7 +177,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                   {r.item_name}
                 </div>
                 {(r.country || r.grape) && (
-                  <div style={{ fontSize: 11, color: "#8a8580", marginBottom: 2 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 2 }}>
                     {[r.country, r.region, r.grape].filter(Boolean).join(" · ")}
                   </div>
                 )}
@@ -200,10 +200,10 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, fontSize: 12 }}>
-                <div style={{ fontWeight: 700, color: "#2c1810" }}>
+                <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
                   {r.price ? fmt(r.price) + "원" : "-"}
                 </div>
-                <div style={{ color: "#a8a098", fontSize: 11 }}>재고 {r.stock}</div>
+                <div style={{ color: "var(--text-muted)", fontSize: 11 }}>재고 {r.stock}</div>
               </div>
             </div>
           );
@@ -216,7 +216,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
 function Stat({
   label,
   value,
-  valueColor = "#2c1810",
+  valueColor = "var(--text-primary)",
 }: {
   label: string;
   value: string;
@@ -224,7 +224,7 @@ function Stat({
 }) {
   return (
     <div>
-      <div style={{ color: "#a8a098", marginBottom: 2 }}>{label}</div>
+      <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>
       <div style={{ fontWeight: 700, color: valueColor }}>{value}</div>
     </div>
   );

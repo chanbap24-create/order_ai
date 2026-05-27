@@ -11,7 +11,7 @@ type Props = {
 export function PreferenceCharts({ prefs, loading }: Props) {
   if (loading)
     return (
-      <div style={{ textAlign: "center", padding: 30, color: "#a8a098", fontSize: 13 }}>
+      <div style={{ textAlign: "center", padding: 30, color: "var(--text-muted)", fontSize: 13 }}>
         선호 분석 로딩 중...
       </div>
     );
@@ -34,7 +34,7 @@ export function PreferenceCharts({ prefs, loading }: Props) {
         marginBottom: 16,
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 600, color: "#2c1810", marginBottom: 16 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 16 }}>
         선호 분석 (최근 1년)
       </div>
 
@@ -66,7 +66,7 @@ export function PreferenceCharts({ prefs, loading }: Props) {
 
       {prefs.tastes?.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#2c1810", marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }}>
             선호 테이스트 프로필
           </div>
           <TasteProfile tastes={prefs.tastes} />
@@ -141,7 +141,7 @@ function PrefBarSection({
                 style={{
                   width: 56,
                   fontSize: 11,
-                  color: "#8a8580",
+                  color: "var(--text-tertiary)",
                   textAlign: "right",
                   flexShrink: 0,
                 }}

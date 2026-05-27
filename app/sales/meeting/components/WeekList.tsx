@@ -13,6 +13,11 @@ type Props = {
   onOpenMeeting: (m: Meeting) => void;
 };
 
+/**
+ * 주간 리스트 — 카드 = 하루.
+ * 모든 카드는 동일 외곽(border-default + radius 10) 사용.
+ * 오늘은 좌측 강조 막대, 휴일은 부드러운 빨간 톤, 과거는 muted.
+ */
 export function WeekList(p: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -27,217 +32,227 @@ export function WeekList(p: Props) {
           <div
             key={dateStr}
             style={{
-              background: "#fff",
-              borderRadius: 12,
-              border: isToday
-                ? "2px solid #5A1515"
-                : isHoliday
-                  ? "1px solid #ffcdd2"
-                  : "1px solid rgba(90,21,21,0.06)",
-              boxShadow: isToday
-                ? "0 2px 8px rgba(90,21,21,0.12)"
-                : "0 1px 3px rgba(90,21,21,0.03)",
+              background: "var(--surface)",
+              borderRadius: 10,
+              border: "1px solid var(--border-default)",
+              borderLeft: isToday
+                ? "3px solid var(--action)"
+                : "1px solid var(--border-default)",
               overflow: "hidden",
+              opacity: isPast ? 0.7 : 1,
             }}
           >
-            <div
+            <header
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "10px 14px",
-                background: isToday ? "#faf0f2" : isHoliday ? "#fff5f5" : isPast ? "#fafafa" : "#fff",
-                borderBottom: "1px solid rgba(90,21,21,0.06)",
+                padding: "10px 16px",
+                borderBottom: "1px solid var(--border-subtle)",
+                background: isToday
+                  ? "var(--surface-active)"
+                  : isHoliday
+                    ? "#fff5f5"
+                    : "var(--surface)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span
                   style={{
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: 700,
-                    color: isToday
-                      ? "#5A1515"
-                      : isHoliday
-                        ? "#c62828"
-                        : isPast
-                          ? "#aaa"
-                          : "#2c1810",
+                    color: isHoliday
+                      ? "#c62828"
+                      : isToday
+                        ? "var(--action)"
+                        : "var(--text-primary)",
+                    letterSpacing: "0.01em",
                   }}
                 >
                   {formatDateKR(dateStr)}
                 </span>
-                {isHoliday && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      padding: "2px 6px",
-                      borderRadius: 8,
-                      background: "#ffebee",
-                      color: "#c62828",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {holidayName}
-                  </span>
-                )}
-                {isToday && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      padding: "2px 6px",
-                      borderRadius: 8,
-                      background: "#5A1515",
-                      color: "#fff",
-                      fontWeight: 600,
-                    }}
-                  >
-                    TODAY
-                  </span>
-                )}
+                {isHoliday && <Pill bg="#ffebee" color="#c62828">{holidayName}</Pill>}
+                {isToday && <Pill bg="var(--action)" color="var(--text-on-primary)">TODAY</Pill>}
                 {dayMeetings.length > 0 && (
-                  <span style={{ fontSize: 11, color: "#a8a098" }}>{dayMeetings.length}건</span>
+                  <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
+                    {dayMeetings.length}건
+                  </span>
                 )}
               </div>
               <button
                 onClick={() => p.onCreateMeeting(dateStr)}
+                title="미팅 추가"
                 style={{
-                  background: "none",
-                  border: "none",
+                  width: 28,
+                  height: 28,
+                  border: "1px solid var(--border-default)",
+                  background: "var(--surface)",
+                  color: "var(--action)",
+                  borderRadius: 6,
                   cursor: "pointer",
-                  fontSize: 20,
-                  color: "#5A1515",
-                  padding: "0 4px",
+                  fontSize: 14,
+                  fontWeight: 700,
                   lineHeight: 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 +
               </button>
-            </div>
+            </header>
 
             {dayMeetings.length === 0 ? (
-              <div style={{ padding: "16px 14px", textAlign: "center", color: "#ccc", fontSize: 13 }}>
+              <div
+                style={{
+                  padding: "16px 16px",
+                  textAlign: "center",
+                  color: "var(--text-muted)",
+                  fontSize: 12,
+                }}
+              >
                 미팅 없음
               </div>
             ) : (
-              <div>
-                {dayMeetings.map((m) => {
-                  const mt = MEETING_TYPES[m.meeting_type] || MEETING_TYPES.visit;
-                  const st = STATUS_MAP[m.status] || STATUS_MAP.planned;
-                  const imp =
-                    IMPORTANCE_LABELS[m.client_importance] || IMPORTANCE_LABELS[3];
-                  const hasReminder = m.meeting_time && m.reminder_minutes !== 0;
-
-                  return (
-                    <div
-                      key={m.id}
-                      onClick={() => p.onOpenMeeting(m)}
-                      style={{
-                        padding: "12px 14px",
-                        cursor: "pointer",
-                        borderBottom: "1px solid #f8f6f0",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        transition: "background 0.15s",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 48,
-                          flexShrink: 0,
-                          textAlign: "center",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "#5A1515",
-                        }}
-                      >
-                        {hasReminder && <span style={{ fontSize: 10 }}>🔔</span>}
-                        {m.meeting_time || "--:--"}
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginBottom: 3,
-                          }}
-                        >
-                          <span style={{ fontSize: 14, fontWeight: 600, color: "#2c1810" }}>
-                            {m.client_name}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 9,
-                              padding: "1px 5px",
-                              borderRadius: 6,
-                              background: imp.color,
-                              color: "#fff",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {imp.label}
-                          </span>
-                        </div>
-                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                          <span
-                            style={{
-                              fontSize: 10,
-                              padding: "1px 6px",
-                              borderRadius: 8,
-                              background: `${mt.color}18`,
-                              color: mt.color,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {mt.label}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 10,
-                              padding: "1px 6px",
-                              borderRadius: 8,
-                              background: st.bg,
-                              color: st.color,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {st.label}
-                          </span>
-                          {m.purpose && (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                color: "#a8a098",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {m.purpose}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ flexShrink: 0 }}>
-                        {m.ai_briefing ? (
-                          <span style={{ fontSize: 10, color: "#4CAF50", fontWeight: 600 }}>
-                            브리핑O
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 10, color: "#ccc" }}>브리핑-</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {dayMeetings.map((m, i) => (
+                  <MeetingRow
+                    key={m.id}
+                    meeting={m}
+                    isLast={i === dayMeetings.length - 1}
+                    onClick={() => p.onOpenMeeting(m)}
+                  />
+                ))}
+              </ul>
             )}
           </div>
         );
       })}
     </div>
+  );
+}
+
+function Pill({
+  bg,
+  color,
+  children,
+}: {
+  bg: string;
+  color: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        padding: "2px 6px",
+        borderRadius: 4,
+        background: bg,
+        color,
+        fontWeight: 700,
+        letterSpacing: "0.04em",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function MeetingRow({
+  meeting,
+  isLast,
+  onClick,
+}: {
+  meeting: Meeting;
+  isLast: boolean;
+  onClick: () => void;
+}) {
+  const mt = MEETING_TYPES[meeting.meeting_type] || MEETING_TYPES.visit;
+  const st = STATUS_MAP[meeting.status] || STATUS_MAP.planned;
+  const imp = IMPORTANCE_LABELS[meeting.client_importance] || IMPORTANCE_LABELS[3];
+  const hasReminder = meeting.meeting_time && meeting.reminder_minutes !== 0;
+
+  return (
+    <li
+      onClick={onClick}
+      style={{
+        padding: "12px 16px",
+        cursor: "pointer",
+        borderBottom: isLast ? "none" : "1px solid var(--border-subtle)",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        transition: "background 0.12s ease",
+      }}
+      onMouseEnter={(e) =>
+        ((e.currentTarget as HTMLLIElement).style.background = "var(--surface-hover)")
+      }
+      onMouseLeave={(e) =>
+        ((e.currentTarget as HTMLLIElement).style.background = "transparent")
+      }
+    >
+      <div
+        style={{
+          width: 52,
+          flexShrink: 0,
+          textAlign: "center",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "var(--action)",
+          fontVariantNumeric: "tabular-nums",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+      >
+        {hasReminder && <div style={{ fontSize: 9, marginBottom: 2 }}>🔔</div>}
+        {meeting.meeting_time || "--:--"}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 4,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            {meeting.client_name}
+          </span>
+          <Pill bg={imp.color} color="#fff">
+            {imp.label}
+          </Pill>
+        </div>
+        <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+          <Pill bg={`${mt.color}18`} color={mt.color}>
+            {mt.label}
+          </Pill>
+          <Pill bg={st.bg} color={st.color}>
+            {st.label}
+          </Pill>
+          {meeting.purpose && (
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--text-tertiary)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {meeting.purpose}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0 }}>
+        {meeting.ai_briefing ? (
+          <span style={{ fontSize: 10, color: "#4CAF50", fontWeight: 700 }}>브리핑 ✓</span>
+        ) : (
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>—</span>
+        )}
+      </div>
+    </li>
   );
 }

@@ -29,7 +29,7 @@ export function SeasonSection(p: Props) {
     <div style={{ marginBottom: 24 }}>
       <SectionHeader
         title="시즌 선제 추천"
-        titleColor="#5A1515"
+        titleColor="var(--action)"
         count={p.count}
         collapsed={p.collapsed}
         onToggle={() => p.setCollapsed(!p.collapsed)}
@@ -51,7 +51,7 @@ export function SeasonSection(p: Props) {
                 style={{
                   background: "white",
                   borderRadius: 12,
-                  borderLeft: `4px solid ${wine.season_change ? "#3d0e0e" : "#5A1515"}`,
+                  borderLeft: `4px solid ${wine.season_change ? "#3d0e0e" : "var(--action)"}`,
                   boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
                   padding: "14px 16px",
                   position: "relative",
@@ -65,7 +65,7 @@ export function SeasonSection(p: Props) {
                       padding: "2px 8px",
                       borderRadius: 4,
                       background: "rgba(90,21,21,0.06)",
-                      color: "#5A1515",
+                      color: "var(--action)",
                       fontSize: 11,
                       fontWeight: 700,
                       whiteSpace: "nowrap",
@@ -78,7 +78,7 @@ export function SeasonSection(p: Props) {
                     style={{
                       fontSize: 14,
                       fontWeight: 600,
-                      color: "#2c1810",
+                      color: "var(--text-primary)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -88,7 +88,7 @@ export function SeasonSection(p: Props) {
                   </span>
                 </div>
 
-                <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
                   {[
                     wine.country,
                     wine.wine_type,
@@ -102,7 +102,7 @@ export function SeasonSection(p: Props) {
 
                 {wine.matched_clients.length > 0 && (
                   <div style={{ borderTop: "1px solid rgba(90,21,21,0.06)", paddingTop: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#8a8580", marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 8 }}>
                       추천 거래처
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -120,7 +120,7 @@ export function SeasonSection(p: Props) {
                             borderRadius: 8,
                           }}
                         >
-                          <span style={{ ...rankStyle, color: "#5A1515" }}>{ci + 1}.</span>
+                          <span style={{ ...rankStyle, color: "var(--action)" }}>{ci + 1}.</span>
                           {c.importance != null && c.importance >= 1 && c.importance <= 5 && (
                             <span style={{ fontSize: 11, color: "#F59E0B", whiteSpace: "nowrap", flexShrink: 0 }}>
                               {importanceStars(c.importance)}
@@ -132,8 +132,8 @@ export function SeasonSection(p: Props) {
                               display: "inline-block",
                               padding: "1px 6px",
                               borderRadius: 4,
-                              background: c.match_score >= 70 ? "rgba(90,21,21,0.06)" : "#faf9f7",
-                              color: c.match_score >= 70 ? "#5A1515" : "#888",
+                              background: c.match_score >= 70 ? "rgba(90,21,21,0.06)" : "var(--surface-muted)",
+                              color: c.match_score >= 70 ? "var(--action)" : "#888",
                               fontSize: 11,
                               fontWeight: 700,
                               whiteSpace: "nowrap",
@@ -145,7 +145,7 @@ export function SeasonSection(p: Props) {
                           <span
                             style={{
                               fontSize: 10,
-                              color: "#a8a098",
+                              color: "var(--text-muted)",
                               whiteSpace: "nowrap",
                               flexShrink: 0,
                             }}

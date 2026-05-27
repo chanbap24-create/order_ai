@@ -18,7 +18,7 @@ export function BriefingSummary({ briefing }: { briefing: BriefingData }) {
           </span>
         )}
         {(briefing.client_summary.yearly_revenue ?? 0) > 0 && (
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#2c1810' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
             올해 매출 {fmt(briefing.client_summary.yearly_revenue!)}원
           </span>
         )}
@@ -34,19 +34,19 @@ export function BriefingSummary({ briefing }: { briefing: BriefingData }) {
 
       <div style={{ display: 'flex', gap: 16, fontSize: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ color: '#a8a098' }}>총 구매</div>
+          <div style={{ color: 'var(--text-muted)' }}>총 구매</div>
           <div style={{ fontWeight: 700 }}>{briefing.client_summary.total_purchases}건</div>
         </div>
         <div>
-          <div style={{ color: '#a8a098' }}>평균 단가</div>
+          <div style={{ color: 'var(--text-muted)' }}>평균 단가</div>
           <div style={{ fontWeight: 700 }}>{fmt(briefing.client_summary.avg_price)}원</div>
         </div>
         <div>
-          <div style={{ color: '#a8a098' }}>최근 주문</div>
+          <div style={{ color: 'var(--text-muted)' }}>최근 주문</div>
           <div style={{ fontWeight: 700 }}>{briefing.client_summary.last_order_date || '-'}</div>
         </div>
         <div>
-          <div style={{ color: '#a8a098' }}>추세</div>
+          <div style={{ color: 'var(--text-muted)' }}>추세</div>
           <div style={{
             fontWeight: 700,
             color: briefing.client_summary.trend === 'up' ? '#2E7D32'
@@ -78,7 +78,7 @@ export function PurchasedItemsList({ items }: { items: BriefingData['purchased_i
   if (!items || items.length === 0) return null;
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
         구매 품목 ({items.length}건)
       </div>
       {items.slice(0, 10).map((it, i) => (
@@ -89,12 +89,12 @@ export function PurchasedItemsList({ items }: { items: BriefingData['purchased_i
           fontSize: 11,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#2c1810' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
               {it.item_name}
             </span>
           </div>
           <div style={{ flexShrink: 0, textAlign: 'right', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ color: '#a8a098', fontSize: 10 }}>{it.buy_count}회</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{it.buy_count}회</span>
             <span style={{ fontWeight: 600, color: '#333', minWidth: 50, textAlign: 'right' }}>
               {it.supply_price ? fmt(it.supply_price) + '원' : '-'}
             </span>
@@ -109,7 +109,7 @@ export function RecommendationsList({ recommendations }: { recommendations: Brie
   if (recommendations.length === 0) return null;
   return (
     <>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
         추천 와인 Top {Math.min(5, recommendations.length)}
       </div>
       {recommendations.slice(0, 5).map((r, i) => (
@@ -121,10 +121,10 @@ export function RecommendationsList({ recommendations }: { recommendations: Brie
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ color: r.score >= 20 ? '#c62828' : '#888', fontWeight: 600, fontSize: 11 }}>{r.score}점</span>
-              <span style={{ color: '#2c1810', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.item_name}</span>
+              <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.item_name}</span>
             </div>
             {(r.country || r.grape) && (
-              <div style={{ fontSize: 10, color: '#a8a098', marginTop: 1 }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
                 {[r.country, r.grape].filter(Boolean).join(' · ')}
               </div>
             )}
@@ -153,13 +153,13 @@ export function RecentOrdersList({ orders }: { orders: BriefingData['recent_orde
   if (orders.length === 0) return null;
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
         최근 주문
       </div>
       {orders.slice(0, 3).map((o, i) => (
         <div key={i} style={{
           display: 'flex', justifyContent: 'space-between',
-          padding: '4px 0', fontSize: 11, color: '#8a8580',
+          padding: '4px 0', fontSize: 11, color: 'var(--text-tertiary)',
         }}>
           <span>{o.item_name}</span>
           <span>{o.ship_date?.slice(5)}</span>

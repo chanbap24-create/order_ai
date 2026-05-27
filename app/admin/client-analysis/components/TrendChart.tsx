@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import Card from '@/app/components/ui/Card';
 import type { TrendPeriod, TrendPoint } from '../types';
 import { formatKrw, formatDateShort } from '../lib/format';
@@ -16,14 +16,21 @@ type Props = {
 };
 
 export const TrendChart = memo(function TrendChart({ dailyTrend, period, onPeriodChange }: Props) {
+  // 차트 데이터 변환: 데이터/주기 변경 시만 재계산 (대용량 dailyTrend 에서 효과)
+  const chartData = useMemo(() => {
+    const aggregated = aggregateTrend(dailyTrend, period);
+    return computeDiscountSeries(aggregated);
+  }, [dailyTrend, period]);
+
+  const { rateMin, rateMax } = useMemo(() => {
+    const rates = chartData.map(d => d.discountRate).filter((v): v is number => v != null);
+    return {
+      rateMax: rates.length > 0 ? Math.ceil(Math.max(...rates) / 5) * 5 + 5 : 30,
+      rateMin: rates.length > 0 ? Math.max(0, Math.floor(Math.min(...rates) / 5) * 5 - 5) : 0,
+    };
+  }, [chartData]);
+
   if (dailyTrend.length === 0) return null;
-
-  const aggregated = aggregateTrend(dailyTrend, period);
-  const chartData = computeDiscountSeries(aggregated);
-
-  const rates = chartData.map(d => d.discountRate).filter((v): v is number => v != null);
-  const rateMax = rates.length > 0 ? Math.ceil(Math.max(...rates) / 5) * 5 + 5 : 30;
-  const rateMin = rates.length > 0 ? Math.max(0, Math.floor(Math.min(...rates) / 5) * 5 - 5) : 0;
 
   const tickFmt = (d: string) => {
     if (period === 'monthly') return d.slice(2).replace('-', '/');
@@ -36,25 +43,38 @@ export const TrendChart = memo(function TrendChart({ dailyTrend, period, onPerio
   };
 
   return (
-    <Card style={{ marginBottom: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>매출 · 지원률 추이</h3>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {([['daily', '일간'], ['weekly', '주간'], ['monthly', '월간']] as const).map(([v, label]) => (
-            <button
-              key={v}
-              onClick={() => onPeriodChange(v)}
-              style={{
-                padding: '4px 12px', fontSize: 'var(--text-xs)', fontWeight: period === v ? 700 : 400,
-                border: period === v ? '1px solid #8B1538' : '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                background: period === v ? 'rgba(139,21,56,0.08)' : 'var(--color-background)',
-                color: period === v ? '#8B1538' : 'var(--color-text-light)',
-              }}
-            >
-              {label}
-            </button>
-          ))}
+    <Card style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '0.01em' }}>매출 · 지원률 추이</h3>
+        <div style={{ display: 'flex', height: 28 }}>
+          {([
+            { value: 'daily', label: '일간' },
+            { value: 'weekly', label: '주간' },
+            { value: 'monthly', label: '월간' },
+          ] as const).map((o, idx, arr) => {
+            const isActive = period === o.value;
+            return (
+              <button
+                key={o.value}
+                onClick={() => onPeriodChange(o.value)}
+                style={{
+                  minWidth: 56,
+                  padding: '0 12px',
+                  border: '1px solid var(--border-default)',
+                  background: isActive ? 'var(--action)' : 'var(--surface)',
+                  color: isActive ? 'var(--text-on-primary)' : 'var(--text-tertiary)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  borderRadius: idx === 0 ? '6px 0 0 6px' : idx === arr.length - 1 ? '0 6px 6px 0' : 0,
+                  borderLeftWidth: idx === 0 ? 1 : 0,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {o.label}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div style={{ width: '100%', height: 300 }}>
@@ -73,8 +93,8 @@ export const TrendChart = memo(function TrendChart({ dailyTrend, period, onPerio
               labelFormatter={labelFmt}
             />
             <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률'} />
-            <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8B1538" strokeWidth={2} dot={chartData.length < 40} name="revenue" />
-            <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" connectNulls />
+            <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#5A1515" strokeWidth={2} dot={chartData.length < 40} name="revenue" animationDuration={500} />
+            <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" connectNulls animationDuration={500} />
           </LineChart>
         </ResponsiveContainer>
       </div>

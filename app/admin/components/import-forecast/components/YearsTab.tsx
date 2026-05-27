@@ -177,7 +177,7 @@ export function YearsTab(p: Props) {
         )}
 
         <div style={{ marginTop: 12, display: "flex", gap: 16, fontSize: 10, color: "#bbb" }}>
-          <Legend color="#5A1515" text="최근 ×3" />
+          <Legend color="var(--action)" text="최근 ×3" />
           <Legend color="#b87333" text="직전 ×2" />
           <Legend color="#ccc" text="나머지 ×1" />
         </div>

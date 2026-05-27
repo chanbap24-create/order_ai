@@ -161,7 +161,7 @@ export function ConditionFilterGrid(p: Props) {
           )}
         </div>
         {p.brand && (
-          <div style={{ fontSize: 10, color: "#5A1515", fontWeight: 600, marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: "var(--action)", fontWeight: 600, marginTop: 2 }}>
             {p.brandList.find((b) => b.abbr === p.brand)?.name || p.brand} ({p.brand})
           </div>
         )}

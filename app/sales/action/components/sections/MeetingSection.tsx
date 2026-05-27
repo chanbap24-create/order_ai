@@ -74,7 +74,7 @@ export function MeetingSection(p: Props) {
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: "#2c1810",
+                          color: "var(--text-primary)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -90,7 +90,7 @@ export function MeetingSection(p: Props) {
                     )}
                   </div>
 
-                  <div style={{ fontSize: 13, color: "#8a8580", marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     {m.meeting_date} {m.meeting_time ? m.meeting_time : ""}
                     <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
                     <span
@@ -109,7 +109,7 @@ export function MeetingSection(p: Props) {
                   </div>
 
                   {m.purpose && (
-                    <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
                       {m.purpose}
                     </div>
                   )}
@@ -120,7 +120,7 @@ export function MeetingSection(p: Props) {
                         display: "inline-block",
                         padding: "2px 8px",
                         borderRadius: 4,
-                        background: m.briefing_ready ? "#E8F5E9" : "#faf9f7",
+                        background: m.briefing_ready ? "#E8F5E9" : "var(--surface-muted)",
                         color: m.briefing_ready ? "#2E7D32" : "#999",
                         fontSize: 11,
                         fontWeight: 600,

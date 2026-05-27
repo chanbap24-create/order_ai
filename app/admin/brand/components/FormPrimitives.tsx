@@ -12,7 +12,7 @@ export function Section({ title, children }: { title: string; children: React.Re
         padding: 16,
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#5A1515", marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--action)", marginBottom: 12 }}>
         {title}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
@@ -35,7 +35,7 @@ export function Field({
 }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: "#a8a098", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
       <input
         type={type}
         value={value}
@@ -69,7 +69,7 @@ export function TextArea({
 }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: "#a8a098", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -99,7 +99,7 @@ export function Toast({ message }: { message: string | null }) {
         position: "fixed",
         bottom: 24,
         right: 24,
-        background: "#2c1810",
+        background: "var(--text-primary)",
         color: "#fff",
         padding: "10px 20px",
         borderRadius: 8,

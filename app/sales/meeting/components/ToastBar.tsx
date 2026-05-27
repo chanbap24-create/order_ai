@@ -24,7 +24,7 @@ export function ToastBar(p: Props) {
             top: 80,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#5A1515",
+            background: "var(--action)",
             color: "#fff",
             padding: "12px 20px",
             borderRadius: 10,

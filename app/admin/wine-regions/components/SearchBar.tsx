@@ -37,7 +37,7 @@ export function SearchBar({ search, onSearchChange, viewMode, onViewModeChange }
             style={{
               position: 'absolute', right: 8, top: 8,
               background: 'none', border: 'none', cursor: 'pointer',
-              color: '#a8a098', fontSize: 16, lineHeight: 1,
+              color: 'var(--text-muted)', fontSize: 16, lineHeight: 1,
             }}
           >
             x
@@ -53,7 +53,7 @@ export function SearchBar({ search, onSearchChange, viewMode, onViewModeChange }
               padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none',
               borderRadius: 4, cursor: 'pointer',
               background: viewMode === mode ? '#fff' : 'transparent',
-              color: viewMode === mode ? '#5A1515' : '#a8a098',
+              color: viewMode === mode ? 'var(--action)' : 'var(--text-muted)',
               boxShadow: viewMode === mode ? '0 1px 3px rgba(90,21,21,0.08)' : 'none',
             }}
           >

@@ -60,14 +60,14 @@ export function CompactBriefing(p: Props) {
             borderBottom: "1px solid rgba(90,21,21,0.06)",
           }}
         >
-          <span style={{ fontSize: 11, color: "#a8a098" }}>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             {p.dismissedTotal}건 확인 처리됨
           </span>
           <button
             onClick={p.clearDismissed}
             style={{
               fontSize: 11,
-              color: "#a8a098",
+              color: "var(--text-muted)",
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -106,7 +106,7 @@ export function CompactBriefing(p: Props) {
       {p.vn.length > 0 && (
         <div style={{ marginBottom: 8 }}>
           <span style={{ color: "#1565C0", fontWeight: 700 }}>재주문 {p.vn.length}건</span>
-          <span style={{ color: "#8a8580", fontSize: 11 }}>
+          <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
             {" "}(재고有 {p.vn.filter((n) => n.stock_status !== "out_of_stock").length} / 품절{" "}
             {p.vn.filter((n) => n.stock_status === "out_of_stock").length})
           </span>
@@ -177,7 +177,7 @@ export function CompactBriefing(p: Props) {
           flexWrap: "wrap",
           gap: "4px 16px",
           fontSize: 12,
-          color: "#8a8580",
+          color: "var(--text-tertiary)",
           marginTop: 4,
         }}
       >
@@ -198,7 +198,7 @@ export function CompactBriefing(p: Props) {
         )}
         {p.vsr.length > 0 && (
           <span>
-            <span style={{ color: "#5A1515", fontWeight: 600 }}>
+            <span style={{ color: "var(--action)", fontWeight: 600 }}>
               시즌({p.summary.season_name})
             </span>{" "}
             {p.vsr.length}건
@@ -207,7 +207,7 @@ export function CompactBriefing(p: Props) {
       </div>
 
       {!p.hasAnyData && p.dismissedTotal > 0 && (
-        <div style={{ textAlign: "center", padding: "12px 0", color: "#a8a098", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: "12px 0", color: "var(--text-muted)", fontSize: 13 }}>
           모든 항목을 확인 처리했습니다.
         </div>
       )}
@@ -222,7 +222,7 @@ export function CompactBriefing(p: Props) {
             background: "white",
             fontSize: 12,
             fontWeight: 600,
-            color: "#8a8580",
+            color: "var(--text-tertiary)",
             cursor: "pointer",
           }}
         >
@@ -245,7 +245,7 @@ const rowStyle: React.CSSProperties = {
 const moreStyle: React.CSSProperties = {
   paddingLeft: 12,
   fontSize: 11,
-  color: "#a8a098",
+  color: "var(--text-muted)",
 };
 
 const ellipsisStyle: React.CSSProperties = {

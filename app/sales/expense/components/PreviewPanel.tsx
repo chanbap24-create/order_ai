@@ -63,10 +63,10 @@ export function PreviewPanel(p: Props) {
           }}
         >
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#2c1810" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
               {p.selectedSheet} 현황
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#5A1515", marginTop: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--action)", marginTop: 4 }}>
               총 {totalAmount.toLocaleString()}원
             </div>
           </div>
@@ -76,7 +76,7 @@ export function PreviewPanel(p: Props) {
               background: "none",
               border: "none",
               fontSize: 22,
-              color: "#8a8580",
+              color: "var(--text-tertiary)",
               cursor: "pointer",
               padding: "0 4px",
               lineHeight: 1,
@@ -97,7 +97,7 @@ export function PreviewPanel(p: Props) {
                       padding: "8px 6px",
                       textAlign: i === 3 ? "right" : "left",
                       borderBottom: "2px solid rgba(90,21,21,0.1)",
-                      color: "#8a8580",
+                      color: "var(--text-tertiary)",
                       fontWeight: 600,
                       fontSize: 10,
                       position: "sticky",
@@ -114,7 +114,7 @@ export function PreviewPanel(p: Props) {
             </thead>
             <tbody>
               {p.previewRows.map((r, ri) => (
-                <tr key={ri} style={{ background: ri % 2 === 0 ? "#fff" : "#faf9f7" }}>
+                <tr key={ri} style={{ background: ri % 2 === 0 ? "#fff" : "var(--surface-muted)" }}>
                   {r.cells.map((cell, ci) => (
                     <td
                       key={ci}
@@ -122,7 +122,7 @@ export function PreviewPanel(p: Props) {
                         padding: "6px",
                         borderBottom: "1px solid rgba(90,21,21,0.04)",
                         textAlign: ci === 3 ? "right" : "left",
-                        color: "#2c1810",
+                        color: "var(--text-primary)",
                         whiteSpace: "nowrap",
                         maxWidth: ci === 2 ? 160 : 100,
                         overflow: "hidden",
@@ -166,7 +166,7 @@ export function PreviewPanel(p: Props) {
               style={{
                 textAlign: "center",
                 padding: 40,
-                color: "#8a8580",
+                color: "var(--text-tertiary)",
                 fontSize: 13,
               }}
             >
@@ -180,11 +180,11 @@ export function PreviewPanel(p: Props) {
                 marginTop: 20,
                 padding: "14px 16px",
                 borderRadius: 10,
-                background: "#faf9f7",
+                background: "var(--surface-muted)",
                 border: "1px solid rgba(90,21,21,0.06)",
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#2c1810", marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
                 차량비
               </div>
               <div
@@ -204,7 +204,7 @@ export function PreviewPanel(p: Props) {
                 <VehicleField
                   label="주유금액"
                   value={`${p.vehicleInfo.totalFuel.toLocaleString()}원`}
-                  valueColor="#5A1515"
+                  valueColor="var(--action)"
                 />
               </div>
             </div>
@@ -218,7 +218,7 @@ export function PreviewPanel(p: Props) {
 function VehicleField({
   label,
   value,
-  valueColor = "#2c1810",
+  valueColor = "var(--text-primary)",
 }: {
   label: string;
   value: string;
@@ -226,7 +226,7 @@ function VehicleField({
 }) {
   return (
     <div>
-      <span style={{ color: "#8a8580" }}>{label}</span>
+      <span style={{ color: "var(--text-tertiary)" }}>{label}</span>
       <div style={{ fontWeight: 600, color: valueColor, marginTop: 2 }}>{value}</div>
     </div>
   );

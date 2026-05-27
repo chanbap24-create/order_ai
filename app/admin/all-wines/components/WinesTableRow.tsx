@@ -28,7 +28,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
           <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {w.item_name_kr}
           </span>
-          <span style={{ fontSize: 11, color: '#a8a098' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             {w.country_en || w.country || ''}{w.region ? ` · ${w.region}` : ''}
           </span>
         </div>

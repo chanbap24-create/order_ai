@@ -16,6 +16,7 @@
     "bcryptjs": "^3.0.3",
     "date-holidays": "^3.26.5",
     "exceljs": "^4.4.0",
+    "expo": "^56.0.5",
     "jszip": "^3.10.1",
     "next": "16.0.10",
     "openai": "^6.15.0",

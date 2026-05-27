@@ -22,7 +22,7 @@ export default function RecommendSettingsTab() {
 
   if (s.loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
+      <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
         설정을 불러오는 중...
       </div>
     );

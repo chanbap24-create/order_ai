@@ -77,15 +77,15 @@ export function ClientView({ summary }: { summary: ClientSummary[] }) {
             <td style={{ ...tdStyle, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {c.client_name}
             </td>
-            <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{c.ship_count}</td>
+            <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-tertiary)' }}>{c.ship_count}</td>
             <td style={{ ...tdStyle, textAlign: 'right' }}>{fmt(c.total_qty)}</td>
-            <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(c.avg_price)}</td>
+            <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-tertiary)' }}>{fmt(c.avg_price)}</td>
             <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{fmt(c.total_amount)}</td>
-            <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>{c.first_date?.slice(2)}</td>
-            <td style={{ ...tdStyle, color: '#8a8580', whiteSpace: 'nowrap' }}>{c.last_date?.slice(2)}</td>
+            <td style={{ ...tdStyle, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{c.first_date?.slice(2)}</td>
+            <td style={{ ...tdStyle, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{c.last_date?.slice(2)}</td>
           </tr>
         ))}
-        <tr style={{ background: '#5A1515', fontWeight: 700 }}>
+        <tr style={{ background: 'var(--action)', fontWeight: 700 }}>
           <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }}>합계 ({summary.length}개 거래처)</td>
           <td style={{ ...tdStyle, color: '#fff' }}></td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>{fmt(grandQty)}</td>
@@ -126,7 +126,7 @@ function SortableHeader({
           style={{
             fontSize: 10,
             opacity: active ? 1 : 0.3,
-            color: active ? '#5A1515' : '#8a8580',
+            color: active ? 'var(--action)' : 'var(--text-tertiary)',
             width: 8,
           }}
         >

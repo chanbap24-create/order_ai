@@ -18,7 +18,7 @@ export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
       boxShadow: '0 -2px 10px rgba(90,21,21,0.08)',
     }}>
       <div style={{ maxWidth: 1250, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, fontSize: 12, color: '#8a8580' }}>
+        <div style={{ flex: 1, fontSize: 12, color: 'var(--text-tertiary)' }}>
           가중치 합계: <span style={{ fontWeight: 700, color: totalColor }}>{totalWeight}점</span>
           {totalWeight !== 100 && <span style={{ color: '#FF9800', marginLeft: 8 }}>(권장: 100점)</span>}
         </div>
@@ -26,7 +26,7 @@ export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
           onClick={onReset}
           style={{
             padding: '10px 20px', borderRadius: 8, border: '1.5px solid rgba(90,21,21,0.08)',
-            background: '#fff', color: '#8a8580', fontSize: 13, fontWeight: 600,
+            background: '#fff', color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 600,
             cursor: 'pointer',
           }}
         >

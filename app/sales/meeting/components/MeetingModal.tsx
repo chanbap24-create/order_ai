@@ -43,7 +43,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#2c1810", marginBottom: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>
           {modal.editingId ? "일정 수정" : "일정 추가"}
         </div>
 
@@ -109,7 +109,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
             const v = e.target.value;
             modal.setModalReminder(v === "default" ? null : Number(v));
           }}
-          style={{ ...INPUT, marginBottom: 20, background: "#fff", color: "#2c1810" }}
+          style={{ ...INPUT, marginBottom: 20, background: "#fff", color: "var(--text-primary)" }}
         >
           {REMINDER_OPTIONS.map((opt) => (
             <option
@@ -130,7 +130,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
               borderRadius: 8,
               border: "1px solid rgba(90,21,21,0.08)",
               background: "#fff",
-              color: "#8a8580",
+              color: "var(--text-tertiary)",
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
@@ -173,7 +173,7 @@ function Label({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: 12,
         fontWeight: 600,
-        color: "#8a8580",
+        color: "var(--text-tertiary)",
         display: "block",
         marginBottom: 6,
       }}

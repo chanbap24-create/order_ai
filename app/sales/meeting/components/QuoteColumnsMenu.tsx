@@ -22,7 +22,7 @@ export function QuoteColumnsMenu(p: Props) {
           borderRadius: 10,
           border: "1px solid #ddd",
           background: p.show ? "#f5f0eb" : "#fff",
-          color: "#5A1515",
+          color: "var(--action)",
           fontSize: 16,
           cursor: "pointer",
           display: "flex",
@@ -50,7 +50,7 @@ export function QuoteColumnsMenu(p: Props) {
             overflowY: "auto",
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#5A1515", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--action)", marginBottom: 8 }}>
             견적서 컬럼
           </div>
           {QUOTE_COL_OPTIONS.map((col) => (
@@ -102,7 +102,7 @@ export function QuoteColumnsMenu(p: Props) {
                 padding: "5px 0",
                 borderRadius: 6,
                 border: "none",
-                background: "#5A1515",
+                background: "var(--action)",
                 color: "#fff",
                 fontSize: 11,
                 cursor: "pointer",

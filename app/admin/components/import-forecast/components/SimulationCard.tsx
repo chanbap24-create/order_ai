@@ -49,7 +49,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
 
   const scenarios = [
     { label: "보수적", value: Math.round(baseQty * 0.6), color: "#95a5a6", icon: "▽" },
-    { label: "기본", value: baseQty, color: "#5A1515", icon: "■" },
+    { label: "기본", value: baseQty, color: "var(--action)", icon: "■" },
     { label: "낙관적", value: Math.round(baseQty * 1.5), color: "#27ae60", icon: "△" },
   ];
 
@@ -103,7 +103,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                   max={100}
                   value={importCases}
                   onChange={(e) => setImportCases(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: "#5A1515" }}
+                  style={{ flex: 1, accentColor: "var(--action)" }}
                 />
                 <input
                   type="number"
@@ -155,7 +155,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                   max={200}
                   value={marginPct}
                   onChange={(e) => setMarginPct(Number(e.target.value))}
-                  style={{ flex: 1, accentColor: "#5A1515" }}
+                  style={{ flex: 1, accentColor: "var(--action)" }}
                 />
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#222", minWidth: 36 }}>
                   {marginPct}%

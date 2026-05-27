@@ -30,7 +30,7 @@ export function ClientPickerCard(p: Props) {
       marginBottom: 16, boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
       border: '1px solid rgba(90,21,21,0.06)',
     }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
         거래처 선택
       </div>
 
@@ -41,7 +41,7 @@ export function ClientPickerCard(p: Props) {
             onChange={e => p.onFilterManagerChange(e.target.value)}
             style={{
               padding: '8px 12px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)',
-              fontSize: 16, background: '#fff', color: p.filterManager ? '#2c1810' : '#999',
+              fontSize: 16, background: '#fff', color: p.filterManager ? 'var(--text-primary)' : '#999',
               outline: 'none', width: '100%', boxSizing: 'border-box',
             }}
           >
@@ -61,7 +61,7 @@ export function ClientPickerCard(p: Props) {
           style={{
             width: '100%', padding: '10px 12px', borderRadius: 8,
             border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
-            boxSizing: 'border-box', background: p.selectedClient ? '#faf9f7' : '#fff',
+            boxSizing: 'border-box', background: p.selectedClient ? 'var(--surface-muted)' : '#fff',
           }}
         />
         {p.selectedClient && (
@@ -78,7 +78,7 @@ export function ClientPickerCard(p: Props) {
             </span>
             <button
               onClick={p.onClear}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#a8a098', padding: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-muted)', padding: 0 }}
             >
               ×
             </button>
@@ -99,12 +99,12 @@ export function ClientPickerCard(p: Props) {
                   padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(90,21,21,0.06)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#faf9f7')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-muted)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: '#2c1810' }}>{c.client_name}</div>
-                  <div style={{ fontSize: 11, color: '#a8a098' }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{c.client_name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     {c.client_code}{c.manager && ` · ${c.manager}`}{c.business_type && ` · ${c.business_type}`}
                   </div>
                 </div>
@@ -126,7 +126,7 @@ export function ClientPickerCard(p: Props) {
             position: 'absolute', top: '100%', left: 0, right: 0,
             background: '#fff', border: '1.5px solid rgba(90,21,21,0.08)',
             borderRadius: '0 0 8px 8px', padding: '16px', textAlign: 'center',
-            color: '#a8a098', fontSize: 13, zIndex: 100,
+            color: 'var(--text-muted)', fontSize: 13, zIndex: 100,
           }}>
             검색 결과가 없습니다
           </div>

@@ -2,19 +2,24 @@
 
 import { memo } from 'react';
 import dynamic from 'next/dynamic';
-import Card from '@/app/components/ui/Card';
+import { Section } from '@/app/components/ui';
 import type { InvPeriod } from '../types';
 
-const BarChart = dynamic(() => import('recharts').then(m => m.BarChart), { ssr: false });
-const Bar = dynamic(() => import('recharts').then(m => m.Bar), { ssr: false });
-const LineChart = dynamic(() => import('recharts').then(m => m.LineChart), { ssr: false });
-const Line = dynamic(() => import('recharts').then(m => m.Line), { ssr: false });
-const XAxis = dynamic(() => import('recharts').then(m => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import('recharts').then(m => m.YAxis), { ssr: false });
-const CartesianGrid = dynamic(() => import('recharts').then(m => m.CartesianGrid), { ssr: false });
-const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: false });
-const Legend = dynamic(() => import('recharts').then(m => m.Legend), { ssr: false });
-const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
+const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import('recharts').then((m) => m.Bar), { ssr: false });
+const LineChart = dynamic(() => import('recharts').then((m) => m.LineChart), { ssr: false });
+const Line = dynamic(() => import('recharts').then((m) => m.Line), { ssr: false });
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import('recharts').then((m) => m.CartesianGrid), {
+  ssr: false,
+});
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), { ssr: false });
+const Legend = dynamic(() => import('recharts').then((m) => m.Legend), { ssr: false });
+const ResponsiveContainer = dynamic(
+  () => import('recharts').then((m) => m.ResponsiveContainer),
+  { ssr: false },
+);
 
 type Props = {
   invChangeData: Array<{ date: string; cdv: number; dl: number }>;
@@ -23,61 +28,77 @@ type Props = {
   onPeriodChange: (p: InvPeriod) => void;
 };
 
-export const InventoryCharts = memo(function InventoryCharts({ invChangeData, inventoryLineData, invPeriod, onPeriodChange }: Props) {
+export const InventoryCharts = memo(function InventoryCharts({
+  invChangeData,
+  inventoryLineData,
+  invPeriod,
+  onPeriodChange,
+}: Props) {
   if (invChangeData.length === 0 && inventoryLineData.length <= 1) return null;
 
+  const legendFmt = (v: string) => (v === 'cdv' ? '까브드뱅' : '대유라이프');
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gap: 12,
+        marginBottom: 16,
+      }}
+    >
       {invChangeData.length > 0 && (
-        <Card>
-          <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>재고 변동 추이</h3>
+        <Section title="재고 변동 추이">
           <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={invChangeData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece4" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={invChangeData.length > 15 ? Math.floor(invChangeData.length / 12) : 0} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v > 0 ? '+' : ''}${v.toLocaleString()}만`} width={65} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10 }}
+                  interval={invChangeData.length > 15 ? Math.floor(invChangeData.length / 12) : 0}
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v: number) => `${v > 0 ? '+' : ''}${v.toLocaleString()}만`}
+                  width={65}
+                />
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     `${value > 0 ? '+' : ''}${value.toLocaleString()}만원`,
-                    name === 'cdv' ? 'CDV' : 'DL',
+                    legendFmt(name),
                   ]}
                 />
-                <Legend formatter={(value: string) => value === 'cdv' ? 'CDV' : 'DL'} />
-                <Bar dataKey="cdv" fill="#5A1515" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="dl" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                <Legend formatter={legendFmt} />
+                <Bar dataKey="cdv" fill="#5A1515" radius={[4, 4, 0, 0]} animationDuration={500} />
+                <Bar dataKey="dl" fill="#1565C0" radius={[4, 4, 0, 0]} animationDuration={500} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </Card>
+        </Section>
       )}
 
       {inventoryLineData.length > 1 && (
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)', flexWrap: 'wrap', gap: 8 }}>
-            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, margin: 0 }}>재고금액 추이</h3>
-            <div style={{ display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-              {([['daily', '일봉'], ['weekly', '주봉'], ['monthly', '월봉']] as const).map(([k, lbl]) => (
-                <button
-                  key={k}
-                  onClick={() => onPeriodChange(k)}
-                  style={{
-                    padding: '3px 10px', fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-                    background: invPeriod === k ? '#2c1810' : 'transparent',
-                    color: invPeriod === k ? '#fff' : 'var(--color-text-light)',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {lbl}
-                </button>
-              ))}
-            </div>
-          </div>
+        <Section
+          title="재고금액 추이"
+          actions={<PeriodToggle period={invPeriod} onChange={onPeriodChange} />}
+        >
           <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={inventoryLineData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece4" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={invPeriod === 'daily' && inventoryLineData.length > 15 ? Math.floor(inventoryLineData.length / 12) : 0} />
+              <LineChart
+                data={inventoryLineData}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10 }}
+                  interval={
+                    invPeriod === 'daily' && inventoryLineData.length > 15
+                      ? Math.floor(inventoryLineData.length / 12)
+                      : 0
+                  }
+                />
                 <YAxis
                   tick={{ fontSize: 11 }}
                   tickFormatter={(v: number) => `${v.toLocaleString()}만`}
@@ -88,16 +109,80 @@ export const InventoryCharts = memo(function InventoryCharts({ invChangeData, in
                   ]}
                 />
                 <Tooltip
-                  formatter={(value: number, name: string) => [`${value.toLocaleString()}만원`, name === 'cdv' ? 'CDV' : 'DL']}
+                  formatter={(value: number, name: string) => [
+                    `${value.toLocaleString()}만원`,
+                    legendFmt(name),
+                  ]}
                 />
-                <Legend formatter={(value: string) => value === 'cdv' ? 'CDV' : 'DL'} />
-                <Line type="monotone" dataKey="cdv" stroke="#5A1515" strokeWidth={2} dot={inventoryLineData.length < 20} />
-                <Line type="monotone" dataKey="dl" stroke="#2563eb" strokeWidth={2} dot={inventoryLineData.length < 20} />
+                <Legend formatter={legendFmt} />
+                <Line
+                  type="monotone"
+                  dataKey="cdv"
+                  stroke="#5A1515"
+                  strokeWidth={2}
+                  dot={inventoryLineData.length < 20}
+                  animationDuration={500}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="dl"
+                  stroke="#1565C0"
+                  strokeWidth={2}
+                  dot={inventoryLineData.length < 20}
+                  animationDuration={500}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </Card>
+        </Section>
       )}
     </div>
   );
 });
+
+function PeriodToggle({
+  period,
+  onChange,
+}: {
+  period: InvPeriod;
+  onChange: (p: InvPeriod) => void;
+}) {
+  const options: { value: InvPeriod; label: string }[] = [
+    { value: 'daily', label: '일간' },
+    { value: 'weekly', label: '주간' },
+    { value: 'monthly', label: '월간' },
+  ];
+  return (
+    <div style={{ display: 'flex', height: 26 }}>
+      {options.map((o, idx) => {
+        const isActive = period === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              minWidth: 44,
+              padding: '0 10px',
+              border: '1px solid var(--border-default)',
+              background: isActive ? 'var(--action)' : 'var(--surface)',
+              color: isActive ? 'var(--text-on-primary)' : 'var(--text-tertiary)',
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              borderRadius:
+                idx === 0
+                  ? '6px 0 0 6px'
+                  : idx === options.length - 1
+                    ? '0 6px 6px 0'
+                    : 0,
+              borderLeftWidth: idx === 0 ? 1 : 0,
+              letterSpacing: '0.02em',
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

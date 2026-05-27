@@ -34,9 +34,9 @@ export function ConditionRanges(p: Props) {
                   fontSize: 11,
                   fontWeight: isActive ? 600 : 400,
                   borderRadius: 4,
-                  border: isActive ? "1px solid #5A1515" : "1px solid #e0e0e0",
+                  border: isActive ? "1px solid var(--action)" : "1px solid #e0e0e0",
                   cursor: "pointer",
-                  background: isActive ? "#5A1515" : "#fff",
+                  background: isActive ? "var(--action)" : "#fff",
                   color: isActive ? "#fff" : "#888",
                 }}
               >
@@ -84,9 +84,9 @@ export function ConditionRanges(p: Props) {
                   fontSize: 11,
                   fontWeight: isActive ? 600 : 400,
                   borderRadius: 4,
-                  border: isActive ? "1px solid #5A1515" : "1px solid #e0e0e0",
+                  border: isActive ? "1px solid var(--action)" : "1px solid #e0e0e0",
                   cursor: "pointer",
-                  background: isActive ? "#5A1515" : "#fff",
+                  background: isActive ? "var(--action)" : "#fff",
                   color: isActive ? "#fff" : "#888",
                 }}
               >

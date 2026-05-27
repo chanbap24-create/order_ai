@@ -23,11 +23,11 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
         거래처 매출 순위
       </div>
       {loading ? (
-        <div style={{ textAlign: "center", padding: 24, color: "#a8a098", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: 24, color: "var(--text-muted)", fontSize: 13 }}>
           거래처 데이터 로딩 중...
         </div>
       ) : sorted.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 32, color: "#a8a098", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: 32, color: "var(--text-muted)", fontSize: 13 }}>
           데이터 없음
         </div>
       ) : (
@@ -35,13 +35,13 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
           <table className="analysis-table">
             <thead>
               <tr>
-                <th style={{ width: 40, textAlign: "center" }}>#</th>
-                <th style={{ width: 50 }}>등급</th>
+                <th style={{ width: 36, textAlign: "center" }}>#</th>
+                <th style={{ width: 64, whiteSpace: "nowrap" }}>등급</th>
                 <th>거래처명</th>
-                <th style={{ width: 70 }}>담당</th>
-                <th style={{ textAlign: "right" }}>매출</th>
-                <th style={{ textAlign: "right", width: 50 }}>건수</th>
-                <th style={{ textAlign: "right", width: 60 }}>전기비</th>
+                <th style={{ width: 72, whiteSpace: "nowrap" }}>담당</th>
+                <th style={{ textAlign: "right", whiteSpace: "nowrap" }}>매출</th>
+                <th style={{ textAlign: "right", width: 56, whiteSpace: "nowrap" }}>건수</th>
+                <th style={{ textAlign: "right", width: 72, whiteSpace: "nowrap" }}>전기비</th>
               </tr>
             </thead>
             <tbody>
@@ -66,7 +66,7 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
                       style={{
                         textAlign: "center",
                         fontWeight: 600,
-                        color: idx < 3 ? "#5A1515" : "#666",
+                        color: idx < 3 ? "var(--action)" : "#666",
                       }}
                     >
                       {idx + 1}
@@ -74,13 +74,16 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
                     <td>
                       <span
                         style={{
+                          display: "inline-block",
                           fontSize: 10,
                           fontWeight: 700,
-                          padding: "2px 6px",
-                          borderRadius: 3,
+                          padding: "2px 8px",
+                          borderRadius: 4,
                           color: imp.color,
                           background: imp.color + "14",
                           border: `1px solid ${imp.color}25`,
+                          whiteSpace: "nowrap",
+                          letterSpacing: "0.04em",
                         }}
                       >
                         {imp.label}
@@ -96,7 +99,7 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
                     >
                       {c.client_name}
                     </td>
-                    <td style={{ fontSize: "0.72rem", color: "#a8a098" }}>{c.manager || "-"}</td>
+                    <td style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{c.manager || "-"}</td>
                     <td style={{ textAlign: "right", fontWeight: 500 }}>
                       {c.st ? fmt(c.st.totalSales) : "-"}
                     </td>

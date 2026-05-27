@@ -9,7 +9,10 @@ type Props = {
   currentManager: string;
 };
 
-/** 상단 CDV/DL 토글 + 안내 문구 */
+/**
+ * 상단 CDV/DL 토글 + 안내 문구.
+ * 작은 segmented control + tertiary 텍스트.
+ */
 export function TypeToggle({ type, setType, isAdmin, currentManager }: Props) {
   const isWine = type === "wine";
 
@@ -19,41 +22,43 @@ export function TypeToggle({ type, setType, isAdmin, currentManager }: Props) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 16,
+        marginBottom: 12,
+        gap: 12,
+        flexWrap: "wrap",
       }}
     >
-      <div style={{ fontSize: "0.82rem", color: "#8a8580" }}>
-        {isAdmin ? "담당/부서/거래처별" : `${currentManager} 담당`} 출고 {isWine ? "와인" : "리델"} 분석
+      <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
+        {isAdmin ? "담당/부서/거래처별" : `${currentManager} 담당`} 출고{" "}
+        {isWine ? "까브드뱅" : "대유라이프"} 분석
       </div>
-      <div
-        style={{
-          display: "flex",
-          background: "#F0EFED",
-          borderRadius: 8,
-          padding: 2,
-          flexShrink: 0,
-        }}
-      >
-        {(["wine", "glass"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setType(t)}
-            style={{
-              padding: "5px 14px",
-              borderRadius: 6,
-              border: "none",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              background: type === t ? "white" : "transparent",
-              color: type === t ? "#5A1515" : "#999",
-              boxShadow: type === t ? "0 1px 3px rgba(90,21,21,0.05)" : "none",
-            }}
-          >
-            {t === "wine" ? "CDV" : "DL"}
-          </button>
-        ))}
+      <div style={{ display: "flex", height: 28 }}>
+        {([
+          { value: "wine", label: "까브드뱅" },
+          { value: "glass", label: "대유라이프" },
+        ] as const).map((o, idx) => {
+          const isActive = type === o.value;
+          return (
+            <button
+              key={o.value}
+              onClick={() => setType(o.value)}
+              style={{
+                minWidth: 80,
+                padding: "0 14px",
+                border: "1px solid var(--border-default)",
+                background: isActive ? "var(--action)" : "var(--surface)",
+                color: isActive ? "var(--text-on-primary)" : "var(--text-tertiary)",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: idx === 0 ? "6px 0 0 6px" : "0 6px 6px 0",
+                borderLeftWidth: idx === 0 ? 1 : 0,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

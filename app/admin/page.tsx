@@ -9,7 +9,7 @@ import UploadTab from './components/UploadTab';
 import '@/app/styles/design-system.css';
 
 const tabLoader = () => (
-  <div style={{ padding: 40, textAlign: 'center', color: '#a8a098', fontSize: 14 }}>로딩 중...</div>
+  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>로딩 중...</div>
 );
 
 const DashboardTab = dynamic(() => import('./components/DashboardTab'), { ssr: false, loading: tabLoader });
@@ -124,9 +124,9 @@ export default function AdminPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
+        background: 'var(--surface-muted)',
       }}>
-        <div style={{ fontSize: 14, color: '#a8a098' }}>인증 확인 중...</div>
+        <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>인증 확인 중...</div>
       </div>
     );
   }
@@ -149,32 +149,74 @@ export default function AdminPage() {
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
+      background: 'var(--surface-muted)',
       fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
-      <div style={{ maxWidth: 1250, margin: '0 auto', padding: '0 16px 24px' }}>
-        {/* Header */}
-        <div style={{
-          marginTop: 16, marginBottom: 12,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
+        {/* Header — PageHeader 패턴 (Sales 와 동일) */}
+        <header style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          gap: 16,
+          paddingBottom: 16,
+          marginBottom: 20,
+          borderBottom: '1px solid var(--border-subtle)',
         }}>
-          <h1 style={{
-            fontSize: '1.4rem',
-            fontWeight: 700,
-            color: '#2c1810',
-            margin: 0,
-            fontFamily: "'Cormorant Garamond', serif",
-            letterSpacing: '-0.01em',
-          }}>Admin</h1>
-          <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-            <a href="/admin/password" style={{ color: '#5A1515', textDecoration: 'none' }}>
-              🔑 비밀번호 변경
-            </a>
-            <a href="/admin/mfa-setup" style={{ color: '#5A1515', textDecoration: 'none' }}>
-              🔐 MFA 설정
-            </a>
+          <div style={{ minWidth: 0 }}>
+            <p style={{
+              fontSize: 11,
+              color: 'var(--action)',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              fontWeight: 600,
+              margin: '0 0 6px',
+            }}>Admin</p>
+            <h1 style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: '1.5rem',
+              fontWeight: 500,
+              color: 'var(--text-primary)',
+              letterSpacing: '0.01em',
+              lineHeight: 1.3,
+              margin: 0,
+            }}>관리 콘솔</h1>
           </div>
-        </div>
+          <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
+            <a
+              href="/admin/password"
+              style={{
+                height: 28,
+                padding: '0 12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                borderRadius: 6,
+                border: '1px solid var(--border-default)',
+                background: 'var(--surface)',
+                color: 'var(--text-tertiary)',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >비밀번호</a>
+            <a
+              href="/admin/mfa-setup"
+              style={{
+                height: 28,
+                padding: '0 12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                borderRadius: 6,
+                border: '1px solid var(--border-default)',
+                background: 'var(--surface)',
+                color: 'var(--text-tertiary)',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >MFA</a>
+          </div>
+        </header>
 
         {/* 탭 바 */}
         <AdminTabs

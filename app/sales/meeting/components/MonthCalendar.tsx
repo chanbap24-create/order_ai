@@ -16,16 +16,19 @@ type Props = {
   onOpenImport: (date: string) => void;
 };
 
+/**
+ * 월간 캘린더. 7x N grid.
+ * 색·border 모두 의미 토큰 사용. 일요일·휴일은 빨강, 토요일은 파랑 (도메인 규칙).
+ */
 export function MonthCalendar(p: Props) {
   return (
     <div
       style={{
         flex: 1,
         minWidth: 0,
-        background: "#fff",
-        borderRadius: 12,
-        border: "1px solid rgba(90,21,21,0.06)",
-        boxShadow: "0 1px 3px rgba(90,21,21,0.03)",
+        background: "var(--surface)",
+        borderRadius: 10,
+        border: "1px solid var(--border-default)",
         overflow: "hidden",
       }}
     >
@@ -33,8 +36,8 @@ export function MonthCalendar(p: Props) {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          borderBottom: "1px solid rgba(90,21,21,0.06)",
-          background: "#faf8f2",
+          borderBottom: "1px solid var(--border-default)",
+          background: "var(--surface-muted)",
         }}
       >
         {DAYS_KR.map((day) => (
@@ -42,10 +45,12 @@ export function MonthCalendar(p: Props) {
             key={day}
             style={{
               textAlign: "center",
-              padding: "8px 0",
+              padding: "10px 0",
               fontSize: 11,
-              fontWeight: 600,
-              color: day === "일" ? "#c62828" : day === "토" ? "#1565C0" : "#666",
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: day === "일" ? "#c62828" : day === "토" ? "#1565C0" : "var(--text-tertiary)",
             }}
           >
             {day}
@@ -59,7 +64,8 @@ export function MonthCalendar(p: Props) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-            borderBottom: wi < p.weekGroups.length - 1 ? "1px solid rgba(90,21,21,0.06)" : "none",
+            borderBottom:
+              wi < p.weekGroups.length - 1 ? "1px solid var(--border-subtle)" : "none",
           }}
         >
           {wi === 0 &&
@@ -69,15 +75,15 @@ export function MonthCalendar(p: Props) {
                 <div
                   key={`e${i}`}
                   style={{
-                    borderRight: "1px solid #f8f6f0",
-                    minHeight: 102,
-                    background: "#fcfcfb",
+                    borderRight: "1px solid var(--border-subtle)",
+                    minHeight: 108,
+                    background: "var(--surface-muted)",
                   }}
                 />
               ));
             })()}
 
-          {week.map((dateStr) => {
+          {week.map((dateStr, di) => {
             const dayMeetings = p.meetingsByDate[dateStr] || [];
             const isToday = dateStr === p.todayStr;
             const isPast = dateStr < p.todayStr;
@@ -93,45 +99,45 @@ export function MonthCalendar(p: Props) {
               <div
                 key={dateStr}
                 style={{
-                  borderRight: "1px solid #f8f6f0",
-                  minHeight: 102,
-                  padding: "4px",
+                  borderRight:
+                    di < week.length - 1 || wi === p.weekGroups.length - 1
+                      ? "1px solid var(--border-subtle)"
+                      : "none",
+                  minHeight: 108,
+                  padding: 6,
                   background: isToday
-                    ? "#faf0f2"
+                    ? "var(--surface-active)"
                     : isHoliday
-                      ? "#fff5f5"
-                      : isPast
-                        ? "#fdfcfa"
-                        : "#fff",
+                      ? "#fff8f8"
+                      : "var(--surface)",
                   cursor: "pointer",
                   overflow: "hidden",
                   minWidth: 0,
+                  opacity: isPast && !isToday ? 0.75 : 1,
                 }}
                 onClick={() => p.onCreateMeeting(dateStr)}
               >
                 <div
                   style={{
                     fontSize: 12,
-                    fontWeight: isToday ? 800 : 500,
+                    fontWeight: isToday ? 800 : 600,
                     color: isToday
-                      ? "#fff"
+                      ? "var(--text-on-primary)"
                       : isSun || isHoliday
                         ? "#c62828"
                         : isSat
                           ? "#1565C0"
-                          : isPast
-                            ? "#bbb"
-                            : "#2c1810",
+                          : "var(--text-primary)",
                     textAlign: "center",
-                    marginBottom: 2,
+                    marginBottom: 3,
                     ...(isToday
                       ? {
-                          background: "#5A1515",
+                          background: "var(--action)",
                           borderRadius: "50%",
                           width: 22,
                           height: 22,
                           lineHeight: "22px",
-                          margin: "0 auto 2px",
+                          margin: "0 auto 3px",
                         }
                       : {}),
                   }}
@@ -141,12 +147,12 @@ export function MonthCalendar(p: Props) {
                 {isHoliday && (
                   <div
                     style={{
-                      fontSize: 8,
+                      fontSize: 9,
                       color: "#c62828",
                       textAlign: "center",
                       fontWeight: 600,
                       lineHeight: 1.1,
-                      marginBottom: 1,
+                      marginBottom: 2,
                       overflow: "hidden",
                       whiteSpace: "nowrap",
                       textOverflow: "ellipsis",
@@ -167,9 +173,9 @@ export function MonthCalendar(p: Props) {
                         p.onOpenMeeting(m);
                       }}
                       style={{
-                        fontSize: 9,
-                        padding: "1px 3px",
-                        marginBottom: 1,
+                        fontSize: 10,
+                        padding: "2px 4px",
+                        marginBottom: 2,
                         borderRadius: 3,
                         overflow: "hidden",
                         whiteSpace: "nowrap",
@@ -187,7 +193,14 @@ export function MonthCalendar(p: Props) {
                   );
                 })}
                 {dayMeetings.length > 3 && (
-                  <div style={{ fontSize: 9, color: "#a8a098", textAlign: "center" }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: "var(--text-tertiary)",
+                      textAlign: "center",
+                      fontWeight: 600,
+                    }}
+                  >
                     +{dayMeetings.length - 3}건
                   </div>
                 )}
@@ -200,9 +213,9 @@ export function MonthCalendar(p: Props) {
                     }}
                     style={{
                       display: "flex",
-                      gap: 1,
+                      gap: 2,
                       flexWrap: "wrap",
-                      marginTop: 1,
+                      marginTop: 2,
                       cursor: "pointer",
                     }}
                   >
@@ -210,8 +223,8 @@ export function MonthCalendar(p: Props) {
                       <span
                         key={bc}
                         style={{
-                          fontSize: 8,
-                          padding: "0px 3px",
+                          fontSize: 9,
+                          padding: "1px 4px",
                           borderRadius: 3,
                           background: "#FFF3E0",
                           color: "#E65100",
@@ -222,7 +235,7 @@ export function MonthCalendar(p: Props) {
                       </span>
                     ))}
                     {dayImport.brands.length > 3 && (
-                      <span style={{ fontSize: 8, color: "#E65100" }}>
+                      <span style={{ fontSize: 9, color: "#E65100", fontWeight: 600 }}>
                         +{dayImport.brands.length - 3}
                       </span>
                     )}
@@ -240,9 +253,8 @@ export function MonthCalendar(p: Props) {
                 <div
                   key={`le${i}`}
                   style={{
-                    borderRight: "1px solid #f8f6f0",
-                    minHeight: 102,
-                    background: "#fcfcfb",
+                    minHeight: 108,
+                    background: "var(--surface-muted)",
                   }}
                 />
               ));
@@ -250,15 +262,18 @@ export function MonthCalendar(p: Props) {
         </div>
       ))}
 
-      <div
+      <footer
         style={{
-          padding: "10px 14px",
-          background: "#faf8f2",
-          borderTop: "1px solid rgba(90,21,21,0.06)",
-          fontSize: 12,
-          color: "#8a8580",
+          padding: "10px 16px",
+          background: "var(--surface-muted)",
+          borderTop: "1px solid var(--border-default)",
+          fontSize: 11,
+          color: "var(--text-tertiary)",
           display: "flex",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 8,
+          letterSpacing: "0.02em",
         }}
       >
         <span>총 {p.meetings.length}건의 미팅</span>
@@ -273,7 +288,7 @@ export function MonthCalendar(p: Props) {
             .filter(Boolean)
             .join(" · ")}
         </span>
-      </div>
+      </footer>
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import type { SaveStatus } from "../types";
-import { cardStyle } from "../styles";
+import { Section } from "@/app/components/ui";
+import { selectStyle, btnSecondary } from "@/app/styles/controls";
 
 type Props = {
   saveStatus: SaveStatus;
@@ -16,109 +17,159 @@ type Props = {
   onDownload: () => void;
 };
 
+/**
+ * 경비 — 법인카드 엑셀 업로드 카드.
+ * - 워크북 없을 때: 드롭존
+ * - 워크북 있을 때: 한 줄 (시트 select + 액션 버튼들 + 상태 라벨)
+ */
 export function ExcelUploadCard(p: Props) {
   const excelInputRef = useRef<HTMLInputElement>(null);
 
-  return (
-    <div style={cardStyle}>
-      <div
-        style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: "#2c1810",
-          marginBottom: 14,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A1515" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
-        법인카드 엑셀
-        {p.saveStatus === "saved" && (
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#16a34a", marginLeft: "auto" }}>
-            저장됨
-          </span>
-        )}
-        {p.saveStatus === "unsaved" && (
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#E65100", marginLeft: "auto" }}>
-            미저장
-          </span>
-        )}
-      </div>
-
-      {!p.hasWorkbook ? (
+  // 워크북 없으면 드롭존 표시
+  if (!p.hasWorkbook) {
+    return (
+      <Section padding="md">
+        <CardTitle saveStatus={p.saveStatus} />
         <div
           onClick={() => excelInputRef.current?.click()}
           style={{
-            border: "2px dashed rgba(90,21,21,0.15)",
-            borderRadius: 12,
+            border: "1.5px dashed var(--border-strong)",
+            borderRadius: 10,
             padding: "32px 16px",
             textAlign: "center",
             cursor: "pointer",
-            transition: "border-color 0.2s ease, background 0.2s ease",
-            background: "rgba(90,21,21,0.01)",
+            transition: "border-color 0.15s ease, background 0.15s ease",
+            background: "var(--surface-muted)",
+            marginTop: 12,
           }}
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLDivElement).style.background = "var(--surface-hover)")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLDivElement).style.background = "var(--surface-muted)")
+          }
         >
           {p.excelLoading ? (
-            <div style={{ color: "#8a8580", fontSize: 13 }}>엑셀 로딩 중...</div>
+            <div style={{ color: "var(--text-tertiary)", fontSize: 13 }}>엑셀 로딩 중...</div>
           ) : (
             <>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#5A1515", marginBottom: 4 }}>
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--text-tertiary)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ marginBottom: 8 }}
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--action)", marginBottom: 4 }}>
                 법인카드 엑셀 파일 업로드
               </div>
-              <div style={{ fontSize: 12, color: "#8a8580" }}>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
                 클릭하여 .xlsx 파일을 선택하세요
               </div>
             </>
           )}
         </div>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <select
-            value={p.selectedSheet}
-            onChange={(e) => p.setSelectedSheet(e.target.value)}
-            style={{
-              padding: "8px 32px 8px 12px",
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              border: "1.5px solid rgba(90,21,21,0.12)",
-              background: "#faf9f7",
-              color: "#5A1515",
-              cursor: "pointer",
-              outline: "none",
-              appearance: "none",
-              minWidth: 100,
-            }}
-          >
-            {p.sheetNames.map((name) => {
-              const m = name.match(/(\d{4})(\d{2})/);
-              const label = m ? `${m[1]}년 ${Number(m[2])}월` : name;
-              return (
-                <option key={name} value={name}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
-          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
-            <IconBtn onClick={p.onOpenPreview} label="현황" />
-            <IconBtn onClick={p.onDownload} label="다운로드" />
-            <IconBtn onClick={() => excelInputRef.current?.click()} label="" title="파일 교체" />
-          </div>
-        </div>
-      )}
+        <input
+          ref={excelInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={p.onExcelUpload}
+          style={{ display: "none" }}
+        />
+      </Section>
+    );
+  }
 
+  // 워크북 있을 때: 컴팩트 한 줄
+  return (
+    <Section padding="sm">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <FileIcon />
+
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          법인카드 엑셀
+        </span>
+
+        <select
+          value={p.selectedSheet}
+          onChange={(e) => p.setSelectedSheet(e.target.value)}
+          style={{ ...selectStyle, width: 140 }}
+        >
+          {p.sheetNames.map((name) => {
+            const m = name.match(/(\d{4})(\d{2})/);
+            const label = m ? `${m[1]}년 ${Number(m[2])}월` : name;
+            return (
+              <option key={name} value={name}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
+
+        <SaveStatusPill saveStatus={p.saveStatus} />
+
+        <div style={{ flex: 1 }} />
+
+        <button onClick={p.onOpenPreview} style={btnSecondary}>
+          현황
+        </button>
+        <button onClick={p.onDownload} style={btnSecondary}>
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          다운로드
+        </button>
+        <button
+          onClick={() => excelInputRef.current?.click()}
+          style={{ ...btnSecondary, padding: "0 10px" }}
+          title="파일 교체"
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+        </button>
+      </div>
       <input
         ref={excelInputRef}
         type="file"
@@ -126,38 +177,71 @@ export function ExcelUploadCard(p: Props) {
         onChange={p.onExcelUpload}
         style={{ display: "none" }}
       />
+    </Section>
+  );
+}
+
+function CardTitle({ saveStatus }: { saveStatus: SaveStatus }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <FileIcon />
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          letterSpacing: "0.01em",
+        }}
+      >
+        법인카드 엑셀
+      </span>
+      <div style={{ flex: 1 }} />
+      <SaveStatusPill saveStatus={saveStatus} />
     </div>
   );
 }
 
-function IconBtn({
-  onClick,
-  label,
-  title,
-}: {
-  onClick: () => void;
-  label: string;
-  title?: string;
-}) {
+function FileIcon() {
   return (
-    <button
-      onClick={onClick}
-      title={title}
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--action)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function SaveStatusPill({ saveStatus }: { saveStatus: SaveStatus }) {
+  if (saveStatus !== "saved" && saveStatus !== "unsaved") return null;
+  const isSaved = saveStatus === "saved";
+  return (
+    <span
       style={{
-        padding: label ? "8px 12px" : "8px",
-        borderRadius: 8,
-        fontSize: 12,
-        fontWeight: 600,
-        cursor: "pointer",
-        border: "1.5px solid rgba(90,21,21,0.1)",
-        background: "#faf9f7",
-        color: label ? "#5A1515" : "#8a8580",
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "2px 8px",
+        borderRadius: 4,
+        background: isSaved ? "#dcfce7" : "#fef3c7",
+        color: isSaved ? "#15803d" : "#92400e",
+        letterSpacing: "0.04em",
       }}
     >
-      {label}
-    </button>
+      {isSaved ? "저장됨" : "미저장"}
+    </span>
   );
 }

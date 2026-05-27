@@ -33,7 +33,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
   const completedCount = meetings.filter(m => !!m.ai_briefing).length;
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '60px', color: '#a8a098' }}>로딩 중...</div>;
+    return <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>로딩 중...</div>;
   }
 
   if (meetings.length === 0 && !wineShipments && !glassShipments) {
@@ -56,7 +56,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
       {wineShipments && (
         <ShipmentSection
           title={`와인 출고 (${wineShipments.count}건)`}
-          color="#5A1515"
+          color="var(--action)"
           shipments={wineShipments}
           expandedShipClient={expandedShipClient}
           setExpandedShipClient={setExpandedShipClient}

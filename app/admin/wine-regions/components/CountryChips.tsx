@@ -22,8 +22,8 @@ export function CountryChips({ selectedCountry, countryCounts, totalRegions, onS
             style={{
               padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 600,
               cursor: 'pointer', transition: 'all 0.15s',
-              background: isActive ? '#5A1515' : 'rgba(90,21,21,0.05)',
-              color: isActive ? '#fff' : '#8a8580',
+              background: isActive ? 'var(--action)' : 'rgba(90,21,21,0.05)',
+              color: isActive ? '#fff' : 'var(--text-tertiary)',
             }}
           >
             {c.flag && <span style={{ marginRight: 4 }}>{c.flag}</span>}

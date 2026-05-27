@@ -68,7 +68,7 @@ export function NoteToolbar(p: Props) {
                 style={{
                   ...btn,
                   background: isActive ? "white" : "transparent",
-                  color: isActive ? "#5A1515" : "#a8a098",
+                  color: isActive ? "var(--action)" : "var(--text-muted)",
                   boxShadow: isActive ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
                 }}
               >
@@ -96,7 +96,7 @@ export function NoteToolbar(p: Props) {
             style={{
               ...btn,
               background: p.hideZero ? "white" : "transparent",
-              color: p.hideZero ? "#5A1515" : "#a8a098",
+              color: p.hideZero ? "var(--action)" : "var(--text-muted)",
               boxShadow: p.hideZero ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
             }}
           >
@@ -108,7 +108,7 @@ export function NoteToolbar(p: Props) {
             style={{
               ...btn,
               background: p.wineOnly ? "white" : "transparent",
-              color: p.wineOnly ? "#5A1515" : "#a8a098",
+              color: p.wineOnly ? "var(--action)" : "var(--text-muted)",
               boxShadow: p.wineOnly ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
             }}
           >
@@ -122,7 +122,7 @@ export function NoteToolbar(p: Props) {
               alignItems: "center",
               gap: 4,
               background: p.lowStockThreshold > 0 ? "white" : "transparent",
-              color: p.lowStockThreshold > 0 ? "#5A1515" : "#a8a098",
+              color: p.lowStockThreshold > 0 ? "var(--action)" : "var(--text-muted)",
               boxShadow:
                 p.lowStockThreshold > 0 ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
               cursor: "default",
@@ -145,7 +145,7 @@ export function NoteToolbar(p: Props) {
                 border: "1px solid #d1d5db",
                 borderRadius: 4,
                 textAlign: "center",
-                color: "#2c1810",
+                color: "var(--text-primary)",
                 background: "#fff",
               }}
             />
@@ -159,8 +159,8 @@ export function NoteToolbar(p: Props) {
           disabled={p.ops.batchRunning || p.checkedSize === 0}
           style={{
             ...btn,
-            background: p.ops.batchRunning ? "#5A1515" : "rgba(90,21,21,0.05)",
-            color: p.ops.batchRunning ? "#fff" : "#a8a098",
+            background: p.ops.batchRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            color: p.ops.batchRunning ? "#fff" : "var(--text-muted)",
             opacity: p.checkedSize === 0 && !p.ops.batchRunning ? 0.5 : 1,
           }}
         >
@@ -177,7 +177,7 @@ export function NoteToolbar(p: Props) {
             style={{
               ...btn,
               background: p.ops.batchDownloading === fmt ? "#2563eb" : "rgba(90,21,21,0.05)",
-              color: p.ops.batchDownloading === fmt ? "#fff" : "#a8a098",
+              color: p.ops.batchDownloading === fmt ? "#fff" : "var(--text-muted)",
               opacity: p.checkedSize === 0 && !p.ops.batchDownloading ? 0.5 : 1,
             }}
           >
@@ -193,7 +193,7 @@ export function NoteToolbar(p: Props) {
             style={{
               ...btn,
               background: "rgba(90,21,21,0.05)",
-              color: "#a8a098",
+              color: "var(--text-muted)",
               opacity: p.checkedSize === 0 ? 0.5 : 1,
             }}
           >
@@ -203,7 +203,7 @@ export function NoteToolbar(p: Props) {
         <button
           onClick={p.ops.dispatchIndex}
           disabled={p.ops.dispatchingIndex}
-          style={{ ...btn, background: "rgba(90,21,21,0.05)", color: "#a8a098" }}
+          style={{ ...btn, background: "rgba(90,21,21,0.05)", color: "var(--text-muted)" }}
         >
           {p.ops.dispatchingIndex ? "실행 중..." : "인덱스"}
         </button>

@@ -23,26 +23,35 @@ export const BusinessBrandPie = memo(function BusinessBrandPie({ data, view, onV
 
   return (
     <Card>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '0.01em' }}>
           {view === 'business' ? '업종별 매출' : '브랜드별 매출'}
         </h3>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['business', 'brand'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => onViewChange(v)}
-              style={{
-                padding: '4px 12px', fontSize: 'var(--text-xs)', fontWeight: view === v ? 700 : 400,
-                border: view === v ? '1px solid #8B1538' : '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                background: view === v ? 'rgba(139,21,56,0.08)' : 'var(--color-background)',
-                color: view === v ? '#8B1538' : 'var(--color-text-light)',
-              }}
-            >
-              {v === 'business' ? '업종' : '브랜드'}
-            </button>
-          ))}
+        <div style={{ display: 'flex', height: 28 }}>
+          {(['business', 'brand'] as const).map((v, idx) => {
+            const isActive = view === v;
+            return (
+              <button
+                key={v}
+                onClick={() => onViewChange(v)}
+                style={{
+                  minWidth: 56,
+                  padding: '0 12px',
+                  border: '1px solid var(--border-default)',
+                  background: isActive ? 'var(--action)' : 'var(--surface)',
+                  color: isActive ? 'var(--text-on-primary)' : 'var(--text-tertiary)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  borderRadius: idx === 0 ? '6px 0 0 6px' : '0 6px 6px 0',
+                  borderLeftWidth: idx === 0 ? 1 : 0,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {v === 'business' ? '업종' : '브랜드'}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>

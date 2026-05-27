@@ -1,6 +1,7 @@
 "use client";
 
-import { cardStyle } from "../styles";
+import { Section } from "@/app/components/ui";
+import { btnSecondary } from "@/app/styles/controls";
 
 type Props = {
   receiptPreview: string;
@@ -9,51 +10,42 @@ type Props = {
   onReceiptUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
+/**
+ * 영수증 촬영/업로드 카드.
+ * - 헤더 + 액션 버튼이 한 줄에 baseline 정렬
+ * - 프리뷰 이미지는 헤더 아래 80px 썸네일 + 파싱 spinner
+ */
 export function ReceiptUploadCard(p: Props) {
   return (
-    <div style={cardStyle}>
+    <Section padding="sm">
       <div
         style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: "#2c1810",
-          marginBottom: 14,
           display: "flex",
           alignItems: "center",
           gap: 8,
+          flexWrap: "wrap",
         }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A1515" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-          <circle cx="12" cy="13" r="4" />
-        </svg>
-        영수증 촬영/업로드
-      </div>
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <button
-          onClick={() => p.receiptInputRef.current?.click()}
+        <CameraIcon />
+        <span
           style={{
-            flex: 1,
-            padding: "14px 16px",
-            borderRadius: 10,
-            border: "1.5px solid rgba(90,21,21,0.1)",
-            background: "#faf9f7",
             fontSize: 13,
-            fontWeight: 600,
-            color: "#5A1515",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            letterSpacing: "0.01em",
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg>
-          카메라 촬영
+          영수증 촬영
+        </span>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={() => p.receiptInputRef.current?.click()}
+          style={btnSecondary}
+        >
+          <CameraIcon size={13} />
+          {p.receiptPreview ? "다시 촬영" : "촬영 / 업로드"}
         </button>
         <input
           ref={p.receiptInputRef}
@@ -66,47 +58,96 @@ export function ReceiptUploadCard(p: Props) {
       </div>
 
       {p.receiptPreview && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-            <img
-              src={p.receiptPreview}
-              alt="영수증"
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            alignItems: "center",
+            marginTop: 12,
+            padding: 12,
+            background: "var(--surface-muted)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: 8,
+          }}
+        >
+          <img
+            src={p.receiptPreview}
+            alt="영수증"
+            style={{
+              width: 80,
+              height: 80,
+              objectFit: "cover",
+              borderRadius: 6,
+              border: "1px solid var(--border-default)",
+              background: "var(--surface)",
+              flexShrink: 0,
+            }}
+          />
+          {p.parsing ? (
+            <div
               style={{
-                width: 100,
-                height: "auto",
-                borderRadius: 8,
-                border: "1px solid rgba(90,21,21,0.08)",
-                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                color: "var(--action)",
+                fontSize: 13,
+                fontWeight: 600,
               }}
-            />
-            {p.parsing && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  color: "#8a8580",
-                  fontSize: 13,
-                  paddingTop: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 16,
-                    height: 16,
-                    border: "2px solid rgba(90,21,21,0.15)",
-                    borderTop: "2px solid #5A1515",
-                    borderRadius: "50%",
-                    animation: "spin 0.8s linear infinite",
-                  }}
-                />
-                AI 파싱 중...
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-              </div>
-            )}
-          </div>
+            >
+              <Spinner />
+              AI 파싱 중...
+            </div>
+          ) : (
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--text-tertiary)",
+                lineHeight: 1.5,
+              }}
+            >
+              영수증 파싱이 완료되었습니다.
+              <br />
+              아래 항목을 확인하고 저장하세요.
+            </div>
+          )}
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
-    </div>
+    </Section>
+  );
+}
+
+function CameraIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--action)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+function Spinner() {
+  return (
+    <span
+      style={{
+        width: 14,
+        height: 14,
+        border: "2px solid var(--action-muted)",
+        borderTopColor: "var(--action)",
+        borderRadius: "50%",
+        animation: "spin 0.7s linear infinite",
+        display: "inline-block",
+      }}
+    />
   );
 }

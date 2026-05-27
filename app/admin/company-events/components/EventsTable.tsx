@@ -25,13 +25,13 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 40, color: '#a8a098' }}>로딩 중...</div>;
+    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>로딩 중...</div>;
   }
 
   if (events.length === 0) {
     return (
       <div style={{
-        textAlign: 'center', padding: 60, color: '#a8a098',
+        textAlign: 'center', padding: 60, color: 'var(--text-muted)',
         background: '#fff', borderRadius: 12,
         border: '1px solid rgba(90,21,21,0.06)',
       }}>
@@ -50,7 +50,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
         ...COLS_STYLE,
         padding: '10px 16px', background: '#faf8f2',
         borderBottom: '1px solid rgba(90,21,21,0.06)',
-        fontSize: 12, fontWeight: 600, color: '#8a8580',
+        fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
       }}>
         <div>날짜</div>
         <div>시간</div>
@@ -71,17 +71,17 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
               opacity: isPast ? 0.5 : 1,
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
               {formatDateKR(ev.meeting_date)}
             </div>
             <div style={{ fontSize: 13, color: '#666' }}>
               {ev.meeting_time?.slice(0, 5) || '-'}
             </div>
-            <div style={{ fontSize: 13, color: '#2c1810', fontWeight: 500 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>
               {ev.purpose || '-'}
             </div>
             <div style={{
-              fontSize: 12, color: '#a8a098',
+              fontSize: 12, color: 'var(--text-muted)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {ev.notes || '-'}
@@ -91,7 +91,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
                 onClick={() => onEdit(ev)}
                 style={{
                   padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
-                  background: '#fff', color: '#5A1515', fontSize: 11, cursor: 'pointer', fontWeight: 600,
+                  background: '#fff', color: 'var(--action)', fontSize: 11, cursor: 'pointer', fontWeight: 600,
                 }}
               >
                 수정

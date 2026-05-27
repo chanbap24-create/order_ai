@@ -2,45 +2,79 @@
 
 import type { useItemForm } from "../hooks/useItemForm";
 import { ACCOUNT_CATEGORIES } from "../constants";
-import { btnPrimary, cardStyle, inputStyle, labelStyle } from "../styles";
+import { Section } from "@/app/components/ui";
+import {
+  inputStyle,
+  selectStyle,
+  labelStyle,
+  btnPrimary,
+  btnSecondary,
+} from "@/app/styles/controls";
 
 type Props = {
   form: ReturnType<typeof useItemForm>;
 };
 
+/**
+ * 경비 항목 입력 폼.
+ * - 헤더: 모드 라벨 + 신뢰도 pill (한 줄)
+ * - 폼: 2 컬럼 grid (사용일/계정과목 / 사용내역(전폭) / 금액/비고 / 운행거리(조건부))
+ * - 액션: 항목 추가 (primary) + 직접 입력 (secondary)
+ */
 export function ItemFormCard({ form }: Props) {
+  const isParse = !!form.parseResult;
+  const confidence = form.parseResult?.confidence ?? 0;
+  const confHigh = confidence >= 0.8;
+
   return (
-    <div style={cardStyle}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "#2c1810", marginBottom: 14 }}>
-        {form.parseResult ? "파싱 결과 확인" : "직접 입력"}
-        {form.parseResult && form.parseResult.confidence >= 0.8 && (
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#16a34a", marginLeft: 8 }}>
-            신뢰도 {Math.round(form.parseResult.confidence * 100)}%
-          </span>
-        )}
-        {form.parseResult && form.parseResult.confidence < 0.8 && (
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#E65100", marginLeft: 8 }}>
-            신뢰도 {Math.round(form.parseResult.confidence * 100)}% — 확인 필요
-          </span>
+    <Section padding="md">
+      {/* 헤더 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          {isParse ? "파싱 결과 확인" : "직접 입력"}
+        </span>
+        {isParse && (
+          <ConfidencePill confidence={confidence} high={confHigh} />
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div>
-          <label style={labelStyle}>사용일자</label>
+      {/* 폼 grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: 12,
+        }}
+      >
+        <Field label="사용일자">
           <input
             type="date"
             value={form.editDate}
             onChange={(e) => form.setEditDate(e.target.value)}
             style={inputStyle}
           />
-        </div>
-        <div>
-          <label style={labelStyle}>계정과목</label>
+        </Field>
+
+        <Field label="계정과목">
           <select
             value={form.editCategory}
             onChange={(e) => form.setEditCategory(e.target.value)}
-            style={{ ...inputStyle, color: "#2c1810" }}
+            style={selectStyle}
           >
             {ACCOUNT_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -48,9 +82,9 @@ export function ItemFormCard({ form }: Props) {
               </option>
             ))}
           </select>
-        </div>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label style={labelStyle}>사용내역</label>
+        </Field>
+
+        <Field label="사용내역" colSpanFull>
           <input
             type="text"
             value={form.editDesc}
@@ -58,32 +92,31 @@ export function ItemFormCard({ form }: Props) {
             placeholder="상호명 / 내용"
             style={inputStyle}
           />
-        </div>
-        <div>
-          <label style={labelStyle}>금액</label>
+        </Field>
+
+        <Field label="금액">
           <input
             type="text"
             inputMode="numeric"
             value={form.editAmount}
-            onChange={(e) => form.setEditAmount(e.target.value.replace(/[^0-9]/g, ""))}
+            onChange={(e) =>
+              form.setEditAmount(e.target.value.replace(/[^0-9]/g, ""))
+            }
             placeholder="0"
-            style={{ ...inputStyle, textAlign: "right" }}
+            style={{
+              ...inputStyle,
+              textAlign: "right",
+              fontVariantNumeric: "tabular-nums",
+            }}
           />
           {form.editAmount && (
-            <div
-              style={{
-                fontSize: 11,
-                color: "#8a8580",
-                marginTop: 4,
-                textAlign: "right",
-              }}
-            >
+            <HelperText right>
               {Number(form.editAmount).toLocaleString()}원
-            </div>
+            </HelperText>
           )}
-        </div>
-        <div>
-          <label style={labelStyle}>비고</label>
+        </Field>
+
+        <Field label="비고">
           <input
             type="text"
             value={form.editNote}
@@ -91,54 +124,113 @@ export function ItemFormCard({ form }: Props) {
             placeholder="선택사항"
             style={inputStyle}
           />
-        </div>
+        </Field>
+
         {form.editCategory === "차량유지비" && (
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label style={labelStyle}>운행거리 (KM)</label>
+          <Field label="운행거리 (KM)" colSpanFull>
             <input
               type="text"
               inputMode="numeric"
               value={form.editKm}
-              onChange={(e) => form.setEditKm(e.target.value.replace(/[^0-9]/g, ""))}
+              onChange={(e) =>
+                form.setEditKm(e.target.value.replace(/[^0-9]/g, ""))
+              }
               placeholder="0"
-              style={{ ...inputStyle, textAlign: "right" }}
+              style={{
+                ...inputStyle,
+                textAlign: "right",
+                fontVariantNumeric: "tabular-nums",
+              }}
             />
             {form.editKm && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "#8a8580",
-                  marginTop: 4,
-                  textAlign: "right",
-                }}
-              >
+              <HelperText right>
                 {Number(form.editKm).toLocaleString()}km
-              </div>
+              </HelperText>
             )}
-          </div>
+          </Field>
         )}
       </div>
 
-      <div style={{ marginTop: 14, display: "flex", gap: 10 }}>
-        <button onClick={form.addItem} style={btnPrimary}>
-          항목 추가
-        </button>
-        <button
-          onClick={form.startManualEntry}
-          style={{
-            padding: "12px 24px",
-            borderRadius: 10,
-            border: "1.5px solid rgba(90,21,21,0.1)",
-            background: "transparent",
-            fontSize: 14,
-            fontWeight: 600,
-            color: "#5A1515",
-            cursor: "pointer",
-          }}
-        >
+      {/* 액션 */}
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex",
+          gap: 8,
+          justifyContent: "flex-end",
+        }}
+      >
+        <button onClick={form.startManualEntry} style={btnSecondary}>
           직접 입력
         </button>
+        <button onClick={form.addItem} style={btnPrimary}>
+          + 항목 추가
+        </button>
       </div>
+    </Section>
+  );
+}
+
+function Field({
+  label,
+  colSpanFull,
+  children,
+}: {
+  label: string;
+  colSpanFull?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={colSpanFull ? { gridColumn: "1 / -1" } : undefined}>
+      <label style={labelStyle}>{label}</label>
+      {children}
     </div>
+  );
+}
+
+function HelperText({
+  right,
+  children,
+}: {
+  right?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        fontSize: 11,
+        color: "var(--text-tertiary)",
+        marginTop: 4,
+        textAlign: right ? "right" : "left",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ConfidencePill({
+  confidence,
+  high,
+}: {
+  confidence: number;
+  high: boolean;
+}) {
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "2px 8px",
+        borderRadius: 4,
+        background: high ? "#dcfce7" : "#fef3c7",
+        color: high ? "#15803d" : "#92400e",
+        letterSpacing: "0.04em",
+      }}
+    >
+      신뢰도 {Math.round(confidence * 100)}%
+      {!high && " · 확인 필요"}
+    </span>
   );
 }

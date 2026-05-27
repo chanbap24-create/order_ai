@@ -14,7 +14,7 @@ export function DismissButton({ onDismiss, variant = "corner" }: Props) {
     height: variant === "inline" ? 20 : 22,
     borderRadius: 99,
     border: "1px solid rgba(90,21,21,0.08)",
-    background: "#faf9f7",
+    background: "var(--surface-muted)",
     color: "#bbb",
     fontSize: variant === "inline" ? 10 : 11,
     cursor: "pointer",

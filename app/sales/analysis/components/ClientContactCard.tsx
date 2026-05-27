@@ -17,7 +17,7 @@ export function ClientContactCard(p: Props) {
 
   const renderEditField = (label: string, field: keyof ClientDetail) => (
     <div>
-      <label style={{ fontSize: 11, color: "#a8a098", display: "block", marginBottom: 4 }}>
+      <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
         {label}
       </label>
       <input
@@ -37,7 +37,7 @@ export function ClientContactCard(p: Props) {
 
   const renderInfoField = (label: string, value: string | null | undefined) => (
     <div>
-      <div style={{ fontSize: 11, color: "#a8a098", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: 14, color: value ? "#333" : "#ccc" }}>{value || "-"}</div>
     </div>
   );
@@ -60,7 +60,7 @@ export function ClientContactCard(p: Props) {
           marginBottom: 12,
         }}
       >
-        <div style={{ fontSize: 14, fontWeight: 600, color: "#2c1810" }}>연락처 정보</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>연락처 정보</div>
         <button
           onClick={() => {
             p.setEditMode(!p.editMode);
@@ -70,7 +70,7 @@ export function ClientContactCard(p: Props) {
             padding: "4px 12px",
             borderRadius: 6,
             border: "1.5px solid rgba(90,21,21,0.08)",
-            background: p.editMode ? "#5A1515" : "white",
+            background: p.editMode ? "var(--action)" : "white",
             color: p.editMode ? "white" : "#666",
             fontSize: 12,
             fontWeight: 500,
@@ -87,7 +87,7 @@ export function ClientContactCard(p: Props) {
           {renderEditField("이메일", "contact_email")}
           {renderEditField("주소", "address")}
           <div>
-            <label style={{ fontSize: 11, color: "#a8a098", display: "block", marginBottom: 4 }}>
+            <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
               업종
             </label>
             <select
@@ -112,7 +112,7 @@ export function ClientContactCard(p: Props) {
           </div>
           {renderEditField("담당자(우리)", "manager")}
           <div style={{ gridColumn: "1 / -1" }}>
-            <label style={{ fontSize: 11, color: "#a8a098", display: "block", marginBottom: 4 }}>
+            <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
               메모
             </label>
             <textarea
@@ -143,7 +143,7 @@ export function ClientContactCard(p: Props) {
                 padding: "8px 24px",
                 borderRadius: 6,
                 border: "none",
-                background: "#5A1515",
+                background: "var(--action)",
                 color: "white",
                 fontSize: 13,
                 fontWeight: 600,

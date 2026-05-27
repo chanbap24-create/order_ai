@@ -1,6 +1,8 @@
 "use client";
 
 import type { ViewMode } from "../types";
+import { Section } from "@/app/components/ui";
+import { selectStyle, labelStyle } from "@/app/styles/controls";
 
 type Props = {
   viewMode: ViewMode;
@@ -18,123 +20,178 @@ type Props = {
 
 export function MeetingHeader(p: Props) {
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: "16px",
-        marginBottom: 16,
-        boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
-        border: "1px solid rgba(90,21,21,0.06)",
-      }}
-    >
+    <Section padding="sm">
       <div
         style={{
           display: "flex",
-          background: "#f5f3ed",
-          borderRadius: 8,
-          padding: 3,
-          marginBottom: 12,
-          gap: 2,
+          alignItems: "end",
+          gap: 12,
+          flexWrap: "wrap",
         }}
       >
-        {(["week", "month"] as const).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => p.setViewMode(mode)}
-            style={{
-              flex: 1,
-              padding: "7px 0",
-              borderRadius: 6,
-              border: "none",
-              background: p.viewMode === mode ? "#fff" : "transparent",
-              color: p.viewMode === mode ? "#5A1515" : "#999",
-              fontWeight: p.viewMode === mode ? 700 : 500,
-              fontSize: 13,
-              cursor: "pointer",
-              boxShadow: p.viewMode === mode ? "0 1px 3px rgba(90,21,21,0.05)" : "none",
-              transition: "all 0.2s",
-            }}
-          >
-            {mode === "week" ? "주간" : "월간"}
-          </button>
-        ))}
-      </div>
-
-      {p.isAdmin && p.managers.length > 0 && (
-        <select
-          value={p.filterManager}
-          onChange={(e) => p.setFilterManager(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 6,
-            border: "1px solid rgba(90,21,21,0.08)",
-            fontSize: 16,
-            background: "#fff",
-            color: p.filterManager ? "#2c1810" : "#999",
-            outline: "none",
-            width: "100%",
-            marginBottom: 12,
-            boxSizing: "border-box",
-          }}
-        >
-          <option value="">전체 담당자</option>
-          {p.managers.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      )}
-
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button
-          onClick={p.prevPeriod}
-          style={{
-            background: "none",
-            border: "1px solid rgba(90,21,21,0.08)",
-            borderRadius: 6,
-            padding: "6px 12px",
-            cursor: "pointer",
-            fontSize: 14,
-            color: "#8a8580",
-          }}
-        >
-          ←
-        </button>
-        <div style={{ textAlign: "center" }}>
-          <button
-            onClick={p.goToday}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#2c1810",
-            }}
-          >
-            {p.rangeLabel}
-          </button>
-          {p.viewMode === "week" && (
-            <div style={{ fontSize: 11, color: "#a8a098" }}>{p.weekStart.getFullYear()}</div>
-          )}
+        <div>
+          <div style={labelStyle}>보기</div>
+          <SegmentedToggle
+            value={p.viewMode}
+            options={[
+              { value: "week", label: "주간" },
+              { value: "month", label: "월간" },
+            ]}
+            onChange={(v) => p.setViewMode(v as ViewMode)}
+          />
         </div>
-        <button
-          onClick={p.nextPeriod}
-          style={{
-            background: "none",
-            border: "1px solid rgba(90,21,21,0.08)",
-            borderRadius: 6,
-            padding: "6px 12px",
-            cursor: "pointer",
-            fontSize: 14,
-            color: "#8a8580",
-          }}
-        >
-          →
-        </button>
+
+        <div>
+          <div style={labelStyle}>기간</div>
+          <div style={{ display: "flex", alignItems: "stretch", height: 34 }}>
+            <NavButton onClick={p.prevPeriod} variant="left" />
+            <button
+              onClick={p.goToday}
+              style={{
+                height: 34,
+                minWidth: 160,
+                padding: "0 16px",
+                border: "1px solid var(--border-default)",
+                borderLeft: "none",
+                borderRight: "none",
+                background: "var(--surface)",
+                color: "var(--text-primary)",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                letterSpacing: "0.01em",
+                whiteSpace: "nowrap",
+                fontVariantNumeric: "tabular-nums",
+                fontFamily: "'DM Sans', sans-serif",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+              title="오늘로 이동"
+            >
+              {p.rangeLabel}
+              {p.viewMode === "week" && (
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {p.weekStart.getFullYear()}
+                </span>
+              )}
+            </button>
+            <NavButton onClick={p.nextPeriod} variant="right" />
+          </div>
+        </div>
+
+        {p.isAdmin && p.managers.length > 0 && (
+          <div style={{ minWidth: 160 }}>
+            <div style={labelStyle}>담당자</div>
+            <select
+              value={p.filterManager}
+              onChange={(e) => p.setFilterManager(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">전체 담당자</option>
+              {p.managers.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
+    </Section>
+  );
+}
+
+function NavButton({
+  onClick,
+  variant,
+}: {
+  onClick: () => void;
+  variant: "left" | "right";
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={variant === "left" ? "이전" : "다음"}
+      style={{
+        width: 34,
+        height: 34,
+        border: "1px solid var(--border-default)",
+        background: "var(--surface)",
+        color: "var(--text-tertiary)",
+        cursor: "pointer",
+        borderRadius: variant === "left" ? "6px 0 0 6px" : "0 6px 6px 0",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "background 0.12s ease, color 0.12s ease",
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.background = "var(--surface-hover)";
+        el.style.color = "var(--text-primary)";
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.background = "var(--surface)";
+        el.style.color = "var(--text-tertiary)";
+      }}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {variant === "left" ? (
+          <polyline points="15 18 9 12 15 6" />
+        ) : (
+          <polyline points="9 18 15 12 9 6" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
+function SegmentedToggle({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", height: 34 }}>
+      {options.map((o, idx) => {
+        const isActive = value === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              minWidth: 64,
+              padding: "0 14px",
+              border: "1px solid var(--border-default)",
+              background: isActive ? "var(--action)" : "var(--surface)",
+              color: isActive ? "var(--text-on-primary)" : "var(--text-tertiary)",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              borderRadius: idx === 0 ? "6px 0 0 6px" : "0 6px 6px 0",
+              borderLeftWidth: idx === 0 ? 1 : 0,
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type { LinkedWine } from "../types";
 export function LinkedWinesTable({ wines }: { wines: LinkedWine[] }) {
   if (wines.length === 0) {
     return (
-      <div style={{ fontSize: 12, color: "#a8a098", padding: 12 }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", padding: 12 }}>
         연결된 와인이 없습니다
       </div>
     );
@@ -22,7 +22,7 @@ export function LinkedWinesTable({ wines }: { wines: LinkedWine[] }) {
                 style={{
                   textAlign: i >= 3 ? "right" : "left",
                   padding: "6px 8px",
-                  color: "#a8a098",
+                  color: "var(--text-muted)",
                   fontWeight: 500,
                 }}
               >
@@ -34,19 +34,19 @@ export function LinkedWinesTable({ wines }: { wines: LinkedWine[] }) {
         <tbody>
           {wines.map((w) => (
             <tr key={w.item_code} style={{ borderBottom: "1px solid rgba(90,21,21,0.04)" }}>
-              <td style={{ padding: "6px 8px", color: "#5A1515", fontWeight: 500 }}>
+              <td style={{ padding: "6px 8px", color: "var(--action)", fontWeight: 500 }}>
                 {w.item_code}
               </td>
-              <td style={{ padding: "6px 8px", color: "#2c1810" }}>{w.item_name_kr}</td>
-              <td style={{ padding: "6px 8px", color: "#8a8580" }}>{w.wine_type || "-"}</td>
-              <td style={{ padding: "6px 8px", color: "#2c1810", textAlign: "right" }}>
+              <td style={{ padding: "6px 8px", color: "var(--text-primary)" }}>{w.item_name_kr}</td>
+              <td style={{ padding: "6px 8px", color: "var(--text-tertiary)" }}>{w.wine_type || "-"}</td>
+              <td style={{ padding: "6px 8px", color: "var(--text-primary)", textAlign: "right" }}>
                 {w.supply_price ? `${w.supply_price.toLocaleString()}원` : "-"}
               </td>
               <td
                 style={{
                   padding: "6px 8px",
                   textAlign: "right",
-                  color: (w.available_stock ?? 0) <= 0 ? "#dc3545" : "#2c1810",
+                  color: (w.available_stock ?? 0) <= 0 ? "#dc3545" : "var(--text-primary)",
                 }}
               >
                 {w.available_stock ?? "-"}

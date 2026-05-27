@@ -119,7 +119,7 @@ function ImgPreview({
 }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: "#a8a098", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
       <img
         src={src}
         alt={label}

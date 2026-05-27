@@ -31,11 +31,11 @@ export function getCountryFlag(country: string) {
 }
 
 export function classColor(cls: string | null) {
-  if (!cls) return '#a8a098';
+  if (!cls) return 'var(--text-muted)';
   const c = cls.toLowerCase();
   if (c.includes('grand cru') && !c.includes('classé')) return '#8B1538';
   if (c.includes('1er') || c.includes('premier')) return '#B8860B';
-  if (c.includes('classé') || c.includes('docg') || c.includes('doca')) return '#5A1515';
+  if (c.includes('classé') || c.includes('docg') || c.includes('doca')) return 'var(--action)';
   if (c.includes('village') || c.includes('doc') || c === 'doc') return '#2E7D32';
   if (c.includes('mga') || c.includes('cru')) return '#6B4E2F';
   if (c.includes('bourgeois')) return '#795548';

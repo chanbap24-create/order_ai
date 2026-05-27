@@ -15,89 +15,168 @@ type Props = {
   altPanel?: React.ReactNode;
 };
 
+/**
+ * 재고 알림 카드 — 품절은 빨강 좌측 막대, 부족은 주황 좌측 막대.
+ * 카드 외곽 / radius / hover 모두 의미 토큰.
+ */
 export function AlertCard(p: Props) {
   const { alert } = p;
+  const isOut = alert.alert_type === 'out_of_stock';
+  const accentColor = isOut ? '#dc3545' : '#e65100';
+  const stockPct = Math.min((alert.current_stock / Math.max(alert.threshold, 1)) * 100, 100);
 
   return (
-    <div style={{
-      background: 'white', borderRadius: 12,
-      border: p.isChecked
-        ? '2px solid #5A1515'
-        : alert.alert_type === 'out_of_stock' ? '1px solid #ffcdd2' : '1px solid #ffe0b2',
-      overflow: 'hidden',
-      opacity: p.isChecked ? 0.7 : 1,
-      transition: 'opacity 0.2s',
-    }}>
-      <div style={{ padding: '12px 14px' }}>
+    <div
+      style={{
+        background: 'var(--surface)',
+        borderRadius: 10,
+        border: '1px solid var(--border-default)',
+        borderLeft: `3px solid ${accentColor}`,
+        overflow: 'hidden',
+        opacity: p.isChecked ? 0.6 : 1,
+        transition: 'opacity 0.15s ease',
+      }}
+    >
+      <div style={{ padding: '14px 16px' }}>
+        {/* 상단: 체크박스 + 타입 라벨 + D-day */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <input
             type="checkbox"
             checked={p.isChecked}
             onChange={p.onToggleCheck}
-            style={{ width: 16, height: 16, accentColor: '#5A1515', flexShrink: 0 }}
+            style={{ width: 14, height: 14, accentColor: 'var(--action)', flexShrink: 0, margin: 0 }}
           />
-          <span style={{
-            fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-            background: alert.alert_type === 'out_of_stock' ? '#dc3545' : '#ff9800',
-            color: 'white',
-          }}>
-            {alert.alert_type === 'out_of_stock' ? '품절' : '재고 부족'}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: 4,
+              background: accentColor,
+              color: 'var(--text-on-primary)',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {isOut ? '품절' : '재고 부족'}
           </span>
           {alert.days_remaining != null && alert.days_remaining > 0 && (
-            <span style={{
-              fontSize: 10, fontWeight: 600,
-              color: alert.days_remaining <= 7 ? '#dc3545' : alert.days_remaining <= 14 ? '#e65100' : '#ff9800',
-            }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color:
+                  alert.days_remaining <= 7
+                    ? '#dc3545'
+                    : alert.days_remaining <= 14
+                      ? '#e65100'
+                      : 'var(--text-tertiary)',
+              }}
+            >
               약 {alert.days_remaining}일 후 소진
             </span>
           )}
         </div>
 
-        <div style={{ marginBottom: 6 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', lineHeight: 1.4 }}>
+        {/* 품목명 + 메타 */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>
             {alert.item_name || alert.item_no}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 3, fontSize: 12, color: '#8a8580', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              marginTop: 4,
+              fontSize: 11,
+              color: 'var(--text-tertiary)',
+              flexWrap: 'wrap',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
             <span>{alert.item_no}</span>
             {alert.country && <span>{alert.country}</span>}
             {alert.supply_price > 0 && <span>{fmt(alert.supply_price)}원</span>}
           </div>
         </div>
 
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-            <span style={{ color: '#8a8580' }}>
-              재고 <span style={{ fontWeight: 700, color: alert.current_stock <= 0 ? '#dc3545' : '#e65100' }}>
+        {/* 재고 progress */}
+        <div style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 12,
+              marginBottom: 4,
+            }}
+          >
+            <span style={{ color: 'var(--text-tertiary)' }}>
+              재고{' '}
+              <span style={{ fontWeight: 700, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>
                 {alert.current_stock}
-              </span>병
+              </span>
+              병
             </span>
-            <span style={{ color: '#a8a098', fontSize: 11 }}>기준 {alert.threshold}병</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
+              기준 {alert.threshold}병
+            </span>
           </div>
-          <div style={{ height: 5, background: '#faf9f7', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', borderRadius: 3,
-              width: `${Math.min((alert.current_stock / Math.max(alert.threshold, 1)) * 100, 100)}%`,
-              background: alert.current_stock <= 0 ? '#dc3545' : alert.current_stock < alert.threshold * 0.3 ? '#ff5722' : '#ff9800',
-            }} />
+          <div
+            style={{
+              height: 4,
+              background: 'var(--surface-muted)',
+              borderRadius: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${stockPct}%`,
+                background: accentColor,
+                transition: 'width 0.3s ease',
+              }}
+            />
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* 하단 액션 */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
           <button
             onClick={p.onToggleExpand}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 12, color: '#5A1515', fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: 4, padding: 0,
+              height: 28,
+              padding: '0 10px',
+              border: '1px solid var(--border-default)',
+              background: 'var(--surface)',
+              color: 'var(--text-tertiary)',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" />
-            </svg>
-            거래처 {alert.clients.length}곳 · {alert.total_shipped}병 출고
+            거래처 {alert.clients.length}곳 · {alert.total_shipped}병
             <svg
-              width="10" height="10" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               style={{ transform: p.isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
             >
               <polyline points="6 9 12 15 18 9" />
@@ -107,15 +186,20 @@ export function AlertCard(p: Props) {
           <button
             onClick={p.onToggleAlt}
             style={{
-              padding: '5px 12px', borderRadius: 6, border: 'none',
-              background: p.isAltOpen ? '#f5f5f5' : '#5A1515', color: p.isAltOpen ? '#666' : 'white',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4,
+              height: 28,
+              padding: '0 12px',
+              borderRadius: 6,
+              border: `1px solid ${p.isAltOpen ? 'var(--border-default)' : 'var(--action)'}`,
+              background: p.isAltOpen ? 'var(--surface)' : 'var(--action)',
+              color: p.isAltOpen ? 'var(--text-tertiary)' : 'var(--text-on-primary)',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-            </svg>
             {p.isAltOpen ? '닫기' : '대체 추천'}
           </button>
         </div>

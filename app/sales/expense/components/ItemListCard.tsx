@@ -17,7 +17,7 @@ export function ItemListCard({ items, onRemove }: Props) {
         style={{
           fontSize: 14,
           fontWeight: 700,
-          color: "#2c1810",
+          color: "var(--text-primary)",
           marginBottom: 14,
           display: "flex",
           alignItems: "center",
@@ -25,7 +25,7 @@ export function ItemListCard({ items, onRemove }: Props) {
         }}
       >
         <span>추가된 항목 ({items.length}건)</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#5A1515" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--action)" }}>
           합계 {items.reduce((s, i) => s + i.amount, 0).toLocaleString()}원
         </span>
       </div>
@@ -39,17 +39,17 @@ export function ItemListCard({ items, onRemove }: Props) {
               alignItems: "center",
               gap: 10,
               padding: "10px 12px",
-              background: "#faf9f7",
+              background: "var(--surface-muted)",
               borderRadius: 10,
               fontSize: 13,
             }}
           >
-            <span style={{ color: "#8a8580", fontWeight: 600, minWidth: 20 }}>{idx + 1}</span>
-            <span style={{ color: "#8a8580", minWidth: 80 }}>{item.date}</span>
+            <span style={{ color: "var(--text-tertiary)", fontWeight: 600, minWidth: 20 }}>{idx + 1}</span>
+            <span style={{ color: "var(--text-tertiary)", minWidth: 80 }}>{item.date}</span>
             <span
               style={{
                 background: "rgba(90,21,21,0.06)",
-                color: "#5A1515",
+                color: "var(--action)",
                 fontSize: 11,
                 fontWeight: 600,
                 padding: "2px 8px",
@@ -59,10 +59,10 @@ export function ItemListCard({ items, onRemove }: Props) {
             >
               {item.account_category}
             </span>
-            <span style={{ flex: 1, color: "#2c1810", fontWeight: 500 }}>
+            <span style={{ flex: 1, color: "var(--text-primary)", fontWeight: 500 }}>
               {item.description}
               {item.note && (
-                <span style={{ color: "#8a8580", fontSize: 11, marginLeft: 4 }}>
+                <span style={{ color: "var(--text-tertiary)", fontSize: 11, marginLeft: 4 }}>
                   ({item.note})
                 </span>
               )}
@@ -70,7 +70,7 @@ export function ItemListCard({ items, onRemove }: Props) {
             <span
               style={{
                 fontWeight: 700,
-                color: "#2c1810",
+                color: "var(--text-primary)",
                 minWidth: 80,
                 textAlign: "right",
               }}

@@ -54,7 +54,7 @@ export function ImportDetailModal(p: Props) {
             <div style={{ fontSize: 16, fontWeight: 700, color: "#E65100" }}>
               {p.date.replace(/-/g, ".")} 입항 품목
             </div>
-            <div style={{ fontSize: 12, color: "#8a8580", marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>
               {p.items.length}건 · 브랜드: {p.brands.join(", ")}
             </div>
           </div>
@@ -65,7 +65,7 @@ export function ImportDetailModal(p: Props) {
               border: "none",
               cursor: "pointer",
               fontSize: 22,
-              color: "#a8a098",
+              color: "var(--text-muted)",
               lineHeight: 1,
             }}
           >
@@ -103,12 +103,12 @@ export function ImportDetailModal(p: Props) {
                 >
                   {item.brand_code}
                 </span>
-                <span style={{ fontSize: 11, color: "#8a8580" }}>{item.item_code}</span>
+                <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{item.item_code}</span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#2c1810", marginBottom: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 2 }}>
                 {item.item_name_en || item.item_name_kr}
               </div>
-              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#8a8580" }}>
+              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-tertiary)" }}>
                 {item.vintage && <span>VT {item.vintage}</span>}
                 <span>{(item.total_btls || 0).toLocaleString()} btls</span>
                 {item.bl_number && <span>BL# {item.bl_number}</span>}

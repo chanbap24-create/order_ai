@@ -38,7 +38,7 @@ export function ConditionFilterOptions(p: Props) {
               p.setExcludeBulk(e.target.checked);
               p.resetResults();
             }}
-            style={{ width: 14, height: 14, accentColor: "#5A1515", cursor: "pointer" }}
+            style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
           />
           <span style={{ fontWeight: 500, color: "#333" }}>특판 제외</span>
         </label>
@@ -73,7 +73,7 @@ export function ConditionFilterOptions(p: Props) {
             p.setExcludeSamples(e.target.checked);
             p.resetResults();
           }}
-          style={{ width: 14, height: 14, accentColor: "#5A1515", cursor: "pointer" }}
+          style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
         />
         <span style={{ fontWeight: 500, color: "#333" }}>샘플 제외</span>
       </label>
@@ -85,7 +85,7 @@ export function ConditionFilterOptions(p: Props) {
             p.setNoCorrection(e.target.checked);
             p.resetResults();
           }}
-          style={{ width: 14, height: 14, accentColor: "#5A1515", cursor: "pointer" }}
+          style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
         />
         <span style={{ fontWeight: 500, color: "#333" }}>보정 제외</span>
       </label>
@@ -154,7 +154,7 @@ export function ConditionFilterOptions(p: Props) {
                       });
                       p.resetResults();
                     }}
-                    style={{ width: 13, height: 13, accentColor: "#5A1515", cursor: "pointer" }}
+                    style={{ width: 13, height: 13, accentColor: "var(--action)", cursor: "pointer" }}
                   />
                   <span style={{ textDecoration: isExcluded ? "line-through" : "none" }}>{bt}</span>
                 </label>

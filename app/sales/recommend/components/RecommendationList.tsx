@@ -18,14 +18,14 @@ export function RecommendationList({ items, selected, onToggle, allSelected, onT
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: 8, padding: '0 4px',
       }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
           AI 추천 {items.length}개
         </div>
         {items.length > 0 && (
           <button
             onClick={onToggleAll}
             style={{
-              fontSize: 12, color: '#5A1515', background: 'none',
+              fontSize: 12, color: 'var(--action)', background: 'none',
               border: 'none', cursor: 'pointer', fontWeight: 500, textDecoration: 'underline',
             }}
           >
@@ -36,7 +36,7 @@ export function RecommendationList({ items, selected, onToggle, allSelected, onT
 
       {items.length === 0 ? (
         <div style={{
-          textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 13,
+          textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13,
           background: '#fff', borderRadius: 12, border: '1px solid rgba(90,21,21,0.06)',
         }}>
           추천할 와인이 없습니다

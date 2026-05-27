@@ -10,9 +10,9 @@ import { InventoryCharts } from '../dashboard/components/InventoryCharts';
 import { SourceToggle } from '../dashboard/components/SourceToggle';
 import { PieAnalysisCard } from '../dashboard/components/PieAnalysisCard';
 import { InventoryItemsTable } from '../dashboard/components/InventoryItemsTable';
-import Card from '@/app/components/ui/Card';
-import { DateRangePresets } from '@/app/components/ui/DateRangePresets';
-import { thisYear } from '@/app/lib/dateRangePresets';
+import { Section } from '@/app/components/ui';
+import { inputStyle, selectStyle, labelStyle } from '@/app/styles/controls';
+import { PRESETS, matchPreset, thisYear } from '@/app/lib/dateRangePresets';
 
 export default function DashboardTab() {
   const defaults = thisYear();
@@ -68,32 +68,57 @@ export default function DashboardTab() {
   const showSalesSection = brandData.length > 0 || countryData.length > 0;
   const showInvSection = countryInv.length > 0 || brandInv.length > 0;
 
+  const activePreset = matchPreset({ startDate, endDate });
+  const applyPreset = (id: string) => {
+    const p = PRESETS.find((x) => x.id === id);
+    if (p) {
+      const r = p.fn();
+      setStartDate(r.startDate);
+      setEndDate(r.endDate);
+    }
+  };
+
   return (
     <div>
-      <Card style={{ marginBottom: 16, padding: '12px 16px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-          <DateRangePresets
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(r) => { setStartDate(r.startDate); setEndDate(r.endDate); }}
-          />
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={dateInputStyle}
-            />
-            <span style={{ color: 'var(--color-text-light)' }}>~</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={dateInputStyle}
-            />
+      <div style={{ marginBottom: 16 }}>
+        <Section padding="sm">
+          <div style={{ display: 'flex', alignItems: 'end', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ flex: '0 1 150px', minWidth: 140 }}>
+              <label style={labelStyle}>시작일</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ flex: '0 1 150px', minWidth: 140 }}>
+              <label style={labelStyle}>종료일</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ flex: '0 1 180px', minWidth: 160 }}>
+              <label style={labelStyle}>빠른 범위</label>
+              <select
+                value={activePreset ?? ''}
+                onChange={(e) => applyPreset(e.target.value)}
+                style={selectStyle}
+              >
+                <option value="">직접 입력</option>
+                {PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Section>
+      </div>
 
       <KpiCards
         totalRevenue={totalRevenue}
@@ -145,21 +170,11 @@ export default function DashboardTab() {
       )}
 
       {(showCdvItems || showDlItems) && (
-        <div style={{ display: 'grid', gridTemplateColumns: showCdvItems && showDlItems ? 'repeat(auto-fit, minmax(400px, 1fr))' : '1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
-          {showCdvItems && <InventoryItemsTable items={stats.inventoryByItemCdv!} label="CDV" color="#5A1515" />}
-          {showDlItems && <InventoryItemsTable items={stats.inventoryByItemDl!} label="DL" color="#2563eb" />}
+        <div style={{ display: 'grid', gridTemplateColumns: showCdvItems && showDlItems ? 'repeat(auto-fit, minmax(400px, 1fr))' : '1fr', gap: 12, marginBottom: 16 }}>
+          {showCdvItems && <InventoryItemsTable items={stats.inventoryByItemCdv!} label="까브드뱅" color="var(--action)" />}
+          {showDlItems && <InventoryItemsTable items={stats.inventoryByItemDl!} label="대유라이프" color="#1565C0" />}
         </div>
       )}
     </div>
   );
 }
-
-const dateInputStyle: React.CSSProperties = {
-  height: 30,
-  fontSize: 12,
-  padding: '0 8px',
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-sm)',
-  background: 'var(--color-card)',
-  color: 'var(--color-text)',
-};

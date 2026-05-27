@@ -51,8 +51,8 @@ export default function CompanyEventsTab() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#2c1810' }}>회사 일정 관리</div>
-          <div style={{ fontSize: 12, color: '#a8a098', marginTop: 2 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>회사 일정 관리</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
             등록된 일정은 모든 세일즈 담당자의 달력에 표시됩니다
           </div>
         </div>
@@ -60,7 +60,7 @@ export default function CompanyEventsTab() {
           onClick={openCreate}
           style={{
             padding: '8px 16px', borderRadius: 8, border: 'none',
-            background: '#5A1515', color: '#fff', fontSize: 13, fontWeight: 600,
+            background: 'var(--action)', color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: 'pointer',
           }}
         >

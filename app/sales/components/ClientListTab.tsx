@@ -4,12 +4,13 @@ import { useClientList } from '../client-list/hooks/useClientList';
 import { FilterPanel } from '../client-list/components/FilterPanel';
 import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
+import { Stack } from '@/app/components/ui';
 
 export default function ClientListTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const s = useClientList({ currentManager, isAdmin });
 
   return (
-    <div>
+    <Stack direction="vertical" gap={16}>
       <FilterPanel
         isAdmin={isAdmin}
         managerList={s.managerList}
@@ -43,10 +44,17 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
       />
 
       {!s.loading && s.clients.length > 0 && (
-        <div style={{ textAlign: 'center', fontSize: 11, color: '#a8a098', marginTop: 12 }}>
-          {s.startDate} ~ {s.endDate} · {s.managerFilter} · {s.businessType || '전체 업종'} · {s.type === 'wine' ? 'Wine' : 'Glass'}
+        <div
+          style={{
+            textAlign: 'center',
+            fontSize: 11,
+            color: 'var(--text-muted)',
+            letterSpacing: '0.02em',
+          }}
+        >
+          {s.startDate} ~ {s.endDate} · {s.managerFilter} · {s.businessType || '전체 업종'} · {s.type === 'wine' ? '까브드뱅' : '대유라이프'}
         </div>
       )}
-    </div>
+    </Stack>
   );
 }

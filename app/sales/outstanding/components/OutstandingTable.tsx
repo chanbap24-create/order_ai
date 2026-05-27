@@ -2,7 +2,8 @@
 
 import { memo, useMemo, useState } from 'react';
 import type { OutstandingClient, OutstandingTotals } from '../types';
-import { cardStyle, fmt, tdCenter, tdRight, tdStyle, tfRight, thStyle } from '../lib/format';
+import { Section } from '@/app/components/ui';
+import { fmt, tdCenter, tdRight, tdStyle, tfRight, thStyle } from '../lib/format';
 
 type Props = {
   clients: OutstandingClient[];
@@ -34,14 +35,21 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' }[] = [
   { key: 'outstanding', label: '현미수', align: 'right' },
 ];
 
-export const OutstandingTable = memo(function OutstandingTable({ clients, totals, checked, allChecked, onToggleAll, onToggleOne }: Props) {
+export const OutstandingTable = memo(function OutstandingTable({
+  clients,
+  totals,
+  checked,
+  allChecked,
+  onToggleAll,
+  onToggleOne,
+}: Props) {
   const [sort, setSort] = useState<SortState>(null);
 
   const handleSort = (key: SortKey) => {
     setSort((prev) => {
       if (!prev || prev.key !== key) return { key, dir: 'asc' };
       if (prev.dir === 'asc') return { key, dir: 'desc' };
-      return null; // 같은 키 두 번째 토글 → 원본 순서 복귀
+      return null;
     });
   };
 
@@ -62,17 +70,34 @@ export const OutstandingTable = memo(function OutstandingTable({ clients, totals
   }, [clients, sort]);
 
   return (
-    <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+    <Section
+      title="거래처별 미수현황"
+      meta={`${clients.length}개`}
+      padding="none"
+    >
       <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 780 }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 13,
+            minWidth: 780,
+          }}
+        >
           <thead>
-            <tr style={{ background: '#F5F0F0' }}>
-              <th style={thStyle}>
+            <tr>
+              <th style={{ ...thStyle, textAlign: 'center', width: 40 }}>
                 <input
                   type="checkbox"
                   checked={allChecked}
                   onChange={onToggleAll}
-                  style={{ width: 16, height: 16, accentColor: '#5A1515', cursor: 'pointer' }}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    accentColor: 'var(--action)',
+                    cursor: 'pointer',
+                    margin: 0,
+                  }}
                 />
               </th>
               {COLUMNS.map((col) => (
@@ -88,36 +113,74 @@ export const OutstandingTable = memo(function OutstandingTable({ clients, totals
             </tr>
           </thead>
           <tbody>
-            {sortedClients.map((c, i) => {
+            {sortedClients.map((c) => {
               const isChecked = checked.has(c.client_code);
               return (
                 <tr
                   key={c.client_code}
-                  style={{
-                    background: isChecked ? 'rgba(90,21,21,0.03)' : i % 2 === 0 ? '#fff' : '#faf9f7',
-                    cursor: 'pointer',
-                  }}
                   onClick={() => onToggleOne(c.client_code)}
+                  style={{
+                    background: isChecked ? 'var(--surface-active)' : 'var(--surface)',
+                    cursor: 'pointer',
+                    transition: 'background 0.12s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isChecked) {
+                      (e.currentTarget as HTMLTableRowElement).style.background =
+                        'var(--surface-hover)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.background = isChecked
+                      ? 'var(--surface-active)'
+                      : 'var(--surface)';
+                  }}
                 >
                   <td style={tdCenter}>
                     <input
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => onToggleOne(c.client_code)}
-                      onClick={e => e.stopPropagation()}
-                      style={{ width: 16, height: 16, accentColor: '#5A1515', cursor: 'pointer' }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        width: 14,
+                        height: 14,
+                        accentColor: 'var(--action)',
+                        cursor: 'pointer',
+                        margin: 0,
+                      }}
                     />
                   </td>
-                  <td style={{ ...tdStyle, fontWeight: 600, color: '#2c1810' }}>{c.client_name}</td>
+                  <td
+                    style={{
+                      ...tdStyle,
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {c.client_name}
+                  </td>
                   <td style={tdRight}>{fmt(c.prev_balance)}</td>
                   <td style={tdRight}>{fmt(c.period_supply)}</td>
-                  <td style={tdRight}>{fmt(c.period_tax)}</td>
+                  <td style={{ ...tdRight, color: 'var(--text-tertiary)' }}>
+                    {fmt(c.period_tax)}
+                  </td>
                   <td style={{ ...tdRight, fontWeight: 600 }}>{fmt(c.period_total)}</td>
-                  <td style={{ ...tdRight, color: '#1565C0' }}>{fmt(c.period_payment)}</td>
-                  <td style={{
-                    ...tdRight, fontWeight: 700,
-                    color: c.outstanding > 0 ? '#C62828' : c.outstanding < 0 ? '#1565C0' : '#2c1810',
-                  }}>
+                  <td style={{ ...tdRight, color: 'var(--text-tertiary)' }}>
+                    {fmt(c.period_payment)}
+                  </td>
+                  <td
+                    style={{
+                      ...tdRight,
+                      fontWeight: 700,
+                      color:
+                        c.outstanding > 0
+                          ? '#C62828'
+                          : c.outstanding < 0
+                            ? '#1565C0'
+                            : 'var(--text-primary)',
+                    }}
+                  >
                     {fmt(c.outstanding)}
                   </td>
                 </tr>
@@ -125,25 +188,38 @@ export const OutstandingTable = memo(function OutstandingTable({ clients, totals
             })}
           </tbody>
           <tfoot>
-            <tr style={{ background: '#5A1515' }}>
-              <td style={{ ...tdCenter, color: 'white' }} colSpan={2}>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>합계 ({clients.length}개)</span>
+            <tr>
+              <td
+                style={{
+                  ...tfRight,
+                  textAlign: 'left',
+                  paddingLeft: 12,
+                }}
+                colSpan={2}
+              >
+                합계 {clients.length}개
               </td>
               <td style={tfRight}>{fmt(totals.prev_balance)}</td>
               <td style={tfRight}>{fmt(totals.period_supply)}</td>
               <td style={tfRight}>{fmt(totals.period_tax)}</td>
               <td style={tfRight}>{fmt(totals.period_total)}</td>
               <td style={tfRight}>{fmt(totals.period_payment)}</td>
-              <td style={tfRight}>{fmt(totals.outstanding)}</td>
+              <td
+                style={{
+                  ...tfRight,
+                  color: totals.outstanding > 0 ? '#C62828' : 'var(--text-primary)',
+                }}
+              >
+                {fmt(totals.outstanding)}
+              </td>
             </tr>
           </tfoot>
         </table>
       </div>
-    </div>
+    </Section>
   );
 });
 
-/** 정렬 가능한 헤더 셀. 클릭 시 onClick 발화. 활성 컬럼엔 ▲/▼ 표시. */
 function SortableHeader({
   label,
   align,
@@ -164,18 +240,23 @@ function SortableHeader({
         textAlign: align,
         cursor: 'pointer',
         userSelect: 'none',
-        whiteSpace: 'nowrap',
       }}
       onClick={onClick}
       title="클릭하여 정렬"
     >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          color: active ? 'var(--action)' : 'var(--text-tertiary)',
+        }}
+      >
         {label}
         <span
           style={{
-            fontSize: 10,
+            fontSize: 9,
             opacity: active ? 1 : 0.3,
-            color: active ? '#5A1515' : '#8a8580',
             width: 8,
           }}
         >

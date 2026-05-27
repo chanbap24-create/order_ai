@@ -35,8 +35,8 @@ export function PriceDistributionChart({ data }: { data?: PriceItem[] }) {
               labelFormatter={(v: number) => `공급가 ${(v / 10000).toFixed(0)}만원대`}
             />
             <Legend />
-            <Bar dataKey="value" name="매출" fill="#9B6B8A" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="cnt" name="품목수" fill="#C4A882" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="value" name="매출" fill="#9B6B8A" radius={[4, 4, 0, 0]} animationDuration={500} />
+            <Bar dataKey="cnt" name="품목수" fill="#C4A882" radius={[4, 4, 0, 0]} animationDuration={500} />
           </BarChart>
         </ResponsiveContainer>
       ) : (

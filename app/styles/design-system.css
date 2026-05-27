@@ -70,6 +70,59 @@
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 350ms ease;
+
+  /* ============================================================
+     Semantic Tokens — 컴포넌트는 이 의미 토큰만 사용한다.
+     색이 바뀌면 여기만 고치면 전체 일관 적용.
+     ============================================================ */
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-muted: #faf9f7;
+  --surface-hover: rgba(90, 21, 21, 0.04);
+  --surface-active: rgba(90, 21, 21, 0.08);
+
+  /* Text */
+  --text-primary: #2c1810;
+  --text-secondary: #6b6b78;
+  --text-tertiary: #8a8580;
+  --text-muted: #a8a098;
+  --text-on-primary: #ffffff;
+
+  /* Borders */
+  --border-subtle: rgba(90, 21, 21, 0.04);
+  --border-default: rgba(90, 21, 21, 0.08);
+  --border-strong: rgba(90, 21, 21, 0.16);
+  --focus-ring: 0 0 0 3px rgba(90, 21, 21, 0.12);
+
+  /* Brand action */
+  --action: #5A1515;
+  --action-hover: #3D0E0E;
+  --action-muted: rgba(90, 21, 21, 0.06);
+
+  /* Layout primitives */
+  --sidebar-width: 232px;
+  --sidebar-width-collapsed: 60px;
+  --topbar-height: 56px;
+  --container-narrow: 720px;
+  --container-default: 1080px;
+  --container-wide: 1440px;
+  --page-padding-x: 24px;
+  --page-padding-y: 28px;
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-nav: 50;
+  --z-drawer: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+
+  /* Icon sizes */
+  --icon-xs: 12px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 24px;
 }
 
 /* Base Styles */

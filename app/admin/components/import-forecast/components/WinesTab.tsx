@@ -86,7 +86,7 @@ export function WinesTab(p: Props) {
               if (el) el.indeterminate = someChecked && !allChecked;
             }}
             onChange={toggleAll}
-            style={{ width: 14, height: 14, accentColor: "#5A1515", cursor: "pointer" }}
+            style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
           />
           <span style={{ fontSize: 11, color: "#999" }}>
             {checkedCount > 0 ? `${checkedCount}개 선택` : "전체"}

@@ -59,7 +59,7 @@ export function ImportMobilePanel(p: Props) {
               border: "none",
               cursor: "pointer",
               fontSize: 20,
-              color: "#a8a098",
+              color: "var(--text-muted)",
               lineHeight: 1,
             }}
           >

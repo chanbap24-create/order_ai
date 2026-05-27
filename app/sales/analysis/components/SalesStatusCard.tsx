@@ -16,7 +16,7 @@ export function SalesStatusCard({ stats }: Props) {
         marginBottom: 16,
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 600, color: "#2c1810", marginBottom: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }}>
         매출 현황 (최근 1년)
       </div>
       {stats ? (
@@ -29,22 +29,22 @@ export function SalesStatusCard({ stats }: Props) {
               marginBottom: 16,
             }}
           >
-            <StatBox value={fmt(stats.totalSales)} label="총 매출" valueColor="#5A1515" />
+            <StatBox value={fmt(stats.totalSales)} label="총 매출" valueColor="var(--action)" />
             <StatBox
               value={String(stats.itemStats?.length || 0)}
               label="구매 품목 수"
-              valueColor="#2c1810"
+              valueColor="var(--text-primary)"
             />
             <StatBox
               value={stats.lastShipDate || "-"}
               label="최근 출고일"
-              valueColor="#2c1810"
+              valueColor="var(--text-primary)"
               small
             />
           </div>
           {stats.itemStats && stats.itemStats.length > 0 && (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#2c1810", marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>
                 주요 구매 품목
               </div>
               <div style={{ maxHeight: 200, overflowY: "auto" }}>
@@ -60,9 +60,9 @@ export function SalesStatusCard({ stats }: Props) {
                       fontSize: 13,
                     }}
                   >
-                    <span style={{ flex: 1, color: "#2c1810" }}>{item.item_name}</span>
-                    <span style={{ color: "#a8a098", fontSize: 12 }}>{item.buy_count}회</span>
-                    <span style={{ color: "#5A1515", fontWeight: 600, fontSize: 12 }}>
+                    <span style={{ flex: 1, color: "var(--text-primary)" }}>{item.item_name}</span>
+                    <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{item.buy_count}회</span>
+                    <span style={{ color: "var(--action)", fontWeight: 600, fontSize: 12 }}>
                       {item.avg_price ? fmt(item.avg_price) : "-"}
                     </span>
                   </div>
@@ -72,7 +72,7 @@ export function SalesStatusCard({ stats }: Props) {
           )}
           {stats.recentShipments && stats.recentShipments.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#2c1810", marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>
                 최근 출고
               </div>
               <div style={{ maxHeight: 200, overflowY: "auto" }}>
@@ -91,9 +91,9 @@ export function SalesStatusCard({ stats }: Props) {
                     <span style={{ fontSize: 11, color: "#aaa", width: 72 }}>
                       {s.ship_date?.toString().slice(0, 10)}
                     </span>
-                    <span style={{ flex: 1, color: "#2c1810" }}>{s.item_name}</span>
-                    <span style={{ color: "#a8a098", fontSize: 12 }}>{s.quantity}개</span>
-                    <span style={{ color: "#5A1515", fontWeight: 600, fontSize: 12 }}>
+                    <span style={{ flex: 1, color: "var(--text-primary)" }}>{s.item_name}</span>
+                    <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{s.quantity}개</span>
+                    <span style={{ color: "var(--action)", fontWeight: 600, fontSize: 12 }}>
                       {s.total_amount ? fmt(s.total_amount) : "-"}
                     </span>
                   </div>
@@ -103,7 +103,7 @@ export function SalesStatusCard({ stats }: Props) {
           )}
         </>
       ) : (
-        <div style={{ color: "#a8a098", fontSize: 13 }}>출고 이력 없음</div>
+        <div style={{ color: "var(--text-muted)", fontSize: 13 }}>출고 이력 없음</div>
       )}
     </div>
   );
@@ -132,7 +132,7 @@ function StatBox({
       <div style={{ fontSize: small ? 14 : 20, fontWeight: small ? 600 : 700, color: valueColor }}>
         {value}
       </div>
-      <div style={{ fontSize: 11, color: "#a8a098", marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{label}</div>
     </div>
   );
 }

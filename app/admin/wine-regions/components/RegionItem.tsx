@@ -17,7 +17,7 @@ export function RegionItem({ region: r, onEdit, onDelete }: Props) {
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {r.appellation && <span style={{ fontWeight: 600, color: '#2c1810' }}>{r.appellation}</span>}
+          {r.appellation && <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.appellation}</span>}
           {r.cru_vineyard && <span style={{ color: '#8B1538', fontWeight: 500 }}>{r.cru_vineyard}</span>}
           {r.classification && (
             <span style={{
@@ -29,7 +29,7 @@ export function RegionItem({ region: r, onEdit, onDelete }: Props) {
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 12, color: '#8a8580' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 2, fontSize: 12, color: 'var(--text-tertiary)' }}>
           {r.grape_varieties && <span>{r.grape_varieties}</span>}
           {r.notes && <span style={{ color: '#B8860B' }}>{r.notes}</span>}
         </div>

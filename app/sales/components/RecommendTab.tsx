@@ -137,15 +137,15 @@ export default function RecommendTab({ currentManager, isAdmin, preselectedClien
       )}
 
       {!rec.result && !rec.loading && !rec.error && !cs.selectedClient && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
           <svg
             width="48" height="48" viewBox="0 0 24 24" fill="none"
-            stroke="#a8a098" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
             style={{ marginBottom: 16 }}
           >
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
-          <div style={{ fontWeight: 600, color: '#8a8580', marginBottom: 4 }}>AI 추천 엔진</div>
+          <div style={{ fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 4 }}>AI 추천 엔진</div>
           <div>거래처를 검색하고 선택하면<br />맞춤 와인 추천을 생성합니다</div>
         </div>
       )}

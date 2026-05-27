@@ -67,7 +67,7 @@ export default function FeatureUsageTab() {
           <div style={labelStyle}>기간</div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input type="date" value={start} onChange={e => setStart(e.target.value)} style={dateInput} />
-            <span style={{ color: '#a8a098' }}>~</span>
+            <span style={{ color: 'var(--text-muted)' }}>~</span>
             <input type="date" value={end} onChange={e => setEnd(e.target.value)} style={dateInput} />
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function FeatureUsageTab() {
                       {data.totals_by_feature.map(f => {
                         const v = row?.get(f.feature) || 0;
                         return (
-                          <td key={f.feature} style={{ ...td, textAlign: 'right', color: v ? '#2c1810' : '#d0cfcd' }}>
+                          <td key={f.feature} style={{ ...td, textAlign: 'right', color: v ? 'var(--text-primary)' : '#d0cfcd' }}>
                             {v ? v.toLocaleString() : '-'}
                           </td>
                         );
@@ -211,7 +211,7 @@ export default function FeatureUsageTab() {
                     <td style={td}>{r.manager}</td>
                     <td style={td}>{r.feature}</td>
                     <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{r.count.toLocaleString()}</td>
-                    <td style={{ ...td, color: '#8a8580', fontSize: 11 }}>
+                    <td style={{ ...td, color: 'var(--text-tertiary)', fontSize: 11 }}>
                       {new Date(r.last_used_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </td>
                   </tr>
@@ -223,7 +223,7 @@ export default function FeatureUsageTab() {
       )}
 
       {data && data.rows.length === 0 && !loading && (
-        <div style={{ padding: 32, textAlign: 'center', color: '#a8a098', fontSize: 13 }}>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
           해당 기간에 기록된 사용 내역이 없습니다.
         </div>
       )}

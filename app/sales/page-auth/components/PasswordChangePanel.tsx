@@ -9,7 +9,7 @@ type Props = {
 const inputStyle: React.CSSProperties = {
   flex: '1 1 120px', padding: '10px 14px', borderRadius: 10,
   border: '1.5px solid rgba(90,21,21,0.08)',
-  fontSize: 16, outline: 'none', background: '#faf9f7',
+  fontSize: 16, outline: 'none', background: 'var(--surface-muted)',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
 };
 
@@ -67,7 +67,7 @@ export function PasswordChangePanel({ onClose }: Props) {
       boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
       padding: '18px', marginBottom: 20,
     }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', marginBottom: 14 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
         비밀번호 변경
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -90,7 +90,7 @@ export function PasswordChangePanel({ onClose }: Props) {
           disabled={pwLoading}
           style={{
             padding: '10px 20px', borderRadius: 10, border: 'none',
-            background: pwLoading ? '#c4a0a0' : '#5A1515',
+            background: pwLoading ? '#c4a0a0' : 'var(--action)',
             color: 'white', fontSize: 13, fontWeight: 600,
             cursor: pwLoading ? 'default' : 'pointer',
             whiteSpace: 'nowrap', transition: 'background 0.2s ease',

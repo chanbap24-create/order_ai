@@ -71,7 +71,7 @@ export function UpsellSection(p: Props) {
                     style={{
                       fontSize: 14,
                       fontWeight: 600,
-                      color: "#2c1810",
+                      color: "var(--text-primary)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -84,7 +84,7 @@ export function UpsellSection(p: Props) {
                 <div
                   style={{
                     fontSize: 12,
-                    color: "#8a8580",
+                    color: "var(--text-tertiary)",
                     marginBottom: 6,
                     display: "flex",
                     alignItems: "center",
@@ -117,7 +117,7 @@ export function UpsellSection(p: Props) {
                   </span>
                 </div>
 
-                <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
                   <span style={{ color: "#2E7D32", fontWeight: 600 }}>+{u.price_diff_pct}%</span>
                   <span style={{ marginLeft: 4 }}>
                     ({fmt(u.current_price)}원 → {fmt(u.suggested_price)}원)
@@ -156,7 +156,7 @@ const tagMuted: React.CSSProperties = {
   display: "inline-block",
   padding: "2px 8px",
   borderRadius: 4,
-  background: "#faf9f7",
-  color: "#8a8580",
+  background: "var(--surface-muted)",
+  color: "var(--text-tertiary)",
   fontSize: 11,
 };

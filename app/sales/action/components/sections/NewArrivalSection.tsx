@@ -67,7 +67,7 @@ export function NewArrivalSection(p: Props) {
                     style={{
                       fontSize: 14,
                       fontWeight: 600,
-                      color: "#2c1810",
+                      color: "var(--text-primary)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -77,7 +77,7 @@ export function NewArrivalSection(p: Props) {
                   </span>
                 </div>
 
-                <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
                   {[
                     wine.country,
                     wine.grape,
@@ -88,7 +88,7 @@ export function NewArrivalSection(p: Props) {
                     .join(" · ")}
                 </div>
 
-                <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 10 }}>
                   재고: <strong style={{ color: "#00838F" }}>{wine.available_stock}병</strong>
                   {wine.incoming_stock > 0 && (
                     <>
@@ -101,7 +101,7 @@ export function NewArrivalSection(p: Props) {
 
                 {wine.matched_clients.length > 0 && (
                   <div style={{ borderTop: "1px solid rgba(90,21,21,0.06)", paddingTop: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "#8a8580", marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 8 }}>
                       추천 거래처
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -131,7 +131,7 @@ export function NewArrivalSection(p: Props) {
                               display: "inline-block",
                               padding: "1px 6px",
                               borderRadius: 4,
-                              background: c.match_score >= 60 ? "#E0F7FA" : "#faf9f7",
+                              background: c.match_score >= 60 ? "#E0F7FA" : "var(--surface-muted)",
                               color: c.match_score >= 60 ? "#00838F" : "#888",
                               fontSize: 11,
                               fontWeight: 700,
@@ -144,7 +144,7 @@ export function NewArrivalSection(p: Props) {
                           <span
                             style={{
                               fontSize: 10,
-                              color: "#a8a098",
+                              color: "var(--text-muted)",
                               whiteSpace: "nowrap",
                               flexShrink: 0,
                             }}

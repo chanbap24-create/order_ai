@@ -22,7 +22,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12, fontWeight: 600, color: '#8a8580',
+  fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
   display: 'block', marginBottom: 6,
 };
 
@@ -43,7 +43,7 @@ export function EventFormModal(p: Props) {
         onClick={e => e.stopPropagation()}
         style={{ background: '#fff', borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 420 }}
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#2c1810', marginBottom: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
           {p.editingId ? '회사 일정 수정' : '회사 일정 등록'}
         </div>
 
@@ -83,7 +83,7 @@ export function EventFormModal(p: Props) {
             style={{
               flex: 1, padding: '12px', borderRadius: 8,
               border: '1px solid rgba(90,21,21,0.08)',
-              background: '#fff', color: '#8a8580', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              background: '#fff', color: 'var(--text-tertiary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}
           >
             취소

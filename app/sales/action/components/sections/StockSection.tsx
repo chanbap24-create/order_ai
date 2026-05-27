@@ -71,7 +71,7 @@ export function StockSection(p: Props) {
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: "#2c1810",
+                          color: "var(--text-primary)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -82,7 +82,7 @@ export function StockSection(p: Props) {
                     </div>
                   </div>
 
-                  <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     현재 재고:{" "}
                     <strong style={{ color: isOos ? "#B71C1C" : "#E65100" }}>{sd.current_stock}병</strong>
                     <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
@@ -119,7 +119,7 @@ export function StockSection(p: Props) {
                   </div>
 
                   {sd.affected_clients.length > 0 && (
-                    <div style={{ fontSize: 11, color: "#a8a098", marginTop: 6 }}>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
                       {sd.affected_clients.map((c) => c.client_name).join(", ")}
                     </div>
                   )}
@@ -137,7 +137,7 @@ const tagMuted: React.CSSProperties = {
   display: "inline-block",
   padding: "2px 8px",
   borderRadius: 4,
-  background: "#faf9f7",
-  color: "#8a8580",
+  background: "var(--surface-muted)",
+  color: "var(--text-tertiary)",
   fontSize: 11,
 };

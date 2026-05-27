@@ -51,8 +51,8 @@ export default function MonthlyCompareChart({
     <div>
       {/* YoY 요약 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#faf9f7', borderRadius: 8, padding: '8px 14px' }}>
-          <span style={{ width: 10, height: 10, borderRadius: 2, background: '#5A1515', display: 'inline-block' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-muted)', borderRadius: 8, padding: '8px 14px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--action)', display: 'inline-block' }} />
           <span style={{ fontSize: 12, fontWeight: 700 }}>{curYear}</span>
           <span style={{ fontSize: 12, color: '#666' }}>{fmt(curQtyTotal)}병</span>
           <span style={{ fontSize: 11, color: '#999' }}>{fmtM(curAmtTotal)}</span>
@@ -94,7 +94,7 @@ export default function MonthlyCompareChart({
                   <div title={`${prevYear}.${mo}: ${fmt(prev)}병`} style={{ width: '40%', height: prevH, background: '#D8CCC0', borderRadius: '2px 2px 0 0' }} />
                 )}
                 <div title={`${curYear}.${mo}: ${fmt(cur)}병${prev > 0 ? ` (${moGrowth >= 0 ? '+' : ''}${moGrowth}%)` : ''}`}
-                  style={{ width: prevQtyTotal > 0 ? '40%' : '70%', height: curH, background: '#5A1515', borderRadius: '2px 2px 0 0' }} />
+                  style={{ width: prevQtyTotal > 0 ? '40%' : '70%', height: curH, background: 'var(--action)', borderRadius: '2px 2px 0 0' }} />
               </div>
               <div style={{ fontSize: 9, color: '#999', marginTop: 4 }}>{i + 1}월</div>
             </div>
@@ -113,8 +113,8 @@ export default function MonthlyCompareChart({
             const qG = prevQ > 0 ? Math.round((curQ - prevQ) / prevQ * 100) : 0;
             const aG = prevA > 0 ? Math.round((curA - prevA) / prevA * 100) : 0;
             return (
-              <div key={q.label} style={{ background: '#faf9f7', borderRadius: 8, padding: '10px 10px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#2c1810', marginBottom: 6 }}>{q.label}</div>
+              <div key={q.label} style={{ background: 'var(--surface-muted)', borderRadius: 8, padding: '10px 10px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>{q.label}</div>
                 {/* 헤더 */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 9, color: '#bbb', fontWeight: 500, marginBottom: 3 }}>
                   <div style={{ textAlign: 'right' }}>{prevYear}</div>
@@ -124,7 +124,7 @@ export default function MonthlyCompareChart({
                 {/* 병수 행 */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 11, marginBottom: 3, alignItems: 'baseline' }}>
                   <div style={{ textAlign: 'right', color: '#999' }}>{fmt(prevQ)}</div>
-                  <div style={{ textAlign: 'right', color: '#2c1810', fontWeight: 600 }}>{fmt(curQ)}</div>
+                  <div style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{fmt(curQ)}</div>
                   <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: qG >= 0 ? '#16a34a' : '#dc2626' }}>{prevQ > 0 ? `${qG >= 0 ? '+' : ''}${qG}%` : ''}</div>
                 </div>
                 {/* 매출 행 */}

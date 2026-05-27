@@ -33,7 +33,7 @@ export function DismissedListItem({ item, isChecked, onToggle }: Props) {
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '10px 12px', borderRadius: 10,
-        border: isChecked ? '1.5px solid #5A1515' : '1px solid rgba(90,21,21,0.08)',
+        border: isChecked ? '1.5px solid var(--action)' : '1px solid rgba(90,21,21,0.08)',
         background: isChecked ? '#fdf8f8' : 'white',
         cursor: 'pointer', transition: 'all 0.15s',
       }}
@@ -43,21 +43,21 @@ export function DismissedListItem({ item, isChecked, onToggle }: Props) {
         checked={isChecked}
         onChange={onToggle}
         onClick={e => e.stopPropagation()}
-        style={{ width: 16, height: 16, accentColor: '#5A1515', flexShrink: 0 }}
+        style={{ width: 16, height: 16, accentColor: 'var(--action)', flexShrink: 0 }}
       />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 13, fontWeight: 600, color: '#2c1810',
+          fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {item.item_name}
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, marginTop: 3,
-          fontSize: 11, color: '#a8a098', flexWrap: 'wrap',
+          fontSize: 11, color: 'var(--text-muted)', flexWrap: 'wrap',
         }}>
-          <span style={{ color: '#a8a098' }}>{item.item_no}</span>
+          <span style={{ color: 'var(--text-muted)' }}>{item.item_no}</span>
           {item.country && <span>{item.country}</span>}
           {item.wine_type && (
             <span style={{
@@ -78,7 +78,7 @@ export function DismissedListItem({ item, isChecked, onToggle }: Props) {
         }}>
           {item.current_stock > 0 ? `${item.current_stock}병` : '품절'}
         </div>
-        <div style={{ fontSize: 10, color: '#a8a098', marginTop: 2 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
           {formatDate(item.dismissed_at)} 제외
         </div>
       </div>

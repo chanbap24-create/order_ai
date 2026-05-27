@@ -39,7 +39,7 @@ export function SectionHeader({
       <span
         style={{
           fontSize: 12,
-          color: "#a8a098",
+          color: "var(--text-muted)",
           transition: "transform 0.2s",
           transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
         }}

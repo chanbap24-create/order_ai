@@ -27,10 +27,10 @@ export function BottomActionBar(p: Props) {
     }}>
       <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
             {p.selectedCount}개 선택
           </div>
-          <div style={{ fontSize: 12, color: '#8a8580' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             예상 합계: {fmt(p.selectedTotal)}원
           </div>
         </div>
@@ -39,7 +39,7 @@ export function BottomActionBar(p: Props) {
             onClick={() => setShowColSettings(v => !v)}
             style={{
               width: 36, height: 36, borderRadius: 8, border: '1px solid #ddd',
-              background: showColSettings ? '#f5f0eb' : '#fff', color: '#5A1515',
+              background: showColSettings ? '#f5f0eb' : '#fff', color: 'var(--action)',
               fontSize: 16, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -60,8 +60,8 @@ export function BottomActionBar(p: Props) {
           onClick={p.onAdd}
           disabled={p.quoteLoading}
           style={{
-            padding: '10px 16px', borderRadius: 8, border: '1px solid #5A1515',
-            background: '#fff', color: '#5A1515', fontSize: 13, fontWeight: 600,
+            padding: '10px 16px', borderRadius: 8, border: '1px solid var(--action)',
+            background: '#fff', color: 'var(--action)', fontSize: 13, fontWeight: 600,
             cursor: p.quoteLoading ? 'default' : 'pointer',
           }}
         >

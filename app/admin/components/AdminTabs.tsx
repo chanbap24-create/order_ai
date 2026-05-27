@@ -23,20 +23,21 @@ interface AdminTabsProps {
   newWineCount?: number;
 }
 
+/**
+ * Admin 탭 — SalesTabs 와 동일한 underline 패턴.
+ * 페이지를 넘겨도 같은 디자인 언어를 유지.
+ */
 export default function AdminTabs({ activeTab, onTabChange, newWineCount }: AdminTabsProps) {
   return (
-    <div style={{
-      marginBottom: 24,
-      overflowX: 'auto',
-      WebkitOverflowScrolling: 'touch',
-    }}>
-      <div style={{
-        display: 'inline-flex',
-        background: 'rgba(90,21,21,0.05)',
-        borderRadius: 10,
-        padding: 3,
-        gap: 2,
-      }}>
+    <div
+      style={{
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        borderBottom: '1px solid var(--border-default)',
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ display: 'inline-flex', gap: 4 }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -44,37 +45,57 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               style={{
-                padding: '5px 14px',
-                borderRadius: 8,
+                position: 'relative',
+                padding: '10px 14px',
                 border: 'none',
-                fontSize: '0.75rem',
+                background: 'transparent',
+                fontSize: 13,
                 fontWeight: isActive ? 700 : 500,
+                color: isActive ? 'var(--action)' : 'var(--text-tertiary)',
                 cursor: 'pointer',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                background: isActive ? 'white' : 'transparent',
-                color: isActive ? '#5A1515' : '#8a8580',
-                boxShadow: isActive ? '0 1px 4px rgba(90,21,21,0.1), 0 0 0 1px rgba(90,21,21,0.04)' : 'none',
+                letterSpacing: '0.01em',
                 whiteSpace: 'nowrap',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 6,
+                transition: 'color 0.12s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)';
               }}
             >
               {tab.label}
               {tab.id === 'new-wine' && newWineCount != null && newWineCount > 0 && (
-                <span style={{
-                  background: '#dc3545',
-                  color: 'white',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  borderRadius: 99,
-                  padding: '1px 6px',
-                  minWidth: 16,
-                  textAlign: 'center',
-                  lineHeight: '14px',
-                }}>
+                <span
+                  style={{
+                    background: '#C62828',
+                    color: 'var(--text-on-primary)',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    borderRadius: 99,
+                    padding: '1px 6px',
+                    minWidth: 16,
+                    textAlign: 'center',
+                    lineHeight: '14px',
+                  }}
+                >
                   {newWineCount}
                 </span>
+              )}
+              {isActive && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: -1,
+                    height: 2,
+                    background: 'var(--action)',
+                  }}
+                />
               )}
             </button>
           );

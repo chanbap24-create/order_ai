@@ -54,7 +54,7 @@ export function ChurnSection(p: Props) {
                     borderRadius: 20,
                     border:
                       p.churnFilter === f.id
-                        ? `1.5px solid ${f.id === "all" ? "#5A1515" : RISK_COLORS[f.id] || "#5A1515"}`
+                        ? `1.5px solid ${f.id === "all" ? "var(--action)" : RISK_COLORS[f.id] || "var(--action)"}`
                         : "1px solid rgba(90,21,21,0.08)",
                     background:
                       p.churnFilter === f.id
@@ -67,8 +67,8 @@ export function ChurnSection(p: Props) {
                     color:
                       p.churnFilter === f.id
                         ? f.id === "all"
-                          ? "#5A1515"
-                          : RISK_COLORS[f.id] || "#5A1515"
+                          ? "var(--action)"
+                          : RISK_COLORS[f.id] || "var(--action)"
                         : "#999",
                     cursor: "pointer",
                   }}
@@ -136,7 +136,7 @@ export function ChurnSection(p: Props) {
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: "#2c1810",
+                          color: "var(--text-primary)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -160,7 +160,7 @@ export function ChurnSection(p: Props) {
                     )}
                   </div>
 
-                  <div style={{ fontSize: 13, color: "#8a8580", marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     마지막 구매:{" "}
                     <strong style={{ color: item.days_since_last >= 60 ? "#c62828" : "#333" }}>
                       {item.days_since_last}일 전
@@ -168,7 +168,7 @@ export function ChurnSection(p: Props) {
                     <span style={{ color: "#bbb", marginLeft: 6 }}>({item.last_purchase_date})</span>
                   </div>
 
-                  <div style={{ fontSize: 13, color: "#8a8580", marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 8 }}>
                     매출 추이: {fmt(item.prev_revenue)} → {fmt(item.recent_revenue)}
                     {item.revenue_change_pct !== 0 && (
                       <span
@@ -192,8 +192,8 @@ export function ChurnSection(p: Props) {
                             display: "inline-block",
                             padding: "2px 8px",
                             borderRadius: 4,
-                            background: "#faf9f7",
-                            color: "#8a8580",
+                            background: "var(--surface-muted)",
+                            color: "var(--text-tertiary)",
                             fontSize: 11,
                             fontWeight: 500,
                           }}
@@ -205,7 +205,7 @@ export function ChurnSection(p: Props) {
                   )}
 
                   {item.top_items.length > 0 && (
-                    <div style={{ fontSize: 12, color: "#a8a098" }}>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                       주요 품목: {item.top_items.join(", ")}
                     </div>
                   )}
@@ -218,7 +218,7 @@ export function ChurnSection(p: Props) {
                         borderTop: "1px solid rgba(90,21,21,0.06)",
                       }}
                     >
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#8a8580", marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 8 }}>
                         최근 주문 내역
                       </div>
                       {p.loadingOrders === item.client_code && (
@@ -262,7 +262,7 @@ export function ChurnSection(p: Props) {
                               <span
                                 style={{
                                   marginLeft: 8,
-                                  color: "#a8a098",
+                                  color: "var(--text-muted)",
                                   whiteSpace: "nowrap",
                                 }}
                               >
@@ -271,7 +271,7 @@ export function ChurnSection(p: Props) {
                               <span
                                 style={{
                                   marginLeft: 8,
-                                  color: "#a8a098",
+                                  color: "var(--text-muted)",
                                   whiteSpace: "nowrap",
                                 }}
                               >

@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback } from 'react';
-import Card from '@/app/components/ui/Card';
+import { Section } from '@/app/components/ui';
 import type { ClientRankingItem } from '../types';
 import { formatKrw } from '../lib/format';
 
@@ -10,76 +10,144 @@ type Props = {
   onRowClick: (code: string, name: string) => void;
 };
 
-// 부모 리렌더 (다른 state 변경) 시 ranking/onRowClick 동일하면 skip
-export const ClientRankingTable = memo(function ClientRankingTable({ ranking, onRowClick }: Props) {
+const COLS: { key: string; label: string; align: 'left' | 'right' | 'center' }[] = [
+  { key: 'rank', label: '#', align: 'right' },
+  { key: 'change', label: '변동', align: 'center' },
+  { key: 'code', label: '코드', align: 'right' },
+  { key: 'name', label: '거래처명', align: 'left' },
+  { key: 'revenue', label: '매출', align: 'right' },
+  { key: 'discount', label: '지원률', align: 'right' },
+  { key: 'qty', label: '수량', align: 'right' },
+  { key: 'items', label: '품목수', align: 'right' },
+];
+
+const thBase: React.CSSProperties = {
+  padding: '10px 12px',
+  fontSize: 11,
+  fontWeight: 700,
+  color: 'var(--text-tertiary)',
+  whiteSpace: 'nowrap',
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  background: 'var(--surface-muted)',
+  borderBottom: '1px solid var(--border-default)',
+};
+const tdBase: React.CSSProperties = {
+  padding: '10px 12px',
+  fontSize: 13,
+  color: 'var(--text-primary)',
+  borderBottom: '1px solid var(--border-subtle)',
+  whiteSpace: 'nowrap',
+};
+
+export const ClientRankingTable = memo(function ClientRankingTable({
+  ranking,
+  onRowClick,
+}: Props) {
   if (ranking.length === 0) return null;
 
   return (
-    <Card style={{ marginBottom: 24 }}>
-      <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 16 }}>
-        거래처별 매출 순위{' '}
-        <span style={{ fontWeight: 400, fontSize: 'var(--text-xs)', color: 'var(--color-text-light)' }}>
-          상위 30
-        </span>
-      </h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-              {['#', '변동', '코드', '거래처명', '매출', '지원률', '수량', '품목수'].map(h => (
-                <th key={h} style={{
-                  padding: '8px 12px',
-                  textAlign: h === '거래처명' ? 'left' : h === '변동' ? 'center' : 'right',
-                  fontWeight: 600, fontSize: 'var(--text-xs)', color: 'var(--color-text-light)',
-                }}>
-                  {h}
-                </th>
+    <div style={{ marginBottom: 20 }}>
+      <Section title="거래처별 매출 순위" meta={`상위 ${ranking.length}`} padding="none">
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr>
+                {COLS.map((c) => (
+                  <th key={c.key} style={{ ...thBase, textAlign: c.align }}>
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ranking.map((c, i) => (
+                <RankingRow key={c.code} client={c} rank={i + 1} onRowClick={onRowClick} />
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {ranking.map((c, i) => (
-              <RankingRow key={c.code} client={c} rank={i + 1} onRowClick={onRowClick} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+            </tbody>
+          </table>
+        </div>
+      </Section>
+    </div>
   );
 });
 
 const RankingRow = memo(function RankingRow({
-  client: c, rank, onRowClick,
-}: { client: ClientRankingItem; rank: number; onRowClick: (code: string, name: string) => void }) {
+  client: c,
+  rank,
+  onRowClick,
+}: {
+  client: ClientRankingItem;
+  rank: number;
+  onRowClick: (code: string, name: string) => void;
+}) {
   const handleClick = useCallback(() => onRowClick(c.code, c.name), [onRowClick, c.code, c.name]);
   return (
     <tr
       onClick={handleClick}
-      style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', transition: 'background 0.15s' }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(139,21,56,0.04)')}
-      onMouseLeave={e => (e.currentTarget.style.background = '')}
+      style={{ cursor: 'pointer' }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
     >
-      <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: rank <= 3 ? '#8B1538' : 'var(--color-text)' }}>
+      <td
+        style={{
+          ...tdBase,
+          textAlign: 'right',
+          fontWeight: 700,
+          color: rank <= 3 ? 'var(--action)' : 'var(--text-primary)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
         {rank}
       </td>
-      <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+      <td style={{ ...tdBase, textAlign: 'center', fontWeight: 700, fontSize: 12 }}>
         <RankChange isNew={c.isNew} rankChange={c.rankChange} />
       </td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 'var(--text-xs)', color: 'var(--color-text-light)' }}>
+      <td
+        style={{
+          ...tdBase,
+          textAlign: 'right',
+          fontSize: 12,
+          color: 'var(--text-tertiary)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
         {c.code}
       </td>
-      <td style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 500, color: '#8B1538' }}>{c.name}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>{formatKrw(c.revenue)}</td>
-      <td style={{
-        padding: '8px 12px', textAlign: 'right', fontWeight: 600,
-        color: c.discountRate != null
-          ? c.discountRate > 15 ? '#E53E3E' : c.discountRate > 5 ? '#DD6B20' : '#38A169'
-          : 'var(--color-text-lighter)',
-      }}>
+      <td style={{ ...tdBase, fontWeight: 600, color: 'var(--action)' }}>{c.name}</td>
+      <td
+        style={{
+          ...tdBase,
+          textAlign: 'right',
+          fontWeight: 700,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {formatKrw(c.revenue)}
+      </td>
+      <td
+        style={{
+          ...tdBase,
+          textAlign: 'right',
+          fontWeight: 600,
+          color:
+            c.discountRate != null
+              ? c.discountRate > 15
+                ? '#C62828'
+                : c.discountRate > 5
+                  ? '#E65100'
+                  : '#2E7D32'
+              : 'var(--text-muted)',
+        }}
+      >
         {c.discountRate != null ? `${c.discountRate}%` : '-'}
       </td>
-      <td style={{ padding: '8px 12px', textAlign: 'right' }}>{c.quantity.toLocaleString()}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right' }}>{c.itemCount}</td>
+      <td style={{ ...tdBase, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+        {c.quantity.toLocaleString()}
+      </td>
+      <td style={{ ...tdBase, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+        {c.itemCount}
+      </td>
     </tr>
   );
 });
@@ -87,24 +155,31 @@ const RankingRow = memo(function RankingRow({
 function RankChange({ isNew, rankChange }: { isNew: boolean; rankChange: number | null }) {
   if (isNew) {
     return (
-      <span style={{
-        background: '#8B1538', color: '#fff',
-        padding: '2px 6px', borderRadius: 'var(--radius-sm)',
-        fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
-      }}>
+      <span
+        style={{
+          display: 'inline-block',
+          background: 'var(--action)',
+          color: 'var(--text-on-primary)',
+          padding: '2px 6px',
+          borderRadius: 4,
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: 0.5,
+        }}
+      >
         NEW
       </span>
     );
   }
   if (rankChange != null && rankChange !== 0) {
     return (
-      <span style={{ color: rankChange > 0 ? '#E53E3E' : '#3182CE' }}>
+      <span style={{ color: rankChange > 0 ? '#C62828' : '#1565C0' }}>
         {rankChange > 0 ? `▲${rankChange}` : `▼${Math.abs(rankChange)}`}
       </span>
     );
   }
   if (rankChange === 0) {
-    return <span style={{ color: 'var(--color-text-lighter)' }}>-</span>;
+    return <span style={{ color: 'var(--text-muted)' }}>-</span>;
   }
   return null;
 }

@@ -144,7 +144,7 @@ export function MeetingDetailPanel(p: Props) {
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: "#8a8580",
+              color: "var(--text-tertiary)",
               display: "block",
               marginBottom: 6,
             }}
@@ -187,7 +187,7 @@ export function MeetingDetailPanel(p: Props) {
                 padding: "8px 16px",
                 borderRadius: 6,
                 border: "none",
-                background: "#5A1515",
+                background: "var(--action)",
                 color: "#fff",
                 fontSize: 12,
                 fontWeight: 600,

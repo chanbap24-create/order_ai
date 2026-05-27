@@ -31,7 +31,7 @@ export function SaveButton({ saveStatus, itemsCount, onSave }: Props) {
           alignItems: "center",
           gap: 8,
           opacity: saveStatus === "saving" ? 0.6 : 1,
-          background: saveStatus === "saved" && itemsCount === 0 ? "#16a34a" : "#5A1515",
+          background: saveStatus === "saved" && itemsCount === 0 ? "#16a34a" : "var(--action)",
         }}
       >
         {saveStatus === "saving" ? (

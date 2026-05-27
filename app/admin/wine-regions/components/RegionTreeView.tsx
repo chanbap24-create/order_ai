@@ -72,8 +72,8 @@ function CountryNode({
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 14px',
-          background: isCountryOpen ? '#2c1810' : 'rgba(90,21,21,0.06)',
-          color: isCountryOpen ? '#fff' : '#2c1810',
+          background: isCountryOpen ? 'var(--text-primary)' : 'rgba(90,21,21,0.06)',
+          color: isCountryOpen ? '#fff' : 'var(--text-primary)',
           borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 15,
           transition: 'all 0.15s',
         }}
@@ -117,8 +117,8 @@ function MajorNode({
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 12px',
-          background: isMajorOpen ? '#5A1515' : '#F5F4F2',
-          color: isMajorOpen ? '#fff' : '#2c1810',
+          background: isMajorOpen ? 'var(--action)' : '#F5F4F2',
+          color: isMajorOpen ? '#fff' : 'var(--text-primary)',
           borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14,
           transition: 'all 0.15s',
         }}
@@ -177,7 +177,7 @@ function SubNode({
         <span style={{
           display: 'inline-block',
           transform: isSubOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-          transition: 'transform 0.15s', fontSize: 10, color: '#a8a098',
+          transition: 'transform 0.15s', fontSize: 10, color: 'var(--text-muted)',
         }}>
           ▶
         </span>

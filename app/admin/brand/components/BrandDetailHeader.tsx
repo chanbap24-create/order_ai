@@ -20,7 +20,7 @@ export function BrandDetailHeader(p: Props) {
           background: "none",
           border: "none",
           fontSize: 13,
-          color: "#5A1515",
+          color: "var(--action)",
           cursor: "pointer",
           fontWeight: 600,
           display: "flex",
@@ -110,7 +110,7 @@ export function BrandDetailHeader(p: Props) {
         style={{
           height: 34,
           padding: "0 18px",
-          background: p.saving ? "#ccc" : "#5A1515",
+          background: p.saving ? "#ccc" : "var(--action)",
           color: "#fff",
           border: "none",
           borderRadius: 7,

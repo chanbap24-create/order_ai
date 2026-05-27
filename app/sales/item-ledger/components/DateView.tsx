@@ -70,19 +70,19 @@ export function DateView({ rows }: { rows: ItemRow[] }) {
       <tbody>
         {sortedRows.map((r, i) => (
           <tr key={i} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-            <td style={{ ...tdStyle, color: '#8a8580' }}>{r.manager || ''}</td>
+            <td style={{ ...tdStyle, color: 'var(--text-tertiary)' }}>{r.manager || ''}</td>
             <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{r.ship_date?.slice(2)}</td>
             <td style={{ ...tdStyle, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {r.client_name}
             </td>
-            <td style={{ ...tdStyle, textAlign: 'right', color: r.quantity < 0 ? '#dc2626' : '#2c1810' }}>{fmt(r.quantity)}</td>
-            <td style={{ ...tdStyle, textAlign: 'right', color: '#8a8580' }}>{fmt(r.unit_price)}</td>
-            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: r.supply_amount < 0 ? '#dc2626' : '#2c1810' }}>
+            <td style={{ ...tdStyle, textAlign: 'right', color: r.quantity < 0 ? '#dc2626' : 'var(--text-primary)' }}>{fmt(r.quantity)}</td>
+            <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-tertiary)' }}>{fmt(r.unit_price)}</td>
+            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: r.supply_amount < 0 ? '#dc2626' : 'var(--text-primary)' }}>
               {fmt(r.supply_amount)}
             </td>
           </tr>
         ))}
-        <tr style={{ background: '#5A1515', fontWeight: 700 }}>
+        <tr style={{ background: 'var(--action)', fontWeight: 700 }}>
           <td style={{ ...tdStyle, fontWeight: 700, color: '#fff' }} colSpan={3}>합계</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#fff' }}>
             {fmt(rows.reduce((s, r) => s + (r.quantity || 0), 0))}
@@ -127,7 +127,7 @@ function SortableHeader({
           style={{
             fontSize: 10,
             opacity: active ? 1 : 0.3,
-            color: active ? '#5A1515' : '#8a8580',
+            color: active ? 'var(--action)' : 'var(--text-tertiary)',
             width: 8,
           }}
         >

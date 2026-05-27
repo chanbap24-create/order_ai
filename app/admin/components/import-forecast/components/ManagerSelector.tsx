@@ -68,8 +68,8 @@ export function ManagerSelector(p: Props) {
             style={{
               padding: "8px 16px",
               borderRadius: 6,
-              border: isActive ? "1.5px solid #5A1515" : "1px solid #e0e0e0",
-              background: isActive ? "#5A1515" : "#fff",
+              border: isActive ? "1.5px solid var(--action)" : "1px solid #e0e0e0",
+              background: isActive ? "var(--action)" : "#fff",
               cursor: "pointer",
               whiteSpace: "nowrap",
               transition: "all 0.15s",

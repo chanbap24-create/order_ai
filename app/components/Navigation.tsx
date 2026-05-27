@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { NAV_STYLES } from './navigation/navStyles';
 import { TopBar } from './navigation/TopBar';
 import { MobileDrawer } from './navigation/MobileDrawer';
+import { Sidebar } from './sidebar/Sidebar';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -47,6 +48,10 @@ export default function Navigation() {
     <>
       <style>{NAV_STYLES}</style>
 
+      {/* 데스크탑 영구 사이드바 (Phase A) — 모바일에서는 CSS 로 숨김 */}
+      <Sidebar />
+
+      {/* 기존 상단 TopBar — 모바일 전용 (데스크탑은 sidebarStyles 에서 hide) */}
       <TopBar
         hamburgerRef={hamburgerRef}
         onToggleMenu={() => setMobileMenuOpen(!mobileMenuOpen)}

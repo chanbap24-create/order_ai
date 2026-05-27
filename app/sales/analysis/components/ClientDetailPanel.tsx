@@ -41,9 +41,9 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: P
                 flex: 1,
                 padding: "10px 0",
                 border: "none",
-                borderBottom: `2px solid ${active ? "#5A1515" : "#eee"}`,
+                borderBottom: `2px solid ${active ? "var(--action)" : "#eee"}`,
                 background: active ? "#5A151508" : "transparent",
-                color: active ? "#5A1515" : "#999",
+                color: active ? "var(--action)" : "#999",
                 fontSize: 14,
                 fontWeight: active ? 700 : 500,
                 cursor: "pointer",
@@ -59,7 +59,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: P
       {subTab === "info" && (
         <>
           {detail.detailLoading ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#a8a098" }}>로딩 중...</div>
+            <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>로딩 중...</div>
           ) : (
             <>
               {detail.clientDetail && (

@@ -39,5 +39,6 @@
   "exclude": [
     "node_modules",
     "order_ai"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

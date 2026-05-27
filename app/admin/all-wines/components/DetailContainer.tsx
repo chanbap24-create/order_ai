@@ -44,7 +44,7 @@ export function DetailContainer(p: Props) {
               onClick={p.onClose}
               style={{
                 border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontSize: 14,
-                color: '#5A1515', fontWeight: 600, padding: '6px 14px', borderRadius: 6,
+                color: 'var(--action)', fontWeight: 600, padding: '6px 14px', borderRadius: 6,
                 display: 'flex', alignItems: 'center', gap: 6,
               }}
             >

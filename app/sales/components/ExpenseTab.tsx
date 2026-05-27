@@ -12,6 +12,7 @@ import { ItemListCard } from '../expense/components/ItemListCard';
 import { SaveButton } from '../expense/components/SaveButton';
 import { PreviewPanel } from '../expense/components/PreviewPanel';
 import { cardStyle } from '../expense/styles';
+import { Stack } from '@/app/components/ui';
 
 interface Props {
   currentManager: string;
@@ -33,7 +34,7 @@ export default function ExpenseTab({ currentManager, department }: Props) {
   });
 
   return (
-    <div>
+    <Stack direction="vertical" gap={16}>
       {wb.autoLoading && <AutoLoading />}
 
       {!wb.autoLoading && (
@@ -68,9 +69,15 @@ export default function ExpenseTab({ currentManager, department }: Props) {
           <button
             onClick={form.startManualEntry}
             style={{
-              padding: '12px 24px', borderRadius: 10,
-              border: '1.5px solid rgba(90,21,21,0.15)', background: 'transparent',
-              fontSize: 13, fontWeight: 600, color: '#5A1515', cursor: 'pointer',
+              height: 34,
+              padding: '0 16px',
+              borderRadius: 6,
+              border: '1px solid var(--border-strong)',
+              background: 'transparent',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--action)',
+              cursor: 'pointer',
             }}
           >
             영수증 없이 직접 입력
@@ -98,6 +105,6 @@ export default function ExpenseTab({ currentManager, department }: Props) {
           preview.handleDeletePreviewRow(wb.workbook, wb.selectedSheet, rowNum)
         }
       />
-    </div>
+    </Stack>
   );
 }

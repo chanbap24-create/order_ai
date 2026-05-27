@@ -63,12 +63,12 @@ export function LoginCard({ managerList, onSuccess }: Props) {
       }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1 style={{
-            fontSize: 24, fontWeight: 700, color: '#2c1810', margin: 0,
+            fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0,
             fontFamily: "'Cormorant Garamond', serif", letterSpacing: '0.05em',
           }}>
             Sales Support
           </h1>
-          <p style={{ fontSize: 13, color: '#8a8580', margin: '8px 0 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '8px 0 0' }}>
             영업 지원 시스템 로그인
           </p>
         </div>
@@ -78,7 +78,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
           <select
             value={loginManager}
             onChange={e => setLoginManager(e.target.value)}
-            style={{ ...inputStyle, color: loginManager ? '#2c1810' : '#a8a098' }}
+            style={{ ...inputStyle, color: loginManager ? 'var(--text-primary)' : 'var(--text-muted)' }}
             {...focusHandlers}
           >
             <option value="">담당자 선택</option>
@@ -115,7 +115,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
           disabled={loginLoading}
           style={{
             width: '100%', padding: '13px 0', borderRadius: 10, border: 'none',
-            background: loginLoading ? '#c4a0a0' : '#5A1515',
+            background: loginLoading ? '#c4a0a0' : 'var(--action)',
             color: 'white', fontSize: 15, fontWeight: 600,
             cursor: loginLoading ? 'default' : 'pointer',
             transition: 'background 0.2s ease', letterSpacing: '0.02em',
@@ -124,7 +124,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
           {loginLoading ? '로그인 중...' : '로그인'}
         </button>
 
-        <p style={{ fontSize: 11, color: '#a8a098', textAlign: 'center', marginTop: 16 }}>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 16 }}>
           담당자 이름과 비밀번호를 입력하세요
         </p>
       </div>
@@ -133,7 +133,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, color: '#8a8580',
+  fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
   display: 'block', marginBottom: 6,
   textTransform: 'uppercase', letterSpacing: '0.05em',
 };
@@ -141,6 +141,6 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: 10,
   border: '1.5px solid rgba(90,21,21,0.08)',
-  fontSize: 16, background: '#faf9f7', outline: 'none', boxSizing: 'border-box',
+  fontSize: 16, background: 'var(--surface-muted)', outline: 'none', boxSizing: 'border-box',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
 };

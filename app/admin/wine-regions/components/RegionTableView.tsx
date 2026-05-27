@@ -30,9 +30,9 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
             <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
               <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                 <span style={{ marginRight: 4 }}>{getCountryFlag(r.country)}</span>
-                <span style={{ fontSize: 11, color: '#8a8580' }}>{r.country?.split(' ')[0]}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{r.country?.split(' ')[0]}</span>
               </td>
-              <td style={{ padding: '6px', fontWeight: 500, color: '#5A1515' }}>{r.major_region}</td>
+              <td style={{ padding: '6px', fontWeight: 500, color: 'var(--action)' }}>{r.major_region}</td>
               <td style={{ padding: '6px', color: '#444' }}>{r.sub_region || '-'}</td>
               <td style={{ padding: '6px', fontWeight: 500 }}>{r.appellation || '-'}</td>
               <td style={{ padding: '6px', color: '#8B1538' }}>{r.cru_vineyard || '-'}</td>
@@ -46,7 +46,7 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
                   </span>
                 ) : '-'}
               </td>
-              <td style={{ padding: '6px', color: '#8a8580', fontSize: 11 }}>{r.grape_varieties || '-'}</td>
+              <td style={{ padding: '6px', color: 'var(--text-tertiary)', fontSize: 11 }}>{r.grape_varieties || '-'}</td>
               <td style={{ padding: '6px', color: '#B8860B', fontSize: 11 }}>{r.notes || '-'}</td>
               <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                 <button

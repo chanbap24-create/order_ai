@@ -5,7 +5,7 @@ import type { SalesTabId } from '../../components/SalesTabs';
 
 const MeetingTab = dynamic(() => import('../../components/MeetingTab'), {
   ssr: false,
-  loading: () => <div style={{ padding: 40, textAlign: 'center', color: '#a8a098', fontSize: 14 }}>로딩 중...</div>,
+  loading: () => <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>로딩 중...</div>,
 });
 const BriefingTab = dynamic(() => import('../../components/BriefingTab'), { ssr: false });
 const ShipmentTab = dynamic(() => import('../../components/ShipmentTab'), { ssr: false });

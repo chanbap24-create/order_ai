@@ -40,7 +40,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
           <tbody>
             {(items || []).map((item, idx) => {
               const prevRank = prevRanking?.[item.code];
-              let changeEl: React.ReactNode = <span style={{ color: "#a8a098" }}>-</span>;
+              let changeEl: React.ReactNode = <span style={{ color: "var(--text-muted)" }}>-</span>;
               if (prevRank) {
                 const diff = prevRank - item.rn;
                 if (diff > 0)
@@ -62,13 +62,13 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                     style={{
                       textAlign: "center",
                       fontWeight: 600,
-                      color: item.rn <= 3 ? "#5A1515" : "#666",
+                      color: item.rn <= 3 ? "var(--action)" : "#666",
                     }}
                   >
                     {item.rn}
                   </td>
                   <td>{changeEl}</td>
-                  <td style={{ fontSize: "0.72rem", color: "#a8a098" }}>{item.code}</td>
+                  <td style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{item.code}</td>
                   <td
                     style={{
                       maxWidth: 200,
@@ -102,7 +102,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
             })}
             {(!items || items.length === 0) && (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 32, color: "#a8a098" }}>
+                <td colSpan={8} style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
                   데이터 없음
                 </td>
               </tr>

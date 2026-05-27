@@ -81,7 +81,7 @@ export function ConditionPanelHeader(p: Props) {
             padding: "7px 20px",
             fontSize: 13,
             fontWeight: 600,
-            background: !p.canCalc || p.loading ? "#e0e0e0" : "#5A1515",
+            background: !p.canCalc || p.loading ? "#e0e0e0" : "var(--action)",
             color: "#fff",
             border: "none",
             borderRadius: 6,

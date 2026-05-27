@@ -12,7 +12,7 @@ export function ClientTagsCard({ client }: { client: ClientDetail }) {
         boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 600, color: "#2c1810", marginBottom: 12 }}>태그</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }}>태그</div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {(client.tags || []).map((tag, i) => (
           <span
@@ -21,7 +21,7 @@ export function ClientTagsCard({ client }: { client: ClientDetail }) {
               padding: "4px 10px",
               borderRadius: 12,
               background: "#f0ece6",
-              color: "#5A1515",
+              color: "var(--action)",
               fontSize: 12,
               fontWeight: 500,
             }}

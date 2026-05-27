@@ -38,7 +38,7 @@ export default function WineRegionsTab() {
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 60, color: '#a8a098' }}>데이터 로딩 중...</div>;
+    return <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>데이터 로딩 중...</div>;
   }
 
   return (
@@ -54,15 +54,15 @@ export default function WineRegionsTab() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 16, flexWrap: 'wrap', gap: 8,
       }}>
-        <div style={{ fontSize: 13, color: '#8a8580' }}>
-          전체 <strong style={{ color: '#2c1810' }}>{regions.length}</strong>개 산지
+        <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
+          전체 <strong style={{ color: 'var(--text-primary)' }}>{regions.length}</strong>개 산지
           {f.search && ` / 검색결과 ${f.filtered.length}개`}
         </div>
         <button
           onClick={handleNew}
           style={{
             padding: '6px 14px', fontSize: 12, fontWeight: 600, border: 'none',
-            borderRadius: 6, background: '#5A1515', color: '#fff', cursor: 'pointer',
+            borderRadius: 6, background: 'var(--action)', color: '#fff', cursor: 'pointer',
           }}
         >
           + 새 산지 추가
@@ -82,7 +82,7 @@ export default function WineRegionsTab() {
             onClick={f.expandAll}
             style={{
               padding: '3px 10px', fontSize: 11, border: '1px solid #ddd',
-              borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#8a8580',
+              borderRadius: 4, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)',
             }}
           >
             모두 펼치기
@@ -91,7 +91,7 @@ export default function WineRegionsTab() {
             onClick={f.collapseAll}
             style={{
               padding: '3px 10px', fontSize: 11, border: '1px solid #ddd',
-              borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#8a8580',
+              borderRadius: 4, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)',
             }}
           >
             모두 접기
@@ -101,7 +101,7 @@ export default function WineRegionsTab() {
 
       <div style={{ background: '#fff', borderRadius: 8, padding: 16, border: '1px solid #E5E5E5' }}>
         {f.filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#a8a098' }}>
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
             {f.search ? '검색 결과가 없습니다' : '데이터가 없습니다'}
           </div>
         ) : viewMode === 'tree' ? (
@@ -132,7 +132,7 @@ export default function WineRegionsTab() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: '#2c1810', color: '#fff', padding: '8px 20px', borderRadius: 8,
+          background: 'var(--text-primary)', color: '#fff', padding: '8px 20px', borderRadius: 8,
           fontSize: 13, fontWeight: 500, zIndex: 10000,
           boxShadow: '0 4px 12px rgba(90,21,21,0.15)',
         }}>

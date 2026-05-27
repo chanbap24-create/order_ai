@@ -127,13 +127,13 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       />
 
       {data.scanning && !hasAnyRawData && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
           거래처를 분석하고 있습니다...
         </div>
       )}
 
       {!mgr && isAdmin && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
           담당자를 선택해주세요.
         </div>
       )}
@@ -223,14 +223,14 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
       )}
 
       {!compactMode && !data.scanning && mgr && !hasAnyData && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
           모든 거래처가 정상 상태입니다.
         </div>
       )}
 
       {!compactMode && dismissedTotal > 0 && (
         <div style={{ textAlign: 'center', padding: '8px 0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#a8a098' }}>{dismissedTotal}건 확인 처리됨</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dismissedTotal}건 확인 처리됨</span>
           <button
             onClick={clearDismissed}
             style={{ fontSize: 11, color: '#8B1538', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}

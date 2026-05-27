@@ -52,7 +52,7 @@ export function BrandListView(p: Props) {
             borderRadius: 8,
             fontSize: 13,
             background: "#fff",
-            color: p.countryFilter ? "#2c1810" : "#a8a098",
+            color: p.countryFilter ? "var(--text-primary)" : "var(--text-muted)",
           }}
         >
           <option value="">전체 국가</option>
@@ -67,7 +67,7 @@ export function BrandListView(p: Props) {
           style={{
             height: 36,
             padding: "0 16px",
-            background: "#5A1515",
+            background: "var(--action)",
             color: "#fff",
             border: "none",
             borderRadius: 8,
@@ -80,14 +80,14 @@ export function BrandListView(p: Props) {
         </button>
       </div>
 
-      <div style={{ fontSize: 12, color: "#a8a098", marginBottom: 12 }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
         총 {p.brands.length}개 브랜드
       </div>
 
       {p.loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#a8a098" }}>로딩 중...</div>
+        <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>로딩 중...</div>
       ) : p.brands.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#a8a098" }}>
+        <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
           등록된 브랜드가 없습니다
         </div>
       ) : (
@@ -156,18 +156,18 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
               justifyContent: "center",
               fontSize: 16,
               fontWeight: 700,
-              color: "#a8a098",
+              color: "var(--text-muted)",
             }}
           >
             {brand.brand_code || brand.brand_name_kr.charAt(0)}
           </div>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#2c1810", lineHeight: 1.3 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3 }}>
             {brand.brand_name_kr}
           </div>
           {brand.brand_name_en && (
-            <div style={{ fontSize: 11, color: "#a8a098", lineHeight: 1.3 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.3 }}>
               {brand.brand_name_en}
             </div>
           )}
@@ -176,7 +176,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
         {brand.brand_code && (
-          <Chip bg="rgba(90,21,21,0.06)" color="#5A1515" bold>
+          <Chip bg="rgba(90,21,21,0.06)" color="var(--action)" bold>
             {brand.brand_code}
           </Chip>
         )}
@@ -203,7 +203,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
       )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 11, color: "#a8a098" }}>와인 {brand.wine_count}개</span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>와인 {brand.wine_count}개</span>
         {brand.ai_researched && (
           <span
             style={{
@@ -226,7 +226,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
 function Chip({
   children,
   bg = "rgba(90,21,21,0.04)",
-  color = "#8a8580",
+  color = "var(--text-tertiary)",
   bold = false,
 }: {
   children: React.ReactNode;

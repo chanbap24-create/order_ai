@@ -18,6 +18,7 @@ import { ImportDetailModal } from '../meeting/components/ImportDetailModal';
 import { MeetingModal } from '../meeting/components/MeetingModal';
 import { MeetingDetailPanel } from '../meeting/components/MeetingDetailPanel';
 import { ToastBar } from '../meeting/components/ToastBar';
+import { Stack } from '@/app/components/ui';
 
 type Props = {
   currentManager: string;
@@ -116,7 +117,7 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
       : `${data.weekBase.getFullYear()}년 ${data.weekBase.getMonth() + 1}월`;
 
   return (
-    <div style={{ paddingBottom: 100 }}>
+    <Stack direction="vertical" gap={16} style={{ paddingBottom: 80 }}>
       <MeetingHeader
         viewMode={data.viewMode}
         setViewMode={data.setViewMode}
@@ -132,7 +133,7 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
       />
 
       {data.loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#a8a098' }}>로딩 중...</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>로딩 중...</div>
       ) : data.viewMode === 'month' ? (
         <div style={{ display: 'flex', gap: 12 }}>
           <MonthCalendar
@@ -251,6 +252,6 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
         }}
         onReminderDismiss={() => setReminderToast(null)}
       />
-    </div>
+    </Stack>
   );
 }

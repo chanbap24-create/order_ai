@@ -10,8 +10,15 @@ import { useLedgerQuery } from '../ledger/hooks/useLedgerQuery';
 import { useLedgerExport } from '../ledger/hooks/useLedgerExport';
 import { LedgerFilterCard } from '../ledger/components/LedgerFilterCard';
 import { LedgerResultCard } from '../ledger/components/LedgerResultCard';
+import { Stack } from '@/app/components/ui';
 
-export default function LedgerTab({ currentManager: _cm, isAdmin: _admin }: { currentManager: string; isAdmin: boolean }) {
+export default function LedgerTab({
+  currentManager: _cm,
+  isAdmin: _admin,
+}: {
+  currentManager: string;
+  isAdmin: boolean;
+}) {
   const { firstOfMonth, today } = getInitialDateRange();
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(today);
@@ -20,12 +27,16 @@ export default function LedgerTab({ currentManager: _cm, isAdmin: _admin }: { cu
   const search = useClientSearch(type);
   const query = useLedgerQuery({
     selectedClient: search.selectedClient,
-    startDate, endDate, type,
+    startDate,
+    endDate,
+    type,
   });
   const xport = useLedgerExport({
     selectedClient: search.selectedClient,
     client: query.client,
-    startDate, endDate, type,
+    startDate,
+    endDate,
+    type,
   });
 
   const handleTypeChange = (t: LedgerType) => {
@@ -40,26 +51,33 @@ export default function LedgerTab({ currentManager: _cm, isAdmin: _admin }: { cu
     if (!query.client) return;
     printLedger({
       client: query.client,
-      type, startDate, endDate,
+      type,
+      startDate,
+      endDate,
       rowCount: query.rows.length,
       prevBalance: query.prevBalance,
-      grouped, grandTotal,
+      grouped,
+      grandTotal,
     });
   };
 
-  const hasResult = query.client && (
-    query.rows.length > 0 || query.prevBalance !== 0 || query.payments.length > 0
-  );
+  const hasResult =
+    query.client &&
+    (query.rows.length > 0 ||
+      query.prevBalance !== 0 ||
+      query.payments.length > 0);
 
   return (
-    <div>
+    <Stack direction="vertical" gap={16}>
       <LedgerFilterCard
         type={type}
         onTypeChange={handleTypeChange}
         searchRef={search.searchRef}
         clientSearch={search.clientSearch}
         onSearchChange={search.handleSearchChange}
-        onSearchFocus={() => { if (search.suggestions.length > 0) search.setShowSuggestions(true); }}
+        onSearchFocus={() => {
+          if (search.suggestions.length > 0) search.setShowSuggestions(true);
+        }}
         selectedClient={search.selectedClient}
         suggestions={search.suggestions}
         showSuggestions={search.showSuggestions}
@@ -92,27 +110,45 @@ export default function LedgerTab({ currentManager: _cm, isAdmin: _admin }: { cu
         />
       )}
 
-      {query.client && query.rows.length === 0 && query.prevBalance === 0 && query.payments.length === 0 && !query.loading && (
-        <div style={{
-          background: '#fff', borderRadius: 14, padding: 40,
-          textAlign: 'center', color: '#8a8580', fontSize: 14,
-          border: '1px solid rgba(90,21,21,0.06)',
-        }}>
-          해당 기간에 출고 내역이 없습니다.
-        </div>
-      )}
+      {query.client &&
+        query.rows.length === 0 &&
+        query.prevBalance === 0 &&
+        query.payments.length === 0 &&
+        !query.loading && (
+          <EmptyState message="해당 기간에 출고 내역이 없습니다." />
+        )}
 
       {!query.client && !query.loading && (
-        <div style={{
-          background: '#fff', borderRadius: 14, padding: 40,
-          textAlign: 'center', color: '#8a8580', fontSize: 13,
-          border: '1px solid rgba(90,21,21,0.06)',
-          lineHeight: 1.8,
-        }}>
-          거래처를 검색하고 기간을 설정한 후<br/>
-          <strong style={{ color: '#5A1515' }}>조회</strong> 버튼을 눌러주세요.
-        </div>
+        <EmptyState>
+          거래처를 검색하고 기간을 설정한 후{' '}
+          <strong style={{ color: 'var(--action)' }}>조회</strong> 버튼을 눌러주세요.
+        </EmptyState>
       )}
+    </Stack>
+  );
+}
+
+function EmptyState({
+  message,
+  children,
+}: {
+  message?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border-default)',
+        borderRadius: 10,
+        padding: '60px 20px',
+        textAlign: 'center',
+        color: 'var(--text-tertiary)',
+        fontSize: 13,
+        lineHeight: 1.7,
+      }}
+    >
+      {message || children}
     </div>
   );
 }

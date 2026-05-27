@@ -17,7 +17,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
       onClick={onToggle}
       style={{
         background: '#fff', borderRadius: 10, padding: '14px',
-        border: isSelected ? '2px solid #5A1515' : '1px solid rgba(90,21,21,0.06)',
+        border: isSelected ? '2px solid var(--action)' : '1px solid rgba(90,21,21,0.06)',
         boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(90,21,21,0.03)',
         cursor: 'pointer', transition: 'all 0.15s',
         display: 'flex', gap: 12, alignItems: 'flex-start',
@@ -25,8 +25,8 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
     >
       <div style={{
         width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-        border: isSelected ? '2px solid #5A1515' : '2px solid rgba(90,21,21,0.12)',
-        background: isSelected ? '#5A1515' : '#fff',
+        border: isSelected ? '2px solid var(--action)' : '2px solid rgba(90,21,21,0.12)',
+        background: isSelected ? 'var(--action)' : '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginTop: 2,
       }}>
@@ -43,7 +43,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
             {item.score}점
           </span>
           <span style={{
-            fontSize: 14, fontWeight: 600, color: '#2c1810',
+            fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {item.item_name}
@@ -61,21 +61,21 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
             </span>
           ))}
           {(item.country || item.grape) && (
-            <span style={{ fontSize: 10, color: '#8a8580', background: '#faf9f7', padding: '1px 6px', borderRadius: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--surface-muted)', padding: '1px 6px', borderRadius: 4 }}>
               {[item.country, item.region, item.grape].filter(Boolean).join(' · ')}
             </span>
           )}
         </div>
-        <div style={{ fontSize: 12, color: '#8a8580' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
           {item.reason}
         </div>
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
           {item.price ? fmt(item.price) + '원' : '-'}
         </div>
-        <div style={{ fontSize: 11, color: '#a8a098', marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
           재고 {item.stock || 0}
         </div>
         {item.buy_count !== undefined && (

@@ -25,18 +25,18 @@ export default function DismissedTab() {
         marginBottom: 16, flexWrap: 'wrap', gap: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a8a098" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#2c1810' }}>제외된 와인</span>
-          <span style={{ fontSize: 12, color: '#a8a098', fontWeight: 500 }}>{d.items.length}건</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>제외된 와인</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>{d.items.length}건</span>
         </div>
       </div>
 
       <div style={{ position: 'relative', marginBottom: 12 }}>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="#a8a098" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
         >
           <circle cx="11" cy="11" r="8" />
@@ -50,7 +50,7 @@ export default function DismissedTab() {
           style={{
             width: '100%', padding: '10px 12px 10px 36px', borderRadius: 8,
             border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, boxSizing: 'border-box',
-            background: '#faf9f7', outline: 'none',
+            background: 'var(--surface-muted)', outline: 'none',
           }}
         />
       </div>
@@ -58,16 +58,16 @@ export default function DismissedTab() {
       {d.items.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 12, padding: '8px 12px', background: '#faf9f7', borderRadius: 8,
+          marginBottom: 12, padding: '8px 12px', background: 'var(--surface-muted)', borderRadius: 8,
         }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
             <input
               type="checkbox"
               checked={allChecked}
               onChange={() => d.toggleAllFor(filtered)}
-              style={{ width: 16, height: 16, accentColor: '#5A1515' }}
+              style={{ width: 16, height: 16, accentColor: 'var(--action)' }}
             />
-            <span style={{ fontWeight: 500, color: '#2c1810' }}>
+            <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
               전체 선택 {d.checked.size > 0 && `(${d.checked.size}개)`}
             </span>
           </label>
@@ -97,16 +97,16 @@ export default function DismissedTab() {
       )}
 
       {d.loading && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a8a098', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13 }}>
           불러오는 중...
         </div>
       )}
 
       {!d.loading && d.items.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '50px 20px', color: '#a8a098', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)', fontSize: 13 }}>
           <svg
             width="40" height="40" viewBox="0 0 24 24" fill="none"
-            stroke="#a8a098" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
             style={{ marginBottom: 12 }}
           >
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -117,7 +117,7 @@ export default function DismissedTab() {
       )}
 
       {!d.loading && d.items.length > 0 && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '30px 20px', color: '#a8a098', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '30px 20px', color: 'var(--text-muted)', fontSize: 13 }}>
           검색 결과가 없습니다.
         </div>
       )}

@@ -67,7 +67,7 @@ export default function AdminPasswordPage() {
   };
 
   if (!authChecked) {
-    return <div style={pageStyle}><div style={{ color: '#a8a098' }}>확인 중...</div></div>;
+    return <div style={pageStyle}><div style={{ color: 'var(--text-muted)' }}>확인 중...</div></div>;
   }
 
   if (success) {
@@ -75,7 +75,7 @@ export default function AdminPasswordPage() {
       <div style={pageStyle}>
         <div style={cardStyle}>
           <h1 style={titleStyle}>✅ 비밀번호 변경 완료</h1>
-          <p style={{ fontSize: 14, color: '#2c1810', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>
             새 비밀번호로 안전하게 보관하세요.
           </p>
           <button
@@ -93,7 +93,7 @@ export default function AdminPasswordPage() {
     <div style={pageStyle}>
       <div style={cardStyle}>
         <h1 style={titleStyle}>관리자 비밀번호 변경</h1>
-        <p style={{ fontSize: 12, color: '#8a8580', lineHeight: 1.6, marginBottom: 16 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 16 }}>
           보안을 위해 현재 비밀번호와 2단계 인증 코드를 모두 확인합니다.
         </p>
         {migrationNeeded && (
@@ -158,7 +158,7 @@ export default function AdminPasswordPage() {
             />
             <button
               onClick={() => { setUseBackupCode(!useBackupCode); setMfaCode(''); }}
-              style={{ background: 'none', border: 'none', color: '#5A1515', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0, marginTop: 6 }}
+              style={{ background: 'none', border: 'none', color: 'var(--action)', cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0, marginTop: 6 }}
             >
               {useBackupCode ? '인증 앱 코드 사용' : '백업 코드 사용'}
             </button>
@@ -174,7 +174,7 @@ export default function AdminPasswordPage() {
           disabled={loading}
           style={{
             ...btnPrimary,
-            background: loading ? '#ddd' : '#5A1515',
+            background: loading ? '#ddd' : 'var(--action)',
             cursor: loading ? 'default' : 'pointer',
           }}
         >
@@ -182,7 +182,7 @@ export default function AdminPasswordPage() {
         </button>
         <button
           onClick={() => { window.location.href = '/admin'; }}
-          style={{ ...btnPrimary, background: '#fff', color: '#5A1515', border: '1px solid #5A1515', marginTop: 8 }}
+          style={{ ...btnPrimary, background: '#fff', color: 'var(--action)', border: '1px solid var(--action)', marginTop: 8 }}
         >
           취소
         </button>
@@ -193,7 +193,7 @@ export default function AdminPasswordPage() {
 
 function Label({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <label style={{ display: 'block', fontSize: 12, color: '#2c1810', fontWeight: 600, marginBottom: 4, ...style }}>
+    <label style={{ display: 'block', fontSize: 12, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4, ...style }}>
       {children}
     </label>
   );
@@ -214,7 +214,7 @@ const cardStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 18, fontWeight: 700, color: '#2c1810',
+  fontSize: 18, fontWeight: 700, color: 'var(--text-primary)',
   marginTop: 0, marginBottom: 8, fontFamily: "'Cormorant Garamond', serif",
 };
 
@@ -226,6 +226,6 @@ const inputStyle: React.CSSProperties = {
 
 const btnPrimary: React.CSSProperties = {
   width: '100%', height: 42, marginTop: 16,
-  background: '#5A1515', color: '#fff', border: 'none',
+  background: 'var(--action)', color: '#fff', border: 'none',
   borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer',
 };

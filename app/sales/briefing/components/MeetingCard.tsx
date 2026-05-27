@@ -83,7 +83,7 @@ export function MeetingCard(p: Props) {
       {isExpanded && !briefing && (
         <div style={{
           borderTop: '1px solid rgba(90,21,21,0.06)', padding: '20px 14px',
-          textAlign: 'center', color: '#a8a098', fontSize: 13,
+          textAlign: 'center', color: 'var(--text-muted)', fontSize: 13,
         }}>
           브리핑이 아직 생성되지 않았습니다
         </div>
@@ -110,13 +110,13 @@ function MeetingCardHeader({
     }}>
       <div style={{
         width: 44, flexShrink: 0, textAlign: 'center',
-        fontSize: 13, fontWeight: 700, color: '#5A1515',
+        fontSize: 13, fontWeight: 700, color: 'var(--action)',
       }}>
         {m.meeting_time || '--:--'}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#2c1810', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
           {m.client_name}
           {m.client_importance && IMPORTANCE_LABELS[m.client_importance] && (
             <span style={{
@@ -141,7 +141,7 @@ function MeetingCardHeader({
           }}>
             {st.label}
           </span>
-          {m.purpose && <span style={{ fontSize: 11, color: '#a8a098' }}>{m.purpose}</span>}
+          {m.purpose && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.purpose}</span>}
         </div>
       </div>
 
@@ -197,7 +197,7 @@ function QuoteActions({
           onClick={onToggleColSettings}
           style={{
             width: 32, height: 32, borderRadius: 8, border: '1px solid #ddd',
-            background: showColSettings ? '#f5f0eb' : '#fff', color: '#5A1515',
+            background: showColSettings ? '#f5f0eb' : '#fff', color: 'var(--action)',
             fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
           title="컬럼 설정"

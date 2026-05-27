@@ -9,6 +9,7 @@ import { FilterPanel } from '../outstanding/components/FilterPanel';
 import { OutstandingTable } from '../outstanding/components/OutstandingTable';
 import { ExportButtons } from '../outstanding/components/ExportButtons';
 import { exportSummaryExcel } from '../outstanding/lib/summaryExcel';
+import { Stack } from '@/app/components/ui';
 
 type Props = {
   currentManager: string;
@@ -63,7 +64,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
   );
 
   return (
-    <div>
+    <Stack direction="vertical" gap={16}>
       <FilterPanel
         startDate={startDate}
         endDate={endDate}
@@ -79,12 +80,16 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
       />
 
       {list.error && (
-        <div style={{
-          padding: '10px 14px',
-          background: 'rgba(220,38,38,0.04)',
-          border: '1.5px solid rgba(220,38,38,0.15)',
-          borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 16,
-        }}>
+        <div
+          style={{
+            padding: '10px 14px',
+            background: 'rgba(220,38,38,0.04)',
+            border: '1px solid rgba(220,38,38,0.18)',
+            borderRadius: 8,
+            fontSize: 13,
+            color: '#dc2626',
+          }}
+        >
           {list.error}
         </div>
       )}
@@ -111,10 +116,20 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
       )}
 
       {!list.loading && list.clients.length === 0 && !list.error && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#a8a098', fontSize: 14 }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: 'var(--text-muted)',
+            fontSize: 13,
+            background: 'var(--surface)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 10,
+          }}
+        >
           해당 담당자의 거래처 미수현황이 없습니다.
         </div>
       )}
-    </div>
+    </Stack>
   );
 }

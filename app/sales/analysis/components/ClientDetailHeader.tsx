@@ -23,7 +23,7 @@ export function ClientDetailHeader({ client, importance, quickSetImportance, onB
             border: "none",
             cursor: "pointer",
             padding: 4,
-            color: "#8a8580",
+            color: "var(--text-tertiary)",
             display: "flex",
           }}
         >
@@ -41,7 +41,7 @@ export function ClientDetailHeader({ client, importance, quickSetImportance, onB
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: "#2c1810" }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
               {client.client_name}
             </span>
             <span
@@ -56,9 +56,9 @@ export function ClientDetailHeader({ client, importance, quickSetImportance, onB
             >
               {imp.label}
             </span>
-            <span style={{ fontSize: 12, color: "#a8a098" }}>{client.client_code}</span>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{client.client_code}</span>
           </div>
-          <div style={{ fontSize: 12, color: "#a8a098", marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
             {client.manager && `담당: ${client.manager}`}
             {client.business_type && ` · ${client.business_type}`}
           </div>

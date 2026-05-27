@@ -26,11 +26,11 @@ export function ActionTabHeader(p: Props) {
       }}
     >
       <div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#2c1810", margin: 0 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           오늘의 액션
         </h2>
         {p.lastScanned && (
-          <p style={{ fontSize: 11, color: "#a8a098", margin: "4px 0 0" }}>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0" }}>
             마지막 스캔: {new Date(p.lastScanned).toLocaleString("ko-KR")}
           </p>
         )}
@@ -46,7 +46,7 @@ export function ActionTabHeader(p: Props) {
               border: "1px solid rgba(90,21,21,0.08)",
               fontSize: 16,
               background: "#fff",
-              color: p.selectedManager ? "#2c1810" : "#999",
+              color: p.selectedManager ? "var(--text-primary)" : "#999",
               outline: "none",
             }}
           >
@@ -63,11 +63,11 @@ export function ActionTabHeader(p: Props) {
           style={{
             padding: "5px 10px",
             borderRadius: 6,
-            border: `1.5px solid ${p.compactMode ? "#5A1515" : "rgba(90,21,21,0.08)"}`,
+            border: `1.5px solid ${p.compactMode ? "var(--action)" : "rgba(90,21,21,0.08)"}`,
             background: p.compactMode ? "rgba(90,21,21,0.06)" : "white",
             fontSize: 11,
             fontWeight: 600,
-            color: p.compactMode ? "#5A1515" : "#999",
+            color: p.compactMode ? "var(--action)" : "#999",
             cursor: "pointer",
             whiteSpace: "nowrap",
           }}
@@ -81,10 +81,10 @@ export function ActionTabHeader(p: Props) {
             padding: "6px 14px",
             borderRadius: 6,
             border: "1px solid rgba(90,21,21,0.08)",
-            background: p.scanning ? "#faf9f7" : "white",
+            background: p.scanning ? "var(--surface-muted)" : "white",
             fontSize: 12,
             fontWeight: 600,
-            color: "#8a8580",
+            color: "var(--text-tertiary)",
             cursor: p.scanning || !p.currentMgr ? "default" : "pointer",
             display: "flex",
             alignItems: "center",

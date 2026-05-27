@@ -116,7 +116,7 @@ export function MeetingDetailHeader(p: Props) {
               borderRadius: 8,
               border: "1px solid rgba(90,21,21,0.15)",
               background: "#fff",
-              color: "#5A1515",
+              color: "var(--action)",
               fontSize: 12,
               cursor: "pointer",
               fontWeight: 600,

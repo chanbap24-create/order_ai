@@ -55,7 +55,7 @@ export function Toolbar(p: Props) {
                 style={{
                   ...btnBase,
                   background: isActive ? "white" : "transparent",
-                  color: isActive ? "#5A1515" : "#a8a098",
+                  color: isActive ? "var(--action)" : "var(--text-muted)",
                   boxShadow: isActive ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
                 }}
               >
@@ -81,8 +81,8 @@ export function Toolbar(p: Props) {
           disabled={p.ops.batchRunning || p.checkedSize === 0}
           style={{
             ...btnBase,
-            background: p.ops.batchRunning ? "#5A1515" : "rgba(90,21,21,0.05)",
-            color: p.ops.batchRunning ? "#fff" : "#a8a098",
+            background: p.ops.batchRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            color: p.ops.batchRunning ? "#fff" : "var(--text-muted)",
             opacity: p.checkedSize === 0 && !p.ops.batchRunning ? 0.5 : 1,
           }}
         >
@@ -95,8 +95,8 @@ export function Toolbar(p: Props) {
           disabled={p.ops.batchPptRunning || p.checkedSize === 0}
           style={{
             ...btnBase,
-            background: p.ops.batchPptRunning ? "#5A1515" : "rgba(90,21,21,0.05)",
-            color: p.ops.batchPptRunning ? "#fff" : "#a8a098",
+            background: p.ops.batchPptRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            color: p.ops.batchPptRunning ? "#fff" : "var(--text-muted)",
             opacity: p.checkedSize === 0 ? 0.5 : 1,
           }}
         >
@@ -110,7 +110,7 @@ export function Toolbar(p: Props) {
           style={{
             ...btnBase,
             background: "rgba(90,21,21,0.05)",
-            color: "#a8a098",
+            color: "var(--text-muted)",
             opacity: p.checkedSize === 0 ? 0.5 : 1,
           }}
         >
@@ -122,7 +122,7 @@ export function Toolbar(p: Props) {
           style={{
             ...btnBase,
             background: "rgba(90,21,21,0.05)",
-            color: "#a8a098",
+            color: "var(--text-muted)",
             opacity: p.checkedSize === 0 ? 0.5 : 1,
           }}
         >
@@ -131,7 +131,7 @@ export function Toolbar(p: Props) {
         <button
           onClick={p.ops.dispatchIndex}
           disabled={p.ops.dispatchingIndex}
-          style={{ ...btnBase, background: "rgba(90,21,21,0.05)", color: "#a8a098" }}
+          style={{ ...btnBase, background: "rgba(90,21,21,0.05)", color: "var(--text-muted)" }}
         >
           {p.ops.dispatchingIndex ? "실행 중..." : "인덱스"}
         </button>

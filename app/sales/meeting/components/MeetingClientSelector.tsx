@@ -19,7 +19,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
           marginBottom: 6,
         }}
       >
-        <label style={{ fontSize: 12, fontWeight: 600, color: "#8a8580" }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)" }}>
           거래처 <span style={{ fontWeight: 400, color: "#bbb" }}>(선택)</span>
         </label>
         <button
@@ -37,7 +37,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
             border: "none",
             cursor: "pointer",
             fontSize: 12,
-            color: modal.newClientMode ? "#dc3545" : "#5A1515",
+            color: modal.newClientMode ? "#dc3545" : "var(--action)",
             fontWeight: 600,
           }}
         >
@@ -102,7 +102,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
                 border: "none",
                 cursor: "pointer",
                 fontSize: 16,
-                color: "#a8a098",
+                color: "var(--text-muted)",
               }}
             >
               ×
@@ -139,7 +139,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
                   }}
                 >
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{c.client_name}</div>
-                  <div style={{ fontSize: 11, color: "#a8a098" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     {c.client_code}
                     {c.manager && ` · ${c.manager}`}
                   </div>

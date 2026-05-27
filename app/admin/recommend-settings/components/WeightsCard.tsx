@@ -19,7 +19,7 @@ export function WeightsCard({ weights, totalWeight, onChange }: Props) {
       border: '1px solid rgba(90,21,21,0.06)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#2c1810' }}>추천 점수 가중치</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>추천 점수 가중치</div>
         <div style={{
           fontSize: 13, fontWeight: 700, color: totalColor,
           padding: '4px 12px', borderRadius: 20,
@@ -67,8 +67,8 @@ export function WeightsCard({ weights, totalWeight, onChange }: Props) {
                     width: 10, height: 10, borderRadius: 3,
                     background: info.color, display: 'inline-block', flexShrink: 0,
                   }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#2c1810' }}>{info.label}</span>
-                  <span style={{ fontSize: 11, color: '#a8a098' }}>{info.desc}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{info.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{info.desc}</span>
                 </div>
                 <input
                   type="number"

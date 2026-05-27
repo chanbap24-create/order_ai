@@ -44,7 +44,7 @@ export function SummaryCards({ summary }: { summary: ActionSummary }) {
     { label: "이탈 긴급", count: summary.critical_count, color: "#c62828", bg: "#FFEBEE" },
     { label: "이탈 주의", count: summary.high_count, color: "#E65100", bg: "#FFF3E0" },
     { label: "재주문(재고有)", count: summary.reorder_in_stock, color: "#1565C0", bg: "#E3F2FD" },
-    { label: "재주문(품절)", count: summary.reorder_out_of_stock, color: "#9E9E9E", bg: "#faf9f7" },
+    { label: "재주문(품절)", count: summary.reorder_out_of_stock, color: "#9E9E9E", bg: "var(--surface-muted)" },
   ];
   const row2: CardDef[] = [
     { label: "미팅 예정", count: summary.meetings_upcoming, color: "#6A1B9A", bg: "#F3E5F5" },
@@ -88,10 +88,10 @@ export function SummaryCards({ summary }: { summary: ActionSummary }) {
             minWidth: 120,
           }}
         >
-          <div style={{ fontSize: 10, color: "#5A1515", fontWeight: 600, marginBottom: 2, whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 10, color: "var(--action)", fontWeight: 600, marginBottom: 2, whiteSpace: "nowrap" }}>
             시즌 추천 {summary.season_name ? `(${summary.season_name})` : ""}
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#5A1515" }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "var(--action)" }}>
             {summary.season_reco_count}
           </div>
         </div>

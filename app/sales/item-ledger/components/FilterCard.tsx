@@ -4,6 +4,14 @@ import type { RefObject } from 'react';
 import type { SearchItem, Warehouse } from '../types';
 import { getQuickRanges } from '../lib/quickRanges';
 import { ItemSearchInput } from './ItemSearchInput';
+import { Section } from '@/app/components/ui';
+import {
+  inputStyle,
+  selectStyle,
+  labelStyle,
+  btnPrimary,
+  btnDisabled,
+} from '@/app/styles/controls';
 
 type Props = {
   warehouse: Warehouse;
@@ -26,104 +34,166 @@ type Props = {
 };
 
 export function FilterCard(p: Props) {
+  const presets = getQuickRanges();
+  const activePreset =
+    presets.find((r) => r.start === p.startDate && r.end === p.endDate)?.label ?? '';
+  const applyPreset = (label: string) => {
+    const r = presets.find((x) => x.label === label);
+    if (r) {
+      p.setStartDate(r.start);
+      p.setEndDate(r.end);
+    }
+  };
+
   return (
-    <div style={{
-      background: '#fff', borderRadius: 14,
-      border: '1px solid rgba(90,21,21,0.06)',
-      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
-      padding: 18, marginBottom: 16,
-    }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#2c1810', marginBottom: 14 }}>
-        품목별 판매현황
-      </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          창고
-        </label>
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(90,21,21,0.04)', borderRadius: 8, padding: 2, width: 'fit-content' }}>
-          {([['CDV', '까브드뱅 (와인)'], ['DL', '대유라이프 (글라스)']] as const).map(([w, label]) => (
-            <button
-              key={w}
-              onClick={() => p.onWarehouseChange(w)}
-              style={{
-                padding: '8px 16px', borderRadius: 6, border: 'none',
-                fontSize: 12, fontWeight: p.warehouse === w ? 700 : 500,
-                background: p.warehouse === w ? '#fff' : 'transparent',
-                color: p.warehouse === w ? '#5A1515' : '#8a8580',
-                cursor: 'pointer', boxShadow: p.warehouse === w ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <ItemSearchInput
-        searchRef={p.searchRef}
-        itemSearch={p.itemSearch}
-        onSearchChange={p.onSearchChange}
-        onFocus={p.onSearchFocus}
-        selectedItem={p.selectedItem}
-        suggestions={p.suggestions}
-        showSuggestions={p.showSuggestions}
-        onSelect={p.onSelectItem}
-      />
-
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ flex: '1 1 130px' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            시작일
-          </label>
-          <input
-            type="date" value={p.startDate} onChange={e => p.setStartDate(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none', boxSizing: 'border-box', background: '#faf9f7' }}
-          />
-        </div>
-        <div style={{ flex: '1 1 130px' }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: '#8a8580', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            종료일
-          </label>
-          <input
-            type="date" value={p.endDate} onChange={e => p.setEndDate(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none', boxSizing: 'border-box', background: '#faf9f7' }}
-          />
-        </div>
-        <button
-          onClick={p.onSearch} disabled={p.loading}
+    <Section padding="md">
+      {/* 상단: 타이틀 + 창고 segmented toggle */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          marginBottom: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span
           style={{
-            padding: '10px 24px', borderRadius: 10, border: 'none',
-            background: p.loading ? '#c4a0a0' : '#5A1515', color: '#fff',
-            fontSize: 14, fontWeight: 600, cursor: p.loading ? 'default' : 'pointer',
-            whiteSpace: 'nowrap', transition: 'background 0.2s',
+            fontSize: 13,
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            letterSpacing: '0.01em',
           }}
+        >
+          품목별 판매현황
+        </span>
+        <SegmentedToggle
+          value={p.warehouse}
+          options={[
+            { value: 'CDV', label: '까브드뱅' },
+            { value: 'DL', label: '대유라이프' },
+          ]}
+          onChange={(v) => p.onWarehouseChange(v as Warehouse)}
+        />
+      </div>
+
+      {/* 검색 + 날짜 + 조회 한 줄 */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'end', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 240px', minWidth: 200 }}>
+          <ItemSearchInput
+            searchRef={p.searchRef}
+            itemSearch={p.itemSearch}
+            onSearchChange={p.onSearchChange}
+            onFocus={p.onSearchFocus}
+            selectedItem={p.selectedItem}
+            suggestions={p.suggestions}
+            showSuggestions={p.showSuggestions}
+            onSelect={p.onSelectItem}
+          />
+        </div>
+        <Field label="시작일">
+          <input
+            type="date"
+            value={p.startDate}
+            onChange={(e) => p.setStartDate(e.target.value)}
+            style={inputStyle}
+          />
+        </Field>
+        <Field label="종료일">
+          <input
+            type="date"
+            value={p.endDate}
+            onChange={(e) => p.setEndDate(e.target.value)}
+            style={inputStyle}
+          />
+        </Field>
+        <Field label="빠른 범위">
+          <select
+            value={activePreset}
+            onChange={(e) => applyPreset(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">직접 입력</option>
+            {presets.map((r) => (
+              <option key={r.label} value={r.label}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <button
+          onClick={p.onSearch}
+          disabled={p.loading}
+          style={p.loading ? btnDisabled(btnPrimary) : btnPrimary}
         >
           {p.loading ? '조회 중...' : '조회'}
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-        {getQuickRanges().map(r => (
-          <button
-            key={r.label}
-            onClick={() => { p.setStartDate(r.start); p.setEndDate(r.end); }}
-            style={{
-              padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
-              background: (p.startDate === r.start && p.endDate === r.end) ? 'rgba(90,21,21,0.06)' : 'transparent',
-              fontSize: 11, color: '#5A1515', cursor: 'pointer', fontWeight: 500,
-            }}
-          >
-            {r.label}
-          </button>
-        ))}
-      </div>
-
       {p.error && (
-        <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, fontSize: 12, color: '#dc2626' }}>
+        <div
+          style={{
+            marginTop: 12,
+            padding: '8px 12px',
+            background: 'rgba(220,38,38,0.04)',
+            border: '1px solid rgba(220,38,38,0.18)',
+            borderRadius: 6,
+            fontSize: 12,
+            color: '#dc2626',
+          }}
+        >
           {p.error}
         </div>
       )}
+    </Section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ flex: '0 1 150px', minWidth: 140 }}>
+      <label style={labelStyle}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SegmentedToggle({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', height: 28 }}>
+      {options.map((o, idx) => {
+        const isActive = value === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              minWidth: 90,
+              padding: '0 14px',
+              border: '1px solid var(--border-default)',
+              background: isActive ? 'var(--action)' : 'var(--surface)',
+              color: isActive ? 'var(--text-on-primary)' : 'var(--text-tertiary)',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              borderRadius: idx === 0 ? '6px 0 0 6px' : '0 6px 6px 0',
+              borderLeftWidth: idx === 0 ? 1 : 0,
+              letterSpacing: '0.02em',
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

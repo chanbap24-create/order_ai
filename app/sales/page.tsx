@@ -28,10 +28,10 @@ export default function SalesPage() {
     return (
       <div style={{
         minHeight: 'calc(100vh - 56px)',
-        background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
+        background: 'var(--surface-muted)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <div style={{ color: '#8a8580', fontSize: 14 }}>확인 중...</div>
+        <div style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>확인 중...</div>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function SalesPage() {
       background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
       fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 16px' }}>
         <Header
           currentManager={auth.currentManager}
           isAdmin={auth.isAdmin}

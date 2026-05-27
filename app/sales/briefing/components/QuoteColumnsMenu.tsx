@@ -17,7 +17,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
       boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 300,
       width: 220, maxHeight: 280, overflowY: 'auto',
     }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#5A1515', marginBottom: 6 }}>견적서 컬럼</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--action)', marginBottom: 6 }}>견적서 컬럼</div>
       {QUOTE_COL_OPTIONS.map(col => (
         <label key={col.key} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0',
@@ -46,7 +46,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
           onClick={onClose}
           style={{
             flex: 1, padding: '4px 0', borderRadius: 6, border: 'none',
-            background: '#5A1515', color: '#fff', fontSize: 10, cursor: 'pointer',
+            background: 'var(--action)', color: '#fff', fontSize: 10, cursor: 'pointer',
           }}
         >
           닫기

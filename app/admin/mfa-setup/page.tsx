@@ -63,12 +63,12 @@ export default function MfaSetupPage() {
       <div style={pageStyle}>
         <div style={cardStyle}>
           <h1 style={titleStyle}>🎉 MFA 설정 완료</h1>
-          <p style={{ fontSize: 14, color: '#2c1810', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>
             아래 <strong>백업 코드 10개</strong>를 안전한 곳에 저장하세요.
             인증 앱을 분실했을 때 각 1회 사용 가능합니다.
           </p>
           <div style={{
-            background: '#faf9f7', border: '1px solid rgba(90,21,21,0.1)',
+            background: 'var(--surface-muted)', border: '1px solid rgba(90,21,21,0.1)',
             borderRadius: 6, padding: 16, fontFamily: 'monospace',
             fontSize: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
           }}>
@@ -77,7 +77,7 @@ export default function MfaSetupPage() {
           <button onClick={copyBackupCodes} style={btnPrimary}>모두 복사</button>
           <button
             onClick={() => { window.location.href = '/admin'; }}
-            style={{ ...btnPrimary, background: '#fff', color: '#5A1515', border: '1px solid #5A1515', marginTop: 8 }}
+            style={{ ...btnPrimary, background: '#fff', color: 'var(--action)', border: '1px solid var(--action)', marginTop: 8 }}
           >
             관리자 페이지로
           </button>
@@ -90,17 +90,17 @@ export default function MfaSetupPage() {
     <div style={pageStyle}>
       <div style={cardStyle}>
         <h1 style={titleStyle}>2단계 인증 설정</h1>
-        {loading && <div style={{ color: '#a8a098', fontSize: 14 }}>QR 코드 생성 중...</div>}
+        {loading && <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>QR 코드 생성 중...</div>}
         {error && <div style={{ color: '#e74c3c', fontSize: 14, marginBottom: 12 }}>{error}</div>}
         {!loading && qrDataUrl && (
           <>
-            <p style={{ fontSize: 13, color: '#2c1810', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>
               1. 인증 앱(Google Authenticator, Authy 등)으로 아래 QR 코드를 스캔하세요.
             </p>
             <div style={{ textAlign: 'center', margin: '16px 0' }}>
               <img src={qrDataUrl} alt="TOTP QR" style={{ width: 200, height: 200 }} />
             </div>
-            <p style={{ fontSize: 13, color: '#2c1810' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-primary)' }}>
               2. 앱에 표시된 <strong>6자리 코드</strong>를 입력하세요.
             </p>
             <input
@@ -124,15 +124,15 @@ export default function MfaSetupPage() {
               disabled={code.length < 6 || verifying}
               style={{
                 ...btnPrimary,
-                background: code.length >= 6 && !verifying ? '#5A1515' : '#ddd',
+                background: code.length >= 6 && !verifying ? 'var(--action)' : '#ddd',
                 cursor: code.length >= 6 && !verifying ? 'pointer' : 'default',
               }}
             >
               {verifying ? '검증 중...' : '완료'}
             </button>
-            <details style={{ marginTop: 16, fontSize: 12, color: '#8a8580' }}>
+            <details style={{ marginTop: 16, fontSize: 12, color: 'var(--text-tertiary)' }}>
               <summary style={{ cursor: 'pointer' }}>수동 입력용 시크릿</summary>
-              <code style={{ display: 'block', marginTop: 8, padding: 8, background: '#faf9f7', borderRadius: 4, wordBreak: 'break-all' }}>
+              <code style={{ display: 'block', marginTop: 8, padding: 8, background: 'var(--surface-muted)', borderRadius: 4, wordBreak: 'break-all' }}>
                 {secret}
               </code>
             </details>
@@ -158,12 +158,12 @@ const cardStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 18, fontWeight: 700, color: '#2c1810',
+  fontSize: 18, fontWeight: 700, color: 'var(--text-primary)',
   marginTop: 0, marginBottom: 16, fontFamily: "'Cormorant Garamond', serif",
 };
 
 const btnPrimary: React.CSSProperties = {
   width: '100%', height: 42, marginTop: 16,
-  background: '#5A1515', color: '#fff', border: 'none',
+  background: 'var(--action)', color: '#fff', border: 'none',
   borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer',
 };

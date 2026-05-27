@@ -8,47 +8,67 @@ type Props = {
   onOpenDate: (date: string) => void;
 };
 
-/** 데스크탑 전용 입항일 사이드바 */
+/**
+ * 데스크탑 전용 입항일 사이드바.
+ * 주황 톤은 입항 의미를 유지하고 외곽은 다른 카드와 동일.
+ */
 export function ImportSidebar(p: Props) {
+  const totalItems = Object.values(p.importByDate).reduce((a, v) => a + v.items.length, 0);
+
   return (
-    <div
+    <aside
       className="import-sidebar-desktop"
       style={{
-        width: 180,
+        width: 200,
         flexShrink: 0,
-        background: "#fff",
-        borderRadius: 12,
-        border: "1px solid rgba(90,21,21,0.06)",
-        boxShadow: "0 1px 3px rgba(90,21,21,0.03)",
+        background: "var(--surface)",
+        borderRadius: 10,
+        border: "1px solid var(--border-default)",
         overflow: "hidden",
         alignSelf: "flex-start",
       }}
     >
-      <div
+      <header
         style={{
-          padding: "10px 12px",
-          background: "#FFF3E0",
-          borderBottom: "1px solid #FFE0B2",
-          fontSize: 13,
-          fontWeight: 700,
-          color: "#E65100",
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border-subtle)",
+          background: "var(--surface)",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: "baseline",
+          gap: 8,
         }}
       >
-        <span>입항일</span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#E65100",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}
+        >
+          입항일
+        </span>
         {p.importDates.length > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 500, color: "#BF6000" }}>
-            {p.importDates.length}일 /{" "}
-            {Object.values(p.importByDate).reduce((a, v) => a + v.items.length, 0)}건
+          <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
+            {p.importDates.length}일 · {totalItems}건
           </span>
         )}
-      </div>
+      </header>
       <div style={{ maxHeight: 400, overflowY: "auto" }}>
         {p.importDates.length === 0 && (
-          <div style={{ padding: "16px 12px", textAlign: "center", color: "#a8a098", fontSize: 12 }}>
-            현재 월 + 다음 월 기준<br />수입 일정이 없습니다.
+          <div
+            style={{
+              padding: "20px 16px",
+              textAlign: "center",
+              color: "var(--text-muted)",
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            현재 월 + 다음 월 기준<br />
+            수입 일정이 없습니다.
           </div>
         )}
         {p.importDates.map((dateStr) => {
@@ -56,28 +76,37 @@ export function ImportSidebar(p: Props) {
           const d = new Date(dateStr + "T00:00:00");
           const label = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
           return (
-            <div
+            <button
               key={dateStr}
               onClick={() => p.onOpenDate(dateStr)}
               style={{
-                padding: "8px 12px",
+                width: "100%",
+                padding: "10px 16px",
+                border: "none",
+                background: "transparent",
                 cursor: "pointer",
-                borderBottom: "1px solid #f8f6f0",
+                borderBottom: "1px solid var(--border-subtle)",
                 display: "flex",
                 alignItems: "baseline",
-                gap: 8,
-                transition: "background 0.15s",
+                gap: 10,
+                textAlign: "left",
+                transition: "background 0.12s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#FFF8E1")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background = "var(--surface-hover)")
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background = "transparent")
+              }
             >
               <span
                 style={{
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   color: "#E65100",
                   flexShrink: 0,
-                  width: 40,
+                  width: 42,
+                  fontVariantNumeric: "tabular-nums",
                 }}
               >
                 {label}
@@ -85,19 +114,19 @@ export function ImportSidebar(p: Props) {
               <span
                 style={{
                   fontSize: 12,
-                  color: "#5D4037",
-                  fontWeight: 500,
+                  color: "var(--text-primary)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
+                  flex: 1,
                 }}
               >
                 {info.brands.join(", ")}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
-    </div>
+    </aside>
   );
 }

@@ -32,7 +32,7 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
     <>
       <AnalysisStyles />
 
-      <div style={{ opacity: s.mounted ? 1 : 0, transition: "opacity 0.5s ease" }}>
+      <div style={{ opacity: s.mounted ? 1 : 0, transition: "opacity 0.3s ease" }}>
         <TypeToggle
           type={s.type}
           setType={s.setType}
@@ -65,13 +65,13 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
         />
 
         {s.loading && (
-          <div style={{ textAlign: "center", padding: 40, color: "#a8a098" }}>
+          <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
             <div
               style={{
                 width: 32,
                 height: 32,
                 border: "3px solid #eee",
-                borderTopColor: "#5A1515",
+                borderTopColor: "var(--action)",
                 borderRadius: "50%",
                 animation: "spin 0.8s linear infinite",
                 margin: "0 auto 12px",
@@ -85,7 +85,7 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
         {s.data && !s.loading && (
           <>
             {filterLabel && (
-              <p style={{ fontSize: "0.75rem", color: "#8a8580", marginBottom: 16 }}>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: 16 }}>
                 {filterLabel}
               </p>
             )}
@@ -99,7 +99,7 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
               style={{
                 fontSize: "0.92rem",
                 fontWeight: 600,
-                color: "#2c1810",
+                color: "var(--text-primary)",
                 marginBottom: 12,
               }}
             >

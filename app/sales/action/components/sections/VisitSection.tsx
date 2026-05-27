@@ -133,7 +133,7 @@ export function VisitSection(p: Props) {
                       style={{
                         fontSize: 14,
                         fontWeight: 600,
-                        color: "#2c1810",
+                        color: "var(--text-primary)",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -144,7 +144,7 @@ export function VisitSection(p: Props) {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 13, color: "#8a8580", marginBottom: 6 }}>
+                <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                   마지막 접촉:{" "}
                   <strong style={{ color: v.days_since_contact >= 60 ? "#4E342E" : "#333" }}>
                     {v.days_since_contact}일 전
@@ -156,8 +156,8 @@ export function VisitSection(p: Props) {
                       marginLeft: 6,
                       padding: "1px 6px",
                       borderRadius: 4,
-                      background: "#faf9f7",
-                      color: "#8a8580",
+                      background: "var(--surface-muted)",
+                      color: "var(--text-tertiary)",
                       fontSize: 10,
                       fontWeight: 500,
                     }}
@@ -166,7 +166,7 @@ export function VisitSection(p: Props) {
                   </span>
                 </div>
 
-                <div style={{ fontSize: 13, color: "#8a8580", marginBottom: 8 }}>
+                <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 8 }}>
                   방문주기: <strong>{v.visit_cycle_days}일</strong>
                   {v.days_overdue > 0 && (
                     <span style={{ marginLeft: 8, color: "#4E342E", fontWeight: 600 }}>
@@ -207,7 +207,7 @@ export function VisitSection(p: Props) {
                 </div>
 
                 {v.top_items.length > 0 && (
-                  <div style={{ fontSize: 12, color: "#a8a098", marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
                     주요 품목: {v.top_items.join(", ")}
                   </div>
                 )}

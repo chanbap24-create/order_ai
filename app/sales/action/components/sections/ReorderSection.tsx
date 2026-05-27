@@ -21,7 +21,7 @@ export function ReorderSection(p: Props) {
   const filters = [
     { id: "all" as ReorderFilter, label: "전체", count: p.count, activeColor: "#1565C0", activeBg: "#E3F2FD" },
     { id: "in_stock" as ReorderFilter, label: "재고有", count: p.summary.reorder_in_stock, activeColor: "#2E7D32", activeBg: "#E8F5E9" },
-    { id: "out_of_stock" as ReorderFilter, label: "품절", count: p.summary.reorder_out_of_stock, activeColor: "#9E9E9E", activeBg: "#faf9f7" },
+    { id: "out_of_stock" as ReorderFilter, label: "품절", count: p.summary.reorder_out_of_stock, activeColor: "#9E9E9E", activeBg: "var(--surface-muted)" },
   ];
 
   return (
@@ -70,7 +70,7 @@ export function ReorderSection(p: Props) {
               const isOos = nudge.stock_status === "out_of_stock";
               const isLow = nudge.stock_status === "low_stock";
               const stockColor = isOos ? "#9E9E9E" : isLow ? "#E65100" : "#2E7D32";
-              const stockBg = isOos ? "#faf9f7" : isLow ? "#FFF3E0" : "#E8F5E9";
+              const stockBg = isOos ? "var(--surface-muted)" : isLow ? "#FFF3E0" : "#E8F5E9";
               const stockLabel = isOos ? "품절" : `재고 ${nudge.available_stock}병`;
 
               return (
@@ -94,7 +94,7 @@ export function ReorderSection(p: Props) {
                           display: "inline-block",
                           padding: "2px 8px",
                           borderRadius: 4,
-                          background: isOos ? "#faf9f7" : nudge.urgency === "high" ? "#E3F2FD" : "#F3F8FF",
+                          background: isOos ? "var(--surface-muted)" : nudge.urgency === "high" ? "#E3F2FD" : "#F3F8FF",
                           color: isOos ? "#9E9E9E" : nudge.urgency === "high" ? "#1565C0" : "#64B5F6",
                           fontSize: 11,
                           fontWeight: 700,
@@ -108,7 +108,7 @@ export function ReorderSection(p: Props) {
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: isOos ? "#999" : "#2c1810",
+                          color: isOos ? "#999" : "var(--text-primary)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -154,7 +154,7 @@ export function ReorderSection(p: Props) {
                     {nudge.item_name}
                   </div>
 
-                  <div style={{ fontSize: 12, color: "#8a8580", marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>
                     평균 주기: <strong>{nudge.avg_interval_days}일</strong>
                     <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
                     마지막 구매:{" "}
@@ -183,8 +183,8 @@ export function ReorderSection(p: Props) {
                         display: "inline-block",
                         padding: "2px 8px",
                         borderRadius: 4,
-                        background: "#faf9f7",
-                        color: "#8a8580",
+                        background: "var(--surface-muted)",
+                        color: "var(--text-tertiary)",
                         fontSize: 11,
                       }}
                     >

@@ -51,6 +51,7 @@ function PieCard({ title, data }: { title: string; data?: ChartItem[] }) {
               innerRadius={50}
               outerRadius={90}
               paddingAngle={2}
+              animationDuration={500}
               label={({ name, percent }: { name: string; percent: number }) =>
                 `${name} ${(percent * 100).toFixed(0)}%`
               }
@@ -90,7 +91,7 @@ function RegionBarCard({
             <XAxis type="number" tickFormatter={fmt} style={{ fontSize: "0.7rem" }} />
             <YAxis type="category" dataKey="name" width={labelWidth} style={{ fontSize: "0.68rem" }} />
             <Tooltip formatter={(v: number) => fmtFull(v)} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} animationDuration={500}>
               {data.map((_, i) => (
                 <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
               ))}

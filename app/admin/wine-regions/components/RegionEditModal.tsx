@@ -41,12 +41,12 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
           boxShadow: '0 8px 32px rgba(90,21,21,0.15)',
         }}
       >
-        <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#2c1810' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
           {isNew ? '새 산지 추가' : '산지 수정'}
         </h3>
         {FIELDS.map(f => (
           <div key={f.key} style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#8a8580', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 4 }}>
               {f.label} {f.required && <span style={{ color: '#c44' }}>*</span>}
             </label>
             {f.type === 'select' ? (
@@ -78,7 +78,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
         <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
-            style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#8a8580' }}
+            style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)' }}
           >
             취소
           </button>
@@ -87,7 +87,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
             disabled={saving}
             style={{
               padding: '8px 20px', fontSize: 13, border: 'none', borderRadius: 6,
-              background: '#5A1515', color: '#fff', cursor: saving ? 'default' : 'pointer',
+              background: 'var(--action)', color: '#fff', cursor: saving ? 'default' : 'pointer',
               fontWeight: 600, opacity: saving ? 0.6 : 1,
             }}
           >

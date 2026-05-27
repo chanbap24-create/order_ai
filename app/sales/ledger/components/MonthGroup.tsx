@@ -35,15 +35,15 @@ export const MonthGroup = memo(function MonthGroup({ month, collapsed, collapsed
         });
       })()}
       <tr style={{ background: '#FFF8E1', cursor: 'pointer' }} onClick={onToggleMonth}>
-        <td style={{ ...tdStyle, fontWeight: 700, color: '#5A1515' }} colSpan={2}>
+        <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--action)' }} colSpan={2}>
           <span style={{ marginRight: 6 }}>{collapsed ? '▶' : '▼'}</span>
           {month.month} 월계
         </td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.qty)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.qty)}</td>
         <td style={tdStyle}></td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.supply)}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.tax)}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>{fmt(month.totals.total)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.supply)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.tax)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.total)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#1565C0' }}>{month.totals.payment ? fmt(month.totals.payment) : ''}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#c62828' }}>{fmt(endBalance)}</td>
       </tr>
