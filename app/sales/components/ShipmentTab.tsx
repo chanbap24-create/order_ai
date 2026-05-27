@@ -354,8 +354,8 @@ export default function ShipmentTab({ currentManager, isAdmin }: { currentManage
             unit="건"
           />
           <div style={{ flex: 1 }} />
-          {grandTotal > 0 && (
-            <StatItem label="총 합계" value={fmt(grandTotal)} accent />
+          {grandTotal !== 0 && (
+            <StatItem label="총 합계" value={fmtFull(grandTotal)} unit="원" accent />
           )}
         </div>
       </Section>

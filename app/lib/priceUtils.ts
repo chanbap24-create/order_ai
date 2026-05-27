@@ -46,6 +46,11 @@ export function getSellingTotal(
   const sp = sellingPrice || 0;
   const sa = supplyAmount || 0;
   const qty = quantity || 0;
+
+  // 무상/샘플 거래: selling_price 와 supply_amount 둘 다 0 → 매출 0.
+  // unit_price 가 있어도 fallback 으로 쓰지 않는다 (ERP 의 정가만 의미, 실제 결제액 X).
+  if (sp === 0 && sa === 0) return 0;
+
   const absQty = Math.abs(qty);
   const sign = qty < 0 ? -1 : 1;
   const absSp = Math.abs(sp);
