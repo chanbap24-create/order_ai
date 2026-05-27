@@ -170,7 +170,7 @@ export function ItemCard({
             >
               <span style={{ fontWeight: 600 }}>{s.arrival_date}</span>
               <span>{s.total_btls.toLocaleString()}btls</span>
-              <span style={{ color: "#8a8580" }}>{s.bl_number}</span>
+              <span style={{ color: "var(--text-tertiary)" }}>{s.bl_number}</span>
             </div>
           ))}
         </div>

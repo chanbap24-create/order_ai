@@ -17,7 +17,7 @@ export function FloatingCartButton({ onClick, itemCount }: Props) {
         width: 56,
         height: 56,
         borderRadius: "50%",
-        background: "#5A1515",
+        background: "var(--action)",
         color: "white",
         border: "none",
         cursor: "pointer",

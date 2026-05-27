@@ -54,7 +54,7 @@ export function DesktopSidebarHeader({
       {itemCount > 0 && (
         <span
           style={{
-            background: "#5A1515",
+            background: "var(--action)",
             color: "white",
             borderRadius: 10,
             padding: "2px 8px",
@@ -78,7 +78,7 @@ export function DesktopSidebarHeader({
             fontSize: 16,
             padding: "5px 10px",
             borderRadius: 8,
-            border: `1.5px solid ${clientNameFocused ? "#5A1515" : "#E5E5E5"}`,
+            border: `1.5px solid ${clientNameFocused ? "var(--action)" : "#E5E5E5"}`,
             outline: "none",
             boxShadow: clientNameFocused ? "0 0 0 3px rgba(90,21,21,0.06)" : "none",
             transition: "border-color 0.15s, box-shadow 0.15s",

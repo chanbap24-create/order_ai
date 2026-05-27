@@ -203,7 +203,7 @@ function PanelHeader({
         {itemCount > 0 && (
           <span
             style={{
-              background: "#5A1515",
+              background: "var(--action)",
               color: "white",
               borderRadius: 10,
               padding: "2px 8px",
@@ -288,7 +288,7 @@ function Totals({ itemCount, totalQty, totalNormal, totalDiscount }: {
         <span style={{ color: "#666" }}>정상합계</span>
         <span style={{ fontWeight: 600 }}>{formatWon(totalNormal)}원</span>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#5A1515" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "var(--action)" }}>
         <span>할인합계</span>
         <span>{formatWon(totalDiscount)}원</span>
       </div>

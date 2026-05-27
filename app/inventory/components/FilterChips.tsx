@@ -39,35 +39,34 @@ export function FilterChips({
     >
       <span
         style={{
-          fontSize: "0.75rem",
-          fontWeight: 600,
-          color: hasSearched ? "#2D2D2D" : "#BCBCBC",
-          minWidth: 60,
+          fontSize: 12,
+          fontWeight: 700,
+          color: hasSearched ? "var(--text-primary)" : "var(--text-muted)",
+          letterSpacing: "0.02em",
+          fontVariantNumeric: "tabular-nums",
         }}
       >
-        {hasSearched
-          ? `${filteredCount} result${filteredCount !== 1 ? "s" : ""}`
-          : "No search"}
+        {hasSearched ? `${filteredCount}개 검색됨` : "검색 전"}
       </span>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <button
           className={`inv-chip${hideNoSupplyPrice ? " active" : ""}${!hasSearched ? " disabled" : ""}`}
           onClick={() => setHideNoSupplyPrice(!hideNoSupplyPrice)}
         >
-          공급가 ✓
+          공급가 있는 것만
         </button>
         <button
           className={`inv-chip${hideNoStock ? " active" : ""}${!hasSearched || showOnlyBondedStock ? " disabled" : ""}`}
           onClick={() => setHideNoStock(!hideNoStock)}
         >
-          재고 ✓
+          재고 있는 것만
         </button>
         {activeTab === "CDV" && (
           <button
             className={`inv-chip${showOnlyBondedStock ? " active" : ""}${!hasSearched || hideNoStock ? " disabled" : ""}`}
             onClick={() => setShowOnlyBondedStock(!showOnlyBondedStock)}
           >
-            보세만
+            보세 재고
           </button>
         )}
       </div>
@@ -77,7 +76,7 @@ export function FilterChips({
 
 type ErrorProps = { error: string };
 
-/** 검색 에러 배너 (토스트 스타일) */
+/** 검색 에러 배너 */
 export function ErrorBanner({ error }: ErrorProps) {
   if (!error) return null;
   return (
@@ -85,11 +84,11 @@ export function ErrorBanner({ error }: ErrorProps) {
       style={{
         marginBottom: 12,
         padding: "10px 14px",
-        background: "rgba(239, 68, 68, 0.06)",
-        border: "1px solid rgba(239, 68, 68, 0.15)",
+        background: "rgba(220,38,38,0.04)",
+        border: "1px solid rgba(220,38,38,0.18)",
         borderRadius: 8,
-        color: "#ef4444",
-        fontSize: "0.82rem",
+        color: "#dc2626",
+        fontSize: 12,
       }}
     >
       {error}

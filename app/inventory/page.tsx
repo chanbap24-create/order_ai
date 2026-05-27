@@ -185,10 +185,10 @@ export default function InventoryPage() {
   // ══════════════════════════════════════
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#fafaf8', wordBreak: 'keep-all' as const }}>
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: 'var(--surface-muted)', wordBreak: 'keep-all' as const }}>
       <PageStyles />
 
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 16px 24px', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '24px 16px', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
         <InventoryHeader
           activeTab={activeTab}
           onSwitchTab={switchTab}

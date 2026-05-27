@@ -1,6 +1,7 @@
 "use client";
 
 import type { WarehouseTab } from "../types";
+import { PageHeader } from "@/app/components/ui";
 
 type Props = {
   activeTab: WarehouseTab;
@@ -16,7 +17,10 @@ type Props = {
   onDownloadNotes: (format: "pdf" | "pptx") => void;
 };
 
-/** Inventory 페이지 상단 헤더 — 타이틀 + CDV/DL 토글 + 컬럼설정 + 엑셀/T-Note 다운로드 */
+/**
+ * Inventory 페이지 상단 헤더.
+ * PageHeader primitive 사용 — sales/admin 페이지와 동일한 구조.
+ */
 export function Header({
   activeTab,
   onSwitchTab,
@@ -31,40 +35,31 @@ export function Header({
   onDownloadNotes,
 }: Props) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "16px 0 12px",
-      }}
-    >
-      <h1
-        style={{
-          fontSize: "1.4rem",
-          fontWeight: 700,
-          color: "#1a1a2e",
-          margin: 0,
-          fontFamily: "'Cormorant Garamond', serif",
-          letterSpacing: "-0.01em",
-        }}
-      >
-        Inventory & Quote
-      </h1>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <TabSwitcher active={activeTab} onChange={onSwitchTab} />
-        <SettingsButton active={showInvColumnSettings} onClick={onToggleInvColumnSettings} />
-        <ExcelButton disabled={!hasQuoteItems || exporting} exporting={exporting} onClick={onExport} />
-        <TastingNoteMenu
-          disabled={!hasQuoteItems || exportingNotes}
-          exporting={exportingNotes}
-          open={noteMenuOpen}
-          setOpen={setNoteMenuOpen}
-          onDownload={onDownloadNotes}
-        />
-      </div>
-    </div>
+    <PageHeader
+      title="Inventory"
+      subtitle="재고 조회 · 견적서 작성"
+      actions={
+        <>
+          <TabSwitcher active={activeTab} onChange={onSwitchTab} />
+          <SettingsButton
+            active={showInvColumnSettings}
+            onClick={onToggleInvColumnSettings}
+          />
+          <ExcelButton
+            disabled={!hasQuoteItems || exporting}
+            exporting={exporting}
+            onClick={onExport}
+          />
+          <TastingNoteMenu
+            disabled={!hasQuoteItems || exportingNotes}
+            exporting={exportingNotes}
+            open={noteMenuOpen}
+            setOpen={setNoteMenuOpen}
+            onDownload={onDownloadNotes}
+          />
+        </>
+      }
+    />
   );
 }
 
@@ -75,28 +70,36 @@ function TabSwitcher({
   active: WarehouseTab;
   onChange: (t: WarehouseTab) => void;
 }) {
+  const options: { value: WarehouseTab; label: string }[] = [
+    { value: "CDV", label: "까브드뱅" },
+    { value: "DL", label: "대유라이프" },
+  ];
   return (
-    <div style={{ display: "flex", background: "#F0EFED", borderRadius: 8, padding: 2 }}>
-      {(["CDV", "DL"] as WarehouseTab[]).map((tab) => (
-        <button
-          key={tab}
-          onClick={() => onChange(tab)}
-          style={{
-            padding: "5px 14px",
-            borderRadius: 6,
-            border: "none",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.2s ease",
-            background: active === tab ? "white" : "transparent",
-            color: active === tab ? "#5A1515" : "#999",
-            boxShadow: active === tab ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-          }}
-        >
-          {tab === "CDV" ? "Wine" : "Riedel"}
-        </button>
-      ))}
+    <div style={{ display: "flex", height: 28 }}>
+      {options.map((o, idx) => {
+        const isActive = active === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              minWidth: 80,
+              padding: "0 14px",
+              border: "1px solid var(--border-default)",
+              background: isActive ? "var(--action)" : "var(--surface)",
+              color: isActive ? "var(--text-on-primary)" : "var(--text-tertiary)",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              borderRadius: idx === 0 ? "6px 0 0 6px" : "0 6px 6px 0",
+              borderLeftWidth: idx === 0 ? 1 : 0,
+              letterSpacing: "0.02em",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -105,23 +108,24 @@ function SettingsButton({ active, onClick }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
+      title="컬럼 설정"
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: "50%",
-        border: "none",
-        background: active ? "rgba(90,21,21,0.08)" : "transparent",
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        border: `1px solid ${active ? "var(--action)" : "var(--border-default)"}`,
+        background: active ? "var(--surface-active)" : "var(--surface)",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "all 0.2s ease",
-        color: active ? "#5A1515" : "#999",
+        transition: "background 0.15s ease, color 0.15s ease",
+        color: active ? "var(--action)" : "var(--text-tertiary)",
       }}
     >
       <svg
-        width="18"
-        height="18"
+        width="14"
+        height="14"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -150,16 +154,18 @@ function ExcelButton({
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: "5px 14px",
+        height: 28,
+        padding: "0 12px",
         borderRadius: 6,
-        border: "none",
-        fontSize: "0.75rem",
-        fontWeight: 600,
+        border: "1px solid var(--action)",
+        fontSize: 12,
+        fontWeight: 700,
         cursor: disabled ? "not-allowed" : "pointer",
-        transition: "all 0.2s ease",
-        background: !disabled || exporting ? "#1a1a2e" : "#E5E5E5",
-        color: !disabled || exporting ? "white" : "#999",
+        background: disabled ? "var(--action-muted)" : "var(--action)",
+        color: disabled ? "var(--text-muted)" : "var(--text-on-primary)",
         opacity: exporting ? 0.6 : 1,
+        letterSpacing: "0.02em",
+        transition: "background 0.15s ease",
       }}
     >
       {exporting ? "..." : "Excel"}
@@ -186,16 +192,17 @@ function TastingNoteMenu({
         onClick={() => setOpen(!open)}
         disabled={disabled}
         style={{
-          padding: "5px 10px",
+          height: 28,
+          padding: "0 12px",
           borderRadius: 6,
-          border: "none",
-          fontSize: "0.7rem",
-          fontWeight: 600,
+          border: "1px solid var(--border-default)",
+          fontSize: 12,
+          fontWeight: 700,
           cursor: disabled ? "not-allowed" : "pointer",
-          transition: "all 0.2s ease",
-          background: !disabled || exporting ? "#8B1538" : "#E5E5E5",
-          color: !disabled || exporting ? "white" : "#999",
+          background: "var(--surface)",
+          color: disabled ? "var(--text-muted)" : "var(--text-primary)",
           opacity: exporting ? 0.6 : 1,
+          letterSpacing: "0.02em",
         }}
       >
         {exporting ? "..." : "T-Note ▾"}
@@ -207,10 +214,10 @@ function TastingNoteMenu({
             top: "100%",
             right: 0,
             marginTop: 4,
-            background: "white",
+            background: "var(--surface)",
             borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-            border: "1px solid #eee",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+            border: "1px solid var(--border-default)",
             zIndex: 100,
             overflow: "hidden",
             minWidth: 120,
@@ -238,18 +245,23 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f0ea")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
+      onMouseEnter={(e) =>
+        ((e.currentTarget as HTMLButtonElement).style.background = "var(--surface-hover)")
+      }
+      onMouseLeave={(e) =>
+        ((e.currentTarget as HTMLButtonElement).style.background = "var(--surface)")
+      }
       style={{
         display: "block",
         width: "100%",
         padding: "10px 16px",
         border: "none",
-        background: "white",
+        background: "var(--surface)",
         fontSize: 13,
         cursor: "pointer",
         textAlign: "left",
-        borderTop: topBorder ? "1px solid #f0f0f0" : undefined,
+        color: "var(--text-primary)",
+        borderTop: topBorder ? "1px solid var(--border-subtle)" : undefined,
       }}
     >
       {children}

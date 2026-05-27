@@ -154,7 +154,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
               display: "flex",
               justifyContent: "space-between",
               fontWeight: 700,
-              color: "#5A1515",
+              color: "var(--action)",
             }}
           >
             <span>할인합계</span>
@@ -191,7 +191,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
               height: 44,
               borderRadius: 8,
               border: "none",
-              background: "#5A1515",
+              background: "var(--action)",
               color: "white",
               fontSize: 14,
               fontWeight: 600,

@@ -97,7 +97,7 @@ export function MobileQuoteItemCard({
           {item.discount_rate > 0 && (
             <div>
               <div style={{ fontSize: 11, color: "#888" }}>할인가</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#5A1515" }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--action)" }}>
                 {formatWon(discounted)} ({formatPercent(item.discount_rate)})
               </div>
             </div>
@@ -119,7 +119,7 @@ export function MobileQuoteItemCard({
         }}
       >
         <span style={{ color: "#666" }}>정상 {formatWon(normalTotal)}원</span>
-        <span style={{ color: "#5A1515", fontWeight: 600 }}>
+        <span style={{ color: "var(--action)", fontWeight: 600 }}>
           할인 {formatWon(discountTotal)}원
         </span>
       </div>

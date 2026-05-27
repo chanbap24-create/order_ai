@@ -12,7 +12,10 @@ type Props = {
   onSearch: () => void;
 };
 
-/** 상단 검색 인풋 + 필터 토글 + 검색 버튼 */
+/**
+ * 검색 인풋 + 필터 토글 + 검색 버튼.
+ * height 44 (주 액션이라 강조 — 다른 페이지 input 34보다 큼)
+ */
 export function SearchBar({
   value,
   onChange,
@@ -25,13 +28,13 @@ export function SearchBar({
   onSearch,
 }: Props) {
   return (
-    <div style={{ position: "relative", marginBottom: 10 }}>
+    <div style={{ position: "relative", marginBottom: 12 }}>
       <svg
-        width="18"
-        height="18"
+        width="16"
+        height="16"
         viewBox="0 0 24 24"
         fill="none"
-        stroke={focused ? "#5A1515" : "#BCBCBC"}
+        stroke={focused ? "var(--action)" : "var(--text-muted)"}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -40,7 +43,7 @@ export function SearchBar({
           left: 14,
           top: "50%",
           transform: "translateY(-50%)",
-          transition: "stroke 0.2s ease",
+          transition: "stroke 0.15s ease",
           pointerEvents: "none",
         }}
       >
@@ -56,21 +59,21 @@ export function SearchBar({
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder="Search wine or item code..."
+        placeholder="와인명 또는 품번 검색"
         disabled={isSearching}
         style={{
           width: "100%",
-          height: 48,
-          paddingLeft: 42,
-          paddingRight: 96,
-          border: `1.5px solid ${focused ? "#5A1515" : "#E5E5E5"}`,
-          borderRadius: 12,
-          fontSize: 16,
-          background: "white",
+          height: 44,
+          paddingLeft: 40,
+          paddingRight: 110,
+          border: `1px solid ${focused ? "var(--action)" : "var(--border-default)"}`,
+          borderRadius: 8,
+          fontSize: 14,
+          background: "var(--surface)",
           outline: "none",
-          transition: "all 0.2s ease",
-          boxShadow: focused ? "0 0 0 3px rgba(90,21,21,0.06)" : "0 1px 2px rgba(0,0,0,0.04)",
-          color: "#1a1a2e",
+          transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+          boxShadow: focused ? "var(--focus-ring)" : "none",
+          color: "var(--text-primary)",
           boxSizing: "border-box",
         }}
       />
@@ -87,24 +90,25 @@ export function SearchBar({
       >
         <button
           onClick={onToggleAdvanced}
+          title="고급 필터"
           style={{
             position: "relative",
-            width: 34,
-            height: 34,
+            width: 32,
+            height: 32,
             borderRadius: 6,
             border: "none",
             background:
               activeFilterCount > 0
-                ? "rgba(90,21,21,0.1)"
+                ? "var(--surface-active)"
                 : showAdvancedFilter
-                  ? "#F0EFED"
+                  ? "var(--surface-hover)"
                   : "transparent",
-            color: activeFilterCount > 0 ? "#5A1515" : "#999",
+            color: activeFilterCount > 0 ? "var(--action)" : "var(--text-tertiary)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s ease",
+            transition: "background 0.12s ease, color 0.12s ease",
           }}
         >
           <svg
@@ -123,14 +127,14 @@ export function SearchBar({
             <span
               style={{
                 position: "absolute",
-                top: -4,
-                right: -4,
-                width: 16,
-                height: 16,
+                top: 2,
+                right: 2,
+                width: 14,
+                height: 14,
                 borderRadius: "50%",
-                background: "#5A1515",
-                color: "white",
-                fontSize: "0.6rem",
+                background: "var(--action)",
+                color: "var(--text-on-primary)",
+                fontSize: 9,
                 fontWeight: 700,
                 display: "flex",
                 alignItems: "center",
@@ -145,19 +149,21 @@ export function SearchBar({
           onClick={onSearch}
           disabled={isSearching}
           style={{
-            padding: "5px 14px",
+            height: 32,
+            padding: "0 14px",
             borderRadius: 6,
-            border: "none",
-            background: "#F0EFED",
-            color: "#5A1515",
-            fontWeight: 600,
-            fontSize: "0.75rem",
+            border: "1px solid var(--action)",
+            background: "var(--action)",
+            color: "var(--text-on-primary)",
+            fontWeight: 700,
+            fontSize: 12,
             cursor: isSearching ? "not-allowed" : "pointer",
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s ease",
+            transition: "background 0.12s ease",
             opacity: isSearching ? 0.6 : 1,
+            letterSpacing: "0.02em",
           }}
         >
           {isSearching ? "검색중" : "검색"}

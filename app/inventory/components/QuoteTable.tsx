@@ -209,7 +209,7 @@ function Cell({
         cursor: col.editable ? "pointer" : "default",
         background: isEditing ? "#FFF9C4" : "transparent",
         fontWeight: col.key === "product_name" ? 600 : 400,
-        color: col.key === "discount_total" ? "#5A1515" : "#333",
+        color: col.key === "discount_total" ? "var(--action)" : "#333",
       }}
       onClick={() => {
         if (col.editable && !isEditing) startEdit(item.id, col.key, val);
@@ -243,7 +243,7 @@ function Cell({
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           style={{
-            color: tastingNoteSet.has(item.item_code) ? "#27ae60" : "#5A1515",
+            color: tastingNoteSet.has(item.item_code) ? "#27ae60" : "var(--action)",
             textDecoration: "underline",
             fontSize: 12,
             fontWeight: 600,

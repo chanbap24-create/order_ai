@@ -135,7 +135,7 @@ function ArrowBtn({
         cursor: disabled ? "default" : "pointer",
         padding: "0 2px",
         fontSize: 11,
-        color: disabled ? "#ddd" : "#5A1515",
+        color: disabled ? "#ddd" : "var(--action)",
       }}
     >
       {children}

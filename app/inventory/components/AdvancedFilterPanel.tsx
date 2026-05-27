@@ -53,7 +53,7 @@ export function AdvancedFilterPanel({
       >
         <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#2D2D2D" }}>조건 필터</span>
         {activeCount > 0 && (
-          <span style={{ fontSize: "0.68rem", color: "#5A1515", fontWeight: 500 }}>
+          <span style={{ fontSize: "0.68rem", color: "var(--action)", fontWeight: 500 }}>
             {activeCount}개 활성
           </span>
         )}
@@ -116,7 +116,7 @@ export function AdvancedFilterPanel({
             padding: "6px 16px",
             borderRadius: 6,
             border: "none",
-            background: "#5A1515",
+            background: "var(--action)",
             color: "white",
             fontSize: "0.75rem",
             fontWeight: 600,
@@ -159,7 +159,7 @@ function RangeRow({
           type="checkbox"
           checked={value.enabled}
           onChange={(e) => onChange({ ...value, enabled: e.target.checked })}
-          style={{ accentColor: "#5A1515" }}
+          style={{ accentColor: "var(--action)" }}
         />
         {label}
       </label>
@@ -246,7 +246,7 @@ function SelectRow({
           type="checkbox"
           checked={value?.enabled || false}
           onChange={(e) => onChange({ ...value, enabled: e.target.checked })}
-          style={{ accentColor: "#5A1515" }}
+          style={{ accentColor: "var(--action)" }}
         />
         {label}
       </label>

@@ -46,7 +46,7 @@ export function TastingNoteDbCard({
             padding: "0 8px",
           }}
         >
-          <DownloadBtn bg="#5A1515" onClick={() => onDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}>
+          <DownloadBtn bg="var(--action)" onClick={() => onDownload(originalPdfUrl, `${selectedItemNo}.pdf`)}>
             PDF
           </DownloadBtn>
           <DownloadBtn

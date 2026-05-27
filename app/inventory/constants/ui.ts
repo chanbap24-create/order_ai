@@ -1,10 +1,10 @@
 /** Inventory 색/레이아웃 토큰 */
 
 export const INV_COLORS = {
-  primary: "#5A1515",
+  primary: "var(--action)",
   primaryDark: "#722F37",
   textTitle: "#1a1a2e",
-  text: "#2c1810",
+  text: "var(--text-primary)",
   textMuted: "#666",
   textFaint: "#999",
   surface: "#fff",

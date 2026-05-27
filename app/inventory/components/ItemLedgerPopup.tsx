@@ -52,16 +52,16 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
       >
         {/* Header */}
         <div style={{
-          padding: '14px 18px', borderBottom: '2px solid #5A1515',
+          padding: '14px 18px', borderBottom: '2px solid var(--action)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap',
         }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: '#8a8580', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               세일즈 품목별 · {warehouse === 'DL' ? '대유라이프' : '까브드뱅'}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#2c1810', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {popup.itemName || popup.itemNo}
-              <span style={{ fontSize: 11, color: '#8a8580', fontWeight: 500, marginLeft: 8, fontFamily: 'monospace' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500, marginLeft: 8, fontFamily: 'monospace' }}>
                 {popup.itemNo}
               </span>
             </div>
@@ -71,7 +71,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
             aria-label="닫기"
             style={{
               border: 'none', background: 'transparent', cursor: 'pointer',
-              fontSize: 22, color: '#8a8580', padding: '4px 10px', lineHeight: 1,
+              fontSize: 22, color: 'var(--text-tertiary)', padding: '4px 10px', lineHeight: 1,
             }}
           >×</button>
         </div>
@@ -88,16 +88,16 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
                 onClick={() => popup.selectRange(i)}
                 style={{
                   padding: '5px 10px', borderRadius: 6,
-                  border: '1px solid ' + (i === popup.rangeIdx ? '#5A1515' : 'rgba(90,21,21,0.15)'),
-                  background: i === popup.rangeIdx ? '#5A1515' : '#fff',
-                  color: i === popup.rangeIdx ? '#fff' : '#5A1515',
+                  border: '1px solid ' + (i === popup.rangeIdx ? 'var(--action)' : 'rgba(90,21,21,0.15)'),
+                  background: i === popup.rangeIdx ? 'var(--action)' : '#fff',
+                  color: i === popup.rangeIdx ? '#fff' : 'var(--action)',
                   fontSize: 11, fontWeight: 600, cursor: 'pointer',
                 }}
               >
                 {rg.label}
               </button>
             ))}
-            <span style={{ fontSize: 11, color: '#8a8580', alignSelf: 'center', marginLeft: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', alignSelf: 'center', marginLeft: 4 }}>
               {r.start.slice(2)} ~ {r.end.slice(2)}
             </span>
           </div>
@@ -110,7 +110,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
                   padding: '4px 10px', borderRadius: 4, border: 'none',
                   fontSize: 11, fontWeight: popup.viewMode === m ? 700 : 500,
                   background: popup.viewMode === m ? '#fff' : 'transparent',
-                  color: popup.viewMode === m ? '#5A1515' : '#8a8580',
+                  color: popup.viewMode === m ? 'var(--action)' : 'var(--text-tertiary)',
                   cursor: 'pointer', boxShadow: popup.viewMode === m ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
@@ -131,9 +131,9 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
               flex: 1, padding: '10px 14px', textAlign: 'center',
               borderRight: i < 2 ? '1px solid rgba(90,21,21,0.06)' : 'none',
             }}>
-              <div style={{ fontSize: 10, color: '#8a8580', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{c.label}</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#5A1515', marginTop: 2 }}>
-                {c.value}<span style={{ fontSize: 11, fontWeight: 500, color: '#8a8580' }}>{c.unit}</span>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{c.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--action)', marginTop: 2 }}>
+                {c.value}<span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)' }}>{c.unit}</span>
               </div>
             </div>
           ))}
@@ -142,13 +142,13 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
         {/* Body */}
         <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
           {popup.loading && (
-            <div style={{ padding: 40, textAlign: 'center', color: '#8a8580', fontSize: 12 }}>조회 중...</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>조회 중...</div>
           )}
           {!popup.loading && popup.error && (
             <div style={{ padding: 24, color: '#dc2626', fontSize: 12, textAlign: 'center' }}>{popup.error}</div>
           )}
           {!popup.loading && !popup.error && popup.totals.qty === 0 && popup.rows.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: '#8a8580', fontSize: 12 }}>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>
               해당 기간 출고 내역이 없습니다.
             </div>
           )}
