@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { getSellingTotal } from '@/app/lib/priceUtils';
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -17,9 +18,11 @@ export async function GET(req: NextRequest) {
     const table = type === 'glass' ? 'glass_shipments' : 'shipments';
 
     // 1) 기간 내 출고 데이터 조회
+    // 2025-08 이전 데이터는 supply_amount 가 부풀려져 있어 selling_price 기준 재계산 필요.
+    // unit_price/selling_price 도 함께 select 하여 getSellingTotal() 로 통일.
     let q = supabase
       .from(table)
-      .select('client_code, client_name, business_type, supply_amount, total_amount, quantity, ship_date')
+      .select('client_code, client_name, business_type, unit_price, selling_price, supply_amount, total_amount, quantity, ship_date')
       .eq('manager', manager);
     if (startDate) q = q.gte('ship_date', startDate);
     if (endDate) q = q.lte('ship_date', endDate);
@@ -53,7 +56,14 @@ export async function GET(req: NextRequest) {
         });
       }
       const c = clientMap.get(key)!;
-      c.period_supply += (row.supply_amount || 0);
+      // 2025-08 이전 supply_amount 왜곡 보정: getSellingTotal 로 일관 계산
+      const rev = getSellingTotal(
+        row.unit_price || 0,
+        row.selling_price || 0,
+        row.supply_amount || 0,
+        row.quantity || 0,
+      );
+      c.period_supply += rev;
       c.period_total += (row.total_amount || 0);
       c.period_qty += (row.quantity || 0);
       if (row.ship_date) c.order_days.add(row.ship_date);

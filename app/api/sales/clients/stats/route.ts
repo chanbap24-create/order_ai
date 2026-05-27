@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { getSellingTotal } from '@/app/lib/priceUtils';
 
 // GET: 거래처 코드 목록에 대한 매출 통계 조회
 export async function GET(req: NextRequest) {
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       while (true) {
         const { data, error } = await supabase
           .from(table)
-          .select('item_no, item_name, quantity, selling_price, supply_amount, ship_date')
+          .select('item_no, item_name, quantity, unit_price, selling_price, supply_amount, ship_date')
           .eq('client_code', code)
           .gte('ship_date', twelveStr)
           .order('ship_date', { ascending: true })
@@ -76,7 +77,13 @@ export async function GET(req: NextRequest) {
       }>();
 
       for (const s of allShipments) {
-        const amt = s.supply_amount || 0;
+        // 2025-08 이전 supply_amount 왜곡 보정
+        const amt = getSellingTotal(
+          s.unit_price || 0,
+          s.selling_price || 0,
+          s.supply_amount || 0,
+          s.quantity || 0,
+        );
         totalSales += amt;
         const d = s.ship_date?.toString().slice(0, 10) || '';
         if (d >= threeStr) recentQtr += amt;
@@ -162,7 +169,7 @@ export async function GET(req: NextRequest) {
       while (true) {
         let q = supabase
           .from(shipmentsTable)
-          .select('client_code, supply_amount, ship_date')
+          .select('client_code, unit_price, selling_price, supply_amount, quantity, ship_date')
           .in('client_code', batch)
           .gte('ship_date', rangeStart);
         if (rangeEnd) q = q.lte('ship_date', rangeEnd);
@@ -181,7 +188,13 @@ export async function GET(req: NextRequest) {
             stats[s.client_code] = { totalSales: 0, lastShipDate: null, orderCount: 0, recentHalf: 0, prevHalf: 0, changeRate: 0 };
           }
           const st = stats[s.client_code];
-          const amt = s.supply_amount || 0;
+          // 2025-08 이전 supply_amount 왜곡 보정
+          const amt = getSellingTotal(
+            s.unit_price || 0,
+            s.selling_price || 0,
+            s.supply_amount || 0,
+            s.quantity || 0,
+          );
           st.totalSales += amt;
           st.orderCount += 1;
 
