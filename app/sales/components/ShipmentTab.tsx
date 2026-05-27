@@ -29,8 +29,14 @@ interface ShipGroup {
 }
 
 function fmt(n: number) {
-  if (n >= 1e8) return (n / 1e8).toFixed(1) + '억';
-  if (n >= 1e4) return Math.round(n / 1e4).toLocaleString() + '만';
+  // stat row 의 큰 숫자는 만/억 약식 (헤더 크기 절약)
+  if (Math.abs(n) >= 1e8) return (n / 1e8).toFixed(1) + '억';
+  if (Math.abs(n) >= 1e4) return Math.round(n / 1e4).toLocaleString() + '만';
+  return n.toLocaleString();
+}
+
+/** 표 안 금액 — 풀 단위 (3,820,000원). 반품 음수 그대로 표시. */
+function fmtFull(n: number) {
   return n.toLocaleString();
 }
 
@@ -110,23 +116,29 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
   if (group.clients.length === 0) {
     return <div style={{ padding: '16px 14px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>출고 건이 없습니다</div>;
   }
+  // 컬럼 색 헬퍼 — 음수면 빨강
+  const moneyColor = (n: number, base: string) =>
+    n < 0 ? '#C62828' : base;
+
   return (
-    <div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-            <tr style={{ background: '#fafaf8' }}>
-              <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>거래처</th>
-              <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>업종</th>
-              <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>공급금액</th>
-              <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>부가세</th>
-              <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>합계</th>
-            </tr>
-          </thead>
-        </table>
-      </div>
-      <div style={{ maxHeight: 400, overflowY: 'auto', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+    <div style={{ maxHeight: 480, overflowY: 'auto', overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '34%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '17%' }} />
+          <col style={{ width: '13%' }} />
+          <col style={{ width: '22%' }} />
+        </colgroup>
+        <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+          <tr style={{ background: 'var(--surface-muted)' }}>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-default)' }}>거래처</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-default)' }}>업종</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-default)' }}>공급금액</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-default)' }}>부가세</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '1px solid var(--border-default)' }}>합계</th>
+          </tr>
+        </thead>
         {group.clients.map(c => {
           const key = prefix + (c.client_code || c.client_name);
           const isExp = expandedClient === key;
@@ -134,15 +146,15 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
             <tbody key={key}>
               <tr
                 onClick={() => setExpandedClient(isExp ? null : key)}
-                style={{ cursor: 'pointer', borderBottom: isExp ? 'none' : '1px solid rgba(90,21,21,0.04)' }}
+                style={{ cursor: 'pointer', borderBottom: isExp ? 'none' : '1px solid var(--border-subtle)' }}
               >
-                <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {isExp ? '▾ ' : '▸ '}{c.client_name}
                 </td>
-                <td style={{ padding: '8px 6px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{c.business_type || '-'}</td>
-                <td style={{ padding: '8px 6px', textAlign: 'right', color: '#333', whiteSpace: 'nowrap' }}>{fmt(c.supply_amount)}</td>
-                <td style={{ padding: '8px 6px', textAlign: 'right', color: '#999', whiteSpace: 'nowrap' }}>{fmt(c.tax_amount)}</td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fmt(c.total_amount)}</td>
+                <td style={{ padding: '10px 12px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.business_type || '-'}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', color: moneyColor(c.supply_amount, 'var(--text-primary)'), whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtFull(c.supply_amount)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', color: moneyColor(c.tax_amount, 'var(--text-tertiary)'), whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtFull(c.tax_amount)}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: moneyColor(c.total_amount, 'var(--text-primary)'), whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtFull(c.total_amount)}</td>
               </tr>
               {isExp && (
                 <>
@@ -154,37 +166,32 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
                     <td style={{ padding: '4px 10px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textAlign: 'right' }}>금액</td>
                   </tr>
                   {c.items.map((it, idx) => (
-                    <tr key={idx} style={{ background: '#f8f6f4', borderBottom: idx === c.items.length - 1 ? 'none' : '1px solid rgba(90,21,21,0.03)' }}>
-                      <td style={{ padding: '4px 10px 4px 28px', fontSize: 11, color: '#666' }}>{it.item_no}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#333', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.item_name}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#333', textAlign: 'right' }}>{it.quantity}</td>
-                      <td style={{ padding: '4px 6px', fontSize: 11, color: '#999', textAlign: 'right' }}>{fmt(it.unit_price)}</td>
-                      <td style={{ padding: '4px 10px', fontSize: 11, color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmt(it.total_amount)}</td>
+                    <tr key={idx} style={{ background: 'var(--surface-muted)', borderBottom: idx === c.items.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
+                      <td style={{ padding: '6px 12px 6px 28px', fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.item_no}</td>
+                      <td style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.item_name}</td>
+                      <td style={{ padding: '6px 12px', fontSize: 11, color: moneyColor(it.quantity, 'var(--text-primary)'), textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{it.quantity}</td>
+                      <td style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtFull(it.unit_price)}</td>
+                      <td style={{ padding: '6px 12px', fontSize: 11, color: moneyColor(it.total_amount, 'var(--text-primary)'), textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmtFull(it.total_amount)}</td>
                     </tr>
                   ))}
-                  <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.06)' }}>
-                    <td colSpan={4} style={{ padding: '6px 10px', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textAlign: 'right' }}>소계</td>
-                    <td style={{ padding: '6px 10px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right' }}>{fmt(c.total_amount)}</td>
+                  <tr style={{ background: 'var(--surface-muted)', borderBottom: '1px solid var(--border-default)' }}>
+                    <td colSpan={4} style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textAlign: 'right' }}>소계</td>
+                    <td style={{ padding: '8px 12px', fontSize: 11, fontWeight: 700, color: moneyColor(c.total_amount, 'var(--text-primary)'), textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtFull(c.total_amount)}</td>
                   </tr>
                 </>
               )}
             </tbody>
           );
         })}
-        </table>
-      </div>
-      <div style={{ overflowX: 'auto', borderTop: '2px solid rgba(90,21,21,0.1)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-          <tfoot>
-            <tr>
-              <td colSpan={2} style={{ padding: '10px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>합계</td>
-              <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#333' }}>{fmt(group.totals.supply)}</td>
-              <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#999' }}>{fmt(group.totals.tax)}</td>
-              <td style={{ padding: '10px', textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#1a237e' }}>{fmt(group.totals.total)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+        <tfoot>
+          <tr style={{ background: 'var(--surface-muted)', borderTop: '2px solid var(--border-strong)' }}>
+            <td colSpan={2} style={{ padding: '12px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>합계</td>
+            <td style={{ padding: '12px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: moneyColor(group.totals.supply, 'var(--text-primary)'), fontVariantNumeric: 'tabular-nums' }}>{fmtFull(group.totals.supply)}</td>
+            <td style={{ padding: '12px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: moneyColor(group.totals.tax, 'var(--text-tertiary)'), fontVariantNumeric: 'tabular-nums' }}>{fmtFull(group.totals.tax)}</td>
+            <td style={{ padding: '12px', textAlign: 'right', fontSize: 13, fontWeight: 700, color: moneyColor(group.totals.total, 'var(--action)'), fontVariantNumeric: 'tabular-nums' }}>{fmtFull(group.totals.total)}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

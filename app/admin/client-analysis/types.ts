@@ -51,6 +51,7 @@ export interface AnalysisData {
     positiveRevenue: number;
     top10Pct: number;
     repeatRate: number;
+    avgDiscount?: number;
   };
   clientRanking: ClientRankingItem[];
   managerAnalysis: ManagerAnalysisItem[];

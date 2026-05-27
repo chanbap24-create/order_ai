@@ -86,11 +86,21 @@ export const SIDEBAR_STYLES = `
   text-overflow: ellipsis;
 }
 
+.sb-footer {
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sb-admin-link {
+  /* Admin link 은 약간 더 muted 톤 (시스템 영역 표시) */
+  color: #6b6b78;
+}
 .sb-collapse-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 8px;
   padding: 6px;
   border-radius: 6px;
   border: 1px solid rgba(0,0,0,0.08);

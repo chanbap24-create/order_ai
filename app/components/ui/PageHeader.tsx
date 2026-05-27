@@ -13,76 +13,78 @@ interface PageHeaderProps {
 
 /**
  * 모든 페이지 상단에 동일한 규칙으로 노출되는 헤더.
- * 제목/부제목/액션의 정렬·간격·typography 가 자동으로 통일된다.
- * Breadcrumb 는 다음 단계에서 추가 예정.
+ * eyebrow/title/subtitle/actions 4 슬롯. typography·여백·구분선 자동 통일.
+ *
+ * 모바일(<=768px) 분기: title 축소, actions wrap, 카드 padding 축소
+ * — globalThis CSS 가 아닌 PageHeader 자체에 inline media via <style scoped>
  */
 export function PageHeader({ eyebrow, title, subtitle, actions }: PageHeaderProps) {
   return (
-    <header
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        gap: 16,
-        paddingBottom: 16,
-        marginBottom: 20,
-        borderBottom: '1px solid var(--border-subtle)',
-      }}
-    >
-      <div style={{ minWidth: 0 }}>
-        {eyebrow && (
-          <p
-            style={{
-              fontSize: 11,
-              color: 'var(--action)',
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-              margin: '0 0 6px',
-            }}
-          >
-            {eyebrow}
-          </p>
-        )}
-        <h1
-          style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: '1.5rem',
-            fontWeight: 500,
-            color: 'var(--text-primary)',
-            letterSpacing: '0.01em',
-            lineHeight: 1.3,
-            margin: 0,
-          }}
-        >
-          {title}
-        </h1>
-        {subtitle && (
-          <p
-            style={{
-              fontSize: 13,
-              color: 'var(--text-tertiary)',
-              margin: '6px 0 0',
-              lineHeight: 1.5,
-            }}
-          >
-            {subtitle}
-          </p>
-        )}
-      </div>
-
-      {actions && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            flexShrink: 0,
-          }}
-        >
-          {actions}
+    <>
+      <style>{PAGE_HEADER_STYLES}</style>
+      <header className="ph-root">
+        <div className="ph-text">
+          {eyebrow && <p className="ph-eyebrow">{eyebrow}</p>}
+          <h1 className="ph-title">{title}</h1>
+          {subtitle && <p className="ph-sub">{subtitle}</p>}
         </div>
-      )}
-    </header>
+        {actions && <div className="ph-actions">{actions}</div>}
+      </header>
+    </>
   );
 }
+
+const PAGE_HEADER_STYLES = `
+  .ph-root {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+  }
+  .ph-text { min-width: 0; }
+  .ph-eyebrow {
+    font-size: 11px;
+    color: var(--action);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .ph-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+    line-height: 1.3;
+    margin: 0;
+  }
+  .ph-sub {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin: 6px 0 0;
+    line-height: 1.5;
+  }
+  .ph-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 768px) {
+    .ph-root {
+      gap: 8px;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .ph-title { font-size: 1.25rem; }
+    .ph-sub { font-size: 12px; margin-top: 4px; }
+    .ph-eyebrow { font-size: 10px; margin-bottom: 4px; }
+    .ph-actions { width: 100%; }
+  }
+`;

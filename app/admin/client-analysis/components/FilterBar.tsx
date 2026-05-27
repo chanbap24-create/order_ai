@@ -8,6 +8,7 @@ import {
   labelStyle,
   btnSecondary,
 } from '@/app/styles/controls';
+import { PRESETS, matchPreset } from '@/app/lib/dateRangePresets';
 
 type Props = {
   filters: Filters | null;
@@ -18,6 +19,16 @@ type Props = {
 };
 
 export function FilterBar({ filters, filterLoading, state, update, reset }: Props) {
+  const activePreset = matchPreset({ startDate: state.startDate, endDate: state.endDate });
+  const applyPreset = (id: string) => {
+    const p = PRESETS.find((x) => x.id === id);
+    if (p) {
+      const r = p.fn();
+      update('startDate', r.startDate);
+      update('endDate', r.endDate);
+    }
+  };
+
   if (filterLoading) {
     return (
       <div style={{ marginBottom: 16 }}>
@@ -105,6 +116,20 @@ export function FilterBar({ filters, filterLoading, state, update, reset }: Prop
               value={state.endDate}
               onChange={(e) => update('endDate', e.target.value)}
             />
+          </Field>
+          <Field label="빠른 범위" minWidth={140}>
+            <select
+              style={selectStyle}
+              value={activePreset ?? ''}
+              onChange={(e) => applyPreset(e.target.value)}
+            >
+              <option value="">직접 입력</option>
+              {PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="거래처" minWidth={160} flex>
             <input

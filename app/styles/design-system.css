@@ -135,6 +135,29 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============================================================
+   Mobile responsive — 768px 이하 컴팩트 분기
+   ============================================================ */
+@media (max-width: 768px) {
+  :root {
+    --page-padding-x: 12px;
+    --page-padding-y: 16px;
+  }
+  /* 공용 카드 padding 축소 */
+  .analysis-card { padding: 12px 14px !important; }
+  .analysis-grid2 { grid-template-columns: 1fr !important; }
+  .analysis-table th { padding: 8px 10px !important; font-size: 10px !important; }
+  .analysis-table td { padding: 8px 10px !important; font-size: 12px !important; }
+  .analysis-chart-title { font-size: 12px !important; }
+  /* 인벤토리 칩 더 컴팩트 */
+  .inv-chip { height: 26px; padding: 0 10px; font-size: 11px; }
+  .inv-col-chip { height: 26px; padding: 0 10px; font-size: 11px; }
+}
+
+@media (max-width: 480px) {
+  .analysis-card { padding: 10px 12px !important; }
+}
+
 /* Card */
 .card {
   background: var(--color-card);

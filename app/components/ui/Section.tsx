@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 
 interface SectionProps {
-  /** 섹션 제목. 없으면 헤더 영역 자체가 사라짐 */
+  /** 섹션 제목 */
   title?: string;
   /** 제목 우측 부가 정보 (건수 등) */
   meta?: ReactNode;
@@ -16,11 +16,10 @@ interface SectionProps {
   children: ReactNode;
 }
 
-const PAD = { none: '0', sm: '12px 16px', md: '16px 20px' } as const;
-
 /**
  * 페이지 안 한 영역 (필터/표/요약 등)을 동일한 규칙으로 감싸는 컨테이너.
  * 외곽선·padding·헤더 typography 가 모든 페이지에서 자동 통일.
+ * 모바일(<=768px)에서 padding 축소.
  */
 export function Section({
   title,
@@ -31,70 +30,81 @@ export function Section({
   children,
 }: SectionProps) {
   return (
-    <section
-      style={{
-        background: bordered ? 'var(--surface)' : 'transparent',
-        border: bordered ? '1px solid var(--border-default)' : 'none',
-        borderRadius: 10,
-        overflow: 'hidden',
-      }}
-    >
-      {(title || actions) && (
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--border-subtle)',
-            background: 'var(--surface)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
-            {title && (
-              <h2
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '0.01em',
-                  margin: 0,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {title}
-              </h2>
-            )}
-            {meta && (
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--text-tertiary)',
-                  fontWeight: 500,
-                }}
-              >
-                {meta}
-              </span>
-            )}
-          </div>
-          {actions && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              {actions}
+    <>
+      <style>{SECTION_STYLES}</style>
+      <section
+        className={`sec-root${bordered ? ' bordered' : ''} pad-${padding}`}
+      >
+        {(title || actions) && (
+          <header className="sec-header">
+            <div className="sec-titlewrap">
+              {title && <h2 className="sec-title">{title}</h2>}
+              {meta && <span className="sec-meta">{meta}</span>}
             </div>
-          )}
-        </header>
-      )}
-      <div style={{ padding: PAD[padding] }}>{children}</div>
-    </section>
+            {actions && <div className="sec-actions">{actions}</div>}
+          </header>
+        )}
+        <div className="sec-body">{children}</div>
+      </section>
+    </>
   );
 }
+
+const SECTION_STYLES = `
+  .sec-root {
+    background: transparent;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sec-root.bordered {
+    background: var(--surface);
+    border: 1px solid var(--border-default);
+  }
+  .sec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface);
+  }
+  .sec-titlewrap {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .sec-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sec-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  .sec-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .pad-none .sec-body { padding: 0; }
+  .pad-sm .sec-body { padding: 12px 16px; }
+  .pad-md .sec-body { padding: 16px 20px; }
+
+  @media (max-width: 768px) {
+    .sec-header { padding: 10px 12px; }
+    .sec-title { font-size: 12px; }
+    .sec-meta { font-size: 11px; }
+    .pad-sm .sec-body { padding: 10px 12px; }
+    .pad-md .sec-body { padding: 12px 14px; }
+  }
+`;

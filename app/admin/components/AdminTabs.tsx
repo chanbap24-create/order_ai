@@ -30,6 +30,7 @@ interface AdminTabsProps {
 export default function AdminTabs({ activeTab, onTabChange, newWineCount }: AdminTabsProps) {
   return (
     <div
+      className="admin-tabs-bar"
       style={{
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
@@ -37,12 +38,18 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
         marginBottom: 20,
       }}
     >
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-tab-btn { padding: 8px 10px !important; font-size: 12px !important; }
+        }
+      `}</style>
       <div style={{ display: 'inline-flex', gap: 4 }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              className="admin-tab-btn"
               onClick={() => onTabChange(tab.id)}
               style={{
                 position: 'relative',

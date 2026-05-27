@@ -37,6 +37,7 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
 
   return (
     <div
+      className="sales-tabs-bar"
       style={{
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
@@ -44,12 +45,19 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
         marginBottom: 20,
       }}
     >
+      <style>{`
+        .sales-tabs-bar { scrollbar-width: thin; }
+        @media (max-width: 768px) {
+          .sales-tab-btn { padding: 8px 10px !important; font-size: 12px !important; }
+        }
+      `}</style>
       <div style={{ display: 'inline-flex', gap: 4 }}>
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              className="sales-tab-btn"
               onClick={() => onTabChange(tab.id)}
               style={{
                 position: 'relative',

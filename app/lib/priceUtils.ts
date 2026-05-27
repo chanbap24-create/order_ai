@@ -33,7 +33,8 @@ export function getSellingUnitPrice(
 }
 
 /**
- * shipments 행의 총 판매 금액(공급가액) 추출
+ * shipments 행의 총 판매 금액(공급가액) 추출.
+ * 반품(quantity < 0) 인 경우 결과도 음수로 반환.
  */
 export function getSellingTotal(
   unitPrice: number,
@@ -46,18 +47,26 @@ export function getSellingTotal(
   const sa = supplyAmount || 0;
   const qty = quantity || 0;
   const absQty = Math.abs(qty);
+  const sign = qty < 0 ? -1 : 1;
+  const absSp = Math.abs(sp);
+  const absUp = Math.abs(up);
+  const absSa = Math.abs(sa);
 
-  // qty=1
-  if (absQty <= 1) return sp > 0 ? sp : up;
+  let absResult: number;
 
-  // 2025-08~ 포맷: sa = 총액
-  if (sa > 0 && sa > sp && Math.abs(sp * absQty - sa) < 100) return qty > 0 ? sa : -sa;
+  if (absQty <= 1) {
+    absResult = absSp > 0 ? absSp : absUp;
+  } else if (absSa > 0 && absSa > absSp && Math.abs(absSp * absQty - absSa) < 100) {
+    // 2025-08~ 포맷: sa = 총액 (절대값으로 매칭, 부호는 quantity 로 결정)
+    absResult = absSa;
+  } else if (absSp > absUp * 2 && absUp > 0) {
+    // ~2025-07 포맷: sp = 총액
+    absResult = absSp;
+  } else if (absSp > 0) {
+    absResult = absSp > absUp ? absSp : absSp * absQty;
+  } else {
+    absResult = absUp * absQty;
+  }
 
-  // ~2025-07 포맷: sp = 총액
-  if (sp > up * 2 && up > 0) return sp;
-
-  // sp가 단가인 경우: sp * qty
-  if (sp > 0) return sp > up ? sp : sp * absQty;
-
-  return up * absQty;
+  return sign * absResult;
 }

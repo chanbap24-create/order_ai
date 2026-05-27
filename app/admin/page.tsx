@@ -152,7 +152,15 @@ export default function AdminPage() {
       background: 'var(--surface-muted)',
       fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}>
+      <div
+        className="admin-container"
+        style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px' }}
+      >
+        <style>{`
+          @media (max-width: 768px) {
+            .admin-container { padding: 16px 12px !important; }
+          }
+        `}</style>
         {/* Header — PageHeader 패턴 (Sales 와 동일) */}
         <header style={{
           display: 'flex',

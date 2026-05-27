@@ -17,21 +17,10 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
       ? Math.round((s.returnAmount / s.positiveRevenue) * 1000) / 10
       : 0;
 
-  const discountRate = (() => {
-    const matched = data.clientRanking.filter(
-      (c) => c.discountRate != null && c.discountRate > 0,
-    );
-    if (matched.length === 0) return null;
-    const totalRev = matched.reduce((sum, c) => sum + c.revenue, 0);
-    if (totalRev === 0) return null;
-    return (
-      Math.round(
-        (matched.reduce((sum, c) => sum + (c.discountRate ?? 0) * c.revenue, 0) /
-          totalRev) *
-          10,
-      ) / 10
-    );
-  })();
+  // 평균 지원률 — RPC summary.avgDiscount (전체 거래 가중 평균).
+  // 세일즈 분석과 동일 계산 방식.
+  const discountRate =
+    s.avgDiscount != null && s.avgDiscount > 0 ? s.avgDiscount : null;
 
   const cards: Array<{
     label: string;
@@ -54,7 +43,7 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
     {
       label: '평균 지원률',
       value: discountRate != null ? `${discountRate}%` : '-',
-      sub: '가중평균',
+      sub: '거래 가중평균',
     },
   ];
 

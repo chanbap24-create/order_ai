@@ -135,6 +135,7 @@ export async function GET(request: NextRequest) {
         positiveRevenue: d.summary?.positive_revenue || 0,
         top10Pct: d.summary?.top10_pct || 0,
         repeatRate: d.summary?.repeat_rate || 0,
+        avgDiscount: d.summary?.avg_discount ?? 0,
       },
       clientRanking,
       managerAnalysis,

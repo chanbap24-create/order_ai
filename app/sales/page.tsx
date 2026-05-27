@@ -46,7 +46,15 @@ export default function SalesPage() {
       background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
       fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 16px' }}>
+      <div
+        className="sales-container"
+        style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 16px' }}
+      >
+        <style>{`
+          @media (max-width: 768px) {
+            .sales-container { padding: 16px 12px !important; }
+          }
+        `}</style>
         <Header
           currentManager={auth.currentManager}
           isAdmin={auth.isAdmin}
