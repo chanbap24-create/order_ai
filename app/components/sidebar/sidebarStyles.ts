@@ -13,7 +13,8 @@ export const SIDEBAR_STYLES = `
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 18px 18px 22px;
+  /* 메인 PageHeader 구분선 y(약 84px = 24 + title 32 + accent 12 + 16) 와 정렬되도록 padding 조정 */
+  padding: 26px 18px 30px;
   color: var(--text-on-dark);
   text-decoration: none;
   letter-spacing: 0.12em;
@@ -147,7 +148,8 @@ export const SIDEBAR_STYLES = `
       url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     background-repeat: no-repeat, repeat;
     background-size: 100% 100%, 256px 256px;
-    border-right: 1px solid var(--border-on-dark);
+    /* 단단한 1px border 대신 soft burgundy shadow 로 사이드바→메인 자연스러운 연결 */
+    box-shadow: 6px 0 28px -12px rgba(90, 21, 21, 0.18), 1px 0 0 0 rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     z-index: 50;
