@@ -12,6 +12,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'recommend-settings', label: 'AI추천설정' },
   { id: 'wine-regions', label: '와인산지DB' },
   { id: 'brand-library', label: '브랜드자료실' },
+  { id: 'glass-images', label: '글라스이미지' },
   { id: 'company-events', label: '회사일정' },
   { id: 'import-forecast', label: '수입량예측' },
   { id: 'feature-usage', label: '사용량' },

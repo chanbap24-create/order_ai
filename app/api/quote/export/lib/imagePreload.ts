@@ -16,6 +16,7 @@
 import { promises as fs } from 'fs';
 import fsSync from 'fs';
 import path from 'path';
+import { imageSize } from 'image-size';
 import { supabase } from '@/app/lib/db';
 
 const BOTTLE_IMG_DIR = path.join(process.cwd(), 'public', 'bottle-images');
@@ -45,12 +46,49 @@ function normalizeExt(raw: string): 'png' | 'jpeg' | 'gif' | 'tiff' | null {
   return null;
 }
 
-export async function preloadBottleImages(itemCodes: string[]): Promise<BottleImageMap> {
+type ItemWithImage = { item_code?: string; image_url?: string | null };
+
+/**
+ * @param itemCodes 와인 병 이미지 fallback (public/bottle-images/*)
+ * @param items quote_items 행 — image_url 컬럼이 있으면 HTTP fetch (글라스 Supabase Storage URL 우선)
+ */
+export async function preloadBottleImages(
+  itemCodes: string[],
+  items?: ItemWithImage[],
+): Promise<BottleImageMap> {
   const result: BottleImageMap = new Map();
+
+  // Phase A: items[].image_url 우선 — HTTP fetch (글라스 Storage URL)
+  const urlItems = (items || []).filter(
+    (i) => i.item_code && i.image_url && /^https?:\/\//i.test(i.image_url),
+  );
+  await Promise.all(
+    urlItems.map(async (i) => {
+      try {
+        const res = await fetch(i.image_url as string);
+        if (!res.ok) return;
+        const buf = Buffer.from(await res.arrayBuffer());
+        const ct = res.headers.get('content-type') || '';
+        let ext: 'png' | 'jpeg' | 'gif' = 'png';
+        if (ct.includes('jpeg') || (i.image_url as string).toLowerCase().endsWith('.jpeg')) ext = 'jpeg';
+        else if (ct.includes('jpg') || (i.image_url as string).toLowerCase().endsWith('.jpg')) ext = 'jpeg';
+        else if (ct.includes('gif')) ext = 'gif';
+        let width = 1, height = 1;
+        try {
+          const dim = imageSize(buf);
+          if (dim.width && dim.height) { width = dim.width; height = dim.height; }
+        } catch { /* keep default */ }
+        result.set(i.item_code as string, { buffer: buf, width, height, ext });
+      } catch {
+        /* swallow — fall through to bottle_images fallback below */
+      }
+    }),
+  );
+
   if (itemCodes.length === 0) return result;
 
-  // 중복 제거
-  const uniq = Array.from(new Set(itemCodes));
+  // 중복 제거 + 이미 URL 로 로드된 코드는 제외
+  const uniq = Array.from(new Set(itemCodes)).filter((c) => !result.has(c));
 
   // 1) DB 일괄 조회
   const { data: rows } = await supabase

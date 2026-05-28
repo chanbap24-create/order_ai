@@ -13,14 +13,23 @@ type Props = {
 /** 견적 테이블 헤더 — 순서 열 + 각 칼럼 ◀▶ 순서 변경 버튼 */
 export function QuoteTableHead({ visibleQuoteCols, onReorderColumns }: Props) {
   return (
-    <thead>
+    <thead style={{ position: "sticky", top: 0, zIndex: 4 }}>
       <tr style={{ background: "#fafaf8" }}>
-        <th style={{ ...qThStyle, width: 60 }}>순서</th>
+        <th style={{
+          ...qThStyle,
+          width: 60,
+          position: "sticky",
+          left: 0,
+          background: "#fafaf8",
+          zIndex: 5,
+          boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
+        }}>순서</th>
         {visibleQuoteCols.map((col, ci) => (
           <th
             key={col.key}
             style={{
               ...qThStyle,
+              background: "#fafaf8",
               textAlign:
                 col.type === "currency" || col.type === "computed"
                   ? "right"
@@ -65,7 +74,7 @@ export function QuoteTableHead({ visibleQuoteCols, onReorderColumns }: Props) {
             </div>
           </th>
         ))}
-        <th style={{ ...qThStyle, width: 36 }}></th>
+        <th style={{ ...qThStyle, width: 36, background: "#fafaf8" }}></th>
       </tr>
     </thead>
   );

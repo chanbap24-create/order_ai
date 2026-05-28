@@ -109,9 +109,13 @@ export async function GET(request: NextRequest) {
     // 이미지 일괄 prefetch + tasting-note 인덱스를 병렬 로드.
     // items 목록 기준 itemCodes 로 bottle_images 한 번에 조회 후 파일 병렬 읽기.
     const itemCodesForImage = items.map((q) => String(q.item_code || '')).filter(Boolean);
+    const itemsForImage = items.map((q) => ({
+      item_code: String(q.item_code || ''),
+      image_url: typeof q.image_url === 'string' ? q.image_url : null,
+    }));
     const [tastingNoteSet, bottleImages] = await Promise.all([
       loadTastingNoteIndex(),
-      preloadBottleImages(itemCodesForImage),
+      preloadBottleImages(itemCodesForImage, itemsForImage),
     ]);
 
     const workbook = new ExcelJS.Workbook();

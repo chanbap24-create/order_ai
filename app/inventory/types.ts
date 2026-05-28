@@ -45,6 +45,8 @@ export interface QuoteItem {
   brand: string;
   region: string;
   image_url: string;
+  /** 글라스 스펙 (예: "H: 28.2cm / C: 953ml") — glass_specs 자동 join */
+  spec?: string;
   vintage: string;
   product_name: string;
   english_name: string;
@@ -80,7 +82,7 @@ export interface InvColumnConfig {
 }
 
 export type QuoteColumnKey =
-  | "item_code" | "category" | "barcode" | "country" | "brand" | "region" | "image_url"
+  | "item_code" | "category" | "barcode" | "country" | "brand" | "region" | "image_url" | "spec"
   | "vintage" | "product_name" | "english_name" | "korean_name"
   | "supply_price" | "min_price" | "retail_price" | "discount_rate"
   | "discounted_price" | "retail_discounted_price" | "quantity" | "normal_total" | "discount_total"

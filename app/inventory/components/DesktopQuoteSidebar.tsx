@@ -80,9 +80,9 @@ export function DesktopQuoteSidebar(p: Props) {
           border: "1.5px solid #E5E5E5",
           boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           maxHeight: "calc(100vh - 88px)",
-          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
+          overflow: "hidden",
         }}
       >
         <DesktopSidebarHeader
@@ -98,23 +98,29 @@ export function DesktopQuoteSidebar(p: Props) {
           onClearAll={p.onClearAll}
         />
 
-        <div style={{ padding: 16 }}>
-          {p.showDocSettings && (
-            <DocSettingsForm
-              docSettings={p.docSettings}
-              setDocSettings={p.setDocSettings}
-              onResetDefaults={() =>
-                p.resetDocSettings(p.activeTab === "CDV" ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)
-              }
-            />
-          )}
-          {p.showQuoteColumnSettings && (
-            <QuoteColumnSettings
-              visibleColumns={p.visibleQuoteColumns}
-              setVisibleColumns={p.setVisibleQuoteColumns}
-            />
-          )}
+        {/* 설정 패널은 별도 (column flex 의 flex-shrink:0) */}
+        {(p.showDocSettings || p.showQuoteColumnSettings) && (
+          <div style={{ padding: 16, borderBottom: "1px solid var(--border-subtle)", flexShrink: 0 }}>
+            {p.showDocSettings && (
+              <DocSettingsForm
+                docSettings={p.docSettings}
+                setDocSettings={p.setDocSettings}
+                onResetDefaults={() =>
+                  p.resetDocSettings(p.activeTab === "CDV" ? CDV_DOC_DEFAULTS : DL_DOC_DEFAULTS)
+                }
+              />
+            )}
+            {p.showQuoteColumnSettings && (
+              <QuoteColumnSettings
+                visibleColumns={p.visibleQuoteColumns}
+                setVisibleColumns={p.setVisibleQuoteColumns}
+              />
+            )}
+          </div>
+        )}
 
+        {/* 테이블 영역 — 안쪽에서 X+Y 동시 스크롤. thead sticky top + 순서 컬럼 sticky left */}
+        <div style={{ flex: 1, minHeight: 0, padding: "0 16px 16px", display: "flex", flexDirection: "column" }}>
           {p.quoteLoading && (
             <div
               style={{
@@ -129,37 +135,48 @@ export function DesktopQuoteSidebar(p: Props) {
           )}
 
           {p.quoteItems.length > 0 && (
-            <>
-              <QuoteTable
-                visibleQuoteCols={p.visibleQuoteCols}
-                quoteItems={p.quoteItems}
-                totalQty={p.totalQty}
-                totalNormal={p.totalNormal}
-                totalDiscount={p.totalDiscount}
-                totalRetailNormal={p.totalRetailNormal}
-                totalRetailDiscount={p.totalRetailDiscount}
-                editCell={p.editCell}
-                editValue={p.editValue}
-                setEditCell={p.setEditCell}
-                setEditValue={p.setEditValue}
-                startEdit={p.startEdit}
-                commitEdit={p.commitEdit}
-                getQuoteCellValue={p.getQuoteCellValue}
-                formatQuoteCellValue={p.formatQuoteCellValue}
-                tastingNoteSet={p.tastingNoteSet}
-                onMoveItem={p.onMoveItem}
-                onDeleteItem={p.onDeleteItem}
-                onReorderColumns={p.onReorderColumns}
-              />
-              <TotalsSummary
-                itemCount={p.quoteItems.length}
-                totalQty={p.totalQty}
-                totalNormal={p.totalNormal}
-                totalDiscount={p.totalDiscount}
-              />
-            </>
+            <QuoteTable
+              visibleQuoteCols={p.visibleQuoteCols}
+              quoteItems={p.quoteItems}
+              totalQty={p.totalQty}
+              totalNormal={p.totalNormal}
+              totalDiscount={p.totalDiscount}
+              totalRetailNormal={p.totalRetailNormal}
+              totalRetailDiscount={p.totalRetailDiscount}
+              editCell={p.editCell}
+              editValue={p.editValue}
+              setEditCell={p.setEditCell}
+              setEditValue={p.setEditValue}
+              startEdit={p.startEdit}
+              commitEdit={p.commitEdit}
+              getQuoteCellValue={p.getQuoteCellValue}
+              formatQuoteCellValue={p.formatQuoteCellValue}
+              tastingNoteSet={p.tastingNoteSet}
+              onMoveItem={p.onMoveItem}
+              onDeleteItem={p.onDeleteItem}
+              onReorderColumns={p.onReorderColumns}
+            />
           )}
         </div>
+
+        {/* 합계 — 사이드바 최하단 고정 (항상 보임, 콘텐츠 스크롤과 무관) */}
+        {p.quoteItems.length > 0 && (
+          <div
+            style={{
+              flexShrink: 0,
+              borderTop: "1px solid var(--border-subtle)",
+              background: "var(--surface)",
+              padding: "12px 16px",
+            }}
+          >
+            <TotalsSummary
+              itemCount={p.quoteItems.length}
+              totalQty={p.totalQty}
+              totalNormal={p.totalNormal}
+              totalDiscount={p.totalDiscount}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -173,7 +190,6 @@ function TotalsSummary({
   return (
     <div
       style={{
-        marginTop: 12,
         display: "flex",
         gap: 16,
         flexWrap: "wrap",

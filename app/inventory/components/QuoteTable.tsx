@@ -32,10 +32,12 @@ type Props = {
   ) => void;
 };
 
-/** 데스크톱 견적 테이블 — Head/Body/Foot 조립 + 인라인 편집 */
+/** 데스크톱 견적 테이블 — Head/Body/Foot 조립 + 인라인 편집
+ *  X+Y 동시 스크롤 컨테이너. thead sticky top + 첫 컬럼 sticky left.
+ */
 export function QuoteTable(p: Props) {
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div style={{ flex: 1, minHeight: 0, overflow: "auto", marginTop: 12 }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <QuoteTableHead
           visibleQuoteCols={p.visibleQuoteCols}
@@ -120,6 +122,11 @@ function Row({
           textAlign: "center",
           color: "#888",
           whiteSpace: "nowrap",
+          position: "sticky",
+          left: 0,
+          background: "white",
+          zIndex: 2,
+          boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
         }}
       >
         <MoveBtn onClick={() => onMoveItem(idx, "up")} disabled={isFirst} title="위로">
@@ -250,6 +257,29 @@ function Cell({
           }}
         >
           {tastingNoteSet.has(item.item_code) ? "T-note" : "T-note(x)"}
+        </a>
+      ) : col.key === "image_url" && item.image_url ? (
+        <a
+          href={item.image_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{ display: 'inline-block' }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.image_url}
+            alt={item.product_name || ''}
+            style={{
+              width: 48,
+              height: 48,
+              objectFit: 'contain',
+              background: '#fff',
+              borderRadius: 4,
+              border: '1px solid var(--border-subtle)',
+            }}
+            loading="lazy"
+          />
         </a>
       ) : (
         formatted

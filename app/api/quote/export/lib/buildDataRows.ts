@@ -115,8 +115,10 @@ function renderImageCell(
 
   // 공식 ExcelJS API: tl.col/row fractional + ext(width,height) 사용.
   // 모든 뷰어(카톡/모바일 포함) 호환. nativeCol EMU 방식은 일부 뷰어가 무시함.
-  // 컬럼 10 = 75px, 행 높이 IMG_ROW_HEIGHT(pt) → px
-  const colWPx = 10 * 7 + 5;
+  // 이미지 컬럼 실제 width 를 worksheet 에서 동적으로 가져옴 (types.ts 변경에 자동 추종)
+  const colDef = ws.getColumn(c);
+  const colW = typeof colDef.width === 'number' ? colDef.width : 22;
+  const colWPx = colW * 7 + 5;
   const rowHPx = IMG_ROW_HEIGHT * (96 / 72);
   const padPx = 2;
 

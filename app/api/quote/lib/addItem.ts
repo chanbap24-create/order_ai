@@ -49,6 +49,7 @@ export async function addQuoteItem(body: Body) {
   let retail_price: number | string = body.retail_price ?? 0;
   let min_price: number | string = body.min_price ?? 0;
   let tasting_note = body.tasting_note ?? '';
+  let spec = '';
   const supply_price = body.supply_price ?? 0;
   const discount_rate = body.discount_rate ?? 0;
   const note = body.note ?? '';
@@ -126,6 +127,21 @@ export async function addQuoteItem(body: Body) {
       if (dlInv?.retail_price) retail_price = dlInv.retail_price;
     }
 
+    // Phase 2b: glass_specs 조회 — 글라스 품목이면 image_url + spec 자동 채움
+    const { data: gs } = await supabase
+      .from('glass_specs')
+      .select('image_url, height_cm, capacity_ml, description, series')
+      .eq('item_no', item_code)
+      .maybeSingle();
+    if (gs) {
+      if (!image_url && gs.image_url) image_url = gs.image_url;
+      const specParts: string[] = [];
+      if (gs.height_cm != null) specParts.push(`H: ${gs.height_cm}cm`);
+      if (gs.capacity_ml != null) specParts.push(`C: ${gs.capacity_ml}ml`);
+      if (specParts.length) spec = specParts.join(' / ');
+      if (!brand && gs.series) brand = gs.series;
+    }
+
     vintage = extractVintage(item_code);
 
     // Phase 3a: 중복이면 합산 후 return
@@ -158,7 +174,7 @@ export async function addQuoteItem(body: Body) {
     if (!product_name && korean_name) product_name = korean_name;
 
     return insertQuoteRow({
-      item_code, country, brand, region, image_url, vintage,
+      item_code, country, brand, region, image_url, spec, vintage,
       product_name, english_name, korean_name,
       supply_price, min_price, retail_price, discount_rate, quantity,
       note, tasting_note, manager, nextSort,
@@ -174,7 +190,7 @@ export async function addQuoteItem(body: Body) {
   if (!product_name && korean_name) product_name = korean_name;
 
   return insertQuoteRow({
-    item_code, country, brand, region, image_url, vintage,
+    item_code, country, brand, region, image_url, spec, vintage,
     product_name, english_name, korean_name,
     supply_price, min_price, retail_price, discount_rate, quantity,
     note, tasting_note, manager, nextSort,
@@ -183,7 +199,7 @@ export async function addQuoteItem(body: Body) {
 
 type InsertPayload = {
   item_code: string; country: string; brand: string; region: string;
-  image_url: string; vintage: string;
+  image_url: string; spec: string; vintage: string;
   product_name: string; english_name: string; korean_name: string;
   supply_price: number | string; min_price: number | string;
   retail_price: number | string; discount_rate: number | string;
@@ -203,7 +219,7 @@ async function insertQuoteRow(p: InsertPayload) {
     .from('quote_items')
     .insert({
       item_code: p.item_code, country: p.country, brand: p.brand,
-      region: p.region, image_url: p.image_url, vintage: p.vintage,
+      region: p.region, image_url: p.image_url, spec: p.spec, vintage: p.vintage,
       product_name: p.product_name, english_name: p.english_name, korean_name: p.korean_name,
       supply_price: price, min_price: mPrice, retail_price: rPrice,
       discount_rate: rate, discounted_price,

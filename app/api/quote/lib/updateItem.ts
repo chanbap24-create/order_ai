@@ -5,7 +5,7 @@
 import { supabase } from '@/app/lib/db';
 
 const ALLOWED_FIELDS = [
-  'item_code', 'country', 'brand', 'region', 'image_url', 'vintage',
+  'item_code', 'country', 'brand', 'region', 'image_url', 'spec', 'vintage',
   'product_name', 'english_name', 'korean_name',
   'supply_price', 'retail_price', 'discount_rate', 'quantity', 'note', 'tasting_note',
 ];

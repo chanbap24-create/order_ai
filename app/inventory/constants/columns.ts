@@ -72,6 +72,7 @@ export const QUOTE_COLUMNS: QuoteColumnConfig[] = [
   { key: "region", label: "지역" },
   { key: "grape_varieties", label: "포도품종", type: "text" },
   { key: "image_url", label: "이미지" },
+  { key: "spec", label: "스펙", type: "text" },
   { key: "vintage", label: "빈티지" },
   { key: "product_name", label: "상품명" },
   { key: "english_name", label: "영문명" },
