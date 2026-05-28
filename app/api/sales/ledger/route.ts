@@ -227,10 +227,23 @@ export async function GET(req: NextRequest) {
       adjPay = -p;
     }
 
-    const allRows = [...codeShips, ...nameShips];
+    const rawRows = [...codeShips, ...nameShips];
     if (nameShips.length > 0) {
-      allRows.sort((a, b) => a.ship_date.localeCompare(b.ship_date) || (a.item_name || '').localeCompare(b.item_name || ''));
+      rawRows.sort((a, b) => a.ship_date.localeCompare(b.ship_date) || (a.item_name || '').localeCompare(b.item_name || ''));
     }
+
+    // 원장 표시 필터:
+    //  - 자재(item_no '9' 시작) 제외 — 와인/글라스 거래와 별개 자재 거래
+    //  - 무상/시음(selling_price=0 AND supply_amount=0) 제외 — 금액 0 거래는 원장 의미 X
+    //  - 반품(quantity<0, supply_amount 음수) 은 자연스럽게 포함됨
+    const allRows = rawRows.filter((r) => {
+      const firstChar = (r.item_no || '').charAt(0).toUpperCase();
+      if (firstChar === '9') return false;
+      const sp = r.selling_price ?? 0;
+      const sa = r.supply_amount ?? 0;
+      if (sp === 0 && sa === 0) return false;
+      return true;
+    });
 
     const paymentRows = [...codePays, ...namePays];
     // 역산/순산: carryover 기준점에서 startDate까지의 잔액 산출
