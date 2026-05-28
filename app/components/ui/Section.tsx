@@ -13,6 +13,8 @@ interface SectionProps {
   bordered?: boolean;
   /** 콘텐츠 좌우/상하 padding */
   padding?: 'none' | 'sm' | 'md';
+  /** 내부 dropdown/autocomplete 등이 섹션 경계를 넘어가야 할 때 true (기본 false: overflow hidden) */
+  overflowVisible?: boolean;
   children: ReactNode;
 }
 
@@ -27,13 +29,14 @@ export function Section({
   actions,
   bordered = true,
   padding = 'md',
+  overflowVisible = false,
   children,
 }: SectionProps) {
   return (
     <>
       <style>{SECTION_STYLES}</style>
       <section
-        className={`sec-root${bordered ? ' bordered' : ''} pad-${padding}`}
+        className={`sec-root${bordered ? ' bordered' : ''} pad-${padding}${overflowVisible ? ' overflow-visible' : ''}`}
       >
         {(title || actions) && (
           <header className="sec-header">
@@ -56,6 +59,7 @@ const SECTION_STYLES = `
     border-radius: 10px;
     overflow: hidden;
   }
+  .sec-root.overflow-visible { overflow: visible; }
   .sec-root.bordered {
     background: var(--surface);
     border: 1px solid var(--border-default);

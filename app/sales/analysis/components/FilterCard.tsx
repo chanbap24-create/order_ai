@@ -55,7 +55,7 @@ export function FilterCard(p: Props) {
 
   return (
     <div style={{ marginBottom: 12 }}>
-      <Section padding="sm">
+      <Section padding="sm" overflowVisible>
         <div
           style={{
             display: "flex",

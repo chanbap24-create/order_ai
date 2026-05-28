@@ -46,7 +46,7 @@ export function FilterCard(p: Props) {
   };
 
   return (
-    <Section padding="md">
+    <Section padding="md" overflowVisible>
       {/* 상단: 타이틀 + 창고 segmented toggle */}
       <div
         style={{

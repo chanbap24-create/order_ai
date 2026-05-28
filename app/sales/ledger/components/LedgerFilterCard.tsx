@@ -46,7 +46,7 @@ export function LedgerFilterCard(p: Props) {
   };
 
   return (
-    <Section padding="md">
+    <Section padding="md" overflowVisible>
       {/* 상단: 타이틀 + 법인 토글 */}
       <div
         style={{
