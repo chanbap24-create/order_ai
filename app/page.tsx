@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { HOME_STYLES } from './home/homeStyles';
-import { HomeSidebar } from './home/HomeSidebar';
 import { HomeCards } from './home/HomeCards';
 
 export default function Home() {
@@ -16,21 +15,18 @@ export default function Home() {
       <div
         className="home-page-root"
         style={{
-          display: 'flex',
           minHeight: 'calc(100vh - 56px)',
           fontFamily: "'DM Sans', -apple-system, sans-serif",
           wordBreak: 'keep-all',
         }}
       >
-        <HomeSidebar mounted={mounted} />
-
         <div
           className="home-content"
           style={{
-            flex: 1,
-            background: '#fafaf8',
+            background: 'var(--surface-muted)',
             overflowY: 'auto',
             position: 'relative',
+            minHeight: 'inherit',
           }}
         >
           <div style={{

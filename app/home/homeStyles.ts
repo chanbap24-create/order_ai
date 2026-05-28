@@ -42,17 +42,13 @@ export const HOME_STYLES = `
   transition: all 0.3s ease;
 }
 
-/* ─── Desktop sidebar ─── */
-.home-sidebar { display: flex; }
-.home-mobile-header { display: none; }
-.home-content { padding: 60px 56px; }
+/* ─── Desktop content (sidebar 제거됨 — 좌측 다크 사이드바가 대체) ─── */
+.home-content { padding: 60px 56px; max-width: 980px; margin: 0 auto; }
 .home-heading { font-size: 1.8rem; }
 .home-sub-text { font-size: 0.85rem; }
 
 /* ─── Mobile ─── */
 @media (max-width: 768px) {
-  .home-sidebar { display: none !important; }
-  .home-mobile-header { display: none !important; }
   .home-content {
     width: 100% !important;
     margin-left: 0 !important;

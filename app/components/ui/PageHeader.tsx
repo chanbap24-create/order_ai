@@ -26,6 +26,7 @@ export function PageHeader({ eyebrow, title, subtitle, actions }: PageHeaderProp
         <div className="ph-text">
           {eyebrow && <p className="ph-eyebrow">{eyebrow}</p>}
           <h1 className="ph-title">{title}</h1>
+          <div className="ph-accent" />
           {subtitle && <p className="ph-sub">{subtitle}</p>}
         </div>
         {actions && <div className="ph-actions">{actions}</div>}
@@ -63,6 +64,13 @@ const PAGE_HEADER_STYLES = `
     line-height: 1.3;
     margin: 0;
   }
+  .ph-accent {
+    width: 32px;
+    height: 2px;
+    margin-top: 10px;
+    background: linear-gradient(90deg, var(--action) 0%, transparent 100%);
+    border-radius: 1px;
+  }
   .ph-sub {
     font-size: 13px;
     color: var(--text-tertiary);
@@ -85,6 +93,7 @@ const PAGE_HEADER_STYLES = `
     .ph-title { font-size: 1.25rem; }
     .ph-sub { font-size: 12px; margin-top: 4px; }
     .ph-eyebrow { font-size: 10px; margin-bottom: 4px; }
+    .ph-accent { width: 24px; margin-top: 8px; }
     .ph-actions { width: 100%; }
   }
 `;

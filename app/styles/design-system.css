@@ -123,6 +123,16 @@
   --icon-md: 16px;
   --icon-lg: 20px;
   --icon-xl: 24px;
+
+  /* Dark surfaces (네이비 톤 — 사이드바/footer/강조 영역) */
+  --surface-dark: #1a1a2e;
+  --surface-dark-hover: #20203a;
+  --surface-dark-active: rgba(255, 255, 255, 0.06);
+  --text-on-dark: #f0ece6;             /* warm white */
+  --text-on-dark-muted: rgba(240, 236, 230, 0.6);
+  --text-on-dark-subtle: rgba(240, 236, 230, 0.4);
+  --text-on-dark-faint: rgba(240, 236, 230, 0.15);
+  --border-on-dark: rgba(240, 236, 230, 0.08);
 }
 
 /* Base Styles */

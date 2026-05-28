@@ -1,46 +1,37 @@
 "use client";
 
-import { ORDER_COLORS, ORDER_FONT } from "../constants";
-
-/** "Order · AI Parsing" 타이틀 섹션 */
+/** Order 페이지 헤더 — 다른 페이지와 동일한 title + accent bar */
 export function PageHeader() {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <h1
-          style={{
-            fontFamily: ORDER_FONT.display,
-            fontSize: 28,
-            fontWeight: 600,
-            color: ORDER_COLORS.textTitle,
-            margin: 0,
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Order
-        </h1>
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: ORDER_COLORS.primary,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            opacity: 0.6,
-          }}
-        >
-          AI Parsing
-        </span>
-      </div>
+    <header
+      style={{
+        paddingBottom: 16,
+        marginBottom: 20,
+        borderBottom: '1px solid var(--border-subtle)',
+      }}
+    >
+      <h1
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: '1.5rem',
+          fontWeight: 500,
+          color: 'var(--text-primary)',
+          letterSpacing: '0.01em',
+          lineHeight: 1.3,
+          margin: 0,
+        }}
+      >
+        Order
+      </h1>
       <div
         style={{
           width: 32,
           height: 2,
           marginTop: 10,
-          background: "linear-gradient(90deg, #5A1515, rgba(90,21,21,0.15))",
+          background: 'linear-gradient(90deg, var(--action) 0%, transparent 100%)',
           borderRadius: 1,
         }}
       />
-    </div>
+    </header>
   );
 }

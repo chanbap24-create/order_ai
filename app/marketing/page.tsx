@@ -54,27 +54,75 @@ export default function MarketingPage() {
   };
 
   return (
-    <div style={{ paddingTop: 72, minHeight: '100vh', background: '#fff' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+    <div
+      className="marketing-container"
+      style={{ minHeight: 'calc(100vh - 56px)', background: 'var(--surface-muted)' }}
+    >
+      <style>{`
+        @media (max-width: 768px) {
+          .marketing-container .marketing-inner { padding: 16px 12px !important; }
+        }
+      `}</style>
+      <div
+        className="marketing-inner"
+        style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, paddingTop: 8 }}>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#111', margin: 0, fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.02em' }}>Marketing</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {currentManager && (
-              <span style={{ fontSize: 13, color: '#666', fontWeight: 500 }}>{currentManager}</span>
-            )}
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            paddingBottom: 16,
+            marginBottom: 20,
+            borderBottom: '1px solid var(--border-subtle)',
+            gap: 16,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <h1
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: '1.5rem',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                letterSpacing: '0.01em',
+                lineHeight: 1.3,
+                margin: 0,
+              }}
+            >
+              Marketing
+            </h1>
+            <div
+              style={{
+                width: 32,
+                height: 2,
+                marginTop: 10,
+                background: 'linear-gradient(90deg, var(--action) 0%, transparent 100%)',
+                borderRadius: 1,
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
               onClick={() => setShowPwChange(!showPwChange)}
               style={{
-                padding: '5px 10px', borderRadius: 6, border: '1px solid #e0e0e0',
-                background: showPwChange ? '#111' : '#fff', color: showPwChange ? '#fff' : '#999',
-                fontSize: 11, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
+                height: 28,
+                padding: '0 12px',
+                borderRadius: 6,
+                border: `1px solid ${showPwChange ? 'var(--border-strong)' : 'var(--border-default)'}`,
+                background: showPwChange ? 'var(--surface-hover)' : 'var(--surface)',
+                color: showPwChange ? 'var(--action)' : 'var(--text-tertiary)',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              비밀번호 변경
+              비밀번호
             </button>
           </div>
-        </div>
+        </header>
 
         {/* Password Change */}
         {showPwChange && (

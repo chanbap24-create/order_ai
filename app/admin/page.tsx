@@ -172,14 +172,6 @@ export default function AdminPage() {
           borderBottom: '1px solid var(--border-subtle)',
         }}>
           <div style={{ minWidth: 0 }}>
-            <p style={{
-              fontSize: 11,
-              color: 'var(--action)',
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-              margin: '0 0 6px',
-            }}>Admin</p>
             <h1 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '1.5rem',
@@ -188,7 +180,14 @@ export default function AdminPage() {
               letterSpacing: '0.01em',
               lineHeight: 1.3,
               margin: 0,
-            }}>관리 콘솔</h1>
+            }}>Admin</h1>
+            <div style={{
+              width: 32,
+              height: 2,
+              marginTop: 10,
+              background: 'linear-gradient(90deg, var(--action) 0%, transparent 100%)',
+              borderRadius: 1,
+            }} />
           </div>
           <div style={{ display: 'flex', gap: 6, fontSize: 12 }}>
             <a

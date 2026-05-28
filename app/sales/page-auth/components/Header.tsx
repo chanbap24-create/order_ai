@@ -18,7 +18,6 @@ export function Header({ currentManager, isAdmin, showPwChange, onTogglePwChange
   return (
     <PageHeader
       title="Sales"
-      subtitle={`${currentManager}${isAdmin ? ' (관리자)' : ''} · 영업 지원 시스템`}
       actions={
         <>
           <HeaderActionButton active={showPwChange} onClick={onTogglePwChange}>

@@ -37,7 +37,6 @@ export function Header({
   return (
     <PageHeader
       title="Inventory"
-      subtitle="재고 조회 · 견적서 작성"
       actions={
         <>
           <TabSwitcher active={activeTab} onChange={onSwitchTab} />
