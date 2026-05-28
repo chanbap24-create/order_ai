@@ -86,8 +86,15 @@ function applyRateLimit(request: NextRequest, pathname: string): NextResponse | 
   const ip = clientIp(request);
 
   let limit: number, windowMs: number, bucketKey: string;
-  if (pathname.startsWith('/api/auth/')) {
-    limit = 10;
+  if (pathname === '/api/auth/me') {
+    // 세션 확인용 GET — 페이지 진입마다 호출되므로 일반 트래픽 limit 적용.
+    // brute force 위험 없음 (로그인/비번 변경이 아님).
+    limit = 240;
+    windowMs = 60_000;
+    bucketKey = `api:${ip}`;
+  } else if (pathname.startsWith('/api/auth/')) {
+    // login/password/setup 등 brute force 방어용 — 분당 20회
+    limit = 20;
     windowMs = 60_000;
     bucketKey = `auth:${ip}`;
   } else if (pathname.startsWith('/api/admin/upload') || pathname.startsWith('/api/admin/remote-sync/upload')) {
