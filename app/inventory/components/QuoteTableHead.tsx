@@ -1,14 +1,6 @@
 "use client";
 
 import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
   SortableContext,
   horizontalListSortingStrategy,
   useSortable,
@@ -20,31 +12,11 @@ import { qThStyle } from "./sharedStyles";
 
 type Props = {
   visibleQuoteCols: QuoteColumnConfig[];
-  onReorderColumns: (
-    updater: (prev: QuoteColumnConfig[]) => QuoteColumnConfig[],
-  ) => void;
 };
 
-/** 견적 테이블 헤더 — 순서 열 + 컬럼 라벨 드래그 (DnD) */
-export function QuoteTableHead({ visibleQuoteCols, onReorderColumns }: Props) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+/** 견적 테이블 헤더 — 순서 열 + 컬럼 라벨 드래그 (SortableContext only — DndContext 는 부모에 있음) */
+export function QuoteTableHead({ visibleQuoteCols }: Props) {
   const colIds = visibleQuoteCols.map((c) => c.key);
-
-  function handleDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const from = colIds.indexOf(String(active.id));
-    const to = colIds.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    onReorderColumns((prev) => {
-      const a = [...prev];
-      const [m] = a.splice(from, 1);
-      a.splice(to, 0, m);
-      return a;
-    });
-  }
 
   return (
     <thead style={{ position: "sticky", top: 0, zIndex: 4 }}>
@@ -62,13 +34,11 @@ export function QuoteTableHead({ visibleQuoteCols, onReorderColumns }: Props) {
         >
           순서
         </th>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={colIds} strategy={horizontalListSortingStrategy}>
-            {visibleQuoteCols.map((col) => (
-              <SortableColumnHead key={col.key} col={col} />
-            ))}
-          </SortableContext>
-        </DndContext>
+        <SortableContext items={colIds} strategy={horizontalListSortingStrategy}>
+          {visibleQuoteCols.map((col) => (
+            <SortableColumnHead key={col.key} col={col} />
+          ))}
+        </SortableContext>
         <th style={{ ...qThStyle, width: 36, background: "#fafaf8" }}></th>
       </tr>
     </thead>

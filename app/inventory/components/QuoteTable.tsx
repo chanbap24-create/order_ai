@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -62,23 +63,84 @@ export function QuoteTable(p: Props) {
 
   const itemIds = p.quoteItems.map((it) => it.id);
 
-  function handleRowDragEnd(e: DragEndEvent) {
+  // 행(id=number) / 컬럼(id=string) 통합 dragEnd
+  function handleDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
+
+    // 컬럼 (id 가 string)
+    if (typeof active.id === "string") {
+      p.onReorderColumns((prev) => {
+        const from = prev.findIndex((c) => c.key === active.id);
+        const to = prev.findIndex((c) => c.key === over.id);
+        if (from < 0 || to < 0) return prev;
+        const a = [...prev];
+        const [m] = a.splice(from, 1);
+        a.splice(to, 0, m);
+        return a;
+      });
+      return;
+    }
+
+    // 행 (id 가 number)
     const from = itemIds.indexOf(Number(active.id));
     const to = itemIds.indexOf(Number(over.id));
     if (from < 0 || to < 0) return;
     if (p.onReorderItemTo) p.onReorderItemTo(from, to);
   }
 
+  // ── 마우스 클릭&드래그 panning (가로/세로 스크롤) ──
+  // 셀 빈 영역에서만 동작. 버튼/입력/드래그핸들/링크는 자동 제외.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let panning = false;
+    let startX = 0, startLeft = 0;
+    const INTERACTIVE = 'button,input,textarea,select,a,label,[role="button"]';
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      const t = e.target as HTMLElement;
+      // dnd 핸들 (cursor:grab) + 인터랙티브 요소는 panning 제외
+      if (t.closest(INTERACTIVE)) return;
+      const cursor = window.getComputedStyle(t).cursor;
+      if (cursor === "grab" || cursor === "grabbing") return;
+
+      panning = true;
+      startX = e.clientX;
+      startLeft = el.scrollLeft;
+      el.style.cursor = "grabbing";
+      el.style.userSelect = "none";
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      if (!panning) return;
+      // 누른 지점을 축으로 좌→우 / 우→좌 가로 panning 만 적용
+      el.scrollLeft = startLeft - (e.clientX - startX);
+    };
+    const onMouseUp = () => {
+      if (!panning) return;
+      panning = false;
+      el.style.cursor = "";
+      el.style.userSelect = "";
+    };
+
+    el.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      el.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: "auto", marginTop: 12 }}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
+    <div ref={containerRef} style={{ flex: 1, minHeight: 0, overflow: "auto", marginTop: 12, cursor: "grab", userSelect: "none" }}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <QuoteTableHead
-            visibleQuoteCols={p.visibleQuoteCols}
-            onReorderColumns={p.onReorderColumns}
-          />
+          <QuoteTableHead visibleQuoteCols={p.visibleQuoteCols} />
           <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
             <tbody>
               {p.quoteItems.map((item, idx) => (
