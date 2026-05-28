@@ -37,7 +37,12 @@ export async function GET(req: NextRequest) {
     if (code) {
       const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
 
-      // 최근 20건 조회 + 최근 1년 전체 페이지네이션 병렬 시작
+      // 집계 기간: 사용자 지정 기간이 있으면 그 기간, 없으면 최근 12개월
+      // (랭킹 테이블의 totalSales 와 동일한 기준이어야 두 화면 매출이 일치)
+      const aggStart = useCustomRange ? rangeStart : twelveStr;
+      const aggEnd = useCustomRange ? rangeEnd : '';
+
+      // 최근 20건 조회 + 집계 기간 전체 페이지네이션 병렬 시작
       const recentPromise = supabase
         .from(table)
         .select('item_no, item_name, quantity, selling_price, total_amount, ship_date, manager')
@@ -45,16 +50,19 @@ export async function GET(req: NextRequest) {
         .order('ship_date', { ascending: false })
         .limit(20);
 
-      // 최근 1년 전체 출고 조회 (매출 통계 + 품목별 통계 동시 계산)
+      // 집계 기간 전체 출고 조회 (매출 통계 + 품목별 통계 동시 계산)
       const allShipments: any[] = [];
       let shipFrom = 0;
       const shipBatch = 1000;
       while (true) {
-        const { data, error } = await supabase
+        let q = supabase
           .from(table)
-          .select('item_no, item_name, quantity, unit_price, selling_price, supply_amount, ship_date')
+          .select('item_no, item_name, quantity, unit_price, selling_price, supply_amount, ship_date, manager')
           .eq('client_code', code)
-          .gte('ship_date', twelveStr)
+          .gte('ship_date', aggStart);
+        if (aggEnd) q = q.lte('ship_date', aggEnd);
+        if (managerParam) q = q.eq('manager', managerParam);
+        const { data, error } = await q
           .order('ship_date', { ascending: true })
           .range(shipFrom, shipFrom + shipBatch - 1);
         if (error) throw error;

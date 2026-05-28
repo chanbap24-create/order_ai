@@ -1,22 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import type { SelectedRankClient } from '../analysis/types';
+import type { AnalysisFilters, SelectedRankClient } from '../analysis/types';
 import { AnalysisSection } from '../analysis/components/AnalysisSection';
 import { ClientDetailPanel } from '../analysis/components/ClientDetailPanel';
 
 type Props = { currentManager: string; isAdmin: boolean };
 
-export default function AnalysisTab({ currentManager, isAdmin }: Props) {
-  const [selectedClient, setSelectedClient] = useState<SelectedRankClient | null>(null);
+type Selection = { client: SelectedRankClient; filters: AnalysisFilters };
 
-  if (selectedClient) {
+export default function AnalysisTab({ currentManager, isAdmin }: Props) {
+  const [selected, setSelected] = useState<Selection | null>(null);
+
+  if (selected) {
     return (
       <ClientDetailPanel
-        client={selectedClient}
+        client={selected.client}
         currentManager={currentManager}
         isAdmin={isAdmin}
-        onBack={() => setSelectedClient(null)}
+        filters={selected.filters}
+        onBack={() => setSelected(null)}
       />
     );
   }
@@ -25,7 +28,7 @@ export default function AnalysisTab({ currentManager, isAdmin }: Props) {
     <AnalysisSection
       currentManager={currentManager}
       isAdmin={isAdmin}
-      onSelectClient={setSelectedClient}
+      onSelectClient={(client, filters) => setSelected({ client, filters })}
     />
   );
 }

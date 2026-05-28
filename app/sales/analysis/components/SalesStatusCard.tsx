@@ -1,11 +1,15 @@
 "use client";
 
-import type { DetailStats } from "../types";
+import type { AnalysisFilters, DetailStats } from "../types";
 import { fmt } from "../lib/format";
 
-type Props = { stats: DetailStats | null };
+type Props = { stats: DetailStats | null; filters?: AnalysisFilters };
 
-export function SalesStatusCard({ stats }: Props) {
+export function SalesStatusCard({ stats, filters }: Props) {
+  // 라벨 — 사용자 지정 기간이 있으면 그 기간, 없으면 최근 1년
+  const periodLabel = filters?.startDate && filters?.endDate
+    ? `${filters.startDate} ~ ${filters.endDate}`
+    : "최근 1년";
   return (
     <div
       style={{
@@ -17,7 +21,7 @@ export function SalesStatusCard({ stats }: Props) {
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }}>
-        매출 현황 (최근 1년)
+        매출 현황 ({periodLabel})
       </div>
       {stats ? (
         <>

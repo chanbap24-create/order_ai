@@ -49,6 +49,14 @@ export interface ClientDetail {
 
 export type AnalysisType = "wine" | "glass";
 
+/** 분석 필터 — 거래처 클릭 시 ClientDetailPanel 로 전달되어 상세 통계 집계 기준을 일치시킴 */
+export interface AnalysisFilters {
+  type: AnalysisType;
+  startDate: string;
+  endDate: string;
+  manager: string;
+}
+
 export type ItemStat = {
   item_no: string;
   item_name: string;

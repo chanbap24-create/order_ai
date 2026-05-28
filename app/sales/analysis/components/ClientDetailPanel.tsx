@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SelectedRankClient } from "../types";
+import type { AnalysisFilters, SelectedRankClient } from "../types";
 import { useClientDetail } from "../hooks/useClientDetail";
 import RecommendTab from "../../components/RecommendTab";
 import { ClientDetailHeader } from "./ClientDetailHeader";
@@ -14,12 +14,13 @@ type Props = {
   client: SelectedRankClient;
   currentManager: string;
   isAdmin: boolean;
+  filters?: AnalysisFilters;
   onBack: () => void;
 };
 
-export function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: Props) {
+export function ClientDetailPanel({ client, currentManager, isAdmin, filters, onBack }: Props) {
   const [subTab, setSubTab] = useState<"info" | "recommend">("info");
-  const detail = useClientDetail(client);
+  const detail = useClientDetail(client, filters);
 
   return (
     <div>
@@ -73,7 +74,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, onBack }: P
                 />
               )}
 
-              <SalesStatusCard stats={detail.detailStats} />
+              <SalesStatusCard stats={detail.detailStats} filters={filters} />
 
               <PreferenceCharts prefs={detail.prefs} loading={detail.prefsLoading} />
 

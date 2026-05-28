@@ -4,6 +4,11 @@ export function fmt(n: number) {
   return n.toLocaleString();
 }
 
+/** 풀 단위 금액 표시 (3,820,000) — 출고/원장 등 정확한 금액이 필요한 곳에 사용 */
+export function fmtFull(n: number) {
+  return Math.round(n).toLocaleString();
+}
+
 export function getKstToday() {
   const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const todayStr = kstNow.toISOString().slice(0, 10);

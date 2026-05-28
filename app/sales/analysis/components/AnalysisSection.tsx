@@ -1,6 +1,6 @@
 "use client";
 
-import type { SelectedRankClient } from "../types";
+import type { AnalysisFilters, SelectedRankClient } from "../types";
 import { useAnalysisData } from "../hooks/useAnalysisData";
 import { AnalysisStyles } from "./AnalysisStyles";
 import { TypeToggle } from "./TypeToggle";
@@ -14,12 +14,20 @@ import { PriceDistributionChart } from "./PriceDistributionChart";
 type Props = {
   currentManager: string;
   isAdmin: boolean;
-  onSelectClient: (client: SelectedRankClient) => void;
+  onSelectClient: (client: SelectedRankClient, filters: AnalysisFilters) => void;
 };
 
 export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Props) {
   const s = useAnalysisData({ currentManager, isAdmin });
   const isWine = s.type === "wine";
+  const activeManager = isAdmin ? s.manager : currentManager;
+  const handleSelectClient = (c: SelectedRankClient) =>
+    onSelectClient(c, {
+      type: s.type,
+      startDate: s.startDate,
+      endDate: s.endDate,
+      manager: activeManager,
+    });
 
   const filterLabel = [
     (isAdmin ? s.manager : currentManager) && `담당: ${isAdmin ? s.manager : currentManager}`,
@@ -121,7 +129,7 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
               clients={s.rankClients}
               stats={s.rankStats}
               loading={s.rankLoading}
-              onSelectClient={onSelectClient}
+              onSelectClient={handleSelectClient}
             />
 
             <PriceDistributionChart data={s.data.byPrice} />

@@ -130,7 +130,35 @@ export async function POST(req: NextRequest) {
           const minDate = shipments.map(s => s.ship_date).filter(Boolean).sort()[0];
           const shipResult = await processShipmentsFromData(shipments, table, false, minDate || undefined);
           logger.info(`[RemoteSync] ${type} shipments: ${shipResult.inserted}건 (minDate: ${minDate})`);
-          return NextResponse.json({ success: true, type, ...result, shipments: shipResult.inserted });
+
+          // 거래명세표 업데이트 직후 — 이번 batch 에 포함된 거래처의 client_details.manager 를
+          // 최근 12개월 dominant 출고 매니저로 자동 보정 (퇴사자 제외).
+          // wine(client) 일 때만 적용 — glass 는 glass_clients 별도 관리.
+          let managerSynced = 0;
+          if (type === 'client') {
+            try {
+              const codes = Array.from(new Set(shipments.map(s => s.client_code).filter(Boolean)));
+              const { data: synced, error: syncErr } = await supabase.rpc('fn_sync_client_managers', {
+                p_codes: codes,
+              });
+              if (syncErr) {
+                logger.error('[RemoteSync] manager sync failed', syncErr instanceof Error ? syncErr : new Error(String(syncErr)));
+              } else {
+                managerSynced = synced?.length || 0;
+                logger.info(`[RemoteSync] client_details.manager 자동 보정: ${managerSynced}건`);
+              }
+            } catch (e) {
+              logger.error('[RemoteSync] manager sync exception', e instanceof Error ? e : undefined);
+            }
+          }
+
+          return NextResponse.json({
+            success: true,
+            type,
+            ...result,
+            shipments: shipResult.inserted,
+            managerSynced,
+          });
         }
       } catch (e) {
         logger.error('[RemoteSync] Shipment parsing failed', e instanceof Error ? e : undefined);
