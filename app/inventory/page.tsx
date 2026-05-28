@@ -279,6 +279,7 @@ export default function InventoryPage() {
           setShowQuoteColumnSettings={setShowQuoteColumnSettings}
           visibleQuoteColumns={visibleQuoteColumns}
           setVisibleQuoteColumns={setVisibleQuoteColumns}
+          visibleQuoteCols={visibleQuoteCols}
         />
       </div>
 

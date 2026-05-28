@@ -4,6 +4,7 @@ import { CDV_DOC_DEFAULTS, DL_DOC_DEFAULTS } from "../constants/docDefaults";
 import { formatWon } from "../lib/format";
 import type {
   DocSettings,
+  QuoteColumnConfig,
   QuoteColumnKey,
   QuoteItem,
   WarehouseTab,
@@ -32,6 +33,7 @@ type Props = {
   setVisibleQuoteColumns: (
     updater: (prev: QuoteColumnKey[]) => QuoteColumnKey[],
   ) => void;
+  visibleQuoteCols?: QuoteColumnConfig[];
   onClose: () => void;
   onMoveItem: (idx: number, dir: "up" | "down") => void;
   onDeleteItem: (id: number) => void;
@@ -118,6 +120,7 @@ export function MobileQuotePanel(p: Props) {
                   index={idx}
                   isFirst={idx === 0}
                   isLast={idx === p.quoteItems.length - 1}
+                  visibleQuoteCols={p.visibleQuoteCols}
                   onOpen={() => p.onOpenBottomSheet(item)}
                   onMoveUp={() => p.onMoveItem(idx, "up")}
                   onMoveDown={() => p.onMoveItem(idx, "down")}

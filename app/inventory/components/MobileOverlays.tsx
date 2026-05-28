@@ -1,6 +1,6 @@
 "use client";
 
-import type { DocSettings, QuoteColumnKey, WarehouseTab } from "../types";
+import type { DocSettings, QuoteColumnConfig, QuoteColumnKey, WarehouseTab } from "../types";
 import type { useQuoteItems } from "../hooks/useQuoteItems";
 import type { useQuoteExports } from "../hooks/useQuoteExports";
 import type { useInventoryLayout } from "../hooks/useInventoryLayout";
@@ -27,6 +27,7 @@ type Props = {
   setShowQuoteColumnSettings: (v: boolean) => void;
   visibleQuoteColumns: QuoteColumnKey[];
   setVisibleQuoteColumns: React.Dispatch<React.SetStateAction<QuoteColumnKey[]>>;
+  visibleQuoteCols: QuoteColumnConfig[];
 };
 
 /** 모바일 전용 오버레이들: 플로팅 카트 + 견적 패널 + 바텀시트 */
@@ -58,6 +59,7 @@ export function MobileOverlays(p: Props) {
           setShowQuoteColumnSettings={p.setShowQuoteColumnSettings}
           visibleQuoteColumns={p.visibleQuoteColumns}
           setVisibleQuoteColumns={p.setVisibleQuoteColumns}
+          visibleQuoteCols={p.visibleQuoteCols}
           onClose={() => p.layout.setShowQuotePanel(false)}
           onMoveItem={p.quote.moveItem}
           onDeleteItem={p.quote.deleteQuoteItem}
