@@ -1,5 +1,20 @@
 "use client";
 
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 import type { QuoteColumnConfig } from "../types";
 import { qThStyle } from "./sharedStyles";
 
@@ -10,100 +25,74 @@ type Props = {
   ) => void;
 };
 
-/** 견적 테이블 헤더 — 순서 열 + 각 칼럼 ◀▶ 순서 변경 버튼 */
+/** 견적 테이블 헤더 — 순서 열 + 컬럼 라벨 드래그 (DnD) */
 export function QuoteTableHead({ visibleQuoteCols, onReorderColumns }: Props) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+  const colIds = visibleQuoteCols.map((c) => c.key);
+
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = colIds.indexOf(String(active.id));
+    const to = colIds.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    onReorderColumns((prev) => {
+      const a = [...prev];
+      const [m] = a.splice(from, 1);
+      a.splice(to, 0, m);
+      return a;
+    });
+  }
+
   return (
     <thead style={{ position: "sticky", top: 0, zIndex: 4 }}>
       <tr style={{ background: "#fafaf8" }}>
-        <th style={{
-          ...qThStyle,
-          width: 60,
-          position: "sticky",
-          left: 0,
-          background: "#fafaf8",
-          zIndex: 5,
-          boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
-        }}>순서</th>
-        {visibleQuoteCols.map((col, ci) => (
-          <th
-            key={col.key}
-            style={{
-              ...qThStyle,
-              background: "#fafaf8",
-              textAlign:
-                col.type === "currency" || col.type === "computed"
-                  ? "right"
-                  : "center",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 2,
-              }}
-            >
-              <ArrowBtn
-                disabled={ci === 0}
-                onClick={() =>
-                  onReorderColumns((prev) => {
-                    if (ci === 0) return prev;
-                    const a = [...prev];
-                    [a[ci - 1], a[ci]] = [a[ci], a[ci - 1]];
-                    return a;
-                  })
-                }
-              >
-                ◀
-              </ArrowBtn>
-              <span>{col.label}</span>
-              <ArrowBtn
-                disabled={ci === visibleQuoteCols.length - 1}
-                onClick={() =>
-                  onReorderColumns((prev) => {
-                    if (ci === prev.length - 1) return prev;
-                    const a = [...prev];
-                    [a[ci], a[ci + 1]] = [a[ci + 1], a[ci]];
-                    return a;
-                  })
-                }
-              >
-                ▶
-              </ArrowBtn>
-            </div>
-          </th>
-        ))}
+        <th
+          style={{
+            ...qThStyle,
+            width: 60,
+            position: "sticky",
+            left: 0,
+            background: "#fafaf8",
+            zIndex: 5,
+            boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
+          }}
+        >
+          순서
+        </th>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={colIds} strategy={horizontalListSortingStrategy}>
+            {visibleQuoteCols.map((col) => (
+              <SortableColumnHead key={col.key} col={col} />
+            ))}
+          </SortableContext>
+        </DndContext>
         <th style={{ ...qThStyle, width: 36, background: "#fafaf8" }}></th>
       </tr>
     </thead>
   );
 }
 
-function ArrowBtn({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
+function SortableColumnHead({ col }: { col: QuoteColumnConfig }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: col.key });
+  const style: React.CSSProperties = {
+    ...qThStyle,
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    background: isDragging ? "#fff8e1" : "#fafaf8",
+    cursor: "grab",
+    userSelect: "none",
+    touchAction: "none",
+    textAlign:
+      col.type === "currency" || col.type === "computed" ? "right" : "center",
+  };
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        background: "none",
-        border: "none",
-        cursor: disabled ? "default" : "pointer",
-        padding: 0,
-        fontSize: 9,
-        color: disabled ? "#ddd" : "#999",
-        lineHeight: 1,
-      }}
-    >
-      {children}
-    </button>
+    <th ref={setNodeRef} style={style} {...attributes} {...listeners} title="드래그하여 컬럼 순서 변경">
+      {col.label}
+    </th>
   );
 }

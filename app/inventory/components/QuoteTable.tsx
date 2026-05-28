@@ -1,5 +1,22 @@
 "use client";
 
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 import { TASTING_NOTE_BASE_URL } from "../constants/docDefaults";
 import type { QuoteColumnConfig, QuoteItem } from "../types";
 import { qTdStyle } from "./sharedStyles";
@@ -25,65 +42,95 @@ type Props = {
   getQuoteCellValue: (item: QuoteItem, key: string) => any;
   formatQuoteCellValue: (item: QuoteItem, col: QuoteColumnConfig) => string;
   tastingNoteSet: Set<string>;
-  onMoveItem: (idx: number, dir: "up" | "down") => void;
+  /** 드래그&드롭 한 번에 임의 위치 이동 */
+  onReorderItemTo?: (fromIdx: number, toIdx: number) => void;
   onDeleteItem: (id: number) => void;
   onReorderColumns: (
     updater: (prev: QuoteColumnConfig[]) => QuoteColumnConfig[],
   ) => void;
 };
 
-/** 데스크톱 견적 테이블 — Head/Body/Foot 조립 + 인라인 편집
+/** 데스크톱 견적 테이블 — Head/Body/Foot 조립 + 인라인 편집 + DnD
  *  X+Y 동시 스크롤 컨테이너. thead sticky top + 첫 컬럼 sticky left.
+ *  행: ≡ 핸들 드래그 / 컬럼: 헤더 라벨 드래그.
  */
 export function QuoteTable(p: Props) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const itemIds = p.quoteItems.map((it) => it.id);
+
+  function handleRowDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = itemIds.indexOf(Number(active.id));
+    const to = itemIds.indexOf(Number(over.id));
+    if (from < 0 || to < 0) return;
+    if (p.onReorderItemTo) p.onReorderItemTo(from, to);
+  }
+
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: "auto", marginTop: 12 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-        <QuoteTableHead
-          visibleQuoteCols={p.visibleQuoteCols}
-          onReorderColumns={p.onReorderColumns}
-        />
-        <tbody>
-          {p.quoteItems.map((item, idx) => (
-            <Row
-              key={item.id}
-              item={item}
-              idx={idx}
-              isFirst={idx === 0}
-              isLast={idx === p.quoteItems.length - 1}
-              visibleQuoteCols={p.visibleQuoteCols}
-              editCell={p.editCell}
-              editValue={p.editValue}
-              setEditCell={p.setEditCell}
-              setEditValue={p.setEditValue}
-              startEdit={p.startEdit}
-              commitEdit={p.commitEdit}
-              getQuoteCellValue={p.getQuoteCellValue}
-              formatQuoteCellValue={p.formatQuoteCellValue}
-              tastingNoteSet={p.tastingNoteSet}
-              onMoveItem={p.onMoveItem}
-              onDeleteItem={p.onDeleteItem}
-            />
-          ))}
-        </tbody>
-        <QuoteTableFoot
-          visibleQuoteCols={p.visibleQuoteCols}
-          totalQty={p.totalQty}
-          totalNormal={p.totalNormal}
-          totalDiscount={p.totalDiscount}
-          totalRetailNormal={p.totalRetailNormal}
-          totalRetailDiscount={p.totalRetailDiscount}
-        />
-      </table>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <QuoteTableHead
+            visibleQuoteCols={p.visibleQuoteCols}
+            onReorderColumns={p.onReorderColumns}
+          />
+          <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+            <tbody>
+              {p.quoteItems.map((item, idx) => (
+                <SortableRow
+                  key={item.id}
+                  item={item}
+                  idx={idx}
+                  visibleQuoteCols={p.visibleQuoteCols}
+                  editCell={p.editCell}
+                  editValue={p.editValue}
+                  setEditCell={p.setEditCell}
+                  setEditValue={p.setEditValue}
+                  startEdit={p.startEdit}
+                  commitEdit={p.commitEdit}
+                  getQuoteCellValue={p.getQuoteCellValue}
+                  formatQuoteCellValue={p.formatQuoteCellValue}
+                  tastingNoteSet={p.tastingNoteSet}
+                  onDeleteItem={p.onDeleteItem}
+                />
+              ))}
+            </tbody>
+          </SortableContext>
+          <QuoteTableFoot
+            visibleQuoteCols={p.visibleQuoteCols}
+            totalQty={p.totalQty}
+            totalNormal={p.totalNormal}
+            totalDiscount={p.totalDiscount}
+            totalRetailNormal={p.totalRetailNormal}
+            totalRetailDiscount={p.totalRetailDiscount}
+          />
+        </table>
+      </DndContext>
     </div>
   );
+}
+
+/** 드래그 가능한 행 — useSortable 로 transform + 핸들 */
+function SortableRow(props: Parameters<typeof Row>[0]) {
+  const sortable = useSortable({ id: props.item.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    background: isDragging ? "#fff8e1" : undefined,
+  };
+  return <Row {...props} dragRef={setNodeRef} dragStyle={style} dragAttributes={attributes} dragListeners={listeners} />;
 }
 
 function Row({
   item,
   idx,
-  isFirst,
-  isLast,
   visibleQuoteCols,
   editCell,
   editValue,
@@ -94,13 +141,14 @@ function Row({
   getQuoteCellValue,
   formatQuoteCellValue,
   tastingNoteSet,
-  onMoveItem,
   onDeleteItem,
+  dragRef,
+  dragStyle,
+  dragAttributes,
+  dragListeners,
 }: {
   item: QuoteItem;
   idx: number;
-  isFirst: boolean;
-  isLast: boolean;
   visibleQuoteCols: QuoteColumnConfig[];
   editCell: EditCell;
   editValue: string;
@@ -111,11 +159,14 @@ function Row({
   getQuoteCellValue: (item: QuoteItem, key: string) => any;
   formatQuoteCellValue: (item: QuoteItem, col: QuoteColumnConfig) => string;
   tastingNoteSet: Set<string>;
-  onMoveItem: (idx: number, dir: "up" | "down") => void;
   onDeleteItem: (id: number) => void;
+  dragRef?: (el: HTMLElement | null) => void;
+  dragStyle?: React.CSSProperties;
+  dragAttributes?: Record<string, unknown>;
+  dragListeners?: Record<string, unknown>;
 }) {
   return (
-    <tr style={{ borderBottom: "1px solid #eee" }}>
+    <tr ref={dragRef as React.Ref<HTMLTableRowElement>} style={{ borderBottom: "1px solid #eee", ...dragStyle }} {...dragAttributes}>
       <td
         style={{
           ...qTdStyle,
@@ -124,18 +175,27 @@ function Row({
           whiteSpace: "nowrap",
           position: "sticky",
           left: 0,
-          background: "white",
+          background: dragStyle?.background as string || "white",
           zIndex: 2,
           boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
         }}
       >
-        <MoveBtn onClick={() => onMoveItem(idx, "up")} disabled={isFirst} title="위로">
-          ▲
-        </MoveBtn>
-        <span style={{ fontSize: 12, margin: "0 1px" }}>{idx + 1}</span>
-        <MoveBtn onClick={() => onMoveItem(idx, "down")} disabled={isLast} title="아래로">
-          ▼
-        </MoveBtn>
+        <span
+          {...dragListeners}
+          style={{
+            display: "inline-block",
+            cursor: "grab",
+            userSelect: "none",
+            touchAction: "none",
+            padding: "2px 10px",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#666",
+          }}
+          title="드래그하여 순서 변경"
+        >
+          {idx + 1}
+        </span>
       </td>
       {visibleQuoteCols.map((col) => (
         <Cell
@@ -288,33 +348,3 @@ function Cell({
   );
 }
 
-function MoveBtn({
-  onClick,
-  disabled,
-  title,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      style={{
-        background: "none",
-        border: "none",
-        cursor: disabled ? "default" : "pointer",
-        color: disabled ? "#ddd" : "#666",
-        fontSize: 12,
-        padding: "0 2px",
-        lineHeight: 1,
-      }}
-    >
-      {children}
-    </button>
-  );
-}

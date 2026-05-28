@@ -77,7 +77,7 @@ export function DesktopSidebarContainer(p: Props) {
       getQuoteCellValue={p.getQuoteCellValue}
       formatQuoteCellValue={p.formatQuoteCellValue}
       tastingNoteSet={p.tastingModal.tastingNoteSet}
-      onMoveItem={p.quote.moveItem}
+      onReorderItemTo={p.quote.reorderItemTo}
       onDeleteItem={p.quote.deleteQuoteItem}
       onClearAll={p.quote.clearAllQuote}
       onReorderColumns={(updater) => {

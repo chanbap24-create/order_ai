@@ -52,7 +52,7 @@ type Props = {
   formatQuoteCellValue: (item: QuoteItem, col: QuoteColumnConfig) => string;
   tastingNoteSet: Set<string>;
   // actions
-  onMoveItem: (idx: number, dir: "up" | "down") => void;
+  onReorderItemTo?: (fromIdx: number, toIdx: number) => void;
   onDeleteItem: (id: number) => void;
   onClearAll: () => void;
   onReorderColumns: (
@@ -152,7 +152,7 @@ export function DesktopQuoteSidebar(p: Props) {
               getQuoteCellValue={p.getQuoteCellValue}
               formatQuoteCellValue={p.formatQuoteCellValue}
               tastingNoteSet={p.tastingNoteSet}
-              onMoveItem={p.onMoveItem}
+              onReorderItemTo={p.onReorderItemTo}
               onDeleteItem={p.onDeleteItem}
               onReorderColumns={p.onReorderColumns}
             />

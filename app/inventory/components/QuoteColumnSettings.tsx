@@ -1,5 +1,20 @@
 "use client";
 
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 import { QUOTE_COLUMNS } from "../constants/columns";
 import type { QuoteColumnKey } from "../types";
 
@@ -8,8 +23,26 @@ type Props = {
   setVisibleColumns: (updater: (prev: QuoteColumnKey[]) => QuoteColumnKey[]) => void;
 };
 
-/** 견적 컬럼 표시/순서 설정 (좌/우 이동 + 체크박스 목록) */
+/** 견적 컬럼 표시/순서 설정 (드래그&드롭 + 체크박스 목록) */
 export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setVisibleColumns((prev) => {
+      const from = prev.indexOf(active.id as QuoteColumnKey);
+      const to = prev.indexOf(over.id as QuoteColumnKey);
+      if (from < 0 || to < 0) return prev;
+      const a = [...prev];
+      const [m] = a.splice(from, 1);
+      a.splice(to, 0, m);
+      return a;
+    });
+  }
+
   return (
     <div
       style={{
@@ -21,61 +54,23 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
       }}
     >
       <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 8, color: "#2D2D2D" }}>
-        견적 컬럼 (체크 + 순서 변경)
+        견적 컬럼 (체크 + 드래그로 순서 변경)
       </div>
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: "0.7rem", color: "#999", marginBottom: 4 }}>
-          표시 순서 (◀▶ 로 이동)
+          표시 순서 (드래그하여 이동)
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {visibleColumns.map((key, idx) => {
-            const col = QUOTE_COLUMNS.find((c) => c.key === key);
-            if (!col) return null;
-            return (
-              <div
-                key={key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  padding: "3px 6px",
-                  borderRadius: 6,
-                  background: "#fff",
-                  border: "1px solid rgba(90,21,21,0.2)",
-                  fontSize: 11,
-                }}
-              >
-                <ArrowBtn
-                  onClick={() =>
-                    setVisibleColumns((prev) => {
-                      if (idx === 0) return prev;
-                      const a = [...prev];
-                      [a[idx - 1], a[idx]] = [a[idx], a[idx - 1]];
-                      return a;
-                    })
-                  }
-                  disabled={idx === 0}
-                >
-                  ◀
-                </ArrowBtn>
-                <span style={{ fontWeight: 600, color: "#2D2D2D" }}>{col.label}</span>
-                <ArrowBtn
-                  onClick={() =>
-                    setVisibleColumns((prev) => {
-                      if (idx === prev.length - 1) return prev;
-                      const a = [...prev];
-                      [a[idx], a[idx + 1]] = [a[idx + 1], a[idx]];
-                      return a;
-                    })
-                  }
-                  disabled={idx === visibleColumns.length - 1}
-                >
-                  ▶
-                </ArrowBtn>
-              </div>
-            );
-          })}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={visibleColumns} strategy={rectSortingStrategy}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {visibleColumns.map((key) => {
+                const col = QUOTE_COLUMNS.find((c) => c.key === key);
+                if (!col) return null;
+                return <SortableChip key={key} id={key} label={col.label} />;
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {QUOTE_COLUMNS.map((col) => {
@@ -116,29 +111,26 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
   );
 }
 
-function ArrowBtn({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
+function SortableChip({ id, label }: { id: string; label: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: "grab",
+    userSelect: "none",
+    touchAction: "none",
+    padding: "4px 10px",
+    borderRadius: 6,
+    background: isDragging ? "#fff8e1" : "#fff",
+    border: "1px solid rgba(90,21,21,0.2)",
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#2D2D2D",
+  };
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        background: "none",
-        border: "none",
-        cursor: disabled ? "default" : "pointer",
-        padding: "0 2px",
-        fontSize: 11,
-        color: disabled ? "#ddd" : "var(--action)",
-      }}
-    >
-      {children}
-    </button>
+    <span ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {label}
+    </span>
   );
 }

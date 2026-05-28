@@ -185,7 +185,30 @@ export function useQuoteItems(p: Params) {
         const arr = [...prev];
         [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
         const reordered = arr.map((item, i) => ({ ...item, sort_order: i }));
-        // 서버에 persist (fire-and-forget)
+        void fetch("/api/quote", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "reorder",
+            items: reordered.map((item) => ({ id: item.id, sort_order: item.sort_order })),
+          }),
+        }).catch((e) => console.error("Failed to reorder:", e));
+        return reordered;
+      });
+    },
+    [],
+  );
+
+  /** 드래그&드롭: 임의 위치(fromIdx → toIdx)로 한번에 이동 */
+  const reorderItemTo = useCallback(
+    (fromIdx: number, toIdx: number) => {
+      if (fromIdx === toIdx) return;
+      setQuoteItems((prev) => {
+        if (fromIdx < 0 || fromIdx >= prev.length || toIdx < 0 || toIdx >= prev.length) return prev;
+        const arr = [...prev];
+        const [moved] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, moved);
+        const reordered = arr.map((item, i) => ({ ...item, sort_order: i }));
         void fetch("/api/quote", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -258,6 +281,7 @@ export function useQuoteItems(p: Params) {
     deleteQuoteItem,
     updateQuoteItem,
     moveItem,
+    reorderItemTo,
     clearAllQuote,
     // bottom sheet
     bottomSheetItem,
