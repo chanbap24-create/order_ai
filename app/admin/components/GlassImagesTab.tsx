@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * Admin 탭 — 글라스 이미지 관리.
- * glass_specs 목록 조회 + 품번별 이미지 업로드/삭제.
+ * Admin 탭 — 글라스 이미지/스펙 관리.
+ * 시리즈(앞 4자리) 별 collapsible 섹션 + 스펙 인라인 편집.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 
-type Spec = {
+export type Spec = {
   item_no: string;
   glass_code: string | null;
   series: string | null;
@@ -18,12 +18,18 @@ type Spec = {
   updated_at: string | null;
 };
 
+function seriesPrefix(code: string | null): string {
+  if (!code) return '기타';
+  const first = code.split('/')[0];
+  return first.padStart(4, '0');
+}
+
 export default function GlassImagesTab() {
   const [items, setItems] = useState<Spec[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'with' | 'without'>('all');
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState('');
 
   async function reload() {
@@ -36,9 +42,7 @@ export default function GlassImagesTab() {
       setLoading(false);
     }
   }
-  useEffect(() => {
-    reload();
-  }, []);
+  useEffect(() => { reload(); }, []);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -51,6 +55,25 @@ export default function GlassImagesTab() {
     });
   }, [items, search, filter]);
 
+  // 시리즈별 그룹핑 (prefix 4자리)
+  const groups = useMemo(() => {
+    const map = new Map<string, Spec[]>();
+    for (const it of filtered) {
+      const p = seriesPrefix(it.glass_code);
+      if (!map.has(p)) map.set(p, []);
+      map.get(p)!.push(it);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([prefix, arr]) => ({
+        prefix,
+        items: arr.sort((x, y) => (x.glass_code || '').localeCompare(y.glass_code || '')),
+        // 대표 시리즈명
+        seriesName: arr.find((x) => x.series)?.series || '',
+        withImg: arr.filter((x) => x.image_url).length,
+      }));
+  }, [filtered]);
+
   const stats = useMemo(() => {
     const total = items.length;
     const withImg = items.filter((i) => i.image_url).length;
@@ -58,7 +81,6 @@ export default function GlassImagesTab() {
   }, [items]);
 
   async function uploadFile(itemNo: string, file: File) {
-    setUploading(itemNo);
     try {
       const form = new FormData();
       form.set('file', file);
@@ -69,34 +91,44 @@ export default function GlassImagesTab() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error || '업로드 실패');
       setItems((prev) => prev.map((i) => (i.item_no === itemNo ? { ...i, image_url: json.image_url } : i)));
-      setToast(`✓ ${itemNo} 업로드 완료`);
-      setTimeout(() => setToast(''), 2000);
+      flash(`✓ ${itemNo} 이미지 업로드`);
     } catch (e) {
-      setToast(`✗ ${e instanceof Error ? e.message : '오류'}`);
-      setTimeout(() => setToast(''), 3000);
-    } finally {
-      setUploading(null);
+      flash(`✗ ${e instanceof Error ? e.message : '오류'}`);
     }
   }
 
   async function removeImage(itemNo: string) {
     if (!confirm(`${itemNo} 이미지를 삭제하시겠습니까?`)) return;
-    setUploading(itemNo);
     try {
-      const res = await fetch(`/api/admin/glass-images?item_no=${encodeURIComponent(itemNo)}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/admin/glass-images?item_no=${encodeURIComponent(itemNo)}`, { method: 'DELETE' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || '삭제 실패');
       setItems((prev) => prev.map((i) => (i.item_no === itemNo ? { ...i, image_url: null } : i)));
-      setToast(`✓ ${itemNo} 삭제 완료`);
-      setTimeout(() => setToast(''), 2000);
+      flash(`✓ ${itemNo} 삭제`);
     } catch (e) {
-      setToast(`✗ ${e instanceof Error ? e.message : '오류'}`);
-      setTimeout(() => setToast(''), 3000);
-    } finally {
-      setUploading(null);
+      flash(`✗ ${e instanceof Error ? e.message : '오류'}`);
     }
+  }
+
+  async function patchSpec(itemNo: string, body: Partial<Spec>) {
+    try {
+      const res = await fetch(`/api/admin/glass-images?item_no=${encodeURIComponent(itemNo)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || '저장 실패');
+      setItems((prev) => prev.map((i) => (i.item_no === itemNo ? { ...i, ...body } as Spec : i)));
+      flash(`✓ ${itemNo} 저장`);
+    } catch (e) {
+      flash(`✗ ${e instanceof Error ? e.message : '오류'}`);
+    }
+  }
+
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 1800);
   }
 
   if (loading) {
@@ -106,16 +138,14 @@ export default function GlassImagesTab() {
   return (
     <div>
       {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
           글라스 이미지 ({stats.total}개)
         </div>
         <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
           이미지 있음 {stats.withImg} · 없음 {stats.without}
         </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {(['all', 'with', 'without'] as const).map((k) => {
             const labels = { all: '전체', with: '이미지 있음', without: '이미지 없음' };
             return (
@@ -144,7 +174,6 @@ export default function GlassImagesTab() {
         </div>
       </div>
 
-      {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 24, right: 24, padding: '10px 16px',
@@ -153,93 +182,170 @@ export default function GlassImagesTab() {
         }}>{toast}</div>
       )}
 
-      {/* Grid */}
-      <div style={{
-        display: 'grid', gap: 12,
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-      }}>
-        {filtered.map((it) => (
-          <div key={it.item_no} style={{
-            background: 'var(--surface)', border: '1px solid var(--border-default)',
-            borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8,
-          }}>
-            {/* Image preview */}
-            <label
-              htmlFor={`file-${it.item_no}`}
-              style={{
-                position: 'relative', height: 160, background: '#f8f7f5',
-                borderRadius: 6, cursor: 'pointer', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                border: '1px dashed var(--border-default)',
-              }}
-            >
-              {it.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={it.image_url}
-                  alt={it.description || it.item_no}
-                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                />
-              ) : (
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>+ 클릭하여 업로드</span>
-              )}
-              {uploading === it.item_no && (
-                <div style={{
-                  position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 600, color: 'var(--action)',
-                }}>처리 중...</div>
-              )}
-            </label>
-            <input
-              id={`file-${it.item_no}`}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) uploadFile(it.item_no, f);
-                e.target.value = '';
-              }}
-            />
-
-            {/* Info */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ fontSize: 11, color: 'var(--action)', fontWeight: 700 }}>
-                {it.glass_code || '-'}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                {it.description || it.series || it.item_no}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                {it.series || '-'}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                {it.item_no}
-                {it.height_cm && ` · H: ${it.height_cm}cm`}
-                {it.capacity_ml && ` · C: ${it.capacity_ml}ml`}
-              </div>
-            </div>
-
-            {it.image_url && (
-              <button
-                onClick={() => removeImage(it.item_no)}
+      {/* 시리즈 섹션들 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {groups.map((g) => {
+          const isCollapsed = collapsed[g.prefix];
+          return (
+            <section key={g.prefix} style={{
+              background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 10,
+            }}>
+              <header
+                onClick={() => setCollapsed((p) => ({ ...p, [g.prefix]: !p[g.prefix] }))}
                 style={{
-                  height: 24, padding: '0 8px', borderRadius: 4,
-                  border: '1px solid var(--border-default)', background: 'var(--surface)',
-                  color: 'var(--text-tertiary)', fontSize: 11, cursor: 'pointer',
+                  cursor: 'pointer', padding: '10px 14px', display: 'flex',
+                  alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  borderBottom: isCollapsed ? 'none' : '1px solid var(--border-subtle)',
                 }}
-              >이미지 삭제</button>
-            )}
-          </div>
-        ))}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{isCollapsed ? '▶' : '▼'}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--action)' }}>{g.prefix}</span>
+                  {g.seriesName && <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>{g.seriesName}</span>}
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  {g.items.length}개 · 이미지 {g.withImg}/{g.items.length}
+                </span>
+              </header>
+              {!isCollapsed && (
+                <div style={{
+                  padding: 14,
+                  display: 'grid', gap: 12,
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                }}>
+                  {g.items.map((it) => (
+                    <SpecCard
+                      key={it.item_no}
+                      item={it}
+                      onUpload={(f) => uploadFile(it.item_no, f)}
+                      onRemove={() => removeImage(it.item_no)}
+                      onPatch={(b) => patchSpec(it.item_no, b)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })}
       </div>
 
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>
-          결과 없음
-        </div>
+      {groups.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>결과 없음</div>
       )}
     </div>
+  );
+}
+
+function SpecCard({
+  item, onUpload, onRemove, onPatch,
+}: {
+  item: Spec;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+  onPatch: (body: Partial<Spec>) => void;
+}) {
+  return (
+    <div style={{
+      background: 'var(--surface)', border: '1px solid var(--border-subtle)',
+      borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8,
+    }}>
+      <label
+        htmlFor={`file-${item.item_no}`}
+        style={{
+          position: 'relative', height: 140, background: '#f8f7f5', borderRadius: 6,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden', border: '1px dashed var(--border-default)',
+        }}
+      >
+        {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.image_url} alt={item.description || item.item_no}
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>+ 클릭하여 업로드</span>
+        )}
+      </label>
+      <input
+        id={`file-${item.item_no}`} type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ''; }}
+      />
+
+      <div style={{ fontSize: 11, color: 'var(--action)', fontWeight: 700 }}>{item.glass_code || '-'}</div>
+
+      <EditableField
+        label="이름"
+        value={item.description || ''}
+        onSave={(v) => onPatch({ description: v })}
+      />
+      <EditableField
+        label="시리즈"
+        value={item.series || ''}
+        onSave={(v) => onPatch({ series: v })}
+      />
+      <div style={{ display: 'flex', gap: 6 }}>
+        <EditableField
+          label="높이(cm)"
+          value={item.height_cm != null ? String(item.height_cm) : ''}
+          type="number"
+          onSave={(v) => onPatch({ height_cm: v === '' ? null : Number(v) })}
+        />
+        <EditableField
+          label="용량(ml)"
+          value={item.capacity_ml != null ? String(item.capacity_ml) : ''}
+          type="number"
+          onSave={(v) => onPatch({ capacity_ml: v === '' ? null : Number(v) })}
+        />
+      </div>
+
+      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{item.item_no}</div>
+
+      {item.image_url && (
+        <button
+          onClick={onRemove}
+          style={{
+            height: 24, padding: '0 8px', borderRadius: 4,
+            border: '1px solid var(--border-default)', background: 'var(--surface)',
+            color: 'var(--text-tertiary)', fontSize: 11, cursor: 'pointer',
+          }}
+        >이미지 삭제</button>
+      )}
+    </div>
+  );
+}
+
+/** 인라인 편집 필드 — blur/Enter 에 저장 */
+function EditableField({
+  label, value, type = 'text', onSave,
+}: {
+  label: string;
+  value: string;
+  type?: 'text' | 'number';
+  onSave: (v: string) => void;
+}) {
+  const [v, setV] = useState(value);
+  useEffect(() => { setV(value); }, [value]);
+  const dirty = v !== value;
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{label}</span>
+      <input
+        type={type}
+        value={v}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={() => { if (dirty) onSave(v); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.currentTarget.blur(); }
+          if (e.key === 'Escape') { setV(value); e.currentTarget.blur(); }
+        }}
+        style={{
+          height: 26, padding: '0 6px', borderRadius: 4,
+          border: `1px solid ${dirty ? 'var(--action)' : 'var(--border-subtle)'}`,
+          background: dirty ? 'rgba(90,21,21,0.04)' : 'var(--surface)',
+          fontSize: 12, color: 'var(--text-primary)', outline: 'none', minWidth: 0, width: '100%',
+        }}
+      />
+    </label>
   );
 }

@@ -83,6 +83,45 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/** PATCH: 스펙(height_cm, capacity_ml, series, description, glass_code, remark) 인라인 업데이트 */
+export async function PATCH(req: NextRequest) {
+  try {
+    const itemNo = req.nextUrl.searchParams.get('item_no');
+    if (!itemNo) {
+      return NextResponse.json({ error: 'item_no required' }, { status: 400 });
+    }
+    const body = await req.json();
+    const allowed = ['height_cm', 'capacity_ml', 'series', 'description', 'glass_code', 'remark'] as const;
+    const updates: Record<string, unknown> = {};
+    for (const k of allowed) {
+      if (k in body) {
+        const v = body[k];
+        if (k === 'height_cm' || k === 'capacity_ml') {
+          updates[k] = v === '' || v == null ? null : Number(v);
+        } else {
+          updates[k] = v === '' ? null : v;
+        }
+      }
+    }
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: '수정할 필드 없음' }, { status: 400 });
+    }
+    const { data, error } = await supabase
+      .from('glass_specs')
+      .update(updates)
+      .eq('item_no', itemNo)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return NextResponse.json({ success: true, item: data });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'Unknown error' },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const itemNo = req.nextUrl.searchParams.get('item_no');

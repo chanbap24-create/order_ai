@@ -94,7 +94,11 @@ export async function addQuoteItem(body: Body) {
     // wines 보강
     const wine = wineRes.data;
     if (wine) {
-      if (!brand) brand = wine.supplier || wine.brand || '';
+      // brand: supplier(풀네임) 우선 — wine.brand 는 보통 2~3자 약어(LM, FL, PF 등)
+      // brand 비었거나 짧은 약어(≤3자)면 supplier 풀네임으로 덮어씀
+      if (!brand || (brand.length <= 3 && wine.supplier)) {
+        brand = wine.supplier || wine.brand || '';
+      }
       if (!english_name) english_name = wine.item_name_en || '';
       if (!korean_name) korean_name = wine.item_name_kr || '';
       if (!region) region = wine.region || '';
