@@ -64,8 +64,10 @@ export async function POST() {
       }
     }
 
-    // 5. shipments 에서 담당자(manager) + 업종(business_type) 동기화
-    // wine/glass 두 테이블을 병렬 스캔 (기존: 순차)
+    // 5. shipments(와인) 에서 담당자(manager) + 업종(business_type) 동기화
+    // client_details 는 까브드뱅(CDV·와인) 코드 공간이므로 와인 출고에서만 동기화한다.
+    // 대유라이프(DL·글라스)는 거래처 코드 체계가 독립이라(같은 코드가 다른 회사)
+    // glass_shipments 를 섞으면 엉뚱한 법인 담당자로 덮어쓰는 코드 충돌이 발생.
     const batchSize2 = 1000;
     const clientInfo = new Map<string, { manager: string; business_type: string }>();
 
@@ -98,12 +100,9 @@ export async function POST() {
       return out;
     }
 
-    const [wineRows, glassRows] = await Promise.all([
-      collectFrom('shipments'),
-      collectFrom('glass_shipments'),
-    ]);
+    const wineRows = await collectFrom('shipments');
     // ship_date 내림차순이 이미 적용되어 있으므로 먼저 만난 항목을 유지 (첫 항목 우선)
-    for (const s of [...wineRows, ...glassRows]) {
+    for (const s of wineRows) {
       if (!clientInfo.has(s.client_code)) {
         clientInfo.set(s.client_code, { manager: s.manager, business_type: s.business_type });
       }
@@ -134,16 +133,25 @@ export async function POST() {
       for (let j = 0; j < codes.length; j += 200) {
         const chunk = codes.slice(j, j + 200);
         updatePromises.push(
-          supabase.from('client_details').update(updates).in('client_code', chunk),
+          supabase.from('client_details').update(updates).eq('client_type', 'wine').in('client_code', chunk),
         );
       }
     }
     await Promise.all(updatePromises);
 
+    // 보정: 가장 최근 1건의 manager 만으로 덮어쓰면 잘못된 매니저가 들어갈 수 있음
+    // → fn_sync_client_managers 로 최근 12개월 dominant manager + 퇴사자 제외 일괄 정정
+    let managerSynced = 0;
+    try {
+      const { data: synced, error: syncErr } = await supabase.rpc('fn_sync_client_managers');
+      if (!syncErr && Array.isArray(synced)) managerSynced = synced.length;
+    } catch { /* non-fatal */ }
+
     return NextResponse.json({
       success: true,
       inserted,
       bizUpdated,
+      managerSynced,
       total_wine: wineClients?.length || 0,
       total_glass: glassClients?.length || 0,
     });

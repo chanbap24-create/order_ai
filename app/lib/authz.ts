@@ -51,17 +51,12 @@ export async function canAccessClient(
     if (ship?.manager) return ship.manager === session.manager;
 
     // 출고 이력이 없는 글라스 거래처(신규 등록 직후 등): 거래명세표가 아직 업로드
-    // 되지 않은 상태이므로 마스터 데이터의 담당자란을 fallback 으로 사용.
-    //  ① client_details.manager — 거래명세표 업데이트 시 입력하는 담당자란
-    //  ② glass_client_carryover.manager — 이월 미수금 업로드 시 함께 들어가는 매니저
-    const { data: detail } = await supabase
-      .from('client_details')
-      .select('manager')
-      .eq('client_code', clientCode)
-      .not('manager', 'is', null)
-      .maybeSingle();
-    if (detail?.manager) return detail.manager === session.manager;
-
+    // 되지 않은 상태이므로 글라스 전용 마스터의 담당자를 fallback 으로 사용.
+    //  glass_client_carryover.manager — 이월 미수금 업로드 시 함께 들어가는 매니저
+    //
+    // ⚠️ client_details 는 와인(CDV) 코드 공간을 쓰는 테이블이라 fallback 으로 쓰면 안 됨.
+    // 까브드뱅·대유라이프는 거래처 코드 체계가 독립이라(같은 코드가 다른 회사) 글라스 권한
+    // 판정에 client_details 를 끌어오면 엉뚱한 법인 담당자로 통과/차단되는 코드 충돌이 발생.
     const { data: carry } = await supabase
       .from('glass_client_carryover')
       .select('manager')

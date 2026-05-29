@@ -116,11 +116,12 @@ async function syncClientMasters(
   }
   void insertResults;
 
-  // ── 2) 기존 row 의 manager UPDATE ──
-  // shipments → client_details.manager (client_type 무관: 인수인계 시 wine/glass 둘 다 반영)
-  // glass_shipments → glass_clients 는 manager 컬럼이 없어 client_details 만 업데이트
-  //   (client_details 에 같은 client_code 가 등록돼 있는 경우에만 작동)
-  // glass_client_carryover.manager 도 함께 업데이트해 authz fallback 일관성 유지
+  // ── 2) 기존 row 의 manager UPDATE (법인별 분리) ──
+  // 까브드뱅(CDV)·대유라이프(DL)는 거래처 코드 체계가 독립이라(같은 코드가 다른 회사)
+  // 한쪽 출고가 다른 쪽 마스터의 담당자를 덮어쓰면 안 된다.
+  //  - shipments(와인)      → client_details.manager (client_type='wine' 한정, 인수인계 반영)
+  //  - glass_shipments(글라스) → glass_client_carryover.manager 만 업데이트
+  //    (client_details 는 와인 코드 공간이므로 절대 건드리지 않음)
   let managerUpdated = 0;
   const managerGroups = new Map<string, string[]>();
   for (const [code, v] of seen) {
@@ -132,19 +133,13 @@ async function syncClientMasters(
   for (const [mgr, codes] of managerGroups) {
     for (let i = 0; i < codes.length; i += 200) {
       const chunk = codes.slice(i, i + 200);
-      const targets: Array<Promise<{ error: unknown }>> = [
-        supabase.from('client_details').update({ manager: mgr }).in('client_code', chunk),
-      ];
-      if (isGlass) {
-        targets.push(
-          supabase.from('glass_client_carryover').update({ manager: mgr }).in('client_code', chunk),
-        );
-      }
-      const results = await Promise.all(targets);
-      for (const r of results) {
-        if (r.error) {
-          logger.error(`[Shipments] manager update error`, { error: r.error, mgr });
-        }
+      const target = isGlass
+        ? supabase.from('glass_client_carryover').update({ manager: mgr }).in('client_code', chunk)
+        : supabase.from('client_details').update({ manager: mgr })
+            .eq('client_type', 'wine').in('client_code', chunk);
+      const { error } = await target;
+      if (error) {
+        logger.error(`[Shipments] manager update error`, { error, mgr, table });
       }
       managerUpdated += chunk.length;
     }
