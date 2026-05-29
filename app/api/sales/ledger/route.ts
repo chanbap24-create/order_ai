@@ -47,11 +47,25 @@ export async function GET(req: NextRequest) {
     const carryoverTable = isGlass ? 'glass_client_carryover' : 'client_carryover';
 
     // 거래처 정보 + 이름 확인
-    const { data: clientInfo } = isGlass
-      ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', safeClientCode).single()
-      : await supabase.from('client_details').select('client_code, client_name, client_type, manager, importance, business_type').eq('client_code', safeClientCode).single();
+    // glass: 이월미수금(carryover) 행이 없는 거래처는 이름이 누락되므로 glass_clients(마스터)로 fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let clientInfo: any = null;
+    if (isGlass) {
+      const { data: co } = await supabase.from('glass_client_carryover')
+        .select('client_code, client_name, carryover_amount').eq('client_code', safeClientCode).maybeSingle();
+      if (co?.client_name) clientInfo = co;
+      else {
+        const { data: gc } = await supabase.from('glass_clients')
+          .select('client_code, client_name').eq('client_code', safeClientCode).maybeSingle();
+        clientInfo = gc ?? co ?? null;
+      }
+    } else {
+      const { data } = await supabase.from('client_details')
+        .select('client_code, client_name, client_type, manager, importance, business_type').eq('client_code', safeClientCode).maybeSingle();
+      clientInfo = data;
+    }
 
-    let clientName = clientInfo?.client_name || searchParams.get('client_name') || '';
+    const clientName = clientInfo?.client_name || searchParams.get('client_name') || '';
 
     // 같은 거래처명의 모든 코드 수집 (가벼운 테이블에서만). sibling code 도 화이트리스트 통과 강제.
     const allCodes: string[] = [safeClientCode].filter(Boolean);

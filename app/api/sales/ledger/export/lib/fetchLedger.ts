@@ -20,10 +20,25 @@ export async function fetchLedgerData(
   const isGlass = clientType === 'glass';
   const safeClientCode = sanitizeCode(clientCode);
 
-  // 거래처 정보
-  const { data: clientInfo } = isGlass
-    ? await supabase.from('glass_client_carryover').select('client_code, client_name, carryover_amount').eq('client_code', safeClientCode).single()
-    : await supabase.from('client_details').select('client_code, client_name, client_type, manager').eq('client_code', safeClientCode).single();
+  // 거래처 정보 (이름)
+  // glass: 이월미수금(carryover) 행이 없는 거래처는 이름이 누락되므로
+  //        글라스 마스터(glass_clients) 로 fallback 한다. (wine 은 client_details 사용)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let clientInfo: any = null;
+  if (isGlass) {
+    const { data: co } = await supabase.from('glass_client_carryover')
+      .select('client_code, client_name').eq('client_code', safeClientCode).maybeSingle();
+    if (co?.client_name) clientInfo = co;
+    else {
+      const { data: gc } = await supabase.from('glass_clients')
+        .select('client_code, client_name').eq('client_code', safeClientCode).maybeSingle();
+      clientInfo = gc ?? null;
+    }
+  } else {
+    const { data } = await supabase.from('client_details')
+      .select('client_code, client_name, client_type, manager').eq('client_code', safeClientCode).maybeSingle();
+    clientInfo = data;
+  }
 
   const clientName = clientInfo?.client_name || '';
 
@@ -183,8 +198,10 @@ export async function fetchLedgerData(
     }
   }
 
+  // 이름 최종 안전망: 마스터에 없어도 출고 row 의 거래처명을 사용 (코드만 나오는 문제 방지)
+  const resolvedName = clientInfo?.client_name || allRows[0]?.client_name || clientCode;
   return {
-    client: clientInfo || { client_code: clientCode, client_name: clientCode },
+    client: { ...(clientInfo || {}), client_code: clientCode, client_name: resolvedName },
     rows: allRows, payments, prevBalance,
   };
 }
