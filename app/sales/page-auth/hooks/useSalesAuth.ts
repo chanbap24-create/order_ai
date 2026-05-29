@@ -64,18 +64,28 @@ export function useSalesAuth(setActiveTab: (t: SalesTabId) => void) {
   }, []);
 
   const acceptLogin = (data: { manager: string; role?: string; department?: string }) => {
-    setAuthenticated(true);
-    setCurrentManager(data.manager);
-    setIsAdmin(computeIsAdmin(data.role || '', data.department || ''));
-    setUserRole(data.role || '');
-    setUserDepartment(data.department || '');
-    if (data.role === 'executive') setActiveTab('analysis');
     saveAuthHint({
       authenticated: true,
       manager: data.manager,
       role: data.role || '',
       department: data.department || '',
     });
+    // 로그인 직후 전체 리로드로 Next.js 라우터 캐시를 초기화한다.
+    // 비로그인 상태에서 보호 페이지(/inventory, /order-v2 등) 링크가 prefetch 되면
+    // 미들웨어가 /sales 로 redirect 한 응답이 라우터 캐시에 박혀서, 로그인 후에도
+    // 메뉴를 눌러도 /sales 만 열리는 증상이 생긴다(새로고침하면 해소).
+    // authHint 를 먼저 저장하므로 리로드 후 로그인 화면 깜빡임 없이 인증 상태로 진입한다.
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+      return;
+    }
+    // SSR 안전망: window 가 없으면 기존처럼 state 만 갱신
+    setAuthenticated(true);
+    setCurrentManager(data.manager);
+    setIsAdmin(computeIsAdmin(data.role || '', data.department || ''));
+    setUserRole(data.role || '');
+    setUserDepartment(data.department || '');
+    if (data.role === 'executive') setActiveTab('analysis');
   };
 
   const logoutLocal = () => {
