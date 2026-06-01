@@ -14,6 +14,7 @@ const AnalysisTab = dynamic(() => import('../../components/AnalysisTab'), { ssr:
 const LedgerTab = dynamic(() => import('../../components/LedgerTab'), { ssr: false });
 const ItemLedgerTab = dynamic(() => import('../../components/ItemLedgerTab'), { ssr: false });
 const OutstandingTab = dynamic(() => import('../../components/OutstandingTab'), { ssr: false });
+const PaymentTermsTab = dynamic(() => import('../../components/PaymentTermsTab'), { ssr: false });
 const ClientListTab = dynamic(() => import('../../components/ClientListTab'), { ssr: false });
 const ExpenseTab = dynamic(() => import('../../components/ExpenseTab'), { ssr: false });
 
@@ -45,6 +46,8 @@ export function TabContent(p: Props) {
       return <ItemLedgerTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'outstanding':
       return <OutstandingTab currentManager={p.currentManager} isAdmin={p.isAdmin} initialManagers={p.managerList} />;
+    case 'payment-terms':
+      return <PaymentTermsTab currentManager={p.currentManager} isAdmin={p.isAdmin} initialManagers={p.managerList} />;
     case 'client-list':
       return <ClientListTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'alerts':

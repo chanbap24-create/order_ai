@@ -2,7 +2,7 @@
 
 export type SalesTabId =
   | 'meetings' | 'briefing' | 'shipments' | 'client-list' | 'analysis'
-  | 'ledger' | 'item-ledger' | 'outstanding' | 'alerts' | 'expense';
+  | 'ledger' | 'item-ledger' | 'outstanding' | 'payment-terms' | 'alerts' | 'expense';
 
 const TABS: { id: SalesTabId; label: string }[] = [
   { id: 'meetings', label: '미팅' },
@@ -13,12 +13,13 @@ const TABS: { id: SalesTabId; label: string }[] = [
   { id: 'alerts', label: '알림' },
   { id: 'analysis', label: '분석' },
   { id: 'outstanding', label: '미수현황' },
+  { id: 'payment-terms', label: '수금일 설정' },
   { id: 'ledger', label: '원장' },
   { id: 'item-ledger', label: '품목별' },
 ];
 
 const EXEC_TABS: Set<SalesTabId> = new Set([
-  'meetings', 'analysis', 'outstanding', 'ledger', 'item-ledger',
+  'meetings', 'analysis', 'outstanding', 'payment-terms', 'ledger', 'item-ledger',
 ]);
 
 interface SalesTabsProps {

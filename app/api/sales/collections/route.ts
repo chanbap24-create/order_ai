@@ -46,18 +46,21 @@ export async function PUT(req: NextRequest) {
     const manager = isAdmin(session.role) ? (body.manager || session.manager) : session.manager;
 
     const PAY_TYPES = ['prepay', 'eom', 'nm5', 'nm10', 'nm15', 'nm20'];
-    const row = {
+    // 부분 업데이트: body 에 들어온 필드만 갱신(나머지 컬럼은 기존값 유지).
+    // 결제일 설정 화면에서 payment_type 만 바꿔도 독촉/약속/메모가 지워지지 않도록.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row: Record<string, any> = {
       client_code: clientCode,
       client_type: clientType,
       manager,
-      stage: Number.isFinite(body.stage) ? Math.max(0, Math.min(3, Math.trunc(body.stage))) : 0,
-      status: ['open', 'promised', 'paid', 'hold'].includes(body.status) ? body.status : 'open',
-      promised_date: body.promised_date || null,
-      memo: typeof body.memo === 'string' ? body.memo.slice(0, 1000) : null,
-      payment_type: PAY_TYPES.includes(body.payment_type) ? body.payment_type : null,
       updated_at: new Date().toISOString(),
       updated_by: session.manager,
     };
+    if (body.stage !== undefined) row.stage = Math.max(0, Math.min(3, Math.trunc(Number(body.stage) || 0)));
+    if (body.status !== undefined) row.status = ['open', 'promised', 'paid', 'hold'].includes(body.status) ? body.status : 'open';
+    if ('promised_date' in body) row.promised_date = body.promised_date || null;
+    if ('memo' in body) row.memo = typeof body.memo === 'string' ? body.memo.slice(0, 1000) : null;
+    if ('payment_type' in body) row.payment_type = PAY_TYPES.includes(body.payment_type) ? body.payment_type : null;
 
     const { data, error } = await supabase
       .from('collection_followups')
