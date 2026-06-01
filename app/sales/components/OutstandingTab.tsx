@@ -4,9 +4,12 @@ import { useState } from 'react';
 import type { OutstandingType } from '../outstanding/types';
 import { getInitialDates } from '../outstanding/lib/format';
 import { useOutstanding } from '../outstanding/hooks/useOutstanding';
+import { useAging } from '../outstanding/hooks/useAging';
 import { useBulkExport } from '../outstanding/hooks/useBulkExport';
 import { FilterPanel } from '../outstanding/components/FilterPanel';
 import { OutstandingTable } from '../outstanding/components/OutstandingTable';
+import { AgingSummary } from '../outstanding/components/AgingSummary';
+import { AgingTable } from '../outstanding/components/AgingTable';
 import { ExportButtons } from '../outstanding/components/ExportButtons';
 import { exportSummaryExcel } from '../outstanding/lib/summaryExcel';
 import { Stack } from '@/app/components/ui';
@@ -26,10 +29,18 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
   // isAdmin/sales_admin 일 때 선택한 매니저, 일반 user 는 본인 매니저 그대로.
   const [selectedManager, setSelectedManager] = useState(currentManager);
 
+  const [view, setView] = useState<'balance' | 'aging'>('balance');
+  const [overdueOnly, setOverdueOnly] = useState(false);
+
   const effectiveManager = isAdmin ? selectedManager : currentManager;
   const list = useOutstanding({ currentManager: effectiveManager, startDate, endDate, type });
+  const aging = useAging({ currentManager: effectiveManager, type, asOf: endDate, enabled: view === 'aging' });
   const xport = useBulkExport({ checked: list.checked, startDate, endDate, type });
   const [summaryExporting, setSummaryExporting] = useState(false);
+
+  const agingRows = overdueOnly
+    ? aging.rows.filter(r => r.b_61_90 + r.b_90plus > 0)
+    : aging.rows;
 
   const handleExportSummary = async () => {
     if (list.clients.length === 0) return;
@@ -79,7 +90,47 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
         onManagerChange={setSelectedManager}
       />
 
-      {list.error && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden' }}>
+          {([['balance', '미수현황'], ['aging', '연령분석']] as const).map(([v, label]) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                padding: '6px 14px', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer',
+                background: view === v ? 'var(--action)' : 'var(--surface)',
+                color: view === v ? '#fff' : 'var(--text-secondary)',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {view === 'aging' && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={overdueOnly} onChange={e => setOverdueOnly(e.target.checked)} />
+            연체(61일+)만 보기
+          </label>
+        )}
+      </div>
+
+      {view === 'aging' && (
+        <>
+          {aging.error && <ErrorBox msg={aging.error} />}
+          {aging.loading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>불러오는 중…</div>}
+          {!aging.loading && agingRows.length > 0 && (
+            <>
+              <AgingSummary rows={agingRows} />
+              <AgingTable rows={agingRows} asOf={endDate} onSaveFollowup={aging.saveFollowup} />
+            </>
+          )}
+          {!aging.loading && agingRows.length === 0 && !aging.error && (
+            <EmptyBox msg={overdueOnly ? '연체(61일+) 거래처가 없습니다.' : '해당 담당자의 미수 거래처가 없습니다.'} />
+          )}
+        </>
+      )}
+
+      {view === 'balance' && list.error && (
         <div
           style={{
             padding: '10px 14px',
@@ -94,7 +145,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
         </div>
       )}
 
-      {list.clients.length > 0 && (
+      {view === 'balance' && list.clients.length > 0 && (
         <>
           <OutstandingTable
             clients={list.clients}
@@ -115,21 +166,31 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
         </>
       )}
 
-      {!list.loading && list.clients.length === 0 && !list.error && (
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            color: 'var(--text-muted)',
-            fontSize: 13,
-            background: 'var(--surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 10,
-          }}
-        >
-          해당 담당자의 거래처 미수현황이 없습니다.
-        </div>
+      {view === 'balance' && !list.loading && list.clients.length === 0 && !list.error && (
+        <EmptyBox msg="해당 담당자의 거래처 미수현황이 없습니다." />
       )}
     </Stack>
+  );
+}
+
+function ErrorBox({ msg }: { msg: string }) {
+  return (
+    <div style={{
+      padding: '10px 14px', background: 'rgba(220,38,38,0.04)',
+      border: '1px solid rgba(220,38,38,0.18)', borderRadius: 8, fontSize: 13, color: '#dc2626',
+    }}>
+      {msg}
+    </div>
+  );
+}
+
+function EmptyBox({ msg }: { msg: string }) {
+  return (
+    <div style={{
+      textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 13,
+      background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 10,
+    }}>
+      {msg}
+    </div>
   );
 }
