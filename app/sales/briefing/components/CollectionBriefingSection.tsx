@@ -83,10 +83,22 @@ function Editor({ item, onSave, onClose }: { item: CollItem; onSave: SaveFn; onC
   const defAmt = item.promised_amount ?? (item.overdue > 0 ? item.overdue : item.net_balance);
   const [date, setDate] = useState(item.promised_date ?? '');
   const [amount, setAmount] = useState(String(defAmt));
+
+  // 수금일 변경 시 그 날짜 기준 미수로 금액 재계산
+  const onDateChange = async (d: string) => {
+    setDate(d);
+    if (!d) return;
+    try {
+      const res = await fetch(`/api/sales/collections/balance?client_code=${encodeURIComponent(item.client_code)}&type=${item.client_type}&date=${d}`);
+      const j = await res.json();
+      if (typeof j.balance === 'number') setAmount(String(j.balance));
+    } catch { /* ignore */ }
+  };
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--surface-muted)', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
       <label style={lbl}>수금일</label>
-      <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp} />
+      <input type="date" value={date} onChange={e => onDateChange(e.target.value)} style={inp} />
       <label style={lbl}>금액</label>
       <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ ...inp, width: 120, textAlign: 'right' }} />
       <button
