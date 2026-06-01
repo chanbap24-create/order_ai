@@ -52,7 +52,9 @@ function addSheet(wb: ExcelJS.Workbook, name: string, clients: ScheduleClient[],
     const total = ws.getRow(r++);
     total.getCell(1).value = seq++; total.getCell(2).value = c.client_code; total.getCell(3).value = c.client_name;
     total.getCell(5).value = '누계';
-    total.getCell(6).value = 0; total.getCell(7).value = 0; total.getCell(8).value = 0; total.getCell(9).value = 0;
+    // 이달(마감 이후) 출고/수금
+    total.getCell(6).value = c.period_supply; total.getCell(7).value = c.period_tax;
+    total.getCell(8).value = c.period_total; total.getCell(9).value = c.period_payment;
     total.getCell(10).value = c.net_now;
     total.getCell(11).value = biz; total.getCell(12).value = c.client_name; total.getCell(13).value = dept; total.getCell(14).value = manager;
     if (cols.expected != null) total.getCell(15).value = cols.expected;

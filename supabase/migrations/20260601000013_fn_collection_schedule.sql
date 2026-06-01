@@ -1,9 +1,12 @@
--- 수금일정표 생성용: 매니저+법인 거래처별 현재미수(net_now) + 마감일 기준 미수(net_close=이월) + 결제조건.
--- 마감일: 생성일 day>=21 → 당월20일, 아니면 전월말. (1일·21일 작성 사이클)
+-- 수금일정표 생성용: 거래처별 현재미수(net_now)+마감일 기준 이월(net_close)
+--  + 이달(마감 이후 ~ 생성일) 출고/수금(공급/세액/판매/수금) + 결제조건.
+-- 마감일: 생성일 day>=21 → 당월20일, 아니면 전월말.
+DROP FUNCTION IF EXISTS public.fn_collection_schedule(text, text, date);
 CREATE OR REPLACE FUNCTION public.fn_collection_schedule(p_manager text, p_type text, p_as_of date DEFAULT CURRENT_DATE)
 RETURNS TABLE(
   client_code text, client_name text, business_type text,
   net_now bigint, net_close bigint,
+  period_supply bigint, period_tax bigint, period_total bigint, period_payment bigint,
   payment_type text, manual_amount boolean, close_date date
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $function$
@@ -50,11 +53,19 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $function$
         (SELECT COALESCE(SUM(carryover_amount),0) FROM client_carryover WHERE client_code=c.client_code)
         + (SELECT COALESCE(SUM(total_amount),0) FROM shipments WHERE client_code=c.client_code AND ship_date::date<=(SELECT d FROM cd_close))
         - (SELECT COALESCE(SUM(amount),0) FROM payments WHERE client_code=c.client_code AND payment_date::date<=(SELECT d FROM cd_close))
-      END)::bigint AS net_close
+      END)::bigint AS net_close,
+      (CASE WHEN p_type='glass' THEN (SELECT COALESCE(SUM(supply_amount),0) FROM glass_shipments WHERE client_code=c.client_code AND ship_date::date>(SELECT d FROM cd_close) AND ship_date::date<=p_as_of)
+        ELSE (SELECT COALESCE(SUM(supply_amount),0) FROM shipments WHERE client_code=c.client_code AND ship_date::date>(SELECT d FROM cd_close) AND ship_date::date<=p_as_of) END)::bigint AS period_supply,
+      (CASE WHEN p_type='glass' THEN (SELECT COALESCE(SUM(tax_amount),0) FROM glass_shipments WHERE client_code=c.client_code AND ship_date::date>(SELECT d FROM cd_close) AND ship_date::date<=p_as_of)
+        ELSE (SELECT COALESCE(SUM(tax_amount),0) FROM shipments WHERE client_code=c.client_code AND ship_date::date>(SELECT d FROM cd_close) AND ship_date::date<=p_as_of) END)::bigint AS period_tax,
+      (CASE WHEN p_type='glass' THEN (SELECT COALESCE(SUM(total_amount),0) FROM glass_shipments WHERE client_code=c.client_code AND ship_date::date>(SELECT d FROM cd_close) AND ship_date::date<=p_as_of)
+        ELSE (SELECT COALESCE(SUM(total_amount),0) FROM shipments WHERE client_code=c.client_code AND ship_date::date>(SELECT d FROM cd_close) AND ship_date::date<=p_as_of) END)::bigint AS period_total,
+      (CASE WHEN p_type='glass' THEN (SELECT COALESCE(SUM(amount),0) FROM glass_payments WHERE client_code=c.client_code AND payment_date::date>(SELECT d FROM cd_close) AND payment_date::date<=p_as_of)
+        ELSE (SELECT COALESCE(SUM(amount),0) FROM payments WHERE client_code=c.client_code AND payment_date::date>(SELECT d FROM cd_close) AND payment_date::date<=p_as_of) END)::bigint AS period_payment
     FROM dedup c
   )
   SELECT calc.client_code, calc.client_name, calc.business_type,
-    calc.net_now, calc.net_close,
+    calc.net_now, calc.net_close, calc.period_supply, calc.period_tax, calc.period_total, calc.period_payment,
     f.payment_type, COALESCE(f.manual_amount,false), (SELECT d FROM cd_close)
   FROM calc
   LEFT JOIN collection_followups f ON f.client_code=calc.client_code AND f.client_type=p_type

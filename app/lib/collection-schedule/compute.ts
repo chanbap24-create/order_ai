@@ -11,6 +11,11 @@ export interface ScheduleClient {
   business_type: string | null;
   net_now: number;
   net_close: number;
+  // 기간(마감 이후 ~ 생성일) 출고/수금 — 누계 행 공급/세액/판매/수금 컬럼용
+  period_supply: number;
+  period_tax: number;
+  period_total: number;
+  period_payment: number;
   payment_type: PaymentType | null;
   manual_amount: boolean;
 }
