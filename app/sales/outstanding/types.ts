@@ -33,6 +33,7 @@ export interface AgingClient {
   last_payment_date: string | null;
   last_payment_amount: number;  // 최근 수금 1건 금액
   paid_90d: number;             // 최근 3개월(90일) 수금 합계
+  overdue: number;              // 결제조건(수금일) 기준 예정일이 지난 미수
 }
 
 export type FollowupStatus = 'open' | 'promised' | 'paid' | 'hold';

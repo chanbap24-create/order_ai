@@ -10,19 +10,21 @@ export function AgingSummary({ rows, recentPaymentTotal }: { rows: AgingRow[]; r
   const t = rows.reduce(
     (a, r) => ({
       net: a.net + r.net_balance,
+      over: a.over + r.overdue,
       cur: a.cur + r.b_cur,
       m1: a.m1 + r.b_m1,
       m2: a.m2 + r.b_m2,
       m3: a.m3 + r.b_m3,
       paid: a.paid + r.paid_90d,
     }),
-    { net: 0, cur: 0, m1: 0, m2: 0, m3: 0, paid: 0 },
+    { net: 0, over: 0, cur: 0, m1: 0, m2: 0, m3: 0, paid: 0 },
   );
   // 전체 수금 합계가 있으면 그 값을, 없으면 표 합산 fallback.
   const paidTotal = recentPaymentTotal != null ? recentPaymentTotal : t.paid;
 
   const cards: Array<{ label: string; value: number; danger?: boolean; warn?: boolean; good?: boolean }> = [
     { label: '미수 총액', value: t.net },
+    { label: '연체(예정일 경과)', value: t.over, danger: true },
     { label: '당월', value: t.cur },
     { label: '1개월', value: t.m1 },
     { label: '2개월', value: t.m2, warn: true },
