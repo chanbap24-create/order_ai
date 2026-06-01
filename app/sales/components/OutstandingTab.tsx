@@ -154,7 +154,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
           {!aging.loading && agingRows.length > 0 && (
             <>
               <AgingSummary rows={agingRows} recentPaymentTotal={aging.recentPaymentTotal} />
-              <AgingTable rows={agingRows} asOf={endDate} onSaveFollowup={aging.saveFollowup} />
+              <AgingTable rows={agingRows} asOf={endDate} clientType={type} onSaveFollowup={aging.saveFollowup} />
             </>
           )}
           {!aging.loading && agingRows.length === 0 && !aging.error && (

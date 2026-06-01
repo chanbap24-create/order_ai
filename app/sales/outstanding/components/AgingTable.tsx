@@ -9,6 +9,7 @@ import { FollowupCell } from './FollowupCell';
 type Props = {
   rows: AgingRow[];
   asOf: string;
+  clientType: import('../types').OutstandingType;
   onSaveFollowup: (clientCode: string, patch: Partial<Followup>) => void;
 };
 
@@ -42,7 +43,7 @@ function getVal(r: AgingRow, key: SortKey, asOf: string): number | string {
   }
 }
 
-export function AgingTable({ rows, asOf, onSaveFollowup }: Props) {
+export function AgingTable({ rows, asOf, clientType, onSaveFollowup }: Props) {
   const [sort, setSort] = useState<SortState | null>(null);
 
   const sorted = useMemo(() => {
@@ -109,7 +110,7 @@ export function AgingTable({ rows, asOf, onSaveFollowup }: Props) {
                   {r.last_payment_date ? r.last_payment_date.slice(2) : '–'}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'left' }}>
-                  <FollowupCell clientCode={r.client_code} followup={r.followup} defaultAmount={r.overdue > 0 ? r.overdue : r.net_balance} onSave={onSaveFollowup} />
+                  <FollowupCell clientCode={r.client_code} clientType={clientType} followup={r.followup} defaultAmount={r.overdue > 0 ? r.overdue : r.net_balance} onSave={onSaveFollowup} />
                 </td>
               </tr>
             );

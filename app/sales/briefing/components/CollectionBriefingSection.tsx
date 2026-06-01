@@ -5,12 +5,16 @@ import type { CSSProperties } from 'react';
 import type { CollItem, CollectionBriefing } from '../hooks/useCollectionBriefing';
 
 const fmt = (n: number) => n.toLocaleString();
-const ENTITY = (t: string) => (t === 'glass' ? '대유라이프' : '까브드뱅');
 const keyOf = (it: CollItem) => `${it.client_code}|${it.client_type}`;
 
 type SaveFn = (clientCode: string, clientType: string, patch: Record<string, unknown>) => void;
 
-// 오늘의 수금 브리핑 — 약속어김 / 오늘약속 / 연체(특별관리). 행 클릭 시 수금일·금액 지정.
+// 오늘의 수금 브리핑 — 까브드뱅/대유라이프 분리, 각 약속어김/오늘약속/연체.
+const GROUPS: Array<{ type: string; label: string; color: string }> = [
+  { type: 'wine', label: '까브드뱅', color: '#8B1538' },
+  { type: 'glass', label: '대유라이프', color: '#1565C0' },
+];
+
 export function CollectionBriefingSection({ data, onSave }: { data: CollectionBriefing; onSave?: SaveFn }) {
   const { broken, promiseToday, overdue } = data;
   const [editing, setEditing] = useState<string | null>(null);
@@ -27,9 +31,23 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
           {data.counts.special > 0 && <span style={{ color: '#dc2626' }}> (특별관리 {data.counts.special})</span>}
         </span>
       </div>
-      <Block title="🚨 약속 어김" color="#dc2626" items={broken} mode="broken" {...blockProps} />
-      <Block title="📅 오늘 수금 약속" color="#2563eb" items={promiseToday} mode="today" {...blockProps} />
-      <Block title="⏰ 연체 (예정일 경과)" color="#d97706" items={overdue} mode="overdue" {...blockProps} />
+
+      {GROUPS.map(g => {
+        const gb = broken.filter(x => x.client_type === g.type);
+        const gt = promiseToday.filter(x => x.client_type === g.type);
+        const go = overdue.filter(x => x.client_type === g.type);
+        if (gb.length + gt.length + go.length === 0) return null;
+        return (
+          <div key={g.type}>
+            <div style={{ padding: '8px 16px', fontSize: 13, fontWeight: 800, color: '#fff', background: g.color }}>
+              {g.label} <span style={{ fontWeight: 600, opacity: 0.85 }}>({gb.length + gt.length + go.length})</span>
+            </div>
+            <Block title="🚨 약속 어김" color="#dc2626" items={gb} mode="broken" {...blockProps} />
+            <Block title="📅 오늘 수금 약속" color="#2563eb" items={gt} mode="today" {...blockProps} />
+            <Block title="⏰ 연체 (예정일 경과)" color="#d97706" items={go} mode="overdue" {...blockProps} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -56,7 +74,6 @@ function Block({ title, color, items, mode, editing, setEditing, onSave }: Block
               <div style={{ minWidth: 0, flex: '1 1 auto' }}>
                 <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{it.client_name}</span>
                 {it.special && <span style={badge}>특별관리</span>}
-                <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-tertiary)' }}>{ENTITY(it.client_type)}</span>
                 {it.promised_amount != null && <span style={{ marginLeft: 6, fontSize: 11, color: '#2563eb', fontWeight: 700 }}>약속 {fmt(it.promised_amount)}</span>}
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>

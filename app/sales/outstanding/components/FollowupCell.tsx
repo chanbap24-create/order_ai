@@ -1,10 +1,12 @@
 'use client';
 
+import { useRef } from 'react';
 import type { CSSProperties } from 'react';
-import type { Followup, FollowupStatus } from '../types';
+import type { Followup, FollowupStatus, OutstandingType } from '../types';
 
 type Props = {
   clientCode: string;
+  clientType: OutstandingType;
   followup?: Followup;
   /** 약속 금액 기본값(미설정 시 prefill) — 보통 연체/미수금 */
   defaultAmount?: number;
@@ -19,10 +21,25 @@ const STATUS_COLOR: Record<FollowupStatus, string> = {
 };
 
 // 행별 수금 워크플로우 입력: 독촉 차수 / 상태 / 약속일 / 메모
-export function FollowupCell({ clientCode, followup, defaultAmount, onSave }: Props) {
+export function FollowupCell({ clientCode, clientType, followup, defaultAmount, onSave }: Props) {
   const stage = followup?.stage ?? 0;
   const status = followup?.status ?? 'open';
   const amtDefault = followup?.promised_amount ?? (defaultAmount && defaultAmount > 0 ? defaultAmount : null);
+  const amtRef = useRef<HTMLInputElement>(null);
+
+  // 수금일 변경 → 그 날짜 기준 미수로 금액 재계산
+  const onDateChange = async (d: string) => {
+    onSave(clientCode, { promised_date: d || null });
+    if (!d) return;
+    try {
+      const res = await fetch(`/api/sales/collections/balance?client_code=${encodeURIComponent(clientCode)}&type=${clientType}&date=${d}`);
+      const j = await res.json();
+      if (typeof j.balance === 'number') {
+        if (amtRef.current) amtRef.current.value = String(j.balance);
+        onSave(clientCode, { promised_amount: j.balance });
+      }
+    } catch { /* ignore */ }
+  };
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
@@ -53,16 +70,17 @@ export function FollowupCell({ clientCode, followup, defaultAmount, onSave }: Pr
         type="date"
         aria-label="수금 약속일"
         value={followup?.promised_date ?? ''}
-        onChange={e => onSave(clientCode, { promised_date: e.target.value || null })}
+        onChange={e => onDateChange(e.target.value)}
         style={{ ...inputStyle, width: 120 }}
       />
 
       <input
+        ref={amtRef}
         type="number"
         aria-label="수금 약속 금액"
         placeholder="금액"
         defaultValue={amtDefault ?? ''}
-        key={`amt-${amtDefault ?? ''}`}
+        key={`amt-${clientCode}-${amtDefault ?? ''}`}
         onBlur={e => {
           const v = e.target.value.trim();
           const num = v === '' ? null : Math.trunc(Number(v));
