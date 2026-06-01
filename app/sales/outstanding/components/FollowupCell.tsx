@@ -22,14 +22,14 @@ export function FollowupCell({ clientCode, followup, onSave }: Props) {
   const status = followup?.status ?? 'open';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
       <select
         aria-label="독촉 차수"
         value={stage}
         onChange={e => onSave(clientCode, { stage: Number(e.target.value) })}
-        style={selStyle}
+        style={{ ...selStyle, color: stage > 0 ? '#dc2626' : 'var(--text-tertiary)', fontWeight: stage > 0 ? 700 : 400 }}
       >
-        <option value={0}>독촉 없음</option>
+        <option value={0}>독촉–</option>
         <option value={1}>1차</option>
         <option value={2}>2차</option>
         <option value={3}>3차</option>
@@ -51,7 +51,7 @@ export function FollowupCell({ clientCode, followup, onSave }: Props) {
         aria-label="수금 약속일"
         value={followup?.promised_date ?? ''}
         onChange={e => onSave(clientCode, { promised_date: e.target.value || null })}
-        style={inputStyle}
+        style={{ ...inputStyle, width: 120 }}
       />
 
       <input
@@ -63,17 +63,17 @@ export function FollowupCell({ clientCode, followup, onSave }: Props) {
           const v = e.target.value.trim();
           if (v !== (followup?.memo ?? '')) onSave(clientCode, { memo: v || null });
         }}
-        style={{ ...inputStyle, width: 130 }}
+        style={{ ...inputStyle, width: 110 }}
       />
     </div>
   );
 }
 
 const selStyle: CSSProperties = {
-  padding: '4px 6px', fontSize: 12, borderRadius: 6,
+  padding: '4px 6px', fontSize: 12, borderRadius: 6, flexShrink: 0,
   border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)',
 };
 const inputStyle: CSSProperties = {
-  padding: '4px 8px', fontSize: 12, borderRadius: 6,
+  padding: '4px 6px', fontSize: 12, borderRadius: 6, flexShrink: 0,
   border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-primary)',
 };
