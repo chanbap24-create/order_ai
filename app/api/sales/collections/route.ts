@@ -45,7 +45,7 @@ export async function PUT(req: NextRequest) {
     // 매니저: 관리자는 body 지정 가능, 일반 영업자는 본인.
     const manager = isAdmin(session.role) ? (body.manager || session.manager) : session.manager;
 
-    const PAY_TYPES = ['prepay', 'eom', 'nm5', 'nm10', 'nm15', 'nm20'];
+    const PAY_TYPES = ['prepay', 'eom', 'nm5', 'nm10', 'nm15', 'nm20', 'nme'];
     // 부분 업데이트: body 에 들어온 필드만 갱신(나머지 컬럼은 기존값 유지).
     // 결제일 설정 화면에서 payment_type 만 바꿔도 독촉/약속/메모가 지워지지 않도록.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
