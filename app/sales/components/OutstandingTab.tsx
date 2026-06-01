@@ -39,7 +39,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
   const [summaryExporting, setSummaryExporting] = useState(false);
 
   const agingRows = overdueOnly
-    ? aging.rows.filter(r => r.b_61_90 + r.b_90plus > 0)
+    ? aging.rows.filter(r => r.b_m2 + r.b_m3 > 0)
     : aging.rows;
 
   const handleExportSummary = async () => {
@@ -109,7 +109,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
         {view === 'aging' && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
             <input type="checkbox" checked={overdueOnly} onChange={e => setOverdueOnly(e.target.checked)} />
-            연체(61일+)만 보기
+            연체(2개월+)만 보기
           </label>
         )}
       </div>
@@ -125,7 +125,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
             </>
           )}
           {!aging.loading && agingRows.length === 0 && !aging.error && (
-            <EmptyBox msg={overdueOnly ? '연체(61일+) 거래처가 없습니다.' : '해당 담당자의 미수 거래처가 없습니다.'} />
+            <EmptyBox msg={overdueOnly ? '연체(2개월+) 거래처가 없습니다.' : '해당 담당자의 미수 거래처가 없습니다.'} />
           )}
         </>
       )}

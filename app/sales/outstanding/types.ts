@@ -20,17 +20,19 @@ export interface OutstandingTotals {
   outstanding: number;
 }
 
-// ── 미수금 연령 분석(Aging) ──
+// ── 미수금 연령 분석(Aging) — 달력 월 경과 기준(당월/1·2·3개월+) ──
 export interface AgingClient {
   client_code: string;
   client_name: string;
   net_balance: number;
-  b_0_30: number;
-  b_31_60: number;
-  b_61_90: number;
-  b_90plus: number;
+  b_cur: number;    // 당월
+  b_m1: number;     // 1개월 경과
+  b_m2: number;     // 2개월 경과
+  b_m3: number;     // 3개월 이상 경과
   oldest_unpaid_date: string | null;
   last_payment_date: string | null;
+  last_payment_amount: number;  // 최근 수금 1건 금액
+  paid_90d: number;             // 최근 3개월(90일) 수금 합계
 }
 
 export type FollowupStatus = 'open' | 'promised' | 'paid' | 'hold';
