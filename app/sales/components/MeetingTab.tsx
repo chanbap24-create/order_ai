@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { ImportScheduleItem } from '@/app/types/wine';
 import type { Meeting } from '../meeting/types';
 import { useMeetings } from '../meeting/hooks/useMeetings';
+import { useCollectionMarkers } from '../meeting/hooks/useCollectionMarkers';
 import { useMeetingModal } from '../meeting/hooks/useMeetingModal';
 import { useMeetingDetail } from '../meeting/hooks/useMeetingDetail';
 import { useReminders } from '../meeting/hooks/useReminders';
@@ -110,6 +111,13 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
   }
   const importDates = Object.keys(importByDate).sort();
 
+  // 수금 마커(수금약속일/특별관리) — 현재 보이는 기간
+  const collectionByDate = useCollectionMarkers(
+    data.filterManager,
+    formatDate(data.weekStart),
+    formatDate(data.weekEnd),
+  );
+
   const todayStr = formatDate(new Date());
   const rangeLabel =
     data.viewMode === 'week'
@@ -141,6 +149,7 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
             meetings={data.meetings}
             meetingsByDate={meetingsByDate}
             importByDate={importByDate}
+            collectionByDate={collectionByDate}
             holidays={data.holidays}
             todayStr={todayStr}
             onCreateMeeting={modal.openCreateModal}

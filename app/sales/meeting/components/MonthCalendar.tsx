@@ -2,6 +2,7 @@
 
 import type { ImportScheduleItem } from "@/app/types/wine";
 import type { Meeting } from "../types";
+import type { CollMarker } from "../hooks/useCollectionMarkers";
 import { DAYS_KR, MEETING_TYPES } from "../constants";
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
   meetings: Meeting[];
   meetingsByDate: Record<string, Meeting[]>;
   importByDate: Record<string, { brands: string[]; items: ImportScheduleItem[] }>;
+  collectionByDate?: Record<string, CollMarker[]>;
   holidays: Record<string, string>;
   todayStr: string;
   onCreateMeeting: (date: string) => void;
@@ -94,6 +96,7 @@ export function MonthCalendar(p: Props) {
             const holidayName = p.holidays[dateStr];
             const isHoliday = !!holidayName;
             const dayImport = p.importByDate[dateStr];
+            const dayColl = p.collectionByDate?.[dateStr];
 
             return (
               <div
@@ -202,6 +205,37 @@ export function MonthCalendar(p: Props) {
                     }}
                   >
                     +{dayMeetings.length - 3}건
+                  </div>
+                )}
+
+                {dayColl && dayColl.length > 0 && (
+                  <div style={{ marginTop: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                    {dayColl.slice(0, 2).map((c, i) => {
+                      const isPromise = c.kind === "promise";
+                      return (
+                        <div
+                          key={`${c.client_code}_${i}`}
+                          onClick={(e) => e.stopPropagation()}
+                          title={`수금 ${c.amount.toLocaleString()}원`}
+                          style={{
+                            fontSize: 9,
+                            padding: "1px 4px",
+                            borderRadius: 3,
+                            fontWeight: 700,
+                            background: isPromise ? "#E3F2FD" : "#FDECEA",
+                            color: isPromise ? "#1565C0" : "#c62828",
+                            overflow: "hidden",
+                            whiteSpace: "nowrap",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          💰{c.special ? "★" : ""} {c.client_name}
+                        </div>
+                      );
+                    })}
+                    {dayColl.length > 2 && (
+                      <span style={{ fontSize: 9, color: "#c62828", fontWeight: 600 }}>+{dayColl.length - 2}</span>
+                    )}
                   </div>
                 )}
 
