@@ -10,6 +10,7 @@ export interface CollItem {
   overdue: number;
   days_overdue: number;
   promised_date: string | null;
+  promised_amount: number | null;
   stage: number;
   status: string;
   special: boolean;
@@ -43,5 +44,18 @@ export function useCollectionBriefing(currentManager: string) {
 
   useEffect(() => { load(); }, [load]);
 
-  return { data, loading };
+  // 수금일/금액 등 저장 후 재조회
+  const saveFollowup = useCallback(async (clientCode: string, clientType: string, patch: Record<string, unknown>) => {
+    try {
+      const res = await fetch('/api/sales/collections', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_code: clientCode, client_type: clientType, manager: currentManager, ...patch }),
+      });
+      if (!res.ok) throw new Error('저장 실패');
+      await load();
+    } catch { /* ignore */ }
+  }, [currentManager, load]);
+
+  return { data, loading, saveFollowup };
 }

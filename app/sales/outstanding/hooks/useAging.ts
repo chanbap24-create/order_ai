@@ -52,6 +52,7 @@ export function useAging({ currentManager, type, asOf, enabled = true }: Args) {
       stage: patch.stage ?? prev?.stage ?? 0,
       status: patch.status ?? prev?.status ?? 'open',
       promised_date: patch.promised_date !== undefined ? patch.promised_date : (prev?.promised_date ?? null),
+      promised_amount: patch.promised_amount !== undefined ? patch.promised_amount : (prev?.promised_amount ?? null),
       memo: patch.memo !== undefined ? patch.memo : (prev?.memo ?? null),
       payment_type: patch.payment_type !== undefined ? patch.payment_type : (prev?.payment_type ?? null),
     };

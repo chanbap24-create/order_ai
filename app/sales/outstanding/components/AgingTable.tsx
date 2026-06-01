@@ -109,7 +109,7 @@ export function AgingTable({ rows, asOf, onSaveFollowup }: Props) {
                   {r.last_payment_date ? r.last_payment_date.slice(2) : '–'}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'left' }}>
-                  <FollowupCell clientCode={r.client_code} followup={r.followup} onSave={onSaveFollowup} />
+                  <FollowupCell clientCode={r.client_code} followup={r.followup} defaultAmount={r.overdue > 0 ? r.overdue : r.net_balance} onSave={onSaveFollowup} />
                 </td>
               </tr>
             );

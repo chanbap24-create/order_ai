@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('collection_followups')
-      .select('client_code, client_type, stage, status, promised_date, memo, payment_type, updated_at')
+      .select('client_code, client_type, stage, status, promised_date, promised_amount, memo, payment_type, updated_at')
       .eq('manager', manager)
       .eq('client_type', clientType);
     if (error) throw error;
@@ -59,13 +59,14 @@ export async function PUT(req: NextRequest) {
     if (body.stage !== undefined) row.stage = Math.max(0, Math.min(3, Math.trunc(Number(body.stage) || 0)));
     if (body.status !== undefined) row.status = ['open', 'promised', 'paid', 'hold'].includes(body.status) ? body.status : 'open';
     if ('promised_date' in body) row.promised_date = body.promised_date || null;
+    if ('promised_amount' in body) row.promised_amount = (body.promised_amount === null || body.promised_amount === '') ? null : Math.trunc(Number(body.promised_amount)) || null;
     if ('memo' in body) row.memo = typeof body.memo === 'string' ? body.memo.slice(0, 1000) : null;
     if ('payment_type' in body) row.payment_type = PAY_TYPES.includes(body.payment_type) ? body.payment_type : null;
 
     const { data, error } = await supabase
       .from('collection_followups')
       .upsert(row, { onConflict: 'client_code,client_type' })
-      .select('client_code, client_type, stage, status, promised_date, memo, payment_type, updated_at')
+      .select('client_code, client_type, stage, status, promised_date, promised_amount, memo, payment_type, updated_at')
       .single();
     if (error) throw error;
     return NextResponse.json({ followup: data });

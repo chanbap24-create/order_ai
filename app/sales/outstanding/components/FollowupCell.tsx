@@ -6,6 +6,8 @@ import type { Followup, FollowupStatus } from '../types';
 type Props = {
   clientCode: string;
   followup?: Followup;
+  /** 약속 금액 기본값(미설정 시 prefill) — 보통 연체/미수금 */
+  defaultAmount?: number;
   onSave: (clientCode: string, patch: Partial<Followup>) => void;
 };
 
@@ -17,9 +19,10 @@ const STATUS_COLOR: Record<FollowupStatus, string> = {
 };
 
 // 행별 수금 워크플로우 입력: 독촉 차수 / 상태 / 약속일 / 메모
-export function FollowupCell({ clientCode, followup, onSave }: Props) {
+export function FollowupCell({ clientCode, followup, defaultAmount, onSave }: Props) {
   const stage = followup?.stage ?? 0;
   const status = followup?.status ?? 'open';
+  const amtDefault = followup?.promised_amount ?? (defaultAmount && defaultAmount > 0 ? defaultAmount : null);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
@@ -52,6 +55,20 @@ export function FollowupCell({ clientCode, followup, onSave }: Props) {
         value={followup?.promised_date ?? ''}
         onChange={e => onSave(clientCode, { promised_date: e.target.value || null })}
         style={{ ...inputStyle, width: 120 }}
+      />
+
+      <input
+        type="number"
+        aria-label="수금 약속 금액"
+        placeholder="금액"
+        defaultValue={amtDefault ?? ''}
+        key={`amt-${amtDefault ?? ''}`}
+        onBlur={e => {
+          const v = e.target.value.trim();
+          const num = v === '' ? null : Math.trunc(Number(v));
+          if (num !== (followup?.promised_amount ?? null)) onSave(clientCode, { promised_amount: num });
+        }}
+        style={{ ...inputStyle, width: 96, textAlign: 'right' }}
       />
 
       <input

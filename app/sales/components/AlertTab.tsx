@@ -33,7 +33,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
   const alt = useAlternatives();
 
   // 수금 연체(스캔 불필요 — 즉시 로드). 재고 알림 + 수금 연체 합산을 뱃지에 반영.
-  const { data: collData } = useCollectionBriefing(selectedManager);
+  const { data: collData, saveFollowup: saveColl } = useCollectionBriefing(selectedManager);
   const collCount = collData ? collData.counts.broken + collData.counts.overdue : 0;
   useEffect(() => {
     onCountChange?.(alertsState.counts.total + collCount);
@@ -108,7 +108,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
         onShowDismissed={() => setShowDismissed(true)}
       />
 
-      {collData && <CollectionBriefingSection data={collData} />}
+      {collData && <CollectionBriefingSection data={collData} onSave={saveColl} />}
 
       {!selectedManager && (
         <EmptyState message="담당자를 선택하면 해당 거래처의 재고 부족 와인을 확인합니다." />

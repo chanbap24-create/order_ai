@@ -22,7 +22,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
     useBriefingMeetings({ todayStr, currentManager, isAdmin, onToast: setToast });
 
   const { wineShipments, glassShipments } = useTodayShipments(currentManager, isAdmin);
-  const { data: collections } = useCollectionBriefing(currentManager);
+  const { data: collections, saveFollowup: saveCollection } = useCollectionBriefing(currentManager);
 
   const { quoteCols, toggle: toggleCol, reset: resetCols } = useQuoteCols();
   const { quoteLoadingId, createQuoteFromBriefing } =
@@ -48,7 +48,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      {collections && <CollectionBriefingSection data={collections} />}
+      {collections && <CollectionBriefingSection data={collections} onSave={saveCollection} />}
 
       {meetings.length > 0 && (
         <BriefingHeader

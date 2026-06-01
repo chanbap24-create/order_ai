@@ -44,6 +44,7 @@ export interface Followup {
   stage: number;            // 0=없음, 1/2/3 독촉 차수
   status: FollowupStatus;
   promised_date: string | null;
+  promised_amount: number | null;  // 수금 약속 금액
   memo: string | null;
   payment_type: import('../lib/dueDate').PaymentType | null;  // 결제 조건(수금일)
   updated_at?: string;
