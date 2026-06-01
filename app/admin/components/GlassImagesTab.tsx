@@ -185,13 +185,14 @@ export default function GlassImagesTab() {
       {/* 시리즈 섹션들 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {groups.map((g) => {
-          const isCollapsed = collapsed[g.prefix];
+          // 기본: 모두 접힘. 사용자가 한 번 클릭한 그룹은 그 상태 기억.
+          const isCollapsed = collapsed[g.prefix] ?? true;
           return (
             <section key={g.prefix} style={{
               background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 10,
             }}>
               <header
-                onClick={() => setCollapsed((p) => ({ ...p, [g.prefix]: !p[g.prefix] }))}
+                onClick={() => setCollapsed((p) => ({ ...p, [g.prefix]: !isCollapsed }))}
                 style={{
                   cursor: 'pointer', padding: '10px 14px', display: 'flex',
                   alignItems: 'center', justifyContent: 'space-between', gap: 12,
