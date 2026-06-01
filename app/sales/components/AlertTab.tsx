@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DismissedTab from './DismissedTab';
 import type { FilterType } from '../alert/types';
 import { useManagers } from '../alert/hooks/useManagers';
 import { useAlerts } from '../alert/hooks/useAlerts';
 import { useAlternatives } from '../alert/hooks/useAlternatives';
+import { useCollectionBriefing } from '../briefing/hooks/useCollectionBriefing';
+import { CollectionBriefingSection } from '../briefing/components/CollectionBriefingSection';
 import { ScanHeader } from '../alert/components/ScanHeader';
 import { SummaryFilters } from '../alert/components/SummaryFilters';
 import { AlertCard } from '../alert/components/AlertCard';
@@ -27,8 +29,15 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   const managers = useManagers(isAdmin);
-  const alertsState = useAlerts({ selectedManager, onCountChange });
+  const alertsState = useAlerts({ selectedManager });
   const alt = useAlternatives();
+
+  // 수금 연체(스캔 불필요 — 즉시 로드). 재고 알림 + 수금 연체 합산을 뱃지에 반영.
+  const { data: collData } = useCollectionBriefing(selectedManager);
+  const collCount = collData ? collData.counts.broken + collData.counts.overdue : 0;
+  useEffect(() => {
+    onCountChange?.(alertsState.counts.total + collCount);
+  }, [alertsState.counts.total, collCount, onCountChange]);
 
   const filtered = alertsState.alerts.filter((a) => filter === 'all' || a.alert_type === filter);
 
@@ -98,6 +107,8 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
         lastScanned={alertsState.lastScanned}
         onShowDismissed={() => setShowDismissed(true)}
       />
+
+      {collData && <CollectionBriefingSection data={collData} />}
 
       {!selectedManager && (
         <EmptyState message="담당자를 선택하면 해당 거래처의 재고 부족 와인을 확인합니다." />
