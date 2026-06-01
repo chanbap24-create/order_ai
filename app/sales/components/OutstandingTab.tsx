@@ -31,6 +31,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
 
   const [view, setView] = useState<'balance' | 'aging'>('balance');
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   const effectiveManager = isAdmin ? selectedManager : currentManager;
   const list = useOutstanding({ currentManager: effectiveManager, startDate, endDate, type });
@@ -41,6 +42,26 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
   const agingRows = overdueOnly
     ? aging.rows.filter(r => r.b_m2 + r.b_m3 > 0)
     : aging.rows;
+
+  // 수금일정표 엑셀 다운로드 (오늘 기준, CD+DL)
+  const handleSchedule = async () => {
+    setScheduleLoading(true);
+    try {
+      const res = await fetch(`/api/sales/collection-schedule?manager=${encodeURIComponent(effectiveManager)}&as_of=${endDate}`);
+      if (!res.ok) { alert('수금일정표 생성에 실패했습니다.'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `수금일정표_영업1부 ${effectiveManager}_${endDate.replace(/-/g, '').slice(2)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('수금일정표 생성에 실패했습니다.');
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
 
   const handleExportSummary = async () => {
     if (list.clients.length === 0) return;
@@ -112,6 +133,18 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
             연체(2개월+)만 보기
           </label>
         )}
+        <button
+          onClick={handleSchedule}
+          disabled={scheduleLoading}
+          style={{
+            marginLeft: 'auto', padding: '6px 14px', fontSize: 13, fontWeight: 700, borderRadius: 8,
+            border: '1px solid var(--action)', background: 'var(--action)', color: '#fff',
+            cursor: scheduleLoading ? 'wait' : 'pointer', opacity: scheduleLoading ? 0.6 : 1,
+          }}
+          title="오늘 기준 수금일정표(CD+DL) 엑셀 다운로드"
+        >
+          {scheduleLoading ? '생성 중…' : '📄 수금일정표 다운로드'}
+        </button>
       </div>
 
       {view === 'aging' && (
