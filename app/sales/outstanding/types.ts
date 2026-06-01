@@ -44,6 +44,7 @@ export interface Followup {
   status: FollowupStatus;
   promised_date: string | null;
   memo: string | null;
+  payment_type: import('../lib/dueDate').PaymentType | null;  // 결제 조건(수금일)
   updated_at?: string;
 }
 

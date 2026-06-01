@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import type { AgingRow, Followup } from '../types';
 import { fmt, thStyle, tdStyle, tdRight } from '../lib/format';
 import { FollowupCell } from './FollowupCell';
+import { PaymentTermCell } from './PaymentTermCell';
 
 type Props = {
   rows: AgingRow[];
@@ -28,7 +29,7 @@ function bucketCell(v: number, danger?: boolean, warn?: boolean): CSSProperties 
 export function AgingTable({ rows, asOf, onSaveFollowup }: Props) {
   return (
     <div style={{ overflowX: 'auto', border: '1px solid var(--border-default)', borderRadius: 10 }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1080 }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1240 }}>
         <thead>
           <tr>
             <th style={{ ...thStyle, textAlign: 'left' }}>거래처</th>
@@ -40,6 +41,7 @@ export function AgingTable({ rows, asOf, onSaveFollowup }: Props) {
             <th style={{ ...thStyle, textAlign: 'center' }}>최초미수(경과)</th>
             <th style={thStyle}>최근수금</th>
             <th style={thStyle}>최근3개월 수금</th>
+            <th style={{ ...thStyle, textAlign: 'left' }}>결제조건 / 수금예정일</th>
             <th style={{ ...thStyle, textAlign: 'left' }}>독촉 / 약속 / 메모</th>
           </tr>
         </thead>
@@ -64,6 +66,15 @@ export function AgingTable({ rows, asOf, onSaveFollowup }: Props) {
                 </td>
                 <td style={{ ...tdRight, fontSize: 12, color: r.paid_90d > 0 ? '#16a34a' : 'var(--text-tertiary)' }}>
                   {r.paid_90d ? fmt(r.paid_90d) : '–'}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'left' }}>
+                  <PaymentTermCell
+                    clientCode={r.client_code}
+                    paymentType={r.followup?.payment_type ?? null}
+                    baseDate={r.oldest_unpaid_date}
+                    today={asOf}
+                    onSave={onSaveFollowup}
+                  />
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'left' }}>
                   <FollowupCell clientCode={r.client_code} followup={r.followup} onSave={onSaveFollowup} />

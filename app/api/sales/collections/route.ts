@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('collection_followups')
-      .select('client_code, client_type, stage, status, promised_date, memo, updated_at')
+      .select('client_code, client_type, stage, status, promised_date, memo, payment_type, updated_at')
       .eq('manager', manager)
       .eq('client_type', clientType);
     if (error) throw error;
@@ -45,6 +45,7 @@ export async function PUT(req: NextRequest) {
     // 매니저: 관리자는 body 지정 가능, 일반 영업자는 본인.
     const manager = isAdmin(session.role) ? (body.manager || session.manager) : session.manager;
 
+    const PAY_TYPES = ['prepay', 'eom', 'nm5', 'nm10', 'nm15', 'nm20'];
     const row = {
       client_code: clientCode,
       client_type: clientType,
@@ -53,6 +54,7 @@ export async function PUT(req: NextRequest) {
       status: ['open', 'promised', 'paid', 'hold'].includes(body.status) ? body.status : 'open',
       promised_date: body.promised_date || null,
       memo: typeof body.memo === 'string' ? body.memo.slice(0, 1000) : null,
+      payment_type: PAY_TYPES.includes(body.payment_type) ? body.payment_type : null,
       updated_at: new Date().toISOString(),
       updated_by: session.manager,
     };
@@ -60,7 +62,7 @@ export async function PUT(req: NextRequest) {
     const { data, error } = await supabase
       .from('collection_followups')
       .upsert(row, { onConflict: 'client_code,client_type' })
-      .select('client_code, client_type, stage, status, promised_date, memo, updated_at')
+      .select('client_code, client_type, stage, status, promised_date, memo, payment_type, updated_at')
       .single();
     if (error) throw error;
     return NextResponse.json({ followup: data });
