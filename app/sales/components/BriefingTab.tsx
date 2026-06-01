@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { getKstToday } from '../briefing/lib/format';
 import { useToast } from '../briefing/hooks/useToast';
 import { useBriefingMeetings } from '../briefing/hooks/useBriefingMeetings';
+import { useCollectionBriefing } from '../briefing/hooks/useCollectionBriefing';
+import { CollectionBriefingSection } from '../briefing/components/CollectionBriefingSection';
 import { useTodayShipments } from '../briefing/hooks/useTodayShipments';
 import { useQuoteCols } from '../briefing/hooks/useQuoteCols';
 import { useQuoteExport } from '../briefing/hooks/useQuoteExport';
@@ -20,6 +22,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
     useBriefingMeetings({ todayStr, currentManager, isAdmin, onToast: setToast });
 
   const { wineShipments, glassShipments } = useTodayShipments(currentManager, isAdmin);
+  const { data: collections } = useCollectionBriefing(currentManager);
 
   const { quoteCols, toggle: toggleCol, reset: resetCols } = useQuoteCols();
   const { quoteLoadingId, createQuoteFromBriefing } =
@@ -36,12 +39,17 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
     return <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>로딩 중...</div>;
   }
 
-  if (meetings.length === 0 && !wineShipments && !glassShipments) {
+  const hasCollections = !!collections &&
+    (collections.broken.length + collections.promiseToday.length + collections.overdue.length > 0);
+
+  if (meetings.length === 0 && !wineShipments && !glassShipments && !hasCollections) {
     return <EmptyState todayLabel={todayLabel} />;
   }
 
   return (
     <div style={{ paddingBottom: 40 }}>
+      {collections && <CollectionBriefingSection data={collections} />}
+
       {meetings.length > 0 && (
         <BriefingHeader
           todayLabel={todayLabel}
