@@ -10,6 +10,8 @@ export function useAging({ currentManager, type, asOf, enabled = true }: Args) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rows, setRows] = useState<AgingRow[]>([]);
+  // 최근 3개월 수금 총액(완납 거래처 포함 — 표에 안 보이는 거래처까지). null = 미제공.
+  const [recentPaymentTotal, setRecentPaymentTotal] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!currentManager || !enabled) return;
@@ -31,6 +33,7 @@ export function useAging({ currentManager, type, asOf, enabled = true }: Args) {
         followup: foMap.get(c.client_code),
       }));
       setRows(merged);
+      setRecentPaymentTotal(typeof agingRes.recent_payment_total === 'number' ? agingRes.recent_payment_total : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : '조회 실패');
     } finally {
@@ -65,5 +68,5 @@ export function useAging({ currentManager, type, asOf, enabled = true }: Args) {
     }
   }, [rows, type, currentManager, fetchData]);
 
-  return { loading, error, rows, fetchData, saveFollowup };
+  return { loading, error, rows, recentPaymentTotal, fetchData, saveFollowup };
 }

@@ -4,8 +4,9 @@ import type { CSSProperties } from 'react';
 import type { AgingRow } from '../types';
 import { fmt } from '../lib/format';
 
-// 연령별 합계 요약 카드 (0-30 / 31-60 / 61-90 / 90+ / 미수총액)
-export function AgingSummary({ rows }: { rows: AgingRow[] }) {
+// 연령별 합계 요약 카드 (미수총액 / 당월·1·2·3개월+ / 최근3개월 수금)
+// recentPaymentTotal: 완납 거래처까지 포함한 매니저 전체 수금 합계(표 합산은 미수 잔존분만이라 과소집계됨).
+export function AgingSummary({ rows, recentPaymentTotal }: { rows: AgingRow[]; recentPaymentTotal?: number | null }) {
   const t = rows.reduce(
     (a, r) => ({
       net: a.net + r.net_balance,
@@ -17,6 +18,8 @@ export function AgingSummary({ rows }: { rows: AgingRow[] }) {
     }),
     { net: 0, cur: 0, m1: 0, m2: 0, m3: 0, paid: 0 },
   );
+  // 전체 수금 합계가 있으면 그 값을, 없으면 표 합산 fallback.
+  const paidTotal = recentPaymentTotal != null ? recentPaymentTotal : t.paid;
 
   const cards: Array<{ label: string; value: number; danger?: boolean; warn?: boolean; good?: boolean }> = [
     { label: '미수 총액', value: t.net },
@@ -24,7 +27,7 @@ export function AgingSummary({ rows }: { rows: AgingRow[] }) {
     { label: '1개월', value: t.m1 },
     { label: '2개월', value: t.m2, warn: true },
     { label: '3개월+', value: t.m3, danger: true },
-    { label: '최근3개월 수금', value: t.paid, good: true },
+    { label: '최근3개월 수금', value: paidTotal, good: true },
   ];
 
   return (

@@ -18,9 +18,19 @@ export async function GET(req: NextRequest) {
     const params: Record<string, string> = { p_manager: manager };
     if (asOf) params.p_as_of = asOf;
 
-    const { data, error } = await supabase.rpc(rpcName, params);
-    if (error) throw error;
-    return NextResponse.json({ clients: data || [] });
+    // 연령(미수 잔존 거래처) + 최근 수금 총액(완납 포함 전체 거래처)을 함께 조회.
+    const recentParams: Record<string, string> = { p_manager: manager, p_type: clientType };
+    if (asOf) recentParams.p_as_of = asOf;
+
+    const [agingRes, recentRes] = await Promise.all([
+      supabase.rpc(rpcName, params),
+      supabase.rpc('fn_recent_collections', recentParams),
+    ]);
+    if (agingRes.error) throw agingRes.error;
+    return NextResponse.json({
+      clients: agingRes.data || [],
+      recent_payment_total: recentRes.error ? null : (recentRes.data ?? 0),
+    });
   } catch (err) {
     console.error('GET /api/sales/outstanding/aging error:', err);
     return NextResponse.json(

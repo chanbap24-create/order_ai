@@ -120,7 +120,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
           {aging.loading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>불러오는 중…</div>}
           {!aging.loading && agingRows.length > 0 && (
             <>
-              <AgingSummary rows={agingRows} />
+              <AgingSummary rows={agingRows} recentPaymentTotal={aging.recentPaymentTotal} />
               <AgingTable rows={agingRows} asOf={endDate} onSaveFollowup={aging.saveFollowup} />
             </>
           )}
