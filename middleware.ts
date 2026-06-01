@@ -143,6 +143,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // ── /api/cron/* → 라우트가 CRON_SECRET/admin 자체 검증 ──
+  if (pathname.startsWith('/api/cron/')) {
+    return NextResponse.next();
+  }
+
   // ── /api/sales/clients/managers → 로그인 드롭다운용 공개 ──
   if (pathname === '/api/sales/clients/managers') {
     return NextResponse.next();

@@ -13,6 +13,13 @@ type EnvConfig = {
   REMOTE_SYNC_TOKEN?: string;
   ORDER_AI_XLSX_PATH?: string;
   DATA_GO_KR_SERVICE_KEY?: string;
+  // Solapi 카카오 알림톡 (수금 연체 알림). 미설정 시 발송 비활성(no-op).
+  SOLAPI_API_KEY?: string;
+  SOLAPI_API_SECRET?: string;
+  SOLAPI_PFID?: string;          // 카카오 비즈니스 채널 발신프로필 키
+  SOLAPI_TEMPLATE_ID?: string;   // 승인된 알림톡 템플릿 ID
+  SOLAPI_SENDER?: string;        // 발신 전화번호(알림톡 실패 시 SMS 대체)
+  CRON_SECRET?: string;          // Vercel Cron 보호 시크릿 (Authorization: Bearer)
   NODE_ENV: "development" | "production" | "test";
   OPENAI_MODEL?: string;
   MAX_ITEMS?: string;
@@ -62,6 +69,12 @@ function validateEnv(): EnvConfig {
     REMOTE_SYNC_TOKEN: process.env.REMOTE_SYNC_TOKEN,
     ORDER_AI_XLSX_PATH: process.env.ORDER_AI_XLSX_PATH,
     DATA_GO_KR_SERVICE_KEY: process.env.DATA_GO_KR_SERVICE_KEY,
+    SOLAPI_API_KEY: process.env.SOLAPI_API_KEY,
+    SOLAPI_API_SECRET: process.env.SOLAPI_API_SECRET,
+    SOLAPI_PFID: process.env.SOLAPI_PFID,
+    SOLAPI_TEMPLATE_ID: process.env.SOLAPI_TEMPLATE_ID,
+    SOLAPI_SENDER: process.env.SOLAPI_SENDER,
+    CRON_SECRET: process.env.CRON_SECRET,
     NODE_ENV: nodeEnv,
     OPENAI_MODEL: process.env.OPENAI_MODEL,
     MAX_ITEMS: process.env.MAX_ITEMS,
