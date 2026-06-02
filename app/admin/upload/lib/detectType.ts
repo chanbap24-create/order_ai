@@ -40,10 +40,13 @@ export async function detectFileType(file: File): Promise<DetectResult> {
 
     // 2) 출고현황
     if (colCount >= 30) {
+      // 창고/위치 컬럼을 헤더명으로 찾는다 (ERP 컬럼 순서가 바뀌어도 안전). 못 찾으면 기존 인덱스(23) fallback.
+      const whCol = headers.findIndex((h) => h.includes("창고"));
+      const whIdx = whCol >= 0 ? whCol : 23;
       const warehouseValues = new Set<string>();
       for (let i = 1; i < Math.min(100, rows.length); i++) {
         const r = rows[i] as unknown[];
-        const wh = String(r[23] ?? "").trim();
+        const wh = String(r[whIdx] ?? "").trim();
         if (wh) warehouseValues.add(wh);
       }
       const whText = Array.from(warehouseValues).join("|");
