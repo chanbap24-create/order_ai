@@ -40,7 +40,20 @@ export async function detectFileType(file: File): Promise<DetectResult> {
 
     // 2) 출고현황
     if (colCount >= 30) {
-      // 창고/위치 컬럼을 헤더명으로 찾는다 (ERP 컬럼 순서가 바뀌어도 안전). 못 찾으면 기존 인덱스(23) fallback.
+      // 1순위: 사업장(C열) — 까브드뱅=와인(CDV), 대유라이프=글라스(DL). 가장 명확한 신호.
+      const bizCol = headers.findIndex((h) => h.includes("사업장"));
+      if (bizCol >= 0) {
+        const bizVals = new Set<string>();
+        for (let i = 1; i < Math.min(100, rows.length); i++) {
+          const v = String((rows[i] as unknown[])[bizCol] ?? "").trim();
+          if (v) bizVals.add(v);
+        }
+        const bizText = Array.from(bizVals).join("|");
+        if (bizText.includes("까브")) return { type: "client", confidence: "high", reason: "출고현황 - 사업장 까브드뱅 (CDV)" };
+        if (bizText.includes("대유")) return { type: "dl-client", confidence: "high", reason: "출고현황 - 사업장 대유라이프 (DL)" };
+      }
+
+      // 2순위(fallback): 창고/위치 컬럼을 헤더명으로 찾는다 (ERP 컬럼 순서가 바뀌어도 안전). 못 찾으면 인덱스 23.
       const whCol = headers.findIndex((h) => h.includes("창고"));
       const whIdx = whCol >= 0 ? whCol : 23;
       const warehouseValues = new Set<string>();
