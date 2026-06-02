@@ -10,7 +10,7 @@ const isAdmin = (r: string) => r === 'admin' || r === 'executive' || r === 'sale
 interface CollItem {
   client_code: string; client_type: string; client_name: string;
   net_balance: number; overdue: number; days_overdue: number;
-  due_date: string | null;
+  due_date: string | null; oldest_unpaid_date: string | null;
   promised_date: string | null; promised_amount: number | null;
   stage: number; status: string; special: boolean;
 }
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       return {
         client_code: r.client_code, client_type: type, client_name: r.client_name,
         net_balance: r.net_balance, overdue: r.overdue,
-        days_overdue: daysOverdue, due_date: dueDate,
+        days_overdue: daysOverdue, due_date: dueDate, oldest_unpaid_date: r.oldest_unpaid_date ?? null,
         promised_date: f?.promised_date ?? null, promised_amount: f?.promised_amount ?? null,
         stage: f?.stage ?? 0, status: f?.status ?? 'open',
         special: r.overdue > 0 && daysOverdue >= 30,

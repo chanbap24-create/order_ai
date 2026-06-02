@@ -3,11 +3,23 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CollItem, CollectionBriefing } from '../hooks/useCollectionBriefing';
+import { LedgerPopup } from './LedgerPopup';
+import type { LedgerType } from '@/app/sales/ledger/types';
 
 const fmt = (n: number) => n.toLocaleString();
 const keyOf = (it: CollItem) => `${it.client_code}|${it.client_type}`;
 
 type SaveFn = (clientCode: string, clientType: string, patch: Record<string, unknown>) => void;
+type OpenLedgerFn = (it: CollItem) => void;
+
+const todayKST = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+// 원장 시작월 = 미결제 출고가 속한 달의 1일 (없으면 2개월 전)
+function ledgerStart(it: CollItem): string {
+  if (it.oldest_unpaid_date) return `${it.oldest_unpaid_date.slice(0, 7)}-01`;
+  const d = new Date(Date.now() + 9 * 3600 * 1000);
+  d.setUTCMonth(d.getUTCMonth() - 2);
+  return `${d.toISOString().slice(0, 7)}-01`;
+}
 
 // 오늘의 수금 브리핑 — 까브드뱅/대유라이프 분리, 각 약속어김/오늘약속/연체.
 const GROUPS: Array<{ type: string; label: string; color: string }> = [
@@ -18,9 +30,10 @@ const GROUPS: Array<{ type: string; label: string; color: string }> = [
 export function CollectionBriefingSection({ data, onSave }: { data: CollectionBriefing; onSave?: SaveFn }) {
   const { broken, promiseToday, overdue } = data;
   const [editing, setEditing] = useState<string | null>(null);
+  const [ledger, setLedger] = useState<CollItem | null>(null);
   if (broken.length === 0 && promiseToday.length === 0 && overdue.length === 0) return null;
 
-  const blockProps = { editing, setEditing, onSave };
+  const blockProps = { editing, setEditing, onSave, onOpenLedger: setLedger };
 
   return (
     <div style={{ marginBottom: 16, border: '1px solid var(--border-default)', borderRadius: 12, overflow: 'hidden' }}>
@@ -48,6 +61,17 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
           </div>
         );
       })}
+
+      {ledger && (
+        <LedgerPopup
+          clientCode={ledger.client_code}
+          clientName={ledger.client_name}
+          type={ledger.client_type as LedgerType}
+          startDate={ledgerStart(ledger)}
+          endDate={todayKST()}
+          onClose={() => setLedger(null)}
+        />
+      )}
     </div>
   );
 }
@@ -55,9 +79,10 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
 type BlockProps = {
   title: string; color: string; items: CollItem[]; mode: 'broken' | 'today' | 'overdue';
   editing: string | null; setEditing: (k: string | null) => void; onSave?: SaveFn;
+  onOpenLedger: OpenLedgerFn;
 };
 
-function Block({ title, color, items, mode, editing, setEditing, onSave }: BlockProps) {
+function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenLedger }: BlockProps) {
   if (items.length === 0) return null;
   const shown = items.slice(0, 20);
   return (
@@ -70,7 +95,7 @@ function Block({ title, color, items, mode, editing, setEditing, onSave }: Block
         const isEditing = editing === k;
         return (
           <div key={k}>
-            <div style={rowStyle} onClick={() => onSave && setEditing(isEditing ? null : k)}>
+            <div style={rowStyle} onClick={() => setEditing(isEditing ? null : k)}>
               <div style={{ minWidth: 0, flex: '1 1 auto' }}>
                 <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{it.client_name}</span>
                 {it.special && <span style={badge}>특별관리</span>}
@@ -85,7 +110,7 @@ function Block({ title, color, items, mode, editing, setEditing, onSave }: Block
                 </div>
               </div>
             </div>
-            {isEditing && onSave && <Editor item={it} onSave={onSave} onClose={() => setEditing(null)} />}
+            {isEditing && <Editor item={it} onSave={onSave} onClose={() => setEditing(null)} onOpenLedger={onOpenLedger} />}
           </div>
         );
       })}
@@ -96,7 +121,7 @@ function Block({ title, color, items, mode, editing, setEditing, onSave }: Block
   );
 }
 
-function Editor({ item, onSave, onClose }: { item: CollItem; onSave: SaveFn; onClose: () => void }) {
+function Editor({ item, onSave, onClose, onOpenLedger }: { item: CollItem; onSave?: SaveFn; onClose: () => void; onOpenLedger: OpenLedgerFn }) {
   const defAmt = item.promised_amount ?? (item.overdue > 0 ? item.overdue : item.net_balance);
   const [date, setDate] = useState(item.promised_date ?? '');
   const [amount, setAmount] = useState(String(defAmt));
@@ -114,15 +139,20 @@ function Editor({ item, onSave, onClose }: { item: CollItem; onSave: SaveFn; onC
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--surface-muted)', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
-      <label style={lbl}>수금일</label>
-      <input type="date" value={date} onChange={e => onDateChange(e.target.value)} style={inp} />
-      <label style={lbl}>금액</label>
-      <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ ...inp, width: 120, textAlign: 'right' }} />
-      <button
-        onClick={() => { onSave(item.client_code, item.client_type, { promised_date: date || null, promised_amount: amount === '' ? null : Math.trunc(Number(amount)) }); onClose(); }}
-        style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: 'none', background: 'var(--action)', color: '#fff', cursor: 'pointer' }}
-      >저장</button>
-      <button onClick={onClose} style={{ padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)', cursor: 'pointer' }}>취소</button>
+      <button onClick={() => onOpenLedger(item)} style={ledgerBtn}>📄 원장 보기</button>
+      {onSave && (
+        <>
+          <label style={lbl}>수금일</label>
+          <input type="date" value={date} onChange={e => onDateChange(e.target.value)} style={inp} />
+          <label style={lbl}>금액</label>
+          <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ ...inp, width: 120, textAlign: 'right' }} />
+          <button
+            onClick={() => { onSave(item.client_code, item.client_type, { promised_date: date || null, promised_amount: amount === '' ? null : Math.trunc(Number(amount)) }); onClose(); }}
+            style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: 'none', background: 'var(--action)', color: '#fff', cursor: 'pointer' }}
+          >저장</button>
+        </>
+      )}
+      <button onClick={onClose} style={{ padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)', cursor: 'pointer' }}>닫기</button>
     </div>
   );
 }
@@ -133,4 +163,5 @@ const rowStyle: CSSProperties = {
 };
 const badge: CSSProperties = { marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#fff', background: '#dc2626', borderRadius: 4, padding: '1px 5px', verticalAlign: 'middle' };
 const lbl: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 700 };
+const ledgerBtn: CSSProperties = { padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid var(--action)', background: 'var(--surface)', color: 'var(--action)', cursor: 'pointer' };
 const inp: CSSProperties = { padding: '5px 8px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-primary)' };
