@@ -96,18 +96,17 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
         return (
           <div key={k}>
             <div style={rowStyle} onClick={() => setEditing(isEditing ? null : k)}>
-              <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+              <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)' }}>{it.client_name}</span>
                 {it.special && <span style={badge}>특별관리</span>}
-                {it.promised_amount != null && <span style={{ marginLeft: 6, fontSize: 10, color: '#2563eb', fontWeight: 700 }}>약속 {fmt(it.promised_amount)}</span>}
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                <div style={{ fontWeight: 700, fontSize: 12, color }}>{fmt(it.promised_amount ?? (mode === 'today' ? it.net_balance : it.overdue || it.net_balance))}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
-                  {mode === 'broken' && `약속 ${it.promised_date?.slice(2)} 경과`}
-                  {mode === 'today' && '오늘 수금'}
-                  {mode === 'overdue' && `${it.due_date ? `결제일 ${it.due_date.slice(5)} · ` : ''}${it.days_overdue}일 경과${it.stage > 0 ? ` · ${it.stage}차` : ''}`}
-                </div>
+              <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                {mode === 'broken' && `약속 ${it.promised_date?.slice(2)} 경과`}
+                {mode === 'today' && '오늘 수금'}
+                {mode === 'overdue' && `${it.due_date ? `결제일 ${it.due_date.slice(5)} · ` : ''}${it.days_overdue}일 경과${it.stage > 0 ? ` · ${it.stage}차` : ''}`}
+              </div>
+              <div style={{ flexShrink: 0, minWidth: 72, textAlign: 'right', fontWeight: 700, fontSize: 12, color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {fmt(it.promised_amount ?? (mode === 'today' ? it.net_balance : it.overdue || it.net_balance))}
               </div>
             </div>
             {isEditing && <Editor item={it} onSave={onSave} onClose={() => setEditing(null)} onOpenLedger={onOpenLedger} />}
