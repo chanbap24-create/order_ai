@@ -102,7 +102,7 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
                 {it.promised_amount != null && <span style={{ marginLeft: 6, fontSize: 11, color: '#2563eb', fontWeight: 700 }}>약속 {fmt(it.promised_amount)}</span>}
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color }}>{fmt(mode === 'today' ? it.net_balance : it.overdue || it.net_balance)}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color }}>{fmt(it.promised_amount ?? (mode === 'today' ? it.net_balance : it.overdue || it.net_balance))}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                   {mode === 'broken' && `약속 ${it.promised_date?.slice(2)} 경과`}
                   {mode === 'today' && '오늘 수금'}
