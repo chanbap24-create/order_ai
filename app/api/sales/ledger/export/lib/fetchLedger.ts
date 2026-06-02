@@ -103,8 +103,11 @@ export async function fetchLedgerData(
   }
 
   // carryover 기준월: created_at KST 월초 (또는 2020-01-01 fallback)
+  // 글라스는 2025-08 전산이관 시점이 이월 기준 → created_at(재동기화로 변동) 대신 고정.
   let refDate: string;
-  if (earliestCreatedAt) {
+  if (isGlass) {
+    refDate = '2025-08-01';
+  } else if (earliestCreatedAt) {
     const d = new Date(earliestCreatedAt);
     const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
     refDate = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-01`;

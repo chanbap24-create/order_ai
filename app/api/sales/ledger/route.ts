@@ -183,7 +183,12 @@ export async function GET(req: NextRequest) {
     // carryover 기준월 결정: 최초 created_at 월의 1일 (carryover = 해당 월 시작 잔액)
     // KST(UTC+9) 기준으로 날짜 파싱 — Vercel(UTC) 환경에서도 정확한 한국 날짜 사용
     let refDate: string;
-    if (carryResult.earliestCreatedAt) {
+    if (isGlass) {
+      // 글라스: 2025-08 전산이관 시점이 이월 기준일. carryover.created_at 은 DB insert 시각이라
+      // 재동기화로 달라질 수 있어(예: 2026-02-24) 신뢰 불가 → 이관일 2025-08-01 로 고정.
+      // 옛 출고(2025-08 이전)는 이월에 반영돼 있으므로 이 기준이 이중계상을 막는다.
+      refDate = '2025-08-01';
+    } else if (carryResult.earliestCreatedAt) {
       const d = new Date(carryResult.earliestCreatedAt);
       const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
       refDate = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-01`;
