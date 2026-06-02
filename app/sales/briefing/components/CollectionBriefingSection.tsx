@@ -44,7 +44,7 @@ function elapsedLabel(it: CollItem, mode: Mode): string {
 function sortValue(it: CollItem, mode: Mode, col: SortCol): number | string {
   switch (col) {
     case 'name': return it.client_name;
-    case 'date': return (it.promised_date ?? it.due_date) ?? '~';   // 없으면 맨 뒤
+    case 'date': return it.promised_date ?? '~';   // 미설정은 맨 뒤
     case 'amount': return it.promised_amount ?? -1;
     case 'elapsed': return elapsedDays(it, mode);
     case 'misu': return it.overdue;
@@ -116,7 +116,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                     const k = keyOf(it);
                     const isEditing = editing === k;
                     const color = MODE_COLOR[mode];
-                    const dateStr = it.promised_date ?? it.due_date;
+                    const dateStr = it.promised_date;   // 내가 설정한 약속일만 (없으면 - )
                     return (
                       <Fragment key={k}>
                         <tr onClick={() => setEditing(isEditing ? null : k)} style={{ cursor: 'pointer', borderTop: '1px solid rgba(90,21,21,0.04)' }}>
