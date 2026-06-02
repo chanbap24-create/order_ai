@@ -96,9 +96,14 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
         return (
           <div key={k}>
             <div style={rowStyle} onClick={() => setEditing(isEditing ? null : k)}>
-              <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)' }}>{it.client_name}</span>
-                {it.special && <span style={badge}>특별관리</span>}
+              <div style={{ minWidth: 0, flex: '1 1 auto', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{it.client_name}</span>
+                {it.special && <span style={{ ...badge, flexShrink: 0 }}>특별관리</span>}
+                {it.promised_amount != null && (
+                  <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                    약속 {it.promised_date ? `${it.promised_date.slice(5)} ` : ''}{fmt(it.promised_amount)}
+                  </span>
+                )}
               </div>
               <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {mode === 'broken' && <span>약속 {it.promised_date?.slice(2)} 경과</span>}
@@ -110,7 +115,7 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
                 </>}
               </div>
               <div style={{ flexShrink: 0, minWidth: 72, textAlign: 'right', fontWeight: 700, fontSize: 12, color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {fmt(it.promised_amount ?? (mode === 'today' ? it.net_balance : it.overdue || it.net_balance))}
+                {fmt(it.net_balance)}
               </div>
             </div>
             {isEditing && <Editor item={it} onSave={onSave} onClose={() => setEditing(null)} onOpenLedger={onOpenLedger} />}
