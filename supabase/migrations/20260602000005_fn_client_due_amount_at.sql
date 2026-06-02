@@ -1,0 +1,4 @@
+-- 수금일 변경 시 약속금액 재계산용 RPC.
+-- 지정 날짜까지 만기도래한 연체액(있으면), 없으면 전체 미수. 결제조건(fn_due_date)+2025-08 cutoff 적용.
+-- 문제: 기존 fn_client_balance_at 은 전체 미수라, 익월말 거래처는 아직 만기 전 금액까지 잡혔음.
+-- (본문은 apply_migration 'fn_client_due_amount_at' 로 원격 DB 적용 완료)
