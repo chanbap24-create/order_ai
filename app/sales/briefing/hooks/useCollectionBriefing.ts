@@ -9,6 +9,7 @@ export interface CollItem {
   net_balance: number;
   overdue: number;
   days_overdue: number;
+  due_date: string | null;
   promised_date: string | null;
   promised_amount: number | null;
   stage: number;

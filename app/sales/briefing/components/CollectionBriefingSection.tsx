@@ -81,7 +81,7 @@ function Block({ title, color, items, mode, editing, setEditing, onSave }: Block
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                   {mode === 'broken' && `약속 ${it.promised_date?.slice(2)} 경과`}
                   {mode === 'today' && '오늘 수금'}
-                  {mode === 'overdue' && `${it.days_overdue}일 경과${it.stage > 0 ? ` · ${it.stage}차` : ''}`}
+                  {mode === 'overdue' && `${it.due_date ? `결제일 ${it.due_date.slice(5)} · ` : ''}${it.days_overdue}일 경과${it.stage > 0 ? ` · ${it.stage}차` : ''}`}
                 </div>
               </div>
             </div>

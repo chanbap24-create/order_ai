@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
+import { computeDueDate, type PaymentType } from '@/app/sales/outstanding/lib/dueDate';
 
 // 오늘의 수금 브리핑: 매니저 거래처 중 연체(예정일 경과)/오늘 수금약속/약속어김 추출.
 // wine·glass 모두 조회해 합친다.
@@ -9,6 +10,7 @@ const isAdmin = (r: string) => r === 'admin' || r === 'executive' || r === 'sale
 interface CollItem {
   client_code: string; client_type: string; client_name: string;
   net_balance: number; overdue: number; days_overdue: number;
+  due_date: string | null;
   promised_date: string | null; promised_amount: number | null;
   stage: number; status: string; special: boolean;
 }
@@ -26,10 +28,10 @@ export async function GET(req: NextRequest) {
       supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }),
       supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }),
       supabase.from('collection_followups')
-        .select('client_code, client_type, stage, status, promised_date, promised_amount').eq('manager', manager),
+        .select('client_code, client_type, stage, status, promised_date, promised_amount, payment_type').eq('manager', manager),
     ]);
 
-    const foMap = new Map<string, { stage: number; status: string; promised_date: string | null; promised_amount: number | null }>();
+    const foMap = new Map<string, { stage: number; status: string; promised_date: string | null; promised_amount: number | null; payment_type: string | null }>();
     for (const f of (fo.data || [])) foMap.set(`${f.client_code}|${f.client_type}`, f);
 
     const days = (a: string, b: string) => Math.floor((new Date(a).getTime() - new Date(b).getTime()) / 86400000);
@@ -37,13 +39,17 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const build = (rows: any[], type: string): CollItem[] => (rows || []).map((r) => {
       const f = foMap.get(`${r.client_code}|${type}`);
+      // 경과일 = 결제조건상 만기일(약속된 결제일)로부터. 만기일 산출 불가 시 출고일 기준 fallback.
+      const dueDate = computeDueDate((f?.payment_type as PaymentType | null) ?? null, r.oldest_unpaid_date ?? null);
+      const daysOverdue = dueDate ? days(today, dueDate)
+        : (r.oldest_unpaid_date ? days(today, r.oldest_unpaid_date) : 0);
       return {
         client_code: r.client_code, client_type: type, client_name: r.client_name,
         net_balance: r.net_balance, overdue: r.overdue,
-        days_overdue: r.oldest_unpaid_date ? days(today, r.oldest_unpaid_date) : 0,
+        days_overdue: daysOverdue, due_date: dueDate,
         promised_date: f?.promised_date ?? null, promised_amount: f?.promised_amount ?? null,
         stage: f?.stage ?? 0, status: f?.status ?? 'open',
-        special: r.overdue > 0 && r.oldest_unpaid_date != null && days(today, r.oldest_unpaid_date) >= 30,
+        special: r.overdue > 0 && daysOverdue >= 30,
       };
     });
 
