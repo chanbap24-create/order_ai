@@ -80,6 +80,7 @@ export default function SalesPage() {
           userDepartment={auth.userDepartment}
           managerList={auth.managerList}
           onAlertCountChange={handleAlertCountChange}
+          onTabChange={setActiveTab}
         />
       </div>
     </div>

@@ -26,6 +26,7 @@ type Props = {
   userDepartment: string;
   managerList: string[];
   onAlertCountChange: (count: number) => void;
+  onTabChange: (tab: SalesTabId) => void;
 };
 
 export function TabContent(p: Props) {
@@ -51,7 +52,7 @@ export function TabContent(p: Props) {
     case 'client-list':
       return <ClientListTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'alerts':
-      return <AlertTab currentManager={p.currentManager} isAdmin={p.isAdmin} onCountChange={p.onAlertCountChange} />;
+      return <AlertTab currentManager={p.currentManager} isAdmin={p.isAdmin} onCountChange={p.onAlertCountChange} onTabChange={p.onTabChange} />;
     case 'expense':
       return <ExpenseTab currentManager={p.currentManager} isAdmin={p.isAdmin} department={p.userDepartment} />;
     default:

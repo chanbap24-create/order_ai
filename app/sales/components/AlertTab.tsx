@@ -8,6 +8,8 @@ import { useAlerts } from '../alert/hooks/useAlerts';
 import { useAlternatives } from '../alert/hooks/useAlternatives';
 import { useCollectionBriefing } from '../briefing/hooks/useCollectionBriefing';
 import { CollectionBriefingSection } from '../briefing/components/CollectionBriefingSection';
+import { usePaymentTermsUnset } from '../alert/hooks/usePaymentTermsUnset';
+import type { SalesTabId } from './SalesTabs';
 import { ScanHeader } from '../alert/components/ScanHeader';
 import { SummaryFilters } from '../alert/components/SummaryFilters';
 import { AlertCard } from '../alert/components/AlertCard';
@@ -19,9 +21,10 @@ interface AlertTabProps {
   currentManager: string;
   isAdmin: boolean;
   onCountChange?: (count: number) => void;
+  onTabChange?: (tab: SalesTabId) => void;
 }
 
-export default function AlertTab({ currentManager, isAdmin, onCountChange }: AlertTabProps) {
+export default function AlertTab({ currentManager, isAdmin, onCountChange, onTabChange }: AlertTabProps) {
   const [selectedManager, setSelectedManager] = useState(isAdmin ? '' : currentManager);
   const [filter, setFilter] = useState<FilterType>('all');
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -35,6 +38,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
   // 수금 연체(스캔 불필요 — 즉시 로드). 재고 알림 + 수금 연체 합산을 뱃지에 반영.
   const { data: collData, saveFollowup: saveColl } = useCollectionBriefing(selectedManager);
   const collCount = collData ? collData.counts.broken + collData.counts.overdue : 0;
+  const unsetClients = usePaymentTermsUnset(selectedManager);
   useEffect(() => {
     onCountChange?.(alertsState.counts.total + collCount);
   }, [alertsState.counts.total, collCount, onCountChange]);
@@ -109,6 +113,27 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange }: Ale
       />
 
       {collData && <CollectionBriefingSection data={collData} onSave={saveColl} />}
+
+      {selectedManager && unsetClients.length > 0 && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+              🔔 결제조건 미설정 거래처 <span style={{ color: '#b45309' }}>{unsetClients.length}건</span>
+              <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: '#a16207' }}>(신규 포함)</span>
+            </span>
+            {onTabChange && (
+              <button
+                onClick={() => onTabChange('payment-terms')}
+                style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#b45309', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >수금일 설정 →</button>
+            )}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: '#92400e', lineHeight: 1.6 }}>
+            {unsetClients.slice(0, 15).map(c => c.client_name).join(', ')}
+            {unsetClients.length > 15 ? ` 외 ${unsetClients.length - 15}곳` : ''}
+          </div>
+        </div>
+      )}
 
       {!selectedManager && (
         <EmptyState message="담당자를 선택하면 해당 거래처의 재고 부족 와인을 확인합니다." />
