@@ -41,6 +41,7 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
       className="sales-tabs-bar"
       style={{
         overflowX: 'auto',
+        overflowY: 'hidden',
         WebkitOverflowScrolling: 'touch',
         borderBottom: '1px solid var(--border-default)',
         marginBottom: 20,
