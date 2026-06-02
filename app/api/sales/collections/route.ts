@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
+import { isValidClientCode } from '@/app/lib/validators';
+import { requireClientAccess } from '@/app/lib/authz';
 
 // 수금 워크플로우(독촉 단계·약속일·메모) — collection_followups CRUD.
 // 거래처별 1행(client_code+client_type) upsert. 까브드뱅/대유라이프 분리.
@@ -41,6 +43,11 @@ export async function PUT(req: NextRequest) {
     const clientCode = String(body.client_code || '').trim();
     const clientType = body.client_type === 'glass' ? 'glass' : 'wine';
     if (!clientCode) return NextResponse.json({ error: 'client_code required' }, { status: 400 });
+    if (!isValidClientCode(clientCode)) return NextResponse.json({ error: 'Invalid client_code' }, { status: 400 });
+
+    // IDOR 방어: 본인(담당) 거래처만 followup 저장 가능(관리자는 전체).
+    const access = await requireClientAccess(clientCode, clientType);
+    if (access) return access;
 
     // 매니저: 관리자는 body 지정 가능, 일반 영업자는 본인.
     const manager = isAdmin(session.role) ? (body.manager || session.manager) : session.manager;
