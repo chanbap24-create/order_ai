@@ -61,16 +61,17 @@ function scheduleDue(pt: PaymentType, today: Date, hasEff: boolean): Date | null
 export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const today = new Date(`${todayISO}T00:00:00Z`);
   const pt = c.payment_type;
-  const eff = c.net_close > 0;
 
-  // 분할상환: 금액·미수잔액·입금예정일 모두 직접입력(공란)
+  // 분할상환·선결제·미지정·미수없음: 공란
   if (c.manual_amount) return { expected: null, remain: null, dueDate: null };
-
   if (!pt || pt === 'prepay') return { expected: null, remain: null, dueDate: null };
+  if (c.net_now <= 0) return { expected: null, remain: null, dueDate: null };
 
-  const due = scheduleDue(pt, today, eff);
+  // 남은 이월분 = 마감시점 이월잔액 − 이 기간 수금
+  const eff = Math.max(c.net_close - c.period_payment, 0);
+  const due = scheduleDue(pt, today, eff > 0);
 
-  if (pt === 'eom') return { expected: c.net_now, remain: c.net_now - c.net_now, dueDate: due };
-  // 익월 계열: 예정금액=이월분(net_close), 미수잔액=당월 신규(net_now-net_close)
-  return { expected: c.net_close, remain: c.net_now - c.net_close, dueDate: due };
+  // 월말: 미수 전액 / 익월: 남은 이월분(있으면) 없으면 이 기간 판매액(부가세포함)
+  const expected = pt === 'eom' ? c.net_now : (eff > 0 ? eff : c.period_total);
+  return { expected, remain: c.net_now - expected, dueDate: due };
 }
