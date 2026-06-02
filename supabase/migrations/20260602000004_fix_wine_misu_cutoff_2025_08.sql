@@ -1,0 +1,11 @@
+-- 와인 미수 계산을 2025-08-01(전산이관일) 기준으로 고정 (글라스와 동일 처리).
+-- calc_wine_aging / calc_wine_outstanding: ref_date 를 2025-08-01 고정 (기존 MIN(created_at)=2025-07).
+-- fn_client_balance_at / fn_collection_schedule: 와인 분기 출고/수금에 >= 2025-08-01 필터.
+-- 옛 출고(2025-08 이전)는 이월(carryover)에 반영되므로 이중계상 제거.
+-- 이월 미수금은 정본(신전산 원장)과 이미 100% 일치(22,121,972,514)라 미변경.
+-- 검증: 정본 누계와 233/239 일치(나머지는 00001 내부계정 + 사업장 ±1원 반올림).
+-- 예) 28867 뱅드부티크(박경아): 2020~2024 출고 91.5백만 유령미수 → 0.
+--
+-- 주: 4개 함수 본문은 Supabase apply_migration 으로 원격 DB에 이미 적용됨
+--   (fix_wine_aging_ref_date_migration, fix_wine_outstanding_ref_date_migration,
+--    fix_client_balance_at_wine_cutoff_migration, fix_collection_schedule_wine_cutoff_migration).
