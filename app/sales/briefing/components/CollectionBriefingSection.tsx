@@ -100,10 +100,14 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
                 <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)' }}>{it.client_name}</span>
                 {it.special && <span style={badge}>특별관리</span>}
               </div>
-              <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                {mode === 'broken' && `약속 ${it.promised_date?.slice(2)} 경과`}
-                {mode === 'today' && '오늘 수금'}
-                {mode === 'overdue' && `${it.due_date ? `결제일 ${it.due_date.slice(5)} · ` : ''}${it.days_overdue}일 경과${it.stage > 0 ? ` · ${it.stage}차` : ''}`}
+              <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {mode === 'broken' && <span>약속 {it.promised_date?.slice(2)} 경과</span>}
+                {mode === 'today' && <span>오늘 수금</span>}
+                {mode === 'overdue' && <>
+                  {it.due_date && <span style={{ color: 'var(--text-muted)' }}>결제일 {it.due_date.slice(5)}</span>}
+                  {it.due_date && <span style={{ opacity: 0.3 }}>|</span>}
+                  <span style={{ color, fontWeight: 600 }}>{it.days_overdue}일 경과{it.stage > 0 ? ` · ${it.stage}차` : ''}</span>
+                </>}
               </div>
               <div style={{ flexShrink: 0, minWidth: 72, textAlign: 'right', fontWeight: 700, fontSize: 12, color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 {fmt(it.promised_amount ?? (mode === 'today' ? it.net_balance : it.overdue || it.net_balance))}
