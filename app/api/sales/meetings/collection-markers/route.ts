@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
 
-// 미팅 달력용 수금 마커: 수금약속일(promise/broken) + 특별관리(장기미수, 약속 없으면 오늘).
+// 미팅 달력용 수금 마커: 브리핑에서 수금일+금액을 모두 지정한 거래처만 그 약속일에 표시.
 const isAdmin = (r: string) => r === 'admin' || r === 'executive' || r === 'sales_admin';
 
 interface Marker {
@@ -27,10 +27,10 @@ export async function GET(req: NextRequest) {
       supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }),
       supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }),
       supabase.from('collection_followups')
-        .select('client_code, client_type, status, promised_date').eq('manager', manager),
+        .select('client_code, client_type, status, promised_date, promised_amount').eq('manager', manager),
     ]);
 
-    const foMap = new Map<string, { status: string; promised_date: string | null }>();
+    const foMap = new Map<string, { status: string; promised_date: string | null; promised_amount: number | null }>();
     for (const f of (fo.data || [])) foMap.set(`${f.client_code}|${f.client_type}`, f);
     const days = (a: string, b: string) => Math.floor((new Date(a).getTime() - new Date(b).getTime()) / 86400000);
     const inRange = (d: string) => d >= from && d <= to;
@@ -40,16 +40,15 @@ export async function GET(req: NextRequest) {
     const scan = (rows: any[], type: string) => (rows || []).forEach((r) => {
       if (r.net_balance <= 0) return;
       const f = foMap.get(`${r.client_code}|${type}`);
-      if (f?.status === 'paid') return;
-      const amount = r.overdue > 0 ? r.overdue : r.net_balance;
+      if (!f || f.status === 'paid') return;
+      // 브리핑에서 수금일·금액을 모두 지정한 거래처만, 그 약속일(범위 내)에 표시.
+      if (!f.promised_date || f.promised_amount == null || !inRange(f.promised_date)) return;
       const special = r.overdue > 0 && r.oldest_unpaid_date != null && days(today, r.oldest_unpaid_date) >= 30;
-      const base = { client_code: r.client_code, client_type: type, client_name: r.client_name, amount, special };
-
-      if (f?.promised_date && inRange(f.promised_date)) {
-        markers.push({ ...base, date: f.promised_date, kind: f.promised_date < today ? 'broken' : 'promise' });
-      } else if (special && !f?.promised_date && inRange(today)) {
-        markers.push({ ...base, date: today, kind: 'special' });
-      }
+      markers.push({
+        client_code: r.client_code, client_type: type, client_name: r.client_name,
+        amount: f.promised_amount, special,
+        date: f.promised_date, kind: f.promised_date < today ? 'broken' : 'promise',
+      });
     });
     scan(wine.data, 'wine');
     scan(glass.data, 'glass');
