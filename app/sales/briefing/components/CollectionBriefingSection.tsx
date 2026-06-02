@@ -96,16 +96,17 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
         return (
           <div key={k}>
             <div style={rowStyle} onClick={() => setEditing(isEditing ? null : k)}>
-              <div style={{ minWidth: 0, flex: '1 1 auto', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+              {/* 거래처명 */}
+              <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                 <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{it.client_name}</span>
-                {it.special && <span style={{ ...badge, flexShrink: 0 }}>특별관리</span>}
-                {it.promised_amount != null && (
-                  <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
-                    약속 {it.promised_date ? `${it.promised_date.slice(5)} ` : ''}{fmt(it.promised_amount)}
-                  </span>
-                )}
+                {it.special && <span style={{ ...badge, marginLeft: 0, flexShrink: 0 }}>특별관리</span>}
               </div>
-              <div style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {/* 약속 (날짜·금액) */}
+              <div style={{ flexShrink: 0, width: 152, textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                {it.promised_amount != null && `약속 ${it.promised_date ? `${it.promised_date.slice(5)} ` : ''}${fmt(it.promised_amount)}`}
+              </div>
+              {/* 결제일 · 경과 */}
+              <div style={{ flexShrink: 0, width: 160, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                 {mode === 'broken' && <span>약속 {it.promised_date?.slice(2)} 경과</span>}
                 {mode === 'today' && <span>오늘 수금</span>}
                 {mode === 'overdue' && <>
@@ -114,7 +115,8 @@ function Block({ title, color, items, mode, editing, setEditing, onSave, onOpenL
                   <span style={{ color, fontWeight: 600 }}>{it.days_overdue}일 경과{it.stage > 0 ? ` · ${it.stage}차` : ''}</span>
                 </>}
               </div>
-              <div style={{ flexShrink: 0, minWidth: 72, textAlign: 'right', fontWeight: 700, fontSize: 12, color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+              {/* 미수 총액 */}
+              <div style={{ flexShrink: 0, width: 96, textAlign: 'right', fontWeight: 700, fontSize: 12, color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 {fmt(it.net_balance)}
               </div>
             </div>
