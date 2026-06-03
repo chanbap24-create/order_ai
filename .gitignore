@@ -88,3 +88,6 @@ nul
 
 # Agent state / memory
 /.agents/.claude/skills/*/state/
+
+# Expo (로컬 dev 로그에 시크릿 포함 가능 — 절대 커밋 금지)
+.expo/
