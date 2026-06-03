@@ -18,6 +18,22 @@ export async function GET(request: NextRequest) {
 
     const pType = type === "glass" ? "glass" : "wine";
 
+    // 트렌드 전용 모드 (YoY 작년 동기간) — 경량 함수로 date+revenue 만 집계.
+    // 전체 분석(랭킹/할인/브랜드/prevRanking)을 생략해 DB 부하를 크게 줄인다.
+    if (sp.get("trendOnly")) {
+      const { data, error } = await supabase.rpc("fn_client_daily_trend", {
+        p_type: pType,
+        p_manager: manager,
+        p_department: department,
+        p_business_type: businessType,
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_client_search: clientSearch,
+      });
+      if (error) throw new Error(error.message);
+      return NextResponse.json({ success: true, dailyTrend: data?.dailyTrend || [] });
+    }
+
     // 거래처 상세 조회 모드
     if (clientCode) {
       const { data, error } = await supabase.rpc("fn_client_detail", {

@@ -88,7 +88,8 @@ export function useClientAnalysisData() {
 
       const [res, lyRes] = await Promise.all([
         fetch(`/api/admin/client-analysis?${params}`),
-        fetch(`/api/admin/client-analysis?${lyParams}`),
+        // 작년 동기간은 YoY 차트(date+revenue)만 필요 → 경량 트렌드 전용 호출.
+        fetch(`/api/admin/client-analysis?${lyParams}&trendOnly=1`),
       ]);
       const [json, lyJson] = await Promise.all([res.json(), lyRes.json()]);
 
