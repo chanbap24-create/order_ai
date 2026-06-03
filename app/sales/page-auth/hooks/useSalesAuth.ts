@@ -10,18 +10,26 @@ function computeIsAdmin(role: string, department: string) {
 }
 
 export function useSalesAuth(setActiveTab: (t: SalesTabId) => void) {
-  const hint = typeof window !== 'undefined' ? readAuthHint() : null;
+  // 초기 state 는 서버 렌더와 동일하게(비인증) 둔다. authHint(localStorage)는 렌더 중이 아니라
+  // 마운트 effect 에서 읽어야 hydration mismatch(서버 "확인 중..." vs 클라 콘텐츠)를 피한다.
   const [authChecking, setAuthChecking] = useState(true);
-  const [authenticated, setAuthenticated] = useState(!!hint?.authenticated);
-  const [currentManager, setCurrentManager] = useState(hint?.manager || '');
-  const [isAdmin, setIsAdmin] = useState(
-    hint ? computeIsAdmin(hint.role, hint.department) : false,
-  );
+  const [authenticated, setAuthenticated] = useState(false);
+  const [currentManager, setCurrentManager] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [userDepartment, setUserDepartment] = useState('');
   const [managerList, setManagerList] = useState<string[]>([]);
 
   useEffect(() => {
+    // authHint 로 즉시 인증 상태 복원 → 네트워크 확인 전 로그인 화면 깜빡임 방지.
+    // (초기 렌더는 서버와 동일한 "확인 중..." 이므로 hydration 일치)
+    const hint = readAuthHint();
+    if (hint?.authenticated) {
+      setAuthenticated(true);
+      setCurrentManager(hint.manager || '');
+      setIsAdmin(computeIsAdmin(hint.role, hint.department));
+    }
+
     try {
       const raw = typeof window !== 'undefined' ? sessionStorage.getItem('sales_managers_cache') : null;
       if (raw) {
