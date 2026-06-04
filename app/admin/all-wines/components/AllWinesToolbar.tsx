@@ -42,8 +42,8 @@ export function AllWinesToolbar(p: Props) {
           onClick={p.onToggleHideZero}
           style={{
             padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            border: p.hideZero ? '1px solid #8B1538' : '1px solid #d1d5db',
-            background: p.hideZero ? '#8B1538' : '#fff',
+            border: p.hideZero ? '1px solid var(--color-primary-light)' : '1px solid #d1d5db',
+            background: p.hideZero ? 'var(--color-primary-light)' : '#fff',
             color: p.hideZero ? '#fff' : '#6b7280',
             transition: 'all 0.15s',
           }}

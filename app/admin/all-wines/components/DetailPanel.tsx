@@ -100,7 +100,7 @@ export function DetailPanel(p: Props) {
                   disabled={p.savingField === dbKey}
                   style={{
                     padding: '4px 10px', borderRadius: 4, border: 'none', fontSize: 12, fontWeight: 600,
-                    cursor: 'pointer', background: '#8B1538', color: '#fff',
+                    cursor: 'pointer', background: 'var(--color-primary-light)', color: '#fff',
                   }}
                 >
                   {p.savingField === dbKey ? '...' : '저장'}

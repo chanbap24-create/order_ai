@@ -218,7 +218,7 @@ function QuoteActions({
         disabled={quoteLoading}
         style={{
           flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
-          background: quoteLoading ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+          background: quoteLoading ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
           color: '#fff', fontSize: 12, fontWeight: 600,
           cursor: quoteLoading ? 'default' : 'pointer',
         }}

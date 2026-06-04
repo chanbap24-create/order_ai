@@ -43,7 +43,7 @@ export default function Home() {
               transition: 'all 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s',
             }}>
               <p style={{
-                fontSize: '0.7rem', color: '#5A1515',
+                fontSize: '0.7rem', color: 'var(--action)',
                 letterSpacing: '0.2em', textTransform: 'uppercase',
                 fontWeight: 600, marginBottom: 12,
               }}>

@@ -22,7 +22,7 @@ export const MonthlyTrend = memo(function MonthlyTrend({ data }: { data: Analysi
               <div style={{ flex: 1, height: 20, background: '#f5f0f0', borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{
                   width: `${pct(m.qty, maxMonthQty)}%`, height: '100%',
-                  background: m.qty >= data.monthly_avg ? '#5A1515' : '#C4A0A0',
+                  background: m.qty >= data.monthly_avg ? 'var(--action)' : '#C4A0A0',
                   borderRadius: 3,
                   minWidth: m.qty > 0 ? 2 : 0,
                   transition: 'width 0.3s',
@@ -48,7 +48,7 @@ export const MonthlyTrend = memo(function MonthlyTrend({ data }: { data: Analysi
       <div style={{ marginTop: 8, fontSize: 11, color: '#999', display: 'flex', gap: 16 }}>
         <span>월 평균 {fmt(data.monthly_avg)}병</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 12, height: 8, borderRadius: 2, background: '#5A1515', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 8, borderRadius: 2, background: 'var(--action)', display: 'inline-block' }} />
           평균 이상
           <span style={{ width: 12, height: 8, borderRadius: 2, background: '#C4A0A0', display: 'inline-block', marginLeft: 8 }} />
           평균 이하

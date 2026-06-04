@@ -35,9 +35,9 @@ export function DateRangePresets({ startDate, endDate, onChange, compact = false
   };
   const activeBtn: React.CSSProperties = {
     ...baseBtn,
-    background: '#8B1538',
+    background: 'var(--color-primary-light)',
     color: '#fff',
-    borderColor: '#8B1538',
+    borderColor: 'var(--color-primary-light)',
     fontWeight: 600,
   };
 

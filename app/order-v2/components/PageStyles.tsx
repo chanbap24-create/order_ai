@@ -30,7 +30,7 @@ export function PageStyles() {
       .order-client-item:hover { background: rgba(90,21,21,0.03) !important; }
       .order-cand-btn:hover { background: rgba(90,21,21,0.03) !important; }
       .order-search-item:hover { background: rgba(90,21,21,0.03) !important; }
-      .order-copy-btn:hover { border-color: #5A1515 !important; color: #5A1515 !important; }
+      .order-copy-btn:hover { border-color: var(--action) !important; color: var(--action) !important; }
       .order-preset-btn:hover { background: rgba(255,255,255,0.15) !important; }
       .order-input:focus { border-color: rgba(90,21,21,0.3) !important; box-shadow: 0 0 0 3px rgba(90,21,21,0.06) !important; }
       .order-line-card:hover { border-color: rgba(90,21,21,0.12) !important; }

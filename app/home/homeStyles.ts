@@ -25,7 +25,7 @@ export const HOME_STYLES = `
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #5A1515, transparent);
+  background: linear-gradient(90deg, transparent, var(--action), transparent);
   opacity: 0;
   transition: opacity 0.35s ease;
 }

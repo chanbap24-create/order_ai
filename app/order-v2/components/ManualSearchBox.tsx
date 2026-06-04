@@ -68,7 +68,7 @@ export function ManualSearchBox({
               fontSize: 16,
               padding: "8px 12px",
               borderRadius: 8,
-              border: "1.5px solid #5A1515",
+              border: "1.5px solid var(--action)",
               background: "#fff",
               color: ORDER_COLORS.text,
               outline: "none",
@@ -131,7 +131,7 @@ export function ManualSearchBox({
                           style={{
                             fontSize: 9,
                             fontWeight: 700,
-                            color: "#5A1515",
+                            color: "var(--action)",
                             background: "rgba(90,21,21,0.08)",
                             padding: "2px 6px",
                             borderRadius: 4,

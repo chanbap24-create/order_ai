@@ -121,7 +121,7 @@ export function MeetingDetailPanel(p: Props) {
                       border: "none",
                       background: p.detail.quoteLoading
                         ? "#ccc"
-                        : "linear-gradient(135deg, #5A1515, #8B2252)",
+                        : "linear-gradient(135deg, var(--action), #8B2252)",
                       color: "#fff",
                       fontSize: 14,
                       fontWeight: 700,

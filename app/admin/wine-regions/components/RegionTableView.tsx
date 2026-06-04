@@ -35,7 +35,7 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
               <td style={{ padding: '6px', fontWeight: 500, color: 'var(--action)' }}>{r.major_region}</td>
               <td style={{ padding: '6px', color: '#444' }}>{r.sub_region || '-'}</td>
               <td style={{ padding: '6px', fontWeight: 500 }}>{r.appellation || '-'}</td>
-              <td style={{ padding: '6px', color: '#8B1538' }}>{r.cru_vineyard || '-'}</td>
+              <td style={{ padding: '6px', color: 'var(--color-primary-light)' }}>{r.cru_vineyard || '-'}</td>
               <td style={{ padding: '6px' }}>
                 {r.classification ? (
                   <span style={{

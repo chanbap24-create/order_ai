@@ -33,7 +33,7 @@ export const NAV_STYLES = `
   white-space: nowrap;
   flex-shrink: 0;
 }
-.nav-logo:hover { color: #5A1515; }
+.nav-logo:hover { color: var(--action); }
 
 /* ─── Desktop nav ─── */
 .nav-links {
@@ -52,9 +52,9 @@ export const NAV_STYLES = `
   transition: color 0.2s ease;
   white-space: nowrap;
 }
-.nav-link:hover { color: #5A1515; }
+.nav-link:hover { color: var(--action); }
 .nav-link.active {
-  color: #5A1515;
+  color: var(--action);
   font-weight: 600;
 }
 .nav-link.active::after {
@@ -64,7 +64,7 @@ export const NAV_STYLES = `
   left: 0;
   right: 0;
   height: 2px;
-  background: #5A1515;
+  background: var(--action);
   border-radius: 1px;
 }
 
@@ -200,7 +200,7 @@ export const NAV_STYLES = `
   color: #f0ece6;
   font-weight: 600;
   background: rgba(90, 21, 21, 0.25);
-  border-left: 3px solid #5A1515;
+  border-left: 3px solid var(--action);
 }
 
 .nav-drawer-footer {

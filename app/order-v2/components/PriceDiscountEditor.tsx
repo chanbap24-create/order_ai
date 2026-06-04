@@ -128,7 +128,7 @@ export function PriceDiscountEditor({
               textAlign: "center",
               fontSize: 12,
               fontWeight: 600,
-              border: "1.5px solid #5A1515",
+              border: "1.5px solid var(--action)",
               borderRadius: 6,
               padding: "3px 4px",
               color: ORDER_COLORS.primary,

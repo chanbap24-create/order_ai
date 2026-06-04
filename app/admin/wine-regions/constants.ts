@@ -33,7 +33,7 @@ export function getCountryFlag(country: string) {
 export function classColor(cls: string | null) {
   if (!cls) return 'var(--text-muted)';
   const c = cls.toLowerCase();
-  if (c.includes('grand cru') && !c.includes('classé')) return '#8B1538';
+  if (c.includes('grand cru') && !c.includes('classé')) return 'var(--color-primary-light)';
   if (c.includes('1er') || c.includes('premier')) return '#B8860B';
   if (c.includes('classé') || c.includes('docg') || c.includes('doca')) return 'var(--action)';
   if (c.includes('village') || c.includes('doc') || c === 'doc') return '#2E7D32';

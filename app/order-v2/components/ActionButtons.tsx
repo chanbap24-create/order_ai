@@ -52,7 +52,7 @@ export function ActionButtons({
           border: "none",
           background: disabled
             ? "#d8d3ce"
-            : "linear-gradient(135deg, #5A1515 0%, #7a2828 50%, #5A1515 100%)",
+            : "linear-gradient(135deg, var(--action) 0%, #7a2828 50%, var(--action) 100%)",
           color: "#fff",
           fontSize: 14,
           fontWeight: 700,

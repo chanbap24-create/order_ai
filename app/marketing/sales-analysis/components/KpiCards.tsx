@@ -37,10 +37,10 @@ export const KpiCards = memo(function KpiCards({ data }: { data: AnalysisData })
           border: '1px solid rgba(90,21,21,0.06)',
           padding: '14px 16px',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: '#a8a098', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
             {card.label}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#2c1810' }}>{card.value}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{card.value}</div>
           <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{card.sub}</div>
         </div>
       ))}

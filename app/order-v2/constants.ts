@@ -1,12 +1,12 @@
 /** order-v2 상수/토큰/메시지 템플릿 */
 
 export const ORDER_COLORS = {
-  primary: "#5A1515",
-  text: "#2c1810",
+  primary: "var(--action)",
+  text: "var(--text-primary)",
   textTitle: "#1a1a2e",
-  textMuted: "#a8a098",
+  textMuted: "var(--text-muted)",
   surface: "#fff",
-  surfaceBg: "#faf9f7",
+  surfaceBg: "var(--surface-muted)",
 
   confHigh: "#16a34a",    // 확실 >= 0.9
   confMid: "#2563eb",     // 높음 >= 0.7

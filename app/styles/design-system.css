@@ -99,6 +99,17 @@
   --action-hover: #3D0E0E;
   --action-muted: rgba(90, 21, 21, 0.06);
 
+  /* Status palette (정규 의미색) — 화면 전반에 혼용되던 shade들을 단일화.
+     정규값은 가장 많이 쓰이던 shade로 채택(수렴 시 시각 변화 최소). 배경(-bg)은 연한 톤. */
+  --status-danger: #c62828;     /* 위험/연체/에러 (기존 #dc2626 #dc3545 #e74c3c #c0392b 등 통합) */
+  --status-danger-bg: #ffebee;
+  --status-info: #1565c0;       /* 정보/오늘/강조 (기존 #2563eb 등 통합) */
+  --status-info-bg: #e3f2fd;
+  --status-success: #2e7d32;    /* 성공/정상/입금 (기존 #16a34a #27ae60 #4caf50 등 통합) */
+  --status-success-bg: #e8f5e9;
+  --status-warning: #e65100;    /* 경고/지원율/입고 (기존 #e67e22 #d97706 #ff9800 등 통합) */
+  --status-warning-bg: #fff3e0;
+
   /* Layout primitives */
   --sidebar-width: 232px;
   --sidebar-width-collapsed: 60px;

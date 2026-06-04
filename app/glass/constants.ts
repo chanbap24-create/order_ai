@@ -4,7 +4,7 @@
  */
 
 export const GLASS_COLORS = {
-  primary: "#5A1515",
+  primary: "var(--action)",
   primaryBgSubtle: "rgba(90,21,21,0.02)",
   primaryBgLight: "rgba(90,21,21,0.04)",
   primaryBgHover: "rgba(90,21,21,0.06)",
@@ -15,13 +15,13 @@ export const GLASS_COLORS = {
   primaryShadowSubtle: "0 2px 8px rgba(90,21,21,0.03)",
   primaryShadowFaint: "0 1px 3px rgba(90,21,21,0.03)",
 
-  text: "#2c1810",
-  textMuted: "#8a8580",
+  text: "var(--text-primary)",
+  textMuted: "var(--text-tertiary)",
   textDisabled: "#ccc",
   textHelper: "#8a7a6e",
 
   surface: "#fff",
-  surfaceBg: "#faf9f7",
+  surfaceBg: "var(--surface-muted)",
   surfaceBgAlt: "#fafaf8",
   dividerFaint: "rgba(90,21,21,0.05)",
   dividerCard: "rgba(90,21,21,0.06)",
@@ -38,7 +38,7 @@ export const GLASS_COLORS = {
   warningBg: "rgba(217,119,6,0.05)",
   warningBorder: "rgba(217,119,6,0.15)",
 
-  success: "#10b981",
+  success: "var(--color-success)",
   neutralBorder: "#d1d5db",
   neutralTextMuted: "#6b7280",
   neutralIcon: "#9ca3af",

@@ -11,8 +11,8 @@ export const INV_COLORS = {
   surfaceBg: "#fafaf8",
   tableHeader: "#F0EFED",
   tableBorder: "#E5E5E5",
-  success: "#10b981",
-  danger: "#ef4444",
+  success: "var(--color-success)",
+  danger: "var(--color-error)",
 } as const;
 
 /** 최대 페이지 폭 */

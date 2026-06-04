@@ -19,7 +19,7 @@ export function MeetingDetailHeader(p: Props) {
     <>
       <div
         style={{
-          background: "linear-gradient(135deg, #5A1515, #8B2252)",
+          background: "linear-gradient(135deg, var(--action), #8B2252)",
           borderRadius: 12,
           padding: 16,
           color: "#fff",

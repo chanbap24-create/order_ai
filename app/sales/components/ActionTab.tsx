@@ -233,7 +233,7 @@ export default function ActionTab({ currentManager, isAdmin, onCountChange }: Ac
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dismissedTotal}건 확인 처리됨</span>
           <button
             onClick={clearDismissed}
-            style={{ fontSize: 11, color: '#8B1538', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            style={{ fontSize: 11, color: 'var(--color-primary-light)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
           >
             초기화
           </button>

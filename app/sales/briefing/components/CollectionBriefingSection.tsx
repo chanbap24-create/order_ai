@@ -27,7 +27,7 @@ function ledgerStart(it: CollItem): string {
 }
 
 const GROUPS: Array<{ type: string; label: string; color: string }> = [
-  { type: 'wine', label: '까브드뱅', color: '#8B1538' },
+  { type: 'wine', label: '까브드뱅', color: 'var(--color-primary-light)' },
   { type: 'glass', label: '대유라이프', color: '#1565C0' },
 ];
 

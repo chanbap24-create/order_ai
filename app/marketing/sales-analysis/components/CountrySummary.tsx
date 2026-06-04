@@ -49,7 +49,7 @@ const CountryRowView = memo(function CountryRowView({
         padding: '12px 16px', cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <div style={{ width: 65, fontSize: 13, fontWeight: 700, color: '#2c1810', flexShrink: 0 }}>{c.name}</div>
+        <div style={{ width: 65, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>{c.name}</div>
         <div style={{ flex: 1, height: 22, background: '#f5f0f0', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
           <div style={{ display: 'flex', height: '100%' }}>
             {c.types.map(t => (

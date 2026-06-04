@@ -51,7 +51,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
+      background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>

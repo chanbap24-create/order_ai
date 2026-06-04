@@ -23,19 +23,19 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr style={{ background: '#f8f6f4', borderBottom: '2px solid rgba(90,21,21,0.1)' }}>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#5A1515' }}>품목</th>
+              <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--action)' }}>품목</th>
               <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: '#666' }}>국가</th>
               <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: '#666' }}>지역</th>
               <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: '#666' }}>타입</th>
               <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#666' }}>평균단가</th>
               <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#666' }}>금액</th>
-              <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#5A1515' }}>수량</th>
+              <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>수량</th>
             </tr>
           </thead>
           <tbody>
             {displayed.map((item, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                <td style={{ padding: '6px 12px', color: '#2c1810', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <td style={{ padding: '6px 12px', color: 'var(--text-primary)', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   <span style={{ color: '#bbb', fontSize: 10, marginRight: 4 }}>{item.item_no}</span>
                   {item.item_name}
                 </td>
@@ -50,7 +50,7 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
                 <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: 11, color: '#666' }}>
                   {item.amount > 0 ? fmtM(item.amount) : '-'}
                 </td>
-                <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, color: '#2c1810' }}>
+                <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {fmt(item.qty)}
                 </td>
               </tr>
@@ -63,7 +63,7 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
           <button
             onClick={onToggleShowAll}
             style={{
-              fontSize: 12, fontWeight: 500, color: '#5A1515',
+              fontSize: 12, fontWeight: 500, color: 'var(--action)',
               background: 'transparent', border: '1px solid rgba(90,21,21,0.15)',
               borderRadius: 6, padding: '4px 14px', cursor: 'pointer',
             }}

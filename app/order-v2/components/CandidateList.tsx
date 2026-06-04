@@ -38,7 +38,7 @@ export function CandidateList({ candidates, selectedIdx, historySet, onSelect }:
               cursor: "pointer",
               textAlign: "left",
               borderLeft: isSelected
-                ? "3px solid #5A1515"
+                ? "3px solid var(--action)"
                 : hasHistory
                   ? "3px solid rgba(22,163,74,0.3)"
                   : "3px solid transparent",
@@ -118,7 +118,7 @@ function Radio({ isSelected }: { isSelected: boolean }) {
         height: 16,
         borderRadius: 8,
         flexShrink: 0,
-        border: isSelected ? "2px solid #5A1515" : "2px solid #d8d3ce",
+        border: isSelected ? "2px solid var(--action)" : "2px solid #d8d3ce",
         background: isSelected ? ORDER_COLORS.primary : "transparent",
         display: "flex",
         alignItems: "center",

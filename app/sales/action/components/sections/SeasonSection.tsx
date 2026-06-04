@@ -51,7 +51,7 @@ export function SeasonSection(p: Props) {
                 style={{
                   background: "white",
                   borderRadius: 12,
-                  borderLeft: `4px solid ${wine.season_change ? "#3d0e0e" : "var(--action)"}`,
+                  borderLeft: `4px solid ${wine.season_change ? "var(--action-hover)" : "var(--action)"}`,
                   boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
                   padding: "14px 16px",
                   position: "relative",

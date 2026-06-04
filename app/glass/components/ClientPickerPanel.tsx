@@ -89,7 +89,7 @@ export function ClientPickerPanel({
             </div>
           )}
 
-          <div style={{ marginTop: 4, fontSize: 12, color: "#a8a098" }}>
+          <div style={{ marginTop: 4, fontSize: 12, color: "var(--text-muted)" }}>
             힌트: <b>{hintUsed}</b>
             {pendingOrderText ? (
               <>

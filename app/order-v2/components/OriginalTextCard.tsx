@@ -39,7 +39,7 @@ export function OriginalTextCard({ orderText }: Props) {
             width: 3,
             height: 14,
             borderRadius: 2,
-            background: "linear-gradient(180deg, #8a8580, rgba(138,133,128,0.3))",
+            background: "linear-gradient(180deg, var(--text-tertiary), rgba(138,133,128,0.3))",
           }}
         />
         <span style={{ fontSize: 13, fontWeight: 700, color: ORDER_COLORS.text }}>

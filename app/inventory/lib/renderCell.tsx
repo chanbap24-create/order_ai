@@ -38,7 +38,7 @@ export function renderInvCellValue(
       return (
         <span
           style={{
-            color: (item.total_stock ?? 0) > 0 ? "#10b981" : "#ef4444",
+            color: (item.total_stock ?? 0) > 0 ? "var(--color-success)" : "var(--color-error)",
             fontWeight: 700,
           }}
         >
@@ -49,7 +49,7 @@ export function renderInvCellValue(
       return (
         <span
           style={{
-            color: (item.available_stock ?? 0) > 0 ? "#10b981" : "#ef4444",
+            color: (item.available_stock ?? 0) > 0 ? "var(--color-success)" : "var(--color-error)",
             fontWeight: 700,
           }}
         >

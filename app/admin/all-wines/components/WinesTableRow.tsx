@@ -52,7 +52,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
       <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>
       <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.country_en || w.country || '-'}</span>
       <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.region || '-'}</span>
-      <span style={{ fontSize: 11, fontWeight: 600, color: '#8B1538' }}>{w.brand || '-'}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-primary-light)' }}>{w.brand || '-'}</span>
       <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {w.item_name_kr}
       </span>

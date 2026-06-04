@@ -58,7 +58,7 @@ export default function SalesAnalysisTab() {
                   padding: '7px 16px', borderRadius: 6, border: 'none',
                   fontSize: 12, fontWeight: view === v ? 700 : 500,
                   background: view === v ? '#fff' : 'transparent',
-                  color: view === v ? '#5A1515' : '#8a8580',
+                  color: view === v ? 'var(--action)' : 'var(--text-tertiary)',
                   cursor: 'pointer',
                   boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 }}
@@ -93,7 +93,7 @@ export default function SalesAnalysisTab() {
       {s.searched && !s.loading && s.data && s.data.total_qty === 0 && (
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
-          textAlign: 'center', color: '#8a8580', fontSize: 14,
+          textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14,
           border: '1px solid rgba(90,21,21,0.06)',
         }}>
           해당 조건에 맞는 판매 데이터가 없습니다.
@@ -103,10 +103,10 @@ export default function SalesAnalysisTab() {
       {!s.searched && (
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
-          textAlign: 'center', color: '#8a8580', fontSize: 13,
+          textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13,
           border: '1px solid rgba(90,21,21,0.06)', lineHeight: 1.8,
         }}>
-          기간과 조건을 설정한 후 <strong style={{ color: '#5A1515' }}>조회</strong> 버튼을 눌러주세요.
+          기간과 조건을 설정한 후 <strong style={{ color: 'var(--action)' }}>조회</strong> 버튼을 눌러주세요.
         </div>
       )}
     </div>

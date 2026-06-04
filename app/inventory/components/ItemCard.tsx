@@ -61,7 +61,7 @@ export function ItemCard({
               onClick={() => onTastingNoteClick(item.item_no, item.item_name)}
               style={{
                 fontSize: "0.72rem", fontFamily: "monospace", fontWeight: 600,
-                color: tastingNoteAvailable ? "#10b981" : "#BCBCBC",
+                color: tastingNoteAvailable ? "var(--color-success)" : "#BCBCBC",
                 background: "none", border: "none", cursor: "pointer", padding: 0,
                 textDecoration: tastingNoteAvailable ? "underline" : "none",
                 flexShrink: 0,

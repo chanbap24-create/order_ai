@@ -72,7 +72,7 @@ export function BottomActionBar(p: Props) {
           disabled={p.quoteLoading}
           style={{
             padding: '10px 16px', borderRadius: 8, border: 'none',
-            background: p.quoteLoading ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+            background: p.quoteLoading ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
             color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: p.quoteLoading ? 'default' : 'pointer',
           }}

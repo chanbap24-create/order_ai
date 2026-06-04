@@ -130,7 +130,7 @@ export function ClientSearchField({
                     style={{
                       fontWeight: 400,
                       fontSize: 11,
-                      color: "#8a8580",
+                      color: "var(--text-tertiary)",
                       marginLeft: 6,
                     }}
                   >

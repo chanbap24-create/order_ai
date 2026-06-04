@@ -34,7 +34,7 @@ export function MobileDrawer({ open, drawerRef, onClose, pathname, isActive }: P
         <div className="nav-drawer-header">
           <div style={{
             width: 32, height: 1,
-            background: 'linear-gradient(90deg, #5A1515, rgba(90,21,21,0.3))',
+            background: 'linear-gradient(90deg, var(--action), rgba(90,21,21,0.3))',
             marginBottom: 24,
           }} />
           <Link

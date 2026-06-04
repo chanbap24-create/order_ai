@@ -139,7 +139,7 @@ export function ClientPickerCard(p: Props) {
           disabled={p.loading}
           style={{
             width: '100%', marginTop: 12, padding: '12px', borderRadius: 8, border: 'none',
-            background: p.loading ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+            background: p.loading ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
             color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: p.loading ? 'default' : 'pointer',
           }}

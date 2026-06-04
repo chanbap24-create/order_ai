@@ -52,7 +52,7 @@ export function MobilePanelActions({
             height: 44,
             borderRadius: 8,
             border: "none",
-            background: hasItems ? "#8B1538" : "#E5E5E5",
+            background: hasItems ? "var(--color-primary-light)" : "#E5E5E5",
             color: hasItems ? "white" : "#999",
             fontSize: 14,
             fontWeight: 600,

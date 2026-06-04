@@ -29,7 +29,7 @@ export function OrderSummaryCard({ clientName, clientCode, parsedItems }: Props)
         </div>
         <div style={{ marginBottom: 10, fontSize: 14 }}>
           거래처: <b style={{ color: GLASS_COLORS.primary }}>{clientName}</b>
-          <span style={{ color: "#a8a098", marginLeft: 6, fontSize: 12 }}>{clientCode}</span>
+          <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 12 }}>{clientCode}</span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

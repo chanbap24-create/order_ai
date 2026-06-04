@@ -7,7 +7,7 @@ import { fmt } from '../lib/format';
 export function SummaryCard({ result }: { result: RecommendResult }) {
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #5A1515, #8B2252)',
+      background: 'linear-gradient(135deg, var(--action), #8B2252)',
       borderRadius: 12, padding: '16px', marginBottom: 16, color: '#fff',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

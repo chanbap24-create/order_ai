@@ -32,7 +32,7 @@ export function HomeSidebar({ mounted }: { mounted: boolean }) {
       }}>
         <div style={{
           width: 32, height: 1,
-          background: 'linear-gradient(90deg, #5A1515, rgba(90,21,21,0.3))',
+          background: 'linear-gradient(90deg, var(--action), rgba(90,21,21,0.3))',
           marginBottom: 32,
         }} />
 

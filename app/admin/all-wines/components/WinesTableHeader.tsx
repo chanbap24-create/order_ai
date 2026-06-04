@@ -18,19 +18,19 @@ export function WinesTableHeader({ isMobile, sortBy, onSort, sortArrow }: Props)
       }}>
         <span
           onClick={() => onSort('item_code')}
-          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_code' ? '#8B1538' : '#6b7280' }}
+          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_code' ? 'var(--color-primary-light)' : '#6b7280' }}
         >
           품번{sortArrow('item_code')}
         </span>
         <span
           onClick={() => onSort('item_name_kr')}
-          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_name_kr' ? '#8B1538' : '#6b7280' }}
+          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_name_kr' ? 'var(--color-primary-light)' : '#6b7280' }}
         >
           품명{sortArrow('item_name_kr')}
         </span>
         <span
           onClick={() => onSort('available_stock')}
-          style={{ cursor: 'pointer', userSelect: 'none', textAlign: 'right', color: sortBy === 'available_stock' ? '#8B1538' : '#6b7280' }}
+          style={{ cursor: 'pointer', userSelect: 'none', textAlign: 'right', color: sortBy === 'available_stock' ? 'var(--color-primary-light)' : '#6b7280' }}
         >
           재고{sortArrow('available_stock')}
         </span>
@@ -64,7 +64,7 @@ export function WinesTableHeader({ isMobile, sortBy, onSort, sortArrow }: Props)
             cursor: col.key ? 'pointer' : 'default',
             textAlign: col.right ? 'right' : 'left',
             userSelect: 'none',
-            color: sortBy === col.key ? '#8B1538' : '#6b7280',
+            color: sortBy === col.key ? 'var(--color-primary-light)' : '#6b7280',
           }}
         >
           {col.label}{col.key ? sortArrow(col.key) : ''}

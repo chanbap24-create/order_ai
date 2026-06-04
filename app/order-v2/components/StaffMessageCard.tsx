@@ -37,7 +37,7 @@ export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
               width: 3,
               height: 14,
               borderRadius: 2,
-              background: "linear-gradient(180deg, #5A1515, rgba(90,21,21,0.3))",
+              background: "linear-gradient(180deg, var(--action), rgba(90,21,21,0.3))",
             }}
           />
           <span style={{ fontSize: 13, fontWeight: 700, color: ORDER_COLORS.text }}>
@@ -54,7 +54,7 @@ export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
             fontWeight: 600,
             border: copied ? "1px solid #16a34a" : "1px solid rgba(90,21,21,0.1)",
             background: copied ? ORDER_COLORS.confHigh : "#fff",
-            color: copied ? "#fff" : "#8a8580",
+            color: copied ? "#fff" : "var(--text-tertiary)",
             cursor: "pointer",
             transition: "all 0.2s ease",
             letterSpacing: "0.02em",

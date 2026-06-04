@@ -145,7 +145,7 @@ export default function MfaSetupPage() {
 
 const pageStyle: React.CSSProperties = {
   minHeight: 'calc(100vh - 56px)',
-  background: 'linear-gradient(180deg, #faf9f7 0%, #f5f3f0 100%)',
+  background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   padding: 20, fontFamily: "'DM Sans', -apple-system, sans-serif",
 };

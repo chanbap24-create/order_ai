@@ -33,7 +33,7 @@ export default function RecommendSettingsTab() {
   return (
     <div style={{ paddingBottom: 80 }}>
       <div style={{
-        background: 'linear-gradient(135deg, #5A1515, #8B2252)',
+        background: 'linear-gradient(135deg, var(--action), #8B2252)',
         borderRadius: 12, padding: '20px', marginBottom: 20, color: '#fff',
       }}>
         <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>AI 추천 가중치 설정</div>

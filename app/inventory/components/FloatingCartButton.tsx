@@ -49,7 +49,7 @@ export function FloatingCartButton({ onClick, itemCount }: Props) {
             position: "absolute",
             top: -4,
             right: -4,
-            background: "#ef4444",
+            background: "var(--color-error)",
             color: "white",
             borderRadius: 10,
             padding: "2px 6px",

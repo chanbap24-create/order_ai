@@ -37,7 +37,7 @@ export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
           disabled={saving}
           style={{
             padding: '10px 24px', borderRadius: 8, border: 'none',
-            background: saving ? '#ccc' : 'linear-gradient(135deg, #5A1515, #8B2252)',
+            background: saving ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
             color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: saving ? 'default' : 'pointer',
           }}
