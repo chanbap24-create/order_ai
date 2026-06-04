@@ -13,7 +13,7 @@ export function pct(part: number, total: number) {
 export const TYPE_COLORS: Record<string, string> = {
   'Champagne': '#C4A35A', 'Sparkling': '#4A90D9', 'Red': '#8B1A1A', 'White': '#DAA520',
   'Rosé': '#D4728A', 'Icewine': '#5BA3CF', 'Grappa': '#8B6914',
-  'Set': '#27ae60', 'POS Material': '#FF6F00', '자재': '#78909C',
+  'Set': '#2E7D32', 'POS Material': '#FF6F00', '자재': '#78909C',
   'Port': '#6B2D5B', '타사제품': '#666',
 };
 
