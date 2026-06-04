@@ -92,7 +92,7 @@ export function WinesTab(p: Props) {
             {checkedCount > 0 ? `${checkedCount}개 선택` : "전체"}
           </span>
         </div>
-        {checkedCount > 0 && <span style={{ fontSize: 11, color: "#e67e22" }}>재계산 시 제외</span>}
+        {checkedCount > 0 && <span style={{ fontSize: 11, color: "var(--status-warning)" }}>재계산 시 제외</span>}
       </div>
 
       <div
@@ -183,7 +183,7 @@ export function WinesTab(p: Props) {
                   type="checkbox"
                   checked={true}
                   onChange={() => p.toggleExcludeWine(ew.item_name)}
-                  style={{ width: 14, height: 14, accentColor: "#c0392b", cursor: "pointer" }}
+                  style={{ width: 14, height: 14, accentColor: "var(--status-danger)", cursor: "pointer" }}
                 />
               </div>
               <div style={{ fontSize: 11, color: "#999", textDecoration: "line-through" }}>

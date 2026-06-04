@@ -43,7 +43,7 @@ export function WineRow(p: Props) {
             type="checkbox"
             checked={p.isChecked}
             onChange={p.onToggleExclude}
-            style={{ width: 14, height: 14, accentColor: "#c0392b", cursor: "pointer" }}
+            style={{ width: 14, height: 14, accentColor: "var(--status-danger)", cursor: "pointer" }}
           />
         </div>
         <div style={{ cursor: "pointer" }} onClick={p.onClick}>
@@ -61,7 +61,7 @@ export function WineRow(p: Props) {
           >
             {w.item_name}
             {hasStockout && !p.isChecked && (
-              <span style={{ fontSize: 9, color: "#e67e22", fontWeight: 600 }}>
+              <span style={{ fontSize: 9, color: "var(--status-warning)", fontWeight: 600 }}>
                 ×{w.stockout_factor}
               </span>
             )}
@@ -83,7 +83,7 @@ export function WineRow(p: Props) {
             <div
               style={{
                 fontSize: 10,
-                color: w.avg_selling_price < w.supply_price ? "#e67e22" : "#27ae60",
+                color: w.avg_selling_price < w.supply_price ? "var(--status-warning)" : "var(--status-success)",
               }}
             >
               {w.avg_selling_price < w.supply_price ? "" : "+"}
@@ -107,7 +107,7 @@ export function WineRow(p: Props) {
               const pct = Math.round((profit / w.avg_import_cost) * 100);
               return (
                 <div
-                  style={{ color: profit >= 0 ? "#27ae60" : "#c0392b", fontWeight: 500 }}
+                  style={{ color: profit >= 0 ? "var(--status-success)" : "var(--status-danger)", fontWeight: 500 }}
                 >
                   {pct >= 0 ? "+" : ""}
                   {pct}%

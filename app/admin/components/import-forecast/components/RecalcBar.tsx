@@ -21,13 +21,13 @@ export function RecalcBar(p: Props) {
         padding: "10px 20px",
         borderRadius: 6,
         background: "#fff",
-        border: "1px solid #e67e22",
+        border: "1px solid var(--status-warning)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
       }}
     >
-      <span style={{ fontSize: 12, fontWeight: 500, color: "#e67e22" }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--status-warning)" }}>
         {p.excludedCount}개 제외됨
       </span>
       <div style={{ display: "flex", gap: 8 }}>
@@ -53,7 +53,7 @@ export function RecalcBar(p: Props) {
             padding: "5px 14px",
             fontSize: 12,
             fontWeight: 600,
-            background: "#e67e22",
+            background: "var(--status-warning)",
             color: "#fff",
             border: "none",
             borderRadius: 4,

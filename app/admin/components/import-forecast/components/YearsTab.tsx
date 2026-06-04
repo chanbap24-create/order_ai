@@ -144,7 +144,7 @@ export function YearsTab(p: Props) {
           </span>
           <span style={{ fontSize: 13, color: "#999" }}>병/년</span>
           {Math.abs(p.activeData.qty_per_item - p.activeData.qty_per_item_raw) >= 5 && (
-            <span style={{ fontSize: 11, color: "#e67e22" }}>
+            <span style={{ fontSize: 11, color: "var(--status-warning)" }}>
               보정 전 {p.activeData.qty_per_item_raw}
             </span>
           )}

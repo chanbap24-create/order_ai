@@ -225,7 +225,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   style={{
                     textAlign: "center",
                     fontSize: 11,
-                    color: b.months5c <= 1 ? "#27ae60" : "#999",
+                    color: b.months5c <= 1 ? "var(--status-success)" : "#999",
                   }}
                 >
                   {b.months5c}
@@ -236,10 +236,10 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                     fontSize: 11,
                     color:
                       b.months10c <= 3
-                        ? "#27ae60"
+                        ? "var(--status-success)"
                         : b.months10c <= 6
-                          ? "#e67e22"
-                          : "#c0392b",
+                          ? "var(--status-warning)"
+                          : "var(--status-danger)",
                   }}
                 >
                   {b.months10c}
@@ -250,10 +250,10 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                     fontSize: 11,
                     color:
                       b.months20c <= 6
-                        ? "#27ae60"
+                        ? "var(--status-success)"
                         : b.months20c <= 12
-                          ? "#e67e22"
-                          : "#c0392b",
+                          ? "var(--status-warning)"
+                          : "var(--status-danger)",
                   }}
                 >
                   {b.months20c}

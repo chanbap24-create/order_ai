@@ -56,7 +56,7 @@ export function TrendBar(p: Props) {
   }
 
   const renderPct = (pct: number) => {
-    const color = pct > 10 ? "#27ae60" : pct < -10 ? "#c0392b" : "var(--text-tertiary)";
+    const color = pct > 10 ? "var(--status-success)" : pct < -10 ? "var(--status-danger)" : "var(--text-tertiary)";
     const arrow = pct > 0 ? "↑" : pct < 0 ? "↓" : "→";
     return (
       <span style={{ fontWeight: 700, color }}>

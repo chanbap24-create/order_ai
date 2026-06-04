@@ -100,7 +100,7 @@ export function ConditionFilterOptions(p: Props) {
             padding: "4px 10px",
             fontSize: 12,
             fontWeight: 500,
-            color: p.excludedBizTypes.size > 0 ? "#c0392b" : "#555",
+            color: p.excludedBizTypes.size > 0 ? "var(--status-danger)" : "#555",
             background: "#fff",
             border: "1px solid #e0e0e0",
             borderRadius: 6,

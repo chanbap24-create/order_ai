@@ -64,7 +64,7 @@ export function SimulationScenarios(p: Props) {
                 <span>수익</span>
                 <span
                   style={{
-                    color: yr1Profit >= 0 ? "#27ae60" : "#c0392b",
+                    color: yr1Profit >= 0 ? "var(--status-success)" : "var(--status-danger)",
                     fontWeight: 600,
                   }}
                 >
@@ -76,7 +76,7 @@ export function SimulationScenarios(p: Props) {
                 <span>ROI</span>
                 <span
                   style={{
-                    color: roi >= 0 ? "#27ae60" : "#c0392b",
+                    color: roi >= 0 ? "var(--status-success)" : "var(--status-danger)",
                     fontWeight: 600,
                   }}
                 >
@@ -100,10 +100,10 @@ export function SimulationScenarios(p: Props) {
                       width: `${sellThruPct}%`,
                       background:
                         sellThruPct >= 80
-                          ? "#27ae60"
+                          ? "var(--status-success)"
                           : sellThruPct >= 50
-                            ? "#e67e22"
-                            : "#c0392b",
+                            ? "var(--status-warning)"
+                            : "var(--status-danger)",
                       borderRadius: 2,
                       transition: "width 0.3s",
                     }}

@@ -135,7 +135,7 @@ export function WineShipmentsDetail(p: Props) {
                     textAlign: "right",
                     color:
                       priceEntries[0] && priceEntries[0].price < p.supplyPrice
-                        ? "#e67e22"
+                        ? "var(--status-warning)"
                         : "#999",
                     fontWeight: 500,
                   }}
@@ -200,7 +200,7 @@ export function WineShipmentsDetail(p: Props) {
                   <div
                     style={{
                       textAlign: "right",
-                      color: pe.price < p.supplyPrice ? "#e67e22" : "#999",
+                      color: pe.price < p.supplyPrice ? "var(--status-warning)" : "#999",
                     }}
                   >
                     {pe.price.toLocaleString()}
