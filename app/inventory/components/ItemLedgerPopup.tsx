@@ -145,7 +145,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>조회 중...</div>
           )}
           {!popup.loading && popup.error && (
-            <div style={{ padding: 24, color: '#dc2626', fontSize: 12, textAlign: 'center' }}>{popup.error}</div>
+            <div style={{ padding: 24, color: 'var(--status-danger)', fontSize: 12, textAlign: 'center' }}>{popup.error}</div>
           )}
           {!popup.loading && !popup.error && popup.totals.qty === 0 && popup.rows.length === 0 && (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>

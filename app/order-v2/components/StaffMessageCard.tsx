@@ -52,7 +52,7 @@ export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
             borderRadius: 8,
             fontSize: 12,
             fontWeight: 600,
-            border: copied ? "1px solid #16a34a" : "1px solid rgba(90,21,21,0.1)",
+            border: copied ? "1px solid var(--status-success)" : "1px solid rgba(90,21,21,0.1)",
             background: copied ? ORDER_COLORS.confHigh : "#fff",
             color: copied ? "#fff" : "var(--text-tertiary)",
             cursor: "pointer",

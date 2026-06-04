@@ -105,7 +105,7 @@ export function ItemCard({
                 onToggleImportPopup(importPopupOpen ? null : item.item_no);
               }}
               style={{
-                background: "#E65100", color: "#fff", border: "none", borderRadius: 4,
+                background: "var(--status-warning)", color: "#fff", border: "none", borderRadius: 4,
                 fontSize: "0.62rem", fontWeight: 700, padding: "2px 6px",
                 cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap", lineHeight: 1.2,
               }}
@@ -149,13 +149,13 @@ export function ItemCard({
       {importPopupOpen && importSchedule && (
         <div
           style={{
-            marginTop: 8, padding: "10px 12px", background: "#FFF3E0",
+            marginTop: 8, padding: "10px 12px", background: "var(--status-warning-bg)",
             borderRadius: 8, border: "1px solid rgba(230,81,0,0.2)",
           }}
         >
           <div
             style={{
-              fontSize: "0.72rem", fontWeight: 700, color: "#E65100", marginBottom: 6,
+              fontSize: "0.72rem", fontWeight: 700, color: "var(--status-warning)", marginBottom: 6,
             }}
           >
             수입일정

@@ -202,7 +202,7 @@ function TotalsSummary({
       <span>정상합계 <strong style={{ color: "#2c3e50" }}>{formatWon(totalNormal)}원</strong></span>
       <span>할인합계 <strong style={{ color: "var(--action)" }}>{formatWon(totalDiscount)}원</strong></span>
       {totalNormal > 0 && totalNormal !== totalDiscount && (
-        <span style={{ color: "#27ae60", fontWeight: 600 }}>
+        <span style={{ color: "var(--status-success)", fontWeight: 600 }}>
           {formatWon(totalNormal - totalDiscount)}원 할인
         </span>
       )}

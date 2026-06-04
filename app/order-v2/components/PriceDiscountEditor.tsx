@@ -76,7 +76,7 @@ export function PriceDiscountEditor({
             fontWeight: 600,
             border:
               selected.supply_price === 0
-                ? "1.5px solid #d97706"
+                ? "1.5px solid var(--status-warning)"
                 : "1px solid rgba(90,21,21,0.1)",
             borderRadius: 6,
             padding: "3px 6px",

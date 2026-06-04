@@ -87,7 +87,7 @@ export function ErrorBanner({ error }: ErrorProps) {
         background: "rgba(220,38,38,0.04)",
         border: "1px solid rgba(220,38,38,0.18)",
         borderRadius: 8,
-        color: "#dc2626",
+        color: "var(--status-danger)",
         fontSize: 12,
       }}
     >

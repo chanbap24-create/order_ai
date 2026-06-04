@@ -281,7 +281,7 @@ function Row({
           style={{
             background: "none",
             border: "none",
-            color: "#e74c3c",
+            color: "var(--status-danger)",
             cursor: "pointer",
             fontSize: 16,
             padding: 2,
@@ -372,7 +372,7 @@ function Cell({
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           style={{
-            color: tastingNoteSet.has(item.item_code) ? "#27ae60" : "var(--action)",
+            color: tastingNoteSet.has(item.item_code) ? "var(--status-success)" : "var(--action)",
             textDecoration: "underline",
             fontSize: 12,
             fontWeight: 600,

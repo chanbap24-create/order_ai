@@ -104,9 +104,9 @@ export function DesktopSidebarHeader({
             style={{
               padding: "3px 8px",
               borderRadius: 8,
-              border: "1px solid #e74c3c",
+              border: "1px solid var(--status-danger)",
               background: "white",
-              color: "#e74c3c",
+              color: "var(--status-danger)",
               fontSize: "0.68rem",
               fontWeight: 600,
               cursor: "pointer",

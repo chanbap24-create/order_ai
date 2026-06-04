@@ -34,7 +34,7 @@ export const MonthlyTrend = memo(function MonthlyTrend({ data }: { data: Analysi
               {i > 0 && change !== 0 ? (
                 <div style={{
                   width: 40, textAlign: 'right', fontSize: 10, fontWeight: 600,
-                  color: change > 0 ? '#16a34a' : '#dc2626', flexShrink: 0,
+                  color: change > 0 ? 'var(--status-success)' : 'var(--status-danger)', flexShrink: 0,
                 }}>
                   {change > 0 ? '+' : ''}{change}%
                 </div>
