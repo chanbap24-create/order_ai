@@ -98,7 +98,7 @@ export function TastingNoteForm(p: Props) {
               border: "none",
               fontSize: 14,
               cursor: "pointer",
-              background: p.saving ? "#9ca3af" : "#2563eb",
+              background: p.saving ? "#9ca3af" : "var(--status-info)",
               color: "#fff",
               fontWeight: 600,
             }}

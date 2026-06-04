@@ -136,7 +136,7 @@ export function DetailPanel(p: Props) {
         {researchMsg && (
           <div style={{
             fontSize: 12, textAlign: 'center', fontWeight: 500,
-            color: researchMsg.startsWith('오류') || researchMsg.includes('실패') ? '#dc2626' : '#2e7d32',
+            color: researchMsg.startsWith('오류') || researchMsg.includes('실패') ? 'var(--status-danger)' : 'var(--status-success)',
           }}>
             {researchMsg}
           </div>
@@ -145,8 +145,8 @@ export function DetailPanel(p: Props) {
           onClick={() => p.handleDeleteSingle(selectedWine.item_code, selectedWine.item_name_kr)}
           disabled={p.deleting}
           style={{
-            width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #dc2626',
-            background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            width: '100%', padding: '10px', borderRadius: 6, border: '1px solid var(--status-danger)',
+            background: '#fef2f2', color: 'var(--status-danger)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
           }}
         >
           삭제

@@ -84,7 +84,7 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
               fontSize: 20,
               fontWeight: 700,
               color: c.danger
-                ? '#C62828'
+                ? 'var(--status-danger)'
                 : c.accent
                   ? 'var(--action)'
                   : 'var(--text-primary)',

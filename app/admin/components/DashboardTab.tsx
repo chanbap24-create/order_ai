@@ -172,7 +172,7 @@ export default function DashboardTab() {
       {(showCdvItems || showDlItems) && (
         <div style={{ display: 'grid', gridTemplateColumns: showCdvItems && showDlItems ? 'repeat(auto-fit, minmax(400px, 1fr))' : '1fr', gap: 12, marginBottom: 16 }}>
           {showCdvItems && <InventoryItemsTable items={stats.inventoryByItemCdv!} label="까브드뱅" color="var(--action)" />}
-          {showDlItems && <InventoryItemsTable items={stats.inventoryByItemDl!} label="대유라이프" color="#1565C0" />}
+          {showDlItems && <InventoryItemsTable items={stats.inventoryByItemDl!} label="대유라이프" color="var(--status-info)" />}
         </div>
       )}
     </div>

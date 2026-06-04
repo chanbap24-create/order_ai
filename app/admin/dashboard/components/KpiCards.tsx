@@ -112,7 +112,7 @@ export const KpiCards = memo(function KpiCards(p: Props) {
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: '#1565C0',
+              color: 'var(--status-info)',
               fontVariantNumeric: 'tabular-nums',
               fontFamily: "'DM Sans', sans-serif",
               lineHeight: 1.2,
@@ -131,7 +131,7 @@ function ChangeIndicator({ change }: { change: InventoryChange | null }) {
   if (!change || change.amount === 0) return null;
   const isUp = change.amount > 0;
   const arrow = isUp ? '▲' : '▼';
-  const color = isUp ? '#C62828' : '#1565C0';
+  const color = isUp ? 'var(--status-danger)' : 'var(--status-info)';
 
   return (
     <div

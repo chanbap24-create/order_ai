@@ -5,8 +5,8 @@ import type { BrandValidation } from "@/app/types/wine";
 export function ValidationBanner({ v }: { v: BrandValidation | null }) {
   if (!v) return null;
 
-  const color = v.confidence >= 90 ? "#2e7d32" : v.confidence >= 70 ? "#ed6c02" : "#d32f2f";
-  const bg = v.confidence >= 90 ? "#e8f5e9" : v.confidence >= 70 ? "#fff3e0" : "#ffebee";
+  const color = v.confidence >= 90 ? "var(--status-success)" : v.confidence >= 70 ? "#ed6c02" : "#d32f2f";
+  const bg = v.confidence >= 90 ? "var(--status-success-bg)" : v.confidence >= 70 ? "var(--status-warning-bg)" : "var(--status-danger-bg)";
   const borderColor =
     v.confidence >= 90
       ? "rgba(46,125,50,0.2)"

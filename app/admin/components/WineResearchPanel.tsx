@@ -162,7 +162,7 @@ export default function WineResearchPanel({ wine, researchData, onSave, onClose 
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button
             className="btn btn-primary btn-sm"
-            style={{ background: '#2563eb' }}
+            style={{ background: 'var(--status-info)' }}
             onClick={handleGeneratePpt}
             disabled={generatingPpt}
           >

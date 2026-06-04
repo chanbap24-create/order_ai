@@ -87,10 +87,10 @@ export const ManagerAnalysisTable = memo(function ManagerAnalysisTable({
                     color:
                       m.discountRate != null
                         ? m.discountRate > 15
-                          ? '#C62828'
+                          ? 'var(--status-danger)'
                           : m.discountRate > 5
-                            ? '#E65100'
-                            : '#2E7D32'
+                            ? 'var(--status-warning)'
+                            : 'var(--status-success)'
                         : 'var(--text-muted)',
                   }}
                 >

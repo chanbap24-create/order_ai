@@ -16,13 +16,13 @@ export function BatchFileRow({ f, effectiveType, onOverride, onRemove }: Props) 
   const typeLabel = BATCH_TYPE_OPTIONS.find((o) => o.value === effectiveType)?.label || "알 수 없음";
 
   const statusIcon = () => {
-    if (f.status === "success") return <span style={{ color: "#2E7D32", fontSize: 18 }}>✓</span>;
-    if (f.status === "error") return <span style={{ color: "#C62828", fontSize: 18 }}>✗</span>;
+    if (f.status === "success") return <span style={{ color: "var(--status-success)", fontSize: 18 }}>✓</span>;
+    if (f.status === "error") return <span style={{ color: "var(--status-danger)", fontSize: 18 }}>✗</span>;
     if (f.status === "uploading") return <Spinner />;
     return null;
   };
 
-  const confColor = f.confidence === "high" ? "#2E7D32" : f.confidence === "medium" ? "#E65100" : "#C62828";
+  const confColor = f.confidence === "high" ? "var(--status-success)" : f.confidence === "medium" ? "var(--status-warning)" : "var(--status-danger)";
   const confLabel = f.confidence === "high" ? "확실" : f.confidence === "medium" ? "추정" : "불확실";
 
   return (
@@ -77,11 +77,11 @@ export function BatchFileRow({ f, effectiveType, onOverride, onRemove }: Props) 
             borderRadius: "var(--radius-sm)",
             background:
               effectiveType === "unknown"
-                ? "#FFEBEE"
+                ? "var(--status-danger-bg)"
                 : isOverridden
-                  ? "#E3F2FD"
+                  ? "var(--status-info-bg)"
                   : "rgba(52,199,89,0.1)",
-            color: effectiveType === "unknown" ? "#C62828" : isOverridden ? "#1565C0" : "#2E7D32",
+            color: effectiveType === "unknown" ? "var(--status-danger)" : isOverridden ? "var(--status-info)" : "var(--status-success)",
           }}
         >
           {typeLabel}

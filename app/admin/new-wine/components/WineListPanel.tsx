@@ -74,7 +74,7 @@ export function WineListPanel(p: Props) {
                 borderBottom: "1px solid #f3f4f6",
                 cursor: "pointer",
                 background: isSelected ? "#eff6ff" : "#fff",
-                borderLeft: isSelected ? "3px solid #2563eb" : "3px solid transparent",
+                borderLeft: isSelected ? "3px solid var(--status-info)" : "3px solid transparent",
               }}
             >
               <input

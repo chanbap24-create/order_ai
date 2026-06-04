@@ -90,7 +90,7 @@ export default function FeatureUsageTab() {
         </button>
       </div>
 
-      {error && <div style={{ color: '#dc2626', padding: 8, fontSize: 13 }}>{error}</div>}
+      {error && <div style={{ color: 'var(--status-danger)', padding: 8, fontSize: 13 }}>{error}</div>}
 
       {/* Top summary */}
       {data && (

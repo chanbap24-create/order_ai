@@ -98,7 +98,7 @@ export default function AdminPasswordPage() {
         </p>
         {migrationNeeded && (
           <div style={{
-            background: '#fff3e0', border: '1px solid #ff9800', color: '#5d4037',
+            background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', color: '#5d4037',
             padding: 12, borderRadius: 6, fontSize: 12, marginBottom: 16, lineHeight: 1.5,
           }}>
             ⚠️ <b>DB 마이그레이션이 필요합니다.</b><br />
@@ -166,7 +166,7 @@ export default function AdminPasswordPage() {
         )}
 
         {error && (
-          <div style={{ color: '#e74c3c', fontSize: 13, marginTop: 12 }}>{error}</div>
+          <div style={{ color: 'var(--status-danger)', fontSize: 13, marginTop: 12 }}>{error}</div>
         )}
 
         <button

@@ -48,7 +48,7 @@ export function EventFormModal(p: Props) {
         </div>
 
         <label style={labelStyle}>
-          일정명 <span style={{ color: '#c62828' }}>*</span>
+          일정명 <span style={{ color: 'var(--status-danger)' }}>*</span>
         </label>
         <input
           type="text"
@@ -59,7 +59,7 @@ export function EventFormModal(p: Props) {
         />
 
         <label style={labelStyle}>
-          날짜 <span style={{ color: '#c62828' }}>*</span>
+          날짜 <span style={{ color: 'var(--status-danger)' }}>*</span>
         </label>
         <input type="date" value={p.formDate} onChange={e => p.onDateChange(e.target.value)} style={inputStyle} />
 

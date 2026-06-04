@@ -100,7 +100,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
                 onClick={() => onDelete(ev.id)}
                 style={{
                   padding: '4px 10px', borderRadius: 6, border: '1px solid #ffcdd2',
-                  background: '#fff', color: '#c62828', fontSize: 11, cursor: 'pointer',
+                  background: '#fff', color: 'var(--status-danger)', fontSize: 11, cursor: 'pointer',
                 }}
               >
                 삭제

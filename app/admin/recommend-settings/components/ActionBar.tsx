@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
-  const totalColor = totalWeight === 100 ? '#4CAF50' : totalWeight > 90 && totalWeight < 110 ? '#FF9800' : '#c62828';
+  const totalColor = totalWeight === 100 ? 'var(--status-success)' : totalWeight > 90 && totalWeight < 110 ? 'var(--status-warning)' : 'var(--status-danger)';
 
   return (
     <div style={{
@@ -20,7 +20,7 @@ export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
       <div style={{ maxWidth: 1250, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1, fontSize: 12, color: 'var(--text-tertiary)' }}>
           가중치 합계: <span style={{ fontWeight: 700, color: totalColor }}>{totalWeight}점</span>
-          {totalWeight !== 100 && <span style={{ color: '#FF9800', marginLeft: 8 }}>(권장: 100점)</span>}
+          {totalWeight !== 100 && <span style={{ color: 'var(--status-warning)', marginLeft: 8 }}>(권장: 100점)</span>}
         </div>
         <button
           onClick={onReset}

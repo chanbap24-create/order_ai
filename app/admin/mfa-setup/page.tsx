@@ -91,7 +91,7 @@ export default function MfaSetupPage() {
       <div style={cardStyle}>
         <h1 style={titleStyle}>2단계 인증 설정</h1>
         {loading && <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>QR 코드 생성 중...</div>}
-        {error && <div style={{ color: '#e74c3c', fontSize: 14, marginBottom: 12 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--status-danger)', fontSize: 14, marginBottom: 12 }}>{error}</div>}
         {!loading && qrDataUrl && (
           <>
             <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>

@@ -176,7 +176,7 @@ export function NoteToolbar(p: Props) {
             disabled={!!p.ops.batchDownloading || p.checkedSize === 0}
             style={{
               ...btn,
-              background: p.ops.batchDownloading === fmt ? "#2563eb" : "rgba(90,21,21,0.05)",
+              background: p.ops.batchDownloading === fmt ? "var(--status-info)" : "rgba(90,21,21,0.05)",
               color: p.ops.batchDownloading === fmt ? "#fff" : "var(--text-muted)",
               opacity: p.checkedSize === 0 && !p.ops.batchDownloading ? 0.5 : 1,
             }}

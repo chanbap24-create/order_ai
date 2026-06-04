@@ -63,7 +63,7 @@ export const InventoryItemsTable = memo(function InventoryItemsTable({
                 <tr
                   key={it.itemNo}
                   style={{
-                    color: slow ? '#C62828' : undefined,
+                    color: slow ? 'var(--status-danger)' : undefined,
                     fontWeight: slow ? 600 : undefined,
                   }}
                 >
@@ -71,7 +71,7 @@ export const InventoryItemsTable = memo(function InventoryItemsTable({
                     style={{
                       ...tdBase,
                       textAlign: 'center',
-                      color: slow ? '#C62828' : 'var(--text-muted)',
+                      color: slow ? 'var(--status-danger)' : 'var(--text-muted)',
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >

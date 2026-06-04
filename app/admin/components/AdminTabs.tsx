@@ -79,7 +79,7 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
               {tab.id === 'new-wine' && newWineCount != null && newWineCount > 0 && (
                 <span
                   style={{
-                    background: '#C62828',
+                    background: 'var(--status-danger)',
                     color: 'var(--text-on-primary)',
                     fontSize: 10,
                     fontWeight: 700,

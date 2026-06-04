@@ -93,7 +93,7 @@ export function BrandDetailHeader(p: Props) {
             height: 34,
             padding: "0 12px",
             background: "rgba(220,53,69,0.08)",
-            color: "#dc3545",
+            color: "var(--status-danger)",
             border: "none",
             borderRadius: 7,
             fontSize: 12,

@@ -53,7 +53,7 @@ export default function AdminLoginCard(p: Props) {
             style={{
               width: '100%', height: 44, fontSize: 24, textAlign: 'center',
               letterSpacing: '0.3em',
-              border: `1.5px solid ${p.error ? '#e74c3c' : 'rgba(90,21,21,0.08)'}`,
+              border: `1.5px solid ${p.error ? 'var(--status-danger)' : 'rgba(90,21,21,0.08)'}`,
               borderRadius: 6, outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 0.2s',
             }}
@@ -73,17 +73,17 @@ export default function AdminLoginCard(p: Props) {
             style={{
               width: '100%', height: 44, fontSize: 22, textAlign: 'center',
               letterSpacing: p.useBackupCode ? '0.2em' : '0.4em',
-              border: `1.5px solid ${p.mfaError ? '#e74c3c' : 'rgba(90,21,21,0.08)'}`,
+              border: `1.5px solid ${p.mfaError ? 'var(--status-danger)' : 'rgba(90,21,21,0.08)'}`,
               borderRadius: 6, outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 0.2s', fontFamily: 'monospace',
             }}
           />
         )}
         {p.error && !p.mfaRequired && (
-          <div style={{ fontSize: 12, color: '#e74c3c', marginTop: 8 }}>비밀번호가 틀렸습니다</div>
+          <div style={{ fontSize: 12, color: 'var(--status-danger)', marginTop: 8 }}>비밀번호가 틀렸습니다</div>
         )}
         {p.mfaError && (
-          <div style={{ fontSize: 12, color: '#e74c3c', marginTop: 8 }}>{p.mfaError}</div>
+          <div style={{ fontSize: 12, color: 'var(--status-danger)', marginTop: 8 }}>{p.mfaError}</div>
         )}
         <button
           onClick={p.onLogin}

@@ -95,8 +95,8 @@ export function UploadCard({
                 display: "inline-block",
                 padding: "2px 10px",
                 borderRadius: "var(--radius-sm)",
-                background: "#E3F2FD",
-                color: "#1565C0",
+                background: "var(--status-info-bg)",
+                color: "var(--status-info)",
                 fontSize: "12px",
                 fontWeight: 600,
                 marginBottom: hasMode ? "var(--space-2)" : 0,
@@ -111,7 +111,7 @@ export function UploadCard({
                 <ModeBtn
                   label="누적 추가"
                   active={uploadMode === "append"}
-                  activeColor="#1565C0"
+                  activeColor="var(--status-info)"
                   onClick={(e) => {
                     e.stopPropagation();
                     onModeChange!("append");
@@ -120,7 +120,7 @@ export function UploadCard({
                 <ModeBtn
                   label="전체 교체"
                   active={uploadMode === "replace"}
-                  activeColor="#C62828"
+                  activeColor="var(--status-danger)"
                   onClick={(e) => {
                     e.stopPropagation();
                     onModeChange!("replace");
@@ -128,7 +128,7 @@ export function UploadCard({
                 />
               </div>
               {uploadMode === "replace" && (
-                <div style={{ marginTop: "var(--space-1)", fontSize: "11px", color: "#C62828" }}>
+                <div style={{ marginTop: "var(--space-1)", fontSize: "11px", color: "var(--status-danger)" }}>
                   전체 교체 시 기존 데이터가 삭제됩니다
                 </div>
               )}
@@ -210,10 +210,10 @@ export function UploadCard({
           <div
             style={{
               fontSize: "var(--text-xs)",
-              color: "#2E7D32",
+              color: "var(--status-success)",
               textAlign: "center",
               padding: "var(--space-2) var(--space-3)",
-              background: "#E8F5E9",
+              background: "var(--status-success-bg)",
               borderRadius: "var(--radius-sm)",
               maxWidth: "100%",
               wordBreak: "break-all",
@@ -228,10 +228,10 @@ export function UploadCard({
           <div
             style={{
               fontSize: "var(--text-xs)",
-              color: "#C62828",
+              color: "var(--status-danger)",
               textAlign: "center",
               padding: "var(--space-2) var(--space-3)",
-              background: "#FFEBEE",
+              background: "var(--status-danger-bg)",
               borderRadius: "var(--radius-sm)",
               maxWidth: "100%",
               wordBreak: "break-all",

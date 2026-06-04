@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function WeightsCard({ weights, totalWeight, onChange }: Props) {
-  const totalColor = totalWeight === 100 ? '#4CAF50' : totalWeight > 90 && totalWeight < 110 ? '#FF9800' : '#c62828';
+  const totalColor = totalWeight === 100 ? 'var(--status-success)' : totalWeight > 90 && totalWeight < 110 ? 'var(--status-warning)' : 'var(--status-danger)';
 
   return (
     <div style={{

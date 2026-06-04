@@ -58,7 +58,7 @@ export function AllWinesToolbar(p: Props) {
           disabled={p.deleting || p.checkedCount === 0}
           style={{
             padding: '8px 16px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-            background: p.checkedCount === 0 ? '#e5e7eb' : '#dc2626', color: '#fff', fontWeight: 600,
+            background: p.checkedCount === 0 ? '#e5e7eb' : 'var(--status-danger)', color: '#fff', fontWeight: 600,
             opacity: p.checkedCount === 0 ? 0.5 : 1,
           }}
         >

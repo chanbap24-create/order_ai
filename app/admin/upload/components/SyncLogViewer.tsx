@@ -36,7 +36,7 @@ export function SyncLogViewer(p: Props) {
             style={{
               fontSize: "var(--text-sm)",
               fontWeight: 600,
-              color: p.failCount === 0 ? "#16a34a" : "#dc2626",
+              color: p.failCount === 0 ? "var(--status-success)" : "var(--status-danger)",
             }}
           >
             {p.failCount === 0

@@ -84,7 +84,7 @@ export function ImageSection(p: Props) {
                 fontSize: 12,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                color: "#dc2626",
+                color: "var(--status-danger)",
               }}
             >
               삭제

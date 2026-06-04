@@ -46,7 +46,7 @@ export function LinkedWinesTable({ wines }: { wines: LinkedWine[] }) {
                 style={{
                   padding: "6px 8px",
                   textAlign: "right",
-                  color: (w.available_stock ?? 0) <= 0 ? "#dc3545" : "var(--text-primary)",
+                  color: (w.available_stock ?? 0) <= 0 ? "var(--status-danger)" : "var(--text-primary)",
                 }}
               >
                 {w.available_stock ?? "-"}

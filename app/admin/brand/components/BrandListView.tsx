@@ -209,8 +209,8 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
             style={{
               fontSize: 9,
               fontWeight: 600,
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: "var(--status-success-bg)",
+              color: "var(--status-success)",
               padding: "2px 5px",
               borderRadius: 3,
             }}

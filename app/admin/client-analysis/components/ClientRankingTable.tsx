@@ -133,10 +133,10 @@ const RankingRow = memo(function RankingRow({
           color:
             c.discountRate != null
               ? c.discountRate > 15
-                ? '#C62828'
+                ? 'var(--status-danger)'
                 : c.discountRate > 5
-                  ? '#E65100'
-                  : '#2E7D32'
+                  ? 'var(--status-warning)'
+                  : 'var(--status-success)'
               : 'var(--text-muted)',
         }}
       >
@@ -173,7 +173,7 @@ function RankChange({ isNew, rankChange }: { isNew: boolean; rankChange: number 
   }
   if (rankChange != null && rankChange !== 0) {
     return (
-      <span style={{ color: rankChange > 0 ? '#C62828' : '#1565C0' }}>
+      <span style={{ color: rankChange > 0 ? 'var(--status-danger)' : 'var(--status-info)' }}>
         {rankChange > 0 ? `▲${rankChange}` : `▼${Math.abs(rankChange)}`}
       </span>
     );

@@ -20,7 +20,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
           display: 'grid', gridTemplateColumns: '56px 1fr 56px',
           padding: '10px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
           background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
-          borderLeft: isSelected ? '3px solid #2563eb' : '3px solid transparent',
+          borderLeft: isSelected ? '3px solid var(--status-info)' : '3px solid transparent',
         }}
       >
         <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>
@@ -46,7 +46,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
         display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
         padding: '9px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
         background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
-        borderLeft: isSelected ? '3px solid #2563eb' : '3px solid transparent',
+        borderLeft: isSelected ? '3px solid var(--status-info)' : '3px solid transparent',
       }}
     >
       <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>

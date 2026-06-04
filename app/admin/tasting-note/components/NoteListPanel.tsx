@@ -82,7 +82,7 @@ export function NoteListPanel(p: Props) {
                 borderBottom: "1px solid #f3f4f6",
                 cursor: "pointer",
                 background: isSelected ? "#eff6ff" : "#fff",
-                borderLeft: isSelected ? "3px solid #2563eb" : "3px solid transparent",
+                borderLeft: isSelected ? "3px solid var(--status-info)" : "3px solid transparent",
               }}
             >
               <input
@@ -115,7 +115,7 @@ export function NoteListPanel(p: Props) {
                 <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2, display: "flex", gap: 6 }}>
                   <span>
                     재고{" "}
-                    <b style={{ color: (w.inv_available || 0) > 0 ? "#16a34a" : "#d1d5db" }}>
+                    <b style={{ color: (w.inv_available || 0) > 0 ? "var(--status-success)" : "#d1d5db" }}>
                       {w.inv_available ?? 0}
                     </b>
                   </span>
@@ -206,7 +206,7 @@ function UploadButton({
         padding: "2px 6px",
         borderRadius: 4,
         background: uploading ? "#fef3c7" : "#f3f4f6",
-        color: uploading ? "#d97706" : "#6b7280",
+        color: uploading ? "var(--status-warning)" : "#6b7280",
         border: "1px solid #d1d5db",
         cursor: uploading ? "wait" : disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.4 : 1,

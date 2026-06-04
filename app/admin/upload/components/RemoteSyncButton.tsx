@@ -125,7 +125,7 @@ export function RemoteSyncButton() {
         <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>{message}</span>
       )}
       {status === "error" && (
-        <span style={{ fontSize: 11, color: "#dc2626", fontWeight: 600 }}>{message}</span>
+        <span style={{ fontSize: 11, color: "var(--status-danger)", fontWeight: 600 }}>{message}</span>
       )}
     </div>
   );
