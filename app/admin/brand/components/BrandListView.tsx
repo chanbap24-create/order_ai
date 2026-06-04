@@ -113,7 +113,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
       onClick={onClick}
       style={{
         background: "#fff",
-        border: "1px solid rgba(90,21,21,0.06)",
+        border: "1px solid var(--action-muted)",
         borderRadius: 10,
         padding: 16,
         cursor: "pointer",
@@ -125,7 +125,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = "none";
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(90,21,21,0.06)";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--action-muted)";
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
@@ -176,7 +176,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
         {brand.brand_code && (
-          <Chip bg="rgba(90,21,21,0.06)" color="var(--action)" bold>
+          <Chip bg="var(--action-muted)" color="var(--action)" bold>
             {brand.brand_code}
           </Chip>
         )}
@@ -225,7 +225,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
 
 function Chip({
   children,
-  bg = "rgba(90,21,21,0.04)",
+  bg = "var(--border-subtle)",
   color = "var(--text-tertiary)",
   bold = false,
 }: {

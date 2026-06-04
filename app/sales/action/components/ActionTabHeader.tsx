@@ -43,7 +43,7 @@ export function ActionTabHeader(p: Props) {
             style={{
               padding: "6px 10px",
               borderRadius: 6,
-              border: "1px solid rgba(90,21,21,0.08)",
+              border: "1px solid var(--border-default)",
               fontSize: 16,
               background: "#fff",
               color: p.selectedManager ? "var(--text-primary)" : "#999",
@@ -63,8 +63,8 @@ export function ActionTabHeader(p: Props) {
           style={{
             padding: "5px 10px",
             borderRadius: 6,
-            border: `1.5px solid ${p.compactMode ? "var(--action)" : "rgba(90,21,21,0.08)"}`,
-            background: p.compactMode ? "rgba(90,21,21,0.06)" : "white",
+            border: `1.5px solid ${p.compactMode ? "var(--action)" : "var(--border-default)"}`,
+            background: p.compactMode ? "var(--action-muted)" : "white",
             fontSize: 11,
             fontWeight: 600,
             color: p.compactMode ? "var(--action)" : "#999",
@@ -80,7 +80,7 @@ export function ActionTabHeader(p: Props) {
           style={{
             padding: "6px 14px",
             borderRadius: 6,
-            border: "1px solid rgba(90,21,21,0.08)",
+            border: "1px solid var(--border-default)",
             background: p.scanning ? "var(--surface-muted)" : "white",
             fontSize: 12,
             fontWeight: 600,

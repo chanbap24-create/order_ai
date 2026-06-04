@@ -21,7 +21,7 @@ export function BottomActionBar(p: Props) {
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
-      background: '#fff', borderTop: '1.5px solid rgba(90,21,21,0.08)',
+      background: '#fff', borderTop: '1.5px solid var(--border-default)',
       padding: '12px 16px', zIndex: 200,
       boxShadow: '0 -2px 10px rgba(90,21,21,0.05)',
     }}>

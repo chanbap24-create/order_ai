@@ -31,7 +31,7 @@ export function ItemListSection({ count, children }: Props) {
             fontWeight: 500,
             color: "#b8b0a8",
             padding: "1px 6px",
-            background: "rgba(90,21,21,0.04)",
+            background: "var(--border-subtle)",
             borderRadius: 4,
           }}
         >

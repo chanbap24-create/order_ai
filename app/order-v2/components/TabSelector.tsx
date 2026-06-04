@@ -15,7 +15,7 @@ export function TabSelector({ value, onChange }: Props) {
       style={{
         display: "inline-flex",
         gap: 0,
-        background: "rgba(90,21,21,0.04)",
+        background: "var(--border-subtle)",
         borderRadius: 9,
         padding: 3,
         marginBottom: 18,

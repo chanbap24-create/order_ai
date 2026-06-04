@@ -46,7 +46,7 @@ export function PriceDiscountEditor({
     <div
       style={{
         padding: "8px 14px 10px",
-        borderTop: "1px solid rgba(90,21,21,0.04)",
+        borderTop: "1px solid var(--border-subtle)",
         display: "flex",
         alignItems: "center",
         gap: 10,

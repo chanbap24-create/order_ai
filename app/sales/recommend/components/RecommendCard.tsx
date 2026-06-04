@@ -17,7 +17,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
       onClick={onToggle}
       style={{
         background: '#fff', borderRadius: 10, padding: '14px',
-        border: isSelected ? '2px solid var(--action)' : '1px solid rgba(90,21,21,0.06)',
+        border: isSelected ? '2px solid var(--action)' : '1px solid var(--action-muted)',
         boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(90,21,21,0.03)',
         cursor: 'pointer', transition: 'all 0.15s',
         display: 'flex', gap: 12, alignItems: 'flex-start',

@@ -15,7 +15,7 @@ export function LinkedWinesTable({ wines }: { wines: LinkedWine[] }) {
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ borderBottom: "1px solid rgba(90,21,21,0.08)" }}>
+          <tr style={{ borderBottom: "1px solid var(--border-default)" }}>
             {["품번", "와인명", "타입", "가격", "재고"].map((h, i) => (
               <th
                 key={h}
@@ -33,7 +33,7 @@ export function LinkedWinesTable({ wines }: { wines: LinkedWine[] }) {
         </thead>
         <tbody>
           {wines.map((w) => (
-            <tr key={w.item_code} style={{ borderBottom: "1px solid rgba(90,21,21,0.04)" }}>
+            <tr key={w.item_code} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
               <td style={{ padding: "6px 8px", color: "var(--action)", fontWeight: 500 }}>
                 {w.item_code}
               </td>

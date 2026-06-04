@@ -78,7 +78,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
 
         {/* Range tabs + view toggle */}
         <div style={{
-          padding: '10px 14px', borderBottom: '1px solid rgba(90,21,21,0.06)',
+          padding: '10px 14px', borderBottom: '1px solid var(--action-muted)',
           display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
         }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -101,7 +101,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
               {r.start.slice(2)} ~ {r.end.slice(2)}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 2, background: 'rgba(90,21,21,0.04)', borderRadius: 6, padding: 2 }}>
+          <div style={{ display: 'flex', gap: 2, background: 'var(--border-subtle)', borderRadius: 6, padding: 2 }}>
             {([['client', '거래처별'], ['date', '날짜별']] as const).map(([m, label]) => (
               <button
                 key={m}
@@ -121,7 +121,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
         </div>
 
         {/* Totals */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(90,21,21,0.08)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-default)' }}>
           {[
             { label: '총 수량', value: fmt(popup.totals.qty), unit: '' },
             { label: '총 금액', value: fmt(popup.totals.supply), unit: '원' },
@@ -129,7 +129,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
           ].map((c, i) => (
             <div key={i} style={{
               flex: 1, padding: '10px 14px', textAlign: 'center',
-              borderRight: i < 2 ? '1px solid rgba(90,21,21,0.06)' : 'none',
+              borderRight: i < 2 ? '1px solid var(--action-muted)' : 'none',
             }}>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{c.label}</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--action)', marginTop: 2 }}>

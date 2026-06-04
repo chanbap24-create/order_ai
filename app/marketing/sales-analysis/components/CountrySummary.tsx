@@ -43,7 +43,7 @@ const CountryRowView = memo(function CountryRowView({
   return (
     <div style={{
       background: '#fff', borderRadius: 10,
-      border: '1px solid rgba(90,21,21,0.06)', overflow: 'hidden',
+      border: '1px solid var(--action-muted)', overflow: 'hidden',
     }}>
       <div onClick={onToggle} style={{
         padding: '12px 16px', cursor: 'pointer',
@@ -77,7 +77,7 @@ const CountryRowView = memo(function CountryRowView({
         <span style={{ fontSize: 10, color: '#ccc', flexShrink: 0 }}>{expanded ? '▼' : '▶'}</span>
       </div>
       {expanded && (
-        <div style={{ padding: '0 16px 14px', borderTop: '1px solid rgba(90,21,21,0.04)' }}>
+        <div style={{ padding: '0 16px 14px', borderTop: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '8px 0 10px' }}>
             {c.types.map(t => (
               <span key={t.name} style={{

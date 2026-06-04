@@ -96,7 +96,7 @@ export function ClientSearchField({
             background: "#fff",
             borderRadius: 10,
             marginTop: 4,
-            border: "1px solid rgba(90,21,21,0.08)",
+            border: "1px solid var(--border-default)",
             boxShadow: "0 8px 32px rgba(90,21,21,0.1)",
             maxHeight: CLIENT_DROPDOWN_MAX_HEIGHT,
             overflowY: "auto",
@@ -119,7 +119,7 @@ export function ClientSearchField({
                 fontSize: 14,
                 color: ORDER_COLORS.text,
                 textAlign: "left",
-                borderBottom: "1px solid rgba(90,21,21,0.04)",
+                borderBottom: "1px solid var(--border-subtle)",
                 transition: "background 0.15s ease",
               }}
             >

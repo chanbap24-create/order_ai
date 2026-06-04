@@ -55,7 +55,7 @@ export function ChurnSection(p: Props) {
                     border:
                       p.churnFilter === f.id
                         ? `1.5px solid ${f.id === "all" ? "var(--action)" : RISK_COLORS[f.id] || "var(--action)"}`
-                        : "1px solid rgba(90,21,21,0.08)",
+                        : "1px solid var(--border-default)",
                     background:
                       p.churnFilter === f.id
                         ? f.id === "all"
@@ -215,7 +215,7 @@ export function ChurnSection(p: Props) {
                       style={{
                         marginTop: 12,
                         paddingTop: 12,
-                        borderTop: "1px solid rgba(90,21,21,0.06)",
+                        borderTop: "1px solid var(--action-muted)",
                       }}
                     >
                       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 8 }}>
@@ -245,7 +245,7 @@ export function ChurnSection(p: Props) {
                                 padding: "4px 0",
                                 borderBottom:
                                   idx < orders.length - 1
-                                    ? "1px solid rgba(90,21,21,0.06)"
+                                    ? "1px solid var(--action-muted)"
                                     : "none",
                               }}
                             >

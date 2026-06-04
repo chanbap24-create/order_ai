@@ -255,7 +255,7 @@ function IconBtn({ active, onClick, title, children }: {
       title={title}
       style={{
         width: 36, height: 36, borderRadius: 8, border: "1px solid #E5E5E5",
-        background: active ? "rgba(90,21,21,0.08)" : "white",
+        background: active ? "var(--border-default)" : "white",
         cursor: "pointer", fontSize: 15, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}

@@ -10,7 +10,7 @@ export const TypeDistribution = memo(function TypeDistribution({ data }: { data:
   return (
     <div style={{
       background: '#fff', borderRadius: 12,
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
       padding: '12px 16px', marginBottom: 16,
     }}>
       <div style={{ display: 'flex', height: 24, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>

@@ -32,7 +32,7 @@ export function SectionHeader({
         border: "none",
         background: "none",
         cursor: "pointer",
-        borderBottom: "1px solid rgba(90,21,21,0.06)",
+        borderBottom: "1px solid var(--action-muted)",
         marginBottom: collapsed ? 0 : 12,
       }}
     >

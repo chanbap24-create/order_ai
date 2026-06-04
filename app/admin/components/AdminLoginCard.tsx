@@ -28,7 +28,7 @@ export default function AdminLoginCard(p: Props) {
       <div style={{
         background: '#fff', borderRadius: 14,
         boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
-        border: '1px solid rgba(90,21,21,0.06)',
+        border: '1px solid var(--action-muted)',
         padding: '40px 32px', width: 320, textAlign: 'center',
       }}>
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
@@ -53,7 +53,7 @@ export default function AdminLoginCard(p: Props) {
             style={{
               width: '100%', height: 44, fontSize: 24, textAlign: 'center',
               letterSpacing: '0.3em',
-              border: `1.5px solid ${p.error ? 'var(--status-danger)' : 'rgba(90,21,21,0.08)'}`,
+              border: `1.5px solid ${p.error ? 'var(--status-danger)' : 'var(--border-default)'}`,
               borderRadius: 6, outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 0.2s',
             }}
@@ -73,7 +73,7 @@ export default function AdminLoginCard(p: Props) {
             style={{
               width: '100%', height: 44, fontSize: 22, textAlign: 'center',
               letterSpacing: p.useBackupCode ? '0.2em' : '0.4em',
-              border: `1.5px solid ${p.mfaError ? 'var(--status-danger)' : 'rgba(90,21,21,0.08)'}`,
+              border: `1.5px solid ${p.mfaError ? 'var(--status-danger)' : 'var(--border-default)'}`,
               borderRadius: 6, outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 0.2s', fontFamily: 'monospace',
             }}

@@ -69,7 +69,7 @@ export default function OrderV2Page() {
             background: ORDER_COLORS.surface,
             borderRadius: 14,
             padding: "22px 22px 20px",
-            border: "1px solid rgba(90,21,21,0.06)",
+            border: "1px solid var(--action-muted)",
             boxShadow: "0 2px 12px rgba(90,21,21,0.03)",
             marginBottom: 20,
             transition: "box-shadow 0.3s ease",

@@ -17,7 +17,7 @@ type Props = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: 8,
-  border: '1px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+  border: '1px solid var(--border-default)', fontSize: 16, outline: 'none',
   marginBottom: 14, boxSizing: 'border-box',
 };
 
@@ -82,7 +82,7 @@ export function EventFormModal(p: Props) {
             onClick={p.onClose}
             style={{
               flex: 1, padding: '12px', borderRadius: 8,
-              border: '1px solid rgba(90,21,21,0.08)',
+              border: '1px solid var(--border-default)',
               background: '#fff', color: 'var(--text-tertiary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
             }}
           >

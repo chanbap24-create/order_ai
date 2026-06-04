@@ -13,7 +13,7 @@ export function StockRulesCard({ stockRules, onChange }: Props) {
     <div style={{
       background: '#fff', borderRadius: 12, padding: '20px 16px',
       marginBottom: 16, boxShadow: '0 1px 3px rgba(90,21,21,0.06)',
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
     }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
         추천 가능 재고 기준
@@ -34,7 +34,7 @@ export function StockRulesCard({ stockRules, onChange }: Props) {
             <div key={key} style={{
               background: isSpecial ? '#faf5ff' : '#fafaf8',
               borderRadius: 8, padding: '12px 14px',
-              border: isSpecial ? '1px solid #e8d5f5' : '1px solid rgba(90,21,21,0.06)',
+              border: isSpecial ? '1px solid #e8d5f5' : '1px solid var(--action-muted)',
             }}>
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6, fontWeight: 500 }}>
                 {info.label}
@@ -47,7 +47,7 @@ export function StockRulesCard({ stockRules, onChange }: Props) {
                   min={0}
                   style={{
                     width: 70, fontSize: 16, fontWeight: 700,
-                    border: '1.5px solid rgba(90,21,21,0.08)', borderRadius: 6, padding: '6px 8px',
+                    border: '1.5px solid var(--border-default)', borderRadius: 6, padding: '6px 8px',
                     color: 'var(--text-primary)', outline: 'none', textAlign: 'right',
                   }}
                 />

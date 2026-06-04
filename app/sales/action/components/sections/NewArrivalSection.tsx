@@ -100,7 +100,7 @@ export function NewArrivalSection(p: Props) {
                 </div>
 
                 {wine.matched_clients.length > 0 && (
-                  <div style={{ borderTop: "1px solid rgba(90,21,21,0.06)", paddingTop: 10 }}>
+                  <div style={{ borderTop: "1px solid var(--action-muted)", paddingTop: 10 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 8 }}>
                       추천 거래처
                     </div>

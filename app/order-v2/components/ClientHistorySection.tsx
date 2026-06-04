@@ -60,7 +60,7 @@ export function ClientHistorySection({
               color: ORDER_COLORS.textMuted,
               fontWeight: 500,
               padding: "1px 6px",
-              background: "rgba(90,21,21,0.04)",
+              background: "var(--border-subtle)",
               borderRadius: 4,
             }}
           >
@@ -73,7 +73,7 @@ export function ClientHistorySection({
         <div
           style={{
             marginTop: 6,
-            border: "1px solid rgba(90,21,21,0.06)",
+            border: "1px solid var(--action-muted)",
             borderRadius: 10,
             background: ORDER_COLORS.surfaceBg,
             overflow: "hidden",
@@ -103,7 +103,7 @@ export function ClientHistorySection({
               </div>
 
               {oldItems.length > 0 && (
-                <div style={{ borderTop: "1px solid rgba(90,21,21,0.06)" }}>
+                <div style={{ borderTop: "1px solid var(--action-muted)" }}>
                   <button
                     onClick={() => setShowOld((v: boolean) => !v)}
                     style={{
@@ -165,7 +165,7 @@ function HistoryTable({
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
       <thead>
-        <tr style={{ borderBottom: "1px solid rgba(90,21,21,0.06)" }}>
+        <tr style={{ borderBottom: "1px solid var(--action-muted)" }}>
           <Th align="left">품명</Th>
           <Th align="right">공급가</Th>
           {tab === "CDV" && <Th align="right">횟수</Th>}

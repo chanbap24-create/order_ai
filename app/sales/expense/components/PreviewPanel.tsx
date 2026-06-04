@@ -55,7 +55,7 @@ export function PreviewPanel(p: Props) {
         <div
           style={{
             padding: "16px 20px",
-            borderBottom: "1px solid rgba(90,21,21,0.08)",
+            borderBottom: "1px solid var(--border-default)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -120,7 +120,7 @@ export function PreviewPanel(p: Props) {
                       key={ci}
                       style={{
                         padding: "6px",
-                        borderBottom: "1px solid rgba(90,21,21,0.04)",
+                        borderBottom: "1px solid var(--border-subtle)",
                         textAlign: ci === 3 ? "right" : "left",
                         color: "var(--text-primary)",
                         whiteSpace: "nowrap",
@@ -137,7 +137,7 @@ export function PreviewPanel(p: Props) {
                   <td
                     style={{
                       padding: "4px 2px",
-                      borderBottom: "1px solid rgba(90,21,21,0.04)",
+                      borderBottom: "1px solid var(--border-subtle)",
                       textAlign: "center",
                     }}
                   >
@@ -181,7 +181,7 @@ export function PreviewPanel(p: Props) {
                 padding: "14px 16px",
                 borderRadius: 10,
                 background: "var(--surface-muted)",
-                border: "1px solid rgba(90,21,21,0.06)",
+                border: "1px solid var(--action-muted)",
               }}
             >
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>

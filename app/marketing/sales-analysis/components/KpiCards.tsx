@@ -34,7 +34,7 @@ export const KpiCards = memo(function KpiCards({ data }: { data: AnalysisData })
       {cards.map((card, i) => (
         <div key={i} style={{
           background: '#fff', borderRadius: 12,
-          border: '1px solid rgba(90,21,21,0.06)',
+          border: '1px solid var(--action-muted)',
           padding: '14px 16px',
         }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>

@@ -49,7 +49,7 @@ const SELECT: React.CSSProperties = {
   flex: 1,
   padding: "10px 12px",
   borderRadius: 8,
-  border: "1px solid rgba(90,21,21,0.08)",
+  border: "1px solid var(--border-default)",
   fontSize: 16,
   outline: "none",
   background: "#fff",

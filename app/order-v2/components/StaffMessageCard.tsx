@@ -17,7 +17,7 @@ export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
         background: "#fff",
         borderRadius: 14,
         padding: "16px 18px",
-        border: "1px solid rgba(90,21,21,0.06)",
+        border: "1px solid var(--action-muted)",
         boxShadow: "0 2px 12px rgba(90,21,21,0.03)",
         marginBottom: 16,
         transition: "box-shadow 0.3s ease",
@@ -75,7 +75,7 @@ export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
           background: ORDER_COLORS.surfaceBg,
           borderRadius: 10,
           padding: "14px 16px",
-          border: "1px solid rgba(90,21,21,0.04)",
+          border: "1px solid var(--border-subtle)",
         }}
       >
         {staffMessage}

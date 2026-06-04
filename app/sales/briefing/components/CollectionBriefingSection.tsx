@@ -64,7 +64,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
 
   return (
     <div style={{ marginBottom: 12, background: '#fff', border: '1px solid rgba(90,21,21,0.06)', boxShadow: '0 1px 3px rgba(90,21,21,0.03)', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid rgba(90,21,21,0.06)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+      <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
         💰 오늘의 수금
         <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           약속어김 {broken.length} · 오늘약속 {promiseToday.length} · 연체 {overdue.length}
@@ -119,7 +119,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                     const dateStr = it.promised_date;   // 내가 설정한 약속일만 (없으면 - )
                     return (
                       <Fragment key={k}>
-                        <tr onClick={() => setEditing(isEditing ? null : k)} style={{ cursor: 'pointer', borderTop: '1px solid rgba(90,21,21,0.04)' }}>
+                        <tr onClick={() => setEditing(isEditing ? null : k)} style={{ cursor: 'pointer', borderTop: '1px solid var(--border-subtle)' }}>
                           <td style={tdL}>
                             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.client_name}</span>
                             {it.special && <span style={badge}>특별관리</span>}

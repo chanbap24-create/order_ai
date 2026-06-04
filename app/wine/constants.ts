@@ -7,9 +7,9 @@
 export const WINE_COLORS = {
   primary: "var(--action)",
   primaryBgSubtle: "rgba(90,21,21,0.02)",
-  primaryBgLight: "rgba(90,21,21,0.04)",
-  primaryBgHover: "rgba(90,21,21,0.06)",
-  primaryBorder: "rgba(90,21,21,0.08)",
+  primaryBgLight: "var(--border-subtle)",
+  primaryBgHover: "var(--action-muted)",
+  primaryBorder: "var(--border-default)",
   primaryBorderStrong: "rgba(90,21,21,0.15)",
   primaryBorderFocus: "rgba(90,21,21,0.25)",
   primaryShadow: "0 2px 8px rgba(90,21,21,0.2)",
@@ -25,7 +25,7 @@ export const WINE_COLORS = {
   surfaceBg: "var(--surface-muted)",
   surfaceBgAlt: "#fafaf8",
   dividerFaint: "rgba(90,21,21,0.05)",
-  dividerCard: "rgba(90,21,21,0.06)",
+  dividerCard: "var(--action-muted)",
   dividerCardLight: "rgba(90,21,21,0.1)",
 
   toggleOff: "#d4d0cc",

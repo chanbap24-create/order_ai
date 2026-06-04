@@ -33,7 +33,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
       <div style={{
         textAlign: 'center', padding: 60, color: 'var(--text-muted)',
         background: '#fff', borderRadius: 12,
-        border: '1px solid rgba(90,21,21,0.06)',
+        border: '1px solid var(--action-muted)',
       }}>
         등록된 회사 일정이 없습니다
       </div>
@@ -43,13 +43,13 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
   return (
     <div style={{
       background: '#fff', borderRadius: 12,
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
       overflow: 'hidden',
     }}>
       <div style={{
         ...COLS_STYLE,
         padding: '10px 16px', background: '#faf8f2',
-        borderBottom: '1px solid rgba(90,21,21,0.06)',
+        borderBottom: '1px solid var(--action-muted)',
         fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
       }}>
         <div>날짜</div>

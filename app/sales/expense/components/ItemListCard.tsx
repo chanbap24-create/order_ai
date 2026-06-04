@@ -48,7 +48,7 @@ export function ItemListCard({ items, onRemove }: Props) {
             <span style={{ color: "var(--text-tertiary)", minWidth: 80 }}>{item.date}</span>
             <span
               style={{
-                background: "rgba(90,21,21,0.06)",
+                background: "var(--action-muted)",
                 color: "var(--action)",
                 fontSize: 11,
                 fontWeight: 600,

@@ -16,7 +16,7 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
   return (
     <div style={{
       background: '#fff', borderRadius: 14,
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
       overflow: 'hidden',
     }}>
       <div style={{ overflowX: 'auto', maxHeight: 600, overflowY: 'auto' }}>

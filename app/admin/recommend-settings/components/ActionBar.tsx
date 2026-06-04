@@ -13,7 +13,7 @@ export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
-      background: '#fff', borderTop: '1.5px solid rgba(90,21,21,0.08)',
+      background: '#fff', borderTop: '1.5px solid var(--border-default)',
       padding: '12px 16px', zIndex: 200,
       boxShadow: '0 -2px 10px rgba(90,21,21,0.08)',
     }}>
@@ -25,7 +25,7 @@ export function ActionBar({ totalWeight, saving, onReset, onSave }: Props) {
         <button
           onClick={onReset}
           style={{
-            padding: '10px 20px', borderRadius: 8, border: '1.5px solid rgba(90,21,21,0.08)',
+            padding: '10px 20px', borderRadius: 8, border: '1.5px solid var(--border-default)',
             background: '#fff', color: 'var(--text-tertiary)', fontSize: 13, fontWeight: 600,
             cursor: 'pointer',
           }}

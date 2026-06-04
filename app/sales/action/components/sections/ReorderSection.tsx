@@ -45,7 +45,7 @@ export function ReorderSection(p: Props) {
                   style={{
                     padding: "4px 12px",
                     borderRadius: 20,
-                    border: p.reorderFilter === f.id ? `1.5px solid ${f.activeColor}` : "1px solid rgba(90,21,21,0.08)",
+                    border: p.reorderFilter === f.id ? `1.5px solid ${f.activeColor}` : "1px solid var(--border-default)",
                     background: p.reorderFilter === f.id ? f.activeBg : "white",
                     fontSize: 11,
                     fontWeight: p.reorderFilter === f.id ? 600 : 400,

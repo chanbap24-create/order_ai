@@ -16,7 +16,7 @@ export function WeightsCard({ weights, totalWeight, onChange }: Props) {
     <div style={{
       background: '#fff', borderRadius: 12, padding: '20px 16px',
       marginBottom: 16, boxShadow: '0 1px 3px rgba(90,21,21,0.06)',
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>추천 점수 가중치</div>
@@ -31,7 +31,7 @@ export function WeightsCard({ weights, totalWeight, onChange }: Props) {
 
       <div style={{
         display: 'flex', borderRadius: 8, overflow: 'hidden',
-        height: 28, marginBottom: 20, border: '1px solid rgba(90,21,21,0.06)',
+        height: 28, marginBottom: 20, border: '1px solid var(--action-muted)',
       }}>
         {(Object.keys(WEIGHT_LABELS) as (keyof WeightConfig)[]).map(key => {
           const w = weights[key];
@@ -78,7 +78,7 @@ export function WeightsCard({ weights, totalWeight, onChange }: Props) {
                   max={100}
                   style={{
                     width: 52, textAlign: 'center', fontSize: 14, fontWeight: 700,
-                    border: '1.5px solid rgba(90,21,21,0.08)', borderRadius: 6, padding: '4px 0',
+                    border: '1.5px solid var(--border-default)', borderRadius: 6, padding: '4px 0',
                     color: info.color, outline: 'none',
                   }}
                 />

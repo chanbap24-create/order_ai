@@ -6,7 +6,7 @@ export function Card({ title, value }: { title: string; value: string }) {
   return (
     <div style={{
       background: '#fff', borderRadius: 12, padding: '14px 18px',
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
       boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
     }}>
       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -26,7 +26,7 @@ export function Section({ title, children }: { title: string; children: ReactNod
     }}>
       <div style={{
         padding: '12px 16px', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
-        borderBottom: '1px solid rgba(90,21,21,0.08)',
+        borderBottom: '1px solid var(--border-default)',
       }}>{title}</div>
       <div>{children}</div>
     </div>

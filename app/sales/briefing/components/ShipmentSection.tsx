@@ -15,11 +15,11 @@ type Props = {
 export function ShipmentSection({ title, color, shipments, expandedShipClient, setExpandedShipClient, prefix }: Props) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 12, border: '1px solid rgba(90,21,21,0.06)',
+      background: '#fff', borderRadius: 12, border: '1px solid var(--action-muted)',
       boxShadow: '0 1px 3px rgba(90,21,21,0.03)', marginBottom: 12, overflow: 'hidden',
     }}>
       <div style={{
-        padding: '10px 14px', borderBottom: '1px solid rgba(90,21,21,0.06)',
+        padding: '10px 14px', borderBottom: '1px solid var(--action-muted)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span style={{ fontSize: 13, fontWeight: 700, color }}>{title}</span>
@@ -43,7 +43,7 @@ export function ShipmentSection({ title, color, shipments, expandedShipClient, s
               <tbody key={key}>
                 <tr
                   onClick={() => setExpandedShipClient(isExp ? null : key)}
-                  style={{ cursor: 'pointer', borderBottom: isExp ? 'none' : '1px solid rgba(90,21,21,0.04)' }}
+                  style={{ cursor: 'pointer', borderBottom: isExp ? 'none' : '1px solid var(--border-subtle)' }}
                 >
                   <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {isExp ? '▾ ' : '▸ '}{c.client_name}
@@ -71,7 +71,7 @@ export function ShipmentSection({ title, color, shipments, expandedShipClient, s
                         <td style={{ padding: '4px 10px', fontSize: 11, color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmtFull(it.total_amount)}</td>
                       </tr>
                     ))}
-                    <tr style={{ background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.06)' }}>
+                    <tr style={{ background: '#f8f6f4', borderBottom: '1px solid var(--action-muted)' }}>
                       <td colSpan={4} style={{ padding: '6px 10px', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textAlign: 'right' }}>소계</td>
                       <td style={{ padding: '6px 10px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right' }}>{fmtFull(c.total_amount)}</td>
                     </tr>

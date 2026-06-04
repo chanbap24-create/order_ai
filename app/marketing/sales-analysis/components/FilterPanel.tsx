@@ -23,7 +23,7 @@ type Props = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '9px 12px', borderRadius: 10,
-  border: '1.5px solid rgba(90,21,21,0.08)',
+  border: '1.5px solid var(--border-default)',
   fontSize: 14, outline: 'none', boxSizing: 'border-box',
   background: 'var(--surface-muted)', color: 'var(--text-primary)',
 };
@@ -37,7 +37,7 @@ export function FilterPanel(p: Props) {
   return (
     <div style={{
       background: '#fff', borderRadius: 14,
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
       boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
       padding: 18, marginBottom: 16,
     }}>
@@ -61,7 +61,7 @@ export function FilterPanel(p: Props) {
             onClick={() => { p.onStartDate(r.start); p.onEndDate(r.end); }}
             style={{
               padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
-              background: p.startDate === r.start && p.endDate === r.end ? 'rgba(90,21,21,0.06)' : 'transparent',
+              background: p.startDate === r.start && p.endDate === r.end ? 'var(--action-muted)' : 'transparent',
               fontSize: 11, color: 'var(--action)', cursor: 'pointer', fontWeight: 500,
             }}
           >

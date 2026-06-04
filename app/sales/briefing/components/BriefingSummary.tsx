@@ -85,7 +85,7 @@ export function PurchasedItemsList({ items }: { items: BriefingData['purchased_i
         <div key={it.item_no} style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '5px 0',
-          borderBottom: i < Math.min(9, items.length - 1) ? '1px solid rgba(90,21,21,0.06)' : 'none',
+          borderBottom: i < Math.min(9, items.length - 1) ? '1px solid var(--action-muted)' : 'none',
           fontSize: 11,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -115,7 +115,7 @@ export function RecommendationsList({ recommendations }: { recommendations: Brie
       {recommendations.slice(0, 5).map((r, i) => (
         <div key={r.item_no} style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '6px 0', borderBottom: i < Math.min(4, recommendations.length - 1) ? '1px solid rgba(90,21,21,0.06)' : 'none',
+          padding: '6px 0', borderBottom: i < Math.min(4, recommendations.length - 1) ? '1px solid var(--action-muted)' : 'none',
           fontSize: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>

@@ -55,7 +55,7 @@ export function VisitSection(p: Props) {
                     border:
                       p.visitFilter === f.id
                         ? `1.5px solid ${f.id === "all" ? "#795548" : VISIT_URGENCY_COLORS[f.id] || "#795548"}`
-                        : "1px solid rgba(90,21,21,0.08)",
+                        : "1px solid var(--border-default)",
                     background:
                       p.visitFilter === f.id
                         ? f.id === "all"

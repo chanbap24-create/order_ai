@@ -81,7 +81,7 @@ export function SummaryCards({ summary }: { summary: ActionSummary }) {
         <div
           style={{
             flex: "1 1 120px",
-            background: "rgba(90,21,21,0.06)",
+            background: "var(--action-muted)",
             borderRadius: 10,
             padding: "10px 8px",
             textAlign: "center",

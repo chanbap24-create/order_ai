@@ -143,7 +143,7 @@ function IconBtn({
         height: 28,
         borderRadius: 8,
         border: "1px solid #E5E5E5",
-        background: active ? "rgba(90,21,21,0.08)" : "white",
+        background: active ? "var(--border-default)" : "white",
         cursor: "pointer",
         fontSize: 13,
         display: "flex",

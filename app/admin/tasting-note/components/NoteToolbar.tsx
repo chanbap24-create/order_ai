@@ -124,7 +124,7 @@ export function NoteToolbar(p: Props) {
               background: p.lowStockThreshold > 0 ? "white" : "transparent",
               color: p.lowStockThreshold > 0 ? "var(--action)" : "var(--text-muted)",
               boxShadow:
-                p.lowStockThreshold > 0 ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+                p.lowStockThreshold > 0 ? "0 1px 3px var(--border-default)" : "none",
               cursor: "default",
             }}
           >

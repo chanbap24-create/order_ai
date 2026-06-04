@@ -41,7 +41,7 @@ export function CompactBriefing(p: Props) {
       style={{
         background: "#FAFAF8",
         borderRadius: 12,
-        border: "1px solid rgba(90,21,21,0.06)",
+        border: "1px solid var(--action-muted)",
         padding: "16px",
         marginBottom: 16,
         fontSize: 13,
@@ -57,7 +57,7 @@ export function CompactBriefing(p: Props) {
             alignItems: "center",
             marginBottom: 10,
             paddingBottom: 8,
-            borderBottom: "1px solid rgba(90,21,21,0.06)",
+            borderBottom: "1px solid var(--action-muted)",
           }}
         >
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
@@ -218,7 +218,7 @@ export function CompactBriefing(p: Props) {
           style={{
             padding: "6px 16px",
             borderRadius: 20,
-            border: "1px solid rgba(90,21,21,0.08)",
+            border: "1px solid var(--border-default)",
             background: "white",
             fontSize: 12,
             fontWeight: 600,

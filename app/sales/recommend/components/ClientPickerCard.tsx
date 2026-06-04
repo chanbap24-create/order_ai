@@ -28,7 +28,7 @@ export function ClientPickerCard(p: Props) {
     <div style={{
       background: '#fff', borderRadius: 12, padding: '20px 16px',
       marginBottom: 16, boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
     }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
         거래처 선택
@@ -40,7 +40,7 @@ export function ClientPickerCard(p: Props) {
             value={p.filterManager}
             onChange={e => p.onFilterManagerChange(e.target.value)}
             style={{
-              padding: '8px 12px', borderRadius: 6, border: '1.5px solid rgba(90,21,21,0.08)',
+              padding: '8px 12px', borderRadius: 6, border: '1.5px solid var(--border-default)',
               fontSize: 16, background: '#fff', color: p.filterManager ? 'var(--text-primary)' : '#999',
               outline: 'none', width: '100%', boxSizing: 'border-box',
             }}
@@ -60,7 +60,7 @@ export function ClientPickerCard(p: Props) {
           onFocus={p.onFocus}
           style={{
             width: '100%', padding: '10px 12px', borderRadius: 8,
-            border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, outline: 'none',
+            border: '1.5px solid var(--border-default)', fontSize: 16, outline: 'none',
             boxSizing: 'border-box', background: p.selectedClient ? 'var(--surface-muted)' : '#fff',
           }}
         />
@@ -87,7 +87,7 @@ export function ClientPickerCard(p: Props) {
         {p.showDropdown && p.clientOptions.length > 0 && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
-            background: '#fff', border: '1.5px solid rgba(90,21,21,0.08)',
+            background: '#fff', border: '1.5px solid var(--border-default)',
             borderRadius: '0 0 8px 8px', maxHeight: 240, overflowY: 'auto',
             zIndex: 100, boxShadow: '0 4px 12px rgba(90,21,21,0.08)',
           }}>
@@ -96,7 +96,7 @@ export function ClientPickerCard(p: Props) {
                 key={c.client_code}
                 onClick={() => p.onSelect(c)}
                 style={{
-                  padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid rgba(90,21,21,0.06)',
+                  padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--action-muted)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-muted)')}
@@ -124,7 +124,7 @@ export function ClientPickerCard(p: Props) {
         {p.showDropdown && p.clientSearch && p.clientOptions.length === 0 && !p.clientLoading && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
-            background: '#fff', border: '1.5px solid rgba(90,21,21,0.08)',
+            background: '#fff', border: '1.5px solid var(--border-default)',
             borderRadius: '0 0 8px 8px', padding: '16px', textAlign: 'center',
             color: 'var(--text-muted)', fontSize: 13, zIndex: 100,
           }}>

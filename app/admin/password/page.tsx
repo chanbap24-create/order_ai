@@ -209,7 +209,7 @@ const pageStyle: React.CSSProperties = {
 const cardStyle: React.CSSProperties = {
   background: '#fff', borderRadius: 14,
   boxShadow: '0 2px 8px rgba(90,21,21,0.05)',
-  border: '1px solid rgba(90,21,21,0.06)',
+  border: '1px solid var(--action-muted)',
   padding: '32px 28px', width: '100%', maxWidth: 420,
 };
 

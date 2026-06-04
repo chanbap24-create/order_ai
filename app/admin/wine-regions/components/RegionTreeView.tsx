@@ -72,7 +72,7 @@ function CountryNode({
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 14px',
-          background: isCountryOpen ? 'var(--text-primary)' : 'rgba(90,21,21,0.06)',
+          background: isCountryOpen ? 'var(--text-primary)' : 'var(--action-muted)',
           color: isCountryOpen ? '#fff' : 'var(--text-primary)',
           borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 15,
           transition: 'all 0.15s',

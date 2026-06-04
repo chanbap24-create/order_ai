@@ -33,7 +33,7 @@ export function DismissedListItem({ item, isChecked, onToggle }: Props) {
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '10px 12px', borderRadius: 10,
-        border: isChecked ? '1.5px solid var(--action)' : '1px solid rgba(90,21,21,0.08)',
+        border: isChecked ? '1.5px solid var(--action)' : '1px solid var(--border-default)',
         background: isChecked ? '#fdf8f8' : 'white',
         cursor: 'pointer', transition: 'all 0.15s',
       }}

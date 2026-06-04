@@ -86,7 +86,7 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
                 cursor: "pointer",
                 padding: "4px 8px",
                 borderRadius: 6,
-                background: active ? "rgba(90,21,21,0.06)" : "#fff",
+                background: active ? "var(--action-muted)" : "#fff",
                 border: `1px solid ${active ? "rgba(90,21,21,0.2)" : "#E5E5E5"}`,
               }}
             >

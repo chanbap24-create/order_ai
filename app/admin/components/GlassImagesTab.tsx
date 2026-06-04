@@ -343,7 +343,7 @@ function EditableField({
         style={{
           height: 26, padding: '0 6px', borderRadius: 4,
           border: `1px solid ${dirty ? 'var(--action)' : 'var(--border-subtle)'}`,
-          background: dirty ? 'rgba(90,21,21,0.04)' : 'var(--surface)',
+          background: dirty ? 'var(--border-subtle)' : 'var(--surface)',
           fontSize: 12, color: 'var(--text-primary)', outline: 'none', minWidth: 0, width: '100%',
         }}
       />

@@ -66,7 +66,7 @@ export function OrderLineCard(p: Props) {
       style={{
         background: "#fff",
         borderRadius: 10,
-        border: "1px solid rgba(90,21,21,0.06)",
+        border: "1px solid var(--action-muted)",
         overflow: "hidden",
         transition: "border-color 0.2s ease",
       }}

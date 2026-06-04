@@ -37,7 +37,7 @@ export function RecommendationList({ items, selected, onToggle, allSelected, onT
       {items.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13,
-          background: '#fff', borderRadius: 12, border: '1px solid rgba(90,21,21,0.06)',
+          background: '#fff', borderRadius: 12, border: '1px solid var(--action-muted)',
         }}>
           추천할 와인이 없습니다
         </div>

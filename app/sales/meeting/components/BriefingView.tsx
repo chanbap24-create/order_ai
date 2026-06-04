@@ -64,7 +64,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
             borderRadius: 10,
             padding: 14,
             marginBottom: 12,
-            border: "1px solid rgba(90,21,21,0.06)",
+            border: "1px solid var(--action-muted)",
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
@@ -131,7 +131,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                 background: "#fff",
                 borderRadius: 8,
                 padding: "10px 12px",
-                border: isSelected ? "2px solid var(--action)" : "1px solid rgba(90,21,21,0.06)",
+                border: isSelected ? "2px solid var(--action)" : "1px solid var(--action-muted)",
                 cursor: "pointer",
                 display: "flex",
                 gap: 10,

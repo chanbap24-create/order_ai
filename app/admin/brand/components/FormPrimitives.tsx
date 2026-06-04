@@ -7,7 +7,7 @@ export function Section({ title, children }: { title: string; children: React.Re
     <div
       style={{
         background: "#fff",
-        border: "1px solid rgba(90,21,21,0.06)",
+        border: "1px solid var(--action-muted)",
         borderRadius: 10,
         padding: 16,
       }}

@@ -13,7 +13,7 @@ export function DismissButton({ onDismiss, variant = "corner" }: Props) {
     width: variant === "inline" ? 20 : 22,
     height: variant === "inline" ? 20 : 22,
     borderRadius: 99,
-    border: "1px solid rgba(90,21,21,0.08)",
+    border: "1px solid var(--border-default)",
     background: "var(--surface-muted)",
     color: "#bbb",
     fontSize: variant === "inline" ? 10 : 11,
@@ -24,7 +24,7 @@ export function DismissButton({ onDismiss, variant = "corner" }: Props) {
   const style: React.CSSProperties =
     variant === "corner"
       ? { ...base, position: "absolute", top: 8, right: 8, zIndex: 1 }
-      : { ...base, flexShrink: 0, border: "1.5px solid rgba(90,21,21,0.08)" };
+      : { ...base, flexShrink: 0, border: "1.5px solid var(--border-default)" };
 
   return (
     <button onClick={(e) => onDismiss(e)} style={style} title="확인 처리">

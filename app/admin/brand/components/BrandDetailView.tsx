@@ -128,7 +128,7 @@ function ImgPreview({
           height: size ?? height,
           objectFit,
           borderRadius: 6,
-          border: "1px solid rgba(90,21,21,0.08)",
+          border: "1px solid var(--border-default)",
         }}
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = "none";

@@ -64,7 +64,7 @@ export function SeasonSection(p: Props) {
                       display: "inline-block",
                       padding: "2px 8px",
                       borderRadius: 4,
-                      background: "rgba(90,21,21,0.06)",
+                      background: "var(--action-muted)",
                       color: "var(--action)",
                       fontSize: 11,
                       fontWeight: 700,
@@ -101,7 +101,7 @@ export function SeasonSection(p: Props) {
                 </div>
 
                 {wine.matched_clients.length > 0 && (
-                  <div style={{ borderTop: "1px solid rgba(90,21,21,0.06)", paddingTop: 10 }}>
+                  <div style={{ borderTop: "1px solid var(--action-muted)", paddingTop: 10 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 8 }}>
                       추천 거래처
                     </div>
@@ -132,7 +132,7 @@ export function SeasonSection(p: Props) {
                               display: "inline-block",
                               padding: "1px 6px",
                               borderRadius: 4,
-                              background: c.match_score >= 70 ? "rgba(90,21,21,0.06)" : "var(--surface-muted)",
+                              background: c.match_score >= 70 ? "var(--action-muted)" : "var(--surface-muted)",
                               color: c.match_score >= 70 ? "var(--action)" : "#888",
                               fontSize: 11,
                               fontWeight: 700,

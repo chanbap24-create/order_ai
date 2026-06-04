@@ -43,7 +43,7 @@ export default function SalesAnalysisTab() {
           <TypeDistribution data={s.data} />
 
           <div style={{
-            display: 'flex', gap: 4, background: 'rgba(90,21,21,0.04)',
+            display: 'flex', gap: 4, background: 'var(--border-subtle)',
             borderRadius: 8, padding: 2, marginBottom: 12, width: 'fit-content',
           }}>
             {([
@@ -94,7 +94,7 @@ export default function SalesAnalysisTab() {
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
           textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14,
-          border: '1px solid rgba(90,21,21,0.06)',
+          border: '1px solid var(--action-muted)',
         }}>
           해당 조건에 맞는 판매 데이터가 없습니다.
         </div>
@@ -104,7 +104,7 @@ export default function SalesAnalysisTab() {
         <div style={{
           background: '#fff', borderRadius: 14, padding: 40,
           textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13,
-          border: '1px solid rgba(90,21,21,0.06)', lineHeight: 1.8,
+          border: '1px solid var(--action-muted)', lineHeight: 1.8,
         }}>
           기간과 조건을 설정한 후 <strong style={{ color: 'var(--action)' }}>조회</strong> 버튼을 눌러주세요.
         </div>

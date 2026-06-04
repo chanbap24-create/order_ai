@@ -29,7 +29,7 @@ export function HomeCards({ mounted }: { mounted: boolean }) {
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
                 background: hoveredCard === card.id ? 'var(--action)' : '#faf5f5',
-                border: hoveredCard === card.id ? 'none' : '1px solid rgba(90, 21, 21, 0.06)',
+                border: hoveredCard === card.id ? 'none' : '1px solid var(--action-muted)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: hoveredCard === card.id ? '#f0ece6' : 'var(--action)',
                 transition: 'all 0.35s ease',

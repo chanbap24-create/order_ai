@@ -36,7 +36,7 @@ export function MeetingCard(p: Props) {
   return (
     <div style={{
       background: '#fff', borderRadius: 12,
-      border: hasBriefing ? '1px solid #c8e6c9' : '1px solid rgba(90,21,21,0.06)',
+      border: hasBriefing ? '1px solid #c8e6c9' : '1px solid var(--action-muted)',
       boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
       overflow: 'hidden',
     }}>
@@ -52,7 +52,7 @@ export function MeetingCard(p: Props) {
 
       {isExpanded && briefing && (
         <div style={{
-          borderTop: '1px solid rgba(90,21,21,0.06)', padding: '14px',
+          borderTop: '1px solid var(--action-muted)', padding: '14px',
           background: '#fafaf8',
         }}>
           <BriefingSummary briefing={briefing} />
@@ -82,7 +82,7 @@ export function MeetingCard(p: Props) {
 
       {isExpanded && !briefing && (
         <div style={{
-          borderTop: '1px solid rgba(90,21,21,0.06)', padding: '20px 14px',
+          borderTop: '1px solid var(--action-muted)', padding: '20px 14px',
           textAlign: 'center', color: 'var(--text-muted)', fontSize: 13,
         }}>
           브리핑이 아직 생성되지 않았습니다

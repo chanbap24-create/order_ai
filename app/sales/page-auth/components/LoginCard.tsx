@@ -13,7 +13,7 @@ const focusHandlers = {
     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(90,21,21,0.06)';
   },
   onBlur: (e: React.FocusEvent<HTMLSelectElement | HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(90,21,21,0.08)';
+    e.currentTarget.style.borderColor = 'var(--border-default)';
     e.currentTarget.style.boxShadow = 'none';
   },
 };
@@ -59,7 +59,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
         width: '100%', maxWidth: 360, padding: '40px 24px',
         background: 'white', borderRadius: 16,
         boxShadow: '0 4px 24px rgba(90,21,21,0.06), 0 1px 4px rgba(90,21,21,0.03)',
-        border: '1px solid rgba(90,21,21,0.06)', margin: '0 16px',
+        border: '1px solid var(--action-muted)', margin: '0 16px',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1 style={{
@@ -140,7 +140,7 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: 10,
-  border: '1.5px solid rgba(90,21,21,0.08)',
+  border: '1.5px solid var(--border-default)',
   fontSize: 16, background: 'var(--surface-muted)', outline: 'none', boxSizing: 'border-box',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
 };

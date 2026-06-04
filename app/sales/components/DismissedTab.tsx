@@ -49,7 +49,7 @@ export default function DismissedTab() {
           onChange={e => setSearch(e.target.value)}
           style={{
             width: '100%', padding: '10px 12px 10px 36px', borderRadius: 8,
-            border: '1.5px solid rgba(90,21,21,0.08)', fontSize: 16, boxSizing: 'border-box',
+            border: '1.5px solid var(--border-default)', fontSize: 16, boxSizing: 'border-box',
             background: 'var(--surface-muted)', outline: 'none',
           }}
         />

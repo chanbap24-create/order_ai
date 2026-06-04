@@ -8,7 +8,7 @@ type Props = {
 
 const inputStyle: React.CSSProperties = {
   flex: '1 1 120px', padding: '10px 14px', borderRadius: 10,
-  border: '1.5px solid rgba(90,21,21,0.08)',
+  border: '1.5px solid var(--border-default)',
   fontSize: 16, outline: 'none', background: 'var(--surface-muted)',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
 };
@@ -19,7 +19,7 @@ const focusHandlers = {
     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(90,21,21,0.06)';
   },
   onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(90,21,21,0.08)';
+    e.currentTarget.style.borderColor = 'var(--border-default)';
     e.currentTarget.style.boxShadow = 'none';
   },
 };
@@ -63,7 +63,7 @@ export function PasswordChangePanel({ onClose }: Props) {
   return (
     <div style={{
       background: '#fff', borderRadius: 14,
-      border: '1px solid rgba(90,21,21,0.06)',
+      border: '1px solid var(--action-muted)',
       boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
       padding: '18px', marginBottom: 20,
     }}>

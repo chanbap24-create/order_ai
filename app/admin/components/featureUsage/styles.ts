@@ -32,7 +32,7 @@ export const tableStyle: CSSProperties = {
 export const th: CSSProperties = {
   padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--action)',
   textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.03em',
-  background: '#f8f6f4', borderBottom: '1px solid rgba(90,21,21,0.08)',
+  background: '#f8f6f4', borderBottom: '1px solid var(--border-default)',
 };
 
 export const td: CSSProperties = {

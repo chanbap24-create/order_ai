@@ -28,7 +28,7 @@ export function ClientContactCard(p: Props) {
           width: "100%",
           padding: "8px 10px",
           borderRadius: 6,
-          border: "1.5px solid rgba(90,21,21,0.08)",
+          border: "1.5px solid var(--border-default)",
           fontSize: 16,
         }}
       />
@@ -69,7 +69,7 @@ export function ClientContactCard(p: Props) {
           style={{
             padding: "4px 12px",
             borderRadius: 6,
-            border: "1.5px solid rgba(90,21,21,0.08)",
+            border: "1.5px solid var(--border-default)",
             background: p.editMode ? "var(--action)" : "white",
             color: p.editMode ? "white" : "#666",
             fontSize: 12,
@@ -97,7 +97,7 @@ export function ClientContactCard(p: Props) {
                 width: "100%",
                 padding: "8px 10px",
                 borderRadius: 6,
-                border: "1.5px solid rgba(90,21,21,0.08)",
+                border: "1.5px solid var(--border-default)",
                 fontSize: 16,
                 background: "white",
               }}
@@ -123,7 +123,7 @@ export function ClientContactCard(p: Props) {
                 width: "100%",
                 padding: "8px 10px",
                 borderRadius: 6,
-                border: "1.5px solid rgba(90,21,21,0.08)",
+                border: "1.5px solid var(--border-default)",
                 fontSize: 16,
                 resize: "vertical",
               }}

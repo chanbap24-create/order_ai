@@ -15,7 +15,7 @@ export const HOME_STYLES = `
   position: relative;
   padding: 32px 28px;
   border-radius: 16px;
-  border: 1px solid rgba(90, 21, 21, 0.08);
+  border: 1px solid var(--border-default);
   background: #ffffff;
   transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;

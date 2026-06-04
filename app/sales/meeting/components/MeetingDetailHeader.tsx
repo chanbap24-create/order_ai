@@ -97,7 +97,7 @@ export function MeetingDetailHeader(p: Props) {
                   flex: 1,
                   padding: "8px",
                   borderRadius: 8,
-                  border: isCurrent ? `2px solid ${sm.color}` : "1px solid rgba(90,21,21,0.08)",
+                  border: isCurrent ? `2px solid ${sm.color}` : "1px solid var(--border-default)",
                   background: isCurrent ? sm.bg : "#fff",
                   color: isCurrent ? sm.color : "#999",
                   fontWeight: isCurrent ? 700 : 500,

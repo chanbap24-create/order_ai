@@ -34,7 +34,7 @@ export function PageStyles() {
       .order-preset-btn:hover { background: rgba(255,255,255,0.15) !important; }
       .order-input:focus { border-color: rgba(90,21,21,0.3) !important; box-shadow: 0 0 0 3px rgba(90,21,21,0.06) !important; }
       .order-line-card:hover { border-color: rgba(90,21,21,0.12) !important; }
-      .order-qty-btn:hover { background: rgba(90,21,21,0.04) !important; border-color: rgba(90,21,21,0.2) !important; }
+      .order-qty-btn:hover { background: var(--border-subtle) !important; border-color: rgba(90,21,21,0.2) !important; }
       .order-history-row:hover { background: rgba(90,21,21,0.02) !important; }
       /* 발주 원문 vs 발주 메시지 좌우 비교 grid (모바일에서 1열로 폴백) */
       .order-compare-grid {
