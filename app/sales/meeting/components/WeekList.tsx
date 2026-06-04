@@ -62,7 +62,7 @@ export function WeekList(p: Props) {
                     fontSize: 13,
                     fontWeight: 700,
                     color: isHoliday
-                      ? "#c62828"
+                      ? "var(--status-danger)"
                       : isToday
                         ? "var(--action)"
                         : "var(--text-primary)",
@@ -71,7 +71,7 @@ export function WeekList(p: Props) {
                 >
                   {formatDateKR(dateStr)}
                 </span>
-                {isHoliday && <Pill bg="#ffebee" color="#c62828">{holidayName}</Pill>}
+                {isHoliday && <Pill bg="var(--status-danger-bg)" color="var(--status-danger)">{holidayName}</Pill>}
                 {isToday && <Pill bg="var(--action)" color="var(--text-on-primary)">TODAY</Pill>}
                 {dayMeetings.length > 0 && (
                   <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
@@ -248,7 +248,7 @@ function MeetingRow({
 
       <div style={{ flexShrink: 0 }}>
         {meeting.ai_briefing ? (
-          <span style={{ fontSize: 10, color: "#4CAF50", fontWeight: 700 }}>브리핑 ✓</span>
+          <span style={{ fontSize: 10, color: "var(--status-success)", fontWeight: 700 }}>브리핑 ✓</span>
         ) : (
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>—</span>
         )}

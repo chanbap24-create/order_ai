@@ -53,7 +53,7 @@ export function MonthCalendar(p: Props) {
               fontWeight: 700,
               letterSpacing: "0.04em",
               textTransform: "uppercase",
-              color: day === "일" ? "#c62828" : day === "토" ? "#1565C0" : "var(--text-tertiary)",
+              color: day === "일" ? "var(--status-danger)" : day === "토" ? "var(--status-info)" : "var(--text-tertiary)",
             }}
           >
             {day}

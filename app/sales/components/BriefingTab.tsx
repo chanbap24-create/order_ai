@@ -75,7 +75,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
       {glassShipments && (
         <ShipmentSection
           title={`글라스 출고 (${glassShipments.count}건)`}
-          color="#1565c0"
+          color="var(--status-info)"
           shipments={glassShipments}
           expandedShipClient={expandedShipClient}
           setExpandedShipClient={setExpandedShipClient}

@@ -4,7 +4,7 @@ import type { DismissedItem } from '../types';
 import { fmt, formatDate } from '../lib/format';
 
 const TYPE_STYLES = {
-  red: { bg: '#ffebee', color: '#c62828' },
+  red: { bg: 'var(--status-danger-bg)', color: 'var(--status-danger)' },
   white: { bg: '#fff8e1', color: '#f57f17' },
   rose: { bg: '#fce4ec', color: '#ad1457' },
   other: { bg: '#f3e5f5', color: '#6a1b9a' },
@@ -74,7 +74,7 @@ export function DismissedListItem({ item, isChecked, onToggle }: Props) {
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{
           fontSize: 12, fontWeight: 600,
-          color: item.current_stock > 0 ? '#2e7d32' : '#dc3545',
+          color: item.current_stock > 0 ? 'var(--status-success)' : 'var(--status-danger)',
         }}>
           {item.current_stock > 0 ? `${item.current_stock}병` : '품절'}
         </div>

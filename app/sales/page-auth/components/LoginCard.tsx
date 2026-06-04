@@ -104,7 +104,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
             padding: '10px 14px',
             background: 'rgba(220,38,38,0.04)',
             border: '1.5px solid rgba(220,38,38,0.15)',
-            borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 16,
+            borderRadius: 10, fontSize: 13, color: 'var(--status-danger)', marginBottom: 16,
           }}>
             {loginError}
           </div>

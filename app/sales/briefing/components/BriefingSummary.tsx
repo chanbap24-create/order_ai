@@ -25,7 +25,7 @@ export function BriefingSummary({ briefing }: { briefing: BriefingData }) {
         {briefing.avg_discount_rate != null && (
           <span style={{
             fontSize: 11, padding: '2px 8px', borderRadius: 6,
-            background: '#fff3e0', color: '#e65100', fontWeight: 600,
+            background: 'var(--status-warning-bg)', color: 'var(--status-warning)', fontWeight: 600,
           }}>
             평균 지원 {briefing.avg_discount_rate}%
           </span>
@@ -49,8 +49,8 @@ export function BriefingSummary({ briefing }: { briefing: BriefingData }) {
           <div style={{ color: 'var(--text-muted)' }}>추세</div>
           <div style={{
             fontWeight: 700,
-            color: briefing.client_summary.trend === 'up' ? '#2E7D32'
-              : briefing.client_summary.trend === 'down' ? '#c62828' : '#666',
+            color: briefing.client_summary.trend === 'up' ? 'var(--status-success)'
+              : briefing.client_summary.trend === 'down' ? 'var(--status-danger)' : '#666',
           }}>
             {briefing.client_summary.trend === 'up' ? '상승' : briefing.client_summary.trend === 'down' ? '하락' : '유지'}
           </div>
@@ -120,7 +120,7 @@ export function RecommendationsList({ recommendations }: { recommendations: Brie
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: r.score >= 20 ? '#c62828' : '#888', fontWeight: 600, fontSize: 11 }}>{r.score}점</span>
+              <span style={{ color: r.score >= 20 ? 'var(--status-danger)' : '#888', fontWeight: 600, fontSize: 11 }}>{r.score}점</span>
               <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.item_name}</span>
             </div>
             {(r.country || r.grape) && (

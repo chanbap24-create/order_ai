@@ -17,7 +17,7 @@ type Mode = 'broken' | 'today' | 'overdue';
 type SortCol = 'name' | 'date' | 'amount' | 'elapsed' | 'misu';
 type Sort = { col: SortCol; dir: 'asc' | 'desc' };
 
-const MODE_COLOR: Record<Mode, string> = { broken: '#dc2626', today: '#2563eb', overdue: '#d97706' };
+const MODE_COLOR: Record<Mode, string> = { broken: 'var(--status-danger)', today: 'var(--status-info)', overdue: 'var(--status-warning)' };
 
 function ledgerStart(it: CollItem): string {
   if (it.oldest_unpaid_date) return `${it.oldest_unpaid_date.slice(0, 7)}-01`;
@@ -28,7 +28,7 @@ function ledgerStart(it: CollItem): string {
 
 const GROUPS: Array<{ type: string; label: string; color: string }> = [
   { type: 'wine', label: '까브드뱅', color: 'var(--color-primary-light)' },
-  { type: 'glass', label: '대유라이프', color: '#1565C0' },
+  { type: 'glass', label: '대유라이프', color: 'var(--status-info)' },
 ];
 
 function elapsedDays(it: CollItem, mode: Mode): number {
@@ -68,7 +68,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
         💰 오늘의 수금
         <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           약속어김 {broken.length} · 오늘약속 {promiseToday.length} · 연체 {overdue.length}
-          {data.counts.special > 0 && <span style={{ color: '#dc2626' }}> (특별관리 {data.counts.special})</span>}
+          {data.counts.special > 0 && <span style={{ color: 'var(--status-danger)' }}> (특별관리 {data.counts.special})</span>}
         </span>
       </div>
 
@@ -125,7 +125,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                             {it.special && <span style={badge}>특별관리</span>}
                           </td>
                           <td style={{ ...tdR, color: 'var(--text-muted)' }}>{dateStr ? dateStr.slice(5) : '-'}</td>
-                          <td style={{ ...tdR, color: it.promised_amount != null ? '#16a34a' : 'var(--text-muted)', fontWeight: 700 }}>{it.promised_amount != null ? fmt(it.promised_amount) : '-'}</td>
+                          <td style={{ ...tdR, color: it.promised_amount != null ? 'var(--status-success)' : 'var(--text-muted)', fontWeight: 700 }}>{it.promised_amount != null ? fmt(it.promised_amount) : '-'}</td>
                           <td style={{ ...tdR, color, fontWeight: 600 }}>{elapsedLabel(it, mode)}</td>
                           <td style={{ ...tdR, color, fontWeight: 700 }}>{it.overdue > 0 ? fmt(it.overdue) : '-'}</td>
                         </tr>
@@ -211,7 +211,7 @@ const thL: CSSProperties = { padding: '7px 12px', textAlign: 'left', fontWeight:
 const thR: CSSProperties = { ...thL, textAlign: 'right' };
 const tdL: CSSProperties = { padding: '7px 12px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 12 };
 const tdR: CSSProperties = { padding: '7px 12px', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 12, fontVariantNumeric: 'tabular-nums' };
-const badge: CSSProperties = { marginLeft: 6, fontSize: 9, fontWeight: 700, color: '#fff', background: '#dc2626', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle' };
+const badge: CSSProperties = { marginLeft: 6, fontSize: 9, fontWeight: 700, color: '#fff', background: 'var(--status-danger)', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle' };
 const lbl: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 700 };
 const ledgerBtn: CSSProperties = { padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid var(--action)', background: 'var(--surface)', color: 'var(--action)', cursor: 'pointer' };
 const inp: CSSProperties = { padding: '5px 8px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-primary)' };

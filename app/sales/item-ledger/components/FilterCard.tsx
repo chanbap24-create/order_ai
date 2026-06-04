@@ -140,7 +140,7 @@ export function FilterCard(p: Props) {
             border: '1px solid rgba(220,38,38,0.18)',
             borderRadius: 6,
             fontSize: 12,
-            color: '#dc2626',
+            color: 'var(--status-danger)',
           }}
         >
           {p.error}

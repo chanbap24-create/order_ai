@@ -39,13 +39,13 @@ export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBa
           <td style={{ ...tdStyle, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
             {day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}
           </td>
-          <td style={{ ...tdStyle, color: '#1565C0', fontWeight: 600 }}>입금</td>
+          <td style={{ ...tdStyle, color: 'var(--status-info)', fontWeight: 600 }}>입금</td>
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
           <td style={tdStyle}></td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#1565C0' }}>{fmt(p.amount)}</td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: 'var(--status-info)' }}>{fmt(p.amount)}</td>
           <td style={tdStyle}></td>
         </tr>
       ))}
@@ -60,8 +60,8 @@ export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBa
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.supply)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.tax)}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11 }}>{fmt(day.totals.total)}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#1565C0' }}>{day.totals.payment ? fmt(day.totals.payment) : ''}</td>
-          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: '#c62828' }}>{fmt(endBalance)}</td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: 'var(--status-info)' }}>{day.totals.payment ? fmt(day.totals.payment) : ''}</td>
+          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: 'var(--status-danger)' }}>{fmt(endBalance)}</td>
         </tr>
       )}
     </>

@@ -33,9 +33,9 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
             }
             valueColor={
               briefing.client_summary.trend === "up"
-                ? "#2E7D32"
+                ? "var(--status-success)"
                 : briefing.client_summary.trend === "down"
-                  ? "#c62828"
+                  ? "var(--status-danger)"
                   : "#666"
             }
           />
@@ -167,7 +167,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 3 }}>
                   <span
                     style={{
-                      color: r.score >= 20 ? "#c62828" : "#888",
+                      color: r.score >= 20 ? "var(--status-danger)" : "#888",
                       marginRight: 6,
                       fontSize: 11,
                     }}

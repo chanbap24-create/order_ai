@@ -124,7 +124,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
             {onTabChange && (
               <button
                 onClick={() => onTabChange('payment-terms')}
-                style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#b45309', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid var(--status-warning)', background: '#fff', color: '#b45309', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >수금일 설정 →</button>
             )}
           </div>
@@ -199,10 +199,10 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
             transform: 'translateX(-50%)',
             background:
               alertsState.dismissMsg.includes('실패') || alertsState.dismissMsg.includes('오류')
-                ? '#dc3545'
+                ? 'var(--status-danger)'
                 : alertsState.dismissMsg.includes('자동 복원')
-                  ? '#1565c0'
-                  : '#2e7d32',
+                  ? 'var(--status-info)'
+                  : 'var(--status-success)',
             color: '#fff',
             padding: '10px 20px',
             borderRadius: 8,

@@ -52,10 +52,10 @@ export function SummaryFilters(p: Props) {
 
       <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
         {p.counts.out > 0 && (
-          <span style={{ color: '#dc3545', fontWeight: 700 }}>품절 {p.counts.out}</span>
+          <span style={{ color: 'var(--status-danger)', fontWeight: 700 }}>품절 {p.counts.out}</span>
         )}
         {p.counts.low > 0 && (
-          <span style={{ color: '#e65100', fontWeight: 700 }}>부족 {p.counts.low}</span>
+          <span style={{ color: 'var(--status-warning)', fontWeight: 700 }}>부족 {p.counts.low}</span>
         )}
         <span style={{ color: 'var(--text-tertiary)' }}>총 {p.counts.total}건</span>
       </div>
@@ -92,9 +92,9 @@ export function SummaryFilters(p: Props) {
             height: 28,
             padding: '0 12px',
             borderRadius: 6,
-            border: '1px solid #dc3545',
+            border: '1px solid var(--status-danger)',
             background: 'var(--surface)',
-            color: '#dc3545',
+            color: 'var(--status-danger)',
             fontSize: 12,
             fontWeight: 600,
             cursor: 'pointer',

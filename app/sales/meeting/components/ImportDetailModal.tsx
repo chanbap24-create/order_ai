@@ -51,7 +51,7 @@ export function ImportDetailModal(p: Props) {
           }}
         >
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#E65100" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--status-warning)" }}>
               {p.date.replace(/-/g, ".")} 입항 품목
             </div>
             <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>
@@ -96,7 +96,7 @@ export function ImportDetailModal(p: Props) {
                     fontSize: 10,
                     padding: "1px 6px",
                     borderRadius: 6,
-                    background: "#E65100",
+                    background: "var(--status-warning)",
                     color: "#fff",
                     fontWeight: 700,
                   }}

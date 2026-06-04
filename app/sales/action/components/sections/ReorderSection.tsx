@@ -19,8 +19,8 @@ type Props = {
 
 export function ReorderSection(p: Props) {
   const filters = [
-    { id: "all" as ReorderFilter, label: "전체", count: p.count, activeColor: "#1565C0", activeBg: "#E3F2FD" },
-    { id: "in_stock" as ReorderFilter, label: "재고有", count: p.summary.reorder_in_stock, activeColor: "#2E7D32", activeBg: "#E8F5E9" },
+    { id: "all" as ReorderFilter, label: "전체", count: p.count, activeColor: "var(--status-info)", activeBg: "var(--status-info-bg)" },
+    { id: "in_stock" as ReorderFilter, label: "재고有", count: p.summary.reorder_in_stock, activeColor: "var(--status-success)", activeBg: "var(--status-success-bg)" },
     { id: "out_of_stock" as ReorderFilter, label: "품절", count: p.summary.reorder_out_of_stock, activeColor: "#9E9E9E", activeBg: "var(--surface-muted)" },
   ];
 
@@ -28,7 +28,7 @@ export function ReorderSection(p: Props) {
     <div style={{ marginBottom: 24 }}>
       <SectionHeader
         title="재주문 타이밍"
-        titleColor="#1565C0"
+        titleColor="var(--status-info)"
         count={p.count}
         collapsed={p.collapsed}
         onToggle={() => p.setCollapsed(!p.collapsed)}
@@ -69,8 +69,8 @@ export function ReorderSection(p: Props) {
             {p.filtered.map((nudge, idx) => {
               const isOos = nudge.stock_status === "out_of_stock";
               const isLow = nudge.stock_status === "low_stock";
-              const stockColor = isOos ? "#9E9E9E" : isLow ? "#E65100" : "#2E7D32";
-              const stockBg = isOos ? "var(--surface-muted)" : isLow ? "#FFF3E0" : "#E8F5E9";
+              const stockColor = isOos ? "#9E9E9E" : isLow ? "var(--status-warning)" : "var(--status-success)";
+              const stockBg = isOos ? "var(--surface-muted)" : isLow ? "var(--status-warning-bg)" : "var(--status-success-bg)";
               const stockLabel = isOos ? "품절" : `재고 ${nudge.available_stock}병`;
 
               return (
@@ -79,7 +79,7 @@ export function ReorderSection(p: Props) {
                   style={{
                     background: isOos ? "#FAFAFA" : "white",
                     borderRadius: 12,
-                    borderLeft: `4px solid ${isOos ? "#E0E0E0" : nudge.urgency === "high" ? "#1565C0" : "#64B5F6"}`,
+                    borderLeft: `4px solid ${isOos ? "#E0E0E0" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6"}`,
                     boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
                     padding: "14px 16px",
                     opacity: isOos ? 0.65 : 1,
@@ -94,8 +94,8 @@ export function ReorderSection(p: Props) {
                           display: "inline-block",
                           padding: "2px 8px",
                           borderRadius: 4,
-                          background: isOos ? "var(--surface-muted)" : nudge.urgency === "high" ? "#E3F2FD" : "#F3F8FF",
-                          color: isOos ? "#9E9E9E" : nudge.urgency === "high" ? "#1565C0" : "#64B5F6",
+                          background: isOos ? "var(--surface-muted)" : nudge.urgency === "high" ? "var(--status-info-bg)" : "#F3F8FF",
+                          color: isOos ? "#9E9E9E" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6",
                           fontSize: 11,
                           fontWeight: 700,
                           whiteSpace: "nowrap",
@@ -158,7 +158,7 @@ export function ReorderSection(p: Props) {
                     평균 주기: <strong>{nudge.avg_interval_days}일</strong>
                     <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
                     마지막 구매:{" "}
-                    <strong style={{ color: nudge.days_since_last >= nudge.avg_interval_days * 1.5 ? "#c62828" : "#1565C0" }}>
+                    <strong style={{ color: nudge.days_since_last >= nudge.avg_interval_days * 1.5 ? "var(--status-danger)" : "var(--status-info)" }}>
                       {nudge.days_since_last}일 전
                     </strong>
                     <span style={{ color: "#bbb", marginLeft: 4 }}>({nudge.last_purchase_date})</span>
@@ -170,8 +170,8 @@ export function ReorderSection(p: Props) {
                         display: "inline-block",
                         padding: "2px 8px",
                         borderRadius: 4,
-                        background: "#FFF3E0",
-                        color: "#E65100",
+                        background: "var(--status-warning-bg)",
+                        color: "var(--status-warning)",
                         fontSize: 11,
                         fontWeight: 600,
                       }}

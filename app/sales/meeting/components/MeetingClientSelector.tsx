@@ -37,7 +37,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
             border: "none",
             cursor: "pointer",
             fontSize: 12,
-            color: modal.newClientMode ? "#dc3545" : "var(--action)",
+            color: modal.newClientMode ? "var(--status-danger)" : "var(--action)",
             fontWeight: 600,
           }}
         >

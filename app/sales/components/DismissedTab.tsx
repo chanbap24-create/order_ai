@@ -76,8 +76,8 @@ export default function DismissedTab() {
               onClick={d.handleRestore}
               disabled={d.restoring}
               style={{
-                padding: '5px 14px', borderRadius: 6, border: '1px solid #2e7d32',
-                background: 'white', color: '#2e7d32',
+                padding: '5px 14px', borderRadius: 6, border: '1px solid var(--status-success)',
+                background: 'white', color: 'var(--status-success)',
                 fontSize: 12, fontWeight: 600,
                 cursor: d.restoring ? 'default' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -138,7 +138,7 @@ export default function DismissedTab() {
       {d.toast && (
         <div style={{
           position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-          background: '#2e7d32', color: 'white', padding: '10px 20px',
+          background: 'var(--status-success)', color: 'white', padding: '10px 20px',
           borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999,
           boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
         }}>

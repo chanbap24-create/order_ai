@@ -44,14 +44,14 @@ export function ImportMobilePanel(p: Props) {
         <div
           style={{
             padding: "16px",
-            background: "#FFF3E0",
+            background: "var(--status-warning-bg)",
             borderBottom: "1px solid #FFE0B2",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#E65100" }}>입항일</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--status-warning)" }}>입항일</span>
           <button
             onClick={p.onClose}
             style={{
@@ -88,7 +88,7 @@ export function ImportMobilePanel(p: Props) {
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: "#E65100",
+                    color: "var(--status-warning)",
                     flexShrink: 0,
                   }}
                 >

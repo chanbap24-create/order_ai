@@ -105,7 +105,7 @@ export function AlternativesPanel(p: Props) {
               <span
                 style={{
                   fontSize: 12,
-                  color: p.quoteMsg.includes('오류') ? '#dc3545' : '#4CAF50',
+                  color: p.quoteMsg.includes('오류') ? 'var(--status-danger)' : 'var(--status-success)',
                   fontWeight: 600,
                 }}
               >
@@ -192,7 +192,7 @@ function AltCard({
                     padding: '1px 6px',
                     borderRadius: 4,
                     background: '#fef3e2',
-                    color: '#e65100',
+                    color: 'var(--status-warning)',
                     fontWeight: 600,
                   }}
                 >
@@ -212,7 +212,7 @@ function AltCard({
           >
             {fmt(alt.price)}원
           </div>
-          <div style={{ fontSize: 11, color: '#4CAF50', marginTop: 2, fontWeight: 600 }}>
+          <div style={{ fontSize: 11, color: 'var(--status-success)', marginTop: 2, fontWeight: 600 }}>
             재고 {alt.stock}
           </div>
         </div>

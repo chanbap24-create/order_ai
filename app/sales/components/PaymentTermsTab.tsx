@@ -119,7 +119,7 @@ const selStyle: CSSProperties = {
 };
 const errBox: CSSProperties = {
   padding: '10px 14px', background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.18)',
-  borderRadius: 8, fontSize: 13, color: '#dc2626',
+  borderRadius: 8, fontSize: 13, color: 'var(--status-danger)',
 };
 const emptyBox: CSSProperties = {
   textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: 13, background: 'var(--surface)',

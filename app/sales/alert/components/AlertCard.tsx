@@ -22,7 +22,7 @@ type Props = {
 export function AlertCard(p: Props) {
   const { alert } = p;
   const isOut = alert.alert_type === 'out_of_stock';
-  const accentColor = isOut ? '#dc3545' : '#e65100';
+  const accentColor = isOut ? 'var(--status-danger)' : 'var(--status-warning)';
   const stockPct = Math.min((alert.current_stock / Math.max(alert.threshold, 1)) * 100, 100);
 
   return (
@@ -67,9 +67,9 @@ export function AlertCard(p: Props) {
                 fontWeight: 600,
                 color:
                   alert.days_remaining <= 7
-                    ? '#dc3545'
+                    ? 'var(--status-danger)'
                     : alert.days_remaining <= 14
-                      ? '#e65100'
+                      ? 'var(--status-warning)'
                       : 'var(--text-tertiary)',
               }}
             >

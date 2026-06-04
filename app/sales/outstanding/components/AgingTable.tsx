@@ -24,7 +24,7 @@ function daysBetween(asOf: string, d: string | null): number | null {
 function bucketCell(v: number, danger?: boolean, warn?: boolean): CSSProperties {
   return {
     ...tdRight,
-    color: v <= 0 ? 'var(--text-tertiary)' : danger ? '#dc2626' : warn ? '#d97706' : 'var(--text-primary)',
+    color: v <= 0 ? 'var(--text-tertiary)' : danger ? 'var(--status-danger)' : warn ? 'var(--status-warning)' : 'var(--text-primary)',
     fontWeight: v > 0 && (danger || warn) ? 700 : 400,
   };
 }
@@ -96,14 +96,14 @@ export function AgingTable({ rows, asOf, clientType, onSaveFollowup }: Props) {
               <tr key={r.client_code}>
                 <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 600 }}>{r.client_name}</td>
                 <td style={{ ...tdRight, fontWeight: 700 }}>{fmt(r.net_balance)}</td>
-                <td style={{ ...tdRight, fontWeight: r.overdue > 0 ? 700 : 400, color: r.overdue > 0 ? '#dc2626' : 'var(--text-tertiary)' }}>
+                <td style={{ ...tdRight, fontWeight: r.overdue > 0 ? 700 : 400, color: r.overdue > 0 ? 'var(--status-danger)' : 'var(--text-tertiary)' }}>
                   {r.overdue ? fmt(r.overdue) : '–'}
                 </td>
                 <td style={bucketCell(r.b_cur)}>{r.b_cur ? fmt(r.b_cur) : '–'}</td>
                 <td style={bucketCell(r.b_m1)}>{r.b_m1 ? fmt(r.b_m1) : '–'}</td>
                 <td style={bucketCell(r.b_m2, false, true)}>{r.b_m2 ? fmt(r.b_m2) : '–'}</td>
                 <td style={bucketCell(r.b_m3, true)}>{r.b_m3 ? fmt(r.b_m3) : '–'}</td>
-                <td style={{ ...tdStyle, textAlign: 'center', fontSize: 12, fontWeight: overdue && overdue > 90 ? 700 : 400, color: overdue && overdue > 90 ? '#dc2626' : 'var(--text-tertiary)' }}>
+                <td style={{ ...tdStyle, textAlign: 'center', fontSize: 12, fontWeight: overdue && overdue > 90 ? 700 : 400, color: overdue && overdue > 90 ? 'var(--status-danger)' : 'var(--text-tertiary)' }}>
                   {overdue != null ? `${overdue}일` : '–'}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>

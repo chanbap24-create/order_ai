@@ -171,7 +171,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
             border: '1px solid rgba(220,38,38,0.18)',
             borderRadius: 8,
             fontSize: 13,
-            color: '#dc2626',
+            color: 'var(--status-danger)',
           }}
         >
           {list.error}
@@ -210,7 +210,7 @@ function ErrorBox({ msg }: { msg: string }) {
   return (
     <div style={{
       padding: '10px 14px', background: 'rgba(220,38,38,0.04)',
-      border: '1px solid rgba(220,38,38,0.18)', borderRadius: 8, fontSize: 13, color: '#dc2626',
+      border: '1px solid rgba(220,38,38,0.18)', borderRadius: 8, fontSize: 13, color: 'var(--status-danger)',
     }}>
       {msg}
     </div>

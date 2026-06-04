@@ -35,7 +35,7 @@ export function ChurnSection(p: Props) {
     <div style={{ marginBottom: 24 }}>
       <SectionHeader
         title="이탈 위험 거래처"
-        titleColor="#c62828"
+        titleColor="var(--status-danger)"
         count={p.count}
         collapsed={p.collapsed}
         onToggle={() => p.setCollapsed(!p.collapsed)}
@@ -162,7 +162,7 @@ export function ChurnSection(p: Props) {
 
                   <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     마지막 구매:{" "}
-                    <strong style={{ color: item.days_since_last >= 60 ? "#c62828" : "#333" }}>
+                    <strong style={{ color: item.days_since_last >= 60 ? "var(--status-danger)" : "#333" }}>
                       {item.days_since_last}일 전
                     </strong>
                     <span style={{ color: "#bbb", marginLeft: 6 }}>({item.last_purchase_date})</span>
@@ -174,7 +174,7 @@ export function ChurnSection(p: Props) {
                       <span
                         style={{
                           marginLeft: 6,
-                          color: item.revenue_change_pct < 0 ? "#c62828" : "#16a34a",
+                          color: item.revenue_change_pct < 0 ? "var(--status-danger)" : "var(--status-success)",
                           fontWeight: 600,
                         }}
                       >

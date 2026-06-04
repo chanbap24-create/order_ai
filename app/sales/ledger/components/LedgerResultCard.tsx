@@ -145,7 +145,7 @@ export function LedgerResultCard(p: Props) {
                     ...tdStyle,
                     textAlign: 'right',
                     fontWeight: 700,
-                    color: p.prevBalance > 0 ? '#c62828' : '#1565C0',
+                    color: p.prevBalance > 0 ? 'var(--status-danger)' : 'var(--status-info)',
                     fontVariantNumeric: 'tabular-nums',
                   }}
                 >

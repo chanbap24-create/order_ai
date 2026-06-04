@@ -41,7 +41,7 @@ export function AgingSummary({ rows, recentPaymentTotal }: { rows: AgingRow[]; r
           </div>
           <div style={{
             fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginTop: 4,
-            color: c.danger ? '#dc2626' : c.warn ? '#d97706' : c.good ? '#16a34a' : 'var(--text-primary)',
+            color: c.danger ? 'var(--status-danger)' : c.warn ? 'var(--status-warning)' : c.good ? 'var(--status-success)' : 'var(--text-primary)',
           }}>
             {fmt(c.value)}
           </div>

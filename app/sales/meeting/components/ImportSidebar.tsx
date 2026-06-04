@@ -43,7 +43,7 @@ export function ImportSidebar(p: Props) {
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#E65100",
+            color: "var(--status-warning)",
             letterSpacing: "0.04em",
             textTransform: "uppercase",
           }}
@@ -103,7 +103,7 @@ export function ImportSidebar(p: Props) {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "#E65100",
+                  color: "var(--status-warning)",
                   flexShrink: 0,
                   width: 42,
                   fontVariantNumeric: "tabular-nums",

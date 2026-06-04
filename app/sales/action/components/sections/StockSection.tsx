@@ -43,7 +43,7 @@ export function StockSection(p: Props) {
                   style={{
                     background: isOos ? "#FAFAFA" : "white",
                     borderRadius: 12,
-                    borderLeft: `4px solid ${isOos ? "#B71C1C" : "#E65100"}`,
+                    borderLeft: `4px solid ${isOos ? "#B71C1C" : "var(--status-warning)"}`,
                     boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
                     padding: "14px 16px",
                     position: "relative",
@@ -57,8 +57,8 @@ export function StockSection(p: Props) {
                           display: "inline-block",
                           padding: "2px 8px",
                           borderRadius: 4,
-                          background: isOos ? "#FFEBEE" : "#FFF3E0",
-                          color: isOos ? "#B71C1C" : "#E65100",
+                          background: isOos ? "var(--status-danger-bg)" : "var(--status-warning-bg)",
+                          color: isOos ? "#B71C1C" : "var(--status-warning)",
                           fontSize: 11,
                           fontWeight: 700,
                           whiteSpace: "nowrap",
@@ -84,14 +84,14 @@ export function StockSection(p: Props) {
 
                   <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     현재 재고:{" "}
-                    <strong style={{ color: isOos ? "#B71C1C" : "#E65100" }}>{sd.current_stock}병</strong>
+                    <strong style={{ color: isOos ? "#B71C1C" : "var(--status-warning)" }}>{sd.current_stock}병</strong>
                     <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
                     임계치: {sd.threshold}병
                     {sd.days_remaining !== null && (
                       <>
                         <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
                         잔여:{" "}
-                        <strong style={{ color: sd.days_remaining < 14 ? "#B71C1C" : "#E65100" }}>
+                        <strong style={{ color: sd.days_remaining < 14 ? "#B71C1C" : "var(--status-warning)" }}>
                           {sd.days_remaining}일
                         </strong>
                       </>
@@ -107,8 +107,8 @@ export function StockSection(p: Props) {
                           display: "inline-block",
                           padding: "2px 8px",
                           borderRadius: 4,
-                          background: "#FFF3E0",
-                          color: "#E65100",
+                          background: "var(--status-warning-bg)",
+                          color: "var(--status-warning)",
                           fontSize: 11,
                           fontWeight: 600,
                         }}

@@ -19,7 +19,7 @@ export function UpsellSection(p: Props) {
     <div style={{ marginBottom: 24 }}>
       <SectionHeader
         title="업셀 추천"
-        titleColor="#2E7D32"
+        titleColor="var(--status-success)"
         count={p.count}
         collapsed={p.collapsed}
         onToggle={() => p.setCollapsed(!p.collapsed)}
@@ -40,7 +40,7 @@ export function UpsellSection(p: Props) {
                 style={{
                   background: "white",
                   borderRadius: 12,
-                  borderLeft: "4px solid #2E7D32",
+                  borderLeft: "4px solid var(--status-success)",
                   boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
                   padding: "14px 16px",
                   position: "relative",
@@ -57,8 +57,8 @@ export function UpsellSection(p: Props) {
                       display: "inline-block",
                       padding: "2px 8px",
                       borderRadius: 4,
-                      background: "#E8F5E9",
-                      color: "#2E7D32",
+                      background: "var(--status-success-bg)",
+                      color: "var(--status-success)",
                       fontSize: 11,
                       fontWeight: 700,
                       whiteSpace: "nowrap",
@@ -102,11 +102,11 @@ export function UpsellSection(p: Props) {
                   >
                     {u.current_item_name}
                   </span>
-                  <span style={{ color: "#2E7D32", fontWeight: 700, fontSize: 14 }}>→</span>
+                  <span style={{ color: "var(--status-success)", fontWeight: 700, fontSize: 14 }}>→</span>
                   <span
                     style={{
                       fontWeight: 600,
-                      color: "#2E7D32",
+                      color: "var(--status-success)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -118,7 +118,7 @@ export function UpsellSection(p: Props) {
                 </div>
 
                 <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>
-                  <span style={{ color: "#2E7D32", fontWeight: 600 }}>+{u.price_diff_pct}%</span>
+                  <span style={{ color: "var(--status-success)", fontWeight: 600 }}>+{u.price_diff_pct}%</span>
                   <span style={{ marginLeft: 4 }}>
                     ({fmt(u.current_price)}원 → {fmt(u.suggested_price)}원)
                   </span>
@@ -132,8 +132,8 @@ export function UpsellSection(p: Props) {
                         display: "inline-block",
                         padding: "2px 8px",
                         borderRadius: 4,
-                        background: "#E8F5E9",
-                        color: "#2E7D32",
+                        background: "var(--status-success-bg)",
+                        color: "var(--status-success)",
                         fontSize: 11,
                         fontWeight: 500,
                       }}

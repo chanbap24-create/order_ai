@@ -44,8 +44,8 @@ export const MonthGroup = memo(function MonthGroup({ month, collapsed, collapsed
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.supply)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.tax)}</td>
         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>{fmt(month.totals.total)}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#1565C0' }}>{month.totals.payment ? fmt(month.totals.payment) : ''}</td>
-        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: '#c62828' }}>{fmt(endBalance)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--status-info)' }}>{month.totals.payment ? fmt(month.totals.payment) : ''}</td>
+        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: 'var(--status-danger)' }}>{fmt(endBalance)}</td>
       </tr>
     </>
   );

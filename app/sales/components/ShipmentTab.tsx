@@ -118,7 +118,7 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
   }
   // 컬럼 색 헬퍼 — 음수면 빨강
   const moneyColor = (n: number, base: string) =>
-    n < 0 ? '#C62828' : base;
+    n < 0 ? 'var(--status-danger)' : base;
 
   return (
     <div style={{ maxHeight: 480, overflowY: 'auto', overflowX: 'auto' }}>

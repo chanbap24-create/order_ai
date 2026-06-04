@@ -47,7 +47,7 @@ export function LedgerPopup({ clientCode, clientName, type, startDate, endDate, 
         </div>
         <div style={body}>
           {query.loading && <div style={center}>불러오는 중…</div>}
-          {query.error && <div style={{ ...center, color: '#c62828' }}>{query.error}</div>}
+          {query.error && <div style={{ ...center, color: 'var(--status-danger)' }}>{query.error}</div>}
           {!query.loading && !query.error && query.client && (
             <LedgerResultCard
               client={query.client} startDate={startDate} endDate={endDate}

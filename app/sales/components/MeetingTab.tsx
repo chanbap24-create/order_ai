@@ -180,7 +180,7 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
           style={{
             position: 'fixed', bottom: 90, right: 16, zIndex: 900,
             width: 48, height: 48, borderRadius: '50%', border: 'none',
-            background: '#E65100', color: '#fff',
+            background: 'var(--status-warning)', color: '#fff',
             fontSize: 12, fontWeight: 700, cursor: 'pointer',
             boxShadow: '0 3px 12px rgba(230,81,0,0.4)',
             display: 'none', alignItems: 'center', justifyContent: 'center',

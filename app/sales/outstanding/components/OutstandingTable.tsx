@@ -175,9 +175,9 @@ export const OutstandingTable = memo(function OutstandingTable({
                       fontWeight: 700,
                       color:
                         c.outstanding > 0
-                          ? '#C62828'
+                          ? 'var(--status-danger)'
                           : c.outstanding < 0
-                            ? '#1565C0'
+                            ? 'var(--status-info)'
                             : 'var(--text-primary)',
                     }}
                   >
@@ -207,7 +207,7 @@ export const OutstandingTable = memo(function OutstandingTable({
               <td
                 style={{
                   ...tfRight,
-                  color: totals.outstanding > 0 ? '#C62828' : 'var(--text-primary)',
+                  color: totals.outstanding > 0 ? 'var(--status-danger)' : 'var(--text-primary)',
                 }}
               >
                 {fmt(totals.outstanding)}

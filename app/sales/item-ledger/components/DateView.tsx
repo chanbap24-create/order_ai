@@ -75,9 +75,9 @@ export function DateView({ rows }: { rows: ItemRow[] }) {
             <td style={{ ...tdStyle, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {r.client_name}
             </td>
-            <td style={{ ...tdStyle, textAlign: 'right', color: r.quantity < 0 ? '#dc2626' : 'var(--text-primary)' }}>{fmt(r.quantity)}</td>
+            <td style={{ ...tdStyle, textAlign: 'right', color: r.quantity < 0 ? 'var(--status-danger)' : 'var(--text-primary)' }}>{fmt(r.quantity)}</td>
             <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-tertiary)' }}>{fmt(r.unit_price)}</td>
-            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: r.supply_amount < 0 ? '#dc2626' : 'var(--text-primary)' }}>
+            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: r.supply_amount < 0 ? 'var(--status-danger)' : 'var(--text-primary)' }}>
               {fmt(r.supply_amount)}
             </td>
           </tr>

@@ -49,7 +49,7 @@ export function CalendarDayCell({
         style={{
           fontSize: 12,
           fontWeight: isToday ? 800 : 600,
-          color: isToday ? "var(--text-on-primary)" : isSun || isHoliday ? "#c62828" : isSat ? "#1565C0" : "var(--text-primary)",
+          color: isToday ? "var(--text-on-primary)" : isSun || isHoliday ? "var(--status-danger)" : isSat ? "var(--status-info)" : "var(--text-primary)",
           textAlign: "center",
           marginBottom: 3,
           ...(isToday
@@ -60,7 +60,7 @@ export function CalendarDayCell({
         {dayNum}
       </div>
       {isHoliday && (
-        <div style={{ fontSize: 9, color: "#c62828", textAlign: "center", fontWeight: 600, lineHeight: 1.1, marginBottom: 2, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+        <div style={{ fontSize: 9, color: "var(--status-danger)", textAlign: "center", fontWeight: 600, lineHeight: 1.1, marginBottom: 2, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
           {holidayName}
         </div>
       )}
@@ -92,13 +92,13 @@ export function CalendarDayCell({
                 key={`${c.client_code}_${i}`}
                 onClick={(e) => e.stopPropagation()}
                 title={`수금 ${c.amount.toLocaleString()}원`}
-                style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, fontWeight: 700, background: isPromise ? "#E3F2FD" : "#FDECEA", color: isPromise ? "#1565C0" : "#c62828", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
+                style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, fontWeight: 700, background: isPromise ? "var(--status-info-bg)" : "var(--status-danger-bg)", color: isPromise ? "var(--status-info)" : "var(--status-danger)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
               >
                 💰{c.special ? "★" : ""} {c.client_name}
               </div>
             );
           })}
-          {dayColl.length > 2 && <span style={{ fontSize: 9, color: "#c62828", fontWeight: 600 }}>+{dayColl.length - 2}</span>}
+          {dayColl.length > 2 && <span style={{ fontSize: 9, color: "var(--status-danger)", fontWeight: 600 }}>+{dayColl.length - 2}</span>}
         </div>
       )}
 
@@ -108,9 +108,9 @@ export function CalendarDayCell({
           style={{ display: "flex", gap: 2, flexWrap: "wrap", marginTop: 2, cursor: "pointer" }}
         >
           {dayImport.brands.slice(0, 3).map((bc) => (
-            <span key={bc} style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "#FFF3E0", color: "#E65100", fontWeight: 700 }}>{bc}</span>
+            <span key={bc} style={{ fontSize: 9, padding: "1px 4px", borderRadius: 3, background: "var(--status-warning-bg)", color: "var(--status-warning)", fontWeight: 700 }}>{bc}</span>
           ))}
-          {dayImport.brands.length > 3 && <span style={{ fontSize: 9, color: "#E65100", fontWeight: 600 }}>+{dayImport.brands.length - 3}</span>}
+          {dayImport.brands.length > 3 && <span style={{ fontSize: 9, color: "var(--status-warning)", fontWeight: 600 }}>+{dayImport.brands.length - 3}</span>}
         </div>
       )}
     </div>

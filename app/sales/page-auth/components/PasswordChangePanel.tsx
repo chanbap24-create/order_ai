@@ -99,8 +99,8 @@ export function PasswordChangePanel({ onClose }: Props) {
           {pwLoading ? '변경 중...' : '변경'}
         </button>
       </div>
-      {pwError && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{pwError}</div>}
-      {pwSuccess && <div style={{ fontSize: 12, color: '#16a34a', marginTop: 8 }}>{pwSuccess}</div>}
+      {pwError && <div style={{ fontSize: 12, color: 'var(--status-danger)', marginTop: 8 }}>{pwError}</div>}
+      {pwSuccess && <div style={{ fontSize: 12, color: 'var(--status-success)', marginTop: 8 }}>{pwSuccess}</div>}
     </div>
   );
 }

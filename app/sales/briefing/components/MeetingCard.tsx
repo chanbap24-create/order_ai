@@ -148,11 +148,11 @@ function MeetingCardHeader({
       <div style={{ flexShrink: 0 }}>
         {hasBriefing ? (
           <div style={{
-            width: 28, height: 28, borderRadius: 14, background: '#e8f5e9',
+            width: 28, height: 28, borderRadius: 14, background: 'var(--status-success-bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="#2E7D32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 6l3 3 5-5" stroke="var(--status-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         ) : (

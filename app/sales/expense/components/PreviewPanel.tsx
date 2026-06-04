@@ -146,7 +146,7 @@ export function PreviewPanel(p: Props) {
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#dc2626",
+                        color: "var(--status-danger)",
                         cursor: "pointer",
                         fontSize: 14,
                         padding: 0,

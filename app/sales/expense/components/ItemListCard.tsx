@@ -82,7 +82,7 @@ export function ItemListCard({ items, onRemove }: Props) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#dc2626",
+                color: "var(--status-danger)",
                 cursor: "pointer",
                 fontSize: 16,
                 padding: "0 4px",

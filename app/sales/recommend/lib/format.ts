@@ -5,8 +5,8 @@ export function fmt(n: number) {
 }
 
 export function scoreColor(score: number): string {
-  if (score >= 30) return '#c62828';
-  if (score >= 20) return '#e65100';
+  if (score >= 30) return 'var(--status-danger)';
+  if (score >= 20) return 'var(--status-warning)';
   if (score >= 10) return '#f57f17';
   return '#757575';
 }

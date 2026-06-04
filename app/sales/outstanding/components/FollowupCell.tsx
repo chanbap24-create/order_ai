@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<FollowupStatus, string> = {
   open: '미처리', promised: '약속', paid: '완납', hold: '보류',
 };
 const STATUS_COLOR: Record<FollowupStatus, string> = {
-  open: 'var(--text-tertiary)', promised: '#2563eb', paid: '#16a34a', hold: '#d97706',
+  open: 'var(--text-tertiary)', promised: 'var(--status-info)', paid: 'var(--status-success)', hold: 'var(--status-warning)',
 };
 
 // 행별 수금 워크플로우 입력: 독촉 차수 / 상태 / 약속일 / 메모
@@ -47,7 +47,7 @@ export function FollowupCell({ clientCode, clientType, followup, defaultAmount, 
         aria-label="독촉 차수"
         value={stage}
         onChange={e => onSave(clientCode, { stage: Number(e.target.value) })}
-        style={{ ...selStyle, color: stage > 0 ? '#dc2626' : 'var(--text-tertiary)', fontWeight: stage > 0 ? 700 : 400 }}
+        style={{ ...selStyle, color: stage > 0 ? 'var(--status-danger)' : 'var(--text-tertiary)', fontWeight: stage > 0 ? 700 : 400 }}
       >
         <option value={0}>독촉–</option>
         <option value={1}>1차</option>

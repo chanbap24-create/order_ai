@@ -81,7 +81,7 @@ export function CompactBriefing(p: Props) {
 
       {p.va.length > 0 && (
         <div style={{ marginBottom: 8 }}>
-          <span style={{ color: "#c62828", fontWeight: 700 }}>이탈 위험 {p.va.length}건</span>
+          <span style={{ color: "var(--status-danger)", fontWeight: 700 }}>이탈 위험 {p.va.length}건</span>
           {p.va.slice(0, 3).map((a) => (
             <div key={a.client_code} style={rowStyle}>
               <span style={{ flex: 1, minWidth: 0 }}>
@@ -90,7 +90,7 @@ export function CompactBriefing(p: Props) {
                 </span>{" "}
                 {a.client_name} — {a.days_since_last}일 미구매
                 {a.revenue_change_pct < 0 && (
-                  <span style={{ color: "#c62828" }}> ({Math.abs(a.revenue_change_pct)}%↓)</span>
+                  <span style={{ color: "var(--status-danger)" }}> ({Math.abs(a.revenue_change_pct)}%↓)</span>
                 )}
               </span>
               <DismissButton
@@ -105,7 +105,7 @@ export function CompactBriefing(p: Props) {
 
       {p.vn.length > 0 && (
         <div style={{ marginBottom: 8 }}>
-          <span style={{ color: "#1565C0", fontWeight: 700 }}>재주문 {p.vn.length}건</span>
+          <span style={{ color: "var(--status-info)", fontWeight: 700 }}>재주문 {p.vn.length}건</span>
           <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
             {" "}(재고有 {p.vn.filter((n) => n.stock_status !== "out_of_stock").length} / 품절{" "}
             {p.vn.filter((n) => n.stock_status === "out_of_stock").length})
@@ -183,7 +183,7 @@ export function CompactBriefing(p: Props) {
       >
         {p.vu.length > 0 && (
           <span>
-            <span style={{ color: "#2E7D32", fontWeight: 600 }}>업셀</span> {p.vu.length}건
+            <span style={{ color: "var(--status-success)", fontWeight: 600 }}>업셀</span> {p.vu.length}건
           </span>
         )}
         {p.vna.length > 0 && (
