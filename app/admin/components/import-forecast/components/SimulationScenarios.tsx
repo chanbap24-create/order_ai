@@ -37,7 +37,7 @@ export function SimulationScenarios(p: Props) {
         return (
           <div
             key={s.label}
-            style={{ padding: 14, borderRadius: 6, border: "1px solid #eee" }}
+            style={{ padding: 14, borderRadius: 6, border: "1px solid var(--gray-200)" }}
           >
             <div
               style={{
@@ -89,7 +89,7 @@ export function SimulationScenarios(p: Props) {
                 <div
                   style={{
                     height: 4,
-                    background: "#f0f0f0",
+                    background: "var(--gray-100)",
                     borderRadius: 2,
                     marginTop: 3,
                   }}

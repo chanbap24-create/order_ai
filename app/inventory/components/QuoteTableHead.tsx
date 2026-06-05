@@ -20,14 +20,14 @@ export function QuoteTableHead({ visibleQuoteCols }: Props) {
 
   return (
     <thead style={{ position: "sticky", top: 0, zIndex: 4 }}>
-      <tr style={{ background: "#fafaf8" }}>
+      <tr style={{ background: "var(--gray-50)" }}>
         <th
           style={{
             ...qThStyle,
             width: 60,
             position: "sticky",
             left: 0,
-            background: "#fafaf8",
+            background: "var(--gray-50)",
             zIndex: 5,
             boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
           }}
@@ -39,7 +39,7 @@ export function QuoteTableHead({ visibleQuoteCols }: Props) {
             <SortableColumnHead key={col.key} col={col} />
           ))}
         </SortableContext>
-        <th style={{ ...qThStyle, width: 36, background: "#fafaf8" }}></th>
+        <th style={{ ...qThStyle, width: 36, background: "var(--gray-50)" }}></th>
       </tr>
     </thead>
   );
@@ -53,7 +53,7 @@ function SortableColumnHead({ col }: { col: QuoteColumnConfig }) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    background: isDragging ? "#fff8e1" : "#fafaf8",
+    background: isDragging ? "#fff8e1" : "var(--gray-50)",
     cursor: "grab",
     userSelect: "none",
     touchAction: "none",

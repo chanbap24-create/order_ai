@@ -46,7 +46,7 @@ export function ItemCard({
         padding: "12px 14px 12px 16px",
         background: "white",
         borderRadius: 10,
-        border: "1px solid #F0EFED",
+        border: "1px solid var(--gray-100)",
         boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
         cursor: "default",
         // 텍스트 복사 가능. long-press 는 longPress.ts 가 5px 이상 이동 시 자동 취소하므로
@@ -61,7 +61,7 @@ export function ItemCard({
               onClick={() => onTastingNoteClick(item.item_no, item.item_name)}
               style={{
                 fontSize: "0.72rem", fontFamily: "monospace", fontWeight: 600,
-                color: tastingNoteAvailable ? "var(--color-success)" : "#BCBCBC",
+                color: tastingNoteAvailable ? "var(--color-success)" : "var(--gray-300)",
                 background: "none", border: "none", cursor: "pointer", padding: 0,
                 textDecoration: tastingNoteAvailable ? "underline" : "none",
                 flexShrink: 0,
@@ -73,7 +73,7 @@ export function ItemCard({
             <span
               style={{
                 fontSize: "0.72rem", fontFamily: "monospace", fontWeight: 600,
-                color: "#BCBCBC", flexShrink: 0,
+                color: "var(--gray-300)", flexShrink: 0,
               }}
             >
               {item.item_no}

@@ -5,7 +5,7 @@ export const NAV_STYLES = `
   top: 0; left: 0; right: 0;
   height: 56px;
   background: #fff;
-  border-bottom: 1px solid #E5E5E5;
+  border-bottom: 1px solid var(--gray-200);
   z-index: 1000;
   display: flex;
   align-items: center;

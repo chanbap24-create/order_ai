@@ -78,7 +78,7 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
               style={{
                 width: 32,
                 height: 32,
-                border: "3px solid #eee",
+                border: "3px solid var(--gray-200)",
                 borderTopColor: "var(--action)",
                 borderRadius: "50%",
                 animation: "spin 0.8s linear infinite",

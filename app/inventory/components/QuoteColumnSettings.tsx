@@ -48,9 +48,9 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
       style={{
         marginBottom: 12,
         padding: 14,
-        background: "#fafaf8",
+        background: "var(--gray-50)",
         borderRadius: 8,
-        border: "1px solid #F0EFED",
+        border: "1px solid var(--gray-100)",
       }}
     >
       <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 8, color: "#2D2D2D" }}>
@@ -87,7 +87,7 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
                 padding: "4px 8px",
                 borderRadius: 6,
                 background: active ? "var(--action-muted)" : "#fff",
-                border: `1px solid ${active ? "rgba(90,21,21,0.2)" : "#E5E5E5"}`,
+                border: `1px solid ${active ? "rgba(90,21,21,0.2)" : "var(--gray-200)"}`,
               }}
             >
               <input

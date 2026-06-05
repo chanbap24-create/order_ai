@@ -50,7 +50,7 @@ export function ProgressBars(p: Props) {
 function Bar({ current, total, color }: { current: number; total: number; color: string }) {
   const pct = total > 0 ? (current / total) * 100 : 0;
   return (
-    <div style={{ height: 4, background: "#e5e7eb", borderRadius: 2 }}>
+    <div style={{ height: 4, background: "var(--gray-200)", borderRadius: 2 }}>
       <div
         style={{
           height: "100%",

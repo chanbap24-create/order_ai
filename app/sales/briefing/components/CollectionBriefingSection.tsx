@@ -103,7 +103,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                   <col style={{ width: 116 }} />
                 </colgroup>
                 <thead>
-                  <tr style={{ background: '#fafaf8' }}>
+                  <tr style={{ background: 'var(--gray-50)' }}>
                     <Th col="name" label="거래처" left sort={sort} onSort={toggleSort} />
                     <Th col="date" label="예정일" sort={sort} onSort={toggleSort} />
                     <Th col="amount" label="금액" sort={sort} onSort={toggleSort} />

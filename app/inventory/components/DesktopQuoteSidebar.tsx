@@ -77,7 +77,7 @@ export function DesktopQuoteSidebar(p: Props) {
         style={{
           background: "white",
           borderRadius: 12,
-          border: "1.5px solid #E5E5E5",
+          border: "1.5px solid var(--gray-200)",
           boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           maxHeight: "calc(100vh - 88px)",
           display: "flex",

@@ -110,6 +110,19 @@
   --status-warning: #e65100;    /* 경고/지원율/입고 (기존 #e67e22 #d97706 #ff9800 등 통합) */
   --status-warning-bg: #fff3e0;
 
+  /* Neutral gray scale (중립 그레이) — 코드 전반의 쿨 그레이 하드코딩 수렴.
+     warm 토큰(--text-*/--border-*)과 별개의 중립 램프. 값은 최다사용 shade 기준. */
+  --gray-50: #fafafa;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+
   /* Layout primitives */
   --sidebar-width: 232px;
   --sidebar-width-collapsed: 60px;

@@ -67,7 +67,7 @@ export function Toolbar(p: Props) {
         <input
           style={{
             padding: "6px 12px",
-            border: "1px solid #d1d5db",
+            border: "1px solid var(--gray-300)",
             borderRadius: 6,
             fontSize: 16,
             width: 200,

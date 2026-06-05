@@ -63,7 +63,7 @@ export function DetailPanel(p: Props) {
 
       {selectedWine.image_url && (
         <div style={{ marginBottom: 16, textAlign: 'center' }}>
-          <img src={selectedWine.image_url} alt="" style={{ maxHeight: 180, borderRadius: 8, border: '1px solid #e5e7eb' }} />
+          <img src={selectedWine.image_url} alt="" style={{ maxHeight: 180, borderRadius: 8, border: '1px solid var(--gray-200)' }} />
         </div>
       )}
 
@@ -82,14 +82,14 @@ export function DetailPanel(p: Props) {
           const changed = val.trim() !== orig;
           return (
             <div key={dbKey} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ color: '#9ca3af', minWidth: 60, flexShrink: 0 }}>{label}</span>
+              <span style={{ color: 'var(--gray-400)', minWidth: 60, flexShrink: 0 }}>{label}</span>
               <input
                 value={val}
                 onChange={e => p.setEditFields(f => ({ ...f, [dbKey]: e.target.value }))}
                 onKeyDown={e => { if (e.key === 'Enter') p.handleSaveField(dbKey); }}
                 placeholder={placeholder}
                 style={{
-                  flex: 1, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4,
+                  flex: 1, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 4,
                   fontSize: 16, fontWeight: 500, color: '#1e293b',
                   background: val ? '#fff' : '#fef9c3',
                 }}
@@ -120,7 +120,7 @@ export function DetailPanel(p: Props) {
         <DetailRow label="수정일" value={selectedWine.updated_at?.split('T')[0] || '-'} />
       </div>
 
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gray-200)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
           onClick={handleResearch}
           disabled={researching}
@@ -159,7 +159,7 @@ export function DetailPanel(p: Props) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', gap: 8 }}>
-      <span style={{ color: '#9ca3af', minWidth: 60, flexShrink: 0 }}>{label}</span>
+      <span style={{ color: 'var(--gray-400)', minWidth: 60, flexShrink: 0 }}>{label}</span>
       <span style={{ color: '#1e293b', fontWeight: 500, wordBreak: 'break-all' }}>{value}</span>
     </div>
   );

@@ -84,7 +84,7 @@ export function FilterPanel(p: Props) {
             value={p.region}
             onChange={e => p.onRegion(e.target.value)}
             disabled={!p.country || p.availableRegions.length === 0}
-            style={{ ...inputStyle, color: p.country ? 'var(--text-primary)' : '#ccc' }}
+            style={{ ...inputStyle, color: p.country ? 'var(--text-primary)' : 'var(--gray-300)' }}
           >
             <option value="">전체</option>
             {p.availableRegions.map(r => <option key={r} value={r}>{r}</option>)}
@@ -96,7 +96,7 @@ export function FilterPanel(p: Props) {
             value={p.subRegion}
             onChange={e => p.onSubRegion(e.target.value)}
             disabled={!p.region || p.availableSubRegions.length === 0}
-            style={{ ...inputStyle, color: p.region && p.availableSubRegions.length > 0 ? 'var(--text-primary)' : '#ccc' }}
+            style={{ ...inputStyle, color: p.region && p.availableSubRegions.length > 0 ? 'var(--text-primary)' : 'var(--gray-300)' }}
           >
             <option value="">전체</option>
             {p.availableSubRegions.map(r => <option key={r} value={r}>{r}</option>)}

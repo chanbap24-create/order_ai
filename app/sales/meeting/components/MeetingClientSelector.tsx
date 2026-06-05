@@ -64,7 +64,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
             }}
             style={{ ...INPUT, color: "#666" }}
           />
-          <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 4 }}>
             담당자: {currentManager || "-"} · 코드 없으면 자동 생성됩니다
           </div>
         </div>

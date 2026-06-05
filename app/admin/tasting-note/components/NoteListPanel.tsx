@@ -29,14 +29,14 @@ export function NoteListPanel(p: Props) {
         overflowY: "auto",
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--gray-200)",
         flexShrink: 0,
       }}
     >
       <div
         style={{
           padding: "10px 12px",
-          borderBottom: "2px solid #e5e7eb",
+          borderBottom: "2px solid var(--gray-200)",
           display: "flex",
           alignItems: "center",
           gap: 8,
@@ -52,15 +52,15 @@ export function NoteListPanel(p: Props) {
           onChange={p.toggleAllChecks}
           style={{ width: 16, height: 16, cursor: "pointer" }}
         />
-        <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
+        <span style={{ fontSize: 12, color: "var(--gray-500)", fontWeight: 600 }}>
           전체선택 ({p.wines.length})
         </span>
       </div>
 
       {p.loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>로딩 중...</div>
+        <div style={{ textAlign: "center", padding: 40, color: "var(--gray-400)" }}>로딩 중...</div>
       ) : p.wines.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#9ca3af", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: 40, color: "var(--gray-400)", fontSize: 13 }}>
           해당하는 와인이 없습니다.
         </div>
       ) : (
@@ -79,7 +79,7 @@ export function NoteListPanel(p: Props) {
                 alignItems: "center",
                 gap: 10,
                 padding: "10px 12px",
-                borderBottom: "1px solid #f3f4f6",
+                borderBottom: "1px solid var(--gray-100)",
                 cursor: "pointer",
                 background: isSelected ? "#eff6ff" : "#fff",
                 borderLeft: isSelected ? "3px solid var(--status-info)" : "3px solid transparent",
@@ -109,24 +109,24 @@ export function NoteListPanel(p: Props) {
                 >
                   {w.item_name_kr}
                 </div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 2 }}>
                   {w.item_code} {w.item_name_en ? `· ${w.item_name_en}` : ""}
                 </div>
-                <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2, display: "flex", gap: 6 }}>
+                <div style={{ fontSize: 10, color: "var(--gray-500)", marginTop: 2, display: "flex", gap: 6 }}>
                   <span>
                     재고{" "}
-                    <b style={{ color: (w.inv_available || 0) > 0 ? "var(--status-success)" : "#d1d5db" }}>
+                    <b style={{ color: (w.inv_available || 0) > 0 ? "var(--status-success)" : "var(--gray-300)" }}>
                       {w.inv_available ?? 0}
                     </b>
                   </span>
                   <span>
                     보세{" "}
-                    <b style={{ color: (w.inv_bonded || 0) > 0 ? "#0ea5e9" : "#d1d5db" }}>
+                    <b style={{ color: (w.inv_bonded || 0) > 0 ? "#0ea5e9" : "var(--gray-300)" }}>
                       {w.inv_bonded ?? 0}
                     </b>
                   </span>
                   <span>
-                    합계 <b style={{ color: totalStock > 0 ? "#1e293b" : "#d1d5db" }}>{totalStock}</b>
+                    합계 <b style={{ color: totalStock > 0 ? "#1e293b" : "var(--gray-300)" }}>{totalStock}</b>
                   </span>
                 </div>
               </div>
@@ -205,9 +205,9 @@ function UploadButton({
         fontSize: 11,
         padding: "2px 6px",
         borderRadius: 4,
-        background: uploading ? "#fef3c7" : "#f3f4f6",
-        color: uploading ? "var(--status-warning)" : "#6b7280",
-        border: "1px solid #d1d5db",
+        background: uploading ? "#fef3c7" : "var(--gray-100)",
+        color: uploading ? "var(--status-warning)" : "var(--gray-500)",
+        border: "1px solid var(--gray-300)",
         cursor: uploading ? "wait" : disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.4 : 1,
         lineHeight: 1,

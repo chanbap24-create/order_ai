@@ -54,7 +54,7 @@ export function MeetingDetailPanel(p: Props) {
           style={{
             width: 40,
             height: 4,
-            background: "#ddd",
+            background: "var(--gray-300)",
             borderRadius: 2,
             margin: "0 auto 16px",
           }}
@@ -77,7 +77,7 @@ export function MeetingDetailPanel(p: Props) {
             borderRadius: 8,
             border: "none",
             background: p.detail.briefingLoading
-              ? "#ccc"
+              ? "var(--gray-300)"
               : "linear-gradient(135deg, #1a237e, #4a148c)",
             color: "#fff",
             fontSize: 14,
@@ -120,7 +120,7 @@ export function MeetingDetailPanel(p: Props) {
                       borderRadius: 10,
                       border: "none",
                       background: p.detail.quoteLoading
-                        ? "#ccc"
+                        ? "var(--gray-300)"
                         : "linear-gradient(135deg, var(--action), #8B2252)",
                       color: "#fff",
                       fontSize: 14,

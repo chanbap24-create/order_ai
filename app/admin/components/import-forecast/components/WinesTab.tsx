@@ -75,7 +75,7 @@ export function WinesTab(p: Props) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "8px 20px",
-          borderBottom: "1px solid #eee",
+          borderBottom: "1px solid var(--gray-200)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -103,7 +103,7 @@ export function WinesTab(p: Props) {
           fontSize: 10,
           color: "#bbb",
           fontWeight: 500,
-          borderBottom: "1px solid #eee",
+          borderBottom: "1px solid var(--gray-200)",
           textTransform: "uppercase" as const,
           letterSpacing: "0.03em",
         }}
@@ -163,7 +163,7 @@ export function WinesTab(p: Props) {
 
       {/* 이전 제외 목록 */}
       {prevExcluded.length > 0 && (
-        <div style={{ borderTop: "1px dashed #ddd" }}>
+        <div style={{ borderTop: "1px dashed var(--gray-300)" }}>
           <div style={{ padding: "6px 20px", fontSize: 10, fontWeight: 500, color: "#bbb" }}>
             이전 제외 ({prevExcluded.length})
           </div>

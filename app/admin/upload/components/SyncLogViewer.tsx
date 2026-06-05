@@ -75,7 +75,7 @@ export function SyncLogViewer(p: Props) {
           }}
         >
           {p.logs.map((log, i) => {
-            let color = "#d4d4d4";
+            let color = "var(--gray-300)";
             let prefix = "";
             if (log.type === "success") {
               color = "#4ade80";

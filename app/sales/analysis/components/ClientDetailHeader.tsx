@@ -76,7 +76,7 @@ export function ClientDetailHeader({ client, importance, quickSetImportance, onB
               style={{
                 padding: "4px 12px",
                 borderRadius: 4,
-                border: `1px solid ${isActive ? info.color : "#eee"}`,
+                border: `1px solid ${isActive ? info.color : "var(--gray-200)"}`,
                 background: isActive ? info.color + "15" : "white",
                 color: isActive ? info.color : "#999",
                 fontSize: 12,

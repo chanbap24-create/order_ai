@@ -42,7 +42,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
                 flex: 1,
                 padding: "10px 0",
                 border: "none",
-                borderBottom: `2px solid ${active ? "var(--action)" : "#eee"}`,
+                borderBottom: `2px solid ${active ? "var(--action)" : "var(--gray-200)"}`,
                 background: active ? "#5A151508" : "transparent",
                 color: active ? "var(--action)" : "#999",
                 fontSize: 14,

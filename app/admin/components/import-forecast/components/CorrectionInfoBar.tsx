@@ -82,9 +82,9 @@ export function CorrectionInfoBar(p: Props) {
           style={{
             marginBottom: 16,
             padding: "12px 16px",
-            background: "#fafafa",
+            background: "var(--gray-50)",
             borderRadius: 6,
-            border: "1px solid #eee",
+            border: "1px solid var(--gray-200)",
           }}
         >
           <div
@@ -94,7 +94,7 @@ export function CorrectionInfoBar(p: Props) {
               gap: 4,
               fontSize: 10,
               fontWeight: 600,
-              color: "#aaa",
+              color: "var(--gray-400)",
               marginBottom: 4,
             }}
           >
@@ -116,7 +116,7 @@ export function CorrectionInfoBar(p: Props) {
                   color: "#333",
                   padding: "3px 0",
                   borderBottom:
-                    i < p.bulkInfo!.details.length - 1 ? "1px solid #f0f0f0" : "none",
+                    i < p.bulkInfo!.details.length - 1 ? "1px solid var(--gray-100)" : "none",
                 }}
               >
                 <div style={{ color: "#999" }}>{d.date}</div>
@@ -135,9 +135,9 @@ export function CorrectionInfoBar(p: Props) {
 
 const pill: React.CSSProperties = {
   padding: "4px 10px",
-  background: "#fafafa",
+  background: "var(--gray-50)",
   borderRadius: 4,
-  border: "1px solid #eee",
+  border: "1px solid var(--gray-200)",
 };
 
 const ellipsis: React.CSSProperties = {

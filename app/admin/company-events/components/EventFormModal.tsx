@@ -93,7 +93,7 @@ export function EventFormModal(p: Props) {
             disabled={disabled}
             style={{
               flex: 1, padding: '12px', borderRadius: 8, border: 'none',
-              background: disabled ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
+              background: disabled ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
               color: '#fff', fontSize: 14, fontWeight: 600,
               cursor: disabled ? 'default' : 'pointer',
             }}

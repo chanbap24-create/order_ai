@@ -8,9 +8,9 @@ export const INV_COLORS = {
   textMuted: "#666",
   textFaint: "#999",
   surface: "#fff",
-  surfaceBg: "#fafaf8",
-  tableHeader: "#F0EFED",
-  tableBorder: "#E5E5E5",
+  surfaceBg: "var(--gray-50)",
+  tableHeader: "var(--gray-100)",
+  tableBorder: "var(--gray-200)",
   success: "var(--color-success)",
   danger: "var(--color-error)",
 } as const;

@@ -148,7 +148,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
               border: "none",
               background:
                 (modal.newClientMode && !modal.newClientName.trim()) || modal.modalSaving
-                  ? "#ccc"
+                  ? "var(--gray-300)"
                   : "linear-gradient(135deg, var(--action), #8B2252)",
               color: "#fff",
               fontSize: 14,

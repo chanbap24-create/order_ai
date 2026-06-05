@@ -47,7 +47,7 @@ export function SuggestionRow({
         marginBottom: 6,
         padding: "8px",
         background: saving
-          ? "#f5f5f5"
+          ? "var(--gray-100)"
           : saved
             ? "rgba(16,185,129,0.06)"
             : GLASS_COLORS.surface,
@@ -196,7 +196,7 @@ function DiscountButton({
 function discountButtonStyle(active: boolean): React.CSSProperties {
   return {
     padding: "4px 8px",
-    border: `1px solid ${active ? GLASS_COLORS.primary : "#ddd"}`,
+    border: `1px solid ${active ? GLASS_COLORS.primary : "var(--gray-300)"}`,
     borderRadius: 4,
     background: active ? GLASS_COLORS.primaryBgHover : "white",
     cursor: "pointer",

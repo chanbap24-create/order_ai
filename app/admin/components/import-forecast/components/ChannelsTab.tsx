@@ -56,7 +56,7 @@ export function ChannelsTab({ activeData }: Props) {
             <div
               style={{
                 height: 20,
-                background: "#f5f5f5",
+                background: "var(--gray-100)",
                 borderRadius: 3,
                 overflow: "hidden",
                 position: "relative",
@@ -101,8 +101,8 @@ export function ChannelsTab({ activeData }: Props) {
                 style={{
                   padding: "3px 10px",
                   borderRadius: 4,
-                  background: "#fafafa",
-                  border: "1px solid #eee",
+                  background: "var(--gray-50)",
+                  border: "1px solid var(--gray-200)",
                   fontSize: 11,
                   color: "#333",
                 }}

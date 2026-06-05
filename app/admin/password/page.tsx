@@ -174,7 +174,7 @@ export default function AdminPasswordPage() {
           disabled={loading}
           style={{
             ...btnPrimary,
-            background: loading ? '#ddd' : 'var(--action)',
+            background: loading ? 'var(--gray-300)' : 'var(--action)',
             cursor: loading ? 'default' : 'pointer',
           }}
         >

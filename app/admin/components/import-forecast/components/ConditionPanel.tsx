@@ -60,7 +60,7 @@ export function ConditionPanel(p: Props) {
       style={{
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid #e8e8e8",
+        border: "1px solid var(--gray-200)",
         marginBottom: 24,
       }}
     >
@@ -93,7 +93,7 @@ export function ConditionPanel(p: Props) {
           resetResults={p.resetResults}
         />
 
-        <div style={{ height: 1, background: "#eee", margin: "0 0 16px" }} />
+        <div style={{ height: 1, background: "var(--gray-200)", margin: "0 0 16px" }} />
 
         <ConditionFilterOptions
           excludeBulk={p.excludeBulk}
@@ -131,7 +131,7 @@ export function ConditionPanel(p: Props) {
         <div
           style={{
             padding: "10px 24px",
-            borderTop: "1px solid #eee",
+            borderTop: "1px solid var(--gray-200)",
             display: "flex",
             gap: 8,
             flexWrap: "wrap",

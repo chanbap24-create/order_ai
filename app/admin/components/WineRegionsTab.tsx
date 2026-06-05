@@ -81,7 +81,7 @@ export default function WineRegionsTab() {
           <button
             onClick={f.expandAll}
             style={{
-              padding: '3px 10px', fontSize: 11, border: '1px solid #ddd',
+              padding: '3px 10px', fontSize: 11, border: '1px solid var(--gray-300)',
               borderRadius: 4, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)',
             }}
           >
@@ -90,7 +90,7 @@ export default function WineRegionsTab() {
           <button
             onClick={f.collapseAll}
             style={{
-              padding: '3px 10px', fontSize: 11, border: '1px solid #ddd',
+              padding: '3px 10px', fontSize: 11, border: '1px solid var(--gray-300)',
               borderRadius: 4, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)',
             }}
           >
@@ -99,7 +99,7 @@ export default function WineRegionsTab() {
         </div>
       )}
 
-      <div style={{ background: '#fff', borderRadius: 8, padding: 16, border: '1px solid #E5E5E5' }}>
+      <div style={{ background: '#fff', borderRadius: 8, padding: 16, border: '1px solid var(--gray-200)' }}>
         {f.filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
             {f.search ? '검색 결과가 없습니다' : '데이터가 없습니다'}

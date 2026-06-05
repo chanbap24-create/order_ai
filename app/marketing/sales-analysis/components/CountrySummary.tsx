@@ -57,7 +57,7 @@ const CountryRowView = memo(function CountryRowView({
                 key={t.name}
                 style={{
                   width: `${pct(t.qty, c.qty)}%`, height: '100%',
-                  background: TYPE_COLORS[t.name] || '#ccc',
+                  background: TYPE_COLORS[t.name] || 'var(--gray-300)',
                   minWidth: t.qty > 0 ? 1 : 0,
                 }}
                 title={`${t.name} ${pct(t.qty, c.qty)}%`}
@@ -74,7 +74,7 @@ const CountryRowView = memo(function CountryRowView({
         </div>
         <div style={{ width: 65, textAlign: 'right', fontSize: 11, color: '#999', flexShrink: 0 }}>{fmtM(c.amount)}</div>
         <div style={{ width: 55, textAlign: 'right', fontSize: 10, color: '#bbb', flexShrink: 0 }}>{c.items}종</div>
-        <span style={{ fontSize: 10, color: '#ccc', flexShrink: 0 }}>{expanded ? '▼' : '▶'}</span>
+        <span style={{ fontSize: 10, color: 'var(--gray-300)', flexShrink: 0 }}>{expanded ? '▼' : '▶'}</span>
       </div>
       {expanded && (
         <div style={{ padding: '0 16px 14px', borderTop: '1px solid var(--border-subtle)' }}>
@@ -82,7 +82,7 @@ const CountryRowView = memo(function CountryRowView({
             {c.types.map(t => (
               <span key={t.name} style={{
                 fontSize: 10, padding: '2px 8px', borderRadius: 4,
-                background: TYPE_BG[t.name] || '#f0f0f0',
+                background: TYPE_BG[t.name] || 'var(--gray-100)',
                 color: TYPE_COLORS[t.name] || '#666',
                 fontWeight: 600,
               }}>
@@ -108,7 +108,7 @@ const CountryRowView = memo(function CountryRowView({
                   </div>
                   <div style={{ width: 55, textAlign: 'right', fontSize: 11, color: '#888', fontWeight: 500, flexShrink: 0 }}>{fmt(r.qty)}</div>
                   <div style={{ width: 50, textAlign: 'right', fontSize: 10, color: '#bbb', flexShrink: 0 }}>{fmtM(r.amount)}</div>
-                  <div style={{ width: 55, textAlign: 'right', fontSize: 10, color: '#aaa', flexShrink: 0 }}>{fmt(r.avg_price)}원</div>
+                  <div style={{ width: 55, textAlign: 'right', fontSize: 10, color: 'var(--gray-400)', flexShrink: 0 }}>{fmt(r.avg_price)}원</div>
                 </div>
               ))}
             </>

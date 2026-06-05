@@ -53,7 +53,7 @@ export function YearsTab(p: Props) {
         );
       })}
 
-      <div style={{ height: 1, background: "#eee", margin: "20px 0" }} />
+      <div style={{ height: 1, background: "var(--gray-200)", margin: "20px 0" }} />
 
       <div style={{ fontSize: 11, fontWeight: 500, color: "#999", marginBottom: 12 }}>
         와인당 판매량
@@ -89,9 +89,9 @@ export function YearsTab(p: Props) {
         style={{
           marginTop: 20,
           padding: "16px 18px",
-          background: "#fafafa",
+          background: "var(--gray-50)",
           borderRadius: 6,
-          border: "1px solid #eee",
+          border: "1px solid var(--gray-200)",
         }}
       >
         <div style={{ fontSize: 12, fontWeight: 600, color: "#222", marginBottom: 10 }}>
@@ -179,7 +179,7 @@ export function YearsTab(p: Props) {
         <div style={{ marginTop: 12, display: "flex", gap: 16, fontSize: 10, color: "#bbb" }}>
           <Legend color="var(--action)" text="최근 ×3" />
           <Legend color="#b87333" text="직전 ×2" />
-          <Legend color="#ccc" text="나머지 ×1" />
+          <Legend color="var(--gray-300)" text="나머지 ×1" />
         </div>
       </div>
     </div>

@@ -204,10 +204,10 @@ function PdfFrame({
       <div
         style={{
           flex: 1,
-          background: "#f5f5f5",
+          background: "var(--gray-100)",
           borderRadius: 8,
           overflow: "hidden",
-          border: "1px solid #E5E5E5",
+          border: "1px solid var(--gray-200)",
           position: "relative",
         }}
       >

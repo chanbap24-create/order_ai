@@ -72,7 +72,7 @@ export default function LearnedAliasList({
   }
 
   return (
-    <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+    <div style={{ border: "1px solid var(--gray-200)", borderRadius: 12, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button
           onClick={fetchRows}
@@ -80,7 +80,7 @@ export default function LearnedAliasList({
           style={{
             padding: "8px 12px",
             borderRadius: 8,
-            border: "1px solid #ddd",
+            border: "1px solid var(--gray-300)",
             cursor: "pointer",
           }}
         >
@@ -95,7 +95,7 @@ export default function LearnedAliasList({
             flex: 1,
             padding: 8,
             borderRadius: 8,
-            border: "1px solid #ddd",
+            border: "1px solid var(--gray-300)",
           }}
         />
       </div>
@@ -105,7 +105,7 @@ export default function LearnedAliasList({
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ marginTop: 12, padding: 12, background: "#fafafa", borderRadius: 10 }}>
+        <div style={{ marginTop: 12, padding: 12, background: "var(--gray-50)", borderRadius: 10 }}>
           학습된 항목이 없습니다.
         </div>
       ) : (
@@ -118,7 +118,7 @@ export default function LearnedAliasList({
                 justifyContent: "space-between",
                 gap: 10,
                 padding: 10,
-                border: "1px solid #eee",
+                border: "1px solid var(--gray-200)",
                 borderRadius: 10,
               }}
             >
@@ -126,7 +126,7 @@ export default function LearnedAliasList({
                 <div style={{ fontWeight: 700 }}>
                   {r.alias} → {r.canonical}
                   {r.client_code && r.client_code !== '*' && (
-                    <span style={{ marginLeft: 8, fontSize: 11, color: '#666', padding: '2px 6px', background: '#f0f0f0', borderRadius: 4 }}>
+                    <span style={{ marginLeft: 8, fontSize: 11, color: '#666', padding: '2px 6px', background: 'var(--gray-100)', borderRadius: 4 }}>
                       거래처: {r.client_code}
                     </span>
                   )}
@@ -148,7 +148,7 @@ export default function LearnedAliasList({
                 style={{
                   padding: "8px 12px",
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--gray-300)",
                   cursor: "pointer",
                   height: 36,
                 }}

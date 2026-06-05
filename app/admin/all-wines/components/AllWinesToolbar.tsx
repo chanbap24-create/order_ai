@@ -23,13 +23,13 @@ export function AllWinesToolbar(p: Props) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', flexWrap: 'wrap', gap: 8 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <input
-          style={{ padding: '7px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 16, width: 220 }}
+          style={{ padding: '7px 12px', border: '1px solid var(--gray-300)', borderRadius: 6, fontSize: 16, width: 220 }}
           placeholder="품번/품명/영문명/국가 검색..."
           value={p.search}
           onChange={e => p.onSearchChange(e.target.value)}
         />
         <select
-          style={{ padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, background: '#fff' }}
+          style={{ padding: '7px 10px', border: '1px solid var(--gray-300)', borderRadius: 6, fontSize: 13, background: '#fff' }}
           value={p.country}
           onChange={e => p.onCountryChange(e.target.value)}
         >
@@ -42,15 +42,15 @@ export function AllWinesToolbar(p: Props) {
           onClick={p.onToggleHideZero}
           style={{
             padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            border: p.hideZero ? '1px solid var(--color-primary-light)' : '1px solid #d1d5db',
+            border: p.hideZero ? '1px solid var(--color-primary-light)' : '1px solid var(--gray-300)',
             background: p.hideZero ? 'var(--color-primary-light)' : '#fff',
-            color: p.hideZero ? '#fff' : '#6b7280',
+            color: p.hideZero ? '#fff' : 'var(--gray-500)',
             transition: 'all 0.15s',
           }}
         >
           재고 있는 것만
         </button>
-        <span style={{ fontSize: 13, color: '#6b7280' }}>총 {p.total}개</span>
+        <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>총 {p.total}개</span>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button
@@ -58,7 +58,7 @@ export function AllWinesToolbar(p: Props) {
           disabled={p.deleting || p.checkedCount === 0}
           style={{
             padding: '8px 16px', borderRadius: 6, border: 'none', fontSize: 13, cursor: 'pointer',
-            background: p.checkedCount === 0 ? '#e5e7eb' : 'var(--status-danger)', color: '#fff', fontWeight: 600,
+            background: p.checkedCount === 0 ? 'var(--gray-200)' : 'var(--status-danger)', color: '#fff', fontWeight: 600,
             opacity: p.checkedCount === 0 ? 0.5 : 1,
           }}
         >

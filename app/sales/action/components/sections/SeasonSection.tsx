@@ -116,7 +116,7 @@ export function SeasonSection(p: Props) {
                             fontSize: 12,
                             color: "#444",
                             padding: "6px 8px",
-                            background: ci === 0 ? "#EDE7F6" : "#FAFAFA",
+                            background: ci === 0 ? "#EDE7F6" : "var(--gray-50)",
                             borderRadius: 8,
                           }}
                         >

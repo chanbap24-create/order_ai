@@ -90,7 +90,7 @@ export default function AdminLoginCard(p: Props) {
           disabled={(p.mfaRequired ? p.mfaCode.length < (p.useBackupCode ? 8 : 6) : p.pin.length < 1) || p.loginLoading}
           style={{
             width: '100%', height: 40, marginTop: 16,
-            background: ((p.mfaRequired ? p.mfaCode.length >= (p.useBackupCode ? 8 : 6) : p.pin.length >= 1) && !p.loginLoading) ? 'var(--action)' : '#ddd',
+            background: ((p.mfaRequired ? p.mfaCode.length >= (p.useBackupCode ? 8 : 6) : p.pin.length >= 1) && !p.loginLoading) ? 'var(--action)' : 'var(--gray-300)',
             color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
             cursor: ((p.mfaRequired ? p.mfaCode.length >= (p.useBackupCode ? 8 : 6) : p.pin.length >= 1) && !p.loginLoading) ? 'pointer' : 'default',
             transition: 'background 0.2s',

@@ -182,7 +182,7 @@ function PanelHeader({
         background: "white",
         zIndex: 1,
         padding: "16px 16px 12px",
-        borderBottom: "1px solid #F0EFED",
+        borderBottom: "1px solid var(--gray-100)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -229,7 +229,7 @@ function PanelHeader({
             fontSize: 16,
             padding: "10px 12px",
             borderRadius: 8,
-            border: "1px solid #E5E5E5",
+            border: "1px solid var(--gray-200)",
             boxSizing: "border-box",
             outline: "none",
             minWidth: 0,
@@ -254,7 +254,7 @@ function IconBtn({ active, onClick, title, children }: {
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       title={title}
       style={{
-        width: 36, height: 36, borderRadius: 8, border: "1px solid #E5E5E5",
+        width: 36, height: 36, borderRadius: 8, border: "1px solid var(--gray-200)",
         background: active ? "var(--border-default)" : "white",
         cursor: "pointer", fontSize: 15, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",

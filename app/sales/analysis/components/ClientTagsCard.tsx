@@ -30,7 +30,7 @@ export function ClientTagsCard({ client }: { client: ClientDetail }) {
           </span>
         ))}
         {(!client.tags || client.tags.length === 0) && (
-          <span style={{ fontSize: 12, color: "#ccc" }}>태그 없음</span>
+          <span style={{ fontSize: 12, color: "var(--gray-300)" }}>태그 없음</span>
         )}
       </div>
     </div>

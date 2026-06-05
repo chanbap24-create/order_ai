@@ -49,7 +49,7 @@ export function BrandDetailHeader(p: Props) {
         style={{
           height: 34,
           padding: "0 14px",
-          background: p.researching ? "#ccc" : "#1a73e8",
+          background: p.researching ? "var(--gray-300)" : "#1a73e8",
           color: "#fff",
           border: "none",
           borderRadius: 7,
@@ -110,7 +110,7 @@ export function BrandDetailHeader(p: Props) {
         style={{
           height: 34,
           padding: "0 18px",
-          background: p.saving ? "#ccc" : "var(--action)",
+          background: p.saving ? "var(--gray-300)" : "var(--action)",
           color: "#fff",
           border: "none",
           borderRadius: 7,

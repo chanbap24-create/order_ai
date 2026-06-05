@@ -75,9 +75,9 @@ export function MobileQuoteItemCard({
       onClick={onOpen}
       style={{
         padding: 14,
-        background: "#fafaf8",
+        background: "var(--gray-50)",
         borderRadius: 10,
-        border: "1px solid #F0EFED",
+        border: "1px solid var(--gray-100)",
         cursor: "pointer",
         position: "relative",
       }}
@@ -97,7 +97,7 @@ export function MobileQuoteItemCard({
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           style={{
-            background: "none", border: "none", color: "#ccc",
+            background: "none", border: "none", color: "var(--gray-300)",
             fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 2px",
           }}
         >×</button>
@@ -170,7 +170,7 @@ export function MobileQuoteItemCard({
       {totalFields.length > 0 && (
         <div
           style={{
-            marginTop: 8, paddingTop: 8, borderTop: "1px solid #eee",
+            marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--gray-200)",
             display: "flex", flexWrap: "wrap", gap: 10, fontSize: 12,
           }}
         >
@@ -208,7 +208,7 @@ function MoveBtn({
       disabled={disabled}
       style={{
         background: "none", border: "none", padding: "2px 4px",
-        color: disabled ? "#ddd" : "#888", fontSize: 14,
+        color: disabled ? "var(--gray-300)" : "#888", fontSize: 14,
         cursor: disabled ? "default" : "pointer", lineHeight: 1,
       }}
     >

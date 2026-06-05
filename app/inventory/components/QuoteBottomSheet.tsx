@@ -49,7 +49,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
           style={{
             width: 40,
             height: 4,
-            background: "#ddd",
+            background: "var(--gray-300)",
             borderRadius: 2,
             margin: "0 auto 16px",
           }}
@@ -136,7 +136,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
           style={{
             marginTop: 16,
             padding: 12,
-            background: "#fafaf8",
+            background: "var(--gray-50)",
             borderRadius: 8,
             fontSize: 13,
           }}
@@ -174,7 +174,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
               flex: 1,
               height: 44,
               borderRadius: 8,
-              border: "1px solid #E5E5E5",
+              border: "1px solid var(--gray-200)",
               background: "white",
               color: "#666",
               fontSize: 14,

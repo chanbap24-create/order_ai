@@ -39,7 +39,7 @@ export function CompactBriefing(p: Props) {
   return (
     <div
       style={{
-        background: "#FAFAF8",
+        background: "var(--gray-50)",
         borderRadius: 12,
         border: "1px solid var(--action-muted)",
         padding: "16px",

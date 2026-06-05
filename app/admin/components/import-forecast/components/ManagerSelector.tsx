@@ -33,7 +33,7 @@ export function ManagerSelector(p: Props) {
         style={{
           padding: "8px 16px",
           borderRadius: 6,
-          border: allActive ? "1.5px solid #111" : "1px solid #e0e0e0",
+          border: allActive ? "1.5px solid #111" : "1px solid var(--gray-200)",
           background: allActive ? "#111" : "#fff",
           cursor: "pointer",
           whiteSpace: "nowrap",
@@ -47,7 +47,7 @@ export function ManagerSelector(p: Props) {
           style={{
             fontSize: 11,
             marginTop: 2,
-            color: allActive ? "rgba(255,255,255,0.6)" : "#aaa",
+            color: allActive ? "rgba(255,255,255,0.6)" : "var(--gray-400)",
           }}
         >
           {p.displayTotal}병 · {p.totalClients}곳
@@ -68,7 +68,7 @@ export function ManagerSelector(p: Props) {
             style={{
               padding: "8px 16px",
               borderRadius: 6,
-              border: isActive ? "1.5px solid var(--action)" : "1px solid #e0e0e0",
+              border: isActive ? "1.5px solid var(--action)" : "1px solid var(--gray-200)",
               background: isActive ? "var(--action)" : "#fff",
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -82,7 +82,7 @@ export function ManagerSelector(p: Props) {
               style={{
                 fontSize: 11,
                 marginTop: 2,
-                color: isActive ? "rgba(255,255,255,0.6)" : "#aaa",
+                color: isActive ? "rgba(255,255,255,0.6)" : "var(--gray-400)",
               }}
             >
               {displayQty}병{p.isNewItem ? ` →${r.qty_per_item}` : ""} · {r.avg_clients}곳

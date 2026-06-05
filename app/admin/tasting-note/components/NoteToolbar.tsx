@@ -34,7 +34,7 @@ const btn: React.CSSProperties = {
 const DIVIDER: React.CSSProperties = {
   width: 1,
   height: 20,
-  background: "#d1d5db",
+  background: "var(--gray-300)",
   margin: "0 2px",
 };
 
@@ -80,7 +80,7 @@ export function NoteToolbar(p: Props) {
         <input
           style={{
             padding: "6px 12px",
-            border: "1px solid #d1d5db",
+            border: "1px solid var(--gray-300)",
             borderRadius: 6,
             fontSize: 16,
             width: 200,
@@ -142,7 +142,7 @@ export function NoteToolbar(p: Props) {
                 width: 44,
                 padding: "1px 4px",
                 fontSize: 12,
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--gray-300)",
                 borderRadius: 4,
                 textAlign: "center",
                 color: "var(--text-primary)",

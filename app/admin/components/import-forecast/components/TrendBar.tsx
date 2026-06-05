@@ -70,7 +70,7 @@ export function TrendBar(p: Props) {
   return (
     <div
       style={{
-        background: "#fafafa",
+        background: "var(--gray-50)",
         borderRadius: 6,
         padding: "12px 20px",
         marginBottom: 16,

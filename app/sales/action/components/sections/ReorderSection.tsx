@@ -21,7 +21,7 @@ export function ReorderSection(p: Props) {
   const filters = [
     { id: "all" as ReorderFilter, label: "전체", count: p.count, activeColor: "var(--status-info)", activeBg: "var(--status-info-bg)" },
     { id: "in_stock" as ReorderFilter, label: "재고有", count: p.summary.reorder_in_stock, activeColor: "var(--status-success)", activeBg: "var(--status-success-bg)" },
-    { id: "out_of_stock" as ReorderFilter, label: "품절", count: p.summary.reorder_out_of_stock, activeColor: "#9E9E9E", activeBg: "var(--surface-muted)" },
+    { id: "out_of_stock" as ReorderFilter, label: "품절", count: p.summary.reorder_out_of_stock, activeColor: "var(--gray-400)", activeBg: "var(--surface-muted)" },
   ];
 
   return (
@@ -69,7 +69,7 @@ export function ReorderSection(p: Props) {
             {p.filtered.map((nudge, idx) => {
               const isOos = nudge.stock_status === "out_of_stock";
               const isLow = nudge.stock_status === "low_stock";
-              const stockColor = isOos ? "#9E9E9E" : isLow ? "var(--status-warning)" : "var(--status-success)";
+              const stockColor = isOos ? "var(--gray-400)" : isLow ? "var(--status-warning)" : "var(--status-success)";
               const stockBg = isOos ? "var(--surface-muted)" : isLow ? "var(--status-warning-bg)" : "var(--status-success-bg)";
               const stockLabel = isOos ? "품절" : `재고 ${nudge.available_stock}병`;
 
@@ -77,9 +77,9 @@ export function ReorderSection(p: Props) {
                 <div
                   key={`${nudge.client_code}-${nudge.item_no}-${idx}`}
                   style={{
-                    background: isOos ? "#FAFAFA" : "white",
+                    background: isOos ? "var(--gray-50)" : "white",
                     borderRadius: 12,
-                    borderLeft: `4px solid ${isOos ? "#E0E0E0" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6"}`,
+                    borderLeft: `4px solid ${isOos ? "var(--gray-200)" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6"}`,
                     boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
                     padding: "14px 16px",
                     opacity: isOos ? 0.65 : 1,
@@ -95,7 +95,7 @@ export function ReorderSection(p: Props) {
                           padding: "2px 8px",
                           borderRadius: 4,
                           background: isOos ? "var(--surface-muted)" : nudge.urgency === "high" ? "var(--status-info-bg)" : "#F3F8FF",
-                          color: isOos ? "#9E9E9E" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6",
+                          color: isOos ? "var(--gray-400)" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6",
                           fontSize: 11,
                           fontWeight: 700,
                           whiteSpace: "nowrap",
@@ -156,7 +156,7 @@ export function ReorderSection(p: Props) {
 
                   <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4 }}>
                     평균 주기: <strong>{nudge.avg_interval_days}일</strong>
-                    <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
+                    <span style={{ margin: "0 6px", color: "var(--gray-300)" }}>|</span>
                     마지막 구매:{" "}
                     <strong style={{ color: nudge.days_since_last >= nudge.avg_interval_days * 1.5 ? "var(--status-danger)" : "var(--status-info)" }}>
                       {nudge.days_since_last}일 전

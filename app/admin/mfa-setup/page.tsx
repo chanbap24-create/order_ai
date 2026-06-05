@@ -124,7 +124,7 @@ export default function MfaSetupPage() {
               disabled={code.length < 6 || verifying}
               style={{
                 ...btnPrimary,
-                background: code.length >= 6 && !verifying ? 'var(--action)' : '#ddd',
+                background: code.length >= 6 && !verifying ? 'var(--action)' : 'var(--gray-300)',
                 cursor: code.length >= 6 && !verifying ? 'pointer' : 'default',
               }}
             >

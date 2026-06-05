@@ -30,7 +30,7 @@ export function DesktopSidebarHeader({
     <div
       style={{
         padding: "10px 16px",
-        borderBottom: "1px solid #F0EFED",
+        borderBottom: "1px solid var(--gray-100)",
         display: "flex",
         alignItems: "center",
         gap: 8,
@@ -78,7 +78,7 @@ export function DesktopSidebarHeader({
             fontSize: 16,
             padding: "5px 10px",
             borderRadius: 8,
-            border: `1.5px solid ${clientNameFocused ? "var(--action)" : "#E5E5E5"}`,
+            border: `1.5px solid ${clientNameFocused ? "var(--action)" : "var(--gray-200)"}`,
             outline: "none",
             boxShadow: clientNameFocused ? "0 0 0 3px rgba(90,21,21,0.06)" : "none",
             transition: "border-color 0.15s, box-shadow 0.15s",
@@ -142,7 +142,7 @@ function IconBtn({
         width: 28,
         height: 28,
         borderRadius: 8,
-        border: "1px solid #E5E5E5",
+        border: "1px solid var(--gray-200)",
         background: active ? "var(--border-default)" : "white",
         cursor: "pointer",
         fontSize: 13,

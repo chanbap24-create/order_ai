@@ -18,12 +18,12 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
         onClick={onSelect}
         style={{
           display: 'grid', gridTemplateColumns: '56px 1fr 56px',
-          padding: '10px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
+          padding: '10px 12px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer',
           background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
           borderLeft: isSelected ? '3px solid var(--status-info)' : '3px solid transparent',
         }}
       >
-        <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>
+        <span style={{ fontSize: 11, color: 'var(--gray-500)', fontFamily: 'monospace' }}>{w.item_code}</span>
         <div style={{ overflow: 'hidden' }}>
           <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {w.item_name_kr}
@@ -32,7 +32,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
             {w.country_en || w.country || ''}{w.region ? ` · ${w.region}` : ''}
           </span>
         </div>
-        <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+        <span style={{ fontSize: 12, color: 'var(--gray-500)', textAlign: 'right' }}>
           {w.available_stock != null ? w.available_stock.toLocaleString() : '-'}
         </span>
       </div>
@@ -44,25 +44,25 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
       onClick={onSelect}
       style={{
         display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
-        padding: '9px 12px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
+        padding: '9px 12px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer',
         background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
         borderLeft: isSelected ? '3px solid var(--status-info)' : '3px solid transparent',
       }}
     >
-      <span style={{ fontSize: 12, color: '#6b7280', fontFamily: 'monospace' }}>{w.item_code}</span>
-      <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.country_en || w.country || '-'}</span>
-      <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.region || '-'}</span>
+      <span style={{ fontSize: 12, color: 'var(--gray-500)', fontFamily: 'monospace' }}>{w.item_code}</span>
+      <span style={{ fontSize: 12, color: 'var(--gray-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.country_en || w.country || '-'}</span>
+      <span style={{ fontSize: 12, color: 'var(--gray-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.region || '-'}</span>
       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-primary-light)' }}>{w.brand || '-'}</span>
       <span style={{ fontSize: 13, fontWeight: 500, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {w.item_name_kr}
       </span>
-      <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+      <span style={{ fontSize: 12, color: 'var(--gray-500)', textAlign: 'right' }}>
         {w.supply_price != null ? w.supply_price.toLocaleString() : '-'}
       </span>
-      <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+      <span style={{ fontSize: 12, color: 'var(--gray-500)', textAlign: 'right' }}>
         {w.available_stock != null ? w.available_stock.toLocaleString() : '-'}
       </span>
-      <span style={{ fontSize: 12, color: '#6b7280', textAlign: 'right' }}>
+      <span style={{ fontSize: 12, color: 'var(--gray-500)', textAlign: 'right' }}>
         {w.bonded_stock != null ? w.bonded_stock.toLocaleString() : '-'}
       </span>
       <button

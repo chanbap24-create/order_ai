@@ -20,7 +20,7 @@ export function YearBar(p: Props) {
             style={{
               fontSize: 10,
               fontWeight: 600,
-              color: p.weight === 3 ? "var(--action)" : p.weight === 2 ? "#b87333" : "#ccc",
+              color: p.weight === 3 ? "var(--action)" : p.weight === 2 ? "#b87333" : "var(--gray-300)",
             }}
           >
             ×{p.weight}
@@ -31,7 +31,7 @@ export function YearBar(p: Props) {
         style={{
           flex: 1,
           height: 28,
-          background: "#f5f5f5",
+          background: "var(--gray-100)",
           borderRadius: 4,
           overflow: "hidden",
           position: "relative",
@@ -41,7 +41,7 @@ export function YearBar(p: Props) {
           style={{
             height: "100%",
             width: `${p.pct}%`,
-            background: p.weight === 3 ? "var(--action)" : p.weight === 2 ? "#b87333" : "#ccc",
+            background: p.weight === 3 ? "var(--action)" : p.weight === 2 ? "#b87333" : "var(--gray-300)",
             borderRadius: 4,
             transition: "width 0.3s",
             minWidth: 4,

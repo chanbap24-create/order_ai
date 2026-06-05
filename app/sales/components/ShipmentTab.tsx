@@ -158,7 +158,7 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
               </tr>
               {isExp && (
                 <>
-                  <tr style={{ background: '#f8f6f4' }}>
+                  <tr style={{ background: 'var(--gray-50)' }}>
                     <td style={{ padding: '4px 10px 4px 28px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>품목</td>
                     <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)' }}>품명</td>
                     <td style={{ padding: '4px 6px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textAlign: 'right' }}>수량</td>

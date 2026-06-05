@@ -70,7 +70,7 @@ export function ClientItemsPanel({
               overflowY: "auto",
               background: GLASS_COLORS.surface,
               borderRadius: 8,
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--gray-200)",
             }}
           >
             {items.map((item, idx) => (
@@ -87,7 +87,7 @@ export function ClientItemsPanel({
               />
             ))}
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280", textAlign: "center" }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--gray-500)", textAlign: "center" }}>
             품목을 클릭하면 발주 목록에 추가됩니다 (총 {items.length}개)
           </div>
         </div>
@@ -119,7 +119,7 @@ function ClientItemRow({
     <div
       style={{
         padding: "12px 16px",
-        borderBottom: isLast ? "none" : "1px solid #f0f0f0",
+        borderBottom: isLast ? "none" : "1px solid var(--gray-100)",
         background: isAdding ? "#f0fdf4" : GLASS_COLORS.surface,
       }}
     >

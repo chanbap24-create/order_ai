@@ -20,7 +20,7 @@ export function ImageSection(p: Props) {
           <img
             src={p.wine.image_url}
             alt={p.wine.item_name_kr}
-            style={{ maxHeight: 200, borderRadius: 8, border: "1px solid #e5e7eb" }}
+            style={{ maxHeight: 200, borderRadius: 8, border: "1px solid var(--gray-200)" }}
           />
         </div>
       )}
@@ -30,7 +30,7 @@ export function ImageSection(p: Props) {
             onClick={() => p.setImageUrlExpanded(true)}
             style={{
               fontSize: 12,
-              color: "#9ca3af",
+              color: "var(--gray-400)",
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -46,7 +46,7 @@ export function ImageSection(p: Props) {
             style={{
               flex: 1,
               padding: "6px 10px",
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--gray-300)",
               borderRadius: 6,
               fontSize: 16,
             }}
@@ -60,7 +60,7 @@ export function ImageSection(p: Props) {
             style={{
               padding: "6px 12px",
               borderRadius: 6,
-              border: "1px solid #d1d5db",
+              border: "1px solid var(--gray-300)",
               background: "#f9fafb",
               fontSize: 12,
               cursor: "pointer",

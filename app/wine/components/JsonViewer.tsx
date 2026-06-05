@@ -40,7 +40,7 @@ export function JsonViewer({ data, open, toggleOpen }: Props) {
             borderRadius: 12,
             border: `1px solid ${WINE_COLORS.dividerCard}`,
             background: "#0b1020",
-            color: "#e6e6e6",
+            color: "var(--gray-200)",
             overflowX: "auto",
             marginTop: 8,
             ...monoStyle,

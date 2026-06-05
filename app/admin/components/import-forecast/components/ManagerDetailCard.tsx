@@ -42,12 +42,12 @@ export function ManagerDetailCard(p: Props) {
       style={{
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid #e8e8e8",
+        border: "1px solid var(--gray-200)",
         overflow: "hidden",
         marginBottom: 24,
       }}
     >
-      <div style={{ display: "flex", borderBottom: "1px solid #eee" }}>
+      <div style={{ display: "flex", borderBottom: "1px solid var(--gray-200)" }}>
         {(
           [
             { id: "wines" as const, label: `와인 ${p.activeData.wine_details?.length || 0}` },

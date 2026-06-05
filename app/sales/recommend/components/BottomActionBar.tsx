@@ -38,7 +38,7 @@ export function BottomActionBar(p: Props) {
           <button
             onClick={() => setShowColSettings(v => !v)}
             style={{
-              width: 36, height: 36, borderRadius: 8, border: '1px solid #ddd',
+              width: 36, height: 36, borderRadius: 8, border: '1px solid var(--gray-300)',
               background: showColSettings ? '#f5f0eb' : '#fff', color: 'var(--action)',
               fontSize: 16, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -72,7 +72,7 @@ export function BottomActionBar(p: Props) {
           disabled={p.quoteLoading}
           style={{
             padding: '10px 16px', borderRadius: 8, border: 'none',
-            background: p.quoteLoading ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
+            background: p.quoteLoading ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
             color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: p.quoteLoading ? 'default' : 'pointer',
           }}

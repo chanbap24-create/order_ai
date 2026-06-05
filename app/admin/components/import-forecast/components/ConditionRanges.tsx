@@ -34,7 +34,7 @@ export function ConditionRanges(p: Props) {
                   fontSize: 11,
                   fontWeight: isActive ? 600 : 400,
                   borderRadius: 4,
-                  border: isActive ? "1px solid var(--action)" : "1px solid #e0e0e0",
+                  border: isActive ? "1px solid var(--action)" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   background: isActive ? "var(--action)" : "#fff",
                   color: isActive ? "#fff" : "#888",
@@ -56,7 +56,7 @@ export function ConditionRanges(p: Props) {
             placeholder="0"
             style={{ ...inputStyle, flex: 1 }}
           />
-          <span style={{ color: "#ccc", fontSize: 12 }}>~</span>
+          <span style={{ color: "var(--gray-300)", fontSize: 12 }}>~</span>
           <input
             type="number"
             value={p.priceMax}
@@ -84,7 +84,7 @@ export function ConditionRanges(p: Props) {
                   fontSize: 11,
                   fontWeight: isActive ? 600 : 400,
                   borderRadius: 4,
-                  border: isActive ? "1px solid var(--action)" : "1px solid #e0e0e0",
+                  border: isActive ? "1px solid var(--action)" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   background: isActive ? "var(--action)" : "#fff",
                   color: isActive ? "#fff" : "#888",
@@ -110,7 +110,7 @@ export function ConditionRanges(p: Props) {
               </option>
             ))}
           </select>
-          <span style={{ color: "#ccc", fontSize: 12 }}>~</span>
+          <span style={{ color: "var(--gray-300)", fontSize: 12 }}>~</span>
           <select
             value={p.endYear}
             onChange={(e) => {

@@ -5,7 +5,7 @@ import type React from "react";
 export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", gap: 8 }}>
-      <span style={{ color: "#9ca3af", minWidth: 60 }}>{label}</span>
+      <span style={{ color: "var(--gray-400)", minWidth: 60 }}>{label}</span>
       <span style={{ color: "#1e293b", fontWeight: 500 }}>{value}</span>
     </div>
   );
@@ -17,7 +17,7 @@ export function SectionTitle({ title }: { title: string }) {
       style={{
         fontSize: 13,
         fontWeight: 700,
-        color: "#6b7280",
+        color: "var(--gray-500)",
         margin: "16px 0 8px",
         textTransform: "uppercase",
         letterSpacing: 0.5,
@@ -48,7 +48,7 @@ export function FormRow({
         style={{
           flex: 1,
           padding: "7px 10px",
-          border: "1px solid #d1d5db",
+          border: "1px solid var(--gray-300)",
           borderRadius: 6,
           fontSize: 16,
         }}
@@ -88,7 +88,7 @@ export function FormTextarea({
         style={{
           width: "100%",
           padding: "7px 10px",
-          border: "1px solid #d1d5db",
+          border: "1px solid var(--gray-300)",
           borderRadius: 6,
           fontSize: 16,
           resize: "vertical",
@@ -121,7 +121,7 @@ export function DetailSection({
           fontWeight: 700,
           color: "#374151",
           marginBottom: 6,
-          borderBottom: "1px solid #e5e7eb",
+          borderBottom: "1px solid var(--gray-200)",
           paddingBottom: 4,
         }}
       >
@@ -141,7 +141,7 @@ export function DetailSection({
       ) : children ? (
         <div>{children}</div>
       ) : (
-        <div style={{ fontSize: 12, color: "#d1d5db", fontStyle: "italic" }}>정보 없음</div>
+        <div style={{ fontSize: 12, color: "var(--gray-300)", fontStyle: "italic" }}>정보 없음</div>
       )}
     </div>
   );
@@ -157,7 +157,7 @@ export function DetailField({
   if (!value) return null;
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 2 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--gray-500)", marginBottom: 2 }}>
         {label}
       </div>
       <div

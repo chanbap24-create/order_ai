@@ -16,7 +16,7 @@ export function ConditionPanelHeader(p: Props) {
     <div
       style={{
         padding: "12px 24px",
-        borderBottom: "1px solid #eee",
+        borderBottom: "1px solid var(--gray-200)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -30,7 +30,7 @@ export function ConditionPanelHeader(p: Props) {
             gap: 0,
             borderRadius: 6,
             overflow: "hidden",
-            border: "1px solid #e0e0e0",
+            border: "1px solid var(--gray-200)",
           }}
         >
           {([{ v: false, label: "기존" }, { v: true, label: "신규" }] as const).map((opt) => (
@@ -66,7 +66,7 @@ export function ConditionPanelHeader(p: Props) {
               fontWeight: 500,
               background: "#fff",
               color: "#555",
-              border: "1px solid #ddd",
+              border: "1px solid var(--gray-300)",
               borderRadius: 6,
               cursor: "pointer",
             }}
@@ -81,7 +81,7 @@ export function ConditionPanelHeader(p: Props) {
             padding: "7px 20px",
             fontSize: 13,
             fontWeight: 600,
-            background: !p.canCalc || p.loading ? "#e0e0e0" : "var(--action)",
+            background: !p.canCalc || p.loading ? "var(--gray-200)" : "var(--action)",
             color: "#fff",
             border: "none",
             borderRadius: 6,

@@ -92,7 +92,7 @@ export function NewArrivalSection(p: Props) {
                   재고: <strong style={{ color: "#00838F" }}>{wine.available_stock}병</strong>
                   {wine.incoming_stock > 0 && (
                     <>
-                      <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
+                      <span style={{ margin: "0 6px", color: "var(--gray-300)" }}>|</span>
                       입고예정:{" "}
                       <strong style={{ color: "#00838F" }}>{wine.incoming_stock}병</strong>
                     </>
@@ -115,7 +115,7 @@ export function NewArrivalSection(p: Props) {
                             fontSize: 12,
                             color: "#444",
                             padding: "6px 8px",
-                            background: ci === 0 ? "#F0FAFB" : "#FAFAFA",
+                            background: ci === 0 ? "#F0FAFB" : "var(--gray-50)",
                             borderRadius: 8,
                           }}
                         >

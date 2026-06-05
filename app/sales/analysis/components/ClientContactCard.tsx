@@ -38,7 +38,7 @@ export function ClientContactCard(p: Props) {
   const renderInfoField = (label: string, value: string | null | undefined) => (
     <div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 14, color: value ? "#333" : "#ccc" }}>{value || "-"}</div>
+      <div style={{ fontSize: 14, color: value ? "#333" : "var(--gray-300)" }}>{value || "-"}</div>
     </div>
   );
 

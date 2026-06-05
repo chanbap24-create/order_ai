@@ -44,7 +44,7 @@ export function SummaryCards({ summary }: { summary: ActionSummary }) {
     { label: "이탈 긴급", count: summary.critical_count, color: "var(--status-danger)", bg: "var(--status-danger-bg)" },
     { label: "이탈 주의", count: summary.high_count, color: "var(--status-warning)", bg: "var(--status-warning-bg)" },
     { label: "재주문(재고有)", count: summary.reorder_in_stock, color: "var(--status-info)", bg: "var(--status-info-bg)" },
-    { label: "재주문(품절)", count: summary.reorder_out_of_stock, color: "#9E9E9E", bg: "var(--surface-muted)" },
+    { label: "재주문(품절)", count: summary.reorder_out_of_stock, color: "var(--gray-400)", bg: "var(--surface-muted)" },
   ];
   const row2: CardDef[] = [
     { label: "미팅 예정", count: summary.meetings_upcoming, color: "#6A1B9A", bg: "#F3E5F5" },

@@ -9,7 +9,7 @@ export function Tag({ children }: { children: React.ReactNode }) {
         display: "inline-flex",
         alignItems: "center",
         padding: "2px 8px",
-        background: "#f5f5f5",
+        background: "var(--gray-100)",
         borderRadius: 3,
         fontSize: 11,
         fontWeight: 500,

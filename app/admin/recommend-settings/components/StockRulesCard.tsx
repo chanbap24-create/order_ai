@@ -32,7 +32,7 @@ export function StockRulesCard({ stockRules, onChange }: Props) {
           const isSpecial = key === 'months_supply';
           return (
             <div key={key} style={{
-              background: isSpecial ? '#faf5ff' : '#fafaf8',
+              background: isSpecial ? '#faf5ff' : 'var(--gray-50)',
               borderRadius: 8, padding: '12px 14px',
               border: isSpecial ? '1px solid #e8d5f5' : '1px solid var(--action-muted)',
             }}>

@@ -31,7 +31,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
   }, [version]);
 
   return (
-    <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, marginTop: 12 }}>
+    <div style={{ border: "1px solid var(--gray-200)", borderRadius: 12, padding: 12, marginTop: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
           신규 품목 학습 내역
@@ -42,7 +42,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
           style={{
             padding: "6px 12px",
             borderRadius: 8,
-            border: "1px solid #ddd",
+            border: "1px solid var(--gray-300)",
             cursor: "pointer",
             fontSize: 13,
             marginLeft: "auto",
@@ -64,7 +64,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #ddd", textAlign: "left" }}>
+              <tr style={{ borderBottom: "1px solid var(--gray-300)", textAlign: "left" }}>
                 <th style={{ padding: 8 }}>거래처</th>
                 <th style={{ padding: 8 }}>품목번호</th>
                 <th style={{ padding: 8 }}>품목명</th>
@@ -74,7 +74,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <tr key={i} style={{ borderBottom: "1px solid var(--gray-100)" }}>
                   <td style={{ padding: 8 }}>
                     {row.client_name || row.client_code}
                   </td>

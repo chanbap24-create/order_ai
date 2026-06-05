@@ -92,7 +92,7 @@ export function MeetingSection(p: Props) {
 
                   <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     {m.meeting_date} {m.meeting_time ? m.meeting_time : ""}
-                    <span style={{ margin: "0 6px", color: "#ddd" }}>|</span>
+                    <span style={{ margin: "0 6px", color: "var(--gray-300)" }}>|</span>
                     <span
                       style={{
                         display: "inline-block",

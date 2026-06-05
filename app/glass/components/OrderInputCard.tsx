@@ -218,7 +218,7 @@ function AutoPasteToggle({
         cursor: "pointer",
         userSelect: "none",
         fontSize: 12,
-        color: value ? GLASS_COLORS.primary : "#aaa",
+        color: value ? GLASS_COLORS.primary : "var(--gray-400)",
         fontWeight: 500,
       }}
     >

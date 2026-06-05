@@ -5,7 +5,7 @@ export function EmptyState({ todayLabel }: { todayLabel: string }) {
     <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
       <svg
         width="48" height="48" viewBox="0 0 24 24" fill="none"
-        stroke="#ddd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        stroke="var(--gray-300)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
         style={{ marginBottom: 16 }}
       >
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8" />

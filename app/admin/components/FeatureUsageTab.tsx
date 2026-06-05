@@ -160,7 +160,7 @@ export default function FeatureUsageTab() {
             <table style={{ ...tableStyle, minWidth: 700 }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, position: 'sticky', left: 0, background: '#f8f6f4', zIndex: 1 }}>담당자</th>
+                  <th style={{ ...th, position: 'sticky', left: 0, background: 'var(--gray-50)', zIndex: 1 }}>담당자</th>
                   {data.totals_by_feature.map(f => (
                     <th key={f.feature} style={{ ...th, textAlign: 'right', whiteSpace: 'nowrap' }}>{f.feature}</th>
                   ))}

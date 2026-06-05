@@ -13,7 +13,7 @@ export function RegionItem({ region: r, onEdit, onDelete }: Props) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 8,
-      padding: '6px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13,
+      padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: 13,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -37,7 +37,7 @@ export function RegionItem({ region: r, onEdit, onDelete }: Props) {
       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
         <button
           onClick={() => onEdit(r)}
-          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #ddd', borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#555' }}
+          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid var(--gray-300)', borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#555' }}
         >
           수정
         </button>

@@ -12,25 +12,25 @@ export function WinesTableHeader({ isMobile, sortBy, onSort, sortArrow }: Props)
     return (
       <div style={{
         display: 'grid', gridTemplateColumns: '56px 1fr 56px',
-        padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
-        fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
+        padding: '10px 12px', borderBottom: '2px solid var(--gray-200)', background: '#f9fafb',
+        fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', position: 'sticky', top: 0, zIndex: 1,
         gap: 6, alignItems: 'center',
       }}>
         <span
           onClick={() => onSort('item_code')}
-          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_code' ? 'var(--color-primary-light)' : '#6b7280' }}
+          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_code' ? 'var(--color-primary-light)' : 'var(--gray-500)' }}
         >
           품번{sortArrow('item_code')}
         </span>
         <span
           onClick={() => onSort('item_name_kr')}
-          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_name_kr' ? 'var(--color-primary-light)' : '#6b7280' }}
+          style={{ cursor: 'pointer', userSelect: 'none', color: sortBy === 'item_name_kr' ? 'var(--color-primary-light)' : 'var(--gray-500)' }}
         >
           품명{sortArrow('item_name_kr')}
         </span>
         <span
           onClick={() => onSort('available_stock')}
-          style={{ cursor: 'pointer', userSelect: 'none', textAlign: 'right', color: sortBy === 'available_stock' ? 'var(--color-primary-light)' : '#6b7280' }}
+          style={{ cursor: 'pointer', userSelect: 'none', textAlign: 'right', color: sortBy === 'available_stock' ? 'var(--color-primary-light)' : 'var(--gray-500)' }}
         >
           재고{sortArrow('available_stock')}
         </span>
@@ -52,8 +52,8 @@ export function WinesTableHeader({ isMobile, sortBy, onSort, sortArrow }: Props)
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
-      padding: '10px 12px', borderBottom: '2px solid #e5e7eb', background: '#f9fafb',
-      fontSize: 12, fontWeight: 600, color: '#6b7280', position: 'sticky', top: 0, zIndex: 1,
+      padding: '10px 12px', borderBottom: '2px solid var(--gray-200)', background: '#f9fafb',
+      fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', position: 'sticky', top: 0, zIndex: 1,
       gap: 6, alignItems: 'center',
     }}>
       {cols.map(col => (
@@ -64,7 +64,7 @@ export function WinesTableHeader({ isMobile, sortBy, onSort, sortArrow }: Props)
             cursor: col.key ? 'pointer' : 'default',
             textAlign: col.right ? 'right' : 'left',
             userSelect: 'none',
-            color: sortBy === col.key ? 'var(--color-primary-light)' : '#6b7280',
+            color: sortBy === col.key ? 'var(--color-primary-light)' : 'var(--gray-500)',
           }}
         >
           {col.label}{col.key ? sortArrow(col.key) : ''}

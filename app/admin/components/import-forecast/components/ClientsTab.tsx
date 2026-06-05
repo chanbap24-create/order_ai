@@ -16,7 +16,7 @@ export function ClientsTab({ activeData }: Props) {
           fontSize: 10,
           color: "#bbb",
           fontWeight: 500,
-          borderBottom: "1px solid #eee",
+          borderBottom: "1px solid var(--gray-200)",
           textTransform: "uppercase" as const,
           letterSpacing: "0.03em",
         }}
@@ -34,11 +34,11 @@ export function ClientsTab({ activeData }: Props) {
             display: "grid",
             gridTemplateColumns: "30px 1fr 90px 80px 80px",
             padding: "8px 20px",
-            borderBottom: i < clients.length - 1 ? "1px solid #f5f5f5" : "none",
+            borderBottom: i < clients.length - 1 ? "1px solid var(--gray-100)" : "none",
             alignItems: "center",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, color: i < 3 ? "#222" : "#ccc" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: i < 3 ? "#222" : "var(--gray-300)" }}>
             {i + 1}
           </div>
           <div style={{ fontSize: 12, fontWeight: 500, color: "#222" }}>{c.client_name}</div>

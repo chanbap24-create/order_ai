@@ -85,7 +85,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           padding: "12px 20px",
           background: "#fff",
           borderRadius: 6,
-          border: "1px solid #e0e0e0",
+          border: "1px solid var(--gray-200)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -105,7 +105,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           style={{
             background: "#fff",
             borderRadius: "0 0 6px 6px",
-            border: "1px solid #e0e0e0",
+            border: "1px solid var(--gray-200)",
             borderTop: "none",
             padding: "12px 0",
           }}
@@ -128,7 +128,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   padding: "2px 8px",
                   fontSize: 10,
                   borderRadius: 3,
-                  border: filterPrice === p ? "1px solid #111" : "1px solid #e0e0e0",
+                  border: filterPrice === p ? "1px solid #111" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   fontWeight: filterPrice === p ? 600 : 400,
                   background: filterPrice === p ? "#111" : "#fff",
@@ -138,7 +138,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                 {p === "all" ? "전체" : p}
               </button>
             ))}
-            <span style={{ color: "#ddd" }}>|</span>
+            <span style={{ color: "var(--gray-300)" }}>|</span>
             {(
               [
                 ["total", "총판매"],
@@ -154,7 +154,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   padding: "2px 8px",
                   fontSize: 10,
                   borderRadius: 3,
-                  border: sortKey === k ? "1px solid #111" : "1px solid #e0e0e0",
+                  border: sortKey === k ? "1px solid #111" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   fontWeight: sortKey === k ? 600 : 400,
                   background: sortKey === k ? "#111" : "#fff",
@@ -164,7 +164,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                 {l}
               </button>
             ))}
-            <span style={{ color: "#ccc", marginLeft: "auto" }}>{filtered.length}</span>
+            <span style={{ color: "var(--gray-300)", marginLeft: "auto" }}>{filtered.length}</span>
           </div>
 
           <div
@@ -175,7 +175,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
               fontSize: 10,
               color: "#bbb",
               fontWeight: 500,
-              borderBottom: "1px solid #eee",
+              borderBottom: "1px solid var(--gray-200)",
             }}
           >
             <div>브랜드</div>
@@ -190,7 +190,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           </div>
 
           {filtered.map((b) => (
-            <div key={b.brand} style={{ borderBottom: "1px solid #f5f5f5" }}>
+            <div key={b.brand} style={{ borderBottom: "1px solid var(--gray-100)" }}>
               <div
                 style={{
                   display: "grid",
@@ -203,7 +203,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   <div style={{ fontSize: 12, fontWeight: 500, color: "#222" }}>
                     {b.brand}
                   </div>
-                  <div style={{ fontSize: 10, color: "#ccc" }}>{b.country}</div>
+                  <div style={{ fontSize: 10, color: "var(--gray-300)" }}>{b.country}</div>
                 </div>
                 <div style={{ textAlign: "right", fontSize: 11, color: "#999" }}>
                   {b.items}

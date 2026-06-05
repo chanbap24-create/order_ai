@@ -53,7 +53,7 @@ export function MeetingCard(p: Props) {
       {isExpanded && briefing && (
         <div style={{
           borderTop: '1px solid var(--action-muted)', padding: '14px',
-          background: '#fafaf8',
+          background: 'var(--gray-50)',
         }}>
           <BriefingSummary briefing={briefing} />
           <PurchasedItemsList items={briefing.purchased_items} />
@@ -161,7 +161,7 @@ function MeetingCardHeader({
             disabled={generating}
             style={{
               padding: '5px 10px', borderRadius: 6, border: 'none',
-              background: generating ? '#eee' : '#1a237e',
+              background: generating ? 'var(--gray-200)' : '#1a237e',
               color: generating ? '#999' : '#fff',
               fontSize: 11, fontWeight: 600, cursor: generating ? 'default' : 'pointer',
             }}
@@ -196,7 +196,7 @@ function QuoteActions({
         <button
           onClick={onToggleColSettings}
           style={{
-            width: 32, height: 32, borderRadius: 8, border: '1px solid #ddd',
+            width: 32, height: 32, borderRadius: 8, border: '1px solid var(--gray-300)',
             background: showColSettings ? '#f5f0eb' : '#fff', color: 'var(--action)',
             fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -218,7 +218,7 @@ function QuoteActions({
         disabled={quoteLoading}
         style={{
           flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
-          background: quoteLoading ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
+          background: quoteLoading ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
           color: '#fff', fontSize: 12, fontWeight: 600,
           cursor: quoteLoading ? 'default' : 'pointer',
         }}

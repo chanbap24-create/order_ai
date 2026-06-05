@@ -20,7 +20,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
         overflowY: "auto",
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--gray-200)",
       }}
     >
       {!detail.selectedWine ? (
@@ -30,7 +30,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
             alignItems: "center",
             justifyContent: "center",
             height: "100%",
-            color: "#9ca3af",
+            color: "var(--gray-400)",
             fontSize: 15,
           }}
         >
@@ -82,7 +82,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
             onSave={detail.saveImageUrl}
           />
 
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16, marginBottom: 16 }}>
+          <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 16, marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
               <label
                 style={{
@@ -98,7 +98,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
                 style={{
                   flex: 1,
                   padding: "8px 12px",
-                  border: "1px solid #d1d5db",
+                  border: "1px solid var(--gray-300)",
                   borderRadius: 6,
                   fontSize: 16,
                 }}
@@ -111,7 +111,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
                 style={{
                   padding: "8px 14px",
                   borderRadius: 6,
-                  border: "1px solid #d1d5db",
+                  border: "1px solid var(--gray-300)",
                   background: "#f9fafb",
                   fontSize: 13,
                   cursor: "pointer",
@@ -134,9 +134,9 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
                   fontSize: 14,
                   cursor: "pointer",
                   background: detail.researching
-                    ? "#9ca3af"
+                    ? "var(--gray-400)"
                     : !detail.engNameInput.trim()
-                      ? "#d1d5db"
+                      ? "var(--gray-300)"
                       : "#7c3aed",
                   color: "#fff",
                   fontWeight: 600,
@@ -155,11 +155,11 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
                   style={{
                     padding: "10px 16px",
                     borderRadius: 6,
-                    border: "1px solid #d1d5db",
+                    border: "1px solid var(--gray-300)",
                     background: "#fff",
                     fontSize: 13,
                     cursor: "pointer",
-                    color: !detail.engNameInput.trim() ? "#d1d5db" : "#6b7280",
+                    color: !detail.engNameInput.trim() ? "var(--gray-300)" : "var(--gray-500)",
                   }}
                 >
                   재조사

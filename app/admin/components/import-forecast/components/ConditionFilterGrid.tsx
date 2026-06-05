@@ -148,7 +148,7 @@ export function ConditionFilterGrid(p: Props) {
               style={{
                 padding: "4px 6px",
                 borderRadius: 4,
-                border: "1px solid #e0e0e0",
+                border: "1px solid var(--gray-200)",
                 background: "#fff",
                 fontSize: 10,
                 color: "#999",

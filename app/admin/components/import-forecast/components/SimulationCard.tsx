@@ -62,7 +62,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
       style={{
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid #e8e8e8",
+        border: "1px solid var(--gray-200)",
         marginBottom: 16,
         overflow: "hidden",
       }}
@@ -71,7 +71,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
         onClick={() => setSimOpen(!simOpen)}
         style={{
           padding: "12px 24px",
-          borderBottom: simOpen ? "1px solid #eee" : "none",
+          borderBottom: simOpen ? "1px solid var(--gray-200)" : "none",
           cursor: "pointer",
           display: "flex",
           justifyContent: "space-between",
@@ -91,7 +91,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
               display: "flex",
               gap: 20,
               flexWrap: "wrap",
-              borderBottom: "1px solid #eee",
+              borderBottom: "1px solid var(--gray-200)",
             }}
           >
             <div style={{ flex: 1, minWidth: 140 }}>
@@ -121,7 +121,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                       padding: "2px 8px",
                       fontSize: 10,
                       fontWeight: 500,
-                      border: `1px solid ${bottlesPerCase === n ? "#111" : "#e0e0e0"}`,
+                      border: `1px solid ${bottlesPerCase === n ? "#111" : "var(--gray-200)"}`,
                       borderRadius: 3,
                       background: bottlesPerCase === n ? "#111" : "#fff",
                       color: bottlesPerCase === n ? "#fff" : "#999",
@@ -179,7 +179,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
             />
 
             {wines.length > 0 && (
-              <div style={{ borderTop: "1px solid #eee", paddingTop: 10 }}>
+              <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 10 }}>
                 <div style={{ fontSize: 10, color: "#bbb", marginBottom: 6 }}>
                   기대값 {baseQty}병/년 · {wines.length}개 와인 기반
                 </div>
@@ -191,7 +191,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                         padding: "2px 6px",
                         borderRadius: 3,
                         fontSize: 10,
-                        background: "#f5f5f5",
+                        background: "var(--gray-100)",
                         color: "#555",
                       }}
                     >
@@ -222,7 +222,7 @@ const numInput: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
   textAlign: "center",
-  border: "1px solid #e0e0e0",
+  border: "1px solid var(--gray-200)",
   borderRadius: 4,
   color: "#222",
 };
@@ -231,7 +231,7 @@ const textInput: React.CSSProperties = {
   width: "100%",
   padding: "5px 10px",
   fontSize: 13,
-  border: "1px solid #e0e0e0",
+  border: "1px solid var(--gray-200)",
   borderRadius: 4,
   color: "#222",
 };

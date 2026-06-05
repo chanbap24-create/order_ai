@@ -25,7 +25,7 @@ export function WineRow(p: Props) {
   return (
     <div
       style={{
-        borderBottom: p.isLast ? "none" : "1px solid #f5f5f5",
+        borderBottom: p.isLast ? "none" : "1px solid var(--gray-100)",
         opacity: p.isChecked ? 0.4 : 1,
         transition: "opacity 0.15s",
       }}
@@ -65,7 +65,7 @@ export function WineRow(p: Props) {
                 ×{w.stockout_factor}
               </span>
             )}
-            <span style={{ fontSize: 9, color: "#ccc" }}>{p.isExpanded ? "▲" : "▼"}</span>
+            <span style={{ fontSize: 9, color: "var(--gray-300)" }}>{p.isExpanded ? "▲" : "▼"}</span>
           </div>
           <div style={{ fontSize: 10, color: "#bbb", marginTop: 1 }}>
             {w.item_code}
@@ -95,7 +95,7 @@ export function WineRow(p: Props) {
           style={{
             textAlign: "right",
             fontSize: 12,
-            color: w.avg_import_cost > 0 ? "#666" : "#ddd",
+            color: w.avg_import_cost > 0 ? "#666" : "var(--gray-300)",
           }}
         >
           {w.avg_import_cost > 0 ? w.avg_import_cost.toLocaleString() : "-"}
@@ -115,13 +115,13 @@ export function WineRow(p: Props) {
               );
             })()
           ) : (
-            <span style={{ color: "#ddd" }}>-</span>
+            <span style={{ color: "var(--gray-300)" }}>-</span>
           )}
         </div>
         <div style={{ textAlign: "right", fontSize: 12, color: "#999" }}>{w.client_count}</div>
         <div style={{ textAlign: "right" }}>
           <span
-            style={{ fontSize: 14, fontWeight: 600, color: p.isChecked ? "#ccc" : "#222" }}
+            style={{ fontSize: 14, fontWeight: 600, color: p.isChecked ? "var(--gray-300)" : "#222" }}
           >
             {w.corrected_qty.toLocaleString()}
           </span>
@@ -143,7 +143,7 @@ export function WineRow(p: Props) {
 
       {p.isExpanded && (
         <div
-          style={{ padding: "0 20px 12px 56px", background: "#fafafa" }}
+          style={{ padding: "0 20px 12px 56px", background: "var(--gray-50)" }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >

@@ -71,7 +71,7 @@ export function ClientPickerCard(p: Props) {
           }}>
             <span style={{
               fontSize: 11, padding: '2px 8px', borderRadius: 10,
-              background: IMPORTANCE_LABELS[p.selectedClient.importance || 3]?.color || '#6c757d',
+              background: IMPORTANCE_LABELS[p.selectedClient.importance || 3]?.color || 'var(--gray-500)',
               color: '#fff',
             }}>
               {IMPORTANCE_LABELS[p.selectedClient.importance || 3]?.label || '일반'}
@@ -111,7 +111,7 @@ export function ClientPickerCard(p: Props) {
                 {c.importance && (
                   <span style={{
                     fontSize: 10, padding: '2px 6px', borderRadius: 8,
-                    background: IMPORTANCE_LABELS[c.importance]?.color || '#6c757d',
+                    background: IMPORTANCE_LABELS[c.importance]?.color || 'var(--gray-500)',
                     color: '#fff',
                   }}>
                     {IMPORTANCE_LABELS[c.importance]?.label}
@@ -139,7 +139,7 @@ export function ClientPickerCard(p: Props) {
           disabled={p.loading}
           style={{
             width: '100%', marginTop: 12, padding: '12px', borderRadius: 8, border: 'none',
-            background: p.loading ? '#ccc' : 'linear-gradient(135deg, var(--action), #8B2252)',
+            background: p.loading ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
             color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: p.loading ? 'default' : 'pointer',
           }}

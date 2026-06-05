@@ -49,7 +49,7 @@ export function Field({
           borderRadius: 6,
           fontSize: 13,
           outline: "none",
-          background: "#fafaf8",
+          background: "var(--gray-50)",
         }}
       />
     </div>
@@ -81,7 +81,7 @@ export function TextArea({
           borderRadius: 6,
           fontSize: 13,
           outline: "none",
-          background: "#fafaf8",
+          background: "var(--gray-50)",
           resize: "vertical",
           fontFamily: "inherit",
           lineHeight: 1.5,

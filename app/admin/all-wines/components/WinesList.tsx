@@ -23,7 +23,7 @@ type Props = {
 
 export function WinesList(p: Props) {
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid var(--gray-200)' }}>
       <WinesTableHeader
         isMobile={p.isMobile}
         sortBy={p.sortBy}
@@ -32,9 +32,9 @@ export function WinesList(p: Props) {
       />
 
       {p.loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>로딩 중...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--gray-400)' }}>로딩 중...</div>
       ) : p.wines.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--gray-400)', fontSize: 13 }}>
           검색 결과가 없습니다.
         </div>
       ) : (

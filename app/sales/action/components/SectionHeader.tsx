@@ -54,7 +54,7 @@ export function SectionHeader({
         style={{
           fontSize: 11,
           color: "white",
-          background: count > 0 ? titleColor : "#ccc",
+          background: count > 0 ? titleColor : "var(--gray-300)",
           borderRadius: 99,
           padding: "1px 8px",
           fontWeight: 600,

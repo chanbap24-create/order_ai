@@ -39,7 +39,7 @@ export function AdvancedFilterPanel({
         padding: "14px 16px",
         background: "white",
         borderRadius: 12,
-        border: "1px solid #F0EFED",
+        border: "1px solid var(--gray-100)",
         boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
       }}
     >
@@ -96,7 +96,7 @@ export function AdvancedFilterPanel({
           style={{
             padding: "6px 16px",
             borderRadius: 6,
-            border: "1px solid #E5E5E5",
+            border: "1px solid var(--gray-200)",
             background: "white",
             color: "#888",
             fontSize: "0.75rem",
@@ -170,7 +170,7 @@ function RangeRow({
         width={inputWidth}
         onChange={(v) => onChange({ ...value, min: v })}
       />
-      <span style={{ fontSize: "0.7rem", color: "#aaa" }}>~</span>
+      <span style={{ fontSize: "0.7rem", color: "var(--gray-400)" }}>~</span>
       <NumberInput
         value={value.max}
         placeholder="최대"
@@ -206,7 +206,7 @@ function NumberInput({
         width,
         height: 30,
         borderRadius: 6,
-        border: "1px solid #E5E5E5",
+        border: "1px solid var(--gray-200)",
         padding: "0 6px",
         fontSize: 16,
         textAlign: "right",
@@ -258,7 +258,7 @@ function SelectRow({
           width,
           height: 30,
           borderRadius: 6,
-          border: "1px solid #E5E5E5",
+          border: "1px solid var(--gray-200)",
           padding: "0 6px",
           fontSize: 14,
           color: "#333",

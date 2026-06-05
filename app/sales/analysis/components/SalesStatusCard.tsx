@@ -60,7 +60,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
                       alignItems: "center",
                       gap: 8,
                       padding: "6px 0",
-                      borderBottom: "1px solid #f0f0f0",
+                      borderBottom: "1px solid var(--gray-100)",
                       fontSize: 13,
                     }}
                   >
@@ -88,11 +88,11 @@ export function SalesStatusCard({ stats, filters }: Props) {
                       alignItems: "center",
                       gap: 8,
                       padding: "6px 0",
-                      borderBottom: "1px solid #f0f0f0",
+                      borderBottom: "1px solid var(--gray-100)",
                       fontSize: 13,
                     }}
                   >
-                    <span style={{ fontSize: 11, color: "#aaa", width: 72 }}>
+                    <span style={{ fontSize: 11, color: "var(--gray-400)", width: 72 }}>
                       {s.ship_date?.toString().slice(0, 10)}
                     </span>
                     <span style={{ flex: 1, color: "var(--text-primary)" }}>{s.item_name}</span>

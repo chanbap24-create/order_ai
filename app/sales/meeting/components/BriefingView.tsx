@@ -144,7 +144,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                   height: 20,
                   borderRadius: 5,
                   flexShrink: 0,
-                  border: isSelected ? "2px solid var(--action)" : "2px solid #ddd",
+                  border: isSelected ? "2px solid var(--action)" : "2px solid var(--gray-300)",
                   background: isSelected ? "var(--action)" : "#fff",
                   display: "flex",
                   alignItems: "center",

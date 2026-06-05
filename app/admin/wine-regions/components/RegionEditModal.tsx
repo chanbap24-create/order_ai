@@ -55,7 +55,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
                 onChange={e => onChange({ ...item, [f.key]: e.target.value } as WineRegion)}
                 style={{
                   width: '100%', height: 36, padding: '0 10px', fontSize: 14,
-                  border: '1px solid #E5E5E5', borderRadius: 6, boxSizing: 'border-box',
+                  border: '1px solid var(--gray-200)', borderRadius: 6, boxSizing: 'border-box',
                   outline: 'none', background: '#fff',
                 }}
               >
@@ -69,7 +69,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
                 onChange={e => onChange({ ...item, [f.key]: e.target.value || null } as WineRegion)}
                 style={{
                   width: '100%', height: 36, padding: '0 10px', fontSize: 14,
-                  border: '1px solid #E5E5E5', borderRadius: 6, boxSizing: 'border-box', outline: 'none',
+                  border: '1px solid var(--gray-200)', borderRadius: 6, boxSizing: 'border-box', outline: 'none',
                 }}
               />
             )}
@@ -78,7 +78,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
         <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
-            style={{ padding: '8px 16px', fontSize: 13, border: '1px solid #ddd', borderRadius: 6, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)' }}
+            style={{ padding: '8px 16px', fontSize: 13, border: '1px solid var(--gray-300)', borderRadius: 6, background: '#fff', cursor: 'pointer', color: 'var(--text-tertiary)' }}
           >
             취소
           </button>

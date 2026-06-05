@@ -170,7 +170,7 @@ function SubNode({
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '5px 10px',
-          background: isSubOpen ? '#F8F0F0' : '#FAFAFA',
+          background: isSubOpen ? '#F8F0F0' : 'var(--gray-50)',
           borderRadius: 4, cursor: 'pointer', fontWeight: 500, fontSize: 13, color: '#444',
         }}
       >
@@ -182,7 +182,7 @@ function SubNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{sub}</span>
-        <span style={{ fontSize: 11, color: '#aaa' }}>{items.length}</span>
+        <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{items.length}</span>
       </div>
       {isSubOpen && (
         <div style={{ marginLeft: 20, padding: '4px 0' }}>

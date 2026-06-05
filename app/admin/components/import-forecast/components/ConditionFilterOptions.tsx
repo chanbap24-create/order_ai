@@ -56,14 +56,14 @@ export function ConditionFilterOptions(p: Props) {
             fontSize: 11,
             fontWeight: 600,
             textAlign: "center",
-            border: "1px solid #e0e0e0",
+            border: "1px solid var(--gray-200)",
             borderRadius: 4,
             outline: "none",
-            color: p.excludeBulk ? "#333" : "#ccc",
+            color: p.excludeBulk ? "#333" : "var(--gray-300)",
             background: "#fff",
           }}
         />
-        <span style={{ fontSize: 11, color: "#aaa" }}>병+</span>
+        <span style={{ fontSize: 11, color: "var(--gray-400)" }}>병+</span>
       </div>
       <label style={checkLabel}>
         <input
@@ -102,7 +102,7 @@ export function ConditionFilterOptions(p: Props) {
             fontWeight: 500,
             color: p.excludedBizTypes.size > 0 ? "var(--status-danger)" : "#555",
             background: "#fff",
-            border: "1px solid #e0e0e0",
+            border: "1px solid var(--gray-200)",
             borderRadius: 6,
             cursor: "pointer",
           }}
@@ -119,7 +119,7 @@ export function ConditionFilterOptions(p: Props) {
               zIndex: 20,
               background: "#fff",
               borderRadius: 8,
-              border: "1px solid #e0e0e0",
+              border: "1px solid var(--gray-200)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
               padding: "6px 4px",
               minWidth: 170,
@@ -161,7 +161,7 @@ export function ConditionFilterOptions(p: Props) {
               );
             })}
             {p.excludedBizTypes.size > 0 && (
-              <div style={{ borderTop: "1px solid #eee", marginTop: 4, paddingTop: 4 }}>
+              <div style={{ borderTop: "1px solid var(--gray-200)", marginTop: 4, paddingTop: 4 }}>
                 <button
                   onClick={() => {
                     p.setExcludedBizTypes(new Set());

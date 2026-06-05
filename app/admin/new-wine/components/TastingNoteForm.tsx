@@ -21,7 +21,7 @@ export function TastingNoteForm(p: Props) {
   if (!p.tastingNote && !hasAnyValue) return null;
 
   return (
-    <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16 }}>
+    <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 16 }}>
       <h4 style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 14 }}>
         조사 결과 {p.tastingNote?.ai_generated ? "(AI 생성)" : ""}
         {p.tastingNote?.verification_status &&
@@ -86,7 +86,7 @@ export function TastingNoteForm(p: Props) {
       <FormTextarea label="수상 내역" value={p.editForm.awards} onChange={(v) => p.updateField("awards", v)} />
       <FormRow label="숙성 잠재력" value={p.editForm.aging_potential} onChange={(v) => p.updateField("aging_potential", v)} placeholder="예: 5-10년 숙성 가능" />
 
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--gray-200)" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <button
             onClick={p.onSave}
@@ -98,7 +98,7 @@ export function TastingNoteForm(p: Props) {
               border: "none",
               fontSize: 14,
               cursor: "pointer",
-              background: p.saving ? "#9ca3af" : "var(--status-info)",
+              background: p.saving ? "var(--gray-400)" : "var(--status-info)",
               color: "#fff",
               fontWeight: 600,
             }}
@@ -114,11 +114,11 @@ export function TastingNoteForm(p: Props) {
               flex: 1,
               padding: "10px",
               borderRadius: 6,
-              border: "1px solid #d1d5db",
-              background: p.generatingPpt ? "#fef3c7" : p.tastingNote ? "#fff" : "#f3f4f6",
+              border: "1px solid var(--gray-300)",
+              background: p.generatingPpt ? "#fef3c7" : p.tastingNote ? "#fff" : "var(--gray-100)",
               fontSize: 13,
               cursor: p.tastingNote && !p.generatingPpt ? "pointer" : "not-allowed",
-              color: p.tastingNote ? "#374151" : "#d1d5db",
+              color: p.tastingNote ? "#374151" : "var(--gray-300)",
               fontWeight: 600,
             }}
           >

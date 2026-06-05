@@ -13,7 +13,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
   return (
     <div style={{
       position: 'absolute', bottom: 44, right: 0, background: '#fff',
-      border: '1px solid #e0e0e0', borderRadius: 10, padding: 12,
+      border: '1px solid var(--gray-200)', borderRadius: 10, padding: 12,
       boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 300,
       width: 220, maxHeight: 320, overflowY: 'auto',
     }}>
@@ -36,7 +36,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
         <button
           onClick={reset}
           style={{
-            flex: 1, padding: '5px 0', borderRadius: 6, border: '1px solid #ddd',
+            flex: 1, padding: '5px 0', borderRadius: 6, border: '1px solid var(--gray-300)',
             background: '#fff', fontSize: 11, cursor: 'pointer', color: '#666',
           }}
         >

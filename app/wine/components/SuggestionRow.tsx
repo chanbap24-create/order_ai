@@ -42,7 +42,7 @@ export function SuggestionRow({
         marginBottom: 6,
         padding: 8,
         background: saving
-          ? "#f5f5f5"
+          ? "var(--gray-100)"
           : saved
             ? "rgba(16,185,129,0.06)"
             : WINE_COLORS.surface,
@@ -182,7 +182,7 @@ function DiscountButton({
 function discountButtonStyle(active: boolean): React.CSSProperties {
   return {
     padding: "4px 8px",
-    border: `1px solid ${active ? WINE_COLORS.primary : "#ddd"}`,
+    border: `1px solid ${active ? WINE_COLORS.primary : "var(--gray-300)"}`,
     borderRadius: 4,
     background: active ? WINE_COLORS.primaryBgHover : "white",
     cursor: "pointer",
