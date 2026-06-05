@@ -1,4 +1,5 @@
 import type { Shipment } from "./types";
+import { ERP_CUTOFF_DATE } from '@/app/lib/constants';
 
 export type BulkInfo = {
   count: number;
@@ -104,7 +105,7 @@ export function buildMonthlyYearlySeries(
     if (s.ship_date < dateFrom || s.ship_date > dateTo) continue;
     const qty = s.quantity || 0;
     if (qty <= 0) continue;
-    const isNewFormat = s.ship_date >= '2025-08-01';
+    const isNewFormat = s.ship_date >= ERP_CUTOFF_DATE;
     const amount = isNewFormat
       ? (s.supply_amount || 0)
       : (s.selling_price || s.supply_amount || 0);

@@ -1,4 +1,5 @@
 import { supabase } from '@/app/lib/db';
+import { ERP_CUTOFF_DATE } from '@/app/lib/constants';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       date: s.ship_date,
       client: s.client_name,
       qty: s.quantity,
-      price: s.ship_date >= '2025-08-01'
+      price: s.ship_date >= ERP_CUTOFF_DATE
         ? (s.selling_price || s.unit_price || 0)
         : (s.selling_price && s.quantity > 0 ? Math.round(s.selling_price / s.quantity) : s.unit_price || 0),
       manager: s.manager,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ERP_CUTOFF_DATE } from '@/app/lib/constants';
 import { supabase } from '@/app/lib/db';
 import { isValidClientCode, isValidDate } from '@/app/lib/validators';
 import { requireClientAccess } from '@/app/lib/authz';
@@ -187,7 +188,7 @@ export async function GET(req: NextRequest) {
       // 글라스: 2025-08 전산이관 시점이 이월 기준일. carryover.created_at 은 DB insert 시각이라
       // 재동기화로 달라질 수 있어(예: 2026-02-24) 신뢰 불가 → 이관일 2025-08-01 로 고정.
       // 옛 출고(2025-08 이전)는 이월에 반영돼 있으므로 이 기준이 이중계상을 막는다.
-      refDate = '2025-08-01';
+      refDate = ERP_CUTOFF_DATE;
     } else if (carryResult.earliestCreatedAt) {
       const d = new Date(carryResult.earliestCreatedAt);
       const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);

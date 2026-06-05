@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/db";
+import { ERP_CUTOFF_CREATED_AT } from '@/app/lib/constants';
 import { logger } from "@/app/lib/logger";
 import type { PaymentRow, CarryoverRow } from "./types";
 
@@ -40,7 +41,7 @@ export async function processCarryoverFromData(carryovers: CarryoverRow[], appen
   );
 
   // created_at을 2025-08-01로 고정 (전산 전환 시점 = 이월 기준일)
-  const batchData = deduped.map(r => ({ ...r, created_at: '2025-08-01T00:00:00+09:00' }));
+  const batchData = deduped.map(r => ({ ...r, created_at: ERP_CUTOFF_CREATED_AT }));
 
   let inserted = 0;
   for (let i = 0; i < batchData.length; i += 500) {
@@ -91,7 +92,7 @@ export async function processDlCarryoverFromData(carryovers: CarryoverRow[], app
     carryovers.reduce((m, r) => m.set(r.client_code, r), new Map<string, CarryoverRow>()).values()
   );
 
-  const batchData = deduped.map(r => ({ ...r, created_at: '2025-08-01T00:00:00+09:00' }));
+  const batchData = deduped.map(r => ({ ...r, created_at: ERP_CUTOFF_CREATED_AT }));
 
   let inserted = 0;
   for (let i = 0; i < batchData.length; i += 500) {

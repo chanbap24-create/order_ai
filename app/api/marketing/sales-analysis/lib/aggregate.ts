@@ -1,4 +1,5 @@
 import { WINE_CODES, inferVolume } from './constants';
+import { ERP_CUTOFF_DATE } from '@/app/lib/constants';
 import {
   REGION_GROUPS, SUB_REGION_GROUPS,
   matchRegionGroup, resolveRegionGroup, resolveSubRegion,
@@ -96,7 +97,7 @@ export function aggregateShipments(
     }
 
     // 매출 = 공급가액 (시기별 컬럼 차이)
-    const isNewFormat = r.ship_date >= '2025-08-01';
+    const isNewFormat = r.ship_date >= ERP_CUTOFF_DATE;
     const amount = isNewFormat
       ? (r.supply_amount || 0)
       : (r.selling_price || r.supply_amount || 0);

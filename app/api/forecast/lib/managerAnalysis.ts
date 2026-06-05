@@ -1,4 +1,5 @@
 import type { Shipment, StockoutCorrection, LearningCurve, WineMapEntry } from "./types";
+import { ERP_CUTOFF_DATE } from '@/app/lib/constants';
 import { MANAGERS } from "./constants";
 
 type ManagerResult = {
@@ -113,7 +114,7 @@ export function analyzeManagers(
           wineStats[wineName].totalListAmt += listPrice * qty;
           wineStats[wineName].totalListQty += qty;
         }
-        const isNew = s.ship_date >= '2025-08-01';
+        const isNew = s.ship_date >= ERP_CUTOFF_DATE;
         const totalAmt = isNew ? (s.supply_amount || 0) : (s.selling_price || s.supply_amount || 0);
         const perUnitPrice = Math.abs(qty) > 0 ? Math.round(Math.abs(totalAmt) / Math.abs(qty)) : 0;
         if (perUnitPrice > 0 && (listPrice === 0 || perUnitPrice <= listPrice * 1.5)) {

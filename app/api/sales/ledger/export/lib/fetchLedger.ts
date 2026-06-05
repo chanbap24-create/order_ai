@@ -1,4 +1,5 @@
 import { supabase } from '@/app/lib/db';
+import { ERP_CUTOFF_DATE } from '@/app/lib/constants';
 
 // PostgREST 필터 인젝션 방지
 const sanitizeCode = (v: string) => v.replace(/[(),."\\]/g, '');
@@ -106,7 +107,7 @@ export async function fetchLedgerData(
   // 글라스는 2025-08 전산이관 시점이 이월 기준 → created_at(재동기화로 변동) 대신 고정.
   let refDate: string;
   if (isGlass) {
-    refDate = '2025-08-01';
+    refDate = ERP_CUTOFF_DATE;
   } else if (earliestCreatedAt) {
     const d = new Date(earliestCreatedAt);
     const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
