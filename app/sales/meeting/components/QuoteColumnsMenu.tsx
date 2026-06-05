@@ -63,7 +63,7 @@ export function QuoteColumnsMenu(p: Props) {
                 padding: "4px 0",
                 fontSize: 13,
                 cursor: "pointer",
-                color: "#333",
+                color: "var(--neutral-700)",
               }}
             >
               <input
@@ -90,7 +90,7 @@ export function QuoteColumnsMenu(p: Props) {
                 background: "#fff",
                 fontSize: 11,
                 cursor: "pointer",
-                color: "#666",
+                color: "var(--neutral-400)",
               }}
             >
               초기화

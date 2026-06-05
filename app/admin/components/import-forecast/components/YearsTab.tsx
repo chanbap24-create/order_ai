@@ -26,7 +26,7 @@ export function YearsTab(p: Props) {
 
   return (
     <div style={{ padding: "20px 20px 16px" }}>
-      <div style={{ fontSize: 11, fontWeight: 500, color: "#999", marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--neutral-100)", marginBottom: 12 }}>
         연도별 판매량
       </div>
       {details.map((yd) => {
@@ -55,7 +55,7 @@ export function YearsTab(p: Props) {
 
       <div style={{ height: 1, background: "var(--gray-200)", margin: "20px 0" }} />
 
-      <div style={{ fontSize: 11, fontWeight: 500, color: "#999", marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--neutral-100)", marginBottom: 12 }}>
         와인당 판매량
       </div>
       {details.map((yd) => {
@@ -77,7 +77,7 @@ export function YearsTab(p: Props) {
               !singleYear ? (
                 <>
                   {yd.qtyPerItemCorrected}×{w} ={" "}
-                  <strong style={{ color: "#222" }}>{yd.qtyPerItemCorrected * w}</strong>
+                  <strong style={{ color: "var(--neutral-800)" }}>{yd.qtyPerItemCorrected * w}</strong>
                 </>
               ) : undefined
             }
@@ -94,11 +94,11 @@ export function YearsTab(p: Props) {
           border: "1px solid var(--gray-200)",
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#222", marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--neutral-800)", marginBottom: 10 }}>
           {singleYear ? "기대값" : "가중 평균"}
         </div>
 
-        <div style={{ fontSize: 12, color: "#666", lineHeight: 1.8, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "var(--neutral-400)", lineHeight: 1.8, marginBottom: 12 }}>
           <div>
             판매량 {p.activeData.avg_annual_qty_corrected.toLocaleString()}병 ·{" "}
             {p.activeData.avg_items}개 와인
@@ -106,12 +106,12 @@ export function YearsTab(p: Props) {
           {p.isNewItem ? (
             <div>
               {p.activeData.avg_annual_qty_corrected.toLocaleString()} ÷ ({p.activeData.avg_items}
-              +1) = <strong style={{ color: "#222" }}>{p.activeData.qty_per_item}병</strong>
+              +1) = <strong style={{ color: "var(--neutral-800)" }}>{p.activeData.qty_per_item}병</strong>
             </div>
           ) : (
             <div>
               {p.activeData.avg_annual_qty_corrected.toLocaleString()} ÷ {p.activeData.avg_items} ={" "}
-              <strong style={{ color: "#222" }}>{p.activeData.qty_per_item}병</strong>
+              <strong style={{ color: "var(--neutral-800)" }}>{p.activeData.qty_per_item}병</strong>
             </div>
           )}
         </div>
@@ -120,7 +120,7 @@ export function YearsTab(p: Props) {
           <div
             style={{
               fontSize: 12,
-              color: "#333",
+              color: "var(--neutral-700)",
               lineHeight: 2,
               fontFamily: "'SF Mono', 'Consolas', monospace",
               marginBottom: 8,
@@ -139,10 +139,10 @@ export function YearsTab(p: Props) {
         )}
 
         <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ fontSize: 28, fontWeight: 700, color: "#111" }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: "var(--neutral-900)" }}>
             {p.activeData.qty_per_item}
           </span>
-          <span style={{ fontSize: 13, color: "#999" }}>병/년</span>
+          <span style={{ fontSize: 13, color: "var(--neutral-100)" }}>병/년</span>
           {Math.abs(p.activeData.qty_per_item - p.activeData.qty_per_item_raw) >= 5 && (
             <span style={{ fontSize: 11, color: "var(--status-warning)" }}>
               보정 전 {p.activeData.qty_per_item_raw}
@@ -160,12 +160,12 @@ export function YearsTab(p: Props) {
               border: "1px solid #d6e8f7",
             }}
           >
-            <div style={{ fontSize: 12, color: "#333" }}>
+            <div style={{ fontSize: 12, color: "var(--neutral-700)" }}>
               1년차: {p.activeData.qty_per_item} × {Math.round(p.learningCurve.ratio * 100)}% ={" "}
               <strong>{p.activeData.qty_per_item_year1}병</strong>
             </div>
             {p.learningCurve.sampleSize > 0 && (
-              <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: "var(--neutral-100)", marginTop: 4 }}>
                 {p.learningCurve.details
                   .slice(0, 3)
                   .map((d) => `${d.name.substring(0, 8)}… ${Math.round(d.ratio * 100)}%`)

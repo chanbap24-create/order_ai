@@ -162,7 +162,7 @@ function MeetingCardHeader({
             style={{
               padding: '5px 10px', borderRadius: 6, border: 'none',
               background: generating ? 'var(--gray-200)' : '#1a237e',
-              color: generating ? '#999' : '#fff',
+              color: generating ? 'var(--neutral-100)' : '#fff',
               fontSize: 11, fontWeight: 600, cursor: generating ? 'default' : 'pointer',
             }}
           >

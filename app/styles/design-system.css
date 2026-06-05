@@ -123,6 +123,19 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
 
+  /* Pure neutral ramp (순수 중립 — 단축 그레이 #999~#111 무손실 토큰).
+     gray 램프는 쿨 tint, neutral 램프는 순수 무채색. 0x11 간격 균등 스케일.
+     100=가장 밝음(#999) ... 900=가장 어두움(#111). */
+  --neutral-100: #999999;
+  --neutral-200: #888888;
+  --neutral-300: #777777;
+  --neutral-400: #666666;
+  --neutral-500: #555555;
+  --neutral-600: #444444;
+  --neutral-700: #333333;
+  --neutral-800: #222222;
+  --neutral-900: #111111;
+
   /* Layout primitives */
   --sidebar-width: 232px;
   --sidebar-width-collapsed: 60px;

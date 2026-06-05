@@ -23,7 +23,7 @@ export function ConditionPanelHeader(p: Props) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>수입량 예측</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--neutral-900)" }}>수입량 예측</div>
         <div
           style={{
             display: "flex",
@@ -44,8 +44,8 @@ export function ConditionPanelHeader(p: Props) {
                 padding: "4px 14px",
                 fontSize: 12,
                 fontWeight: p.isNewItem === opt.v ? 600 : 400,
-                background: p.isNewItem === opt.v ? "#111" : "#fff",
-                color: p.isNewItem === opt.v ? "#fff" : "#999",
+                background: p.isNewItem === opt.v ? "var(--neutral-900)" : "#fff",
+                color: p.isNewItem === opt.v ? "#fff" : "var(--neutral-100)",
                 border: "none",
                 cursor: "pointer",
                 transition: "all 0.15s",
@@ -65,7 +65,7 @@ export function ConditionPanelHeader(p: Props) {
               fontSize: 12,
               fontWeight: 500,
               background: "#fff",
-              color: "#555",
+              color: "var(--neutral-500)",
               border: "1px solid var(--gray-300)",
               borderRadius: 6,
               cursor: "pointer",

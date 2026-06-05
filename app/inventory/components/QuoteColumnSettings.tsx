@@ -57,7 +57,7 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
         견적 컬럼 (체크 + 드래그로 순서 변경)
       </div>
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: "0.7rem", color: "#999", marginBottom: 4 }}>
+        <div style={{ fontSize: "0.7rem", color: "var(--neutral-100)", marginBottom: 4 }}>
           표시 순서 (드래그하여 이동)
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

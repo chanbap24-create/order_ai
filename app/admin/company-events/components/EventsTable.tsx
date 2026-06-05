@@ -74,7 +74,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
               {formatDateKR(ev.meeting_date)}
             </div>
-            <div style={{ fontSize: 13, color: '#666' }}>
+            <div style={{ fontSize: 13, color: 'var(--neutral-400)' }}>
               {ev.meeting_time?.slice(0, 5) || '-'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>

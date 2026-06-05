@@ -13,7 +13,7 @@ type Props = {
 export function YearBar(p: Props) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-      <div style={{ width: 40, fontSize: 13, fontWeight: 600, color: "#222" }}>{p.year}</div>
+      <div style={{ width: 40, fontSize: 13, fontWeight: 600, color: "var(--neutral-800)" }}>{p.year}</div>
       {!p.singleYear && (
         <div style={{ width: 24, textAlign: "center" }}>
           <span
@@ -55,14 +55,14 @@ export function YearBar(p: Props) {
             transform: "translateY(-50%)",
             fontSize: 12,
             fontWeight: 600,
-            color: p.pct > 40 ? "#fff" : "#222",
+            color: p.pct > 40 ? "#fff" : "var(--neutral-800)",
           }}
         >
           {p.label}
         </div>
       </div>
       {p.rightText && (
-        <div style={{ width: 90, fontSize: 10, color: "#999", textAlign: "right" }}>
+        <div style={{ width: 90, fontSize: 10, color: "var(--neutral-100)", textAlign: "right" }}>
           {p.rightText}
         </div>
       )}

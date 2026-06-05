@@ -41,7 +41,7 @@ export function LearnInputCard({
             borderRadius: 12,
           }}
         >
-          <div style={{ color: "#777", fontSize: 12, marginBottom: 10 }}>
+          <div style={{ color: "var(--neutral-300)", fontSize: 12, marginBottom: 10 }}>
             자연어 → 정답(표준 키워드/약어/정확한 품목명) 저장. 저장 즉시 resolve에 반영.
           </div>
 
@@ -83,7 +83,7 @@ export function LearnInputCard({
               <div
                 style={{
                   marginLeft: "auto",
-                  color: "#888",
+                  color: "var(--neutral-200)",
                   fontSize: 12,
                   alignSelf: "center",
                 }}

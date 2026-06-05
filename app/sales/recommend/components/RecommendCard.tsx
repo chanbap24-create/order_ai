@@ -53,8 +53,8 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
           {item.tags.map(tag => (
             <span key={tag} style={{
               fontSize: 10, padding: '1px 6px', borderRadius: 8,
-              background: `${TAG_COLORS[tag] || '#999'}18`,
-              color: TAG_COLORS[tag] || '#999',
+              background: `${TAG_COLORS[tag] || 'var(--neutral-100)'}18`,
+              color: TAG_COLORS[tag] || 'var(--neutral-100)',
               fontWeight: 600,
             }}>
               {tag}

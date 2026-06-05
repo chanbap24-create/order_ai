@@ -27,7 +27,7 @@ export function ChannelsTab({ activeData }: Props) {
     <div style={{ padding: "16px 20px" }}>
       {chs.map((ch) => {
         const pct = Math.round((ch.qty / maxQty) * 100);
-        const color = CHANNEL_COLORS[ch.channel] || "#999";
+        const color = CHANNEL_COLORS[ch.channel] || "var(--neutral-100)";
         return (
           <div key={ch.channel} style={{ marginBottom: 10 }}>
             <div
@@ -42,13 +42,13 @@ export function ChannelsTab({ activeData }: Props) {
                 <div
                   style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }}
                 />
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#222" }}>{ch.channel}</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--neutral-800)" }}>{ch.channel}</span>
                 <span style={{ fontSize: 11, color: "#bbb" }}>{ch.pct}%</span>
               </div>
-              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#999" }}>
+              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--neutral-100)" }}>
                 <span>{ch.clients}거래처</span>
                 <span>{ch.wines}와인</span>
-                <span style={{ fontWeight: 600, color: "#222" }}>
+                <span style={{ fontWeight: 600, color: "var(--neutral-800)" }}>
                   {ch.annual_qty.toLocaleString()}/년
                 </span>
               </div>
@@ -80,7 +80,7 @@ export function ChannelsTab({ activeData }: Props) {
                   transform: "translateY(-50%)",
                   fontSize: 11,
                   fontWeight: 600,
-                  color: pct > 35 ? "#fff" : "#222",
+                  color: pct > 35 ? "#fff" : "var(--neutral-800)",
                 }}
               >
                 {ch.qty.toLocaleString()}
@@ -94,7 +94,7 @@ export function ChannelsTab({ activeData }: Props) {
         {chs
           .filter((c) => c.qty_per_wine > 0)
           .map((ch) => {
-            const color = CHANNEL_COLORS[ch.channel] || "#999";
+            const color = CHANNEL_COLORS[ch.channel] || "var(--neutral-100)";
             return (
               <span
                 key={ch.channel}
@@ -104,7 +104,7 @@ export function ChannelsTab({ activeData }: Props) {
                   background: "var(--gray-50)",
                   border: "1px solid var(--gray-200)",
                   fontSize: 11,
-                  color: "#333",
+                  color: "var(--neutral-700)",
                 }}
               >
                 {ch.channel} <strong style={{ color }}>{ch.qty_per_wine}</strong>/년

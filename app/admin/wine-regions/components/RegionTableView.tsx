@@ -18,7 +18,7 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
             {['국가', '대지역', '서브리전', 'AOC/DO/AVA', '크뤼/포도밭', '등급', '품종', '비고', ''].map(h => (
               <th key={h} style={{
                 padding: '8px 6px', textAlign: 'left', fontWeight: 600,
-                color: '#555', borderBottom: '2px solid var(--gray-200)', whiteSpace: 'nowrap',
+                color: 'var(--neutral-500)', borderBottom: '2px solid var(--gray-200)', whiteSpace: 'nowrap',
               }}>
                 {h}
               </th>
@@ -33,7 +33,7 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{r.country?.split(' ')[0]}</span>
               </td>
               <td style={{ padding: '6px', fontWeight: 500, color: 'var(--action)' }}>{r.major_region}</td>
-              <td style={{ padding: '6px', color: '#444' }}>{r.sub_region || '-'}</td>
+              <td style={{ padding: '6px', color: 'var(--neutral-600)' }}>{r.sub_region || '-'}</td>
               <td style={{ padding: '6px', fontWeight: 500 }}>{r.appellation || '-'}</td>
               <td style={{ padding: '6px', color: 'var(--color-primary-light)' }}>{r.cru_vineyard || '-'}</td>
               <td style={{ padding: '6px' }}>
@@ -51,7 +51,7 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
               <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                 <button
                   onClick={() => onEdit(r)}
-                  style={{ padding: '2px 6px', fontSize: 10, border: '1px solid var(--gray-300)', borderRadius: 3, background: '#fff', cursor: 'pointer', color: '#555', marginRight: 4 }}
+                  style={{ padding: '2px 6px', fontSize: 10, border: '1px solid var(--gray-300)', borderRadius: 3, background: '#fff', cursor: 'pointer', color: 'var(--neutral-500)', marginRight: 4 }}
                 >
                   수정
                 </button>

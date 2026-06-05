@@ -100,7 +100,7 @@ export default function LearnedAliasList({
         />
       </div>
 
-      <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
+      <div style={{ marginTop: 10, fontSize: 12, color: "var(--neutral-400)" }}>
         {filtered.length}건
       </div>
 
@@ -126,7 +126,7 @@ export default function LearnedAliasList({
                 <div style={{ fontWeight: 700 }}>
                   {r.alias} → {r.canonical}
                   {r.client_code && r.client_code !== '*' && (
-                    <span style={{ marginLeft: 8, fontSize: 11, color: '#666', padding: '2px 6px', background: 'var(--gray-100)', borderRadius: 4 }}>
+                    <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--neutral-400)', padding: '2px 6px', background: 'var(--gray-100)', borderRadius: 4 }}>
                       거래처: {r.client_code}
                     </span>
                   )}
@@ -137,7 +137,7 @@ export default function LearnedAliasList({
                   )}
                 </div>
                 {(r.last_used_at || r.created_at) && (
-                  <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: "var(--neutral-300)", marginTop: 2 }}>
                     {r.last_used_at ? `최근 사용: ${r.last_used_at}` : `생성: ${r.created_at}`}
                   </div>
                 )}

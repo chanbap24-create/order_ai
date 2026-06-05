@@ -41,7 +41,7 @@ export function ClientPickerCard(p: Props) {
             onChange={e => p.onFilterManagerChange(e.target.value)}
             style={{
               padding: '8px 12px', borderRadius: 6, border: '1.5px solid var(--border-default)',
-              fontSize: 16, background: '#fff', color: p.filterManager ? 'var(--text-primary)' : '#999',
+              fontSize: 16, background: '#fff', color: p.filterManager ? 'var(--text-primary)' : 'var(--neutral-100)',
               outline: 'none', width: '100%', boxSizing: 'border-box',
             }}
           >

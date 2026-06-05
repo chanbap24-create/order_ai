@@ -37,7 +37,7 @@ export function ConditionRanges(p: Props) {
                   border: isActive ? "1px solid var(--action)" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   background: isActive ? "var(--action)" : "#fff",
-                  color: isActive ? "#fff" : "#888",
+                  color: isActive ? "#fff" : "var(--neutral-200)",
                 }}
               >
                 {ps.label}
@@ -87,7 +87,7 @@ export function ConditionRanges(p: Props) {
                   border: isActive ? "1px solid var(--action)" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   background: isActive ? "var(--action)" : "#fff",
-                  color: isActive ? "#fff" : "#888",
+                  color: isActive ? "#fff" : "var(--neutral-200)",
                 }}
               >
                 {ys.label}

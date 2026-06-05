@@ -90,7 +90,7 @@ export function ItemCard({
           {(item as any).item_name_en && (
             <span
               style={{
-                fontSize: "0.68rem", color: "#999", fontWeight: 400,
+                fontSize: "0.68rem", color: "var(--neutral-100)", fontWeight: 400,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 flexShrink: 1,
               }}
@@ -137,7 +137,7 @@ export function ItemCard({
                   fontSize: "0.72rem", lineHeight: 1,
                 }}
               >
-                <span style={{ color: "#999", fontWeight: 500 }}>{col.label}</span>
+                <span style={{ color: "var(--neutral-100)", fontWeight: 500 }}>{col.label}</span>
                 <span style={{ color: "#2D2D2D", fontWeight: 600 }}>
                   {renderCellValue(item, colKey)}
                 </span>

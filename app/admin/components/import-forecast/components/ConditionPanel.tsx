@@ -137,7 +137,7 @@ export function ConditionPanel(p: Props) {
             flexWrap: "wrap",
             alignItems: "center",
             fontSize: 11,
-            color: "#999",
+            color: "var(--neutral-100)",
           }}
         >
           {p.isNewItem ? "신규" : "기존"}

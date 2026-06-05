@@ -44,7 +44,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
                 border: "none",
                 borderBottom: `2px solid ${active ? "var(--action)" : "var(--gray-200)"}`,
                 background: active ? "#5A151508" : "transparent",
-                color: active ? "var(--action)" : "#999",
+                color: active ? "var(--action)" : "var(--neutral-100)",
                 fontSize: 14,
                 fontWeight: active ? 700 : 500,
                 cursor: "pointer",

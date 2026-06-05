@@ -69,7 +69,7 @@ export function VisitSection(p: Props) {
                         ? f.id === "all"
                           ? "#795548"
                           : VISIT_URGENCY_COLORS[f.id] || "#795548"
-                        : "#999",
+                        : "var(--neutral-100)",
                     cursor: "pointer",
                   }}
                 >
@@ -146,7 +146,7 @@ export function VisitSection(p: Props) {
 
                 <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                   마지막 접촉:{" "}
-                  <strong style={{ color: v.days_since_contact >= 60 ? "#4E342E" : "#333" }}>
+                  <strong style={{ color: v.days_since_contact >= 60 ? "#4E342E" : "var(--neutral-700)" }}>
                     {v.days_since_contact}일 전
                   </strong>
                   <span style={{ color: "#bbb", marginLeft: 6 }}>({v.last_contact_date})</span>

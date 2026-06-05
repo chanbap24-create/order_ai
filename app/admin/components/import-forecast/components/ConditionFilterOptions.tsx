@@ -40,7 +40,7 @@ export function ConditionFilterOptions(p: Props) {
             }}
             style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
           />
-          <span style={{ fontWeight: 500, color: "#333" }}>특판 제외</span>
+          <span style={{ fontWeight: 500, color: "var(--neutral-700)" }}>특판 제외</span>
         </label>
         <input
           type="number"
@@ -59,7 +59,7 @@ export function ConditionFilterOptions(p: Props) {
             border: "1px solid var(--gray-200)",
             borderRadius: 4,
             outline: "none",
-            color: p.excludeBulk ? "#333" : "var(--gray-300)",
+            color: p.excludeBulk ? "var(--neutral-700)" : "var(--gray-300)",
             background: "#fff",
           }}
         />
@@ -75,7 +75,7 @@ export function ConditionFilterOptions(p: Props) {
           }}
           style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
         />
-        <span style={{ fontWeight: 500, color: "#333" }}>샘플 제외</span>
+        <span style={{ fontWeight: 500, color: "var(--neutral-700)" }}>샘플 제외</span>
       </label>
       <label style={checkLabel}>
         <input
@@ -87,7 +87,7 @@ export function ConditionFilterOptions(p: Props) {
           }}
           style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
         />
-        <span style={{ fontWeight: 500, color: "#333" }}>보정 제외</span>
+        <span style={{ fontWeight: 500, color: "var(--neutral-700)" }}>보정 제외</span>
       </label>
 
       <div style={{ position: "relative" }}>
@@ -100,7 +100,7 @@ export function ConditionFilterOptions(p: Props) {
             padding: "4px 10px",
             fontSize: 12,
             fontWeight: 500,
-            color: p.excludedBizTypes.size > 0 ? "var(--status-danger)" : "#555",
+            color: p.excludedBizTypes.size > 0 ? "var(--status-danger)" : "var(--neutral-500)",
             background: "#fff",
             border: "1px solid var(--gray-200)",
             borderRadius: 6,
@@ -139,7 +139,7 @@ export function ConditionFilterOptions(p: Props) {
                     userSelect: "none",
                     borderRadius: 4,
                     fontSize: 12,
-                    color: isExcluded ? "#bbb" : "#333",
+                    color: isExcluded ? "#bbb" : "var(--neutral-700)",
                   }}
                 >
                   <input
@@ -171,7 +171,7 @@ export function ConditionFilterOptions(p: Props) {
                     width: "100%",
                     padding: "4px 10px",
                     fontSize: 11,
-                    color: "#999",
+                    color: "var(--neutral-100)",
                     background: "none",
                     border: "none",
                     cursor: "pointer",

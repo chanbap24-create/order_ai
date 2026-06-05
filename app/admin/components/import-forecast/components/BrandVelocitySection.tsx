@@ -92,7 +92,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           justifyContent: "space-between",
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#222", textAlign: "left" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--neutral-800)", textAlign: "left" }}>
           브랜드 소진 분석
         </div>
         <span style={{ fontSize: 11, color: "#bbb" }}>
@@ -128,11 +128,11 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   padding: "2px 8px",
                   fontSize: 10,
                   borderRadius: 3,
-                  border: filterPrice === p ? "1px solid #111" : "1px solid var(--gray-200)",
+                  border: filterPrice === p ? "1px solid var(--neutral-900)" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   fontWeight: filterPrice === p ? 600 : 400,
-                  background: filterPrice === p ? "#111" : "#fff",
-                  color: filterPrice === p ? "#fff" : "#999",
+                  background: filterPrice === p ? "var(--neutral-900)" : "#fff",
+                  color: filterPrice === p ? "#fff" : "var(--neutral-100)",
                 }}
               >
                 {p === "all" ? "전체" : p}
@@ -154,11 +154,11 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   padding: "2px 8px",
                   fontSize: 10,
                   borderRadius: 3,
-                  border: sortKey === k ? "1px solid #111" : "1px solid var(--gray-200)",
+                  border: sortKey === k ? "1px solid var(--neutral-900)" : "1px solid var(--gray-200)",
                   cursor: "pointer",
                   fontWeight: sortKey === k ? 600 : 400,
-                  background: sortKey === k ? "#111" : "#fff",
-                  color: sortKey === k ? "#fff" : "#999",
+                  background: sortKey === k ? "var(--neutral-900)" : "#fff",
+                  color: sortKey === k ? "#fff" : "var(--neutral-100)",
                 }}
               >
                 {l}
@@ -200,24 +200,24 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: "#222" }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--neutral-800)" }}>
                     {b.brand}
                   </div>
                   <div style={{ fontSize: 10, color: "var(--gray-300)" }}>{b.country}</div>
                 </div>
-                <div style={{ textAlign: "right", fontSize: 11, color: "#999" }}>
+                <div style={{ textAlign: "right", fontSize: 11, color: "var(--neutral-100)" }}>
                   {b.items}
                 </div>
-                <div style={{ textAlign: "right", fontSize: 11, color: "#999" }}>
+                <div style={{ textAlign: "right", fontSize: 11, color: "var(--neutral-100)" }}>
                   {b.avgPrice > 0 ? (b.avgPrice / 1000).toFixed(0) + "k" : "-"}
                 </div>
                 <div
-                  style={{ textAlign: "right", fontSize: 12, fontWeight: 600, color: "#222" }}
+                  style={{ textAlign: "right", fontSize: 12, fontWeight: 600, color: "var(--neutral-800)" }}
                 >
                   {b.total.toLocaleString()}
                 </div>
                 <div
-                  style={{ textAlign: "right", fontSize: 11, fontWeight: 500, color: "#555" }}
+                  style={{ textAlign: "right", fontSize: 11, fontWeight: 500, color: "var(--neutral-500)" }}
                 >
                   {b.monthlyAvg.toLocaleString()}
                 </div>
@@ -225,7 +225,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   style={{
                     textAlign: "center",
                     fontSize: 11,
-                    color: b.months5c <= 1 ? "var(--status-success)" : "#999",
+                    color: b.months5c <= 1 ? "var(--status-success)" : "var(--neutral-100)",
                   }}
                 >
                   {b.months5c}
@@ -259,7 +259,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   {b.months20c}
                 </div>
                 <div style={{ textAlign: "center" }}>
-                  <span style={{ fontSize: 10, color: patternColor[b.pattern] || "#999" }}>
+                  <span style={{ fontSize: 10, color: patternColor[b.pattern] || "var(--neutral-100)" }}>
                     {b.pattern}
                   </span>
                 </div>

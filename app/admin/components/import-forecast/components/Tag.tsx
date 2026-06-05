@@ -13,7 +13,7 @@ export function Tag({ children }: { children: React.ReactNode }) {
         borderRadius: 3,
         fontSize: 11,
         fontWeight: 500,
-        color: "#555",
+        color: "var(--neutral-500)",
       }}
     >
       {children}

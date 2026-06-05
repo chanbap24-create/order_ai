@@ -76,7 +76,7 @@ export function TrendBar(p: Props) {
         marginBottom: 16,
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 8 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--neutral-400)", marginBottom: 8 }}>
         트렌드 {p.trend.prevYear}→{p.trend.year}
       </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12 }}>

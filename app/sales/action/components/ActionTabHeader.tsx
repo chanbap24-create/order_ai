@@ -46,7 +46,7 @@ export function ActionTabHeader(p: Props) {
               border: "1px solid var(--border-default)",
               fontSize: 16,
               background: "#fff",
-              color: p.selectedManager ? "var(--text-primary)" : "#999",
+              color: p.selectedManager ? "var(--text-primary)" : "var(--neutral-100)",
               outline: "none",
             }}
           >
@@ -67,7 +67,7 @@ export function ActionTabHeader(p: Props) {
             background: p.compactMode ? "var(--action-muted)" : "white",
             fontSize: 11,
             fontWeight: 600,
-            color: p.compactMode ? "var(--action)" : "#999",
+            color: p.compactMode ? "var(--action)" : "var(--neutral-100)",
             cursor: "pointer",
             whiteSpace: "nowrap",
           }}

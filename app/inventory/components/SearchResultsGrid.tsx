@@ -62,7 +62,7 @@ export function SearchResultsGrid({
         <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#2D2D2D" }}>
           No results found
         </div>
-        <div style={{ fontSize: "0.75rem", color: "#999", marginTop: 4 }}>
+        <div style={{ fontSize: "0.75rem", color: "var(--neutral-100)", marginTop: 4 }}>
           {allResultsCount === 0 ? "Try a different search term" : "Adjust filters to see more items"}
         </div>
       </div>

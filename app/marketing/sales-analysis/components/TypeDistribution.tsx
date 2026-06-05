@@ -20,7 +20,7 @@ export const TypeDistribution = memo(function TypeDistribution({ data }: { data:
             title={`${t.name} ${fmtM(t.amount)} (${pct(t.amount, data.total_amount)}%)`}
             style={{
               width: `${pct(t.amount, data.total_amount)}%`,
-              background: TYPE_COLORS[t.name] || '#999',
+              background: TYPE_COLORS[t.name] || 'var(--neutral-100)',
               minWidth: t.amount > 0 ? 2 : 0,
               transition: 'width 0.3s',
             }}
@@ -30,9 +30,9 @@ export const TypeDistribution = memo(function TypeDistribution({ data }: { data:
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         {data.types.map(t => (
           <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: TYPE_COLORS[t.name] || '#999' }} />
-            <span style={{ fontWeight: 600, color: '#333' }}>{t.name}</span>
-            <span style={{ color: '#999' }}>{fmtM(t.amount)} ({pct(t.amount, data.total_amount)}%)</span>
+            <div style={{ width: 10, height: 10, borderRadius: 2, background: TYPE_COLORS[t.name] || 'var(--neutral-100)' }} />
+            <span style={{ fontWeight: 600, color: 'var(--neutral-700)' }}>{t.name}</span>
+            <span style={{ color: 'var(--neutral-100)' }}>{fmtM(t.amount)} ({pct(t.amount, data.total_amount)}%)</span>
             <span style={{ color: '#bbb' }}>{fmt(t.qty)}병</span>
           </div>
         ))}

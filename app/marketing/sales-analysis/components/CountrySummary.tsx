@@ -66,13 +66,13 @@ const CountryRowView = memo(function CountryRowView({
           </div>
           <span style={{
             position: 'absolute', right: 8, top: 3,
-            fontSize: 11, color: '#444', fontWeight: 600,
+            fontSize: 11, color: 'var(--neutral-600)', fontWeight: 600,
             textShadow: '0 0 3px #fff, 0 0 3px #fff',
           }}>
             {fmt(c.qty)} ({pct(c.qty, total)}%)
           </span>
         </div>
-        <div style={{ width: 65, textAlign: 'right', fontSize: 11, color: '#999', flexShrink: 0 }}>{fmtM(c.amount)}</div>
+        <div style={{ width: 65, textAlign: 'right', fontSize: 11, color: 'var(--neutral-100)', flexShrink: 0 }}>{fmtM(c.amount)}</div>
         <div style={{ width: 55, textAlign: 'right', fontSize: 10, color: '#bbb', flexShrink: 0 }}>{c.items}종</div>
         <span style={{ fontSize: 10, color: 'var(--gray-300)', flexShrink: 0 }}>{expanded ? '▼' : '▶'}</span>
       </div>
@@ -83,7 +83,7 @@ const CountryRowView = memo(function CountryRowView({
               <span key={t.name} style={{
                 fontSize: 10, padding: '2px 8px', borderRadius: 4,
                 background: TYPE_BG[t.name] || 'var(--gray-100)',
-                color: TYPE_COLORS[t.name] || '#666',
+                color: TYPE_COLORS[t.name] || 'var(--neutral-400)',
                 fontWeight: 600,
               }}>
                 {t.name} {fmt(t.qty)} ({pct(t.qty, c.qty)}%)
@@ -92,12 +92,12 @@ const CountryRowView = memo(function CountryRowView({
           </div>
           {regions.length > 0 && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 600, color: '#999', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--neutral-100)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 지역별
               </div>
               {regions.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
-                  <div style={{ width: 110, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <div style={{ width: 110, color: 'var(--neutral-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {r.name}
                   </div>
                   <div style={{ flex: 1, height: 14, background: '#f5f0f0', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
@@ -106,7 +106,7 @@ const CountryRowView = memo(function CountryRowView({
                       background: '#C4A35A', borderRadius: 3, minWidth: 2,
                     }} />
                   </div>
-                  <div style={{ width: 55, textAlign: 'right', fontSize: 11, color: '#888', fontWeight: 500, flexShrink: 0 }}>{fmt(r.qty)}</div>
+                  <div style={{ width: 55, textAlign: 'right', fontSize: 11, color: 'var(--neutral-200)', fontWeight: 500, flexShrink: 0 }}>{fmt(r.qty)}</div>
                   <div style={{ width: 50, textAlign: 'right', fontSize: 10, color: '#bbb', flexShrink: 0 }}>{fmtM(r.amount)}</div>
                   <div style={{ width: 55, textAlign: 'right', fontSize: 10, color: 'var(--gray-400)', flexShrink: 0 }}>{fmt(r.avg_price)}원</div>
                 </div>

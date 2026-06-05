@@ -41,7 +41,7 @@ export function RecalcBar(p: Props) {
             border: "1px solid var(--gray-300)",
             borderRadius: 4,
             cursor: "pointer",
-            color: "#999",
+            color: "var(--neutral-100)",
           }}
         >
           초기화

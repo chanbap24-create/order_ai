@@ -41,7 +41,7 @@ export const KpiCards = memo(function KpiCards({ data }: { data: AnalysisData })
             {card.label}
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{card.value}</div>
-          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{card.sub}</div>
+          <div style={{ fontSize: 11, color: 'var(--neutral-100)', marginTop: 2 }}>{card.sub}</div>
         </div>
       ))}
     </div>

@@ -126,7 +126,7 @@ export function DesktopQuoteSidebar(p: Props) {
               style={{
                 padding: 24,
                 textAlign: "center",
-                color: "#999",
+                color: "var(--neutral-100)",
                 fontSize: "0.82rem",
               }}
             >
@@ -194,7 +194,7 @@ function TotalsSummary({
         gap: 16,
         flexWrap: "wrap",
         fontSize: 13,
-        color: "#666",
+        color: "var(--neutral-400)",
         alignItems: "center",
       }}
     >

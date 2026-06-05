@@ -193,7 +193,7 @@ function PanelHeader({
             border: "none",
             fontSize: 20,
             cursor: "pointer",
-            color: "#333",
+            color: "var(--neutral-700)",
             padding: 0,
             lineHeight: 1,
           }}
@@ -267,7 +267,7 @@ function IconBtn({ active, onClick, title, children }: {
 
 function EmptyState() {
   return (
-    <div style={{ padding: "48px 24px", textAlign: "center", color: "#999" }}>
+    <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--neutral-100)" }}>
       <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#2D2D2D" }}>No items yet</div>
       <div style={{ fontSize: "0.75rem", marginTop: 4 }}>검색 결과에서 + 버튼으로 추가</div>
     </div>
@@ -285,10 +285,10 @@ function Totals({ itemCount, totalQty, totalNormal, totalDiscount }: {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={{ color: "#666" }}>품목 {itemCount}개 / 수량 {totalQty}</span>
+        <span style={{ color: "var(--neutral-400)" }}>품목 {itemCount}개 / 수량 {totalQty}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={{ color: "#666" }}>정상합계</span>
+        <span style={{ color: "var(--neutral-400)" }}>정상합계</span>
         <span style={{ fontWeight: 600 }}>{formatWon(totalNormal)}원</span>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "var(--action)" }}>

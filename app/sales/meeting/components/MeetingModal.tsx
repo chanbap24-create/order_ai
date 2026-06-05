@@ -81,7 +81,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
                 borderRadius: 8,
                 border: "none",
                 background: modal.modalType === key ? `${color}20` : "#f5f3ed",
-                color: modal.modalType === key ? color : "#999",
+                color: modal.modalType === key ? color : "var(--neutral-100)",
                 fontWeight: modal.modalType === key ? 700 : 500,
                 fontSize: 13,
                 cursor: "pointer",

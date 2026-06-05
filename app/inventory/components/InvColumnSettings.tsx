@@ -32,7 +32,7 @@ export function InvColumnSettings({ availableColumns, visibleColumns, onToggle }
         <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#2D2D2D" }}>
           표시 컬럼
         </span>
-        <span style={{ fontSize: "0.68rem", color: "#999" }}>품번·품명은 항상 표시</span>
+        <span style={{ fontSize: "0.68rem", color: "var(--neutral-100)" }}>품번·품명은 항상 표시</span>
       </div>
       <div
         className="inv-col-grid"

@@ -52,12 +52,12 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
         </button>
       </div>
 
-      <div style={{ marginBottom: 8, fontSize: 12, color: "#666" }}>
+      <div style={{ marginBottom: 8, fontSize: 12, color: "var(--neutral-400)" }}>
         {rows.length}건
       </div>
 
       {rows.length === 0 ? (
-        <div style={{ padding: 20, textAlign: "center", color: "#999" }}>
+        <div style={{ padding: 20, textAlign: "center", color: "var(--neutral-100)" }}>
           신규 품목 학습 내역이 없습니다
         </div>
       ) : (
@@ -87,7 +87,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
                       ? `${row.supply_price.toLocaleString()}원` 
                       : '-'}
                   </td>
-                  <td style={{ padding: 8, fontSize: 11, color: "#999" }}>
+                  <td style={{ padding: 8, fontSize: 11, color: "var(--neutral-100)" }}>
                     {new Date(row.updated_at).toLocaleString('ko-KR', {
                       year: '2-digit',
                       month: '2-digit',

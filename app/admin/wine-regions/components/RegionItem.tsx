@@ -37,7 +37,7 @@ export function RegionItem({ region: r, onEdit, onDelete }: Props) {
       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
         <button
           onClick={() => onEdit(r)}
-          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid var(--gray-300)', borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#555' }}
+          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid var(--gray-300)', borderRadius: 4, background: '#fff', cursor: 'pointer', color: 'var(--neutral-500)' }}
         >
           수정
         </button>

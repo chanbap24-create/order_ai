@@ -50,7 +50,7 @@ export function BriefingSummary({ briefing }: { briefing: BriefingData }) {
           <div style={{
             fontWeight: 700,
             color: briefing.client_summary.trend === 'up' ? 'var(--status-success)'
-              : briefing.client_summary.trend === 'down' ? 'var(--status-danger)' : '#666',
+              : briefing.client_summary.trend === 'down' ? 'var(--status-danger)' : 'var(--neutral-400)',
           }}>
             {briefing.client_summary.trend === 'up' ? '상승' : briefing.client_summary.trend === 'down' ? '하락' : '유지'}
           </div>
@@ -95,7 +95,7 @@ export function PurchasedItemsList({ items }: { items: BriefingData['purchased_i
           </div>
           <div style={{ flexShrink: 0, textAlign: 'right', display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>{it.buy_count}회</span>
-            <span style={{ fontWeight: 600, color: '#333', minWidth: 50, textAlign: 'right' }}>
+            <span style={{ fontWeight: 600, color: 'var(--neutral-700)', minWidth: 50, textAlign: 'right' }}>
               {it.supply_price ? fmt(it.supply_price) + '원' : '-'}
             </span>
           </div>
@@ -120,7 +120,7 @@ export function RecommendationsList({ recommendations }: { recommendations: Brie
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: r.score >= 20 ? 'var(--status-danger)' : '#888', fontWeight: 600, fontSize: 11 }}>{r.score}점</span>
+              <span style={{ color: r.score >= 20 ? 'var(--status-danger)' : 'var(--neutral-200)', fontWeight: 600, fontSize: 11 }}>{r.score}점</span>
               <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.item_name}</span>
             </div>
             {(r.country || r.grape) && (
@@ -132,8 +132,8 @@ export function RecommendationsList({ recommendations }: { recommendations: Brie
               {r.tags.slice(0, 3).map(tag => (
                 <span key={tag} style={{
                   fontSize: 9, padding: '0px 4px', borderRadius: 4,
-                  background: `${TAG_COLORS[tag] || '#999'}18`,
-                  color: TAG_COLORS[tag] || '#999', fontWeight: 600,
+                  background: `${TAG_COLORS[tag] || 'var(--neutral-100)'}18`,
+                  color: TAG_COLORS[tag] || 'var(--neutral-100)', fontWeight: 600,
                 }}>
                   {tag}
                 </span>

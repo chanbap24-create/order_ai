@@ -147,7 +147,7 @@ export function TastingNoteModal({
 
 function Placeholder({ icon, text }: { icon: string; text: string }) {
   return (
-    <div style={{ textAlign: "center", color: "#999" }}>
+    <div style={{ textAlign: "center", color: "var(--neutral-100)" }}>
       <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>{icon}</div>
       <div>{text}</div>
     </div>

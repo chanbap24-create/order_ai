@@ -74,12 +74,12 @@ export default function LearnedClientList({
   }
 
   if (loading) {
-    return <div style={{ padding: 20, textAlign: "center", color: "#666" }}>로딩 중...</div>;
+    return <div style={{ padding: 20, textAlign: "center", color: "var(--neutral-400)" }}>로딩 중...</div>;
   }
 
   if (items.length === 0) {
     return (
-      <div style={{ padding: 20, textAlign: "center", color: "#999", fontSize: 14 }}>
+      <div style={{ padding: 20, textAlign: "center", color: "var(--neutral-100)", fontSize: 14 }}>
         학습된 거래처가 없습니다.
         <br />
         <span style={{ fontSize: 12 }}>
@@ -91,7 +91,7 @@ export default function LearnedClientList({
 
   return (
     <div style={{ padding: "12px 0" }}>
-      <div style={{ fontSize: 12, color: "#666", marginBottom: 8, paddingLeft: 12 }}>
+      <div style={{ fontSize: 12, color: "var(--neutral-400)", marginBottom: 8, paddingLeft: 12 }}>
         총 {items.length}개의 학습된 거래처
       </div>
       {items.map((item, idx) => {
@@ -113,7 +113,7 @@ export default function LearnedClientList({
               <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
                 {item.alias}
               </div>
-              <div style={{ fontSize: 12, color: "#666" }}>
+              <div style={{ fontSize: 12, color: "var(--neutral-400)" }}>
                 → {item.client_name} ({item.client_code})
               </div>
             </div>

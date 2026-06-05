@@ -43,7 +43,7 @@ export function SimulationScenarios(p: Props) {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: "#222",
+                color: "var(--neutral-800)",
                 marginBottom: 8,
                 display: "flex",
                 justifyContent: "space-between",
@@ -53,10 +53,10 @@ export function SimulationScenarios(p: Props) {
               <span style={{ fontWeight: 400, color: "#bbb" }}>{yr1Sales}병</span>
             </div>
 
-            <div style={{ fontSize: 11, color: "#666", lineHeight: 2 }}>
+            <div style={{ fontSize: 11, color: "var(--neutral-400)", lineHeight: 2 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span>매출</span>
-                <span style={{ color: "#222" }}>
+                <span style={{ color: "var(--neutral-800)" }}>
                   {Math.round(yr1Revenue / 10000).toLocaleString()}만
                 </span>
               </div>

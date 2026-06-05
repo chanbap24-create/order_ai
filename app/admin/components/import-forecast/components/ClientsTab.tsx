@@ -38,13 +38,13 @@ export function ClientsTab({ activeData }: Props) {
             alignItems: "center",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, color: i < 3 ? "#222" : "var(--gray-300)" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: i < 3 ? "var(--neutral-800)" : "var(--gray-300)" }}>
             {i + 1}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#222" }}>{c.client_name}</div>
-          <div style={{ fontSize: 11, color: "#999" }}>{c.business_type || ""}</div>
-          <div style={{ textAlign: "right", fontSize: 12, color: "#999" }}>{c.item_count}</div>
-          <div style={{ textAlign: "right", fontSize: 13, fontWeight: 600, color: "#222" }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--neutral-800)" }}>{c.client_name}</div>
+          <div style={{ fontSize: 11, color: "var(--neutral-100)" }}>{c.business_type || ""}</div>
+          <div style={{ textAlign: "right", fontSize: 12, color: "var(--neutral-100)" }}>{c.item_count}</div>
+          <div style={{ textAlign: "right", fontSize: 13, fontWeight: 600, color: "var(--neutral-800)" }}>
             {c.total_qty.toLocaleString()}
           </div>
         </div>

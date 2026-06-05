@@ -233,7 +233,7 @@ function Row({
         style={{
           ...qTdStyle,
           textAlign: "center",
-          color: "#888",
+          color: "var(--neutral-200)",
           whiteSpace: "nowrap",
           position: "sticky",
           left: 0,
@@ -252,7 +252,7 @@ function Row({
             padding: "2px 10px",
             fontSize: 13,
             fontWeight: 600,
-            color: "#666",
+            color: "var(--neutral-400)",
           }}
           title="드래그하여 순서 변경"
         >
@@ -338,7 +338,7 @@ function Cell({
         cursor: col.editable ? "pointer" : "default",
         background: isEditing ? "#FFF9C4" : "transparent",
         fontWeight: col.key === "product_name" ? 600 : 400,
-        color: col.key === "discount_total" ? "var(--action)" : "#333",
+        color: col.key === "discount_total" ? "var(--action)" : "var(--neutral-700)",
       }}
       onClick={() => {
         if (col.editable && !isEditing) startEdit(item.id, col.key, val);

@@ -68,7 +68,7 @@ export function SuggestionRow({
           }}
         >
           <b>{s.item_no}</b>
-          <span style={{ color: "#333", marginLeft: 6 }}>{displayName}</span>
+          <span style={{ color: "var(--neutral-700)", marginLeft: 6 }}>{displayName}</span>
           {isNewItem && (
             <span
               style={{
@@ -85,7 +85,7 @@ export function SuggestionRow({
             </span>
           )}
         </div>
-        <span style={{ fontSize: 10, color: "#888", marginLeft: 8 }}>
+        <span style={{ fontSize: 10, color: "var(--neutral-200)", marginLeft: 8 }}>
           {Number(s.score || 0).toFixed(3)}
         </span>
       </div>
@@ -99,7 +99,7 @@ export function SuggestionRow({
       {isNewItem && (
         <div style={{ marginBottom: 6 }}>
           <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ flex: "0 0 auto", fontSize: 10, color: "#666" }}>공급가</div>
+            <div style={{ flex: "0 0 auto", fontSize: 10, color: "var(--neutral-400)" }}>공급가</div>
             <input
               type="number"
               placeholder="240000"
@@ -188,6 +188,6 @@ function discountButtonStyle(active: boolean): React.CSSProperties {
     cursor: "pointer",
     fontSize: 11,
     fontWeight: active ? 600 : 400,
-    color: active ? WINE_COLORS.primary : "#666",
+    color: active ? WINE_COLORS.primary : "var(--neutral-400)",
   };
 }

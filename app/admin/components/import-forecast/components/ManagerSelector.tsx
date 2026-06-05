@@ -33,14 +33,14 @@ export function ManagerSelector(p: Props) {
         style={{
           padding: "8px 16px",
           borderRadius: 6,
-          border: allActive ? "1.5px solid #111" : "1px solid var(--gray-200)",
-          background: allActive ? "#111" : "#fff",
+          border: allActive ? "1.5px solid var(--neutral-900)" : "1px solid var(--gray-200)",
+          background: allActive ? "var(--neutral-900)" : "#fff",
           cursor: "pointer",
           whiteSpace: "nowrap",
           transition: "all 0.15s",
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 600, color: allActive ? "#fff" : "#666" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: allActive ? "#fff" : "var(--neutral-400)" }}>
           전체
         </div>
         <div
@@ -75,7 +75,7 @@ export function ManagerSelector(p: Props) {
               transition: "all 0.15s",
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? "#fff" : "#333" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? "#fff" : "var(--neutral-700)" }}>
               {r.manager}
             </div>
             <div

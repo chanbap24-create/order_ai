@@ -51,7 +51,7 @@ export function CandidateList({ candidates, selectedIdx, historySet, onSelect }:
                 style={{
                   fontSize: 12,
                   fontWeight: isSelected ? 700 : 500,
-                  color: isSelected ? ORDER_COLORS.text : "#888",
+                  color: isSelected ? ORDER_COLORS.text : "var(--neutral-200)",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",

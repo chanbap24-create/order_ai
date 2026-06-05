@@ -78,7 +78,7 @@ export function ItemRow({
           style={{
             width: 70,
             textAlign: "right",
-            color: "#777",
+            color: "var(--neutral-300)",
             fontVariantNumeric: "tabular-nums" as const,
           }}
         >
@@ -88,7 +88,7 @@ export function ItemRow({
 
       {suggestions.length > 0 && (
         <div style={{ marginLeft: 80, display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: "var(--neutral-400)", marginBottom: 8 }}>
             👉 품목을 선택하면 결과에 즉시 반영됩니다
           </div>
 
@@ -172,7 +172,7 @@ export function ItemRow({
       )}
 
       {suggestions.length === 0 && (
-        <div style={{ marginLeft: 80, fontSize: 12, color: "#888" }}>후보가 없습니다.</div>
+        <div style={{ marginLeft: 80, fontSize: 12, color: "var(--neutral-200)" }}>후보가 없습니다.</div>
       )}
     </div>
   );

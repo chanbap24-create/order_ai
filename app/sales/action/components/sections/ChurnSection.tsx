@@ -69,7 +69,7 @@ export function ChurnSection(p: Props) {
                         ? f.id === "all"
                           ? "var(--action)"
                           : RISK_COLORS[f.id] || "var(--action)"
-                        : "#999",
+                        : "var(--neutral-100)",
                     cursor: "pointer",
                   }}
                 >
@@ -162,7 +162,7 @@ export function ChurnSection(p: Props) {
 
                   <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 6 }}>
                     마지막 구매:{" "}
-                    <strong style={{ color: item.days_since_last >= 60 ? "var(--status-danger)" : "#333" }}>
+                    <strong style={{ color: item.days_since_last >= 60 ? "var(--status-danger)" : "var(--neutral-700)" }}>
                       {item.days_since_last}일 전
                     </strong>
                     <span style={{ color: "#bbb", marginLeft: 6 }}>({item.last_purchase_date})</span>
@@ -241,7 +241,7 @@ export function ChurnSection(p: Props) {
                                 justifyContent: "space-between",
                                 alignItems: "center",
                                 fontSize: 12,
-                                color: "#555",
+                                color: "var(--neutral-500)",
                                 padding: "4px 0",
                                 borderBottom:
                                   idx < orders.length - 1

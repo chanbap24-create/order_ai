@@ -49,7 +49,7 @@ export function ReorderSection(p: Props) {
                     background: p.reorderFilter === f.id ? f.activeBg : "white",
                     fontSize: 11,
                     fontWeight: p.reorderFilter === f.id ? 600 : 400,
-                    color: p.reorderFilter === f.id ? f.activeColor : "#999",
+                    color: p.reorderFilter === f.id ? f.activeColor : "var(--neutral-100)",
                     cursor: "pointer",
                   }}
                 >
@@ -108,7 +108,7 @@ export function ReorderSection(p: Props) {
                         style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: isOos ? "#999" : "var(--text-primary)",
+                          color: isOos ? "var(--neutral-100)" : "var(--text-primary)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -144,7 +144,7 @@ export function ReorderSection(p: Props) {
                     style={{
                       fontSize: 13,
                       fontWeight: 500,
-                      color: isOos ? "#999" : "#333",
+                      color: isOos ? "var(--neutral-100)" : "var(--neutral-700)",
                       marginBottom: 6,
                       overflow: "hidden",
                       textOverflow: "ellipsis",

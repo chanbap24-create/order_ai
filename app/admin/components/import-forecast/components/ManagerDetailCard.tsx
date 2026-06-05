@@ -63,11 +63,11 @@ export function ManagerDetailCard(p: Props) {
               padding: "10px 18px",
               fontSize: 12,
               fontWeight: p.detailTab === tab.id ? 600 : 400,
-              color: p.detailTab === tab.id ? "#111" : "#999",
+              color: p.detailTab === tab.id ? "var(--neutral-900)" : "var(--neutral-100)",
               background: "transparent",
               border: "none",
               borderBottom:
-                p.detailTab === tab.id ? "2px solid #111" : "2px solid transparent",
+                p.detailTab === tab.id ? "2px solid var(--neutral-900)" : "2px solid transparent",
               cursor: "pointer",
               transition: "all 0.15s",
             }}

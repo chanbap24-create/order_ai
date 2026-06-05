@@ -145,7 +145,7 @@ export default function MarketingPage() {
               <button onClick={handlePwChange} disabled={pwLoading}
                 style={{
                   padding: '8px 16px', borderRadius: 6, border: 'none',
-                  background: pwLoading ? 'var(--gray-300)' : '#111', color: '#fff',
+                  background: pwLoading ? 'var(--gray-300)' : 'var(--neutral-900)', color: '#fff',
                   fontSize: 12, fontWeight: 600, cursor: pwLoading ? 'default' : 'pointer',
                 }}>
                 {pwLoading ? '변경 중...' : '변경'}
@@ -161,7 +161,7 @@ export default function MarketingPage() {
           {([['forecast', '수입량 예측'], ['analysis', '판매 분석']] as const).map(([t, label]) => (
             <button key={t} onClick={() => setActiveTab(t)} style={{
               padding: '8px 20px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: activeTab === t ? 700 : 500,
-              background: activeTab === t ? '#fff' : 'transparent', color: activeTab === t ? '#111' : '#888',
+              background: activeTab === t ? '#fff' : 'transparent', color: activeTab === t ? 'var(--neutral-900)' : 'var(--neutral-200)',
               cursor: 'pointer', boxShadow: activeTab === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             }}>{label}</button>
           ))}

@@ -98,7 +98,7 @@ export function AdvancedFilterPanel({
             borderRadius: 6,
             border: "1px solid var(--gray-200)",
             background: "white",
-            color: "#888",
+            color: "var(--neutral-200)",
             fontSize: "0.75rem",
             fontWeight: 500,
             cursor: "pointer",
@@ -151,7 +151,7 @@ function RangeRow({
           gap: 6,
           minWidth: 80,
           fontSize: "0.75rem",
-          color: "#555",
+          color: "var(--neutral-500)",
           cursor: "pointer",
         }}
       >
@@ -238,7 +238,7 @@ function SelectRow({
           gap: 6,
           minWidth: 80,
           fontSize: "0.75rem",
-          color: "#555",
+          color: "var(--neutral-500)",
           cursor: "pointer",
         }}
       >
@@ -261,7 +261,7 @@ function SelectRow({
           border: "1px solid var(--gray-200)",
           padding: "0 6px",
           fontSize: 14,
-          color: "#333",
+          color: "var(--neutral-700)",
           opacity: value?.enabled ? 1 : 0.4,
         }}
       >

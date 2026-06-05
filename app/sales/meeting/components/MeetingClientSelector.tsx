@@ -62,7 +62,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
               modal.setNewClientCode(e.target.value);
               modal.setNewClientCodeError("");
             }}
-            style={{ ...INPUT, color: "#666" }}
+            style={{ ...INPUT, color: "var(--neutral-400)" }}
           />
           <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 4 }}>
             담당자: {currentManager || "-"} · 코드 없으면 자동 생성됩니다

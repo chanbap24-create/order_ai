@@ -45,7 +45,7 @@ export function CompactBriefing(p: Props) {
         padding: "16px",
         marginBottom: 16,
         fontSize: 13,
-        color: "#333",
+        color: "var(--neutral-700)",
         lineHeight: 1.8,
       }}
     >
@@ -239,7 +239,7 @@ const rowStyle: React.CSSProperties = {
   gap: 6,
   paddingLeft: 12,
   fontSize: 12,
-  color: "#555",
+  color: "var(--neutral-500)",
 };
 
 const moreStyle: React.CSSProperties = {

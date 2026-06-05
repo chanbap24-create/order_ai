@@ -51,7 +51,7 @@ export function WineRow(p: Props) {
             style={{
               fontSize: 12,
               fontWeight: 500,
-              color: p.isChecked ? "#bbb" : "#222",
+              color: p.isChecked ? "#bbb" : "var(--neutral-800)",
               lineHeight: 1.3,
               display: "flex",
               alignItems: "center",
@@ -72,11 +72,11 @@ export function WineRow(p: Props) {
             {w.region ? ` · ${w.region}` : ""}
           </div>
         </div>
-        <div style={{ textAlign: "right", fontSize: 12, color: "#999" }}>
+        <div style={{ textAlign: "right", fontSize: 12, color: "var(--neutral-100)" }}>
           {w.supply_price?.toLocaleString()}
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 12, color: "#222", fontWeight: 500 }}>
+          <div style={{ fontSize: 12, color: "var(--neutral-800)", fontWeight: 500 }}>
             {w.avg_selling_price?.toLocaleString()}
           </div>
           {w.avg_selling_price !== w.supply_price && w.supply_price > 0 && (
@@ -95,7 +95,7 @@ export function WineRow(p: Props) {
           style={{
             textAlign: "right",
             fontSize: 12,
-            color: w.avg_import_cost > 0 ? "#666" : "var(--gray-300)",
+            color: w.avg_import_cost > 0 ? "var(--neutral-400)" : "var(--gray-300)",
           }}
         >
           {w.avg_import_cost > 0 ? w.avg_import_cost.toLocaleString() : "-"}
@@ -118,10 +118,10 @@ export function WineRow(p: Props) {
             <span style={{ color: "var(--gray-300)" }}>-</span>
           )}
         </div>
-        <div style={{ textAlign: "right", fontSize: 12, color: "#999" }}>{w.client_count}</div>
+        <div style={{ textAlign: "right", fontSize: 12, color: "var(--neutral-100)" }}>{w.client_count}</div>
         <div style={{ textAlign: "right" }}>
           <span
-            style={{ fontSize: 14, fontWeight: 600, color: p.isChecked ? "var(--gray-300)" : "#222" }}
+            style={{ fontSize: 14, fontWeight: 600, color: p.isChecked ? "var(--gray-300)" : "var(--neutral-800)" }}
           >
             {w.corrected_qty.toLocaleString()}
           </span>

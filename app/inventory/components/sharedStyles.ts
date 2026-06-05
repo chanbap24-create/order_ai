@@ -8,7 +8,7 @@ export const qThStyle: CSSProperties = {
   whiteSpace: "nowrap",
   borderBottom: "1px solid var(--gray-200)",
   textAlign: "center",
-  color: "#666",
+  color: "var(--neutral-400)",
   textTransform: "uppercase",
   letterSpacing: "0.04em",
 };
@@ -25,7 +25,7 @@ export const labelStyle: CSSProperties = {
   display: "block",
   fontSize: 13,
   fontWeight: 600,
-  color: "#555",
+  color: "var(--neutral-500)",
   marginBottom: 4,
 };
 

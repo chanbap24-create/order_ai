@@ -57,7 +57,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
         <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, paddingRight: 20 }}>
           {item.product_name}
         </h3>
-        <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "var(--neutral-200)", marginBottom: 16 }}>
           {item.item_code}
           {item.vintage && ` · ${item.vintage}`}
           {item.country && ` · ${item.country}`}
@@ -142,11 +142,11 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ color: "#666" }}>공급가</span>
+            <span style={{ color: "var(--neutral-400)" }}>공급가</span>
             <span>{formatWon(item.supply_price)}원</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ color: "#666" }}>할인가</span>
+            <span style={{ color: "var(--neutral-400)" }}>할인가</span>
             <span>{formatWon(parseInt(values.discounted_price) || 0)}원</span>
           </div>
           <div
@@ -176,7 +176,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
               borderRadius: 8,
               border: "1px solid var(--gray-200)",
               background: "white",
-              color: "#666",
+              color: "var(--neutral-400)",
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",

@@ -47,7 +47,7 @@ export function DocSettingsForm({ docSettings, setDocSettings, onResetDefaults }
               style={{
                 fontSize: 12,
                 fontWeight: 600,
-                color: "#555",
+                color: "var(--neutral-500)",
                 minWidth: 72,
                 flexShrink: 0,
               }}
@@ -81,7 +81,7 @@ export function DocSettingsForm({ docSettings, setDocSettings, onResetDefaults }
           background: "white",
           fontSize: "0.72rem",
           cursor: "pointer",
-          color: "#666",
+          color: "var(--neutral-400)",
         }}
       >
         기본값 초기화

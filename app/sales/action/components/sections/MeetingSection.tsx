@@ -121,7 +121,7 @@ export function MeetingSection(p: Props) {
                         padding: "2px 8px",
                         borderRadius: 4,
                         background: m.briefing_ready ? "var(--status-success-bg)" : "var(--surface-muted)",
-                        color: m.briefing_ready ? "var(--status-success)" : "#999",
+                        color: m.briefing_ready ? "var(--status-success)" : "var(--neutral-100)",
                         fontSize: 11,
                         fontWeight: 600,
                       }}

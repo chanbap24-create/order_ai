@@ -104,7 +104,7 @@ export function MobileQuoteItemCard({
       </div>
 
       {/* 메타 행 — 품목코드 + 빈티지/국가 + 분류/브랜드/지역 (visibleCols 활성 시) */}
-      <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: "var(--neutral-200)", marginBottom: 4 }}>
         #{index + 1}
         {has("item_code") !== false && ` ${item.item_code}`}
         {has("vintage") && item.vintage && ` · ${item.vintage}`}
@@ -120,14 +120,14 @@ export function MobileQuoteItemCard({
 
       {/* 영문명 (활성 시) */}
       {has("english_name") && item.english_name && (
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 4, fontStyle: "italic" }}>
+        <div style={{ fontSize: 12, color: "var(--neutral-400)", marginBottom: 4, fontStyle: "italic" }}>
           {item.english_name}
         </div>
       )}
 
       {/* 스펙 (활성 시) */}
       {has("spec") && item.spec && (
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>
+        <div style={{ fontSize: 12, color: "var(--neutral-400)", marginBottom: 6 }}>
           {item.spec}
         </div>
       )}
@@ -159,8 +159,8 @@ export function MobileQuoteItemCard({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 8, marginTop: 6 }}>
           {valueFields.map((f) => (
             <div key={f.key}>
-              <div style={{ fontSize: 10, color: "#888" }}>{f.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: f.color || "#333" }}>{f.value}</div>
+              <div style={{ fontSize: 10, color: "var(--neutral-200)" }}>{f.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: f.color || "var(--neutral-700)" }}>{f.value}</div>
             </div>
           ))}
         </div>
@@ -175,7 +175,7 @@ export function MobileQuoteItemCard({
           }}
         >
           {totalFields.map((f) => (
-            <span key={f.key} style={{ color: f.color || "#666", fontWeight: f.color ? 600 : 400 }}>
+            <span key={f.key} style={{ color: f.color || "var(--neutral-400)", fontWeight: f.color ? 600 : 400 }}>
               {f.label} {f.value}
             </span>
           ))}
@@ -184,7 +184,7 @@ export function MobileQuoteItemCard({
 
       {/* 비고 (활성 시) */}
       {has("note") && item.note && (
-        <div style={{ marginTop: 6, fontSize: 12, color: "#888" }}>비고: {item.note}</div>
+        <div style={{ marginTop: 6, fontSize: 12, color: "var(--neutral-200)" }}>비고: {item.note}</div>
       )}
     </div>
   );
@@ -208,7 +208,7 @@ function MoveBtn({
       disabled={disabled}
       style={{
         background: "none", border: "none", padding: "2px 4px",
-        color: disabled ? "var(--gray-300)" : "#888", fontSize: 14,
+        color: disabled ? "var(--gray-300)" : "var(--neutral-200)", fontSize: 14,
         cursor: disabled ? "default" : "pointer", lineHeight: 1,
       }}
     >

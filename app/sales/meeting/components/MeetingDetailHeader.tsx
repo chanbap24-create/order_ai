@@ -99,7 +99,7 @@ export function MeetingDetailHeader(p: Props) {
                   borderRadius: 8,
                   border: isCurrent ? `2px solid ${sm.color}` : "1px solid var(--border-default)",
                   background: isCurrent ? sm.bg : "#fff",
-                  color: isCurrent ? sm.color : "#999",
+                  color: isCurrent ? sm.color : "var(--neutral-100)",
                   fontWeight: isCurrent ? 700 : 500,
                   fontSize: 12,
                   cursor: isCurrent ? "default" : "pointer",

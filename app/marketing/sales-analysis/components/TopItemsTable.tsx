@@ -24,11 +24,11 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
           <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
             <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid rgba(90,21,21,0.1)' }}>
               <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--action)' }}>품목</th>
-              <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: '#666' }}>국가</th>
-              <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: '#666' }}>지역</th>
-              <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: '#666' }}>타입</th>
-              <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#666' }}>평균단가</th>
-              <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: '#666' }}>금액</th>
+              <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--neutral-400)' }}>국가</th>
+              <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--neutral-400)' }}>지역</th>
+              <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--neutral-400)' }}>타입</th>
+              <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--neutral-400)' }}>평균단가</th>
+              <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--neutral-400)' }}>금액</th>
               <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--action)' }}>수량</th>
             </tr>
           </thead>
@@ -39,15 +39,15 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
                   <span style={{ color: '#bbb', fontSize: 10, marginRight: 4 }}>{item.item_no}</span>
                   {item.item_name}
                 </td>
-                <td style={{ padding: '6px 8px', color: '#666', fontSize: 11 }}>{item.country || '-'}</td>
-                <td style={{ padding: '6px 8px', color: '#888', fontSize: 10 }}>{item.region || '-'}</td>
-                <td style={{ padding: '6px 8px', fontSize: 11, color: TYPE_COLORS[item.wine_type || ''] || '#666', fontWeight: 600 }}>
+                <td style={{ padding: '6px 8px', color: 'var(--neutral-400)', fontSize: 11 }}>{item.country || '-'}</td>
+                <td style={{ padding: '6px 8px', color: 'var(--neutral-200)', fontSize: 10 }}>{item.region || '-'}</td>
+                <td style={{ padding: '6px 8px', fontSize: 11, color: TYPE_COLORS[item.wine_type || ''] || 'var(--neutral-400)', fontWeight: 600 }}>
                   {item.wine_type || '-'}
                 </td>
-                <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: 11, color: '#888' }}>
+                <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: 11, color: 'var(--neutral-200)' }}>
                   {item.avg_price > 0 ? fmt(item.avg_price) : '-'}
                 </td>
-                <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: 11, color: '#666' }}>
+                <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: 11, color: 'var(--neutral-400)' }}>
                   {item.amount > 0 ? fmtM(item.amount) : '-'}
                 </td>
                 <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>

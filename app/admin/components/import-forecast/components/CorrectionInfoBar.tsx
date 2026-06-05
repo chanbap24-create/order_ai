@@ -32,7 +32,7 @@ export function CorrectionInfoBar(p: Props) {
           marginBottom: 20,
           flexWrap: "wrap",
           fontSize: 11,
-          color: "#666",
+          color: "var(--neutral-400)",
         }}
       >
         {p.stockoutInfo && p.stockoutInfo.correctedWines > 0 && (
@@ -113,17 +113,17 @@ export function CorrectionInfoBar(p: Props) {
                   gridTemplateColumns: "80px 1fr 1fr 60px 60px",
                   gap: 4,
                   fontSize: 11,
-                  color: "#333",
+                  color: "var(--neutral-700)",
                   padding: "3px 0",
                   borderBottom:
                     i < p.bulkInfo!.details.length - 1 ? "1px solid var(--gray-100)" : "none",
                 }}
               >
-                <div style={{ color: "#999" }}>{d.date}</div>
+                <div style={{ color: "var(--neutral-100)" }}>{d.date}</div>
                 <div style={ellipsis}>{d.client}</div>
                 <div style={ellipsis}>{d.wine}</div>
                 <div style={{ textAlign: "right", fontWeight: 600 }}>{d.qty}병</div>
-                <div style={{ textAlign: "right", color: "#999" }}>{d.manager}</div>
+                <div style={{ textAlign: "right", color: "var(--neutral-100)" }}>{d.manager}</div>
               </div>
             ))}
           </div>

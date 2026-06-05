@@ -29,10 +29,10 @@ export function WineShipmentsDetail(p: Props) {
   }, [p.shipShowAll]);
 
   if (p.loading) {
-    return <div style={{ padding: 12, fontSize: 12, color: "#999" }}>조회 중...</div>;
+    return <div style={{ padding: 12, fontSize: 12, color: "var(--neutral-100)" }}>조회 중...</div>;
   }
   if (p.shipments.length === 0) {
-    return <div style={{ padding: 12, fontSize: 12, color: "#999" }}>출고 이력 없음</div>;
+    return <div style={{ padding: 12, fontSize: 12, color: "var(--neutral-100)" }}>출고 이력 없음</div>;
   }
 
   const clientGroups: Record<
@@ -122,7 +122,7 @@ export function WineShipmentsDetail(p: Props) {
               >
                 <div
                   style={{
-                    color: "#333",
+                    color: "var(--neutral-700)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -136,13 +136,13 @@ export function WineShipmentsDetail(p: Props) {
                     color:
                       priceEntries[0] && priceEntries[0].price < p.supplyPrice
                         ? "var(--status-warning)"
-                        : "#999",
+                        : "var(--neutral-100)",
                     fontWeight: 500,
                   }}
                 >
                   {priceEntries[0] ? priceEntries[0].price.toLocaleString() : "-"}
                 </div>
-                <div style={{ textAlign: "right", fontWeight: 600, color: "#222" }}>
+                <div style={{ textAlign: "right", fontWeight: 600, color: "var(--neutral-800)" }}>
                   {g.totalQty}
                 </div>
                 <div style={{ textAlign: "right", color: "#bbb", fontSize: 10 }}>{mgrs}</div>
@@ -168,7 +168,7 @@ export function WineShipmentsDetail(p: Props) {
               >
                 <div
                   style={{
-                    color: "#333",
+                    color: "var(--neutral-700)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -176,10 +176,10 @@ export function WineShipmentsDetail(p: Props) {
                 >
                   {g.client}
                 </div>
-                <div style={{ textAlign: "right", color: "#999", fontSize: 10 }}>
+                <div style={{ textAlign: "right", color: "var(--neutral-100)", fontSize: 10 }}>
                   가격 {priceEntries.length}종
                 </div>
-                <div style={{ textAlign: "right", fontWeight: 600, color: "#222" }}>
+                <div style={{ textAlign: "right", fontWeight: 600, color: "var(--neutral-800)" }}>
                   {g.totalQty}
                 </div>
                 <div style={{ textAlign: "right", color: "#bbb", fontSize: 10 }}>{mgrs}</div>
@@ -193,14 +193,14 @@ export function WineShipmentsDetail(p: Props) {
                     gap: 4,
                     fontSize: 10,
                     padding: "2px 0 2px 12px",
-                    color: "#888",
+                    color: "var(--neutral-200)",
                   }}
                 >
                   <div></div>
                   <div
                     style={{
                       textAlign: "right",
-                      color: pe.price < p.supplyPrice ? "var(--status-warning)" : "#999",
+                      color: pe.price < p.supplyPrice ? "var(--status-warning)" : "var(--neutral-100)",
                     }}
                   >
                     {pe.price.toLocaleString()}
@@ -217,7 +217,7 @@ export function WineShipmentsDetail(p: Props) {
         style={{
           padding: "6px 0 0",
           fontSize: 11,
-          color: "#999",
+          color: "var(--neutral-100)",
           borderTop: "1px solid var(--gray-200)",
           marginTop: 4,
           display: "flex",
@@ -243,7 +243,7 @@ export function WineShipmentsDetail(p: Props) {
             style={{
               fontSize: 11,
               fontWeight: 500,
-              color: "#555",
+              color: "var(--neutral-500)",
               background: "#fff",
               border: "1px solid var(--gray-200)",
               borderRadius: 4,

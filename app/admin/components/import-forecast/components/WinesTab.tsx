@@ -88,7 +88,7 @@ export function WinesTab(p: Props) {
             onChange={toggleAll}
             style={{ width: 14, height: 14, accentColor: "var(--action)", cursor: "pointer" }}
           />
-          <span style={{ fontSize: 11, color: "#999" }}>
+          <span style={{ fontSize: 11, color: "var(--neutral-100)" }}>
             {checkedCount > 0 ? `${checkedCount}개 선택` : "전체"}
           </span>
         </div>
@@ -145,7 +145,7 @@ export function WinesTab(p: Props) {
           display: "grid",
           gridTemplateColumns: GRID,
           padding: "8px 20px",
-          background: "#111",
+          background: "var(--neutral-900)",
           fontWeight: 600,
           color: "#fff",
           fontSize: 12,
@@ -186,7 +186,7 @@ export function WinesTab(p: Props) {
                   style={{ width: 14, height: 14, accentColor: "var(--status-danger)", cursor: "pointer" }}
                 />
               </div>
-              <div style={{ fontSize: 11, color: "#999", textDecoration: "line-through" }}>
+              <div style={{ fontSize: 11, color: "var(--neutral-100)", textDecoration: "line-through" }}>
                 {ew.item_name}
               </div>
               <div style={{ textAlign: "right", fontSize: 11, color: "#bbb" }}>

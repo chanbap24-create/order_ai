@@ -106,7 +106,7 @@ export default function ImportForecastTab() {
 
           {s.monthlySeries.length > 0 && (
             <div style={{ background: '#fff', borderRadius: 6, border: '1px solid var(--gray-200)', padding: '16px 20px', marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#222', marginBottom: 12 }}>월별 판매 추이 (빈티지 통합)</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--neutral-800)', marginBottom: 12 }}>월별 판매 추이 (빈티지 통합)</div>
               <MonthlyCompareChart data={s.monthlySeries} yearly={s.yearlySeries} startYear={s.startYear} endYear={s.endYear} />
             </div>
           )}
@@ -154,7 +154,7 @@ export default function ImportForecastTab() {
             />
           )}
 
-          <div style={{ padding: '12px 16px', fontSize: 11, color: '#999', lineHeight: 1.8 }}>
+          <div style={{ padding: '12px 16px', fontSize: 11, color: 'var(--neutral-100)', lineHeight: 1.8 }}>
             {s.startYear}~{s.endYear} · {Number(s.priceMin).toLocaleString()}~{Number(s.priceMax).toLocaleString()}원 · {s.matchedItems}개 품목.
             {s.stockoutInfo && s.stockoutInfo.correctedWines > 0 && (
               <> 품절보정 {s.stockoutInfo.correctedWines}개 ×{s.stockoutInfo.avgFactor}.</>
@@ -167,7 +167,7 @@ export default function ImportForecastTab() {
       )}
 
       {s.results !== null && s.results.length === 0 && !s.message && (
-        <div style={{ textAlign: 'center', padding: 48, color: '#999', fontSize: 13, background: 'var(--gray-50)', borderRadius: 6, border: '1px solid var(--gray-200)' }}>
+        <div style={{ textAlign: 'center', padding: 48, color: 'var(--neutral-100)', fontSize: 13, background: 'var(--gray-50)', borderRadius: 6, border: '1px solid var(--gray-200)' }}>
           해당 조건의 판매 이력이 없습니다.<br /><span style={{ fontSize: 11 }}>조건을 조정해 보세요.</span>
         </div>
       )}

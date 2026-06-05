@@ -113,7 +113,7 @@ export function ItemsResultSection({
           })}
 
           {items.length === 0 && (
-            <div style={{ color: "#888" }}>품목 결과가 없습니다.</div>
+            <div style={{ color: "var(--neutral-200)" }}>품목 결과가 없습니다.</div>
           )}
         </div>
       )}

@@ -47,7 +47,7 @@ export const NAV_STYLES = `
   text-decoration: none;
   font-size: 0.82rem;
   font-weight: 500;
-  color: #999;
+  color: var(--neutral-100);
   padding: 18px 0;
   transition: color 0.2s ease;
   white-space: nowrap;

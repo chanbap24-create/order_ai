@@ -3,7 +3,7 @@ import type React from "react";
 export const labelStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
-  color: "#888",
+  color: "var(--neutral-200)",
   marginBottom: 5,
   display: "block",
   textTransform: "uppercase" as const,
@@ -18,7 +18,7 @@ export const selectStyle: React.CSSProperties = {
   borderRadius: 6,
   background: "#fff",
   outline: "none",
-  color: "#222",
+  color: "var(--neutral-800)",
   appearance: "none" as const,
   WebkitAppearance: "none" as const,
   transition: "border-color 0.15s",
@@ -32,7 +32,7 @@ export const inputStyle: React.CSSProperties = {
   borderRadius: 6,
   outline: "none",
   boxSizing: "border-box",
-  color: "#222",
+  color: "var(--neutral-800)",
   background: "#fff",
   transition: "border-color 0.15s",
 };

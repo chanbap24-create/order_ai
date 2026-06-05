@@ -66,7 +66,7 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
                       style={{
                         textAlign: "center",
                         fontWeight: 600,
-                        color: idx < 3 ? "var(--action)" : "#666",
+                        color: idx < 3 ? "var(--action)" : "var(--neutral-400)",
                       }}
                     >
                       {idx + 1}
@@ -108,7 +108,7 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
                       style={{
                         textAlign: "right",
                         fontWeight: 600,
-                        color: cr > 0 ? "#059669" : cr < 0 ? "#DC2626" : "#999",
+                        color: cr > 0 ? "#059669" : cr < 0 ? "#DC2626" : "var(--neutral-100)",
                       }}
                     >
                       {cr !== 0 ? `${cr > 0 ? "+" : ""}${cr}%` : "-"}

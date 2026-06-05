@@ -38,7 +38,7 @@ export function ClientContactCard(p: Props) {
   const renderInfoField = (label: string, value: string | null | undefined) => (
     <div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 14, color: value ? "#333" : "var(--gray-300)" }}>{value || "-"}</div>
+      <div style={{ fontSize: 14, color: value ? "var(--neutral-700)" : "var(--gray-300)" }}>{value || "-"}</div>
     </div>
   );
 
@@ -71,7 +71,7 @@ export function ClientContactCard(p: Props) {
             borderRadius: 6,
             border: "1.5px solid var(--border-default)",
             background: p.editMode ? "var(--action)" : "white",
-            color: p.editMode ? "white" : "#666",
+            color: p.editMode ? "white" : "var(--neutral-400)",
             fontSize: 12,
             fontWeight: 500,
             cursor: "pointer",

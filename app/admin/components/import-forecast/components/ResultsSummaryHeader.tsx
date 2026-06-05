@@ -21,7 +21,7 @@ export function ResultsSummaryHeader(p: Props) {
   return (
     <div
       style={{
-        background: "#111",
+        background: "var(--neutral-900)",
         borderRadius: 8,
         padding: "24px 28px",
         marginBottom: 16,

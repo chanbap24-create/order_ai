@@ -21,7 +21,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
       {QUOTE_COL_OPTIONS.map(col => (
         <label key={col.key} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0',
-          fontSize: 13, cursor: 'pointer', color: '#333',
+          fontSize: 13, cursor: 'pointer', color: 'var(--neutral-700)',
         }}>
           <input
             type="checkbox"
@@ -37,7 +37,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
           onClick={reset}
           style={{
             flex: 1, padding: '5px 0', borderRadius: 6, border: '1px solid var(--gray-300)',
-            background: '#fff', fontSize: 11, cursor: 'pointer', color: '#666',
+            background: '#fff', fontSize: 11, cursor: 'pointer', color: 'var(--neutral-400)',
           }}
         >
           초기화

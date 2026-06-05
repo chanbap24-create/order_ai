@@ -171,7 +171,7 @@ function SubNode({
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '5px 10px',
           background: isSubOpen ? '#F8F0F0' : 'var(--gray-50)',
-          borderRadius: 4, cursor: 'pointer', fontWeight: 500, fontSize: 13, color: '#444',
+          borderRadius: 4, cursor: 'pointer', fontWeight: 500, fontSize: 13, color: 'var(--neutral-600)',
         }}
       >
         <span style={{

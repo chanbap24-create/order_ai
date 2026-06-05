@@ -62,7 +62,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                     style={{
                       textAlign: "center",
                       fontWeight: 600,
-                      color: item.rn <= 3 ? "var(--action)" : "#666",
+                      color: item.rn <= 3 ? "var(--action)" : "var(--neutral-400)",
                     }}
                   >
                     {item.rn}
@@ -83,7 +83,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                   <td
                     style={{
                       textAlign: "right",
-                      color: item.discount > 0 ? "#DC2626" : "#333",
+                      color: item.discount > 0 ? "#DC2626" : "var(--neutral-700)",
                     }}
                   >
                     {item.discount ? `${item.discount}%` : "-"}
@@ -92,7 +92,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                   <td
                     style={{
                       textAlign: "right",
-                      color: item.stock <= 0 ? "#DC2626" : "#333",
+                      color: item.stock <= 0 ? "#DC2626" : "var(--neutral-700)",
                     }}
                   >
                     {item.stock}

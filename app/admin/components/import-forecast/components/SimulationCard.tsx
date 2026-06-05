@@ -78,8 +78,8 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
           alignItems: "center",
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#222" }}>투자 시뮬레이션</div>
-        <span style={{ fontSize: 11, color: "#999" }}>{simOpen ? "▲" : "▼"}</span>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--neutral-800)" }}>투자 시뮬레이션</div>
+        <span style={{ fontSize: 11, color: "var(--neutral-100)" }}>{simOpen ? "▲" : "▼"}</span>
       </div>
 
       {simOpen && (
@@ -121,10 +121,10 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                       padding: "2px 8px",
                       fontSize: 10,
                       fontWeight: 500,
-                      border: `1px solid ${bottlesPerCase === n ? "#111" : "var(--gray-200)"}`,
+                      border: `1px solid ${bottlesPerCase === n ? "var(--neutral-900)" : "var(--gray-200)"}`,
                       borderRadius: 3,
-                      background: bottlesPerCase === n ? "#111" : "#fff",
-                      color: bottlesPerCase === n ? "#fff" : "#999",
+                      background: bottlesPerCase === n ? "var(--neutral-900)" : "#fff",
+                      color: bottlesPerCase === n ? "#fff" : "var(--neutral-100)",
                       cursor: "pointer",
                     }}
                   >
@@ -157,7 +157,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                   onChange={(e) => setMarginPct(Number(e.target.value))}
                   style={{ flex: 1, accentColor: "var(--action)" }}
                 />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#222", minWidth: 36 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--neutral-800)", minWidth: 36 }}>
                   {marginPct}%
                 </span>
               </div>
@@ -192,7 +192,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
                         borderRadius: 3,
                         fontSize: 10,
                         background: "var(--gray-100)",
-                        color: "#555",
+                        color: "var(--neutral-500)",
                       }}
                     >
                       {w.name.substring(0, 15)}
@@ -212,7 +212,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
 const labelS: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 500,
-  color: "#888",
+  color: "var(--neutral-200)",
   marginBottom: 4,
 };
 
@@ -224,7 +224,7 @@ const numInput: React.CSSProperties = {
   textAlign: "center",
   border: "1px solid var(--gray-200)",
   borderRadius: 4,
-  color: "#222",
+  color: "var(--neutral-800)",
 };
 
 const textInput: React.CSSProperties = {
@@ -233,5 +233,5 @@ const textInput: React.CSSProperties = {
   fontSize: 13,
   border: "1px solid var(--gray-200)",
   borderRadius: 4,
-  color: "#222",
+  color: "var(--neutral-800)",
 };
