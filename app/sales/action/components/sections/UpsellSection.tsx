@@ -5,6 +5,7 @@ import type { UpsellSuggestion } from "../../types";
 import { fmt } from "../../lib/format";
 import { SectionHeader } from "../SectionHeader";
 import { DismissButton } from "../DismissButton";
+import { MetricChip } from "../MetricChip";
 
 type Props = {
   items: UpsellSuggestion[];
@@ -141,7 +142,7 @@ export function UpsellSection(p: Props) {
                       {r}
                     </span>
                   ))}
-                  <span style={tagMuted}>재고 {u.available_stock}병</span>
+                  <MetricChip label="재고" value={`${u.available_stock}병`} />
                 </div>
               </div>
             ))}
@@ -152,11 +153,3 @@ export function UpsellSection(p: Props) {
   );
 }
 
-const tagMuted: React.CSSProperties = {
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: 4,
-  background: "var(--surface-muted)",
-  color: "var(--text-tertiary)",
-  fontSize: 11,
-};

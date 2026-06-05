@@ -5,6 +5,7 @@ import type { StockDepletion } from "../../types";
 import { fmt } from "../../lib/format";
 import { SectionHeader } from "../SectionHeader";
 import { DismissButton } from "../DismissButton";
+import { MetricChip, chipGrid } from "../MetricChip";
 
 type Props = {
   items: StockDepletion[];
@@ -98,10 +99,12 @@ export function StockSection(p: Props) {
                     )}
                   </div>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-                    <span style={tagMuted}>12개월 출고: {sd.total_shipped}병</span>
-                    <span style={tagMuted}>공급가: {fmt(sd.supply_price)}원</span>
-                    {sd.affected_clients.length > 0 && (
+                  <div style={{ ...chipGrid, marginTop: 6 }}>
+                    <MetricChip label="12개월 출고" value={`${sd.total_shipped}병`} />
+                    <MetricChip label="공급가" value={`${fmt(sd.supply_price)}원`} />
+                  </div>
+                  {sd.affected_clients.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
                       <span
                         style={{
                           display: "inline-block",
@@ -115,8 +118,8 @@ export function StockSection(p: Props) {
                       >
                         영향 거래처 {sd.affected_clients.length}곳
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {sd.affected_clients.length > 0 && (
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
@@ -132,12 +135,3 @@ export function StockSection(p: Props) {
     </div>
   );
 }
-
-const tagMuted: React.CSSProperties = {
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: 4,
-  background: "var(--surface-muted)",
-  color: "var(--text-tertiary)",
-  fontSize: 11,
-};
