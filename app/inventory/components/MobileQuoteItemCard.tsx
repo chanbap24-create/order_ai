@@ -160,7 +160,7 @@ export function MobileQuoteItemCard({
           {valueFields.map((f) => (
             <div key={f.key}>
               <div style={{ fontSize: 10, color: "var(--neutral-200)" }}>{f.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: f.color || "var(--neutral-700)" }}>{f.value}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: f.color || "var(--neutral-700)", fontVariantNumeric: "tabular-nums" }}>{f.value}</div>
             </div>
           ))}
         </div>
