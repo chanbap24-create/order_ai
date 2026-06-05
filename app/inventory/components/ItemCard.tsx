@@ -138,7 +138,7 @@ export function ItemCard({
                 }}
               >
                 <span style={{ color: "var(--neutral-100)", fontWeight: 500 }}>{col.label}</span>
-                <span style={{ color: "#2D2D2D", fontWeight: 600 }}>
+                <span style={{ color: "var(--neutral-700)", fontWeight: 600 }}>
                   {renderCellValue(item, colKey)}
                 </span>
               </span>

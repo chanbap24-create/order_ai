@@ -59,7 +59,7 @@ export function SearchResultsGrid({
         >
           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
         </svg>
-        <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#2D2D2D" }}>
+        <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--neutral-700)" }}>
           No results found
         </div>
         <div style={{ fontSize: "0.75rem", color: "var(--neutral-100)", marginTop: 4 }}>

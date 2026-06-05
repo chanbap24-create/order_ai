@@ -53,7 +53,7 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
         border: "1px solid var(--gray-100)",
       }}
     >
-      <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 8, color: "#2D2D2D" }}>
+      <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 8, color: "var(--neutral-700)" }}>
         견적 컬럼 (체크 + 드래그로 순서 변경)
       </div>
       <div style={{ marginBottom: 10 }}>
@@ -126,7 +126,7 @@ function SortableChip({ id, label }: { id: string; label: string }) {
     border: "1px solid rgba(90,21,21,0.2)",
     fontSize: 11,
     fontWeight: 600,
-    color: "#2D2D2D",
+    color: "var(--neutral-700)",
   };
   return (
     <span ref={setNodeRef} style={style} {...attributes} {...listeners}>

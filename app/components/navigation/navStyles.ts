@@ -77,7 +77,7 @@ export const NAV_STYLES = `
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  color: #2D2D2D;
+  color: var(--neutral-700);
   padding: 0;
   flex-shrink: 0;
 }

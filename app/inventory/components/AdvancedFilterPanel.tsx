@@ -51,7 +51,7 @@ export function AdvancedFilterPanel({
           marginBottom: 12,
         }}
       >
-        <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#2D2D2D" }}>조건 필터</span>
+        <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--neutral-700)" }}>조건 필터</span>
         {activeCount > 0 && (
           <span style={{ fontSize: "0.68rem", color: "var(--action)", fontWeight: 500 }}>
             {activeCount}개 활성

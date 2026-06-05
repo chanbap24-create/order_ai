@@ -66,7 +66,7 @@ export function SyncLogViewer(p: Props) {
           style={{
             maxHeight: 200,
             overflowY: "auto",
-            background: "#1e1e1e",
+            background: "var(--neutral-800)",
             borderRadius: "var(--radius-md)",
             padding: "var(--space-3)",
             fontFamily: "monospace",

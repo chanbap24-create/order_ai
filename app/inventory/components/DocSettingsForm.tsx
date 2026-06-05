@@ -36,7 +36,7 @@ export function DocSettingsForm({ docSettings, setDocSettings, onResetDefaults }
       }}
     >
       <div
-        style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 10, color: "#2D2D2D" }}
+        style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 10, color: "var(--neutral-700)" }}
       >
         문서 설정
       </div>

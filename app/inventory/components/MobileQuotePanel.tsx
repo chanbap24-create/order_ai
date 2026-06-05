@@ -268,7 +268,7 @@ function IconBtn({ active, onClick, title, children }: {
 function EmptyState() {
   return (
     <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--neutral-100)" }}>
-      <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#2D2D2D" }}>No items yet</div>
+      <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--neutral-700)" }}>No items yet</div>
       <div style={{ fontSize: "0.75rem", marginTop: 4 }}>검색 결과에서 + 버튼으로 추가</div>
     </div>
   );

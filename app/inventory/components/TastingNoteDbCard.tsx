@@ -72,7 +72,7 @@ export function TastingNoteDbCard({
         }}
       >
         {wineryTag && (
-          <div style={{ padding: "10px 16px 0", fontSize: 11, color: "#8A8A8A", lineHeight: 1.4 }}>
+          <div style={{ padding: "10px 16px 0", fontSize: 11, color: "var(--neutral-200)", lineHeight: 1.4 }}>
             {wineryTag}
           </div>
         )}
@@ -92,7 +92,7 @@ export function TastingNoteDbCard({
             {nameKr}
           </div>
           {nameEn && (
-            <div style={{ fontSize: 13, color: "#5A5A5A", fontStyle: "italic", marginTop: 4 }}>
+            <div style={{ fontSize: 13, color: "var(--neutral-500)", fontStyle: "italic", marginTop: 4 }}>
               {nameEn}
             </div>
           )}
@@ -110,7 +110,7 @@ export function TastingNoteDbCard({
                 {normalizeVintage(vintage)}
               </span>
               {tn.vintage_note && (
-                <span style={{ fontSize: 11, color: "#5A5A5A", lineHeight: 1.4, marginTop: 2 }}>
+                <span style={{ fontSize: 11, color: "var(--neutral-500)", lineHeight: 1.4, marginTop: 2 }}>
                   {tn.vintage_note}
                 </span>
               )}
@@ -123,9 +123,9 @@ export function TastingNoteDbCard({
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <Tag>양조</Tag>
             </div>
-            <div style={{ fontSize: 12.5, color: "#2C2C2C", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12.5, color: "var(--neutral-700)", lineHeight: 1.6 }}>
               {tn.winemaking}
-              {alcohol && <span style={{ color: "#5A5A5A" }}>{"\n"}알코올: {alcohol}</span>}
+              {alcohol && <span style={{ color: "var(--neutral-500)" }}>{"\n"}알코올: {alcohol}</span>}
             </div>
           </div>
         )}
@@ -173,7 +173,7 @@ export function TastingNoteDbCard({
                   >
                     {x.label}
                   </div>
-                  <div style={{ fontSize: 12.5, color: "#2C2C2C", lineHeight: 1.6 }}>{x.value}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--neutral-700)", lineHeight: 1.6 }}>{x.value}</div>
                 </div>
               ))}
           </div>
@@ -184,10 +184,10 @@ export function TastingNoteDbCard({
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <Tag>푸드 페어링</Tag>
               {tn.serving_temp && (
-                <span style={{ fontSize: 11, color: "#8A8A8A" }}>{tn.serving_temp}</span>
+                <span style={{ fontSize: 11, color: "var(--neutral-200)" }}>{tn.serving_temp}</span>
               )}
             </div>
-            <div style={{ fontSize: 12.5, color: "#2C2C2C", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12.5, color: "var(--neutral-700)", lineHeight: 1.6 }}>
               {tn.food_pairing}
             </div>
           </div>
@@ -211,13 +211,13 @@ export function TastingNoteDbCard({
             >
               AWARDS
             </span>
-            <span style={{ fontSize: 12, color: "#2C2C2C", marginLeft: 8 }}>{awards}</span>
+            <span style={{ fontSize: 12, color: "var(--neutral-700)", marginLeft: 8 }}>{awards}</span>
           </div>
         )}
 
         <div style={{ margin: "10px 16px 0", height: 2, background: "#722F37" }} />
         <div style={{ height: 1, margin: "2px 16px 0", background: "#D4C4A8" }} />
-        <div style={{ padding: "8px 16px 12px", fontSize: 10, color: "#8A8A8A" }}>
+        <div style={{ padding: "8px 16px 12px", fontSize: 10, color: "var(--neutral-200)" }}>
           T. 02-786-3136 | www.cavedevin.com
         </div>
       </div>
@@ -247,7 +247,7 @@ function Badge({ label, children }: { label: string; children: React.ReactNode }
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <Tag>{label}</Tag>
-      <span style={{ fontSize: 13, color: "#2C2C2C" }}>{children}</span>
+      <span style={{ fontSize: 13, color: "var(--neutral-700)" }}>{children}</span>
     </div>
   );
 }
