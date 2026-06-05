@@ -87,9 +87,9 @@ export function PageStyles() {
         width: 28px;
         height: 28px;
         border-radius: 6px;
-        border: 1px solid var(--action);
-        background: var(--action);
-        color: var(--text-on-primary);
+        border: 1px solid var(--border-strong);
+        background: transparent;
+        color: var(--action);
         font-size: 16px;
         font-weight: 700;
         cursor: pointer;
@@ -98,14 +98,17 @@ export function PageStyles() {
         align-items: center;
         justify-content: center;
         line-height: 1;
-        transition: background 0.12s ease, transform 0.12s ease;
+        transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
       }
       .add-btn:hover {
-        background: var(--action-hover);
+        background: var(--action);
+        border-color: var(--action);
+        color: var(--text-on-primary);
       }
       .add-btn.added {
-        background: #15803d;
-        border-color: #15803d;
+        background: var(--status-success-bg);
+        border-color: var(--color-success);
+        color: var(--color-success);
       }
 
       .quote-basket-header {

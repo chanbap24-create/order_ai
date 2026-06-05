@@ -186,6 +186,16 @@ export function useInventorySearch(p: Params) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, advancedFilters, p.activeTab, p.importScheduleMap]);
 
+  // 인덱스(tastingNoteSet)가 검색보다 늦게 로드되는 레이스 방지:
+  // 세트나 결과가 바뀌면 현재 결과를 재대조해 테이스팅노트 초록 표시를 항상 채운다.
+  useEffect(() => {
+    if (p.activeTab !== "CDV" || p.tastingNoteSet.size === 0 || results.length === 0) return;
+    for (const item of results) {
+      if (p.tastingNoteSet.has(item.item_no)) p.onCheckTastingNote(item.item_no);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.tastingNoteSet, results, p.activeTab]);
+
   /** 탭 전환 시 초기화 (search query/results/hasSearched) */
   const resetForTabSwitch = useCallback(() => {
     setResults([]);

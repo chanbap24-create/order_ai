@@ -122,7 +122,13 @@ export function ItemCard({
         </button>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+          gap: 6,
+        }}
+      >
         {visibleColumns
           .filter((k) => k !== "item_no" && k !== "item_name")
           .map((colKey) => {
@@ -132,13 +138,18 @@ export function ItemCard({
               <span
                 key={`${item.item_no}-${colKey}`}
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
                   padding: "3px 8px", borderRadius: 6, background: "#F7F6F4",
                   fontSize: "0.72rem", lineHeight: 1,
                 }}
               >
-                <span style={{ color: "var(--neutral-100)", fontWeight: 500 }}>{col.label}</span>
-                <span style={{ color: "var(--neutral-700)", fontWeight: 600 }}>
+                <span style={{ color: "var(--neutral-100)", fontWeight: 500, whiteSpace: "nowrap" }}>{col.label}</span>
+                <span
+                  style={{
+                    color: "var(--neutral-700)", fontWeight: 600,
+                    fontVariantNumeric: "tabular-nums", textAlign: "right", whiteSpace: "nowrap",
+                  }}
+                >
                   {renderCellValue(item, colKey)}
                 </span>
               </span>
