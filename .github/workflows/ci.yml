@@ -1,0 +1,39 @@
+name: CI
+
+# main 푸시 + PR 시 자동 검증. 빌드(타입체크+컴파일+CSS 파싱)가 핵심 게이트 —
+# 오늘 같은 빌드/타입/CSS 에러를 머지 전에 자동 차단한다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # 빌드는 실제 DB에 접속하지 않는다. db.ts 의 top-level 가드(키 존재 검사)를
+      # 통과시키기 위한 더미값. (env.ts 는 누락에 throw 하지 않으므로 그 외는 불필요)
+      SUPABASE_URL: https://dummy.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-ci-build-only
+      NEXT_PUBLIC_SUPABASE_URL: https://dummy.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci-build-only
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 핵심 게이트: 타입체크 + 컴파일 + CSS 파싱 (실패 시 머지 차단)
+      - name: Build
+        run: npm run build
+
+      # 참고용(비차단): 기존 lint 부채가 많아 우선 리포트만. 점진적으로 0 만든 뒤 차단 전환.
+      - name: Lint (informational)
+        run: npm run lint
+        continue-on-error: true
