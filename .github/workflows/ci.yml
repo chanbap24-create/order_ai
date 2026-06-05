@@ -18,6 +18,10 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-ci-build-only
       NEXT_PUBLIC_SUPABASE_URL: https://dummy.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci-build-only
+      # OpenAI/Anthropic 클라이언트가 일부 API 라우트 module-load 시점에 생성되어
+      # 빌드 시 page-data 수집 중 키를 요구한다(실호출 X). 가드 통과용 더미.
+      OPENAI_API_KEY: sk-dummy-ci-build-only
+      ANTHROPIC_API_KEY: sk-ant-dummy-ci-build-only
     steps:
       - uses: actions/checkout@v4
 
