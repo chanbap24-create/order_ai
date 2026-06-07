@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
+import { logger } from '@/app/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,9 @@ export async function GET(request: NextRequest) {
           const unique = new Set(rows.map((r: any) => r.country));
           for (const c of unique) countrySet.add(c);
         }
-      } catch {}
+      } catch (e) {
+        logger.warn('wine-profiles/filters: inventory_dl country 조회 실패(국가 목록 일부 누락)', { error: String(e) });
+      }
     } else {
       // CDV 또는 미지정 시 CDV 기본
       try {
@@ -35,7 +38,9 @@ export async function GET(request: NextRequest) {
           const unique = new Set(rows.map((r: any) => r.country));
           for (const c of unique) countrySet.add(c);
         }
-      } catch {}
+      } catch (e) {
+        logger.warn('wine-profiles/filters: inventory_cdv country 조회 실패(국가 목록 일부 누락)', { error: String(e) });
+      }
     }
 
     const countries = Array.from(countrySet).sort();

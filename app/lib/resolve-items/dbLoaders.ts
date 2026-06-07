@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/db";
+import { logger } from "@/app/lib/logger";
 
 /**
  * 최근 출고일 맵 (item_no → lastShipped timestamp ms).
@@ -18,7 +19,10 @@ export async function buildLastShippedMap(clientCode: string) {
       const t = new Date(String(r.updated_at || "")).getTime();
       if (Number.isFinite(t) && t > 0) map.set(itemNo, t);
     }
-  } catch {}
+  } catch (e) {
+    // 비치명적: 실패 시 빈/부분 맵으로 진행하되, 조용히 묻히지 않게 기록.
+    logger.warn("buildLastShippedMap 실패(빈 맵으로 진행)", { clientCode, error: String(e) });
+  }
   return map;
 }
 

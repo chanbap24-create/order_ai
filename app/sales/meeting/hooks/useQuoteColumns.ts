@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logger } from '@/app/lib/logger';
 import { DEFAULT_MEETING_COLS } from "../constants";
 
 const STORAGE_KEY = "meeting_quote_columns";
@@ -10,7 +11,7 @@ export function useQuoteColumns() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) return JSON.parse(saved);
-      } catch {}
+      } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
     }
     return DEFAULT_MEETING_COLS;
   });
@@ -18,7 +19,7 @@ export function useQuoteColumns() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(quoteCols));
-    } catch {}
+    } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
   }, [quoteCols]);
 
   return { quoteCols, setQuoteCols };

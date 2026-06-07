@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { logger } from '@/app/lib/logger';
 import type {
   DocSettings,
   InvColumnKey,
@@ -63,8 +64,8 @@ export function useInventoryPreferences(
     try {
       const savedCDV = localStorage.getItem(PREF_KEYS.invColumnsCDV);
       const savedDL = localStorage.getItem(PREF_KEYS.invColumnsDL);
-      if (savedCDV) try { setVisibleColumnsCDV(dedupe(JSON.parse(savedCDV))); } catch {}
-      if (savedDL) try { setVisibleColumnsDL(dedupe(JSON.parse(savedDL))); } catch {}
+      if (savedCDV) try { setVisibleColumnsCDV(dedupe(JSON.parse(savedCDV))); } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
+      if (savedDL) try { setVisibleColumnsDL(dedupe(JSON.parse(savedDL))); } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
 
       const savedCompany = localStorage.getItem(PREF_KEYS.quoteCompany) as
         | WarehouseTab
@@ -73,11 +74,11 @@ export function useInventoryPreferences(
       if (savedCompany === "CDV" || savedCompany === "DL") {
         setActiveTab(savedCompany);
         const savedDoc = localStorage.getItem(PREF_KEYS.quoteDocSettings(savedCompany));
-        if (savedDoc) try { setDocSettings(JSON.parse(savedDoc)); } catch {}
+        if (savedDoc) try { setDocSettings(JSON.parse(savedDoc)); } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
       }
 
       const savedQCols = localStorage.getItem(PREF_KEYS.quoteVisibleColumns(tab));
-      if (savedQCols) try { setVisibleQuoteColumns(JSON.parse(savedQCols)); } catch {}
+      if (savedQCols) try { setVisibleQuoteColumns(JSON.parse(savedQCols)); } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
     } catch {
       // ignore
     }

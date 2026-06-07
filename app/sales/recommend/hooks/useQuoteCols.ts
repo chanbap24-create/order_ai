@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/app/lib/logger';
 import { DEFAULT_REC_COLS } from '../constants';
 
 const STORAGE_KEY = 'recommend_quote_columns';
@@ -11,13 +12,13 @@ export function useQuoteCols() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) return JSON.parse(saved);
-      } catch {}
+      } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
     }
     return DEFAULT_REC_COLS;
   });
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(quoteCols)); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(quoteCols)); } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
   }, [quoteCols]);
 
   const toggle = (key: string) => {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/app/lib/logger';
 import { supabase } from '@/app/lib/db';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     if (itemCodesParam) {
       let codes: string[] = [];
-      try { codes = JSON.parse(itemCodesParam); } catch {}
+      try { codes = JSON.parse(itemCodesParam); } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
       if (codes.length === 0) {
         return NextResponse.json({ success: true, profiles: [] });
       }

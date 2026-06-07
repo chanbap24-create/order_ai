@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/app/lib/logger';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
@@ -79,14 +80,14 @@ export async function GET(request: NextRequest) {
         ) {
           visibleColumns = parsed;
         }
-      } catch {}
+      } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
     }
 
     // Doc settings
     const settingsParam = request.nextUrl.searchParams.get('doc_settings');
     let docSettings: DocSettings = { ...DEFAULT_DOC };
     if (settingsParam) {
-      try { docSettings = { ...docSettings, ...JSON.parse(settingsParam) }; } catch {}
+      try { docSettings = { ...docSettings, ...JSON.parse(settingsParam) }; } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
     }
 
     const company = request.nextUrl.searchParams.get('company') || 'CDV';

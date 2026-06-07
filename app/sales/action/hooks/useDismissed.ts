@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { logger } from '@/app/lib/logger';
 
 const STORAGE_KEY = "action_dismissed";
 const TTL_MS = 7 * 86400000; // 7일
@@ -35,7 +36,7 @@ export function useDismissed() {
       const next = { ...prev, [key]: new Date().toISOString() };
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {}
+      } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
       return next;
     });
   }, []);
@@ -44,7 +45,7 @@ export function useDismissed() {
     setDismissed({});
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
   }, []);
 
   return { dismissed, dismissItem, clearDismissed };
