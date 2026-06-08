@@ -2,6 +2,20 @@ import { i, C, PAGE_W, PAGE_H, blendWithWhite, type SlideData } from "./theme";
 import { drawLine, drawRect, drawRoundedRect, drawLabelBadge } from "./drawPrimitives";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
+import { capSentences, extractWineryNameEn, stripCodePrefix, cleanField, capChars, cleanAwards } from "@/app/lib/wineNoteText";
+
+/**
+ * 적응형 단일 페이지 레이아웃.
+ * - 각 섹션이 내용 높이만큼 차지(양조 안 잘림, 테이스팅 빈공간 없음).
+ * - 전체 본문을 측정해 한 페이지에 맞도록 폰트/간격을 자동 스케일.
+ *   내용 많으면 살짝 축소, 적으면 확대 → 항상 한 페이지로 균형 있게.
+ */
+
+const CX = 2.12;        // 라벨 badge x
+const TX = 2.15;        // 본문 텍스트 x
+const TW = 5.05;        // 본문 폭
+const BODY_TOP = 1.92;  // 본문 시작 y
+const BODY_BOTTOM = 8.95; // 본문 하한(푸터 위)
 
 export function renderPage(
   doc: PDFKit.PDFDocument,
@@ -10,195 +24,184 @@ export function renderPage(
   fontBold: string,
   fontEn: string,
 ) {
-  // 배경: 흰색
+  const measure = (text: string, w: number, fs: number, font: string, lineGap = 2): number => {
+    doc.font(font).fontSize(fs);
+    return doc.heightOfString(text, { width: i(w), lineGap }) / 72;
+  };
+  const drawText = (
+    text: string, x: number, y: number, w: number, fs: number,
+    font: string, color: string, lineGap = 2, extra: PDFKit.Mixins.TextOptions = {},
+  ) => {
+    doc.save().font(font).fontSize(fs).fillColor(color)
+      .text(text, i(x), i(y), { width: i(w), lineGap, ...extra }).restore();
+  };
+
+  // ── 정적 요소(스케일 무관) ──
   drawRect(doc, 0, 0, PAGE_W, PAGE_H, C.WHITE);
-
-  // 1. 좌측 병 영역 배경
-  const bottleAreaColor = blendWithWhite(C.BG_BOTTLE_AREA, 0.6);
-  drawRect(doc, 0, 0.90, 2.10, 8.10, bottleAreaColor);
-
-  // 2. 로고
+  // 좌측 병 영역: 흰색 배경(병 이미지가 누끼가 아니라 흰 박스 배경이어도 자연스럽게).
+  drawRect(doc, 0, 0.90, 2.10, 8.10, C.WHITE);
   try {
     const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
     doc.image(logoBuffer, i(0.20), i(0.20), { width: i(1.49), height: i(0.57) });
   } catch { /* ignore */ }
-
-  // 3. 와이너리 태그라인
-  const wineryDesc = data.wineryDescription || "";
-  if (wineryDesc) {
-    let tagline = wineryDesc.split(".")[0].trim();
-    if (!tagline) tagline = wineryDesc.split("。")[0].trim();
-    if (tagline) {
-      doc.save()
-        .font(fontRegular)
-        .fontSize(9)
-        .fillColor(C.TEXT_MUTED)
-        .text(tagline, i(1.76), i(0.22), { width: i(5.20) })
-        .restore();
-    }
-  }
-
-  // 4-5. 헤더 구분선
   drawLine(doc, 0.20, 0.84, 7.10, C.BURGUNDY, 1.0);
   drawLine(doc, 0.20, 0.87, 7.10, C.GOLD_LIGHT, 0.75);
 
-  // 6. 와인명 카드 배경
-  const wineCardBg = blendWithWhite(C.BURGUNDY_LIGHT, 0.8);
-  drawRoundedRect(doc, 2.05, 0.97, 5.20, 0.76, wineCardBg, C.CARD_BORDER);
+  // 와인명 카드
+  drawRoundedRect(doc, 2.05, 0.97, 5.20, 0.76, blendWithWhite(C.BURGUNDY_LIGHT, 0.8), C.CARD_BORDER);
+  const nameKrClean = stripCodePrefix(data.nameKr);
+  drawText(nameKrClean, 2.20, 1.04, 4.90, 14, fontBold, C.BURGUNDY_DARK);
+  const nameEnClean = stripCodePrefix(data.nameEn);
+  if (nameEnClean) drawText(nameEnClean, 2.20, 1.42, 4.90, 10, fontEn, C.TEXT_SECONDARY);
 
-  // 7. 와인명
-  const nameKrClean = data.nameKr.replace(/^[A-Za-z]{2}\s+/, "");
-  doc.save()
-    .font(fontBold)
-    .fontSize(14.5)
-    .fillColor(C.BURGUNDY_DARK)
-    .text(nameKrClean, i(2.20), i(1.02), { width: i(4.90) })
-    .restore();
-
-  if (data.nameEn) {
-    doc.save()
-      .font(fontEn)
-      .fontSize(10.5)
-      .fillColor(C.TEXT_SECONDARY)
-      .text(data.nameEn, i(2.20), i(1.40), { width: i(4.90) })
-      .restore();
+  // ── 헤더 우측: 와이너리명(영문) + 원산지 (로고 오른쪽 빈 공간) ──
+  {
+    const hCountry = data.countryEn || data.country || "";
+    const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
+    const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
+    if (wName) {
+      drawText(wName, 1.90, 0.27, 5.32, 17, fontEn, C.BURGUNDY, 2, { align: "right" });
+      if (hSub) drawText(hSub, 1.90, 0.585, 5.32, 8.5, fontRegular, C.TEXT_MUTED, 2, { align: "right" });
+    } else if (hSub) {
+      drawText(hSub, 1.90, 0.42, 5.32, 11.5, fontEn, C.BURGUNDY, 2, { align: "right" });
+    }
   }
 
-  // 8. 와인명 하단 구분선
-  drawLine(doc, 2.20, 1.82, 4.90, C.DIVIDER, 0.75);
-
-  // 9. 지역
-  drawLabelBadge(doc, "지역", 2.12, 1.97, 0.55, 0.22, fontBold);
+  // ── 본문 데이터 준비(disclaimer 제거 → 과도한 텍스트 정리) ──
+  const winery = capSentences(cleanField(data.wineryDescription), 4, 300);
+  const vintageNote = capSentences(cleanField(data.vintageNote), 1, 95);
+  const potential = capSentences(cleanField(data.agingPotential), 4, 280);
   const countryEn = data.countryEn || data.country || "";
   const regionText = data.region ? `${countryEn}, ${data.region}` : countryEn || "-";
-  doc.save().font(fontRegular).fontSize(9.5).fillColor(C.TEXT_PRIMARY)
-    .text(regionText, i(2.75), i(1.99), { width: i(4.40) }).restore();
+  let winemakingText = cleanField(data.winemaking) || "-";
+  if (data.alcoholPercentage) winemakingText += `\nAlc. ${data.alcoholPercentage}`;
+  const tItems: [string, string][] = ([
+    ["COLOR", cleanField(data.colorNote)], ["NOSE", cleanField(data.noseNote)],
+    ["PALATE", cleanField(data.palateNote)], ["POTENTIAL", potential],
+  ].filter(([, v]) => v) as [string, string][]);
 
-  drawLine(doc, 2.20, 2.35, 4.90, C.DIVIDER_LIGHT, 0.5);
+  /**
+   * 본문을 한 번 흐르게 그림(draw=true) 또는 높이만 측정(draw=false).
+   * s = 스케일. 폰트/간격을 s 배율로 조정. @returns 최종 y(인치).
+   */
+  const body = (s: number, draw: boolean): number => {
+    let y = BODY_TOP;
+    const fs = (b: number) => b * s;
+    const gap = (g: number) => g * (0.5 + 0.5 * s); // 간격은 절반만 스케일(너무 좁아지지 않게)
 
-  // 10. 품종
-  drawLabelBadge(doc, "품종", 2.12, 2.42, 0.55, 0.22, fontBold);
-  doc.save().font(fontRegular).fontSize(9.5).fillColor(C.TEXT_PRIMARY)
-    .text(data.grapeVarieties || "-", i(2.75), i(2.44), { width: i(4.40) }).restore();
+    const inlineRow = (label: string, value: string, labelW: number) => {
+      if (draw) drawLabelBadge(doc, label, CX, y, labelW, 0.22, fontBold);
+      const vx = TX + labelW + 0.12, vw = TW - labelW - 0.12;
+      const h = measure(value, vw, fs(9.5), fontRegular);
+      if (draw) drawText(value, vx, y + 0.02, vw, fs(9.5), fontRegular, C.TEXT_PRIMARY);
+      y += Math.max(0.26, h) + gap(0.08);
+      if (draw) drawLine(doc, TX, y - 0.05, TW, C.DIVIDER_LIGHT, 0.4);
+      y += gap(0.07);
+    };
 
-  // 11. 빈티지
-  drawLabelBadge(doc, "빈티지", 2.12, 3.02, 0.65, 0.22, fontBold);
-  doc.save().font(fontBold).fontSize(13).fillColor(C.BURGUNDY)
-    .text(data.vintage || "-", i(2.85), i(3.02), { width: i(0.75) }).restore();
+    const blockRow = (label: string, labelW: number, text: string, baseFs: number) => {
+      if (draw) drawLabelBadge(doc, label, CX, y, labelW, 0.22, fontBold);
+      y += gap(0.30);
+      const lg = 2.2 * s;
+      const h = measure(text, TW, fs(baseFs), fontRegular, lg);
+      if (draw) drawText(text, TX, y, TW, fs(baseFs), fontRegular, C.TEXT_PRIMARY, lg);
+      y += h + gap(0.16);
+    };
 
-  if (data.vintageNote) {
-    doc.save().font(fontRegular).fontSize(8).fillColor(C.TEXT_SECONDARY)
-      .text(data.vintageNote, i(3.65), i(3.04), { width: i(3.50) }).restore();
-  }
+    inlineRow("지역", regionText, 0.55);
+    inlineRow("품종", data.grapeVarieties || "-", 0.55);
 
-  // 12. 양조
-  drawLabelBadge(doc, "양조", 2.12, 3.62, 0.55, 0.22, fontBold);
-  let winemakingText = data.winemaking || "-";
-  if (data.alcoholPercentage) winemakingText += `\n알코올: ${data.alcoholPercentage}`;
-  doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
-    .text(winemakingText, i(2.15), i(3.92), { width: i(5.00), lineGap: 3 }).restore();
+    // 빈티지
+    if (draw) {
+      drawLabelBadge(doc, "빈티지", CX, y, 0.65, 0.22, fontBold);
+      drawText(data.vintage || "-", 2.88, y - 0.02, 0.8, fs(13), fontBold, C.BURGUNDY);
+    }
+    if (vintageNote) {
+      const vnW = TW - 1.55;
+      const h = measure(vintageNote, vnW, fs(8), fontRegular);
+      if (draw) drawText(vintageNote, 3.70, y + 0.01, vnW, fs(8), fontRegular, C.TEXT_SECONDARY);
+      y += Math.max(0.26, h) + gap(0.08);
+    } else {
+      y += 0.26 + gap(0.08);
+    }
+    if (draw) drawLine(doc, TX, y - 0.05, TW, C.DIVIDER_LIGHT, 0.4);
+    y += gap(0.07);
 
-  // 12.5 글라스 페어링 + 서빙온도 (양조와 테이스팅 노트 사이 여백 활용)
-  let infoY = 4.72;
-  if (data.glassPairing) {
-    drawLabelBadge(doc, "글라스", 2.12, infoY, 0.55, 0.22, fontBold);
-    doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
-      .text(data.glassPairing, i(2.75), i(infoY + 0.02), { width: i(4.40) }).restore();
-    infoY += 0.30;
-  }
-  if (data.servingTemp) {
-    drawLabelBadge(doc, "서빙온도", 2.12, infoY, 0.72, 0.22, fontBold);
-    doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
-      .text(data.servingTemp, i(2.92), i(infoY + 0.02), { width: i(4.20) }).restore();
-  }
+    if (winery) blockRow("와이너리", 0.72, winery, 8.7);
+    blockRow("양조", 0.55, winemakingText, 9.6);
 
-  // 13. 테이스팅 노트 카드
-  const tastingBg = blendWithWhite(C.BURGUNDY_LIGHT, 0.7);
-  drawRoundedRect(doc, 2.05, 5.30, 5.20, 2.72, tastingBg, C.CARD_BORDER);
-  drawLabelBadge(doc, "TASTING NOTE", 2.12, 5.35, 1.32, 0.22, fontBold);
+    // 테이스팅 노트 카드 (내용 높이만큼)
+    if (tItems.length > 0) {
+      y += 0.16; // 양조↔카드 최소 간격
+      const innerW = TW - 0.28;
+      const fsT = fs(9.8);
+      let contentH = gap(0.40);
+      for (const [, v] of tItems) contentH += 0.15 + measure(v, innerW, fsT, fontRegular, 2 * s) + gap(0.09);
+      const cardH = contentH + gap(0.10);
+      if (draw) {
+        drawRoundedRect(doc, 2.05, y, 5.20, cardH, blendWithWhite(C.BURGUNDY_LIGHT, 0.7), C.CARD_BORDER);
+        drawLabelBadge(doc, "TASTING NOTE", CX, y + 0.08, 1.32, 0.22, fontBold);
+        let cy = y + gap(0.40);
+        for (const [label, v] of tItems) {
+          doc.save().font(fontEn).fontSize(fs(9)).fillColor(C.BURGUNDY)
+            .text(label, i(TX), i(cy), { width: i(innerW), characterSpacing: 1 }).restore();
+          cy += 0.16;
+          const h = measure(v, innerW, fsT, fontRegular, 2 * s);
+          drawText(v, TX, cy, innerW, fsT, fontRegular, C.TEXT_PRIMARY, 2 * s);
+          cy += h + gap(0.09);
+        }
+      }
+      y += cardH + gap(0.14);
+    }
 
-  // 14. 테이스팅 노트 내용
-  const tastingItems: [string, string][] = [
-    ["Color", data.colorNote || ""],
-    ["Nose", data.noseNote || ""],
-    ["Palate", data.palateNote || ""],
-    ["Potential", data.agingPotential || ""],
-  ];
+    return y;
+  };
 
-  let noteY = i(5.65);
-  for (const [label, value] of tastingItems) {
-    if (!value) continue;
-    doc.save().font(fontEn).fontSize(8.5).fillColor(C.BURGUNDY)
-      .text(label.toUpperCase(), i(2.15), noteY, { width: i(5.00), characterSpacing: 1 }).restore();
-    noteY += 11;
-    doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
-      .text(value, i(2.15), noteY, { width: i(5.00), lineGap: 2 }).restore();
-    noteY += doc.heightOfString(value, { width: i(5.00) }) + 8;
-  }
+  // ── fit-to-one-page: 측정 → 스케일 산출 → 렌더 ──
+  const avail = BODY_BOTTOM - BODY_TOP;
+  const used1 = body(1.0, false) - BODY_TOP;
+  let s = Math.sqrt(avail / used1);               // 높이 ∝ 폰트² 근사
+  s = Math.max(0.64, Math.min(1.22, s));
+  const used2 = body(s, false) - BODY_TOP;         // 스케일 적용 후 실측 보정
+  if (used2 > avail) s = Math.max(0.58, s * (avail / used2));
+  body(s, true);
 
-  if (tastingItems.every(([, v]) => !v)) {
-    doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_MUTED)
-      .text("-", i(2.15), i(5.65), { width: i(5.00) }).restore();
-  }
-
-  // 15. 푸드 페어링
-  drawLabelBadge(doc, "푸드 페어링", 2.12, 8.18, 0.95, 0.22, fontBold);
-  doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
-    .text(data.foodPairing || "-", i(2.15), i(8.44), { width: i(5.00), lineGap: 3 }).restore();
-
-  // 16. 수상내역
+  // ── 푸터(하단 고정) ──
   drawLine(doc, 0.15, 9.04, 7.20, C.GOLD_LIGHT, 0.5);
-
-  const awards = data.awards || "";
-  if (awards && awards !== "N/A") {
+  const awards = capChars(cleanAwards(data.awards), 130);
+  if (awards) {
     try {
       const iconBuffer = Buffer.from(ICON_AWARD_BASE64, "base64");
       doc.image(iconBuffer, i(0.25), i(9.08), { width: i(0.22), height: i(0.28) });
     } catch { /* ignore */ }
-
     doc.save().font(fontBold).fontSize(8).fillColor(C.GOLD)
       .text("AWARDS  ", i(0.52), i(9.12), { continued: true })
-      .font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
-      .text(awards)
-      .restore();
+      .font(fontRegular).fontSize(8.5).fillColor(C.TEXT_PRIMARY)
+      .text(awards, { width: i(6.6) }).restore();
   }
-
-  // 17. 푸터
   drawLine(doc, 0.20, 9.52, 7.10, C.BURGUNDY, 2.0);
   drawLine(doc, 0.20, 9.55, 7.10, C.GOLD_LIGHT, 0.75);
-
   try {
     const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
     doc.image(logoBuffer, i(0.09), i(9.68), { width: i(0.95), height: i(0.25) });
   } catch { /* ignore */ }
+  drawText("T. 02-786-3136  |  www.cavedevin.com", 1.12, 9.72, 2.76, 7, fontRegular, C.TEXT_MUTED);
 
-  doc.save().font(fontRegular).fontSize(7).fillColor(C.TEXT_MUTED)
-    .text("T. 02-786-3136  |  www.cavedevin.com", i(1.12), i(9.72), {
-      width: i(2.76), align: "right",
-    }).restore();
-
-  // 18. 병 이미지 (Vivino 이미지면 하단 워터마크 띠를 크롭)
+  // ── 병 이미지(워터마크 위치별 크롭) ──
   if (data.bottleImageBase64 && data.bottleImageMimeType) {
     try {
       const imgBuffer = Buffer.from(data.bottleImageBase64, "base64");
       const boxX = i(0.25), boxY = i(2.00), boxW = i(1.60), boxH = i(5.50);
       const img = doc.openImage(imgBuffer);
-      // 워터마크 위치별 크롭 (우: wine-searcher 우상단, 하단: Vivino). 깨끗한 이미지는 0.
       const rightFrac = data.bottleCropRight ? 0.12 : 0;
       const bottomFrac = data.bottleCropBottom ? 0.07 : 0;
-      const srcVisW = img.width * (1 - rightFrac);     // 좌측부터 보일 폭(원본 px)
-      const srcVisH = img.height * (1 - bottomFrac);   // 위부터 보일 높이(원본 px)
+      const srcVisW = img.width * (1 - rightFrac);
+      const srcVisH = img.height * (1 - bottomFrac);
       const scale = Math.min(boxW / srcVisW, boxH / srcVisH);
-      const visW = srcVisW * scale;
-      const visH = srcVisH * scale;
-      const drawX = boxX + (boxW - visW) / 2;
-      const drawY = boxY + (boxH - visH) / 2;
-      // 보이는 영역(좌상단)만 클립 → 우측/하단 워터마크는 클립 밖으로 잘림.
+      const visW = srcVisW * scale, visH = srcVisH * scale;
+      const drawX = boxX + (boxW - visW) / 2, drawY = boxY + (boxH - visH) / 2;
       doc.save().rect(drawX, drawY, visW, visH).clip();
-      doc.image(imgBuffer, drawX, drawY, {
-        width: img.width * scale,
-        height: img.height * scale,
-      });
+      doc.image(imgBuffer, drawX, drawY, { width: img.width * scale, height: img.height * scale });
       doc.restore();
     } catch (e) {
       logger.warn(`[PDF] Failed to add bottle image: ${e}`);

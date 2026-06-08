@@ -1,6 +1,24 @@
+import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { formatVintage4, type SlideData } from "./theme";
+
+/**
+ * PDFKit은 PNG/JPEG만 지원(webp/avif 등은 'Unknown image format' 에러).
+ * 지원 안 되는 포맷이면 sharp로 PNG 변환.
+ */
+async function toPdfSafeImage(
+  base64: string,
+  mime: string,
+): Promise<{ base64: string; mime: string }> {
+  // 주변 여백 trim(병이 영역을 꽉 채우게) + PDFKit 호환 PNG 변환.
+  try {
+    const png = await sharp(Buffer.from(base64, "base64")).trim({ threshold: 10 }).png().toBuffer();
+    return { base64: png.toString("base64"), mime: "image/png" };
+  } catch {
+    return { base64, mime };
+  }
+}
 
 /**
  * wineId 리스트로부터 렌더링용 SlideData 배열을 구축.
@@ -32,8 +50,9 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       try {
         const imgData = await downloadImageAsBase64(wine.image_url);
         if (imgData) {
-          bottleImageBase64 = imgData.base64;
-          bottleImageMimeType = imgData.mimeType;
+          const safe = await toPdfSafeImage(imgData.base64, imgData.mimeType);
+          bottleImageBase64 = safe.base64;
+          bottleImageMimeType = safe.mime;
           detectWatermark(wine.image_url);
         }
       } catch { /* ignore */ }
@@ -48,8 +67,9 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
           if (vivinoUrl) {
             const imgData = await downloadImageAsBase64(vivinoUrl);
             if (imgData) {
-              bottleImageBase64 = imgData.base64;
-              bottleImageMimeType = imgData.mimeType;
+              const safe = await toPdfSafeImage(imgData.base64, imgData.mimeType);
+              bottleImageBase64 = safe.base64;
+              bottleImageMimeType = safe.mime;
               bottleCropBottom = true; // Vivino fallback → 하단 워터마크
             }
           }

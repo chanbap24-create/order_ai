@@ -2,6 +2,7 @@ import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
 import { C, FONT_EN, FONT_MAIN, type Slide, type SlideData } from "../theme";
 import { addLine } from "../addPrimitives";
+import { cleanAwards, capChars } from "@/app/lib/wineNoteText";
 
 /**
  * 수상내역(선택), 푸터(로고 + 회사 정보), 병 이미지(선택).
@@ -10,8 +11,8 @@ export function renderFooter(slide: Slide, data: SlideData) {
   // 수상내역 상단선
   addLine(slide, 0.3, 9.05, 6.9, C.GOLD_LIGHT, 0.5);
 
-  const awards = data.awards || "";
-  if (awards && awards !== "N/A") {
+  const awards = capChars(cleanAwards(data.awards), 130);
+  if (awards) {
     const AWARD_Y = 9.12;
     const AWARD_H = 0.32;
 
@@ -57,13 +58,22 @@ export function renderFooter(slide: Slide, data: SlideData) {
     align: "right", valign: "middle",
   });
 
-  // 병 이미지 (있을 때만)
+  // 병 이미지 (있을 때만) — 원본 비율대로 좌측 영역에 맞춰 배치(강제 변형 X).
   if (data.bottleImageBase64 && data.bottleImageMimeType) {
     try {
+      // 가용 영역(좌측 패널 내부)
+      const AREA_X = 0.15, AREA_Y = 1.95, AREA_W = 1.9, AREA_H = 6.8;
+      // 원본 비율(없으면 일반 와인병 비율 가정)
+      const imgW = data.bottleImageW || 1;
+      const imgH = data.bottleImageH || 3.2;
+      const scale = Math.min(AREA_W / imgW, AREA_H / imgH);
+      const w = imgW * scale;
+      const h = imgH * scale;
+      const x = AREA_X + (AREA_W - w) / 2; // 가로 중앙
+      const y = AREA_Y + (AREA_H - h) / 2; // 세로 중앙
       slide.addImage({
         data: `${data.bottleImageMimeType};base64,${data.bottleImageBase64}`,
-        x: 0.25, y: 2.0, w: 1.6, h: 6.6,
-        sizing: { type: "contain", w: 1.6, h: 6.6 },
+        x, y, w, h,
       });
     } catch (e) {
       logger.warn(`[PPT] Failed to add bottle image: ${e}`);

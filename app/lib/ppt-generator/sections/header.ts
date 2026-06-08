@@ -2,6 +2,7 @@ import type PptxGenJS from "pptxgenjs";
 import { LOGO_CAVEDEVIN_BASE64 } from "@/app/lib/pptAssets";
 import { C, FONT_EN, FONT_MAIN, type Slide, type SlideData } from "../theme";
 import { addLine } from "../addPrimitives";
+import { extractWineryNameEn, stripCodePrefix } from "@/app/lib/wineNoteText";
 
 /**
  * 슬라이드 상단: 좌측 병 영역 배경 + 로고 + 태그라인 + 헤더 구분선 + 와인명 카드.
@@ -9,10 +10,10 @@ import { addLine } from "../addPrimitives";
 export function renderHeader(slide: Slide, data: SlideData) {
   slide.background = { color: C.WHITE };
 
-  // 1. 좌측 병 영역 배경 패널
+  // 1. 좌측 병 영역 배경: 흰색(병 이미지가 누끼가 아니라 흰 박스 배경이어도 자연스럽게)
   slide.addShape("rect", {
     x: 0, y: 0.9, w: 2.1, h: 8.1,
-    fill: { color: C.BG_BOTTLE_AREA, transparency: 30 },
+    fill: { color: C.WHITE },
     line: { type: "none" },
   });
 
@@ -24,20 +25,29 @@ export function renderHeader(slide: Slide, data: SlideData) {
     });
   } catch { /* ignore */ }
 
-  // 3. 와이너리 태그라인 (1줄로 제한)
-  const wineryDesc = data.wineryDescription || "";
-  if (wineryDesc) {
-    let tagline = wineryDesc.split(".")[0].trim();
-    if (!tagline) tagline = wineryDesc.split("。")[0].trim();
-    if (tagline && tagline.length > 50) {
-      tagline = tagline.substring(0, 48) + "…";
-    }
-    if (tagline) {
-      slide.addText(tagline, {
-        x: 2.2, y: 0.32, w: 5.0, h: 0.24,
-        fontSize: 8, color: C.TEXT_MUTED,
-        italic: true, fontFace: FONT_EN,
-        autoFit: true,
+  // 3. 헤더 우측: 와이너리명 강조 + 원산지 (로고 오른쪽 빈 공간)
+  {
+    const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
+    const hCountry = data.countryEn || data.country || "";
+    const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
+    if (wName) {
+      slide.addText(wName, {
+        x: 1.9, y: 0.15, w: 5.3, h: 0.42,
+        fontSize: 19, fontFace: FONT_EN, color: C.BURGUNDY,
+        italic: true, align: "right", valign: "middle",
+      });
+      if (hSub) {
+        slide.addText(hSub, {
+          x: 1.9, y: 0.55, w: 5.3, h: 0.22,
+          fontSize: 9, fontFace: FONT_EN, color: C.TEXT_MUTED,
+          align: "right", valign: "middle",
+        });
+      }
+    } else if (hSub) {
+      slide.addText(hSub, {
+        x: 1.9, y: 0.28, w: 5.3, h: 0.35,
+        fontSize: 13, fontFace: FONT_EN, color: C.BURGUNDY,
+        align: "right", valign: "middle",
       });
     }
   }
@@ -60,24 +70,25 @@ export function renderHeader(slide: Slide, data: SlideData) {
     line: { width: 0 },
   });
 
-  // 7. 와인명 텍스트 (한글 + 영문) — 길이에 따라 폰트 자동 조절
-  const nameKrClean = data.nameKr.replace(/^[A-Za-z]{2}\s+/, "");
-  const totalLen = nameKrClean.length + (data.nameEn?.length || 0);
+  // 7. 와인명 텍스트 (한글 + 영문) — 전산 검색용 2글자 코드 제거 후, 길이에 따라 폰트 자동 조절
+  const nameKrClean = stripCodePrefix(data.nameKr);
+  const nameEnClean = stripCodePrefix(data.nameEn);
+  const totalLen = nameKrClean.length + nameEnClean.length;
   const krFontSize = totalLen > 40 ? 13 : totalLen > 28 ? 14 : 17;
   const enFontSize = totalLen > 40 ? 8.5 : totalLen > 28 ? 9.5 : 11;
 
   const nameRuns: PptxGenJS.TextProps[] = [
     {
-      text: data.nameEn ? nameKrClean + "\n" : nameKrClean,
+      text: nameEnClean ? nameKrClean + "\n" : nameKrClean,
       options: {
         fontSize: krFontSize, fontFace: FONT_MAIN,
         color: C.BURGUNDY_DARK, bold: true,
       },
     },
   ];
-  if (data.nameEn) {
+  if (nameEnClean) {
     nameRuns.push({
-      text: data.nameEn,
+      text: nameEnClean,
       options: {
         fontSize: enFontSize, fontFace: FONT_EN,
         color: C.TEXT_SECONDARY, italic: true,

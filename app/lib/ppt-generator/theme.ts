@@ -63,6 +63,8 @@ export interface SlideData {
   awards: string;
   bottleImageBase64?: string;
   bottleImageMimeType?: string;
+  bottleImageW?: number; // 원본 픽셀 폭(비율 보존용)
+  bottleImageH?: number; // 원본 픽셀 높이
 }
 
 // pptxgenjs 타입을 강제로 any로 래핑 (각 addXxx 메서드 호출)
