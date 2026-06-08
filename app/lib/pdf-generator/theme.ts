@@ -75,4 +75,7 @@ export interface SlideData {
   awards: string;
   bottleImageBase64?: string;
   bottleImageMimeType?: string;
+  // 워터마크 위치별 크롭 플래그 (소스 감지 기반). 깨끗한 이미지는 둘 다 false.
+  bottleCropBottom?: boolean; // Vivino: 하단 '✻ Vivino' 띠
+  bottleCropRight?: boolean;  // Wine-Searcher: 우측 상단 세로 'wine-searcher™' 워터마크
 }

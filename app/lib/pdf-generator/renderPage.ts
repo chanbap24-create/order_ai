@@ -98,6 +98,20 @@ export function renderPage(
   doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
     .text(winemakingText, i(2.15), i(3.92), { width: i(5.00), lineGap: 3 }).restore();
 
+  // 12.5 글라스 페어링 + 서빙온도 (양조와 테이스팅 노트 사이 여백 활용)
+  let infoY = 4.72;
+  if (data.glassPairing) {
+    drawLabelBadge(doc, "글라스", 2.12, infoY, 0.55, 0.22, fontBold);
+    doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
+      .text(data.glassPairing, i(2.75), i(infoY + 0.02), { width: i(4.40) }).restore();
+    infoY += 0.30;
+  }
+  if (data.servingTemp) {
+    drawLabelBadge(doc, "서빙온도", 2.12, infoY, 0.72, 0.22, fontBold);
+    doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
+      .text(data.servingTemp, i(2.92), i(infoY + 0.02), { width: i(4.20) }).restore();
+  }
+
   // 13. 테이스팅 노트 카드
   const tastingBg = blendWithWhite(C.BURGUNDY_LIGHT, 0.7);
   drawRoundedRect(doc, 2.05, 5.30, 5.20, 2.72, tastingBg, C.CARD_BORDER);
@@ -115,7 +129,7 @@ export function renderPage(
   for (const [label, value] of tastingItems) {
     if (!value) continue;
     doc.save().font(fontEn).fontSize(8.5).fillColor(C.BURGUNDY)
-      .text(label, i(2.15), noteY, { width: i(5.00) }).restore();
+      .text(label.toUpperCase(), i(2.15), noteY, { width: i(5.00), characterSpacing: 1 }).restore();
     noteY += 11;
     doc.save().font(fontRegular).fontSize(9).fillColor(C.TEXT_PRIMARY)
       .text(value, i(2.15), noteY, { width: i(5.00), lineGap: 2 }).restore();
@@ -163,15 +177,29 @@ export function renderPage(
       width: i(2.76), align: "right",
     }).restore();
 
-  // 18. 병 이미지
+  // 18. 병 이미지 (Vivino 이미지면 하단 워터마크 띠를 크롭)
   if (data.bottleImageBase64 && data.bottleImageMimeType) {
     try {
       const imgBuffer = Buffer.from(data.bottleImageBase64, "base64");
-      doc.image(imgBuffer, i(0.25), i(2.00), {
-        fit: [i(1.60), i(5.50)],
-        align: "center",
-        valign: "center",
+      const boxX = i(0.25), boxY = i(2.00), boxW = i(1.60), boxH = i(5.50);
+      const img = doc.openImage(imgBuffer);
+      // 워터마크 위치별 크롭 (우: wine-searcher 우상단, 하단: Vivino). 깨끗한 이미지는 0.
+      const rightFrac = data.bottleCropRight ? 0.12 : 0;
+      const bottomFrac = data.bottleCropBottom ? 0.07 : 0;
+      const srcVisW = img.width * (1 - rightFrac);     // 좌측부터 보일 폭(원본 px)
+      const srcVisH = img.height * (1 - bottomFrac);   // 위부터 보일 높이(원본 px)
+      const scale = Math.min(boxW / srcVisW, boxH / srcVisH);
+      const visW = srcVisW * scale;
+      const visH = srcVisH * scale;
+      const drawX = boxX + (boxW - visW) / 2;
+      const drawY = boxY + (boxH - visH) / 2;
+      // 보이는 영역(좌상단)만 클립 → 우측/하단 워터마크는 클립 밖으로 잘림.
+      doc.save().rect(drawX, drawY, visW, visH).clip();
+      doc.image(imgBuffer, drawX, drawY, {
+        width: img.width * scale,
+        height: img.height * scale,
       });
+      doc.restore();
     } catch (e) {
       logger.warn(`[PDF] Failed to add bottle image: ${e}`);
     }

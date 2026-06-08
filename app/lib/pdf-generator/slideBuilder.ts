@@ -17,6 +17,15 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
 
     let bottleImageBase64: string | undefined;
     let bottleImageMimeType: string | undefined;
+    let bottleCropBottom = false; // Vivino 하단 워터마크
+    let bottleCropRight = false;  // Wine-Searcher 우측 상단 워터마크
+
+    // 소스 URL 로 워터마크 위치 감지 (깨끗한 소스는 크롭 안 함).
+    const detectWatermark = (url: string) => {
+      const u = url.toLowerCase();
+      if (u.includes("vivino")) bottleCropBottom = true;
+      if (u.includes("wine-searcher") || u.includes("winesearcher")) bottleCropRight = true;
+    };
 
     // 1순위: DB에 저장된 image_url (관리자 수정 가능)
     if (wine.image_url) {
@@ -25,6 +34,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
         if (imgData) {
           bottleImageBase64 = imgData.base64;
           bottleImageMimeType = imgData.mimeType;
+          detectWatermark(wine.image_url);
         }
       } catch { /* ignore */ }
     }
@@ -40,6 +50,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
             if (imgData) {
               bottleImageBase64 = imgData.base64;
               bottleImageMimeType = imgData.mimeType;
+              bottleCropBottom = true; // Vivino fallback → 하단 워터마크
             }
           }
         } catch { /* ignore */ }
@@ -47,6 +58,8 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
     }
 
     slides.push({
+      bottleCropBottom,
+      bottleCropRight,
       nameKr: wine.item_name_kr,
       nameEn: wine.item_name_en || "",
       country: wine.country || "",
