@@ -94,6 +94,24 @@ export async function detectFileType(file: File): Promise<DetectResult> {
         if (fname.includes("dl") || fname.includes("글라스") || fname.includes("glass") || fname.includes("riedel")) {
           return { type: "dl-payments", confidence: "high", reason: "수금내역 - 이월행 + 파일명 DL" };
         }
+
+        // 1순위: 업종구분(K열, idx10) — 와인/글라스 업종 체계가 다름(가장 신뢰도 높음).
+        //   와인(CDV): 'on/업소' 'off/편의점' 처럼 on//off/ 프리픽스(업장 구분).
+        //   글라스(DL): '기물벤더' '백화점(리빙)' '온라인' 등 글라스 고유 업종 (on//off/ 없음).
+        const upjongVals = new Set<string>();
+        for (let i = 1; i < Math.min(200, rows.length); i++) {
+          const v = String((rows[i] as unknown[])[10] ?? "").trim();
+          if (v) upjongVals.add(v);
+        }
+        const upjongText = Array.from(upjongVals).join("|");
+        if (upjongText.includes("기물벤더") || upjongText.includes("백화점(리빙)") || upjongText.includes("리빙")) {
+          return { type: "dl-payments", confidence: "high", reason: "수금내역 - 업종구분 글라스 고유(기물벤더/리빙) (DL)" };
+        }
+        if (upjongText.includes("on/") || upjongText.includes("off/")) {
+          return { type: "payments", confidence: "high", reason: "수금내역 - 업종구분 on//off/ 프리픽스 (CDV 와인)" };
+        }
+
+        // 2순위(fallback): 부서(M열, idx12)에 DL/글라스 표기.
         const depts = new Set<string>();
         for (let i = 1; i < Math.min(100, rows.length); i++) {
           const r = rows[i] as unknown[];
@@ -101,8 +119,8 @@ export async function detectFileType(file: File): Promise<DetectResult> {
           if (dept) depts.add(dept);
         }
         const deptText = Array.from(depts).join("|");
-        if (deptText.includes("DL") || deptText.includes("글라스")) {
-          return { type: "dl-payments", confidence: "high", reason: "수금내역 - 부서에 DL 포함" };
+        if (deptText.includes("DL") || deptText.includes("글라스") || deptText.includes("이커머스")) {
+          return { type: "dl-payments", confidence: "medium", reason: "수금내역 - 부서에 DL/이커머스 포함" };
         }
         return { type: "payments", confidence: "medium", reason: "수금내역 - 이월행 감지 (CDV 추정)" };
       }
