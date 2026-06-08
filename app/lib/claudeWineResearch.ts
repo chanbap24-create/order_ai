@@ -7,6 +7,8 @@ import { getBrandContextForWine } from "@/app/lib/brandDb";
 import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+// 테이스팅 노트 생성은 사실성·문장 품질이 중요 → Sonnet. (가벼운 매칭 검증은 Haiku 유지)
+const RESEARCH_MODEL = "claude-sonnet-4-6";
 
 /** web_search 응답의 <cite> 태그 제거 */
 function stripCitations(text: string): string {
@@ -14,17 +16,23 @@ function stripCitations(text: string): string {
 }
 
 const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
-사용자가 제공한 와인 정보와 Wine-Searcher 실제 데이터를 기반으로 와인을 분석하세요.
+제공된 실제 데이터(Wine-Searcher, 브랜드 DB, 웹검색)에 **근거**하여 와인을 분석합니다.
 
-중요 규칙:
-- 생산자/브랜드가 명시된 경우, 반드시 해당 생산자의 와인만 조사할 것 (다른 생산자의 동명 와인을 혼동하지 말 것)
-- item_name_en: 사용자가 제공한 "와인 이름(영문)"을 그대로 반환할 것. 와이너리명을 앞에 붙이거나 변형하지 말 것
-- Wine-Searcher 데이터가 있으면 최우선으로 사용
-- 브랜드 자료실 DB 정보가 있으면 winery_description, winemaking에 적극 활용 (양조 철학, 포도밭, 와인메이커 등)
-- 브랜드 DB의 수상 내역(awards)에서 해당 와인 관련 점수를 추출하여 활용
-- 데이터가 없는 필드만 전문 지식으로 보완
-- 허위 정보를 만들지 말 것
-- 테이스팅 노트는 전문적이고 상세하게
+핵심 원칙 (반드시 준수):
+- 생산자/브랜드가 명시되면 반드시 해당 생산자의 와인만. 동명의 다른 생산자 와인과 혼동 금지.
+- item_name_en: 사용자가 제공한 영문명을 그대로 반환. 와이너리명을 붙이거나 변형하지 말 것.
+- Wine-Searcher 데이터가 있으면 최우선. 브랜드 DB는 winery_description/winemaking에 활용.
+
+[사실 필드는 확인된 것만 — 지어내지 말 것]
+- 수상/평점(awards), 알코올 도수, 빈티지 기후 등 **사실**은 제공 데이터·검색에서 **확인된 경우에만** 기재.
+- 근거 없는 점수·메달·구체 수치를 절대 만들지 말 것 (예: 출처 없이 "WS 95점", "Decanter 금메달" 금지).
+- 확인 불가 시: awards="N/A", 알코올은 해당 스타일의 일반 범위, vintage_note는 해당 산지·빈티지의 일반적 특성만(구체적 기상 수치 날조 금지).
+
+[관능 노트(color/nose/palate)는 근거 우선 — 시음한 척 과장 금지]
+- 검색/리뷰에서 찾은 **실제 비평가 시음 평이 있으면 그것을 반영**.
+- 실제 평이 없으면 해당 **품종·산지·스타일의 전형적 특성**으로 서술하되, 이 병을 직접 시음한 듯한
+  과장된 구체 묘사는 피하고 절제되고 정확하게 작성.
+- 미사여구보다 정확함. 불확실하면 보수적으로.
 
 반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
 {
@@ -196,16 +204,15 @@ export async function researchWineWithClaude(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
-    model: HAIKU_MODEL,
+    model: RESEARCH_MODEL,
     max_tokens: 4096,
     messages: [
       { role: "user", content: `${RESEARCH_PROMPT}\n\n${userMessage}` },
     ],
+    // web_search 항상 허용: WS/브랜드DB는 메타데이터(이름·품종·산지)뿐이라
+    // 실제 비평가 시음 평이 없음 → 관능 노트를 근거 기반으로 만들기 위해 검색 허용.
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: hasRichContext ? 2 : 4 }],
   };
-  // 컨텍스트 부족 시에만 web_search 사용 (비용 절감)
-  if (!hasRichContext) {
-    apiParams.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }];
-  }
 
   const response = await client.messages.create(apiParams);
 
