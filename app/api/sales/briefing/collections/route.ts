@@ -12,7 +12,7 @@ interface CollItem {
   net_balance: number; overdue: number; days_overdue: number;
   due_date: string | null; oldest_unpaid_date: string | null;
   promised_date: string | null; promised_amount: number | null;
-  stage: number; status: string; special: boolean;
+  stage: number; status: string; special: boolean; hidden: boolean;
 }
 
 export async function GET(req: NextRequest) {
@@ -28,10 +28,10 @@ export async function GET(req: NextRequest) {
       supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }),
       supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }),
       supabase.from('collection_followups')
-        .select('client_code, client_type, stage, status, promised_date, promised_amount, payment_type').eq('manager', manager),
+        .select('client_code, client_type, stage, status, promised_date, promised_amount, payment_type, hidden').eq('manager', manager),
     ]);
 
-    const foMap = new Map<string, { stage: number; status: string; promised_date: string | null; promised_amount: number | null; payment_type: string | null }>();
+    const foMap = new Map<string, { stage: number; status: string; promised_date: string | null; promised_amount: number | null; payment_type: string | null; hidden: boolean }>();
     for (const f of (fo.data || [])) foMap.set(`${f.client_code}|${f.client_type}`, f);
 
     const days = (a: string, b: string) => Math.floor((new Date(a).getTime() - new Date(b).getTime()) / 86400000);
@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
         promised_date: f?.promised_date ?? null, promised_amount: f?.promised_amount ?? null,
         stage: f?.stage ?? 0, status: f?.status ?? 'open',
         special: r.overdue > 0 && daysOverdue >= 30,
+        hidden: f?.hidden ?? false,
       };
     });
 

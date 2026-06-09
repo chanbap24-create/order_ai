@@ -16,6 +16,7 @@ export interface CollItem {
   stage: number;
   status: string;
   special: boolean;
+  hidden: boolean;
 }
 
 export interface CollectionBriefing {

@@ -69,6 +69,7 @@ export async function PUT(req: NextRequest) {
     if ('promised_amount' in body) row.promised_amount = (body.promised_amount === null || body.promised_amount === '') ? null : Math.trunc(Number(body.promised_amount)) || null;
     if ('memo' in body) row.memo = typeof body.memo === 'string' ? body.memo.slice(0, 1000) : null;
     if ('payment_type' in body) row.payment_type = PAY_TYPES.includes(body.payment_type) ? body.payment_type : null;
+    if ('hidden' in body) row.hidden = !!body.hidden;
 
     const { data, error } = await supabase
       .from('collection_followups')

@@ -57,10 +57,13 @@ function sortValue(it: CollItem, mode: Mode, col: SortCol): number | string {
 
 export function CollectionBriefingSection({ data, onSave }: { data: CollectionBriefing; onSave?: SaveFn }) {
   const { broken, promiseToday, overdue } = data;
-  const newCount = [...broken, ...promiseToday, ...overdue].filter(isNew).length;
+  const allItems = [...broken, ...promiseToday, ...overdue];
+  const hiddenItems = allItems.filter(it => it.hidden);
+  const newCount = allItems.filter(it => !it.hidden && isNew(it)).length;
   const [editing, setEditing] = useState<string | null>(null);
   const [ledger, setLedger] = useState<CollItem | null>(null);
   const [sort, setSort] = useState<Sort | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
   if (broken.length === 0 && promiseToday.length === 0 && overdue.length === 0) return null;
 
   // 클릭 시 오름 → 내림 → 해제 순환
@@ -69,20 +72,48 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
 
   return (
     <div style={{ marginBottom: 12, background: '#fff', border: '1px solid rgba(90,21,21,0.06)', boxShadow: '0 1px 3px rgba(90,21,21,0.03)', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
-        💰 오늘의 수금
-        <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
+      <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>💰 오늘의 수금</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           약속어김 {broken.length} · 오늘약속 {promiseToday.length} · 연체 {overdue.length}
           {newCount > 0 && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}> · 신규 {newCount}</span>}
           {data.counts.special > 0 && <span style={{ color: 'var(--status-danger)' }}> (특별관리 {data.counts.special})</span>}
         </span>
+        {hiddenItems.length > 0 && (
+          <button
+            onClick={() => setShowHidden(v => !v)}
+            style={{ marginLeft: 'auto', padding: '3px 9px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid var(--border-default)', background: showHidden ? 'var(--action)' : 'var(--surface)', color: showHidden ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
+          >
+            🙈 숨김목록 {hiddenItems.length}
+          </button>
+        )}
       </div>
+
+      {showHidden && (
+        <div style={{ padding: '8px 14px', background: 'var(--gray-50)', borderBottom: '1px solid var(--action-muted)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>숨김 목록 ({hiddenItems.length}) — 해제하면 다시 표시됩니다</div>
+          {hiddenItems.map(it => (
+            <div key={keyOf(it)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: it.client_type === 'wine' ? 'var(--color-primary-light)' : 'var(--status-info)' }} />
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.client_name}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{it.client_type === 'wine' ? '까브드뱅' : '대유라이프'}</span>
+              <span style={{ marginLeft: 'auto', color: 'var(--status-warning)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{it.overdue > 0 ? `미수 ${fmt(it.overdue)}` : ''}</span>
+              {onSave && (
+                <button
+                  onClick={() => onSave(it.client_code, it.client_type, { hidden: false })}
+                  style={{ padding: '3px 9px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--action)', cursor: 'pointer' }}
+                >해제</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {GROUPS.map(g => {
         const rows: Array<{ it: CollItem; mode: Mode }> = [
-          ...broken.filter(x => x.client_type === g.type).map(it => ({ it, mode: 'broken' as Mode })),
-          ...promiseToday.filter(x => x.client_type === g.type).map(it => ({ it, mode: 'today' as Mode })),
-          ...overdue.filter(x => x.client_type === g.type).map(it => ({ it, mode: 'overdue' as Mode })),
+          ...broken.filter(x => x.client_type === g.type && !x.hidden).map(it => ({ it, mode: 'broken' as Mode })),
+          ...promiseToday.filter(x => x.client_type === g.type && !x.hidden).map(it => ({ it, mode: 'today' as Mode })),
+          ...overdue.filter(x => x.client_type === g.type && !x.hidden).map(it => ({ it, mode: 'overdue' as Mode })),
         ];
         if (rows.length === 0) return null;
         const sorted = sort
@@ -209,6 +240,11 @@ function Editor({ item, onSave, onClose, onOpenLedger }: { item: CollItem; onSav
             onClick={() => { onSave(item.client_code, item.client_type, { promised_date: date || null, promised_amount: amount === '' ? null : Math.trunc(Number(amount)) }); onClose(); }}
             style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: 'none', background: 'var(--action)', color: '#fff', cursor: 'pointer' }}
           >저장</button>
+          <button
+            onClick={() => { onSave(item.client_code, item.client_type, { hidden: true }); onClose(); }}
+            style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-tertiary)', cursor: 'pointer' }}
+            title="이 거래처를 브리핑에서 숨깁니다 (숨김목록에서 해제 가능)"
+          >🙈 숨김</button>
         </>
       )}
       <button onClick={onClose} style={{ padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)', cursor: 'pointer' }}>닫기</button>
