@@ -1,6 +1,6 @@
 import type { NoteFilter, TastingWineRow } from "./types";
 
-export const NOTE_FILTERS: NoteFilter[] = ["all", "with", "without", "db-only"];
+export const NOTE_FILTERS: NoteFilter[] = ["all", "new", "without", "with", "db-only"];
 
 /**
  * item_code 첫 글자별 카테고리 매핑.
@@ -19,6 +19,7 @@ export const LOW_STOCK_THRESHOLD = 10;
 
 export const NOTE_FILTER_LABELS: Record<NoteFilter, string> = {
   all: "전체",
+  new: "신규",
   with: "작성완료",
   without: "미작성",
   "db-only": "DB만",

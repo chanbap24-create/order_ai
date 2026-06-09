@@ -82,7 +82,12 @@ export function useTastingNoteList() {
     return true;
   };
 
+  // 신규: 재고 무관(등록 검토용), 와인 분류만
+  const isNewWine = (w: TastingWineRow) =>
+    w.status === "new" && (!wineOnly || isWineCategory(w.item_code));
+
   const filteredWines = wines.filter((w) => {
+    if (filterNote === "new") return isNewWine(w);
     if (!passesCategoryFilters(w)) return false;
     if (filterNote === "with") return hasNote(w);
     if (filterNote === "without") return !hasNote(w);
@@ -94,6 +99,7 @@ export function useTastingNoteList() {
   const baseFiltered = wines.filter(passesCategoryFilters);
   const counts: Record<NoteFilter, number> = {
     all: baseFiltered.length,
+    new: wines.filter(isNewWine).length,
     with: baseFiltered.filter((w) => hasNote(w)).length,
     without: baseFiltered.filter((w) => !hasNote(w)).length,
     "db-only": baseFiltered.filter(
