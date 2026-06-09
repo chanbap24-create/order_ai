@@ -26,7 +26,7 @@ export function renderHeader(slide: Slide, data: SlideData) {
   const CONTENT_X = 2.2;     // 우측 콘텐츠(와인명 카드/배지) 시작 x
 
   if (hasLogo) {
-    const MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.08, BAND_H = 0.68;
+    const MAX_W = 2.3, MAX_H = 0.78, BAND_Y = 0.04, BAND_H = 0.78;
     const scale = Math.min(MAX_W / data.brandLogoW!, MAX_H / data.brandLogoH!);
     const w = data.brandLogoW! * scale, h = data.brandLogoH! * scale;
     try {

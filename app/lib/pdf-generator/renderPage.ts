@@ -60,7 +60,7 @@ export function renderPage(
     const BOTTLE_CENTER = 1.05; // 좌측 병 영역 중심 (병 박스 boxX 0.25 + boxW 1.6 / 2)
     const CONTENT_X = 2.05;     // 우측 콘텐츠(와인명 카드) 시작 x
     if (hasLogo) {
-      const MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.09, BAND_H = 0.68;
+      const MAX_W = 2.3, MAX_H = 0.78, BAND_Y = 0.04, BAND_H = 0.78;
       const scale = Math.min(MAX_W / data.brandLogoW!, MAX_H / data.brandLogoH!);
       const w = data.brandLogoW! * scale, h = data.brandLogoH! * scale;
       try {
