@@ -1,8 +1,26 @@
 import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
+import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { logger } from "@/app/lib/logger";
 import { formatVintage4, type SlideData } from "./theme";
+
+/** 브랜드 로고 다운로드 → base64 + 원본 픽셀 크기. 실패 시 undefined. */
+async function fetchBrandLogo(
+  itemCode: string,
+): Promise<{ base64: string; mime: string; w: number; h: number } | undefined> {
+  try {
+    const ctx = await getBrandContextForWine(itemCode);
+    if (!ctx?.logoUrl) return undefined;
+    const img = await downloadImageAsBase64(ctx.logoUrl);
+    if (!img) return undefined;
+    const m = await sharp(Buffer.from(img.base64, "base64")).metadata();
+    if (!m.width || !m.height) return undefined;
+    return { base64: img.base64, mime: img.mimeType, w: m.width, h: m.height };
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * 병 이미지 전처리: 주변 여백(흰/투명 패딩)을 잘라내(trim) 병이 영역을 꽉 채우게,
@@ -29,6 +47,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
     if (!wine) continue;
 
     const note = await getTastingNote(wineId);
+    const logo = await fetchBrandLogo(wineId);
 
     let bottleImageBase64: string | undefined;
     let bottleImageMimeType: string | undefined;
@@ -107,6 +126,10 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       bottleImageMimeType,
       bottleImageW,
       bottleImageH,
+      brandLogoBase64: logo?.base64,
+      brandLogoMimeType: logo?.mime,
+      brandLogoW: logo?.w,
+      brandLogoH: logo?.h,
     });
   }
 

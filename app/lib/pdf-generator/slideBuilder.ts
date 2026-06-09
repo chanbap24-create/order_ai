@@ -1,7 +1,26 @@
 import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
+import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { formatVintage4, type SlideData } from "./theme";
+
+/** 브랜드 로고 다운로드 → PNG(PDFKit 호환) base64 + 원본 크기. 실패 시 undefined. */
+async function fetchBrandLogo(
+  itemCode: string,
+): Promise<{ base64: string; w: number; h: number } | undefined> {
+  try {
+    const ctx = await getBrandContextForWine(itemCode);
+    if (!ctx?.logoUrl) return undefined;
+    const img = await downloadImageAsBase64(ctx.logoUrl);
+    if (!img) return undefined;
+    const png = await sharp(Buffer.from(img.base64, "base64")).png().toBuffer();
+    const m = await sharp(png).metadata();
+    if (!m.width || !m.height) return undefined;
+    return { base64: png.toString("base64"), w: m.width, h: m.height };
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * PDFKit은 PNG/JPEG만 지원(webp/avif 등은 'Unknown image format' 에러).
@@ -32,6 +51,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
     if (!wine) continue;
 
     const note = await getTastingNote(wineId);
+    const logo = await fetchBrandLogo(wineId);
 
     let bottleImageBase64: string | undefined;
     let bottleImageMimeType: string | undefined;
@@ -101,6 +121,9 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       awards: note?.awards || "",
       bottleImageBase64,
       bottleImageMimeType,
+      brandLogoBase64: logo?.base64,
+      brandLogoW: logo?.w,
+      brandLogoH: logo?.h,
     });
   }
 

@@ -25,8 +25,19 @@ export function renderHeader(slide: Slide, data: SlideData) {
     });
   } catch { /* ignore */ }
 
-  // 3. 헤더 우측: 와이너리명 강조 + 원산지 (로고 오른쪽 빈 공간)
-  {
+  // 3. 헤더 우측: 와이너리 로고(있으면) 또는 와이너리명 + 원산지
+  if (data.brandLogoBase64 && data.brandLogoMimeType && data.brandLogoW && data.brandLogoH) {
+    // 로고를 우측 정렬, 헤더 높이에 맞춰 비율 보존
+    const AREA_R = 7.2, MAX_W = 2.6, MAX_H = 0.58, AREA_Y = 0.1, AREA_H = 0.66;
+    const scale = Math.min(MAX_W / data.brandLogoW, MAX_H / data.brandLogoH);
+    const w = data.brandLogoW * scale, h = data.brandLogoH * scale;
+    try {
+      slide.addImage({
+        data: `${data.brandLogoMimeType};base64,${data.brandLogoBase64}`,
+        x: AREA_R - w, y: AREA_Y + (AREA_H - h) / 2, w, h,
+      });
+    } catch { /* ignore */ }
+  } else {
     const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
     const hCountry = data.countryEn || data.country || "";
     const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;

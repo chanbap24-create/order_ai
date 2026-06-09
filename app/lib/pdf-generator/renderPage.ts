@@ -54,8 +54,16 @@ export function renderPage(
   const nameEnClean = stripCodePrefix(data.nameEn);
   if (nameEnClean) drawText(nameEnClean, 2.20, 1.42, 4.90, 10, fontEn, C.TEXT_SECONDARY);
 
-  // ── 헤더 우측: 와이너리명(영문) + 원산지 (로고 오른쪽 빈 공간) ──
-  {
+  // ── 헤더 우측: 와이너리 로고(있으면) 또는 와이너리명 + 원산지 ──
+  if (data.brandLogoBase64 && data.brandLogoW && data.brandLogoH) {
+    try {
+      const logoBuf = Buffer.from(data.brandLogoBase64, "base64");
+      const AREA_R = 7.25, MAX_W = 2.6, MAX_H = 0.58, AREA_Y = 0.12, AREA_H = 0.62;
+      const scale = Math.min(MAX_W / data.brandLogoW, MAX_H / data.brandLogoH);
+      const w = data.brandLogoW * scale, h = data.brandLogoH * scale;
+      doc.image(logoBuf, i(AREA_R - w), i(AREA_Y + (AREA_H - h) / 2), { width: i(w), height: i(h) });
+    } catch { /* ignore */ }
+  } else {
     const hCountry = data.countryEn || data.country || "";
     const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
     const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
@@ -187,11 +195,15 @@ export function renderPage(
   } catch { /* ignore */ }
   drawText("T. 02-786-3136  |  www.cavedevin.com", 1.12, 9.72, 2.76, 7, fontRegular, C.TEXT_MUTED);
 
-  // ── 병 이미지(워터마크 위치별 크롭) ──
+  // ── 좌측 패널: 병 이미지(+ 와이너리 사진) ──
+  const hasWineryPhoto = !!(data.wineryImageBase64 && data.wineryImageMimeType);
+
+  // 병 이미지(워터마크 위치별 크롭). 사진 있으면 위쪽 영역으로 축소.
   if (data.bottleImageBase64 && data.bottleImageMimeType) {
     try {
       const imgBuffer = Buffer.from(data.bottleImageBase64, "base64");
-      const boxX = i(0.25), boxY = i(2.00), boxW = i(1.60), boxH = i(5.50);
+      const boxX = i(0.25), boxY = i(1.95);
+      const boxW = i(1.60), boxH = i(hasWineryPhoto ? 4.35 : 5.50);
       const img = doc.openImage(imgBuffer);
       const rightFrac = data.bottleCropRight ? 0.12 : 0;
       const bottomFrac = data.bottleCropBottom ? 0.07 : 0;
@@ -199,12 +211,32 @@ export function renderPage(
       const srcVisH = img.height * (1 - bottomFrac);
       const scale = Math.min(boxW / srcVisW, boxH / srcVisH);
       const visW = srcVisW * scale, visH = srcVisH * scale;
-      const drawX = boxX + (boxW - visW) / 2, drawY = boxY + (boxH - visH) / 2;
+      const drawX = boxX + (boxW - visW) / 2;
+      const drawY = boxY + (boxH - visH) / 2;
       doc.save().rect(drawX, drawY, visW, visH).clip();
       doc.image(imgBuffer, drawX, drawY, { width: img.width * scale, height: img.height * scale });
       doc.restore();
     } catch (e) {
       logger.warn(`[PDF] Failed to add bottle image: ${e}`);
+    }
+  }
+
+  // 와이너리/포도밭 사진 — 좌측 패널 하단을 cover-fit로 채움.
+  if (hasWineryPhoto) {
+    try {
+      const imgBuffer = Buffer.from(data.wineryImageBase64!, "base64");
+      const bx = 0.18, by = 6.55, bw = 1.78, bh = 2.18; // 인치
+      const img = doc.openImage(imgBuffer);
+      const scale = Math.max(i(bw) / img.width, i(bh) / img.height); // cover
+      const dW = img.width * scale, dH = img.height * scale;
+      const dX = i(bx) + (i(bw) - dW) / 2, dY = i(by) + (i(bh) - dH) / 2;
+      doc.save();
+      drawRoundedRect(doc, bx, by, bw, bh, C.WHITE, C.CARD_BORDER);
+      doc.roundedRect(i(bx), i(by), i(bw), i(bh), i(0.04)).clip();
+      doc.image(imgBuffer, dX, dY, { width: dW, height: dH });
+      doc.restore();
+    } catch (e) {
+      logger.warn(`[PDF] Failed to add winery image: ${e}`);
     }
   }
 }

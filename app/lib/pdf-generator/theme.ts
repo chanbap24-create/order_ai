@@ -78,4 +78,11 @@ export interface SlideData {
   // 워터마크 위치별 크롭 플래그 (소스 감지 기반). 깨끗한 이미지는 둘 다 false.
   bottleCropBottom?: boolean; // Vivino: 하단 '✻ Vivino' 띠
   bottleCropRight?: boolean;  // Wine-Searcher: 우측 상단 세로 'wine-searcher™' 워터마크
+  // 와이너리/포도밭 분위기 사진 (좌측 패널 하단). 있으면 병을 위로 올리고 사진을 아래 채움.
+  wineryImageBase64?: string;
+  wineryImageMimeType?: string;
+  // 와이너리 로고(브랜드 자료실 brands.logo_url). 있으면 헤더 우측에 로고로 표시.
+  brandLogoBase64?: string;
+  brandLogoW?: number;
+  brandLogoH?: number;
 }

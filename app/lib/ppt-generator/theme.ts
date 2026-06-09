@@ -65,6 +65,11 @@ export interface SlideData {
   bottleImageMimeType?: string;
   bottleImageW?: number; // 원본 픽셀 폭(비율 보존용)
   bottleImageH?: number; // 원본 픽셀 높이
+  // 와이너리 로고(브랜드 자료실 brands.logo_url). 있으면 헤더 우측에 로고로 표시.
+  brandLogoBase64?: string;
+  brandLogoMimeType?: string;
+  brandLogoW?: number;
+  brandLogoH?: number;
 }
 
 // pptxgenjs 타입을 강제로 any로 래핑 (각 addXxx 메서드 호출)
