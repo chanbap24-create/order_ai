@@ -2,10 +2,11 @@ import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
 import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
+import { trimWhitespace } from "@/app/lib/logoTrim";
 import { logger } from "@/app/lib/logger";
 import { formatVintage4, type SlideData } from "./theme";
 
-/** 브랜드 로고 다운로드 → base64 + 원본 픽셀 크기. 실패 시 undefined. */
+/** 브랜드 로고 다운로드 → 흰 여백 크롭 → base64 + 픽셀 크기. 실패 시 undefined. */
 async function fetchBrandLogo(
   itemCode: string,
 ): Promise<{ base64: string; mime: string; w: number; h: number } | undefined> {
@@ -14,6 +15,9 @@ async function fetchBrandLogo(
     if (!ctx?.logoUrl) return undefined;
     const img = await downloadImageAsBase64(ctx.logoUrl);
     if (!img) return undefined;
+    // 로고 흰 여백 제거(작게 나오는 문제 해결)
+    const trimmed = await trimWhitespace(img.base64);
+    if (trimmed) return { base64: trimmed.base64, mime: "image/png", w: trimmed.w, h: trimmed.h };
     const m = await sharp(Buffer.from(img.base64, "base64")).metadata();
     if (!m.width || !m.height) return undefined;
     return { base64: img.base64, mime: img.mimeType, w: m.width, h: m.height };
