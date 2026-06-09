@@ -22,6 +22,7 @@ export function useBrandDetail(p: Params) {
   const [saving, setSaving] = useState(false);
   const [researching, setResearching] = useState(false);
   const [extractingLogo, setExtractingLogo] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [linkedWines, setLinkedWines] = useState<LinkedWine[]>([]);
   const [isNew, setIsNew] = useState(false);
   const [validation, setValidation] = useState<BrandValidation | null>(null);
@@ -219,12 +220,59 @@ export function useBrandDetail(p: Params) {
     setExtractingLogo(false);
   };
 
+  // 파일 직접 업로드 (kind: logo | image)
+  const handleUploadFile = async (file: File, kind: "logo" | "image") => {
+    setUploading(true);
+    try {
+      let key = editForm.brand_code || String(selectedBrand?.id || "brand");
+      if (editForm.website) {
+        try {
+          const u = new URL(editForm.website.startsWith("http") ? editForm.website : `https://${editForm.website}`);
+          key = u.hostname.replace(/^www\./, "");
+        } catch { /* keep fallback */ }
+      }
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", kind);
+      fd.append("key", String(key));
+      const res = await fetch("/api/admin/brands/logo", { method: "POST", body: fd });
+      const json = await res.json();
+      if (res.ok && json.url) {
+        const field = kind === "image" ? "image_url" : "logo_url";
+        updateField(field, json.url);
+        if (!isNew && selectedBrand?.id) {
+          const sv = await fetch(`/api/admin/brands/${selectedBrand.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ [field]: json.url }),
+          });
+          if (sv.ok) {
+            const updated = await sv.json();
+            setSelectedBrand(updated);
+            setEditForm((prev) => ({ ...prev, [field]: updated[field] }));
+            setListDirty(true);
+            p.showToast("업로드 + 저장 완료");
+          } else {
+            p.showToast("업로드했으나 저장 실패 — 저장 버튼을 눌러주세요");
+          }
+        } else {
+          p.showToast("업로드 완료 — 저장하면 반영됩니다");
+        }
+      } else {
+        p.showToast(json.error || "업로드 실패");
+      }
+    } catch {
+      p.showToast("업로드 중 오류가 발생했습니다");
+    }
+    setUploading(false);
+  };
+
   return {
     viewMode,
     selectedBrand, editForm, updateField,
-    saving, researching, extractingLogo,
+    saving, researching, extractingLogo, uploading,
     linkedWines, isNew, validation,
     openDetail, openNew, backToList,
-    handleSave, handleDelete, handleResearch, handleExtractLogo,
+    handleSave, handleDelete, handleResearch, handleExtractLogo, handleUploadFile,
   };
 }

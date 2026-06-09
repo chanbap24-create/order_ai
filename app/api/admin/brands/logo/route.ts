@@ -62,6 +62,13 @@ async function ensureBucket() {
  * 1) 홈페이지 apple-touch-icon  2) Clearbit  3) 파비콘(저화질 fallback).
  */
 export async function POST(req: NextRequest) {
+  const ct = req.headers.get("content-type") || "";
+  // 멀티파트 = 파일 직접 업로드
+  if (ct.includes("multipart/form-data")) {
+    return handleUpload(req);
+  }
+
+  // JSON = 웹사이트 기반 로고 추출
   let website = "";
   try {
     ({ website } = await req.json());
@@ -120,4 +127,63 @@ export async function POST(req: NextRequest) {
     logo_url,
     warning: usedFavicon ? "고화질 로고를 찾지 못해 파비콘을 저장했습니다 (저화질, 교체 권장)" : undefined,
   });
+}
+
+/** 파일 직접 업로드 → 스토리지 저장 → 공개 URL 반환. FormData: file, kind(logo|image), key. */
+async function handleUpload(req: NextRequest) {
+  let form: FormData;
+  try {
+    form = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "잘못된 업로드 요청" }, { status: 400 });
+  }
+  const file = form.get("file");
+  const kind = (form.get("kind") as string) === "image" ? "image" : "logo";
+  const rawKey = ((form.get("key") as string) || "brand").toLowerCase();
+  const key = rawKey.replace(/[^a-z0-9.-]/g, "_").slice(0, 60) || "brand";
+
+  if (!(file instanceof File) || file.size === 0) {
+    return NextResponse.json({ error: "파일이 없습니다" }, { status: 400 });
+  }
+  if (!file.type.startsWith("image/")) {
+    return NextResponse.json({ error: "이미지 파일만 업로드할 수 있습니다" }, { status: 400 });
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: "파일이 너무 큽니다 (최대 5MB)" }, { status: 400 });
+  }
+
+  const inBuf = Buffer.from(await file.arrayBuffer());
+  // SVG는 원본 유지, 그 외 래스터는 PNG로 정규화(투명 보존 + PDF 호환)
+  let outBuf = inBuf;
+  let ext = "png";
+  let contentType = "image/png";
+  if (file.type === "image/svg+xml") {
+    ext = "svg";
+    contentType = "image/svg+xml";
+  } else {
+    try {
+      outBuf = await sharp(inBuf).png().toBuffer();
+    } catch {
+      outBuf = inBuf;
+      contentType = file.type;
+      ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
+    }
+  }
+
+  await ensureBucket();
+  const path = `${kind}-${key}.${ext}`;
+  let upErr = (await supabase.storage.from(BUCKET).upload(path, outBuf, { contentType, upsert: true })).error;
+  if (upErr) {
+    await ensureBucket();
+    upErr = (await supabase.storage.from(BUCKET).upload(path, outBuf, { contentType, upsert: true })).error;
+  }
+  if (upErr) {
+    logger.warn(`[BrandLogo] file upload failed: ${upErr.message}`);
+    return NextResponse.json({ error: `스토리지 저장 실패: ${upErr.message}` }, { status: 500 });
+  }
+
+  const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const url = `${pub.publicUrl}?v=${Date.now()}`;
+  logger.info(`[BrandLogo] uploaded ${kind} file → ${path}`);
+  return NextResponse.json({ url, kind });
 }

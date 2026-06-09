@@ -19,9 +19,11 @@ type Props = {
   saving: boolean;
   researching: boolean;
   extractingLogo: boolean;
+  uploading: boolean;
   onBack: () => void;
   onResearch: () => void;
   onExtractLogo: () => void;
+  onUploadFile: (file: File, kind: "logo" | "image") => void;
   onDelete: () => void;
   onSave: () => void;
 };
@@ -81,7 +83,7 @@ export function BrandDetailView(p: Props) {
             <button
               type="button"
               onClick={p.onExtractLogo}
-              disabled={p.extractingLogo || !f.website}
+              disabled={p.extractingLogo || p.uploading || !f.website}
               title={!f.website ? "웹사이트 URL을 먼저 입력하세요" : "공식 웹사이트 도메인에서 로고 추출"}
               style={{
                 fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6,
@@ -93,7 +95,9 @@ export function BrandDetailView(p: Props) {
             >
               {p.extractingLogo ? "로고 추출 중…" : "🔍 로고 추출"}
             </button>
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>웹사이트 도메인 기반 · 추출 후 미리보기 확인 → 저장</span>
+            <UploadButton label="로고 업로드" busy={p.uploading} onFile={(file) => p.onUploadFile(file, "logo")} />
+            <UploadButton label="이미지 업로드" busy={p.uploading} onFile={(file) => p.onUploadFile(file, "image")} />
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>추출/업로드 시 자동 저장 · png 권장</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
             <Field label="로고 URL" value={f.logo_url || ""} onChange={(v) => update("logo_url", v)} placeholder="https://..." />
@@ -120,6 +124,32 @@ export function BrandDetailView(p: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+function UploadButton({ label, busy, onFile }: { label: string; busy: boolean; onFile: (f: File) => void }) {
+  return (
+    <label
+      style={{
+        fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6,
+        border: "1px solid var(--action-muted)", cursor: busy ? "not-allowed" : "pointer",
+        background: "#fff", color: "var(--text-secondary)", opacity: busy ? 0.6 : 1,
+        display: "inline-flex", alignItems: "center", gap: 4,
+      }}
+    >
+      📁 {label}
+      <input
+        type="file"
+        accept="image/*"
+        disabled={busy}
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(file);
+          e.target.value = ""; // 같은 파일 재선택 허용
+        }}
+      />
+    </label>
   );
 }
 
