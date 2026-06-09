@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-05-05",
+  "updated_at": "2026-06-09",
   "base_url": "https://github.com/chanbap24-create/order_ai/releases/download/note",
   "notes": {
     "1124001": {
@@ -766,6 +766,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2716806": {
+      "exists": true,
+      "filename": "2716806.pdf",
+      "size_kb": 354,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2718804": {
       "exists": true,
       "filename": "2718804.pdf",
@@ -1001,6 +1008,20 @@
       "exists": true,
       "filename": "3022047.pdf",
       "size_kb": 135,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3022049": {
+      "exists": true,
+      "filename": "3022049.pdf",
+      "size_kb": 418,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3022050": {
+      "exists": true,
+      "filename": "3022050.pdf",
+      "size_kb": 425,
       "pages": 1,
       "wine_name": ""
     },
@@ -1697,6 +1718,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2A23001": {
+      "exists": true,
+      "filename": "2A23001.pdf",
+      "size_kb": 281,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2B23002": {
       "exists": true,
       "filename": "2B23002.pdf",
@@ -1792,6 +1820,13 @@
       "exists": true,
       "filename": "2D23002.pdf",
       "size_kb": 279,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2D24001": {
+      "exists": true,
+      "filename": "2D24001.pdf",
+      "size_kb": 353,
       "pages": 1,
       "wine_name": ""
     },
