@@ -12,26 +12,41 @@ export function ensureWineTables() {
   // no-op: 테이블은 Supabase migration에서 생성됨
 }
 
+/**
+ * Supabase는 쿼리당 최대 1000행만 반환 → range 페이지네이션으로 전체 로드.
+ * buildQuery: 필터/정렬이 적용된 쿼리를 매 호출마다 새로 구성 (await 후 빌더 재사용 불가).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAllRows(buildQuery: () => any, label: string): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = [];
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data, error } = await buildQuery().range(from, from + 999);
+    if (error) { logger.warn(`${label} error`, { error }); break; }
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < 1000) break;
+  }
+  return rows;
+}
+
 /* ─── Wines CRUD ─── */
 
 export async function getWines(filters?: { status?: string; search?: string; country?: string }): Promise<Wine[]> {
-  let query = supabase.from('wines').select('*');
-
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
-  }
-  if (filters?.search) {
-    const safe = sanitizeFilterValue(filters.search);
-    query = query.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
-  }
-  if (filters?.country) {
-    const safeCountry = sanitizeFilterValue(filters.country);
-    query = query.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
-  }
-
-  const { data, error } = await query.order('updated_at', { ascending: false });
-  if (error) { logger.warn('getWines error', { error }); return []; }
-  return (data || []) as Wine[];
+  const rows = await fetchAllRows(() => {
+    let q = supabase.from('wines').select('*');
+    if (filters?.status) q = q.eq('status', filters.status);
+    if (filters?.search) {
+      const safe = sanitizeFilterValue(filters.search);
+      q = q.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
+    }
+    if (filters?.country) {
+      const safeCountry = sanitizeFilterValue(filters.country);
+      q = q.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
+    }
+    return q.order('updated_at', { ascending: false });
+  }, 'getWines');
+  return rows as Wine[];
 }
 
 export async function getWineByCode(itemCode: string): Promise<Wine | undefined> {
@@ -107,8 +122,7 @@ export async function getTastingNote(wineId: string): Promise<TastingNote | unde
 }
 
 export async function getTastingNotes(filters?: { search?: string; country?: string; hasNote?: boolean }): Promise<(Wine & { tasting_note_id: number | null })[]> {
-  // 필터를 적용한 쿼리를 매 페이지마다 새로 구성 (Supabase 빌더는 await 후 재사용 불가)
-  const buildQuery = () => {
+  const rows = await fetchAllRows(() => {
     let q = supabase.from('wines').select('*, tasting_notes(id, verification_status)');
     if (filters?.search) {
       const safe = sanitizeFilterValue(filters.search);
@@ -119,17 +133,7 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
       q = q.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
     }
     return q.order('updated_at', { ascending: false });
-  };
-
-  // Supabase는 쿼리당 최대 1000행 → 전체를 페이지네이션으로 로드
-  const rows: any[] = [];
-  for (let from = 0; from < 20000; from += 1000) {
-    const { data, error } = await buildQuery().range(from, from + 999);
-    if (error) { logger.warn('getTastingNotes error', { error }); break; }
-    if (!data || data.length === 0) break;
-    rows.push(...data);
-    if (data.length < 1000) break;
-  }
+  }, 'getTastingNotes');
 
   return rows.map((w: any) => {
     const tn = Array.isArray(w.tasting_notes) ? w.tasting_notes[0] : w.tasting_notes;
@@ -301,20 +305,17 @@ export interface WineWithStatus extends Wine {
 }
 
 export async function getNewWinesWithStatus(filters?: { status?: string; search?: string; wineStatus?: string }): Promise<WineWithStatus[]> {
-  let query = supabase.from('wines').select('*, tasting_notes(id, ai_generated, approved, verification_status)');
+  const rows = await fetchAllRows(() => {
+    let q = supabase.from('wines').select('*, tasting_notes(id, ai_generated, approved, verification_status)');
+    if (filters?.status) q = q.eq('status', filters.status);
+    if (filters?.search) {
+      const safe = sanitizeFilterValue(filters.search);
+      q = q.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
+    }
+    return q.order('updated_at', { ascending: false });
+  }, 'getNewWinesWithStatus');
 
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
-  }
-  if (filters?.search) {
-    const safe = sanitizeFilterValue(filters.search);
-    query = query.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
-  }
-
-  const { data, error } = await query.order('updated_at', { ascending: false });
-  if (error) { logger.warn('getNewWinesWithStatus error', { error }); return []; }
-
-  return (data || []).map((w: any) => {
+  return rows.map((w: any) => {
     const tn = Array.isArray(w.tasting_notes) ? w.tasting_notes[0] : w.tasting_notes;
     const ai_gen = tn?.ai_generated ?? 0;
     const appr = tn?.approved ?? 0;
@@ -345,12 +346,12 @@ export async function getNewWinesWithStatus(filters?: { status?: string; search?
 /* ─── Price List ─── */
 
 export async function getWinesForPriceList(): Promise<Wine[]> {
-  const { data } = await supabase
+  const rows = await fetchAllRows(() => supabase
     .from('wines')
     .select('*')
     .neq('status', 'discontinued')
     .order('country_en', { ascending: true })
     .order('supplier', { ascending: true })
-    .order('supply_price', { ascending: false });
-  return (data || []) as Wine[];
+    .order('supply_price', { ascending: false }), 'getWinesForPriceList');
+  return rows as Wine[];
 }
