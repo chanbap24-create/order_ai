@@ -204,22 +204,25 @@ export function NoteToolbar(p: Props) {
             key={"gh-" + fmt}
             onClick={() => p.ops.githubRelease(fmt)}
             disabled={p.ops.uploadingGithub || p.checkedSize === 0}
+            title={`선택한 와인의 ${fmt.toUpperCase()}를 생성해 릴리스에 업로드(발행)${fmt === "pdf" ? " + 인덱스 갱신" : ""}`}
             style={{
               ...btn,
-              background: "rgba(90,21,21,0.05)",
-              color: "var(--text-muted)",
+              background: fmt === "pdf" ? "rgba(90,21,21,0.12)" : "rgba(90,21,21,0.05)",
+              color: fmt === "pdf" ? "var(--action)" : "var(--text-muted)",
+              fontWeight: fmt === "pdf" ? 700 : 600,
               opacity: p.checkedSize === 0 ? 0.5 : 1,
             }}
           >
-            {p.ops.uploadingGithub ? "업로드..." : `GH ${fmt.toUpperCase()}`}
+            {p.ops.uploadingGithub ? "발행 중..." : `${fmt.toUpperCase()} 발행`}
           </button>
         ))}
         <button
           onClick={p.ops.dispatchIndex}
           disabled={p.ops.dispatchingIndex}
+          title="릴리스에 이미 업로드된 PDF 목록으로 인덱스만 다시 만듦 (PDF는 생성하지 않음). 발행은 'PDF 발행' 버튼 사용."
           style={{ ...btn, background: "rgba(90,21,21,0.05)", color: "var(--text-muted)" }}
         >
-          {p.ops.dispatchingIndex ? "실행 중..." : "인덱스"}
+          {p.ops.dispatchingIndex ? "실행 중..." : "인덱스 새로고침"}
         </button>
       </div>
     </div>
