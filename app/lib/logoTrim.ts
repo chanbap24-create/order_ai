@@ -34,11 +34,16 @@ export async function trimWhitespace(
     }
     if (maxX < 0) return null; // 내용 없음
 
-    const pad = Math.max(2, Math.round(Math.min(W, H) * 0.02));
-    const left = Math.max(0, minX - pad);
-    const top = Math.max(0, minY - pad);
-    const w = Math.min(W - left, maxX - minX + 1 + pad * 2);
-    const h = Math.min(H - top, maxY - minY + 1 + pad * 2);
+    // 위·아래·좌·우에 살짝 여백(내용 큰 변의 7%)을 균일하게 둔다.
+    // 위·아래·좌·우에 살짝 여백(각 변의 8%)을 균일하게 둔다.
+    const contentW = maxX - minX + 1;
+    const contentH = maxY - minY + 1;
+    const padX = Math.max(3, Math.round(contentW * 0.08));
+    const padY = Math.max(3, Math.round(contentH * 0.08));
+    const left = Math.max(0, minX - padX);
+    const top = Math.max(0, minY - padY);
+    const w = Math.min(W - left, contentW + padX * 2);
+    const h = Math.min(H - top, contentH + padY * 2);
 
     // 여백 제거가 거의 없으면(이미 꽉 찬 로고) 원본 그대로
     if (w >= W * 0.96 && h >= H * 0.96) return null;
