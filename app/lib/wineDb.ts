@@ -107,22 +107,31 @@ export async function getTastingNote(wineId: string): Promise<TastingNote | unde
 }
 
 export async function getTastingNotes(filters?: { search?: string; country?: string; hasNote?: boolean }): Promise<(Wine & { tasting_note_id: number | null })[]> {
-  // Use wines with embedded tasting_notes
-  let query = supabase.from('wines').select('*, tasting_notes(id, verification_status)');
+  // 필터를 적용한 쿼리를 매 페이지마다 새로 구성 (Supabase 빌더는 await 후 재사용 불가)
+  const buildQuery = () => {
+    let q = supabase.from('wines').select('*, tasting_notes(id, verification_status)');
+    if (filters?.search) {
+      const safe = sanitizeFilterValue(filters.search);
+      q = q.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
+    }
+    if (filters?.country) {
+      const safeCountry = sanitizeFilterValue(filters.country);
+      q = q.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
+    }
+    return q.order('updated_at', { ascending: false });
+  };
 
-  if (filters?.search) {
-    const safe = sanitizeFilterValue(filters.search);
-    query = query.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
+  // Supabase는 쿼리당 최대 1000행 → 전체를 페이지네이션으로 로드
+  const rows: any[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data, error } = await buildQuery().range(from, from + 999);
+    if (error) { logger.warn('getTastingNotes error', { error }); break; }
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < 1000) break;
   }
-  if (filters?.country) {
-    const safeCountry = sanitizeFilterValue(filters.country);
-    query = query.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
-  }
 
-  const { data, error } = await query.order('updated_at', { ascending: false });
-  if (error) { logger.warn('getTastingNotes error', { error }); return []; }
-
-  return (data || []).map((w: any) => {
+  return rows.map((w: any) => {
     const tn = Array.isArray(w.tasting_notes) ? w.tasting_notes[0] : w.tasting_notes;
     return {
       ...w,
