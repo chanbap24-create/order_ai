@@ -40,10 +40,7 @@ export function renderPage(
   drawRect(doc, 0, 0, PAGE_W, PAGE_H, C.WHITE);
   // 좌측 병 영역: 흰색 배경(병 이미지가 누끼가 아니라 흰 박스 배경이어도 자연스럽게).
   drawRect(doc, 0, 0.90, 2.10, 8.10, C.WHITE);
-  try {
-    const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
-    doc.image(logoBuffer, i(0.20), i(0.20), { width: i(1.49), height: i(0.57) });
-  } catch { /* ignore */ }
+  // (까브드뱅 로고는 푸터에만 — 헤더는 와이너리 로고/이름)
   drawLine(doc, 0.20, 0.84, 7.10, C.BURGUNDY, 1.0);
   drawLine(doc, 0.20, 0.87, 7.10, C.GOLD_LIGHT, 0.75);
 
@@ -54,24 +51,27 @@ export function renderPage(
   const nameEnClean = stripCodePrefix(data.nameEn);
   if (nameEnClean) drawText(nameEnClean, 2.20, 1.42, 4.90, 10, fontEn, C.TEXT_SECONDARY);
 
-  // ── 헤더 우측: 와이너리 로고(있으면) 또는 와이너리명 + 원산지 ──
-  if (data.brandLogoBase64 && data.brandLogoW && data.brandLogoH) {
-    try {
-      const logoBuf = Buffer.from(data.brandLogoBase64, "base64");
-      const AREA_R = 7.25, MAX_W = 2.6, MAX_H = 0.58, AREA_Y = 0.12, AREA_H = 0.62;
-      const scale = Math.min(MAX_W / data.brandLogoW, MAX_H / data.brandLogoH);
-      const w = data.brandLogoW * scale, h = data.brandLogoH * scale;
-      doc.image(logoBuf, i(AREA_R - w), i(AREA_Y + (AREA_H - h) / 2), { width: i(w), height: i(h) });
-    } catch { /* ignore */ }
-  } else {
+  // ── 헤더: 와이너리 로고(왼쪽 끝) + 이름/원산지 ──
+  {
     const hCountry = data.countryEn || data.country || "";
     const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
     const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
+    const hasLogo = !!(data.brandLogoBase64 && data.brandLogoW && data.brandLogoH);
+    let textX = 0.22;
+    if (hasLogo) {
+      const LEFT = 0.2, MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.09, BAND_H = 0.68;
+      const scale = Math.min(MAX_W / data.brandLogoW!, MAX_H / data.brandLogoH!);
+      const w = data.brandLogoW! * scale, h = data.brandLogoH! * scale;
+      try {
+        doc.image(Buffer.from(data.brandLogoBase64!, "base64"), i(LEFT), i(BAND_Y + (BAND_H - h) / 2), { width: i(w), height: i(h) });
+      } catch { /* ignore */ }
+      textX = LEFT + w + 0.3;
+    }
     if (wName) {
-      drawText(wName, 1.90, 0.27, 5.32, 17, fontEn, C.BURGUNDY, 2, { align: "right" });
-      if (hSub) drawText(hSub, 1.90, 0.585, 5.32, 8.5, fontRegular, C.TEXT_MUTED, 2, { align: "right" });
+      drawText(wName, textX, 0.2, 7.1 - textX, 18, fontEn, C.BURGUNDY, 2);
+      if (hSub) drawText(hSub, textX, 0.55, 7.1 - textX, 8.5, fontRegular, C.TEXT_MUTED, 2);
     } else if (hSub) {
-      drawText(hSub, 1.90, 0.42, 5.32, 11.5, fontEn, C.BURGUNDY, 2, { align: "right" });
+      drawText(hSub, textX, 0.34, 7.1 - textX, 12, fontEn, C.BURGUNDY, 2);
     }
   }
 

@@ -1,5 +1,4 @@
 import type PptxGenJS from "pptxgenjs";
-import { LOGO_CAVEDEVIN_BASE64 } from "@/app/lib/pptAssets";
 import { C, FONT_EN, FONT_MAIN, type Slide, type SlideData } from "../theme";
 import { addLine } from "../addPrimitives";
 import { extractWineryNameEn, stripCodePrefix } from "@/app/lib/wineNoteText";
@@ -17,50 +16,42 @@ export function renderHeader(slide: Slide, data: SlideData) {
     line: { type: "none" },
   });
 
-  // 2. HEADER 로고
-  try {
-    slide.addImage({
-      data: "image/png;base64," + LOGO_CAVEDEVIN_BASE64,
-      x: 0.3, y: 0.14, w: 1.49, h: 0.57,
-    });
-  } catch { /* ignore */ }
+  // 2-3. 헤더: 와이너리 로고(왼쪽 끝) + 이름/원산지 (까브드뱅 로고는 푸터에만)
+  const hasLogo = !!(data.brandLogoBase64 && data.brandLogoMimeType && data.brandLogoW && data.brandLogoH);
+  const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
+  const hCountry = data.countryEn || data.country || "";
+  const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
 
-  // 3. 헤더 우측: 와이너리 로고(있으면) 또는 와이너리명 + 원산지
-  if (data.brandLogoBase64 && data.brandLogoMimeType && data.brandLogoW && data.brandLogoH) {
-    // 로고를 우측 정렬, 헤더 높이에 맞춰 비율 보존
-    const AREA_R = 7.2, MAX_W = 2.6, MAX_H = 0.58, AREA_Y = 0.1, AREA_H = 0.66;
-    const scale = Math.min(MAX_W / data.brandLogoW, MAX_H / data.brandLogoH);
-    const w = data.brandLogoW * scale, h = data.brandLogoH * scale;
+  let textX = 0.32; // 로고 없으면 이름이 왼쪽 끝
+  if (hasLogo) {
+    const LEFT = 0.3, MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.08, BAND_H = 0.68;
+    const scale = Math.min(MAX_W / data.brandLogoW!, MAX_H / data.brandLogoH!);
+    const w = data.brandLogoW! * scale, h = data.brandLogoH! * scale;
     try {
       slide.addImage({
         data: `${data.brandLogoMimeType};base64,${data.brandLogoBase64}`,
-        x: AREA_R - w, y: AREA_Y + (AREA_H - h) / 2, w, h,
+        x: LEFT, y: BAND_Y + (BAND_H - h) / 2, w, h,
       });
     } catch { /* ignore */ }
-  } else {
-    const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
-    const hCountry = data.countryEn || data.country || "";
-    const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
-    if (wName) {
-      slide.addText(wName, {
-        x: 1.9, y: 0.15, w: 5.3, h: 0.42,
-        fontSize: 19, fontFace: FONT_EN, color: C.BURGUNDY,
-        italic: true, align: "right", valign: "middle",
-      });
-      if (hSub) {
-        slide.addText(hSub, {
-          x: 1.9, y: 0.55, w: 5.3, h: 0.22,
-          fontSize: 9, fontFace: FONT_EN, color: C.TEXT_MUTED,
-          align: "right", valign: "middle",
-        });
-      }
-    } else if (hSub) {
+    textX = LEFT + w + 0.28;
+  }
+
+  if (wName) {
+    slide.addText(wName, {
+      x: textX, y: 0.13, w: 7.2 - textX, h: 0.36,
+      fontSize: 20, fontFace: FONT_EN, color: C.BURGUNDY, italic: true, align: "left", valign: "middle",
+    });
+    if (hSub) {
       slide.addText(hSub, {
-        x: 1.9, y: 0.28, w: 5.3, h: 0.35,
-        fontSize: 13, fontFace: FONT_EN, color: C.BURGUNDY,
-        align: "right", valign: "middle",
+        x: textX, y: 0.5, w: 7.2 - textX, h: 0.2,
+        fontSize: 9, fontFace: FONT_EN, color: C.TEXT_MUTED, align: "left", valign: "middle",
       });
     }
+  } else if (hSub) {
+    slide.addText(hSub, {
+      x: textX, y: 0.28, w: 7.2 - textX, h: 0.35,
+      fontSize: 14, fontFace: FONT_EN, color: C.BURGUNDY, align: "left", valign: "middle",
+    });
   }
 
   // 4-5. 헤더 구분선 (골드 단선)
