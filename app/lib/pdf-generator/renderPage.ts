@@ -207,7 +207,7 @@ export function renderPage(
       const boxW = i(1.60), boxH = i(hasWineryPhoto ? 4.35 : 5.50);
       const img = doc.openImage(imgBuffer);
       const rightFrac = data.bottleCropRight ? 0.12 : 0;
-      const bottomFrac = data.bottleCropBottom ? 0.07 : 0;
+      const bottomFrac = data.bottleCropBottom ? 0.05 : 0; // Vivino 워터마크만 제거(병 베이스 보존)
       const srcVisW = img.width * (1 - rightFrac);
       const srcVisH = img.height * (1 - bottomFrac);
       const scale = Math.min(boxW / srcVisW, boxH / srcVisH);
