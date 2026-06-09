@@ -20,16 +20,26 @@ export async function GET(req: NextRequest) {
     // 1) 기간 내 출고 데이터 조회
     // 2025-08 이전 데이터는 supply_amount 가 부풀려져 있어 selling_price 기준 재계산 필요.
     // unit_price/selling_price 도 함께 select 하여 getSellingTotal() 로 통일.
-    let q = supabase
-      .from(table)
-      .select('client_code, client_name, business_type, unit_price, selling_price, supply_amount, total_amount, quantity, ship_date')
-      .eq('manager', manager);
-    if (startDate) q = q.gte('ship_date', startDate);
-    if (endDate) q = q.lte('ship_date', endDate);
-    if (businessType) q = q.eq('business_type', businessType);
-
-    const { data: allRows, error: allErr } = await q;
-    if (allErr) throw allErr;
+    // Supabase 쿼리당 1000행 제한 → id 기준 페이지네이션으로 전체 출고 로드(누락 방지).
+    const buildQ = () => {
+      let q = supabase
+        .from(table)
+        .select('client_code, client_name, business_type, unit_price, selling_price, supply_amount, total_amount, quantity, ship_date')
+        .eq('manager', manager);
+      if (startDate) q = q.gte('ship_date', startDate);
+      if (endDate) q = q.lte('ship_date', endDate);
+      if (businessType) q = q.eq('business_type', businessType);
+      return q.order('id', { ascending: true });
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allRows: any[] = [];
+    for (let offset = 0; offset < 500000; offset += 1000) {
+      const { data, error: allErr } = await buildQ().range(offset, offset + 999);
+      if (allErr) throw allErr;
+      if (!data || data.length === 0) break;
+      allRows.push(...data);
+      if (data.length < 1000) break;
+    }
 
     // JS에서 거래처별 집계
     const clientMap = new Map<string, {
@@ -74,20 +84,22 @@ export async function GET(req: NextRequest) {
     const lastOrderMap = new Map<string, string>();
 
     if (clientCodes.length > 0) {
-      const { data: lastRows } = await supabase
-        .from(table)
-        .select('client_code, client_name, ship_date')
-        .eq('manager', manager)
-        .in('client_code', clientCodes)
-        .order('ship_date', { ascending: false });
-
-      if (lastRows) {
+      // ship_date 내림차순(+id) 페이지네이션. 모든 거래처의 최신 발주일이 채워지면 조기 종료.
+      for (let offset = 0; offset < 500000 && lastOrderMap.size < clientCodes.length; offset += 1000) {
+        const { data: lastRows } = await supabase
+          .from(table)
+          .select('client_code, client_name, ship_date')
+          .eq('manager', manager)
+          .in('client_code', clientCodes)
+          .order('ship_date', { ascending: false })
+          .order('id', { ascending: false })
+          .range(offset, offset + 999);
+        if (!lastRows || lastRows.length === 0) break;
         for (const r of lastRows) {
           const key = r.client_code || r.client_name;
-          if (!lastOrderMap.has(key)) {
-            lastOrderMap.set(key, r.ship_date);
-          }
+          if (!lastOrderMap.has(key)) lastOrderMap.set(key, r.ship_date);
         }
+        if (lastRows.length < 1000) break;
       }
     }
 
