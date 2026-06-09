@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Brand } from "@/app/types/wine";
 import type { LinkedWine } from "../types";
 import type { BrandValidation } from "@/app/types/wine";
@@ -17,8 +18,10 @@ type Props = {
   validation: BrandValidation | null;
   saving: boolean;
   researching: boolean;
+  extractingLogo: boolean;
   onBack: () => void;
   onResearch: () => void;
+  onExtractLogo: () => void;
   onDelete: () => void;
   onSave: () => void;
 };
@@ -74,16 +77,34 @@ export function BrandDetailView(p: Props) {
         </Section>
 
         <Section title="이미지">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <button
+              type="button"
+              onClick={p.onExtractLogo}
+              disabled={p.extractingLogo || !f.website}
+              title={!f.website ? "웹사이트 URL을 먼저 입력하세요" : "공식 웹사이트 도메인에서 로고 추출"}
+              style={{
+                fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6,
+                border: "1px solid var(--action-muted)", cursor: f.website ? "pointer" : "not-allowed",
+                background: f.website ? "var(--burgundy, #5a1515)" : "var(--border-subtle)",
+                color: f.website ? "#fff" : "var(--text-muted)",
+                opacity: p.extractingLogo ? 0.6 : 1,
+              }}
+            >
+              {p.extractingLogo ? "로고 추출 중…" : "🔍 로고 추출"}
+            </button>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>웹사이트 도메인 기반 · 추출 후 미리보기 확인 → 저장</span>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
             <Field label="로고 URL" value={f.logo_url || ""} onChange={(v) => update("logo_url", v)} placeholder="https://..." />
             <Field label="이미지 URL" value={f.image_url || ""} onChange={(v) => update("image_url", v)} placeholder="https://..." />
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
             {f.logo_url && (
-              <ImgPreview src={f.logo_url} label="로고" size={80} objectFit="contain" />
+              <ImgPreview key={f.logo_url} src={f.logo_url} label="로고" size={80} objectFit="contain" />
             )}
             {f.image_url && (
-              <ImgPreview src={f.image_url} label="이미지" width={120} height={80} objectFit="cover" />
+              <ImgPreview key={f.image_url} src={f.image_url} label="이미지" width={120} height={80} objectFit="cover" />
             )}
           </div>
         </Section>
@@ -117,23 +138,30 @@ function ImgPreview({
   height?: number;
   objectFit: "contain" | "cover";
 }) {
+  const [failed, setFailed] = useState(false);
+  const w = size ?? width, h = size ?? height;
   return (
     <div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-      <img
-        src={src}
-        alt={label}
-        style={{
-          width: size ?? width,
-          height: size ?? height,
-          objectFit,
-          borderRadius: 6,
-          border: "1px solid var(--border-default)",
-        }}
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = "none";
-        }}
-      />
+      {failed ? (
+        <div
+          style={{
+            width: w, height: h, borderRadius: 6, border: "1px dashed var(--border-default)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 10, color: "var(--text-muted)", textAlign: "center", padding: 4,
+          }}
+        >
+          미리보기 불가
+        </div>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={label}
+          style={{ width: w, height: h, objectFit, borderRadius: 6, border: "1px solid var(--border-default)" }}
+          onError={() => setFailed(true)}
+        />
+      )}
     </div>
   );
 }

@@ -91,18 +91,49 @@ export function BrandListView(p: Props) {
           등록된 브랜드가 없습니다
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {p.brands.map((brand) => (
-            <BrandCard key={brand.id} brand={brand} onClick={() => p.onSelect(brand)} />
-          ))}
-        </div>
+        <>
+          {(() => {
+            const notDone = p.brands.filter((b) => !b.ai_researched);
+            const done = p.brands.filter((b) => b.ai_researched);
+            return (
+              <>
+                <BrandGroup title="미조사" count={notDone.length} accent="var(--status-warning, #b8860b)" brands={notDone} onSelect={p.onSelect} />
+                <BrandGroup title="조사 완료" count={done.length} accent="var(--status-success)" brands={done} onSelect={p.onSelect} />
+              </>
+            );
+          })()}
+        </>
       )}
+    </div>
+  );
+}
+
+function BrandGroup(p: {
+  title: string;
+  count: number;
+  accent: string;
+  brands: BrandWithWineCount[];
+  onSelect: (b: BrandWithWineCount) => void;
+}) {
+  if (p.count === 0) return null;
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 12px" }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.accent }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>{p.title}</span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.count}개</span>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {p.brands.map((brand) => (
+          <BrandCard key={brand.id} brand={brand} onClick={() => p.onSelect(brand)} />
+        ))}
+      </div>
     </div>
   );
 }

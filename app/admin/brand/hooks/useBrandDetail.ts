@@ -21,6 +21,7 @@ export function useBrandDetail(p: Params) {
   const [editForm, setEditForm] = useState<Partial<Brand>>({});
   const [saving, setSaving] = useState(false);
   const [researching, setResearching] = useState(false);
+  const [extractingLogo, setExtractingLogo] = useState(false);
   const [linkedWines, setLinkedWines] = useState<LinkedWine[]>([]);
   const [isNew, setIsNew] = useState(false);
   const [validation, setValidation] = useState<BrandValidation | null>(null);
@@ -174,12 +175,56 @@ export function useBrandDetail(p: Params) {
     setResearching(false);
   };
 
+  // 로고만 별도 추출 (공식 웹사이트 도메인 기반)
+  const handleExtractLogo = async () => {
+    if (!editForm.website?.trim()) {
+      p.showToast("로고 추출은 '웹사이트' URL이 필요합니다");
+      return;
+    }
+    setExtractingLogo(true);
+    try {
+      const res = await fetch("/api/admin/brands/logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ website: editForm.website, brand_name_en: editForm.brand_name_en || "" }),
+      });
+      const json = await res.json();
+      if (res.ok && json.logo_url) {
+        updateField("logo_url", json.logo_url);
+        // 기존 브랜드면 추출 즉시 DB에 저장 (별도 저장 클릭 불필요)
+        if (!isNew && selectedBrand?.id) {
+          const sv = await fetch(`/api/admin/brands/${selectedBrand.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logo_url: json.logo_url }),
+          });
+          if (sv.ok) {
+            const updated = await sv.json();
+            setSelectedBrand(updated);
+            setEditForm((prev) => ({ ...prev, logo_url: updated.logo_url }));
+            setListDirty(true);
+            p.showToast(json.warning ? `저장됨 — ${json.warning}` : "로고 추출 + 저장 완료");
+          } else {
+            p.showToast("로고는 추출했으나 저장 실패 — 저장 버튼을 눌러주세요");
+          }
+        } else {
+          p.showToast(json.warning || "로고를 불러왔습니다. 저장하면 반영됩니다");
+        }
+      } else {
+        p.showToast(json.error || "로고를 찾지 못했습니다");
+      }
+    } catch {
+      p.showToast("로고 추출 중 오류가 발생했습니다");
+    }
+    setExtractingLogo(false);
+  };
+
   return {
     viewMode,
     selectedBrand, editForm, updateField,
-    saving, researching,
+    saving, researching, extractingLogo,
     linkedWines, isNew, validation,
     openDetail, openNew, backToList,
-    handleSave, handleDelete, handleResearch,
+    handleSave, handleDelete, handleResearch, handleExtractLogo,
   };
 }

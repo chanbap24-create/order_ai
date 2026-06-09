@@ -72,8 +72,10 @@ export async function updateBrand(
     ...updates,
     updated_at: new Date().toISOString(),
   };
+  // 컬럼이 아닌 필드 제거 (BrandWithWineCount.wine_count 등이 섞이면 update 전체 실패)
   delete payload.id;
   delete payload.created_at;
+  delete (payload as { wine_count?: unknown }).wine_count;
 
   const { data, error } = await supabase
     .from('brands')

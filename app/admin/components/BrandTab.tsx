@@ -44,8 +44,10 @@ export default function BrandTab() {
           validation={detail.validation}
           saving={detail.saving}
           researching={detail.researching}
+          extractingLogo={detail.extractingLogo}
           onBack={detail.backToList}
           onResearch={detail.handleResearch}
+          onExtractLogo={detail.handleExtractLogo}
           onDelete={detail.handleDelete}
           onSave={detail.handleSave}
         />
