@@ -7,7 +7,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'client-analysis', label: '매출분석' },
   { id: 'dashboard', label: '재고분석' },
   { id: 'all-wines', label: '와인리스트' },
-  { id: 'new-wine', label: '신규와인' },
   { id: 'tasting-note', label: '테이스팅노트' },
   { id: 'recommend-settings', label: 'AI추천설정' },
   { id: 'wine-regions', label: '와인산지DB' },
@@ -76,7 +75,7 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
               }}
             >
               {tab.label}
-              {tab.id === 'new-wine' && newWineCount != null && newWineCount > 0 && (
+              {tab.id === 'tasting-note' && newWineCount != null && newWineCount > 0 && (
                 <span
                   style={{
                     background: 'var(--status-danger)',
