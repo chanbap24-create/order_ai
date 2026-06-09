@@ -51,22 +51,23 @@ export function renderPage(
   const nameEnClean = stripCodePrefix(data.nameEn);
   if (nameEnClean) drawText(nameEnClean, 2.20, 1.42, 4.90, 10, fontEn, C.TEXT_SECONDARY);
 
-  // ── 헤더: 와이너리 로고(왼쪽 끝) + 이름/원산지 ──
+  // ── 헤더: 와이너리 로고(병과 중앙정렬) + 이름/원산지(우측 콘텐츠 시작점 정렬) ──
   {
     const hCountry = data.countryEn || data.country || "";
     const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
     const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
     const hasLogo = !!(data.brandLogoBase64 && data.brandLogoW && data.brandLogoH);
-    let textX = 0.22;
+    const BOTTLE_CENTER = 1.05; // 좌측 병 영역 중심 (병 박스 boxX 0.25 + boxW 1.6 / 2)
+    const CONTENT_X = 2.05;     // 우측 콘텐츠(와인명 카드) 시작 x
     if (hasLogo) {
-      const LEFT = 0.2, MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.09, BAND_H = 0.68;
+      const MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.09, BAND_H = 0.68;
       const scale = Math.min(MAX_W / data.brandLogoW!, MAX_H / data.brandLogoH!);
       const w = data.brandLogoW! * scale, h = data.brandLogoH! * scale;
       try {
-        doc.image(Buffer.from(data.brandLogoBase64!, "base64"), i(LEFT), i(BAND_Y + (BAND_H - h) / 2), { width: i(w), height: i(h) });
+        doc.image(Buffer.from(data.brandLogoBase64!, "base64"), i(BOTTLE_CENTER - w / 2), i(BAND_Y + (BAND_H - h) / 2), { width: i(w), height: i(h) });
       } catch { /* ignore */ }
-      textX = LEFT + w + 0.3;
     }
+    const textX = CONTENT_X;
     if (wName) {
       drawText(wName, textX, 0.2, 7.1 - textX, 18, fontEn, C.BURGUNDY, 2);
       if (hSub) drawText(hSub, textX, 0.55, 7.1 - textX, 8.5, fontRegular, C.TEXT_MUTED, 2);

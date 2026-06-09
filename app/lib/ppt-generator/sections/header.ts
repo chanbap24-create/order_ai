@@ -16,26 +16,28 @@ export function renderHeader(slide: Slide, data: SlideData) {
     line: { type: "none" },
   });
 
-  // 2-3. 헤더: 와이너리 로고(왼쪽 끝) + 이름/원산지 (까브드뱅 로고는 푸터에만)
+  // 2-3. 헤더: 와이너리 로고(병과 중앙정렬) + 이름/원산지(우측 콘텐츠 시작점 정렬). 까브드뱅 로고는 푸터에만.
   const hasLogo = !!(data.brandLogoBase64 && data.brandLogoMimeType && data.brandLogoW && data.brandLogoH);
   const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
   const hCountry = data.countryEn || data.country || "";
   const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
 
-  let textX = 0.32; // 로고 없으면 이름이 왼쪽 끝
+  const BOTTLE_CENTER = 1.1; // 좌측 병 영역 중심 (footer.ts AREA_X 0.15 + AREA_W 1.9 / 2)
+  const CONTENT_X = 2.2;     // 우측 콘텐츠(와인명 카드/배지) 시작 x
+
   if (hasLogo) {
-    const LEFT = 0.3, MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.08, BAND_H = 0.68;
+    const MAX_W = 1.7, MAX_H = 0.66, BAND_Y = 0.08, BAND_H = 0.68;
     const scale = Math.min(MAX_W / data.brandLogoW!, MAX_H / data.brandLogoH!);
     const w = data.brandLogoW! * scale, h = data.brandLogoH! * scale;
     try {
       slide.addImage({
         data: `${data.brandLogoMimeType};base64,${data.brandLogoBase64}`,
-        x: LEFT, y: BAND_Y + (BAND_H - h) / 2, w, h,
+        x: BOTTLE_CENTER - w / 2, y: BAND_Y + (BAND_H - h) / 2, w, h, // 병과 가로 중앙정렬
       });
     } catch { /* ignore */ }
-    textX = LEFT + w + 0.28;
   }
 
+  const textX = CONTENT_X; // 이름은 항상 우측 콘텐츠 시작점에 맞춤
   if (wName) {
     slide.addText(wName, {
       x: textX, y: 0.13, w: 7.2 - textX, h: 0.36,
