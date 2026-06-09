@@ -9,9 +9,10 @@ import { NoteListPanel } from '../tasting-note/components/NoteListPanel';
 import { WineEditPanel } from '../new-wine/components/WineEditPanel';
 import { ResearchDetailPanel } from '../new-wine/components/ResearchDetailPanel';
 import { ProgressBars } from '../new-wine/components/ProgressBars';
+import type { NoteFilter } from '../tasting-note/types';
 
-export default function TastingNoteTab() {
-  const list = useTastingNoteList();
+export default function TastingNoteTab({ initialFilter = 'all' }: { initialFilter?: NoteFilter }) {
+  const list = useTastingNoteList(initialFilter);
   const detail = useWineDetail(list.fetchWines);
   const ops = useTastingNoteBatch({
     wines: list.wines,
@@ -46,8 +47,8 @@ export default function TastingNoteTab() {
       <ProgressBars
         batchRunning={ops.batchRunning}
         batchProgress={ops.batchProgress}
-        batchPptRunning={false}
-        batchPptProgress={{ current: 0, total: 0 }}
+        batchPptRunning={ops.batchPptRunning}
+        batchPptProgress={ops.batchPptProgress}
       />
 
       <div style={{ display: 'flex', flex: 1, gap: 12, overflow: 'hidden' }}>

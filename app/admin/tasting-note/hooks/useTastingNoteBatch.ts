@@ -20,8 +20,41 @@ export function useTastingNoteBatch(p: Params) {
   const [dispatchingIndex, setDispatchingIndex] = useState(false);
   const [batchDownloading, setBatchDownloading] = useState<"pptx" | "pdf" | null>(null);
   const [generatingPpt, setGeneratingPpt] = useState(false);
+  const [batchPptRunning, setBatchPptRunning] = useState(false);
+  const [batchPptProgress, setBatchPptProgress] = useState({ current: 0, total: 0 });
   // 행별 단일 파일 업로드 진행 중인 item_code (1번에 1개만 허용)
   const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
+
+  // 승인된 노트가 있는 선택 와인
+  const _approvedChecked = () =>
+    [...p.checkedIds].filter((id) => {
+      const w = p.wines.find((w) => w.item_code === id);
+      return w && w.verification_status === "approved";
+    });
+
+  // 선택한 (승인) 와인들 PPT 일괄 생성
+  const batchPptGenerate = async () => {
+    const approvedIds = _approvedChecked();
+    if (approvedIds.length === 0) {
+      alert("승인된 와인을 선택하세요.");
+      return;
+    }
+    setBatchPptRunning(true);
+    setBatchPptProgress({ current: 0, total: approvedIds.length });
+    for (let i = 0; i < approvedIds.length; i++) {
+      setBatchPptProgress({ current: i + 1, total: approvedIds.length });
+      try {
+        await fetch("/api/admin/tasting-notes/generate-ppt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wineIds: [approvedIds[i]] }),
+        });
+      } catch { /* continue */ }
+    }
+    setBatchPptRunning(false);
+    p.refreshList();
+    alert(`${approvedIds.length}개 PPT 생성 완료`);
+  };
 
   const batchResearch = async () => {
     const ids = [...p.checkedIds];
@@ -237,8 +270,10 @@ export function useTastingNoteBatch(p: Params) {
     uploadingGithub, dispatchingIndex,
     batchDownloading,
     generatingPpt,
+    batchPptRunning, batchPptProgress,
     uploadingFileId,
     batchResearch, batchDownload, githubRelease, dispatchIndex, generatePpt,
+    batchPptGenerate,
     uploadFileForWine,
   };
 }

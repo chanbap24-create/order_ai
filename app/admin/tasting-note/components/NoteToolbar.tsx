@@ -168,6 +168,20 @@ export function NoteToolbar(p: Props) {
             ? `${p.ops.batchProgress.current}/${p.ops.batchProgress.total} 조사 중...`
             : `일괄조사 (${p.checkedSize})`}
         </button>
+        <button
+          onClick={p.ops.batchPptGenerate}
+          disabled={p.ops.batchPptRunning || p.checkedSize === 0}
+          style={{
+            ...btn,
+            background: p.ops.batchPptRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            color: p.ops.batchPptRunning ? "#fff" : "var(--text-muted)",
+            opacity: p.checkedSize === 0 && !p.ops.batchPptRunning ? 0.5 : 1,
+          }}
+        >
+          {p.ops.batchPptRunning
+            ? `${p.ops.batchPptProgress.current}/${p.ops.batchPptProgress.total} 생성 중...`
+            : `일괄PPT (${p.checkedSize})`}
+        </button>
         <div style={DIVIDER} />
         {(["pptx", "pdf"] as const).map((fmt) => (
           <button

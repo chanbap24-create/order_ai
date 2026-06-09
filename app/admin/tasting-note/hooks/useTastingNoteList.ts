@@ -3,12 +3,12 @@ import type { NoteFilter, TastingWineRow } from "../types";
 import { isWineCategory } from "../constants";
 
 /** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터 */
-export function useTastingNoteList() {
+export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   const [wines, setWines] = useState<TastingWineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filterNote, setFilterNote] = useState<NoteFilter>("all");
+  const [filterNote, setFilterNote] = useState<NoteFilter>(initialFilter);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [hideZero, setHideZero] = useState(true);

@@ -13,7 +13,6 @@ const tabLoader = () => (
 );
 
 const DashboardTab = dynamic(() => import('./components/DashboardTab'), { ssr: false, loading: tabLoader });
-const NewWineTab = dynamic(() => import('./components/NewWineTab'), { ssr: false, loading: tabLoader });
 const AllWinesTab = dynamic(() => import('./components/AllWinesTab'), { ssr: false, loading: tabLoader });
 const TastingNoteTab = dynamic(() => import('./components/TastingNoteTab'), { ssr: false, loading: tabLoader });
 const ClientAnalysisTab = dynamic(() => import('./components/ClientAnalysisTab'), { ssr: false, loading: tabLoader });
@@ -236,7 +235,7 @@ export default function AdminPage() {
         {/* 탭 콘텐츠 */}
         {activeTab === 'upload' && <UploadTab onUploadComplete={handleUploadComplete} />}
         {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'new-wine' && <NewWineTab />}
+        {activeTab === 'new-wine' && <TastingNoteTab initialFilter="new" />}
         {activeTab === 'all-wines' && <AllWinesTab />}
         {activeTab === 'tasting-note' && <TastingNoteTab />}
         {activeTab === 'client-analysis' && <ClientAnalysisTab />}
