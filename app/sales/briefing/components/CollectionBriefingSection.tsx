@@ -11,6 +11,10 @@ const keyOf = (it: CollItem) => `${it.client_code}|${it.client_type}`;
 const todayKST = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 const daysSince = (d: string) => Math.max(0, Math.floor((Date.now() + 9 * 3600 * 1000 - new Date(d).getTime()) / 86400000));
 
+// 미수 발생(가장 오래된 미수일)이 N일 이내면 '신규' 미수
+const NEW_DAYS = 7;
+const isNew = (it: CollItem) => it.oldest_unpaid_date != null && daysSince(it.oldest_unpaid_date) <= NEW_DAYS;
+
 type SaveFn = (clientCode: string, clientType: string, patch: Record<string, unknown>) => void;
 type OpenLedgerFn = (it: CollItem) => void;
 type Mode = 'broken' | 'today' | 'overdue';
@@ -53,6 +57,7 @@ function sortValue(it: CollItem, mode: Mode, col: SortCol): number | string {
 
 export function CollectionBriefingSection({ data, onSave }: { data: CollectionBriefing; onSave?: SaveFn }) {
   const { broken, promiseToday, overdue } = data;
+  const newCount = [...broken, ...promiseToday, ...overdue].filter(isNew).length;
   const [editing, setEditing] = useState<string | null>(null);
   const [ledger, setLedger] = useState<CollItem | null>(null);
   const [sort, setSort] = useState<Sort | null>(null);
@@ -68,6 +73,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
         💰 오늘의 수금
         <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           약속어김 {broken.length} · 오늘약속 {promiseToday.length} · 연체 {overdue.length}
+          {newCount > 0 && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}> · 신규 {newCount}</span>}
           {data.counts.special > 0 && <span style={{ color: 'var(--status-danger)' }}> (특별관리 {data.counts.special})</span>}
         </span>
       </div>
@@ -86,7 +92,9 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
               return sort.dir === 'asc' ? c : -c;
             })
           : rows;
-        const shown = sorted.slice(0, 40);
+        // 신규(최근 발생) 미수를 항상 상단으로 (안정 정렬이라 그룹 내 기존 순서 유지)
+        const prioritized = [...sorted].sort((a, b) => (isNew(b.it) ? 1 : 0) - (isNew(a.it) ? 1 : 0));
+        const shown = prioritized.slice(0, 40);
 
         return (
           <div key={g.type}>
@@ -122,6 +130,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                         <tr onClick={() => setEditing(isEditing ? null : k)} style={{ cursor: 'pointer', borderTop: '1px solid var(--border-subtle)' }}>
                           <td style={tdL}>
                             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.client_name}</span>
+                            {isNew(it) && <span style={newBadge}>NEW</span>}
                             {it.special && <span style={badge}>특별관리</span>}
                           </td>
                           <td style={{ ...tdR, color: 'var(--text-muted)' }}>{dateStr ? dateStr.slice(5) : '-'}</td>
@@ -212,6 +221,7 @@ const thR: CSSProperties = { ...thL, textAlign: 'right' };
 const tdL: CSSProperties = { padding: '7px 12px', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 12 };
 const tdR: CSSProperties = { padding: '7px 12px', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 12, fontVariantNumeric: 'tabular-nums' };
 const badge: CSSProperties = { marginLeft: 6, fontSize: 9, fontWeight: 700, color: '#fff', background: 'var(--status-danger)', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle' };
+const newBadge: CSSProperties = { marginLeft: 6, fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--status-success)', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle', letterSpacing: 0.3 };
 const lbl: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 700 };
 const ledgerBtn: CSSProperties = { padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid var(--action)', background: 'var(--surface)', color: 'var(--action)', cursor: 'pointer' };
 const inp: CSSProperties = { padding: '5px 8px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-primary)' };
