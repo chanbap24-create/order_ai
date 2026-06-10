@@ -4,6 +4,7 @@ import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
 import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
+import { RESEARCH_PROMPT } from "@/app/lib/wineResearchPrompt";
 import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
@@ -14,46 +15,6 @@ const RESEARCH_MODEL = "claude-sonnet-4-6";
 function stripCitations(text: string): string {
   return text.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '');
 }
-
-const RESEARCH_PROMPT = `당신은 전문 와인 소믈리에이자 와인 연구가입니다.
-제공된 실제 데이터(Wine-Searcher, 브랜드 DB, 웹검색)에 **근거**하여 와인을 분석합니다.
-
-핵심 원칙 (반드시 준수):
-- 생산자/브랜드가 명시되면 반드시 해당 생산자의 와인만. 동명의 다른 생산자 와인과 혼동 금지.
-- item_name_en: 사용자가 제공한 영문명을 그대로 반환. 와이너리명을 붙이거나 변형하지 말 것.
-- Wine-Searcher 데이터가 있으면 최우선. 브랜드 DB는 winery_description/winemaking에 활용.
-
-[사실 필드는 확인된 것만 — 지어내지 말 것]
-- 수상/평점(awards), 알코올 도수, 빈티지 기후 등 **사실**은 제공 데이터·검색에서 **확인된 경우에만** 기재.
-- 근거 없는 점수·메달·구체 수치를 절대 만들지 말 것 (예: 출처 없이 "WS 95점", "Decanter 금메달" 금지).
-- 확인 불가 시: awards="N/A", 알코올은 해당 스타일의 일반 범위, vintage_note는 해당 산지·빈티지의 일반적 특성만(구체적 기상 수치 날조 금지).
-
-[관능 노트(color/nose/palate)는 근거 우선 — 시음한 척 과장 금지]
-- 검색/리뷰에서 찾은 **실제 비평가 시음 평이 있으면 그것을 반영**.
-- 실제 평이 없으면 해당 **품종·산지·스타일의 전형적 특성**으로 서술하되, 이 병을 직접 시음한 듯한
-  과장된 구체 묘사는 피하고 절제되고 정확하게 작성.
-- 미사여구보다 정확함. 불확실하면 보수적으로.
-
-반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
-{
-  "item_name_en": "사용자가 제공한 영문 와인명을 그대로 사용",
-  "country_en": "영문 국가명",
-  "region": "영문 세부 산지",
-  "grape_varieties": "영문 품종 (여러 개면 쉼표 구분)",
-  "wine_type": "Red/White/Rosé/Sparkling/Dessert/Fortified",
-  "alcohol_percentage": "알코올 도수 (예: 13.5%)",
-  "winery_description": "와이너리 소개 (한글, 2-3문장)",
-  "winemaking": "양조 방법 (한글, 수확부터 숙성까지)",
-  "vintage_note": "빈티지 특성 (한글, 해당 연도 기후/특징)",
-  "aging_potential": "숙성 잠재력 (한글, 예: 5-10년 숙성 가능)",
-  "color_note": "외관/색상 (한글, 전문 테이스팅 노트)",
-  "nose_note": "향 (한글, 전문 테이스팅 노트)",
-  "palate_note": "맛/입안 느낌 (한글, 전문 테이스팅 노트)",
-  "food_pairing": "음식 페어링 (한글, 구체적 요리명)",
-  "glass_pairing": "추천 글라스 (한글, 예: 보르도 글라스)",
-  "serving_temp": "서빙 온도 (예: 16-18°C)",
-  "awards": "수상 내역 또는 평점 (없으면 N/A)"
-}`;
 
 /** 빈티지 약식 → 4자리 연도 변환 (15→2015, 99→1999, NV→NV) */
 function parseVintage(raw: string | undefined | null): string {
@@ -206,8 +167,11 @@ export async function researchWineWithClaude(
   const apiParams: any = {
     model: RESEARCH_MODEL,
     max_tokens: 4096,
+    // 고정 프롬프트는 system + cache_control로 분리 → 일괄 조사 시 입력 비용 절감
+    // (tools→system 순으로 프리픽스가 캐시되므로 web_search 정의도 함께 캐시됨)
+    system: [{ type: "text", text: RESEARCH_PROMPT, cache_control: { type: "ephemeral" } }],
     messages: [
-      { role: "user", content: `${RESEARCH_PROMPT}\n\n${userMessage}` },
+      { role: "user", content: userMessage },
     ],
     // web_search 항상 허용: WS/브랜드DB는 메타데이터(이름·품종·산지)뿐이라
     // 실제 비평가 시음 평이 없음 → 관능 노트를 근거 기반으로 만들기 위해 검색 허용.
@@ -215,6 +179,7 @@ export async function researchWineWithClaude(
   };
 
   const response = await client.messages.create(apiParams);
+  logger.info(`[Claude] usage for ${itemCode}: cache_read=${response.usage?.cache_read_input_tokens ?? 0}, cache_write=${response.usage?.cache_creation_input_tokens ?? 0}, input=${response.usage?.input_tokens ?? 0}`);
 
   const texts: string[] = [];
   for (const block of response.content) {
