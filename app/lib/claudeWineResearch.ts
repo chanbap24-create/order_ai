@@ -172,7 +172,9 @@ export async function researchWineWithClaude(
     ],
     // web_search 항상 허용: WS/브랜드DB는 메타데이터(이름·품종·산지)뿐이라
     // 실제 비평가 시음 평이 없음 → 관능 노트를 근거 기반으로 만들기 위해 검색 허용.
-    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: hasRichContext ? 2 : 4 }],
+    // 검색 1회마다 누적 컨텍스트가 입력으로 재과금되어 횟수가 비용의 최대 변수
+    // (4회 기준 건당 ~$0.3) → 최소한으로 제한.
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: hasRichContext ? 1 : 2 }],
   };
 
   const response = await client.messages.create(apiParams);
