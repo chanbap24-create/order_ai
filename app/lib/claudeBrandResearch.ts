@@ -143,7 +143,7 @@ async function validateBrandResult(
 
     const response = await client.messages.create({
       model: HAIKU_MODEL,
-      max_tokens: 400,
+      max_tokens: 600, // issues 목록이 길면 400에서 잘려 파싱 실패하던 문제 여유 확보
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -155,8 +155,23 @@ async function validateBrandResult(
     if (jsonStr.startsWith("```")) {
       jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }
+    // JSON 앞뒤에 설명 텍스트가 붙는 경우 → { } 블록만 추출
+    const objMatch = jsonStr.match(/\{[\s\S]*?\}/);
+    if (objMatch) jsonStr = objMatch[0];
 
-    const parsed = JSON.parse(jsonStr) as { confidence: number; issues: string[] };
+    let parsed: { confidence: number; issues: string[] };
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      // 잘린 JSON 복구: 미완성 문자열 닫기 + 괄호 보정
+      let fixed = jsonStr;
+      if (fixed.match(/"[^"]*$/)) fixed += '"';
+      const opens = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length;
+      for (let i = 0; i < opens; i++) fixed += ']';
+      const braces = (fixed.match(/\{/g) || []).length - (fixed.match(/\}/g) || []).length;
+      for (let i = 0; i < braces; i++) fixed += '}';
+      parsed = JSON.parse(fixed);
+    }
     return {
       confidence: parsed.confidence,
       issues: parsed.issues || [],
