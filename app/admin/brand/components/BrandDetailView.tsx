@@ -56,7 +56,19 @@ export function BrandDetailView(p: Props) {
             <Field label="국가" value={f.country || ""} onChange={(v) => update("country", v)} placeholder="France, Italy..." />
             <Field label="지역" value={f.region || ""} onChange={(v) => update("region", v)} placeholder="Bordeaux, Tuscany..." />
             <Field label="설립연도" value={f.founded_year?.toString() || ""} onChange={(v) => update("founded_year", v ? parseInt(v) : null)} placeholder="1850" type="number" />
-            <Field label="웹사이트" value={f.website || ""} onChange={(v) => update("website", v)} placeholder="https://..." />
+            <div>
+              <Field label="웹사이트" value={f.website || ""} onChange={(v) => update("website", v)} placeholder="https://..." />
+              {f.website && (
+                <a
+                  href={/^https?:\/\//i.test(f.website) ? f.website : `https://${f.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: "var(--burgundy, #5a1515)", display: "inline-block", marginTop: 4 }}
+                >
+                  사이트 열기 ↗
+                </a>
+              )}
+            </div>
           </div>
         </Section>
 
