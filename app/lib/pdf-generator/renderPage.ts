@@ -198,11 +198,14 @@ export function renderPage(
   }
   drawLine(doc, 0.20, 9.52, 7.10, C.BURGUNDY, 2.0);
   drawLine(doc, 0.20, 9.55, 7.10, C.GOLD_LIGHT, 0.75);
+  // 푸터 로고 — 구분선(9.55)~페이지 바닥(10.0) 밴드에 세로 중앙, 원본 비율(1812×570) 유지
+  const FOOTER_TOP = 9.55, FOOTER_H = 0.45;
+  const LOGO_H = 0.28, LOGO_W = LOGO_H * (1812 / 570);
   try {
     const logoBuffer = Buffer.from(LOGO_CAVEDEVIN_BASE64, "base64");
-    doc.image(logoBuffer, i(0.09), i(9.68), { width: i(0.95), height: i(0.25) });
+    doc.image(logoBuffer, i(0.09), i(FOOTER_TOP + (FOOTER_H - LOGO_H) / 2), { width: i(LOGO_W), height: i(LOGO_H) });
   } catch { /* ignore */ }
-  drawText("T. 02-786-3136  |  www.cavedevin.com", 1.12, 9.72, 2.76, 7, fontRegular, C.TEXT_MUTED);
+  drawText("T. 02-786-3136  |  www.cavedevin.com", 0.09 + LOGO_W + 0.1, FOOTER_TOP + FOOTER_H / 2 - 0.05, 2.76, 7, fontRegular, C.TEXT_MUTED);
 
   // ── 좌측 패널: 병 이미지(+ 와이너리 사진) ──
   const hasWineryPhoto = !!(data.wineryImageBase64 && data.wineryImageMimeType);

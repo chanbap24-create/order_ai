@@ -41,18 +41,20 @@ export function renderFooter(slide: Slide, data: SlideData) {
   // FOOTER
   addLine(slide, 0.3, 9.5, 6.9, C.GOLD, 1.0);
 
-  // Footer 로고
+  // Footer 로고 — 구분선(9.5)~슬라이드 바닥(10.0) 밴드에 세로 중앙 배치.
+  // 기존엔 박스가 바닥에 붙어 위아래 여백이 달랐음. 로고 원본 비율(1812×570)로 정확히 그림.
+  const FOOTER_TOP = 9.5, FOOTER_H = 0.5;
+  const LOGO_H = 0.34, LOGO_W = LOGO_H * (1812 / 570);
   try {
     slide.addImage({
       data: "image/png;base64," + LOGO_CAVEDEVIN_BASE64,
-      x: 0.3, y: 9.58, w: 1.1, h: 0.42,
-      sizing: { type: "contain", w: 1.1, h: 0.42 },
+      x: 0.3, y: FOOTER_TOP + (FOOTER_H - LOGO_H) / 2, w: LOGO_W, h: LOGO_H,
     });
   } catch { /* ignore */ }
 
-  // 회사 정보 (우측 정렬)
+  // 회사 정보 (우측 정렬, 로고와 같은 밴드에 세로 중앙)
   slide.addText("T. 02-786-3136  |  www.cavedevin.com", {
-    x: 4.2, y: 9.62, w: 3.0, h: 0.3,
+    x: 4.2, y: FOOTER_TOP, w: 3.0, h: FOOTER_H,
     fontSize: 7.5, fontFace: FONT_EN,
     color: C.TEXT_MUTED,
     align: "right", valign: "middle",
