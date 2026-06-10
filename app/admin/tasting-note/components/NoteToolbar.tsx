@@ -199,22 +199,6 @@ export function NoteToolbar(p: Props) {
         <div style={DIVIDER} />
         {(["pptx", "pdf"] as const).map((fmt) => (
           <button
-            key={fmt}
-            onClick={() => p.ops.batchDownload(fmt)}
-            disabled={!!p.ops.batchDownloading || p.checkedSize === 0}
-            style={{
-              ...btn,
-              background: p.ops.batchDownloading === fmt ? "var(--status-info)" : "rgba(90,21,21,0.05)",
-              color: p.ops.batchDownloading === fmt ? "#fff" : "var(--text-muted)",
-              opacity: p.checkedSize === 0 && !p.ops.batchDownloading ? 0.5 : 1,
-            }}
-          >
-            {p.ops.batchDownloading === fmt ? "생성중..." : fmt.toUpperCase()}
-          </button>
-        ))}
-        <div style={DIVIDER} />
-        {(["pptx", "pdf"] as const).map((fmt) => (
-          <button
             key={"gh-" + fmt}
             onClick={() => p.ops.githubRelease(fmt)}
             disabled={p.ops.uploadingGithub || p.checkedSize === 0}

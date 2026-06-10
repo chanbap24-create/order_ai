@@ -18,7 +18,6 @@ export function useTastingNoteBatch(p: Params) {
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, currentName: "" });
   const [uploadingGithub, setUploadingGithub] = useState(false);
   const [dispatchingIndex, setDispatchingIndex] = useState(false);
-  const [batchDownloading, setBatchDownloading] = useState<"pptx" | "pdf" | null>(null);
   const [generatingPpt, setGeneratingPpt] = useState(false);
   const [batchPptRunning, setBatchPptRunning] = useState(false);
   const [batchPptProgress, setBatchPptProgress] = useState({ current: 0, total: 0 });
@@ -130,38 +129,6 @@ export function useTastingNoteBatch(p: Params) {
     setGeneratingPpt(false);
   };
 
-  const batchDownload = async (format: "pptx" | "pdf") => {
-    const ids = [...p.checkedIds];
-    if (ids.length === 0) {
-      alert("다운로드할 와인을 선택하세요.");
-      return;
-    }
-    setBatchDownloading(format);
-    try {
-      const res = await fetch("/api/admin/tasting-notes/download-zip", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wineIds: ids, format }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        alert(`다운로드 실패: ${err.error || res.statusText}`);
-        setBatchDownloading(null);
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `tasting-notes-${ids.length}wines-${format}.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert(`다운로드 오류: ${e instanceof Error ? e.message : "알 수 없는 오류"}`);
-    }
-    setBatchDownloading(null);
-  };
-
   const githubRelease = async (format: "pptx" | "pdf") => {
     const ids = [...p.checkedIds];
     if (ids.length === 0) {
@@ -268,11 +235,10 @@ export function useTastingNoteBatch(p: Params) {
   return {
     batchRunning, batchProgress,
     uploadingGithub, dispatchingIndex,
-    batchDownloading,
     generatingPpt,
     batchPptRunning, batchPptProgress,
     uploadingFileId,
-    batchResearch, batchDownload, githubRelease, dispatchIndex, generatePpt,
+    batchResearch, githubRelease, dispatchIndex, generatePpt,
     batchPptGenerate,
     uploadFileForWine,
   };
