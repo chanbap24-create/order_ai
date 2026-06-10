@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TastingWineRow } from "../types";
 
 type Params = {
@@ -23,6 +23,13 @@ export function useTastingNoteBatch(p: Params) {
   const [batchPptProgress, setBatchPptProgress] = useState({ current: 0, total: 0 });
   // 행별 단일 파일 업로드 진행 중인 item_code (1번에 1개만 허용)
   const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
+  // 일괄조사 중지 플래그 — true 면 다음 건부터 호출하지 않음 (진행 중인 1건은 완료됨)
+  const batchCancelRef = useRef(false);
+
+  /** 일괄조사 중지 — 진행 중인 건까지만 끝내고 나머지는 호출하지 않음 */
+  const cancelBatchResearch = () => {
+    batchCancelRef.current = true;
+  };
 
   // 승인된 노트가 있는 선택 와인
   const _approvedChecked = () =>
@@ -70,9 +77,17 @@ export function useTastingNoteBatch(p: Params) {
       return;
     }
 
+    // 실수 클릭 방지: API 비용이 발생하는 작업이라 시작 전 확인
+    if (!confirm(`${validIds.length}개 와인을 일괄 조사할까요?\nAPI 비용이 발생하며, 진행 중에는 '중지' 버튼으로 멈출 수 있습니다.`)) {
+      return;
+    }
+
+    batchCancelRef.current = false;
     setBatchRunning(true);
     setBatchProgress({ current: 0, total: validIds.length, currentName: "" });
+    let done = 0;
     for (let i = 0; i < validIds.length; i++) {
+      if (batchCancelRef.current) break;
       const id = validIds[i];
       const w = p.wines.find((w) => w.item_code === id);
       setBatchProgress({
@@ -95,11 +110,16 @@ export function useTastingNoteBatch(p: Params) {
       } catch {
         /* continue */
       }
+      done = i + 1;
     }
+    const stopped = batchCancelRef.current;
     setBatchRunning(false);
     p.setCheckedIds(new Set());
     p.refreshList();
     if (p.selectedId) p.loadSelectedDetail(p.selectedId);
+    if (stopped) {
+      alert(`일괄조사를 중지했습니다. (${done}/${validIds.length}건 완료)`);
+    }
   };
 
   const generatePpt = async (itemCode: string) => {
@@ -238,7 +258,7 @@ export function useTastingNoteBatch(p: Params) {
     generatingPpt,
     batchPptRunning, batchPptProgress,
     uploadingFileId,
-    batchResearch, githubRelease, dispatchIndex, generatePpt,
+    batchResearch, cancelBatchResearch, githubRelease, dispatchIndex, generatePpt,
     batchPptGenerate,
     uploadFileForWine,
   };

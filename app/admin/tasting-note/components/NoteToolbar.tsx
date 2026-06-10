@@ -182,6 +182,15 @@ export function NoteToolbar(p: Props) {
             ? `${p.ops.batchProgress.current}/${p.ops.batchProgress.total} 조사 중...`
             : `일괄조사 (${p.checkedSize})`}
         </button>
+        {p.ops.batchRunning && (
+          <button
+            onClick={p.ops.cancelBatchResearch}
+            title="진행 중인 1건까지만 끝내고 일괄조사를 멈춥니다 (이후 건은 비용 발생 안 함)"
+            style={{ ...btn, background: "#dc2626", color: "#fff" }}
+          >
+            중지
+          </button>
+        )}
         <button
           onClick={p.ops.batchPptGenerate}
           disabled={p.ops.batchPptRunning || p.checkedSize === 0}
