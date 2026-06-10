@@ -48,7 +48,7 @@ export function addLabelBadge(
   }
   slide.addShape("roundRect", {
     x, y, w, h,
-    fill: { color: C.BURGUNDY_LIGHT, transparency: 50 },
+    fill: { color: C.WHITE }, // 쉐이드 없이 아웃라인만
     rectRadius: 0.04,
     line: { color: C.BURGUNDY, width: 0.75 },
   });

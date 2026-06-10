@@ -5,21 +5,22 @@ export function i(inches: number): number {
   return inches * PT;
 }
 
-// 와인 테마 컬러 팔레트
+// 딥 네이비 팔레트 (네이비 포인트 + 쿨 그레이 에디토리얼) — PPT theme.ts와 동일 톤 유지.
+// 키 이름은 구 와인 테마 시절 것을 유지 (BURGUNDY=메인 포인트, GOLD=보조 포인트/구분선).
 export const C = {
-  BG_BOTTLE_AREA: "#F5F0EA",
-  BURGUNDY: "#722F37",
-  BURGUNDY_DARK: "#5A252C",
-  BURGUNDY_LIGHT: "#F2E8EA",
-  GOLD: "#B8976A",
-  GOLD_LIGHT: "#D4C4A8",
+  BG_BOTTLE_AREA: "#F4F5F8",
+  BURGUNDY: "#1F2A44",
+  BURGUNDY_DARK: "#141C30",
+  BURGUNDY_LIGHT: "#EEF1F6",
+  GOLD: "#8C95A8",
+  GOLD_LIGHT: "#C9CEDA",
   TEXT_PRIMARY: "#2C2C2C",
   TEXT_SECONDARY: "#5A5A5A",
   TEXT_MUTED: "#8A8A8A",
   TEXT_ON_DARK: "#FFFFFF",
-  CARD_BORDER: "#E0D5C8",
-  DIVIDER: "#D4C4A8",
-  DIVIDER_LIGHT: "#E8DDD0",
+  CARD_BORDER: "#E1E4EB",
+  DIVIDER: "#D6DAE3",
+  DIVIDER_LIGHT: "#E8EBF1",
   WHITE: "#FFFFFF",
 };
 

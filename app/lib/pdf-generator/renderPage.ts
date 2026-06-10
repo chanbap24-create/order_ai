@@ -1,4 +1,4 @@
-import { i, C, PAGE_W, PAGE_H, blendWithWhite, type SlideData } from "./theme";
+import { i, C, PAGE_W, PAGE_H, type SlideData } from "./theme";
 import { drawLine, drawRect, drawRoundedRect, drawLabelBadge } from "./drawPrimitives";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
@@ -16,6 +16,7 @@ const TX = 2.15;        // 본문 텍스트 x
 const TW = 5.05;        // 본문 폭
 const BODY_TOP = 1.92;  // 본문 시작 y
 const BODY_BOTTOM = 8.95; // 본문 하한(푸터 위)
+const LABEL_W = 0.72;   // 라벨 배지 통일 폭 (지역/품종/빈티지/와이너리/양조)
 
 export function renderPage(
   doc: PDFKit.PDFDocument,
@@ -44,8 +45,7 @@ export function renderPage(
   drawLine(doc, 0.20, 0.84, 7.10, C.BURGUNDY, 1.0);
   drawLine(doc, 0.20, 0.87, 7.10, C.GOLD_LIGHT, 0.75);
 
-  // 와인명 카드
-  drawRoundedRect(doc, 2.05, 0.97, 5.20, 0.76, blendWithWhite(C.BURGUNDY_LIGHT, 0.8), C.CARD_BORDER);
+  // 와인명: 배경 쉐이드 없이 텍스트만
   const nameKrClean = stripCodePrefix(data.nameKr);
   drawText(nameKrClean, 2.20, 1.04, 4.90, 14, fontBold, C.BURGUNDY_DARK);
   const nameEnClean = stripCodePrefix(data.nameEn);
@@ -79,14 +79,14 @@ export function renderPage(
   // ── 본문 데이터 준비(disclaimer 제거 → 과도한 텍스트 정리) ──
   const winery = capSentences(cleanField(data.wineryDescription), 4, 300);
   const vintageNote = capSentences(cleanField(data.vintageNote), 1, 95);
-  const potential = capSentences(cleanField(data.agingPotential), 4, 280);
   const countryEn = data.countryEn || data.country || "";
   const regionText = data.region ? `${countryEn}, ${data.region}` : countryEn || "-";
   let winemakingText = cleanField(data.winemaking) || "-";
   if (data.alcoholPercentage) winemakingText += `\nAlc. ${data.alcoholPercentage}`;
+  // 테이스팅 노트는 COLOR/NOSE/PALATE 3개만
   const tItems: [string, string][] = ([
     ["COLOR", cleanField(data.colorNote)], ["NOSE", cleanField(data.noseNote)],
-    ["PALATE", cleanField(data.palateNote)], ["POTENTIAL", potential],
+    ["PALATE", cleanField(data.palateNote)],
   ].filter(([, v]) => v) as [string, string][]);
 
   /**
@@ -117,13 +117,13 @@ export function renderPage(
       y += h + gap(0.16);
     };
 
-    inlineRow("지역", regionText, 0.55);
-    inlineRow("품종", data.grapeVarieties || "-", 0.55);
+    inlineRow("지역", regionText, LABEL_W);
+    inlineRow("품종", data.grapeVarieties || "-", LABEL_W);
 
     // 빈티지
     if (draw) {
-      drawLabelBadge(doc, "빈티지", CX, y, 0.65, 0.22, fontBold);
-      drawText(data.vintage || "-", 2.88, y - 0.02, 0.8, fs(13), fontBold, C.BURGUNDY);
+      drawLabelBadge(doc, "빈티지", CX, y, LABEL_W, 0.22, fontBold);
+      drawText(data.vintage || "-", TX + LABEL_W + 0.12, y - 0.02, 0.65, fs(13), fontBold, C.BURGUNDY);
     }
     if (vintageNote) {
       const vnW = TW - 1.55;
@@ -136,29 +136,37 @@ export function renderPage(
     if (draw) drawLine(doc, TX, y - 0.05, TW, C.DIVIDER_LIGHT, 0.4);
     y += gap(0.07);
 
-    if (winery) blockRow("와이너리", 0.72, winery, 8.7);
-    blockRow("양조", 0.55, winemakingText, 9.6);
+    if (winery) blockRow("와이너리", LABEL_W, winery, 8.7);
+    blockRow("양조", LABEL_W, winemakingText, 9.6);
 
     // 테이스팅 노트 카드 (내용 높이만큼)
     if (tItems.length > 0) {
       y += 0.16; // 양조↔카드 최소 간격
-      const innerW = TW - 0.28;
+      const innerW = TW - 0.48;
+      const itemX = TX + 0.2; // 문단은 바에서 살짝 우측으로 들여쓰기
       const fsT = fs(9.8);
       let contentH = gap(0.40);
       for (const [, v] of tItems) contentH += 0.15 + measure(v, innerW, fsT, fontRegular, 2 * s) + gap(0.09);
       const cardH = contentH + gap(0.10);
       if (draw) {
-        drawRoundedRect(doc, 2.05, y, 5.20, cardH, blendWithWhite(C.BURGUNDY_LIGHT, 0.7), C.CARD_BORDER);
-        drawLabelBadge(doc, "TASTING NOTE", CX, y + 0.08, 1.32, 0.22, fontBold);
+        // 좌측 포인트 바: 라벨 배지와 동일 x(CX), 시작만 살짝 아래로, 본문 하한까지 확장
+        const barH = Math.max(cardH, BODY_BOTTOM - y);
+        drawRect(doc, CX, y + 0.1, 0.06, barH - 0.1, C.GOLD);
+        // 타이틀: 아웃라인 배지(다른 라벨과 동일 — 채움 없음, 글자색 통일)
+        drawLabelBadge(doc, "TASTING NOTE", CX + 0.15, y + 0.08, 1.32, 0.22, fontBold);
+
+        // 문단(COLOR/NOSE/PALATE)을 확장 영역 안에 균등 간격으로 배치
+        const heights = tItems.map(([, v]) => 0.16 + measure(v, innerW, fsT, fontRegular, 2 * s));
+        const sumH = heights.reduce((a, b) => a + b, 0);
         let cy = y + gap(0.40);
-        for (const [label, v] of tItems) {
+        const spare = y + barH - 0.15 - cy - sumH;
+        const gapEven = Math.max(gap(0.09), Math.min(spare / tItems.length, 0.55));
+        tItems.forEach(([label, v], idx) => {
           doc.save().font(fontEn).fontSize(fs(9)).fillColor(C.BURGUNDY)
-            .text(label, i(TX), i(cy), { width: i(innerW), characterSpacing: 1 }).restore();
-          cy += 0.16;
-          const h = measure(v, innerW, fsT, fontRegular, 2 * s);
-          drawText(v, TX, cy, innerW, fsT, fontRegular, C.TEXT_PRIMARY, 2 * s);
-          cy += h + gap(0.09);
-        }
+            .text(`— ${label}`, i(itemX), i(cy), { width: i(innerW), characterSpacing: 1 }).restore();
+          drawText(v, itemX, cy + 0.16, innerW, fsT, fontRegular, C.TEXT_PRIMARY, 2 * s);
+          cy += heights[idx] + gapEven;
+        });
       }
       y += cardH + gap(0.14);
     }

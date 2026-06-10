@@ -31,12 +31,18 @@ export function drawRoundedRect(
 export function drawLabelBadge(
   doc: PDFKit.PDFDocument, text: string, x: number, y: number, w: number, h: number = 0.22,
   fontBold: string,
+  style: "outline" | "solid" = "outline",
 ) {
-  drawRoundedRect(doc, x, y, w, h, C.BURGUNDY);
+  // outline: 쉐이드 없이 테두리만 (PPT addLabelBadge와 동일 스타일)
+  if (style === "outline") {
+    drawRoundedRect(doc, x, y, w, h, C.WHITE, C.BURGUNDY, 0.75);
+  } else {
+    drawRoundedRect(doc, x, y, w, h, C.BURGUNDY);
+  }
   doc.save()
     .font(fontBold)
     .fontSize(8.5)
-    .fillColor(C.TEXT_ON_DARK);
+    .fillColor(style === "outline" ? C.BURGUNDY_DARK : C.TEXT_ON_DARK);
   const textY = i(y) + (i(h) - 8.5) / 2;
   doc.text(text, i(x), textY, { width: i(w), align: "center" })
     .restore();

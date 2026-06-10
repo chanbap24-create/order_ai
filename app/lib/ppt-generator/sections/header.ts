@@ -59,14 +59,7 @@ export function renderHeader(slide: Slide, data: SlideData) {
   // 4-5. 헤더 구분선 (골드 단선)
   addLine(slide, 0.2, 0.84, 7.1, C.GOLD, 1.5);
 
-  // 6. 와인명 카드 배경
-  slide.addShape("roundRect", {
-    x: 2.2, y: 0.95, w: 5.05, h: 0.85,
-    fill: { color: C.BURGUNDY_LIGHT, transparency: 40 },
-    rectRadius: 0.06,
-    line: { width: 0 },
-  });
-
+  // 6. 와인명 카드: 배경 쉐이드 없이 좌측 포인트 바만
   // 좌측 와인명 포인트 바
   slide.addShape("rect", {
     x: 2.2, y: 0.99, w: 0.06, h: 0.77,

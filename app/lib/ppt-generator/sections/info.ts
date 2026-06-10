@@ -1,4 +1,3 @@
-import type PptxGenJS from "pptxgenjs";
 import { C, FONT_EN, FONT_MAIN, type Slide, type SlideData } from "../theme";
 import { addLine, addLabelBadge } from "../addPrimitives";
 import { capSentences, cleanField } from "@/app/lib/wineNoteText";
@@ -7,6 +6,7 @@ const BX = 2.2;          // 라벨/본문 좌측
 const TW = 5.05;         // 본문 폭
 const BODY_TOP = 1.95;   // 본문 시작 y
 const BODY_BOTTOM = 8.72; // 본문 하한(푸터/어워즈 위)
+const LABEL_W = 0.72;    // 라벨 배지 통일 폭 (지역/품종/빈티지/와이너리/양조)
 
 /**
  * 텍스트 높이(인치) 추정 — PPT는 측정 API가 없어 추정.
@@ -24,14 +24,14 @@ function estH(text: string, wIn: number, fs: number, lineMul = 1.32): number {
  */
 export function renderInfo(slide: Slide, data: SlideData) {
   const winery = capSentences(cleanField(data.wineryDescription), 4, 300);
-  const potential = capSentences(cleanField(data.agingPotential), 4, 280);
   const countryEn = data.countryEn || data.country || "";
   const regionText = data.region ? `${countryEn}, ${data.region}` : countryEn || "-";
   let winemakingText = cleanField(data.winemaking) || "-";
   if (data.alcoholPercentage) winemakingText += `\nAlc. ${data.alcoholPercentage}`;
+  // 테이스팅 노트는 COLOR/NOSE/PALATE 3개만
   const tItems: [string, string][] = ([
     ["Color", cleanField(data.colorNote)], ["Nose", cleanField(data.noseNote)],
-    ["Palate", cleanField(data.palateNote)], ["Potential", potential],
+    ["Palate", cleanField(data.palateNote)],
   ].filter(([, v]) => v) as [string, string][]);
 
   // body(s, draw): draw=false 면 높이만 누적(슬라이드에 추가 X), 반환=최종 y
@@ -70,14 +70,14 @@ export function renderInfo(slide: Slide, data: SlideData) {
       y += h + gap(0.2);
     };
 
-    inlineRow("지역", regionText, 0.55);
-    inlineRow("품종", data.grapeVarieties || "-", 0.55);
+    inlineRow("지역", regionText, LABEL_W);
+    inlineRow("품종", data.grapeVarieties || "-", LABEL_W);
 
     // 빈티지
     if (draw) {
-      addLabelBadge(slide, "빈티지", BX, y, 0.65, 0.22);
+      addLabelBadge(slide, "빈티지", BX, y, LABEL_W, 0.22);
       slide.addText(data.vintage || "-", {
-        x: 2.9, y: y - 0.04, w: 0.9, h: 0.3,
+        x: BX + LABEL_W + 0.12, y: y - 0.04, w: 0.7, h: 0.3,
         fontSize: fs(14), fontFace: FONT_EN, color: C.BURGUNDY, bold: true, valign: "middle",
       });
     }
@@ -98,8 +98,8 @@ export function renderInfo(slide: Slide, data: SlideData) {
     if (draw) addLine(slide, BX, y - 0.05, TW, C.DIVIDER_LIGHT, 0.4);
     y += gap(0.07);
 
-    if (winery) blockRow("와이너리", 0.72, winery, 8.7);
-    blockRow("양조", 0.55, winemakingText, 9.6);
+    if (winery) blockRow("와이너리", LABEL_W, winery, 8.7);
+    blockRow("양조", LABEL_W, winemakingText, 9.6);
 
     // ── 테이스팅 노트 카드 ──
     if (tItems.length > 0) {
@@ -110,19 +110,31 @@ export function renderInfo(slide: Slide, data: SlideData) {
       for (const [, v] of tItems) contentH += labelLine + estH(v, innerW, fs(9.8)) + gap(0.14);
       const cardH = contentH + gap(0.2);
       if (draw) {
-        slide.addShape("roundRect", { x: BX, y, w: TW, h: cardH, fill: { color: C.BG_WARM_GRAY }, rectRadius: 0.06, line: { width: 0 } });
-        slide.addShape("rect", { x: BX, y, w: 0.06, h: cardH, fill: { color: C.GOLD }, line: { width: 0 } });
-        addLabelBadge(slide, "TASTING NOTE", BX + 0.15, y + 0.08, 1.32, 0.22, "solid");
+        // 좌측 포인트 바: 와인명 좌측 바와 동일 x(BX), 시작만 살짝 아래로, 본문 하한까지 확장
+        const barH = Math.max(cardH, BODY_BOTTOM - y);
+        slide.addShape("rect", { x: BX, y: y + 0.1, w: 0.06, h: barH - 0.1, fill: { color: C.GOLD }, line: { width: 0 } });
+        // 타이틀: 아웃라인 배지(다른 라벨과 동일 — 채움 없음, 글자색 통일)
+        addLabelBadge(slide, "TASTING NOTE", BX + 0.15, y + 0.08, 1.32, 0.22);
 
-        const runs: PptxGenJS.TextProps[] = [];
-        let first = true;
-        for (const [label, v] of tItems) {
-          if (!first) runs.push({ text: "\n", options: { fontSize: fs(4), breakLine: true } });
-          runs.push({ text: `— ${label.toUpperCase()}`, options: { fontSize: fs(9), fontFace: FONT_EN, color: C.GOLD, bold: true, breakLine: true, charSpacing: 2 } });
-          runs.push({ text: v, options: { fontSize: fs(9.8), fontFace: FONT_MAIN, color: C.TEXT_PRIMARY, lineSpacingMultiple: 1.25, breakLine: true } });
-          first = false;
-        }
-        slide.addText(runs, { x: BX + 0.22, y: y + gap(0.4), w: innerW, h: cardH - gap(0.5), valign: "top", wrap: true, margin: [0, 4, 0, 4] });
+        // 문단(COLOR/NOSE/PALATE)은 바에서 살짝 우측으로 들여쓰기
+        const itemX = BX + 0.2;
+        const heights = tItems.map(([, v]) => labelLine + estH(v, innerW, fs(9.8), 1.45));
+        const sumH = heights.reduce((a, b) => a + b, 0);
+        let cy = y + gap(0.46);
+        const spare = y + barH - 0.15 - cy - sumH;
+        const gapEven = Math.max(gap(0.14), Math.min(spare / tItems.length, 0.55));
+        tItems.forEach(([label, v], idx) => {
+          slide.addText(`— ${label.toUpperCase()}`, {
+            x: itemX, y: cy, w: innerW, h: labelLine,
+            fontSize: fs(9), fontFace: FONT_EN, color: C.GOLD, bold: true, charSpacing: 2, valign: "top",
+          });
+          slide.addText(v, {
+            x: itemX, y: cy + labelLine, w: innerW, h: heights[idx] - labelLine,
+            fontSize: fs(9.8), fontFace: FONT_MAIN, color: C.TEXT_PRIMARY,
+            lineSpacingMultiple: 1.25, valign: "top", wrap: true,
+          });
+          cy += heights[idx] + gapEven;
+        });
       }
       y += cardH + gap(0.16);
     }
