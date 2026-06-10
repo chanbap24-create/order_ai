@@ -18,59 +18,9 @@ export interface WineSearcherData {
   reviews?: string[];
 }
 
-/**
- * Vivino에서 와인 보틀 이미지 검색 (누키 PNG 보틀샷)
- * Vivino 프리로드 JSON에서 _pb_ (product bottle) PNG를 추출
- * 투명 배경의 풀 보틀샷이므로 PPT에 최적
- */
-export async function searchVivinoBottleImage(wineNameEn: string): Promise<string | null> {
-  if (!wineNameEn) return null;
-
-  // 검색어 축약 전략: 전체→단어 줄여가며 시도
-  const queries = [wineNameEn];
-  const words = wineNameEn.split(/\s+/);
-  if (words.length > 3) {
-    // "Vincent Girardin Meursault Le Limozin" → "Vincent Girardin Meursault"
-    queries.push(words.slice(0, Math.ceil(words.length * 0.6)).join(' '));
-  }
-  if (words.length > 2) {
-    queries.push(words.slice(0, 3).join(' '));
-  }
-
-  for (const q of queries) {
-    try {
-      const res = await fetch(`https://www.vivino.com/search/wines?q=${encodeURIComponent(q)}`, {
-        headers: { "User-Agent": USER_AGENT },
-      });
-      if (!res.ok) continue;
-
-      const html = await res.text();
-
-      // _pb_ = product bottle (누키 PNG 보틀샷)
-      const pbMatch = html.match(/\/\/images\.vivino\.com\/thumbs\/[A-Za-z0-9_+-]+_pb_x960\.png/)
-                    || html.match(/\/\/images\.vivino\.com\/thumbs\/[A-Za-z0-9_+-]+_pb_x600\.png/)
-                    || html.match(/\/\/images\.vivino\.com\/thumbs\/[A-Za-z0-9_+-]+_pb_[A-Za-z0-9x]+\.png/);
-      if (pbMatch) {
-        const url = `https:${pbMatch[0]}`;
-        logger.info(`[Vivino] Bottle cutout found (q="${q}"): ${url}`);
-        return url;
-      }
-
-      // 라벨 이미지 fallback
-      const plMatch = html.match(/\/\/images\.vivino\.com\/thumbs\/[A-Za-z0-9_+-]+_pl_480x640\.png/);
-      if (plMatch) {
-        const url = `https:${plMatch[0]}`;
-        logger.info(`[Vivino] Label image fallback (q="${q}"): ${url}`);
-        return url;
-      }
-    } catch {
-      // 다음 쿼리 시도
-    }
-  }
-
-  logger.warn(`[Vivino] No bottle image found for: ${wineNameEn}`);
-  return null;
-}
+// Vivino 보틀샷 검색은 이름 일치 검증 포함 버전으로 분리 (기존 import 경로 호환용 재export)
+export { searchVivinoBottleImage } from "@/app/lib/vivinoImageSearch";
+import { searchVivinoBottleImage } from "@/app/lib/vivinoImageSearch";
 
 /**
  * Wine-Searcher에서 와인 정보 + 이미지 스크래핑
@@ -179,7 +129,7 @@ export async function searchWineryWebsiteImage(
 
   try {
     // 도메인 추출 (site: 검색용)
-    let domain = websiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+    const domain = websiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
     if (!domain) return null;
 
     const client = getClaudeClient();

@@ -56,8 +56,17 @@ export function extractWineryNameEn(desc: string | undefined, nameEn: string | u
     const krWords = extractWineryName(d).split(/\s+/).filter(Boolean).length;
     const enWords = en.split(/\s+/).filter(Boolean);
     const n = krWords > 0 ? Math.min(krWords, 4) : 2;
-    const take = enWords.slice(0, n).join(" ").trim();
-    if (/[A-Za-z]/.test(take)) return take;
+    // 이니셜("W", "J.")과 "&"는 단어 수로 세지 않고 이름에 포함.
+    // 예: KR "그라함스"(1단어) + EN "W & J Graham's 30 Year…" → "W & J Graham's" (기존엔 "W")
+    const take: string[] = [];
+    let counted = 0;
+    for (const w of enWords) {
+      take.push(w);
+      if (!/^[A-Za-z]\.?$/.test(w) && w !== "&") counted++;
+      if (counted >= n) break;
+    }
+    const result = take.join(" ").trim();
+    if (counted > 0 && /[A-Za-z]/.test(result)) return result;
   }
   return "";
 }
