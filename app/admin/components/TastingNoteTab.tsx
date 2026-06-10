@@ -38,6 +38,8 @@ export default function TastingNoteTab({ initialFilter = 'all' }: { initialFilte
         setHideZero={list.setHideZero}
         wineOnly={list.wineOnly}
         setWineOnly={list.setWineOnly}
+        showExcluded={list.showExcluded}
+        setShowExcluded={list.setShowExcluded}
         lowStockThreshold={list.lowStockThreshold}
         setLowStockThreshold={list.setLowStockThreshold}
         checkedSize={list.checkedIds.size}
@@ -66,6 +68,7 @@ export default function TastingNoteTab({ initialFilter = 'all' }: { initialFilte
           toggleAllChecks={list.toggleAllChecks}
           uploadingFileId={ops.uploadingFileId}
           onUploadFile={ops.uploadFileForWine}
+          onSetExcluded={list.setExcluded}
         />
 
         <WineEditPanel

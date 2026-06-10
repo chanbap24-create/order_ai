@@ -15,6 +15,8 @@ type Props = {
   toggleAllChecks: () => void;
   uploadingFileId: string | null;
   onUploadFile: (itemCode: string, file: File) => void;
+  /** 노트 목록에서 제외/복원 */
+  onSetExcluded: (itemCode: string, excluded: boolean) => void;
 };
 
 export function NoteListPanel(p: Props) {
@@ -166,6 +168,26 @@ export function NoteListPanel(p: Props) {
                   disabled={p.uploadingFileId !== null && p.uploadingFileId !== w.item_code}
                   onUpload={p.onUploadFile}
                 />
+                <button
+                  type="button"
+                  title={w.note_excluded ? "목록으로 복원" : "노트 목록에서 제외 (자재/세트 등 노트 불필요 품목)"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    p.onSetExcluded(w.item_code, !w.note_excluded);
+                  }}
+                  style={{
+                    fontSize: 11,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    background: "var(--gray-100)",
+                    color: "var(--gray-500)",
+                    border: "1px solid var(--gray-300)",
+                    cursor: "pointer",
+                    lineHeight: 1,
+                  }}
+                >
+                  {w.note_excluded ? "↩" : "🚫"}
+                </button>
               </div>
             </div>
           );

@@ -17,6 +17,8 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   // 재고 lowStockThreshold 병 이하 와인을 숨김. 0 이면 필터 OFF.
   // 사용자가 input 으로 직접 조정 — 별도 토글 없이 값만으로 ON/OFF.
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(0);
+  // 제외 보기: OFF(기본)면 제외 품목 숨김, ON이면 제외 품목만 표시(복원용)
+  const [showExcluded, setShowExcluded] = useState(false);
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
 
   /** hideZero/wineOnly/lowStockThreshold 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
   const passesCategoryFilters = (w: TastingWineRow): boolean => {
+    if (showExcluded !== !!w.note_excluded) return false; // 기본: 제외 숨김 / 제외 보기: 제외만
     const stock = (w.inv_available || 0) + (w.inv_bonded || 0);
     if (hideZero && stock <= 0) return false;
     if (wineOnly && !isWineCategory(w.item_code)) return false;
@@ -82,8 +85,23 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     return true;
   };
 
-  // 신규: 재고 무관(등록 검토용), 와인 분류만
+  /** 품목을 노트 목록에서 제외/복원 */
+  const setExcluded = async (itemCode: string, excluded: boolean) => {
+    try {
+      await fetch(`/api/admin/tasting-notes/${itemCode}/exclude`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ excluded }),
+      });
+      await fetchWines();
+    } catch {
+      alert("제외 처리에 실패했습니다.");
+    }
+  };
+
+  // 신규: 재고 무관(등록 검토용), 와인 분류만 (제외 필터는 공통 적용)
   const isNewWine = (w: TastingWineRow) =>
+    showExcluded === !!w.note_excluded &&
     w.status === "new" && (!wineOnly || isWineCategory(w.item_code));
 
   const filteredWines = wines.filter((w) => {
@@ -129,6 +147,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     hideZero, setHideZero,
     wineOnly, setWineOnly,
     lowStockThreshold, setLowStockThreshold,
+    showExcluded, setShowExcluded, setExcluded,
     ghIndex, refreshGhIndex, counts,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,

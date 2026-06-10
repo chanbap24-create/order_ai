@@ -14,6 +14,8 @@ type Props = {
   setHideZero: (b: boolean) => void;
   wineOnly: boolean;
   setWineOnly: (b: boolean) => void;
+  showExcluded: boolean;
+  setShowExcluded: (b: boolean) => void;
   lowStockThreshold: number;
   setLowStockThreshold: (n: number) => void;
   checkedSize: number;
@@ -113,6 +115,18 @@ export function NoteToolbar(p: Props) {
             }}
           >
             와인만
+          </button>
+          <button
+            onClick={() => p.setShowExcluded(!p.showExcluded)}
+            title="제외(🚫) 처리한 품목만 표시 — 복원(↩)은 여기서"
+            style={{
+              ...btn,
+              background: p.showExcluded ? "white" : "transparent",
+              color: p.showExcluded ? "var(--action)" : "var(--text-muted)",
+              boxShadow: p.showExcluded ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+            }}
+          >
+            제외됨
           </button>
           <div
             title="재고 N병 이하 와인 숨기기 — 0 이면 끔. 곧 소진될 와인을 노트 작성 대상에서 제외하기 위함"
