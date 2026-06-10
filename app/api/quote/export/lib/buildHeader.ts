@@ -30,35 +30,37 @@ export function buildHeader(
     const rowHeight = imgH + 10;
     ws.getRow(1).height = rowHeight * 0.75;
 
-    // ExcelJS 공식 API: tl.col/row 는 fractional 지원 → 모든 뷰어(카톡/모바일 포함) 호환.
-    // 비공식 nativeCol/nativeColOff EMU 방식은 일부 뷰어가 무시해서 로고 누락.
     // 각 열 width(px) = width * 7 + 5 (Excel 관례)
     const colWidthsPx = activeCols.map((col) => col.width * 7 + 5);
     const totalPxWidth = colWidthsPx.reduce((sum, w) => sum + w, 0);
 
-    // 가로 중앙 위치(px)
+    // 가로 중앙 위치(px) → 해당 열 인덱스(0-base)와 열 내 오프셋(px)
     const startXPx = Math.max(0, (totalPxWidth - imgW) / 2);
-
-    // fractional col 계산: 누적 폭이 startX 를 넘어가는 열의 비율 구하기
-    let colFrac = 0;
-    let running = 0;
+    let colIndex = 0;
+    let offsetInColPx = startXPx;
     for (let i = 0; i < colWidthsPx.length; i++) {
-      const w = colWidthsPx[i];
-      if (running + w > startXPx) {
-        colFrac = i + (startXPx - running) / w;
-        break;
-      }
-      running += w;
-      colFrac = i + 1;
+      if (offsetInColPx < colWidthsPx[i]) { colIndex = i; break; }
+      offsetInColPx -= colWidthsPx[i];
+      colIndex = i + 1;
     }
 
-    // 행 1 높이(pt) 기준 세로 중앙
-    const rowHeightPx = rowHeight * 0.75 * (96 / 72); // pt → px 대략
+    // 행 1 높이(pt) 기준 세로 중앙(px)
+    const rowHeightPx = rowHeight * 0.75 * (96 / 72); // pt → px
     const topOffsetPx = Math.max(0, (rowHeightPx - imgH) / 2);
-    const rowFrac = topOffsetPx / rowHeightPx;
 
+    // 주의: ExcelJS fractional(tl.col) 방식은 열 폭을 width×10000 EMU로 가정해
+    // 열 내 오프셋이 실제의 ~1/7로 줄어드는 버그가 있음(중앙정렬 깨짐).
+    // 픽셀→EMU(×9525) 직접 변환으로 nativeColOff를 지정한다.
+    // 출력 XML(xdr:col/colOff) 구조는 fractional 방식과 동일 → 뷰어 호환성 차이 없음.
+    const PX_EMU = 9525;
     ws.addImage(logoId, {
-      tl: { col: colFrac, row: rowFrac },
+      tl: {
+        nativeCol: colIndex,
+        nativeColOff: Math.round(offsetInColPx * PX_EMU),
+        nativeRow: 0,
+        nativeRowOff: Math.round(topOffsetPx * PX_EMU),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
       ext: { width: imgW, height: imgH },
       editAs: 'oneCell',
     });
