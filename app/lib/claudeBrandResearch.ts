@@ -2,6 +2,7 @@
 // Haiku + web_search 통합 검색 + Haiku 검증
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
+import { parseJsonLoose } from "@/app/lib/jsonExtract";
 import { logger } from "@/app/lib/logger";
 import type { BrandResearchResult, BrandValidation } from "@/app/types/wine";
 
@@ -151,27 +152,7 @@ async function validateBrandResult(
     const text = textBlock && 'text' in textBlock ? textBlock.text : '';
     if (!text) return { confidence: 50, issues: ["검증 응답 없음"] };
 
-    let jsonStr = text.trim();
-    if (jsonStr.startsWith("```")) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-    }
-    // JSON 앞뒤에 설명 텍스트가 붙는 경우 → { } 블록만 추출
-    const objMatch = jsonStr.match(/\{[\s\S]*?\}/);
-    if (objMatch) jsonStr = objMatch[0];
-
-    let parsed: { confidence: number; issues: string[] };
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      // 잘린 JSON 복구: 미완성 문자열 닫기 + 괄호 보정
-      let fixed = jsonStr;
-      if (fixed.match(/"[^"]*$/)) fixed += '"';
-      const opens = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length;
-      for (let i = 0; i < opens; i++) fixed += ']';
-      const braces = (fixed.match(/\{/g) || []).length - (fixed.match(/\}/g) || []).length;
-      for (let i = 0; i < braces; i++) fixed += '}';
-      parsed = JSON.parse(fixed);
-    }
+    const parsed = parseJsonLoose<{ confidence: number; issues: string[] }>(text);
     return {
       confidence: parsed.confidence,
       issues: parsed.issues || [],

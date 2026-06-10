@@ -4,6 +4,7 @@ import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
 import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
+import { parseJsonLoose } from "@/app/lib/jsonExtract";
 import { RESEARCH_PROMPT } from "@/app/lib/wineResearchPrompt";
 import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
@@ -43,7 +44,8 @@ async function validateWineResult(
 
     const supplierLine = originalSupplier ? `\n- 생산자/브랜드: ${originalSupplier}` : '';
     const supplierCriteria = originalSupplier
-      ? `\n4. 생산자/와이너리가 같은 곳인지 (가장 중요! 생산자가 다르면 confidence를 30 이하로 낮추세요)`
+      ? `\n4. 생산자/와이너리가 같은 곳인지 — 약칭·이니셜·접두어(Domaine/Maison/Château 등)·부가어(Port, Vineyards 등)·한/영 표기 차이는 같은 생산자로 간주.
+   **명백히 다른 생산자의 와인을 조사한 경우에만** confidence를 30 이하로 낮추세요. 확실하지 않으면 낮추지 마세요.`
       : '';
 
     const prompt = `당신은 와인 전문가입니다. 아래 원본 와인과 조사 결과가 같은 와인인지 판단하세요.
@@ -69,7 +71,7 @@ async function validateWineResult(
 
     const response = await client.messages.create({
       model: HAIKU_MODEL,
-      max_tokens: 300,
+      max_tokens: 500, // issues 목록이 길면 300에서 잘려 파싱 실패하던 문제 여유 확보
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -77,12 +79,7 @@ async function validateWineResult(
     const text = textBlock && 'text' in textBlock ? textBlock.text : '';
     if (!text) return { confidence: 50, issues: ["검증 응답 없음"] };
 
-    let jsonStr = text.trim();
-    if (jsonStr.startsWith("```")) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-    }
-
-    const parsed = JSON.parse(jsonStr) as { same_wine: boolean; confidence: number; issues: string[] };
+    const parsed = parseJsonLoose<{ same_wine: boolean; confidence: number; issues: string[] }>(text);
     return {
       confidence: parsed.confidence,
       issues: parsed.issues || [],

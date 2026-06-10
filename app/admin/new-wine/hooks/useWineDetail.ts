@@ -127,7 +127,9 @@ export function useWineDetail(refreshList: () => void) {
       });
       const data = await res.json();
       if (data.success) {
-        if (data.verification_status === "warning") {
+        if (data.verification_status === "mismatch") {
+          alert(data.message || "생산자가 다른 와인일 수 있습니다. 결과는 저장했으니 내용을 확인해주세요.");
+        } else if (data.verification_status === "warning") {
           alert("생산자 확인 필요: 조사된 와인의 생산자가 다를 수 있습니다. 확인 후 승인해주세요.");
         }
         await loadWineDetail(selectedWine.item_code);

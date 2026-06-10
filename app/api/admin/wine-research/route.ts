@@ -40,19 +40,18 @@ export async function POST(request: NextRequest) {
       supplierName || undefined
     );
 
-    // confidence < 50 (mismatch) → 저장 안함, 에러 반환
+    // mismatch여도 결과는 저장한다 (조사 비용 보존) — 상태 배지(X 생산자 불일치)로 검토 유도.
+    // 이전엔 여기서 결과를 버리고 에러를 반환해, API 비용만 쓰고 아무것도 남지 않았음.
     if (verification_status === 'mismatch') {
-      return NextResponse.json({
-        success: false,
-        error: "생산자가 다른 와인이 조사되었습니다. 생산자를 확인해주세요.",
-        verification_status,
-        validation,
-        data: result,
+      await logChange('claude_research_mismatch', 'wine', wine_id, {
+        item_name_en: result.item_name_en,
+        validation_confidence: validation.confidence,
+        validation_issues: validation.issues,
       });
     }
 
     // confidence 50~79 → 저장하되 warning 로그
-    if (validation.confidence < 80) {
+    if (verification_status !== 'mismatch' && validation.confidence < 80) {
       await logChange('claude_research_warning', 'wine', wine_id, {
         item_name_en: result.item_name_en,
         validation_confidence: validation.confidence,
@@ -93,10 +92,19 @@ export async function POST(request: NextRequest) {
 
     await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en, verification_status });
 
-    return NextResponse.json({ success: true, data: result, validation, verification_status });
-  } catch (e: any) {
+    return NextResponse.json({
+      success: true,
+      data: result,
+      validation,
+      verification_status,
+      ...(verification_status === 'mismatch'
+        ? { message: "생산자가 다른 와인일 수 있습니다. 결과는 저장했으니 내용을 확인해주세요." }
+        : {}),
+    });
+  } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    const detail = e?.status ? `(API status: ${e.status})` : '';
+    const status = (e as { status?: number })?.status;
+    const detail = status ? `(API status: ${status})` : '';
     console.error('[wine-research] ERROR:', msg, detail, e instanceof Error ? e.stack : '');
     return NextResponse.json({ success: false, error: `${msg} ${detail}`.trim() }, { status: 500 });
   }
