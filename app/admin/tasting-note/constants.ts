@@ -22,9 +22,19 @@ export function totalStock(w: TastingWineRow): number {
   return (w.inv_available || 0) + (w.inv_bonded || 0);
 }
 
+/** 신규로 표기하는 기간 (등록일 기준). 이후엔 신규에서 빠지고 미작성에만 남음. */
+export const NEW_WINDOW_DAYS = 7;
+
+/** 등록일이 신규 표기 기간(7일) 이내인지. created_at 없으면 true(차단 안 함). */
+export function isWithinNewWindow(w: TastingWineRow): boolean {
+  if (!w.created_at) return true;
+  const age = Date.now() - new Date(w.created_at).getTime();
+  return age <= NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+}
+
 /**
  * "신규(작업 대상)" 판정 — 탭 배지 · 신규 필터 공통 규칙.
- * status='new' · 재고합>0 · 노트 미등록 · 제외상태 일치 · (옵션)와인 분류만.
+ * status='new' · 등록 7일 이내 · 재고합>0 · 노트 미등록 · 제외상태 일치 · (옵션)와인 분류만.
  */
 export function isActionableNew(
   w: TastingWineRow,
@@ -33,6 +43,7 @@ export function isActionableNew(
 ): boolean {
   if ((opts?.showExcluded ?? false) !== !!w.note_excluded) return false;
   if (w.status !== "new") return false;
+  if (!isWithinNewWindow(w)) return false; // 등록 7일 경과 → 신규에서 빠짐(미작성엔 잔류)
   if (totalStock(w) <= 0) return false; // 재고+보세 합 0 → 신규에서 제외
   if (hasNote) return false; // 노트(DB/PDF) 등록되면 신규에서 제외
   if ((opts?.requireWineCategory ?? true) && !isWineCategory(w.item_code)) return false;
