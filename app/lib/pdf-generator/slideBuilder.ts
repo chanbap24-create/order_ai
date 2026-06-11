@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
+import { dataUrlToImage, downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { trimWhitespace } from "@/app/lib/logoTrim";
 import { formatVintage4, type SlideData } from "./theme";
@@ -12,7 +12,10 @@ async function fetchBrandLogo(
   try {
     const ctx = await getBrandContextForWine(itemCode);
     if (!ctx?.logoUrl) return undefined;
-    const img = await downloadImageAsBase64(ctx.logoUrl);
+    // 자료실 로고가 data URL(base64 인라인)이면 SSRF 가드(http/https만 허용)에 막히므로 직접 디코드
+    const img = ctx.logoUrl.startsWith("data:")
+      ? dataUrlToImage(ctx.logoUrl)
+      : await downloadImageAsBase64(ctx.logoUrl);
     if (!img) return undefined;
     // 로고 흰 여백 제거(작게 나오는 문제 해결)
     const trimmed = await trimWhitespace(img.base64);

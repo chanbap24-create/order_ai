@@ -212,6 +212,20 @@ No other text.`,
 /**
  * 이미지 URL에서 실제 이미지 데이터를 다운로드하여 base64로 반환
  */
+/**
+ * data:image/...;base64,xxx URL을 파싱해 base64 + mime 반환. 비-data URL/형식 불일치 시 null.
+ * 어드민 자료실 로고가 data URL로 저장된 경우(SSRF 가드가 http/https만 허용해 막는 케이스)
+ * fetch 없이 직접 디코드하기 위함.
+ */
+export function dataUrlToImage(url: string): { base64: string; mimeType: string } | null {
+  const m = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(url);
+  if (!m) return null;
+  const mimeType = (m[1] || "image/png").split(";")[0];
+  const base64 = m[2] ? m[3] : Buffer.from(decodeURIComponent(m[3])).toString("base64");
+  if (!base64) return null;
+  return { base64, mimeType };
+}
+
 export async function downloadImageAsBase64(imageUrl: string): Promise<{ base64: string; mimeType: string } | null> {
   try {
     // SSRF 방어: DB wine.image_url 등 외부 제어 가능 경로
