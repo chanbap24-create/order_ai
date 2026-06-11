@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
 import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
 import { backfillWineFieldsIfEmpty } from "@/app/lib/wineDb";
-import { syncBottleImageIfEmpty } from "@/app/lib/wineBottleImage";
+import { syncBottleImage } from "@/app/lib/wineBottleImage";
 import { supabase } from "@/app/lib/db";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         logger.warn(`[upload-single] backfill failed: ${e instanceof Error ? e.message : e}`);
       }
       try {
-        imageSynced = !!(await syncBottleImageIfEmpty(supabase, wineId, buffer));
+        imageSynced = !!(await syncBottleImage(supabase, wineId, buffer));
       } catch (e) {
         logger.warn(`[upload-single] bottle image sync failed: ${e instanceof Error ? e.message : e}`);
       }

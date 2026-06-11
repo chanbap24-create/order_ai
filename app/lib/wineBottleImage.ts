@@ -5,11 +5,16 @@ import { extractBottleImageFromPptx } from "./tastingNotePptxParse";
 
 const BUCKET = "wine-bottles";
 
+/** 교체 대상 "불량" 이미지 소스 — wine-searcher 라벨(가로 워터마크 크롭). */
+export function isBadImageUrl(url?: string | null): boolean {
+  return !!url && /wine-searcher/i.test(url);
+}
+
 /**
- * image_url 이 비어 있을 때만 PPTX 병 이미지를 추출·업로드해 wines.image_url 설정.
+ * image_url 이 비어 있거나 불량 소스(wine-searcher)일 때 PPTX 병 이미지로 채움/교체.
  * 반환: 새로 채운 public URL, 채울 게 없으면 null.
  */
-export async function syncBottleImageIfEmpty(
+export async function syncBottleImage(
   sb: SupabaseClient,
   itemCode: string,
   pptxBuffer: Buffer,
@@ -20,7 +25,8 @@ export async function syncBottleImageIfEmpty(
     .eq("item_code", itemCode)
     .maybeSingle();
   if (!wine) return null; // 와인 행 없음
-  if (wine.image_url && String(wine.image_url).trim() !== "") return null; // 빈 칸만
+  const cur = wine.image_url ? String(wine.image_url).trim() : "";
+  if (cur !== "" && !isBadImageUrl(cur)) return null; // 빈 칸 또는 불량(wine-searcher)일 때만
 
   const bottle = await extractBottleImageFromPptx(pptxBuffer);
   if (!bottle) return null;

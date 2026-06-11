@@ -20,7 +20,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import { parseWineFieldsFromPptx, extractBottleImageFromPptx } from "../app/lib/tastingNotePptxParse";
-import { syncBottleImageIfEmpty } from "../app/lib/wineBottleImage";
+import { syncBottleImage, isBadImageUrl } from "../app/lib/wineBottleImage";
 
 config({ path: ".env.local" });
 
@@ -133,7 +133,8 @@ async function main() {
   assets = assets.filter(({ itemCode }) => {
     const w = wines.get(itemCode);
     if (!w) { noWineRow++; return false; }
-    const hasEmpty = TARGET_COLS.some((c) => isEmpty(w[c])) || isEmpty(w.image_url);
+    const needsImage = isEmpty(w.image_url) || isBadImageUrl(w.image_url as string);
+    const hasEmpty = TARGET_COLS.some((c) => isEmpty(w[c])) || needsImage;
     if (!hasEmpty) { alreadyFull++; return false; }
     return true;
   });
@@ -161,10 +162,10 @@ async function main() {
       stats.downloaded++;
       const w = wines.get(itemCode)!;
 
-      // 병 이미지 동기화 (빈 image_url 만)
-      if (isEmpty(w.image_url)) {
+      // 병 이미지 동기화 (빈 image_url 또는 불량 소스)
+      if (isEmpty(w.image_url) || isBadImageUrl(w.image_url as string)) {
         if (APPLY) {
-          if (await syncBottleImageIfEmpty(sb, itemCode, buf)) stats.imagesSynced++;
+          if (await syncBottleImage(sb, itemCode, buf)) stats.imagesSynced++;
         } else if (await extractBottleImageFromPptx(buf)) {
           stats.imagesSynced++; // dry-run: 채울 수 있는 수
         }
