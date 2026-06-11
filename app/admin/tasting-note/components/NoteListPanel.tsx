@@ -185,7 +185,7 @@ export function NoteListPanel(p: Props) {
                       lineHeight: 1,
                     }}
                   >
-                    {p.backfillingId === w.item_code ? "⏳" : "📥"}
+                    {p.backfillingId === w.item_code ? "⏳" : "🔄"}
                   </button>
                 )}
                 <UploadButton
