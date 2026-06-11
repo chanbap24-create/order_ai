@@ -3,6 +3,8 @@
 // 파일명은 항상 {wineId}.{ext} 로 강제 변경되며, PDF 일 때 인덱스도 자동 갱신.
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
+import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
+import { backfillWineFieldsIfEmpty } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
 
@@ -61,6 +63,22 @@ export async function POST(request: NextRequest) {
 
     const url = await uploadToRelease(fileName, buffer, CONTENT_TYPE[ext]);
 
+    // PPTX(시스템 템플릿)면 라벨 파싱 → wines 빈 칸 backfill (AI 조사 없이 견적서 필드 채움)
+    let backfilled: string[] = [];
+    if (ext === "pptx") {
+      try {
+        const fields = await parseWineFieldsFromPptx(buffer);
+        backfilled = await backfillWineFieldsIfEmpty(wineId, fields);
+        if (backfilled.length) {
+          logger.info(`[upload-single] ${wineId} wines backfill: ${backfilled.join(", ")}`);
+        }
+      } catch (e) {
+        logger.warn(
+          `[upload-single] backfill failed: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+
     let indexTotal = 0;
     if (ext === "pdf") {
       try {
@@ -90,6 +108,7 @@ export async function POST(request: NextRequest) {
       fileName,
       url,
       indexTotal,
+      backfilled,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

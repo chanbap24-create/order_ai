@@ -58,6 +58,33 @@ export async function getWineByCode(itemCode: string): Promise<Wine | undefined>
   return data as Wine | undefined;
 }
 
+/**
+ * 비어 있는 컬럼만 채운다(기존 값 보존). 업로드 노트에서 역추출한 필드 backfill 용.
+ * 반환: 실제로 채운 컬럼명 배열.
+ */
+export async function backfillWineFieldsIfEmpty(
+  itemCode: string,
+  fields: Partial<Pick<Wine,
+    'item_name_kr' | 'item_name_en' | 'country_en' | 'region' | 'grape_varieties' | 'vintage'>>,
+): Promise<string[]> {
+  const { data: existing } = await supabase
+    .from('wines')
+    .select('item_name_kr, item_name_en, country_en, region, grape_varieties, vintage')
+    .eq('item_code', itemCode)
+    .maybeSingle();
+  if (!existing) return []; // 와인 행이 없으면 backfill 안 함(품번 불일치)
+
+  const updates: Record<string, string> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    const cur = (existing as Record<string, unknown>)[k];
+    if (v && (cur == null || String(cur).trim() === '')) updates[k] = v as string;
+  }
+  if (Object.keys(updates).length === 0) return [];
+
+  await supabase.from('wines').update(updates).eq('item_code', itemCode);
+  return Object.keys(updates);
+}
+
 export async function upsertWine(wine: Partial<Wine> & { item_code: string }) {
   const existing = await getWineByCode(wine.item_code);
 
