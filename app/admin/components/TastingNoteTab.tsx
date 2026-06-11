@@ -80,6 +80,8 @@ export default function TastingNoteTab({
           uploadingFileId={ops.uploadingFileId}
           onUploadFile={ops.uploadFileForWine}
           onSetExcluded={list.setExcluded}
+          onBackfill={ops.backfillFromNote}
+          backfillingId={ops.backfillingId}
         />
 
         <WineEditPanel

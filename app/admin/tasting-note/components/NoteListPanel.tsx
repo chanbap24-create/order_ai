@@ -17,6 +17,9 @@ type Props = {
   onUploadFile: (itemCode: string, file: File) => void;
   /** 노트 목록에서 제외/복원 */
   onSetExcluded: (itemCode: string, excluded: boolean) => void;
+  /** 업로드된 PPTX 노트로 wines 빈 칸 채우기 */
+  onBackfill: (itemCode: string) => void;
+  backfillingId: string | null;
 };
 
 export function NoteListPanel(p: Props) {
@@ -162,6 +165,29 @@ export function NoteListPanel(p: Props) {
                 >
                   {badge.label}
                 </span>
+                {(!!w.tasting_note_id || !!p.ghIndex[w.item_code]) && (
+                  <button
+                    type="button"
+                    title="업로드된 PPTX 노트로 wines 빈 칸(영문명/지역/품종/빈티지) 채우기"
+                    disabled={p.backfillingId === w.item_code}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      p.onBackfill(w.item_code);
+                    }}
+                    style={{
+                      fontSize: 11,
+                      padding: "2px 6px",
+                      borderRadius: 4,
+                      background: p.backfillingId === w.item_code ? "#fef3c7" : "var(--gray-100)",
+                      color: "var(--gray-500)",
+                      border: "1px solid var(--gray-300)",
+                      cursor: p.backfillingId === w.item_code ? "wait" : "pointer",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {p.backfillingId === w.item_code ? "⏳" : "📥"}
+                  </button>
+                )}
                 <UploadButton
                   itemCode={w.item_code}
                   uploading={p.uploadingFileId === w.item_code}

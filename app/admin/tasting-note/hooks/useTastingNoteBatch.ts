@@ -23,6 +23,8 @@ export function useTastingNoteBatch(p: Params) {
   const [batchPptProgress, setBatchPptProgress] = useState({ current: 0, total: 0 });
   // 행별 단일 파일 업로드 진행 중인 item_code (1번에 1개만 허용)
   const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
+  // 행별 "노트로 데이터 채우기" 진행 중인 item_code
+  const [backfillingId, setBackfillingId] = useState<string | null>(null);
   // 일괄조사 중지 플래그 — true 면 다음 건부터 호출하지 않음 (진행 중인 1건은 완료됨)
   const batchCancelRef = useRef(false);
 
@@ -252,14 +254,39 @@ export function useTastingNoteBatch(p: Params) {
     setUploadingFileId(null);
   };
 
+  /**
+   * 이미 업로드된 PPTX 노트로 wines 빈 칸(영문명/지역/품종/빈티지 등)을 즉시 채움.
+   * 신규 품목에 노트 추가 후 견적서 필드를 바로 반영할 때 사용.
+   */
+  const backfillFromNote = async (itemCode: string) => {
+    if (backfillingId) return;
+    setBackfillingId(itemCode);
+    try {
+      const res = await fetch(`/api/admin/tasting-notes/${itemCode}/backfill`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        const cols: string[] = data.backfilled || [];
+        alert(cols.length ? `데이터 채움: ${cols.join(", ")}` : "채울 빈 칸이 없습니다 (이미 입력됨).");
+        p.refreshList();
+        if (p.selectedId === itemCode) p.loadSelectedDetail(itemCode);
+      } else {
+        alert(`채우기 실패: ${data.error || "알 수 없는 오류"}`);
+      }
+    } catch (e) {
+      alert(`채우기 오류: ${e instanceof Error ? e.message : "알 수 없는 오류"}`);
+    }
+    setBackfillingId(null);
+  };
+
   return {
     batchRunning, batchProgress,
     uploadingGithub, dispatchingIndex,
     generatingPpt,
     batchPptRunning, batchPptProgress,
     uploadingFileId,
+    backfillingId,
     batchResearch, cancelBatchResearch, githubRelease, dispatchIndex, generatePpt,
     batchPptGenerate,
-    uploadFileForWine,
+    uploadFileForWine, backfillFromNote,
   };
 }
