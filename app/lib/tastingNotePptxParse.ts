@@ -33,10 +33,12 @@ function shapeParagraphs(spXml: string): string[] {
   return paras;
 }
 
-/** shape의 세로 위치(EMU). off 없으면 큰 값(아래로 간주). 이름 카드는 본문보다 위에 있음. */
-function shapeTop(spXml: string): number {
-  const m = spXml.match(/<a:off x="-?\d+" y="(-?\d+)"/);
-  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+/** shape의 좌상단 좌표(EMU). off 없으면 큰 값(맨 뒤로). */
+function shapeOffset(spXml: string): { top: number; left: number } {
+  const m = spXml.match(/<a:off x="(-?\d+)" y="(-?\d+)"/);
+  return m
+    ? { left: parseInt(m[1], 10), top: parseInt(m[2], 10) }
+    : { left: Number.MAX_SAFE_INTEGER, top: Number.MAX_SAFE_INTEGER };
 }
 
 const NAME_MAX = 90; // 와인명 길이 상한(설명/양조 문단 오탐 배제)
@@ -56,18 +58,43 @@ export async function parseWineFieldsFromPptx(buffer: Buffer): Promise<ParsedWin
   const slide = await zip.file("ppt/slides/slide1.xml")?.async("string");
   if (!slide) return {};
 
-  // shape 순서대로 {문단들, 세로위치} 수집 (라벨→값은 인접 shape)
-  const shapes: { paras: string[]; top: number }[] = [];
+  // shape를 XML 문서순서로 수집(AC계열은 라벨→값이 문서순서로 인접).
+  const shapes: { paras: string[]; top: number; left: number }[] = [];
   for (const sp of slide.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)) {
     const paras = shapeParagraphs(sp[1]);
-    if (paras.length) shapes.push({ paras, top: shapeTop(sp[1]) });
+    if (paras.length) shapes.push({ paras, ...shapeOffset(sp[1]) });
   }
   const cells = shapes.map((s) => s.paras.join("\n"));
 
-  // 라벨 바로 다음 셀의 값
+  const KNOWN_LABELS = new Set(["지역", "품종", "빈티지", "와이너리", "양조", "양조 방식"]);
+  const isLabelText = (t: string) => KNOWN_LABELS.has(t.trim());
+
+  // 좌표 기반 값 탐색(라벨 오른쪽 같은 행 / 바로 아래 최근접 non-label). BP 변형 레이아웃용.
+  const ROW_TOL = 110000, ROW_GAP = 330000, COL_TOL = 460000; // EMU (≈0.12/0.36/0.5인치)
+  const valueByGeometry = (li: number): string | undefined => {
+    const L = shapes[li];
+    let best: { d: number; t: string } | undefined;
+    for (let j = 0; j < shapes.length; j++) {
+      if (j === li) continue;
+      const s = shapes[j];
+      const t = s.paras.join("\n").trim();
+      if (!t || isLabelText(t)) continue;
+      const sameRowRight = Math.abs(s.top - L.top) <= ROW_TOL && s.left > L.left;
+      const below = s.top > L.top && s.top - L.top <= ROW_GAP && Math.abs(s.left - L.left) <= COL_TOL;
+      if (!sameRowRight && !below) continue;
+      const d = Math.abs(s.top - L.top) + Math.abs(s.left - L.left);
+      if (!best || d < best.d) best = { d, t };
+    }
+    return best?.t;
+  };
+
+  // 라벨 값: 문서순서 다음 셀 우선, 그게 라벨이거나 비면 좌표 폴백.
   const valueAfter = (label: string): string | undefined => {
     const i = cells.findIndex((c) => c.trim() === label);
-    return i >= 0 ? cells[i + 1]?.trim() : undefined;
+    if (i < 0) return undefined;
+    const docNext = cells[i + 1]?.trim();
+    if (docNext && !isLabelText(docNext)) return docNext;
+    return valueByGeometry(i);
   };
 
   const out: ParsedWineFields = {};
@@ -112,5 +139,6 @@ export async function parseWineFieldsFromPptx(buffer: Buffer): Promise<ParsedWin
     if (!isEmptyVal(nameCard.paras[1])) out.item_name_en = norm(nameCard.paras[1]);
   }
 
+  // 주: 브랜드(생산자)명은 노트에서 추출하지 않는다 — brands 자료실(brand_code)에서 조회(addItem).
   return out;
 }
