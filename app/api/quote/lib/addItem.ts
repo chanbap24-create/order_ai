@@ -95,14 +95,25 @@ export async function addQuoteItem(body: Body) {
     const wine = wineRes.data;
     if (wine) {
       // brand: supplier(풀네임) 우선 — wine.brand 는 보통 2~3자 약어(LM, FL, PF 등)
-      // brand 비었거나 짧은 약어(≤3자)면 supplier 풀네임으로 덮어씀
-      if (!brand || (brand.length <= 3 && wine.supplier)) {
-        brand = wine.supplier || wine.brand || '';
+      // 브랜드 자료실(brands)에서 약어(brand_code)로 영문 브랜드명·국가·지역 조회
+      let brandInfo: { brand_name_en?: string; country?: string; region?: string } | null = null;
+      if (wine.brand) {
+        const { data } = await supabase
+          .from('brands')
+          .select('brand_name_en, country, region')
+          .ilike('brand_code', wine.brand)
+          .maybeSingle();
+        brandInfo = data;
+      }
+
+      // brand 칸: 비었거나 짧은 약어(≤3자)면 자료실 영문명 → supplier 풀네임 → 약어 순
+      if (!brand || brand.length <= 3) {
+        brand = brandInfo?.brand_name_en || wine.supplier || wine.brand || brand || '';
       }
       if (!english_name) english_name = wine.item_name_en || '';
       if (!korean_name) korean_name = wine.item_name_kr || '';
-      if (!region) region = wine.region || '';
-      if (!country) country = wine.country || wine.country_en || '';
+      if (!region) region = wine.region || brandInfo?.region || '';
+      if (!country) country = wine.country || wine.country_en || brandInfo?.country || '';
       if (!image_url && wine.image_url) image_url = wine.image_url;
       supplierKr = wine.supplier_kr || '';
     }
