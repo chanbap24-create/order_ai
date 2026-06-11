@@ -6,6 +6,8 @@ import type { TabId } from '@/app/types/wine';
 import AdminTabs from './components/AdminTabs';
 import AdminLoginCard from './components/AdminLoginCard';
 import UploadTab from './components/UploadTab';
+import { isActionableNew } from './tasting-note/constants';
+import type { TastingWineRow } from './tasting-note/types';
 import '@/app/styles/design-system.css';
 
 const tabLoader = () => (
@@ -96,19 +98,36 @@ export default function AdminPage() {
     }
   };
 
-  // DB에서 실제 status='new' 와인 수 조회
+  // 신규 "작업 대상" 수 = status=new · 재고합>0 · 노트 미등록 · 와인분류 (리스트 신규 규칙과 동일)
   const fetchNewWineCount = async () => {
     try {
-      const res = await fetch('/api/admin/wines?status=new');
-      const data = await res.json();
-      if (data.success) setNewWineCount(data.data?.length || 0);
+      const [wRes, iRes] = await Promise.all([
+        fetch('/api/admin/tasting-notes'),
+        fetch('/api/tasting-notes', { cache: 'no-store' }),
+      ]);
+      const wData = await wRes.json();
+      const iData = await iRes.json().catch(() => ({}));
+      if (!wData.success) return;
+      const gh: Record<string, boolean> = {};
+      if (iData?.notes) {
+        for (const [code, info] of Object.entries(iData.notes as Record<string, { exists?: boolean }>)) {
+          if (info?.exists) gh[code] = true;
+        }
+      }
+      const count = (wData.data as TastingWineRow[]).filter((w) =>
+        isActionableNew(w, !!(w.tasting_note_id || gh[w.item_code]), { requireWineCategory: true }),
+      ).length;
+      setNewWineCount(count);
     } catch { /* ignore */ }
   };
 
-  // 인증 완료 후 신규 와인 수 로드
+  // 인증 완료 후 + 노트 관련 탭 진입 시 신규 수 갱신
   useEffect(() => {
     if (authenticated) fetchNewWineCount();
   }, [authenticated]);
+  useEffect(() => {
+    if (authenticated && (activeTab === 'tasting-note' || activeTab === 'new-wine')) fetchNewWineCount();
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 업로드 완료 시 신규 와인 수 갱신
   const handleUploadComplete = (type: string, _result: Record<string, unknown>) => {
@@ -235,9 +254,9 @@ export default function AdminPage() {
         {/* 탭 콘텐츠 */}
         {activeTab === 'upload' && <UploadTab onUploadComplete={handleUploadComplete} />}
         {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'new-wine' && <TastingNoteTab initialFilter="new" />}
+        {activeTab === 'new-wine' && <TastingNoteTab initialFilter="new" onNewCountChange={setNewWineCount} />}
         {activeTab === 'all-wines' && <AllWinesTab />}
-        {activeTab === 'tasting-note' && <TastingNoteTab />}
+        {activeTab === 'tasting-note' && <TastingNoteTab onNewCountChange={setNewWineCount} />}
         {activeTab === 'client-analysis' && <ClientAnalysisTab />}
         {activeTab === 'recommend-settings' && <RecommendSettingsTab />}
         {activeTab === 'wine-regions' && <WineRegionsTab />}

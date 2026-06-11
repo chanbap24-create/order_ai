@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
-import { isWineCategory } from "../constants";
+import { isWineCategory, isActionableNew, LOW_STOCK_THRESHOLD } from "../constants";
 
 /** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터 */
 export function useTastingNoteList(initialFilter: NoteFilter = "all") {
@@ -15,8 +15,8 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   // 미작성 탭은 와인 위주 업데이트를 위한 곳이라 기본 ON.
   const [wineOnly, setWineOnly] = useState(true);
   // 재고 lowStockThreshold 병 이하 와인을 숨김. 0 이면 필터 OFF.
-  // 사용자가 input 으로 직접 조정 — 별도 토글 없이 값만으로 ON/OFF.
-  const [lowStockThreshold, setLowStockThreshold] = useState<number>(0);
+  // 사용자가 input 으로 직접 조정 — 별도 토글 없이 값만으로 ON/OFF. 기본값 10병.
+  const [lowStockThreshold, setLowStockThreshold] = useState<number>(LOW_STOCK_THRESHOLD);
   // 제외 보기: OFF(기본)면 제외 품목 숨김, ON이면 제외 품목만 표시(복원용)
   const [showExcluded, setShowExcluded] = useState(false);
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
@@ -99,10 +99,9 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     }
   };
 
-  // 신규: 재고 무관(등록 검토용), 와인 분류만 (제외 필터는 공통 적용)
+  // 신규: status=new · 재고합>0 · 노트 미등록 · 제외상태 일치 · 와인분류(토글) — 공유 규칙
   const isNewWine = (w: TastingWineRow) =>
-    showExcluded === !!w.note_excluded &&
-    w.status === "new" && (!wineOnly || isWineCategory(w.item_code));
+    isActionableNew(w, hasNote(w), { requireWineCategory: wineOnly, showExcluded });
 
   const filteredWines = wines.filter((w) => {
     if (filterNote === "new") return isNewWine(w);
@@ -124,6 +123,11 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
       (w) => !!w.tasting_note_id && !ghIndex[w.item_code],
     ).length,
   };
+
+  // 탭 배지용: 토글(와인만/제외됨)과 무관한 안정적 "신규 작업대상" 수
+  const newActionableCount = wines.filter((w) =>
+    isActionableNew(w, hasNote(w), { requireWineCategory: true, showExcluded: false }),
+  ).length;
 
   const toggleCheck = (id: string) => {
     setCheckedIds((prev) => {
@@ -148,7 +152,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     wineOnly, setWineOnly,
     lowStockThreshold, setLowStockThreshold,
     showExcluded, setShowExcluded, setExcluded,
-    ghIndex, refreshGhIndex, counts,
+    ghIndex, refreshGhIndex, counts, newActionableCount,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
     fetchWines, hasNote,

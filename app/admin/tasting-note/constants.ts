@@ -17,6 +17,28 @@ export function isWineCategory(itemCode: string | null | undefined): boolean {
 /** 재고 부족 필터 임계값 (병 수, 0 < x <= LOW_STOCK_THRESHOLD 면 부족) */
 export const LOW_STOCK_THRESHOLD = 10;
 
+/** (가용 재고 + 보세) 합 */
+export function totalStock(w: TastingWineRow): number {
+  return (w.inv_available || 0) + (w.inv_bonded || 0);
+}
+
+/**
+ * "신규(작업 대상)" 판정 — 탭 배지 · 신규 필터 공통 규칙.
+ * status='new' · 재고합>0 · 노트 미등록 · 제외상태 일치 · (옵션)와인 분류만.
+ */
+export function isActionableNew(
+  w: TastingWineRow,
+  hasNote: boolean,
+  opts?: { requireWineCategory?: boolean; showExcluded?: boolean },
+): boolean {
+  if ((opts?.showExcluded ?? false) !== !!w.note_excluded) return false;
+  if (w.status !== "new") return false;
+  if (totalStock(w) <= 0) return false; // 재고+보세 합 0 → 신규에서 제외
+  if (hasNote) return false; // 노트(DB/PDF) 등록되면 신규에서 제외
+  if ((opts?.requireWineCategory ?? true) && !isWineCategory(w.item_code)) return false;
+  return true;
+}
+
 export const NOTE_FILTER_LABELS: Record<NoteFilter, string> = {
   all: "전체",
   new: "신규",

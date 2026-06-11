@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTastingNoteList } from '../tasting-note/hooks/useTastingNoteList';
 import { useTastingNoteBatch } from '../tasting-note/hooks/useTastingNoteBatch';
 import { useWineDetail } from '../new-wine/hooks/useWineDetail';
@@ -11,8 +11,19 @@ import { ResearchDetailPanel } from '../new-wine/components/ResearchDetailPanel'
 import { ProgressBars } from '../new-wine/components/ProgressBars';
 import type { NoteFilter } from '../tasting-note/types';
 
-export default function TastingNoteTab({ initialFilter = 'all' }: { initialFilter?: NoteFilter }) {
+export default function TastingNoteTab({
+  initialFilter = 'all',
+  onNewCountChange,
+}: {
+  initialFilter?: NoteFilter;
+  onNewCountChange?: (n: number) => void;
+}) {
   const list = useTastingNoteList(initialFilter);
+
+  // 탭 배지용 신규 작업대상 수를 부모로 전달 (노트 작성/제외 시 실시간 갱신)
+  useEffect(() => {
+    onNewCountChange?.(list.newActionableCount);
+  }, [list.newActionableCount, onNewCountChange]);
   const detail = useWineDetail(list.fetchWines);
   const ops = useTastingNoteBatch({
     wines: list.wines,
