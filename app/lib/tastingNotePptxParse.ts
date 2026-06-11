@@ -163,7 +163,10 @@ export async function extractBottleImageFromPptx(
     ridToMedia[m[1]] = m[2];
   }
 
-  // 표시 면적 최대 + 세로비율>1.3 pic 선택
+  // 병 선택: 가로형(라벨/배너) 제외(비율≥0.85 — 정사각·세로 허용) + 최소 면적(작은 로고 제외) 중 표시 면적 최대.
+  const EMU = 914400;
+  const MIN_RATIO = 0.85; // cy/cx 미만이면 가로형으로 보고 제외
+  const MIN_AREA = 3 * EMU * EMU; // 3 sq-inch 미만은 로고/아이콘
   let best: { area: number; media: string } | null = null;
   for (const pic of slide.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g)) {
     const blk = pic[1];
@@ -172,10 +175,11 @@ export async function extractBottleImageFromPptx(
     if (!emb || !ext) continue;
     const cx = parseInt(ext[1], 10);
     const cy = parseInt(ext[2], 10);
-    if (cx <= 0 || cy <= 0 || cy / cx < 1.3) continue; // 세로로 길어야 병
+    if (cx <= 0 || cy <= 0 || cy / cx < MIN_RATIO) continue; // 가로형 라벨/배너 제외
+    const area = cx * cy;
+    if (area < MIN_AREA) continue; // 너무 작은 로고/아이콘 제외
     const media = ridToMedia[emb[1]];
     if (!media) continue;
-    const area = cx * cy;
     if (!best || area > best.area) best = { area, media };
   }
   if (!best) return null;
