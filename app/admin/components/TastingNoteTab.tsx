@@ -24,7 +24,7 @@ export default function TastingNoteTab({
   useEffect(() => {
     onNewCountChange?.(list.newActionableCount);
   }, [list.newActionableCount, onNewCountChange]);
-  const detail = useWineDetail(list.fetchWines);
+  const detail = useWineDetail(list.fetchWines, list.patchWine);
   const ops = useTastingNoteBatch({
     wines: list.wines,
     checkedIds: list.checkedIds,

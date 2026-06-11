@@ -4,7 +4,11 @@ import type { EditForm, EditFormKey } from "../types";
 import { EMPTY_EDIT_FORM } from "../constants";
 
 /** 중앙 편집 패널 state: selectedWine + tastingNote + editForm + save/approve 핸들러 */
-export function useWineDetail(refreshList: () => void) {
+export function useWineDetail(
+  refreshList: () => void,
+  /** 단일 행 로컬 갱신 — 있으면 단순 필드 저장 시 전체 재조회(정렬/스크롤 점프) 대신 사용 */
+  patchWine?: (itemCode: string, patch: Record<string, unknown>) => void,
+) {
   const [selectedWine, setSelectedWine] = useState<Wine | null>(null);
   const [tastingNote, setTastingNote] = useState<TastingNote | null>(null);
   const [editForm, setEditForm] = useState<EditForm>(EMPTY_EDIT_FORM);
@@ -76,7 +80,9 @@ export function useWineDetail(refreshList: () => void) {
         body: JSON.stringify({ wine: { item_name_en: engNameInput.trim() } }),
       });
       setSelectedWine({ ...selectedWine, item_name_en: engNameInput.trim() });
-      refreshList();
+      // 단순 필드: 전체 재조회 대신 로컬 행 갱신 → 정렬/스크롤/선택 유지
+      if (patchWine) patchWine(selectedWine.item_code, { item_name_en: engNameInput.trim() });
+      else refreshList();
     } catch {
       /* ignore */
     }
@@ -98,7 +104,9 @@ export function useWineDetail(refreshList: () => void) {
       } else {
         setImageUrlExpanded(false);
       }
-      refreshList();
+      // 이미지 URL 저장: 전체 재조회 대신 로컬 행 갱신 → 맨 위로 점프/스크롤 초기화 방지
+      if (patchWine) patchWine(selectedWine.item_code, { image_url: url });
+      else refreshList();
     } catch {
       /* ignore */
     }

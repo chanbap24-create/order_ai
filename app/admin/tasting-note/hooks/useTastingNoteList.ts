@@ -129,6 +129,10 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     isActionableNew(w, hasNote(w), { requireWineCategory: true, showExcluded: false }),
   ).length;
 
+  /** 전체 재조회 없이 리스트의 단일 행만 갱신 (편집 시 정렬/스크롤 유지용) */
+  const patchWine = (itemCode: string, patch: Partial<TastingWineRow>) =>
+    setWines((prev) => prev.map((w) => (w.item_code === itemCode ? { ...w, ...patch } : w)));
+
   const toggleCheck = (id: string) => {
     setCheckedIds((prev) => {
       const next = new Set(prev);
@@ -155,6 +159,6 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     ghIndex, refreshGhIndex, counts, newActionableCount,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
-    fetchWines, hasNote,
+    fetchWines, patchWine, hasNote,
   };
 }
