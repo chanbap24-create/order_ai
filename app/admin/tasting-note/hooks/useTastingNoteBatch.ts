@@ -206,13 +206,13 @@ export function useTastingNoteBatch(p: Params) {
   };
 
   /**
-   * 행별 단일 파일 업로드: 사용자가 PDF/PPTX 를 선택하면
-   * 파일명을 item_code 로 강제 변경하여 GitHub Release 에 업로드.
-   * 확장자(.pdf / .pptx)는 파일 이름으로 자동 인식.
+   * 행별 파일 업로드: PDF/PPTX 를 1개 또는 여러 개(예: PDF+PPTX) 동시 선택 가능.
+   * 각 파일명을 item_code 로 강제 변경하여 GitHub Release 에 순차 업로드.
+   * PPTX 는 서버가 자동으로 wines 빈 칸 backfill.
    */
-  const uploadFileForWine = async (itemCode: string, file: File) => {
-    const ext = file.name.toLowerCase().match(/\.(pdf|pptx)$/)?.[1];
-    if (!ext) {
+  const uploadFileForWine = async (itemCode: string, files: File[]) => {
+    const valid = files.filter((f) => /\.(pdf|pptx)$/i.test(f.name));
+    if (valid.length === 0) {
       alert("PDF 또는 PPTX 파일만 업로드할 수 있습니다.");
       return;
     }
@@ -221,33 +221,40 @@ export function useTastingNoteBatch(p: Params) {
       return;
     }
     setUploadingFileId(itemCode);
+    const done: string[] = [];
+    const failed: string[] = [];
+    const backfilled = new Set<string>();
     try {
-      const form = new FormData();
-      form.append("wineId", itemCode);
-      form.append("file", file);
-      const res = await fetch("/api/admin/tasting-notes/upload-single", {
-        method: "POST",
-        body: form,
-      });
-      const data = await res.json();
-      if (data.success) {
-        // 인덱스 새로고침은 PDF 일 때 서버가 자동 수행. 리스트 + 클라이언트 ghIndex 도 강제 갱신.
-        p.refreshList();
-        try {
-          await p.refreshGhIndex?.(true);
-        } catch {
-          /* ignore */
+      for (const file of valid) {
+        const form = new FormData();
+        form.append("wineId", itemCode);
+        form.append("file", file);
+        const res = await fetch("/api/admin/tasting-notes/upload-single", {
+          method: "POST",
+          body: form,
+        });
+        const data = await res.json();
+        if (data.success) {
+          done.push(data.fileName);
+          for (const c of data.backfilled || []) backfilled.add(c);
+        } else {
+          failed.push(`${file.name}: ${data.error || "오류"}`);
         }
-        // 결과 피드백 — 사용자가 반영 여부를 확실히 알 수 있게
-        alert(
-          `업로드 완료: ${data.fileName}` +
-            (data.format === "pdf" && data.indexTotal
-              ? `\n인덱스 갱신: ${data.indexTotal}건`
-              : ""),
-        );
-      } else {
-        alert(`업로드 실패: ${data.error || "알 수 없는 오류"}`);
       }
+      p.refreshList();
+      try {
+        await p.refreshGhIndex?.(true);
+      } catch {
+        /* ignore */
+      }
+      const msg = [
+        done.length ? `업로드 완료: ${done.join(", ")}` : "",
+        backfilled.size ? `데이터 채움: ${[...backfilled].join(", ")}` : "",
+        failed.length ? `실패:\n${failed.join("\n")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      if (msg) alert(msg);
     } catch (e) {
       alert(`업로드 오류: ${e instanceof Error ? e.message : "알 수 없는 오류"}`);
     }

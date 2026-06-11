@@ -14,7 +14,7 @@ type Props = {
   toggleCheck: (id: string) => void;
   toggleAllChecks: () => void;
   uploadingFileId: string | null;
-  onUploadFile: (itemCode: string, file: File) => void;
+  onUploadFile: (itemCode: string, files: File[]) => void;
   /** 노트 목록에서 제외/복원 */
   onSetExcluded: (itemCode: string, excluded: boolean) => void;
   /** 업로드된 PPTX 노트로 wines 빈 칸 채우기 */
@@ -237,13 +237,13 @@ function UploadButton({
   itemCode: string;
   uploading: boolean;
   disabled: boolean;
-  onUpload: (itemCode: string, file: File) => void;
+  onUpload: (itemCode: string, files: File[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <button
       type="button"
-      title="PDF/PPTX 파일을 업로드 (파일명은 자동으로 품목코드로 변경)"
+      title="PDF·PPTX 업로드 (여러 개 동시 선택 가능, 파일명은 품목코드로 자동 변경)"
       disabled={uploading || disabled}
       onClick={(e) => {
         e.stopPropagation();
@@ -265,12 +265,13 @@ function UploadButton({
       <input
         ref={inputRef}
         type="file"
+        multiple
         accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
         style={{ display: "none" }}
         onChange={(e) => {
-          const file = e.target.files?.[0];
+          const files = Array.from(e.target.files || []);
           e.target.value = "";
-          if (file) onUpload(itemCode, file);
+          if (files.length) onUpload(itemCode, files);
         }}
       />
     </button>
