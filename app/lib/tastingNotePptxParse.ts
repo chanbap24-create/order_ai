@@ -142,3 +142,49 @@ export async function parseWineFieldsFromPptx(buffer: Buffer): Promise<ParsedWin
   // 주: 브랜드(생산자)명은 노트에서 추출하지 않는다 — brands 자료실(brand_code)에서 조회(addItem).
   return out;
 }
+
+/**
+ * PPTX 슬라이드에서 와인병 이미지를 추출.
+ * 표시 면적이 가장 크고 세로로 긴(세로비율>1.3) <p:pic> 을 병으로 판별 →
+ * 해당 미디어 바이트를 반환. (파일 크기가 아닌 슬라이드 배치 기준이라 배경/로고와 구분됨)
+ * 병을 못 찾으면 null.
+ */
+export async function extractBottleImageFromPptx(
+  buffer: Buffer,
+): Promise<{ base64: string; mime: string; ext: string } | null> {
+  const zip = await JSZip.loadAsync(buffer);
+  const slide = await zip.file("ppt/slides/slide1.xml")?.async("string");
+  const rels = await zip.file("ppt/slides/_rels/slide1.xml.rels")?.async("string");
+  if (!slide || !rels) return null;
+
+  // rId → media 파일명
+  const ridToMedia: Record<string, string> = {};
+  for (const m of rels.matchAll(/Id="(rId\d+)"[^>]*Target="\.\.\/media\/([^"]+)"/g)) {
+    ridToMedia[m[1]] = m[2];
+  }
+
+  // 표시 면적 최대 + 세로비율>1.3 pic 선택
+  let best: { area: number; media: string } | null = null;
+  for (const pic of slide.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g)) {
+    const blk = pic[1];
+    const emb = blk.match(/r:embed="(rId\d+)"/);
+    const ext = blk.match(/<a:ext cx="(\d+)" cy="(\d+)"/);
+    if (!emb || !ext) continue;
+    const cx = parseInt(ext[1], 10);
+    const cy = parseInt(ext[2], 10);
+    if (cx <= 0 || cy <= 0 || cy / cx < 1.3) continue; // 세로로 길어야 병
+    const media = ridToMedia[emb[1]];
+    if (!media) continue;
+    const area = cx * cy;
+    if (!best || area > best.area) best = { area, media };
+  }
+  if (!best) return null;
+
+  const file = zip.file(`ppt/media/${best.media}`);
+  if (!file) return null;
+  const bytes = await file.async("nodebuffer");
+  const rawExt = (best.media.split(".").pop() || "png").toLowerCase();
+  const ext = rawExt === "jpeg" ? "jpg" : rawExt;
+  const mime = ext === "png" ? "image/png" : ext === "jpg" ? "image/jpeg" : `image/${ext}`;
+  return { base64: bytes.toString("base64"), mime, ext };
+}

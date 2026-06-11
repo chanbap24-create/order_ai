@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
 import { backfillWineFieldsIfEmpty } from "@/app/lib/wineDb";
+import { syncBottleImageIfEmpty } from "@/app/lib/wineBottleImage";
+import { supabase } from "@/app/lib/db";
 import { handleApiError } from "@/app/lib/errors";
 
 const RELEASE_BASE =
@@ -29,8 +31,9 @@ export async function POST(
     const buffer = Buffer.from(await res.arrayBuffer());
     const fields = await parseWineFieldsFromPptx(buffer);
     const backfilled = await backfillWineFieldsIfEmpty(itemCode, fields);
+    const imageSynced = !!(await syncBottleImageIfEmpty(supabase, itemCode, buffer));
 
-    return NextResponse.json({ success: true, backfilled });
+    return NextResponse.json({ success: true, backfilled, imageSynced });
   } catch (e) {
     return handleApiError(e);
   }

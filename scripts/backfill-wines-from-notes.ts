@@ -19,7 +19,8 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
-import { parseWineFieldsFromPptx } from "../app/lib/tastingNotePptxParse";
+import { parseWineFieldsFromPptx, extractBottleImageFromPptx } from "../app/lib/tastingNotePptxParse";
+import { syncBottleImageIfEmpty } from "../app/lib/wineBottleImage";
 
 config({ path: ".env.local" });
 
@@ -92,7 +93,7 @@ async function loadWines(): Promise<Map<string, Record<string, unknown>>> {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await sb
       .from("wines")
-      .select(["item_code", ...TARGET_COLS].join(", "))
+      .select(["item_code", "image_url", ...TARGET_COLS].join(", "))
       .range(from, from + PAGE - 1);
     if (error) throw new Error(`wines load 실패: ${error.message}`);
     if (!data || !data.length) break;
@@ -132,7 +133,7 @@ async function main() {
   assets = assets.filter(({ itemCode }) => {
     const w = wines.get(itemCode);
     if (!w) { noWineRow++; return false; }
-    const hasEmpty = TARGET_COLS.some((c) => isEmpty(w[c]));
+    const hasEmpty = TARGET_COLS.some((c) => isEmpty(w[c])) || isEmpty(w.image_url);
     if (!hasEmpty) { alreadyFull++; return false; }
     return true;
   });
@@ -146,6 +147,7 @@ async function main() {
     downloaded: 0,
     parsedEmpty: 0, // 파싱했지만 채울 게 없음(외부 양식 등)
     filledWines: 0,
+    imagesSynced: 0, // 병 이미지 채움(dry-run 은 채울 수 있는 수)
     errors: 0,
     perCol: Object.fromEntries(TARGET_COLS.map((c) => [c, 0])) as Record<TargetCol, number>,
   };
@@ -157,9 +159,19 @@ async function main() {
       if (!res.ok) throw new Error(`download ${res.status}`);
       const buf = Buffer.from(await res.arrayBuffer());
       stats.downloaded++;
-
-      const fields = await parseWineFieldsFromPptx(buf);
       const w = wines.get(itemCode)!;
+
+      // 병 이미지 동기화 (빈 image_url 만)
+      if (isEmpty(w.image_url)) {
+        if (APPLY) {
+          if (await syncBottleImageIfEmpty(sb, itemCode, buf)) stats.imagesSynced++;
+        } else if (await extractBottleImageFromPptx(buf)) {
+          stats.imagesSynced++; // dry-run: 채울 수 있는 수
+        }
+      }
+
+      // 필드 backfill
+      const fields = await parseWineFieldsFromPptx(buf);
       const patch: Record<string, string> = {};
       for (const c of TARGET_COLS) {
         const v = (fields as Record<string, string | undefined>)[c];
@@ -191,6 +203,7 @@ async function main() {
   // 리포트
   console.log(`\n=== 결과 ===`);
   console.log(`다운로드: ${stats.downloaded} / 채울 와인: ${stats.filledWines} / 채울 것 없음: ${stats.parsedEmpty} / 에러: ${stats.errors}`);
+  console.log(`병 이미지 ${APPLY ? "채움" : "채울 수 있음"}: ${stats.imagesSynced}`);
   console.log(`컬럼별 채움 건수:`);
   for (const c of TARGET_COLS) console.log(`  - ${c}: ${stats.perCol[c]}`);
   if (!APPLY) {

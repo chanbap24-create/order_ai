@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
 import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
 import { backfillWineFieldsIfEmpty } from "@/app/lib/wineDb";
+import { syncBottleImageIfEmpty } from "@/app/lib/wineBottleImage";
+import { supabase } from "@/app/lib/db";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
 
@@ -63,8 +65,9 @@ export async function POST(request: NextRequest) {
 
     const url = await uploadToRelease(fileName, buffer, CONTENT_TYPE[ext]);
 
-    // PPTX(시스템 템플릿)면 라벨 파싱 → wines 빈 칸 backfill (AI 조사 없이 견적서 필드 채움)
+    // PPTX(시스템 템플릿)면 라벨 파싱 → wines 빈 칸 backfill + 병 이미지 동기화
     let backfilled: string[] = [];
+    let imageSynced = false;
     if (ext === "pptx") {
       try {
         const fields = await parseWineFieldsFromPptx(buffer);
@@ -73,9 +76,12 @@ export async function POST(request: NextRequest) {
           logger.info(`[upload-single] ${wineId} wines backfill: ${backfilled.join(", ")}`);
         }
       } catch (e) {
-        logger.warn(
-          `[upload-single] backfill failed: ${e instanceof Error ? e.message : e}`,
-        );
+        logger.warn(`[upload-single] backfill failed: ${e instanceof Error ? e.message : e}`);
+      }
+      try {
+        imageSynced = !!(await syncBottleImageIfEmpty(supabase, wineId, buffer));
+      } catch (e) {
+        logger.warn(`[upload-single] bottle image sync failed: ${e instanceof Error ? e.message : e}`);
       }
     }
 
@@ -109,6 +115,7 @@ export async function POST(request: NextRequest) {
       url,
       indexTotal,
       backfilled,
+      imageSynced,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

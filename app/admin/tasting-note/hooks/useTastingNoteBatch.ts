@@ -224,6 +224,7 @@ export function useTastingNoteBatch(p: Params) {
     const done: string[] = [];
     const failed: string[] = [];
     const backfilled = new Set<string>();
+    let imageSynced = false;
     try {
       for (const file of valid) {
         const form = new FormData();
@@ -237,6 +238,7 @@ export function useTastingNoteBatch(p: Params) {
         if (data.success) {
           done.push(data.fileName);
           for (const c of data.backfilled || []) backfilled.add(c);
+          if (data.imageSynced) imageSynced = true;
         } else {
           failed.push(`${file.name}: ${data.error || "오류"}`);
         }
@@ -250,6 +252,7 @@ export function useTastingNoteBatch(p: Params) {
       const msg = [
         done.length ? `업로드 완료: ${done.join(", ")}` : "",
         backfilled.size ? `데이터 채움: ${[...backfilled].join(", ")}` : "",
+        imageSynced ? "병 이미지 채움" : "",
         failed.length ? `실패:\n${failed.join("\n")}` : "",
       ]
         .filter(Boolean)
@@ -273,7 +276,11 @@ export function useTastingNoteBatch(p: Params) {
       const data = await res.json();
       if (data.success) {
         const cols: string[] = data.backfilled || [];
-        alert(cols.length ? `데이터 채움: ${cols.join(", ")}` : "채울 빈 칸이 없습니다 (이미 입력됨).");
+        const parts = [
+          cols.length ? `데이터 채움: ${cols.join(", ")}` : "",
+          data.imageSynced ? "병 이미지 채움" : "",
+        ].filter(Boolean);
+        alert(parts.length ? parts.join("\n") : "채울 빈 칸이 없습니다 (이미 입력됨).");
         p.refreshList();
         if (p.selectedId === itemCode) p.loadSelectedDetail(itemCode);
       } else {
