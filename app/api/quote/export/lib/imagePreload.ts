@@ -63,7 +63,9 @@ async function normalizeForExcel(buffer: Buffer): Promise<PreloadedImage | null>
     if (cw < 5 || ch < 5) return null; // 내용 없음
 
     const crop = await sharp(oriented).extract({ left: x0, top: y0, width: cw, height: ch }).toBuffer();
-    const scale = Math.min(NORM_W / cw, NORM_H / ch);
+    // 캔버스의 90%로 배치 → 셀을 채울 때 병 사방에 여백 확보
+    const PAD = 0.9;
+    const scale = Math.min((NORM_W * PAD) / cw, (NORM_H * PAD) / ch);
     const w = Math.max(1, Math.round(cw * scale));
     const h = Math.max(1, Math.round(ch * scale));
     const resized = await sharp(crop).resize(w, h).toBuffer();

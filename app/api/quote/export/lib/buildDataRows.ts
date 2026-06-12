@@ -12,7 +12,7 @@ const CATS: Record<string, string> = {
   '6':'Grappa','7':'Set','8':'POS Material','9':'자재','A':'Port','Z':'타사제품',
 };
 
-const IMG_ROW_HEIGHT = 67.5; // pt (= 90px Excel 표시). 이미지 행 높이
+const IMG_ROW_HEIGHT = 82; // pt — 셀(폭11)과 3:4 비율 맞춤. 이미지 행 높이
 
 export async function buildDataRows(
   wb: ExcelJS.Workbook,
@@ -110,40 +110,16 @@ function renderImageCell(
   if (!pre) return; // preload 실패 or TIFF 제외 케이스
 
   const imgId = wb.addImage({ buffer: pre.buffer, extension: pre.ext });
-  const origW = pre.width || 1;
-  const origH = pre.height || 2;
 
-  // 셀(컬럼폭×행높이) 안에 비율 유지 contain + 정확한 중앙정렬.
-  // ExcelJS 소수(fractional) 오프셋은 colWidth=width*10000 스케일로 잘못 변환돼(실제 EMU의 ~1/7)
-  // 이미지가 왼쪽/위로 쏠림. → nativeColOff/nativeRowOff 를 EMU 로 직접 지정해 정확히 중앙배치.
-  const EMU_PER_PX = 9525;
-  const colDef = ws.getColumn(c);
-  const colW = typeof colDef.width === 'number' ? colDef.width : 22;
-  const colWPx = colW * 7 + 5;
-  const rowHPx = IMG_ROW_HEIGHT * (96 / 72);
-  const padPx = 5; // 최소 여백
-
-  const availW = colWPx - padPx * 2;
-  const availH = rowHPx - padPx * 2;
-  const imgRatio = origW / origH;
-  let imgWPx: number;
-  let imgHPx: number;
-  if (availW / availH > imgRatio) {
-    imgHPx = availH;
-    imgWPx = imgHPx * imgRatio;
-  } else {
-    imgWPx = availW;
-    imgHPx = imgWPx / imgRatio;
-  }
-
-  // 좌우·상하 각각 중앙(EMU): (셀 - 이미지)/2
-  const colOffEmu = Math.round(((colWPx - imgWPx) / 2) * EMU_PER_PX);
-  const rowOffEmu = Math.round(((rowHPx - imgHPx) / 2) * EMU_PER_PX);
-
+  // 이미지를 셀에 꽉 채우는 twoCell 앵커(셀 좌상단→다음 셀 좌상단 = 현재 셀 전체).
+  // 오프셋 계산(소수/EMU)은 MS Excel 의 폰트 기반 컬럼폭·자동 행높이와 어긋나 이미지가 쏠림.
+  // 셀을 채우면 MS Excel 이 셀을 어떻게 렌더하든 이미지가 항상 정중앙(=셀)에 위치.
+  // 셀 비율(폭11→82px : 행82pt→109px ≈ 3:4)을 이미지(300x400=3:4)와 맞춰 왜곡 없음.
+  // 병은 정규화 캔버스 안 ~92% 로 배치돼 사방 여백 확보(imagePreload).
   ws.addImage(imgId, {
-    tl: { nativeCol: ci, nativeColOff: colOffEmu, nativeRow: r - 1, nativeRowOff: rowOffEmu },
-    ext: { width: imgWPx, height: imgHPx },
-    editAs: 'oneCell',
+    tl: { col: ci, row: r - 1 },
+    br: { col: ci + 1, row: r },
+    editAs: 'twoCell',
   });
 }
 
