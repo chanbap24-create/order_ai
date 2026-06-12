@@ -51,14 +51,15 @@ function validateEnv(): EnvConfig {
     throw new Error(`Invalid NODE_ENV: ${nodeEnv}. Must be development, production, or test.`);
   }
 
-  // AUTH_SECRET 미설정 시 SUPABASE_SERVICE_ROLE_KEY 폴백 + 프로덕션에서 경고
-  const authSecret = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // AUTH_SECRET: 프로덕션 필수(미설정 시 부팅 실패), 개발/테스트는 SERVICE_ROLE_KEY 폴백 허용.
+  // 세션 서명 시크릿과 DB 전권 키를 분리한다 (H-1). 실제 서명은 sessionSecret.ts 가 담당.
   if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET) {
-    console.warn(
-      "[SECURITY] AUTH_SECRET not set; falling back to SUPABASE_SERVICE_ROLE_KEY. "
-      + "Set AUTH_SECRET to a separate random string to decouple DB key from session signing.",
+    throw new Error(
+      "[SECURITY] AUTH_SECRET must be set in production. "
+      + "Refusing to fall back to SUPABASE_SERVICE_ROLE_KEY for session signing.",
     );
   }
+  const authSecret = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   return {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,

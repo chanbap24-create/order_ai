@@ -4,8 +4,9 @@ import { verifyPassword, isLegacyHash, verifyLegacyPassword } from '@/app/lib/au
 import { rateLimit } from '@/app/lib/rateLimit';
 import { verifyToken as verifyTotp, verifyBackupCode } from '@/app/lib/totp';
 import { createHmac } from 'crypto';
+import { getSessionSecret } from '@/app/lib/sessionSecret';
 
-const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SECRET = getSessionSecret();
 const ADMIN_COOKIE_NAME = 'admin_auth';
 const PENDING_COOKIE = 'admin_mfa_pending';
 

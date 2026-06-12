@@ -1,10 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import { getSessionSecret } from './sessionSecret';
 
 const COOKIE_NAME = 'sales_auth';
-// AUTH_SECRET 우선, 폴백은 SUPABASE_SERVICE_ROLE_KEY (env.ts에서 경고 로그)
-const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// 세션 서명 시크릿 (프로덕션에서 AUTH_SECRET 필수 — sessionSecret.ts 참고)
+const SECRET = getSessionSecret();
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7일
 
 // ── 비밀번호 해시 (bcrypt) ──

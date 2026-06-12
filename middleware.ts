@@ -2,16 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest, NextFetchEvent } from 'next/server';
 import { rateLimit, maybeCleanup } from '@/app/lib/rateLimit';
 import { classifyFeature, trackFeatureUsage } from '@/app/lib/featureUsage';
+import { getSessionSecret } from '@/app/lib/sessionSecret';
 
 const SALES_COOKIE = 'sales_auth';
 const ADMIN_COOKIE = 'admin_auth';
-// AUTH_SECRET 우선. 폴백은 SUPABASE_SERVICE_ROLE_KEY (auth.ts와 동일해야 함).
-// 프로덕션에서 AUTH_SECRET 미설정 시 service-role-key 가 HMAC 키로 사용되는데,
-// 그 키가 별도 경로로 leak 되면 세션 위조까지 동시에 가능해지므로 부팅 시 경고.
-const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-if (!process.env.AUTH_SECRET && process.env.NODE_ENV === 'production') {
-  console.warn('[middleware] AUTH_SECRET not set in production — falling back to SUPABASE_SERVICE_ROLE_KEY. Set AUTH_SECRET to a separate random value.');
-}
+// 세션 서명 시크릿 (auth.ts 와 반드시 동일). 프로덕션에서 AUTH_SECRET 미설정 시
+// fail-closed(throw) — DB 키와 세션 키 분리 강제. sessionSecret.ts 참고.
+const SECRET = getSessionSecret();
 // 원격 동기화 에이전트용 bearer 토큰 (선택).
 const REMOTE_SYNC_TOKEN = process.env.REMOTE_SYNC_TOKEN || '';
 const SALES_MAX_AGE = 7 * 24 * 60 * 60 * 1000;  // 7일

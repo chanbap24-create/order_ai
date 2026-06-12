@@ -11,8 +11,9 @@
  */
 
 import { createHmac } from 'crypto';
+import { getSessionSecret } from './sessionSecret';
 
-const SECRET = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SECRET = getSessionSecret();
 const ADMIN_COOKIE_NAME = 'admin_auth';
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
