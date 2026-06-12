@@ -89,7 +89,10 @@ export async function POST(req: NextRequest) {
       : '';
 
     // 5. 프롬프트 - CDV(와인) / DL(글라스) 분리
-    const systemPrompt = tab === 'DL'
+    // 캐싱 최적화: 안정 블록(규칙 + 전체 카탈로그, tab별 동일)을 앞에 두고
+    //   cache_control 로 캐시. 변동 블록(거래처/입고내역/업장힌트)은 뒤에 둔다.
+    //   → 연속 호출(특히 배치)에서 카탈로그(~수만 토큰)가 캐시 적중되어 비용 급감.
+    const rulesBlock = tab === 'DL'
       ? `리델 글라스 발주 파싱. 발주 메시지에서 글라스명/모델번호+수량 추출 후 리스트에서 후보 매칭.
 
 규칙:
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
 - 핵심: 발주에서 "0884/67 6"처럼 모델번호+수량으로 올 수 있음. 이때 품명 안에 해당 모델번호가 포함된 품목을 매칭 (예: "0884/67"→품명에 "0884/67"이 포함된 항목)
 - 모델번호 패턴: XXXX/XX 형식 (예: 6884/0, 0884/67, 4884/15D, 1490/13)
 - 동일 모델의 일반/레스토랑 버전이 모두 있으면 반드시 둘 다 후보에 포함 (예: 6884/0 퍼포먼스 + 0884/0 퍼포먼스 레스토랑)
-${isRestaurantClient ? '- ★ 이 거래처는 업장(레스토랑/바)입니다. 레스토랑 시리즈(0xxx 모델번호, 품명에 "레스토랑" 포함)를 일반 버전보다 반드시 먼저 배치하세요' : ''}
+- 업장(레스토랑/바) 거래처면 레스토랑 시리즈(0xxx 모델번호, 품명에 "레스토랑" 포함)를 일반 버전보다 먼저 배치 (거래처 정보 참고)
 - 2nd/전시 버전은 후보에서 제외
 - 수량 미명시→1
 - 약어/줄임말 해석 (퍼포→퍼포먼스, 카베→카베르네, 피노→피노누아, 샴페→샴페인, 샤도→샤르도네, 소블→소비뇽 블랑, 시라→시라/시라즈, 리슬→리슬링)
@@ -106,8 +109,6 @@ ${isRestaurantClient ? '- ★ 이 거래처는 업장(레스토랑/바)입니다
 
 ★ Self-Check: 1순위 후보의 item_name 에 모델번호(XXXX/XX) 포함 안 되면 후보 재배치.
 
-거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
-${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
 글라스리스트(품번|품명):
 ${wineListText}
 
@@ -128,14 +129,19 @@ JSON배열만 응답. 텍스트 없이. item_no는 글라스리스트에 있는 
 
 ★ Self-Check: 원문 핵심 키워드/색상/빈티지가 1순위 후보 item_name 과 일치 안 하면 후보 재배치 또는 confidence 하향.
 
-거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}
-${historyText ? `\n입고내역(품번|품명):\n${historyText}\n` : ''}
 와인리스트(품번|품명):
 ${wineListText}
 
 JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품번을 정확히 복사:
 [{"query":"원문","quantity":수량,"candidates":[{"item_no":"품번","item_name":"품명","confidence":0~1,"reasoning":"근거"}]}]
 없으면 []`;
+
+    // 변동 블록 (거래처별) — 캐시 안 함
+    const contextBlock = [
+      `거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}`,
+      isRestaurantClient ? '★ 이 거래처는 업장(레스토랑/바)입니다. 레스토랑 시리즈를 일반 버전보다 먼저 배치하세요.' : '',
+      historyText ? `입고내역(품번|품명):\n${historyText}` : '',
+    ].filter(Boolean).join('\n');
 
     // 6. Claude API 호출
     // ★ Prompt injection 1차 방어: order_text를 명시 구분자로 감싸 데이터로 한정.
@@ -151,7 +157,11 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       // 4096 으로는 self-check + 후보 5개 출력 시 일부 케이스에서 truncate 되어
       // JSON 닫힘 ']' 이 사라지고 파싱 실패가 발생했음. 8192 로 여유 확보.
       max_tokens: 8192,
-      system: systemPrompt,
+      // 안정 블록(규칙+카탈로그)에 cache_control → 연속 호출 시 카탈로그 캐시 적중
+      system: [
+        { type: 'text', text: rulesBlock, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: contextBlock },
+      ],
       messages: [
         { role: 'user', content: wrappedUserContent }
       ],
@@ -299,6 +309,9 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     const usage = {
       input_tokens: response.usage?.input_tokens || 0,
       output_tokens: response.usage?.output_tokens || 0,
+      // 캐시 검증/모니터링용 (카탈로그 캐시 적중 여부)
+      cache_read_input_tokens: response.usage?.cache_read_input_tokens || 0,
+      cache_creation_input_tokens: response.usage?.cache_creation_input_tokens || 0,
     };
 
     return NextResponse.json({
