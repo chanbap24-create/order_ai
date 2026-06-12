@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { resolveManagerScope } from '@/app/lib/authz';
 
 // icn1 (서울) 리전 강제 + Node.js 런타임
 export const runtime = 'nodejs';
@@ -11,7 +12,10 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const dateFrom = searchParams.get('date_from');
     const dateTo = searchParams.get('date_to');
-    const manager = searchParams.get('manager');
+    // 일반 user 는 본인 미팅 + 회사일정만 (타 매니저 미팅 조회 방지). 전체 열람 권한은 기존 동작 유지.
+    const scope = await resolveManagerScope(searchParams.get('manager'));
+    if (!scope.ok) return scope.res;
+    const manager = scope.manager;
     const status = searchParams.get('status');
     const clientCode = searchParams.get('client_code');
 

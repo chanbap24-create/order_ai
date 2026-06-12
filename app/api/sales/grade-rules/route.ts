@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { resolveManagerScope } from '@/app/lib/authz';
 
 interface GradeRule {
   manager: string;
@@ -133,15 +134,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body: GradeRule = await req.json();
+    // 일반 user 는 본인 manager 룰만 저장 가능
+    const scope = await resolveManagerScope(body.manager);
+    if (!scope.ok) return scope.res;
+    const manager = scope.manager || scope.session.manager;
     const {
-      manager, client_type, business_type,
+      client_type, business_type,
       vip_threshold, important_threshold, normal_threshold, occasional_threshold,
       listing_vip, listing_important, listing_normal, listing_occasional, listing_months,
     } = body;
-
-    if (!manager) {
-      return NextResponse.json({ error: 'manager is required' }, { status: 400 });
-    }
 
     const { data, error } = await supabase
       .from('grade_rules')

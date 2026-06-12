@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isValidManager, isValidItemNo } from '@/app/lib/validators';
+import { resolveManagerScope } from '@/app/lib/authz';
 import { scanManagerAlerts } from './lib/scan';
 import { dismissItems, restoreItems, fetchDismissedList } from './lib/dismiss';
 
@@ -8,12 +9,12 @@ import { dismissItems, restoreItems, fetchDismissedList } from './lib/dismiss';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const manager = body.manager;
+    // 일반 user 는 본인 manager 로 강제
+    const scope = await resolveManagerScope(body.manager);
+    if (!scope.ok) return scope.res;
+    const manager = scope.manager || scope.session.manager;
     const dismissedItems: string[] = body.dismissed_items || [];
 
-    if (!manager) {
-      return NextResponse.json({ error: '담당자를 선택해주세요.' }, { status: 400 });
-    }
     if (!isValidManager(manager)) {
       return NextResponse.json({ error: 'Invalid manager name' }, { status: 400 });
     }

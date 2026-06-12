@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveManagerScope } from '@/app/lib/authz';
 import { DAY_MS } from './lib/constants';
 import {
   fetchShipmentsForManager, fetchAllClientDetails, fetchMissingClientDetails,
@@ -20,10 +21,10 @@ import type { ClientDetail } from './lib/types';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const manager = searchParams.get('manager');
-    if (!manager) {
-      return NextResponse.json({ error: '담당자를 선택해주세요.' }, { status: 400 });
-    }
+    // 일반 user 는 본인 manager 로 강제 (타 매니저 영업액션 데이터 조회 방지)
+    const scope = await resolveManagerScope(searchParams.get('manager'));
+    if (!scope.ok) return scope.res;
+    const manager = scope.manager || scope.session.manager;
 
     // 기준 날짜 (KST, UTC+9)
     const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);

@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { resolveManagerScope } from '@/app/lib/authz';
 
 // GET /api/sales/outstanding?manager=XXX&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD&type=wine
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const manager = searchParams.get('manager');
+    // 일반 user 는 본인 manager 로 강제 (타 매니저 미수 조회 방지)
+    const scope = await resolveManagerScope(searchParams.get('manager'));
+    if (!scope.ok) return scope.res;
+    const manager = scope.manager || scope.session.manager;
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const clientType = searchParams.get('type') || 'wine';
 
-    if (!manager || !startDate || !endDate) {
-      return NextResponse.json({ error: 'manager, start_date, end_date required' }, { status: 400 });
+    if (!startDate || !endDate) {
+      return NextResponse.json({ error: 'start_date, end_date required' }, { status: 400 });
     }
 
     const rpcName = clientType === 'glass' ? 'calc_glass_outstanding_v2' : 'calc_wine_outstanding';

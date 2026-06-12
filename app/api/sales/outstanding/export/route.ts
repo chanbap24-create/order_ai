@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import { fetchLedgerData, groupData, generateExcel, generatePDF } from '@/app/api/sales/ledger/export/route';
+import { getSession } from '@/app/lib/auth';
+import { canViewAllManagers, canAccessClient, type ClientType } from '@/app/lib/authz';
 
 // POST /api/sales/outstanding/export
 // body: { client_codes: string[], start_date: string, end_date: string, type: string, format: 'excel' | 'pdf' }
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     const body = await req.json();
     const { client_codes, start_date, end_date, type = 'wine', format = 'excel' } = body;
 
@@ -14,6 +18,20 @@ export async function POST(req: NextRequest) {
     }
     if (!start_date || !end_date) {
       return NextResponse.json({ error: 'start_date, end_date required' }, { status: 400 });
+    }
+
+    // 일반 user 는 본인 담당 거래처만 export 가능 (타 매니저 원장 export 방지)
+    if (!canViewAllManagers(session)) {
+      const checks = await Promise.all(
+        client_codes.map((code: string) => canAccessClient(session, code, type as ClientType)),
+      );
+      const denied = client_codes.filter((_: string, i: number) => !checks[i]);
+      if (denied.length > 0) {
+        return NextResponse.json(
+          { error: `본인 담당이 아닌 거래처가 포함되어 있습니다: ${denied.slice(0, 5).join(', ')}${denied.length > 5 ? ` 외 ${denied.length - 5}건` : ''}` },
+          { status: 403 },
+        );
+      }
     }
 
     const isPdf = format === 'pdf';

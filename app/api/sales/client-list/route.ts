@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSellingTotal } from '@/app/lib/priceUtils';
+import { resolveManagerScope } from '@/app/lib/authz';
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
-  const manager = sp.get('manager') || '';
+  // 일반 user 는 본인 manager 로 강제 (타 매니저 거래처 매출 목록 조회 방지)
+  const scope = await resolveManagerScope(sp.get('manager'));
+  if (!scope.ok) return scope.res;
+  const manager = scope.manager || scope.session.manager;
   const startDate = sp.get('start') || '';
   const endDate = sp.get('end') || '';
   const businessType = sp.get('business_type') || '';
   const type = sp.get('type') || 'wine';
-
-  if (!manager) {
-    return NextResponse.json({ error: '담당자를 지정해주세요.' }, { status: 400 });
-  }
 
   try {
     const table = type === 'glass' ? 'glass_shipments' : 'shipments';

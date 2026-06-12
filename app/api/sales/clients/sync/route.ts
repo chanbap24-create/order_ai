@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { getSession } from '@/app/lib/auth';
+import { canViewAllManagers } from '@/app/lib/authz';
 
 // POST: clients + glass_clients → client_details 동기화
-// 기존 거래처 데이터를 영업 관리용 테이블로 병합
+// 기존 거래처 데이터를 영업 관리용 테이블로 병합 — 관리 권한 전용
 export async function POST() {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    if (!canViewAllManagers(session)) {
+      return NextResponse.json({ error: '거래처 동기화 권한이 없습니다.' }, { status: 403 });
+    }
     // 1. 기존 wine 거래처
     const { data: wineClients, error: e1 } = await supabase
       .from('clients')

@@ -123,6 +123,34 @@ export async function requireClientAccess(
 }
 
 /**
+ * 전 매니저 데이터 열람 가능 여부.
+ * UI의 computeIsAdmin(app/sales/page-auth/hooks/useSalesAuth.ts)과 반드시 동일 기준 유지 —
+ * 마케팅부는 role='user'지만 UI에서 매니저 전환을 제공하므로 서버도 허용해야 기능이 깨지지 않는다.
+ */
+export function canViewAllManagers(session: SalesSession): boolean {
+  return session.role === 'admin' || session.role === 'executive' || session.role === 'sales_admin'
+    || session.department === '마케팅부';
+}
+
+/**
+ * 매니저 스코프 강제 (IDOR 방지). API route 진입부에서 호출.
+ *  - 미로그인: 401 응답 반환
+ *  - 전체 열람 권한: 요청된 manager 그대로 (빈 값 = 필터 없음/라우트 정책에 위임)
+ *  - 일반 user: 요청값과 무관하게 본인 manager 로 강제
+ */
+export async function resolveManagerScope(requested: string | null | undefined): Promise<
+  | { ok: true; session: SalesSession; viewAll: boolean; manager: string }
+  | { ok: false; res: NextResponse }
+> {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false, res: NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 }) };
+  }
+  const viewAll = canViewAllManagers(session);
+  return { ok: true, session, viewAll, manager: viewAll ? (requested || '') : session.manager };
+}
+
+/**
  * 현재 세션의 매니저 이름 반환 (route 내부에서 filter 걸 때 사용).
  * admin/executive/sales_admin 는 null 반환 → filter 안 걸기 (모든 매니저 데이터 조회).
  */

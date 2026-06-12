@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { resolveManagerScope } from '@/app/lib/authz';
 
 interface RuleThresholds {
   vip_threshold: number;
@@ -34,11 +35,11 @@ function gradeFromListings(count: number, rule: RuleThresholds): number {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { manager, client_type } = body;
-
-    if (!manager) {
-      return NextResponse.json({ error: 'manager is required' }, { status: 400 });
-    }
+    // 일반 user 는 본인 manager 거래처에만 등급 적용 가능
+    const scope = await resolveManagerScope(body.manager);
+    if (!scope.ok) return scope.res;
+    const manager = scope.manager || scope.session.manager;
+    const { client_type } = body;
 
     const type = client_type || 'wine';
     const shipmentsTable = type === 'glass' ? 'glass_shipments' : 'shipments';

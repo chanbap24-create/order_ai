@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSellingTotal } from '@/app/lib/priceUtils';
+import { resolveManagerScope } from '@/app/lib/authz';
 
 // GET: 거래처 코드 목록에 대한 매출 통계 조회
 export async function GET(req: NextRequest) {
@@ -10,7 +11,10 @@ export async function GET(req: NextRequest) {
     const clientType = searchParams.get('type') || 'wine';
     const startParam = searchParams.get('start') || '';
     const endParam = searchParams.get('end') || '';
-    const managerParam = searchParams.get('manager') || '';
+    // 일반 user 는 본인 manager 로 강제 (타 매니저 매출 통계 조회 방지)
+    const scope = await resolveManagerScope(searchParams.get('manager'));
+    if (!scope.ok) return scope.res;
+    const managerParam = scope.manager;
 
     // 타입에 따라 테이블 선택
     const shipmentsTable = clientType === 'glass' ? 'glass_shipments' : 'shipments';

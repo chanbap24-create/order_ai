@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { sanitizeFilterValue } from '@/app/lib/validation';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
+import { getSession } from '@/app/lib/auth';
+import { canViewAllManagers } from '@/app/lib/authz';
 
 // GET: 거래처 목록 조회 (검색, 필터, 정렬)
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const importance = searchParams.get('importance');
-    const manager = searchParams.get('manager');
+    // manager 필터를 명시한 경우, 일반 user 는 본인으로 강제 (타 매니저 거래처 목록 열람 방지).
+    // 필터 미지정 검색(원장/견적 거래처명 검색 등)은 기존대로 전체 검색 허용.
+    let manager = searchParams.get('manager');
+    if (manager && !canViewAllManagers(session)) manager = session.manager;
     const clientType = searchParams.get('type');
     const sortBy = searchParams.get('sort') || 'importance';
     const order = searchParams.get('order') || 'asc';
@@ -171,9 +178,14 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: 거래처 등록 또는 수정 (upsert)
+// POST: 거래처 등록 또는 수정 (upsert) — 관리 권한 전용 (UI 호출처 없음, 수동/관리 용도)
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    if (!canViewAllManagers(session)) {
+      return NextResponse.json({ error: '거래처 등록/수정 권한이 없습니다.' }, { status: 403 });
+    }
     const body = await req.json();
 
     // 단일 등록/수정
@@ -210,9 +222,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE: 거래처 삭제
+// DELETE: 거래처 삭제 — 관리 권한 전용
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    if (!canViewAllManagers(session)) {
+      return NextResponse.json({ error: '거래처 삭제 권한이 없습니다.' }, { status: 403 });
+    }
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
 
