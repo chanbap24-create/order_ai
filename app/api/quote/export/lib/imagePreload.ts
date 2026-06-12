@@ -16,10 +16,32 @@
 import { promises as fs } from 'fs';
 import fsSync from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 import { imageSize } from 'image-size';
 import { supabase } from '@/app/lib/db';
 
 const BOTTLE_IMG_DIR = path.join(process.cwd(), 'public', 'bottle-images');
+
+// 견적서 이미지 정규화 — 소스 크기/여백과 무관하게 항상 같은 비율(3:4 세로)로.
+// 여백 트림 후 고정 캔버스에 contain+중앙배치 → 모든 이미지가 동일 크기로 정렬됨.
+const NORM_W = 300;
+const NORM_H = 400;
+
+async function normalizeForExcel(buffer: Buffer): Promise<PreloadedImage | null> {
+  try {
+    const out = await sharp(buffer)
+      .trim({ threshold: 10 }) // 흰/투명 여백 제거 (병이 프레임을 꽉 채우게)
+      .resize(NORM_W, NORM_H, {
+        fit: 'contain',
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+    return { buffer: out, width: NORM_W, height: NORM_H, ext: 'png' };
+  } catch {
+    return null; // 실패 시 원본 유지
+  }
+}
 
 export type PreloadedImage = {
   buffer: Buffer;
@@ -167,6 +189,14 @@ export async function preloadBottleImages(
       });
     }
   });
+
+  // 모든 이미지를 동일 비율(3:4)로 정규화 → 견적서에서 크기·정렬 통일
+  await Promise.all(
+    [...result.entries()].map(async ([code, img]) => {
+      const norm = await normalizeForExcel(img.buffer);
+      if (norm) result.set(code, norm);
+    }),
+  );
 
   return result;
 }
