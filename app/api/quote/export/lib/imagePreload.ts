@@ -22,19 +22,56 @@ import { supabase } from '@/app/lib/db';
 
 const BOTTLE_IMG_DIR = path.join(process.cwd(), 'public', 'bottle-images');
 
-// 견적서 이미지 정규화 — 소스 크기/여백과 무관하게 항상 같은 비율(3:4 세로)로.
-// 여백 트림 후 고정 캔버스에 contain+중앙배치 → 모든 이미지가 동일 크기로 정렬됨.
+// 견적서 이미지 정규화 — 소스 크기/여백과 무관하게 항상 3:4 세로 캔버스 중앙배치.
+// sharp.trim 은 희미한 잔여 픽셀(jpeg 아티팩트/그림자)을 남겨 병이 한쪽으로 쏠리므로,
+// 임계값+행/열별 최소 내용픽셀로 실제 병의 bbox 를 직접 찾아 잘라낸 뒤 중앙 합성.
 const NORM_W = 300;
 const NORM_H = 400;
+const WHITE = { r: 255, g: 255, b: 255 };
 
 async function normalizeForExcel(buffer: Buffer): Promise<PreloadedImage | null> {
   try {
-    const out = await sharp(buffer)
-      .trim({ threshold: 10 }) // 흰/투명 여백 제거 (병이 프레임을 꽉 채우게)
-      .resize(NORM_W, NORM_H, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
-      })
+    // EXIF 방향 적용한 기준 버퍼(분석·추출 좌표 일치)
+    const oriented = await sharp(buffer).rotate().toBuffer();
+    const { data, info } = await sharp(oriented)
+      .flatten({ background: WHITE })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { width: W, height: H, channels: C } = info;
+
+    const TH = 25; // 흰색과의 차이 임계 (이하면 배경)
+    const col = new Array(W).fill(0);
+    const row = new Array(H).fill(0);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * C;
+        if (255 - Math.min(data[i], data[i + 1], data[i + 2]) > TH) {
+          col[x]++;
+          row[y]++;
+        }
+      }
+    }
+    // 잡티 무시: 한 줄에 최소 내용픽셀 있어야 경계로 인정
+    const minCol = Math.max(3, Math.floor(H * 0.02));
+    const minRow = Math.max(3, Math.floor(W * 0.02));
+    let x0 = 0, x1 = W - 1, y0 = 0, y1 = H - 1;
+    while (x0 < W && col[x0] < minCol) x0++;
+    while (x1 > x0 && col[x1] < minCol) x1--;
+    while (y0 < H && row[y0] < minRow) y0++;
+    while (y1 > y0 && row[y1] < minRow) y1--;
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+    if (cw < 5 || ch < 5) return null; // 내용 없음
+
+    const crop = await sharp(oriented).extract({ left: x0, top: y0, width: cw, height: ch }).toBuffer();
+    const scale = Math.min(NORM_W / cw, NORM_H / ch);
+    const w = Math.max(1, Math.round(cw * scale));
+    const h = Math.max(1, Math.round(ch * scale));
+    const resized = await sharp(crop).resize(w, h).toBuffer();
+
+    const out = await sharp({
+      create: { width: NORM_W, height: NORM_H, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 0 } },
+    })
+      .composite([{ input: resized, gravity: 'centre' }])
       .png()
       .toBuffer();
     return { buffer: out, width: NORM_W, height: NORM_H, ext: 'png' };
