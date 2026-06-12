@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { TastingNote, Wine } from "@/app/types/wine";
 import type { EditForm, EditFormKey } from "../types";
 import { EMPTY_EDIT_FORM } from "../constants";
@@ -39,33 +39,49 @@ export function useWineDetail(
     });
   };
 
-  const loadWineDetail = useCallback(async (itemCode: string) => {
-    try {
-      const res = await fetch(`/api/admin/wines/${itemCode}`);
-      const data = await res.json();
-      if (data.success) {
-        setSelectedWine(data.data.wine);
-        const tn = data.data.tastingNote || null;
-        setTastingNote(tn);
-        setEngNameInput(data.data.wine.item_name_en || "");
-        setImageUrlInput(data.data.wine.image_url || "");
-        setImageUrlExpanded(!data.data.wine.image_url);
-        initEditForm(data.data.wine, tn);
+  // 가장 최근에 선택/로드 요청한 품번 — 늦게 도착한 stale 응답을 무시하기 위함
+  const latestCodeRef = useRef<string | null>(null);
+
+  /**
+   * 와인 상세 로드. seedInputs=false(선택 시)면 영문명/이미지 입력칸은 건드리지 않음
+   * — 사용자가 막 붙여넣은 값을 비동기 응답이 덮어쓰는 경쟁 조건 방지.
+   * 응답이 최신 선택이 아니면(빠른 클릭 전환) 무시.
+   */
+  const loadWineDetail = useCallback(
+    async (itemCode: string, opts?: { seedInputs?: boolean }) => {
+      latestCodeRef.current = itemCode;
+      try {
+        const res = await fetch(`/api/admin/wines/${itemCode}`);
+        const data = await res.json();
+        if (latestCodeRef.current !== itemCode) return; // stale 응답 무시
+        if (data.success) {
+          setSelectedWine(data.data.wine);
+          const tn = data.data.tastingNote || null;
+          setTastingNote(tn);
+          if (opts?.seedInputs !== false) {
+            setEngNameInput(data.data.wine.item_name_en || "");
+            setImageUrlInput(data.data.wine.image_url || "");
+            setImageUrlExpanded(!data.data.wine.image_url);
+          }
+          initEditForm(data.data.wine, tn);
+        }
+      } catch (e) {
+        console.error("와인 상세 로드 실패:", e);
       }
-    } catch (e) {
-      console.error("와인 상세 로드 실패:", e);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const selectWineFromList = (wine: Wine) => {
-    // 즉시 리스트 데이터로 표시 후 비동기 상세 로드
+    latestCodeRef.current = wine.item_code;
+    // 즉시 리스트 데이터로 입력칸 seed 후, 상세는 입력칸 건드리지 않고 로드(붙여넣기 보존)
     setSelectedWine(wine);
     setEngNameInput(wine.item_name_en || "");
     setImageUrlInput(wine.image_url || "");
     setImageUrlExpanded(!wine.image_url);
     setTastingNote(null);
     initEditForm(wine, null);
-    loadWineDetail(wine.item_code);
+    loadWineDetail(wine.item_code, { seedInputs: false });
   };
 
   const updateField = (key: EditFormKey, val: string) =>
@@ -73,16 +89,19 @@ export function useWineDetail(
 
   const saveEngName = async () => {
     if (!selectedWine || !engNameInput.trim()) return;
+    const code = selectedWine.item_code;
+    const snapshot = selectedWine;
+    const value = engNameInput.trim();
     try {
-      await fetch(`/api/admin/wines/${selectedWine.item_code}`, {
+      await fetch(`/api/admin/wines/${code}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wine: { item_name_en: engNameInput.trim() } }),
+        body: JSON.stringify({ wine: { item_name_en: value } }),
       });
-      setSelectedWine({ ...selectedWine, item_name_en: engNameInput.trim() });
-      // 단순 필드: 전체 재조회 대신 로컬 행 갱신 → 정렬/스크롤/선택 유지
-      if (patchWine) patchWine(selectedWine.item_code, { item_name_en: engNameInput.trim() });
+      // 저장 대상 행은 항상 갱신(목록). 패널은 아직 같은 와인일 때만 갱신.
+      if (patchWine) patchWine(code, { item_name_en: value });
       else refreshList();
+      if (latestCodeRef.current === code) setSelectedWine({ ...snapshot, item_name_en: value });
     } catch {
       /* ignore */
     }
@@ -90,23 +109,27 @@ export function useWineDetail(
 
   const saveImageUrl = async (url: string | null) => {
     if (!selectedWine) return;
+    const code = selectedWine.item_code;
+    const snapshot = selectedWine;
     setSavingImageUrl(true);
     try {
-      await fetch(`/api/admin/wines/${selectedWine.item_code}`, {
+      await fetch(`/api/admin/wines/${code}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ wine: { image_url: url } }),
       });
-      setSelectedWine({ ...selectedWine, image_url: url });
-      if (!url) {
-        setImageUrlInput("");
-        setImageUrlExpanded(true);
-      } else {
-        setImageUrlExpanded(false);
-      }
-      // 이미지 URL 저장: 전체 재조회 대신 로컬 행 갱신 → 맨 위로 점프/스크롤 초기화 방지
-      if (patchWine) patchWine(selectedWine.item_code, { image_url: url });
+      // 저장 대상 행은 항상 갱신(목록). 패널 상태는 아직 같은 와인일 때만 갱신.
+      if (patchWine) patchWine(code, { image_url: url });
       else refreshList();
+      if (latestCodeRef.current === code) {
+        setSelectedWine({ ...snapshot, image_url: url });
+        if (!url) {
+          setImageUrlInput("");
+          setImageUrlExpanded(true);
+        } else {
+          setImageUrlExpanded(false);
+        }
+      }
     } catch {
       /* ignore */
     }
