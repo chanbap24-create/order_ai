@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
+import { safeFetch } from "@/app/lib/ssrfGuard";
+
+// sharp/dns 사용 — Node 런타임 강제
+export const runtime = "nodejs";
 
 const BUCKET = "brand-logos";
 
@@ -20,7 +24,8 @@ function domainFromWebsite(website?: string): string {
 async function scrapeHomepageLogo(site: string): Promise<string | null> {
   try {
     const base = site.startsWith("http") ? site : `https://${site}`;
-    const r = await fetch(base, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Mozilla/5.0" } });
+    // SSRF 방어: 사용자 제공 사이트 → 공인 주소만 허용
+    const r = await safeFetch(base, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Mozilla/5.0" } });
     if (!r.ok) return null;
     const head = (await r.text()).slice(0, 50000);
     const pick = (re: RegExp) => head.match(re)?.[1] || null;
@@ -38,7 +43,8 @@ async function scrapeHomepageLogo(site: string): Promise<string | null> {
 /** 이미지 다운로드(image/* 만). 실패 시 null. */
 async function downloadImage(url: string): Promise<Buffer | null> {
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Mozilla/5.0" } });
+    // SSRF 방어: 스크래핑으로 얻은 href 등 임의 URL → 공인 주소만 허용
+    const r = await safeFetch(url, { signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Mozilla/5.0" } });
     if (!r.ok) return null;
     const ct = r.headers.get("content-type") || "";
     if (!ct.startsWith("image/")) return null;
