@@ -19,14 +19,15 @@ import path from 'path';
 import sharp from 'sharp';
 import { imageSize } from 'image-size';
 import { supabase } from '@/app/lib/db';
+import { IMAGE_CELL_PX } from './types';
 
 const BOTTLE_IMG_DIR = path.join(process.cwd(), 'public', 'bottle-images');
 
-// 견적서 이미지 정규화 — 소스 크기/여백과 무관하게 항상 3:4 세로 캔버스 중앙배치.
-// sharp.trim 은 희미한 잔여 픽셀(jpeg 아티팩트/그림자)을 남겨 병이 한쪽으로 쏠리므로,
-// 임계값+행/열별 최소 내용픽셀로 실제 병의 bbox 를 직접 찾아 잘라낸 뒤 중앙 합성.
+// 견적서 이미지 정규화 — 병 bbox 를 직접 찾아 잘라낸 뒤 셀 비율 캔버스에 중앙 합성.
+// 캔버스 비율 = 이미지 셀 비율(IMAGE_CELL_PX) 이어야 twoCell(셀 채움) 시 왜곡이 없다.
+// sharp.trim 은 희미한 잔여 픽셀(jpeg 아티팩트/그림자)을 남겨 병이 쏠리므로 bbox 직접 검출.
 const NORM_W = 300;
-const NORM_H = 400;
+const NORM_H = Math.round(NORM_W * (IMAGE_CELL_PX.h / IMAGE_CELL_PX.w)); // 셀 비율 = 캔버스 비율
 const WHITE = { r: 255, g: 255, b: 255 };
 
 async function normalizeForExcel(buffer: Buffer): Promise<PreloadedImage | null> {

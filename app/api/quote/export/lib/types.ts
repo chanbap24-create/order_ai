@@ -21,6 +21,15 @@ export interface ColDef {
   dataField?: string;
 }
 
+// 이미지 셀 치수 — imagePreload(정규화 비율)와 buildDataRows(행높이·앵커)가 공유.
+// twoCell(셀 채움) 중앙배치 + 무왜곡을 위해 이미지 비율 = 셀 비율 이어야 함.
+export const IMAGE_COL_WIDTH = 11; // image_url 컬럼 width (아래 ALL_EXCEL_COLUMNS 와 일치)
+export const IMG_ROW_HEIGHT = 100; // pt — 이미지 행 높이
+export const IMAGE_CELL_PX = {
+  w: IMAGE_COL_WIDTH * 7 + 5, // 82px
+  h: Math.round(IMG_ROW_HEIGHT * (96 / 72)), // 133px
+};
+
 export const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: null, label: 'No.', width: 5, type: 'index' },
   { uiKey: 'item_code', label: '품목코드', width: 11, type: 'text', dataField: 'item_code' },
