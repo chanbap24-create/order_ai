@@ -12,7 +12,7 @@ const CATS: Record<string, string> = {
   '6':'Grappa','7':'Set','8':'POS Material','9':'자재','A':'Port','Z':'타사제품',
 };
 
-const IMG_ROW_HEIGHT = 80;
+const IMG_ROW_HEIGHT = 90;
 
 export async function buildDataRows(
   wb: ExcelJS.Workbook,
