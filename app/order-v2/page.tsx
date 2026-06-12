@@ -4,7 +4,9 @@ import { ORDER_COLORS, ORDER_FONT } from "./constants";
 import { ActionButtons } from "./components/ActionButtons";
 import { ClientHistorySection } from "./components/ClientHistorySection";
 import { ClientSearchField } from "./components/ClientSearchField";
+import { BatchQueue } from "./components/BatchQueue";
 import { ErrorBanner } from "./components/ErrorBanner";
+import { ImageIntakeButton } from "./components/ImageIntakeButton";
 import { ItemListSection } from "./components/ItemListSection";
 import {
   OrderLineCard,
@@ -77,6 +79,13 @@ export default function OrderV2Page() {
         >
           <TabSelector value={tab} onChange={g.setTab} />
 
+          <ImageIntakeButton
+            loading={g.imageIntake.loading || g.batch.processing}
+            error={g.imageIntake.error}
+            onFiles={g.handleFiles}
+            onClearError={g.imageIntake.clearError}
+          />
+
           <ClientSearchField
             query={client.query}
             setQuery={client.setQuery}
@@ -122,6 +131,17 @@ export default function OrderV2Page() {
         </div>
 
         <ErrorBanner error={parse.error} />
+
+        <BatchQueue
+          orders={g.batch.orders}
+          processing={g.batch.processing}
+          tab={tab}
+          onSelectCandidate={g.batch.selectCandidate}
+          onSetQty={g.batch.setQuantity}
+          onSetClient={g.batch.setClient}
+          onRemove={g.batch.removeOrder}
+          onClear={g.batch.clear}
+        />
 
         {parse.orderLines.length > 0 && (
           <div style={{ animation: "orderSlideIn 0.3s ease" }}>

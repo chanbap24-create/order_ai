@@ -9,10 +9,13 @@ import {
 } from "../lib/lineOps";
 import { buildStaffMessage } from "../lib/staffMessage";
 import type { HistoryItem, OrderLine, OrderTab, SearchResult } from "../types";
+import type { IntakeResult } from "../lib/api";
 import { useAutoPaste } from "./useAutoPaste";
 import { useClientHistory } from "./useClientHistory";
 import { useClientSearch } from "./useClientSearch";
 import { useDeliveryDate } from "./useDeliveryDate";
+import { useImageIntake } from "./useImageIntake";
+import { useOrderBatch } from "./useOrderBatch";
 import { useItemEditor } from "./useItemEditor";
 import { useOrderParse } from "./useOrderParse";
 import { useWineSearch } from "./useWineSearch";
@@ -68,6 +71,27 @@ export function useOrderV2Page() {
       alert("클립보드 접근 권한이 필요합니다.");
     }
   };
+
+  // 스샷 추출 → 거래처힌트 자동매칭 + 발주텍스트 채움 (단건)
+  const applyExtraction = useCallback(
+    (r: IntakeResult) => {
+      setOrderText(r.order_text);
+      if (r.client_hint) void client.applyHint(r.client_hint);
+    },
+    [client],
+  );
+  const imageIntake = useImageIntake(applyExtraction);
+  const batch = useOrderBatch();
+
+  // 스샷 1장 → 단건 채움, 2장+ → 배치 인박스
+  const handleFiles = useCallback(
+    (files: File[]) => {
+      if (files.length === 0) return;
+      if (files.length === 1) void imageIntake.processFile(files[0]);
+      else void batch.start(files, tab);
+    },
+    [imageIntake, batch, tab],
+  );
 
   // 파싱 실행
   const handleParse = useCallback(() => {
@@ -159,6 +183,7 @@ export function useOrderV2Page() {
     wineSearch.close();
     delivery.reset();
     history.reset();
+    batch.clear();
     setDeliveryNotes("");
     setShowDeliveryDate(false);
     setShowDeliveryNotes(false);
@@ -180,6 +205,9 @@ export function useOrderV2Page() {
     parse,
     editor,
     wineSearch,
+    imageIntake,
+    batch,
+    handleFiles,
     // 페이지 전용
     copied,
     copyMessage,

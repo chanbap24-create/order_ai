@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEBOUNCE_MS } from "../constants";
 import { fetchClients } from "../lib/api";
+import { pickClientMatch } from "../lib/clientMatch";
 import type { Client, OrderTab } from "../types";
 
 /**
@@ -65,6 +66,34 @@ export function useClientSearch(tab: OrderTab) {
     setShowDropdown(false);
   };
 
+  /**
+   * 스샷에서 추출한 거래처 힌트로 검색 → 확실하면 자동 선택, 애매하면 후보 드롭다운.
+   * 자동선택 기준: 이름이 서로 포함관계(공백 무시)인 후보가 유일할 때.
+   */
+  const applyHint = useCallback(
+    async (hint: string) => {
+      const h = hint.trim();
+      if (!h) return;
+      setQuery(h);
+      try {
+        const list = await fetchClients(h, tab);
+        setResults(list);
+        const auto = pickClientMatch(h, list);
+        if (auto) {
+          setSelected(auto);
+          setQuery(auto.client_name);
+          setShowDropdown(false);
+        } else {
+          // 애매 → 사용자가 직접 고르도록 후보 펼침
+          setShowDropdown(true);
+        }
+      } catch {
+        setShowDropdown(true);
+      }
+    },
+    [tab],
+  );
+
   return {
     query,
     setQuery,
@@ -75,6 +104,7 @@ export function useClientSearch(tab: OrderTab) {
     setShowDropdown,
     dropdownRef,
     pick,
+    applyHint,
     reset,
   };
 }

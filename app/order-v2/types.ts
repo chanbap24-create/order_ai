@@ -52,6 +52,28 @@ export interface ParseUsage {
   output_tokens: number;
 }
 
+/** 배치(발주 인박스) 한 건의 처리 상태 */
+export type BatchStatus =
+  | "extracting" // 스샷 분석 중
+  | "parsing" // 발주 파싱 중
+  | "ready" // 자신 있음 (거래처 매칭 + 후보 확실)
+  | "needs_client" // 거래처 매칭 애매/실패
+  | "needs_review" // 품목 후보 애매
+  | "error"; // 추출/파싱 실패
+
+export interface BatchOrder {
+  id: string;
+  fileName: string;
+  clientHint: string;
+  client: Client | null;
+  clientOptions: Client[];
+  orderText: string;
+  orderLines: OrderLine[];
+  historySet: Set<string>;
+  status: BatchStatus;
+  error?: string;
+}
+
 export type FridayChoice = "saturday" | "monday" | undefined;
 
 export interface DeliveryDateInfo {

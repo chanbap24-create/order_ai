@@ -41,6 +41,23 @@ export async function fetchClientHistory(
   return json.items || [];
 }
 
+export type IntakeResult = { client_hint: string; order_text: string; found: boolean };
+
+/** 카톡 스크린샷(base64) → 거래처힌트 + 발주텍스트 추출 */
+export async function extractFromImage(
+  imageData: string,
+  mediaType: string,
+): Promise<IntakeResult & { error?: string }> {
+  const res = await fetch("/api/order-v2/extract", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image_data: imageData, media_type: mediaType }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "이미지 분석 실패");
+  return json;
+}
+
 /** 와인/글라스 수동 검색 */
 export async function searchWines(q: string, tab: OrderTab): Promise<SearchResult[]> {
   if (!q.trim()) return [];
