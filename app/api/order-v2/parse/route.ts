@@ -3,6 +3,7 @@ import { supabase } from '@/app/lib/db';
 import { getClaudeClient } from '@/app/lib/claudeClient';
 import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
 import { reviewOrderLines } from '@/app/lib/orderReviewer';
+import { isNonOrderable } from '@/app/lib/catalogFilter';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -78,10 +79,16 @@ export async function POST(req: NextRequest) {
     const isRestaurantClient = tab === 'DL' && purchaseHistory.length > 0 &&
       purchaseHistory.filter(h => (h.item_name || '').includes('레스토랑')).length / purchaseHistory.length > 0.3;
 
-    // 3. 와인 리스트 텍스트 (품번|품명)
-    const wineListText = (wines || []).map(w =>
-      `${w.item_no}|${w.item_name}`
-    ).join('\n');
+    // 3. 와인 리스트 텍스트 (품번|품명) — LLM 후보군
+    //    제외 기준 (토큰 절감 + 오매칭 방지):
+    //     a) 공급가 0/없음 → 출고 불가 품목 (비즈니스 규칙). 가격 채워지면 자동 복귀.
+    //     b) 비상품 패턴(포장/판촉/전시/더미) — 가격 있는 비상품 대비 보조 필터.
+    //    가격/재고 보강용 wineMap 은 전체 유지(후보 외 품번도 해석 가능).
+    const wineListText = (wines || [])
+      .filter(w => Number(w.supply_price) > 0
+        && !isNonOrderable(w.item_no, w.item_name, tab === 'DL' ? 'DL' : 'CDV'))
+      .map(w => `${w.item_no}|${w.item_name}`)
+      .join('\n');
 
     // 4. 입고내역 텍스트
     const historyText = purchaseHistory.length > 0
