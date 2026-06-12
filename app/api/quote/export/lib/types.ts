@@ -23,7 +23,7 @@ export interface ColDef {
 
 // 이미지 셀 치수 — imagePreload(정규화 비율)와 buildDataRows(행높이·앵커)가 공유.
 // twoCell(셀 채움) 중앙배치 + 무왜곡을 위해 이미지 비율 = 셀 비율 이어야 함.
-export const IMAGE_COL_WIDTH = 11; // image_url 컬럼 width (아래 ALL_EXCEL_COLUMNS 와 일치)
+export const IMAGE_COL_WIDTH = 12; // image_url 컬럼 width (아래 ALL_EXCEL_COLUMNS 와 일치)
 export const IMG_ROW_HEIGHT = 90; // pt (=120px) — 이미지 행 높이 (이미지 비율도 이 값에 자동 동기화)
 export const IMAGE_CELL_PX = {
   w: IMAGE_COL_WIDTH * 7 + 5, // 82px
@@ -39,7 +39,7 @@ export const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
   { uiKey: 'region', label: '지역', width: 16, type: 'text', dataField: 'region' },
   { uiKey: 'grape_varieties', label: '포도품종', width: 14, type: 'text', dataField: 'grape_varieties' },
-  { uiKey: 'image_url', label: '이미지', width: 11, type: 'image' },
+  { uiKey: 'image_url', label: '이미지', width: 12, type: 'image' },
   { uiKey: 'spec', label: '스펙', width: 18, type: 'text', dataField: 'spec' },
   { uiKey: 'vintage', label: '빈티지', width: 8, type: 'text', dataField: 'vintage' },
   { uiKey: 'product_name', label: '상품명', width: 35, type: 'text', dataField: 'product_name' },
