@@ -12,7 +12,7 @@ const CATS: Record<string, string> = {
   '6':'Grappa','7':'Set','8':'POS Material','9':'자재','A':'Port','Z':'타사제품',
 };
 
-const IMG_ROW_HEIGHT = 95;
+const IMG_ROW_HEIGHT = 80;
 
 export async function buildDataRows(
   wb: ExcelJS.Workbook,
@@ -120,7 +120,7 @@ function renderImageCell(
   const colW = typeof colDef.width === 'number' ? colDef.width : 22;
   const colWPx = colW * 7 + 5;
   const rowHPx = IMG_ROW_HEIGHT * (96 / 72);
-  const padPx = 2;
+  const padPx = 5; // 사방 균등 여백
 
   const availW = colWPx - padPx * 2;
   const availH = rowHPx - padPx * 2;

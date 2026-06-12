@@ -30,7 +30,7 @@ export const ALL_EXCEL_COLUMNS: ColDef[] = [
   { uiKey: 'brand', label: '브랜드', width: 14, type: 'text', dataField: 'brand' },
   { uiKey: 'region', label: '지역', width: 16, type: 'text', dataField: 'region' },
   { uiKey: 'grape_varieties', label: '포도품종', width: 14, type: 'text', dataField: 'grape_varieties' },
-  { uiKey: 'image_url', label: '이미지', width: 22, type: 'image' },
+  { uiKey: 'image_url', label: '이미지', width: 11, type: 'image' },
   { uiKey: 'spec', label: '스펙', width: 18, type: 'text', dataField: 'spec' },
   { uiKey: 'vintage', label: '빈티지', width: 8, type: 'text', dataField: 'vintage' },
   { uiKey: 'product_name', label: '상품명', width: 35, type: 'text', dataField: 'product_name' },
