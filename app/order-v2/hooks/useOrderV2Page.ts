@@ -10,6 +10,7 @@ import {
 import { buildStaffMessage } from "../lib/staffMessage";
 import type { HistoryItem, OrderLine, OrderTab, SearchResult } from "../types";
 import type { IntakeResult } from "../lib/api";
+import { learnOrderCorrections } from "../lib/api";
 import { useAutoPaste } from "./useAutoPaste";
 import { useClientHistory } from "./useClientHistory";
 import { useClientSearch } from "./useClientSearch";
@@ -173,6 +174,8 @@ export function useOrderV2Page() {
     navigator.clipboard.writeText(staffMessage);
     setCopied(true);
     setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
+    // 확정(복사) 시점에 정정 학습 — 다음 파싱부터 자동 반영
+    learnOrderCorrections(parse.orderLines);
   };
 
   const handleReset = () => {

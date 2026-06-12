@@ -30,6 +30,8 @@ export interface OrderLine {
   qty_original_llm?: number;
   /** 로컬 검수 에이전트가 1순위 변경/의심 표시한 사유 (있으면 UI에 뱃지 노출) */
   review_note?: string;
+  /** 파싱 직후 LLM 1순위 품번 (학습용: 최종 선택이 이와 다르면 '정정'으로 간주) */
+  llm_top_item_no?: string;
 }
 
 export interface SearchResult {

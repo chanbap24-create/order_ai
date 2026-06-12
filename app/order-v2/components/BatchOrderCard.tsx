@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ORDER_COLORS } from "../constants";
+import { learnOrderCorrections } from "../lib/api";
 import { buildBatchMessage } from "../lib/batchMessage";
 import { CandidateList } from "./CandidateList";
 import type { BatchOrder, BatchStatus, Client, OrderTab } from "../types";
@@ -34,6 +35,7 @@ export function BatchOrderCard({ order, tab, onSelectCandidate, onSetQty, onSetC
     navigator.clipboard.writeText(buildBatchMessage(order, tab));
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+    learnOrderCorrections(order.orderLines); // 정정 학습
   };
 
   return (
