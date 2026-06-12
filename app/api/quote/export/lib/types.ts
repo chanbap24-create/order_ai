@@ -21,13 +21,15 @@ export interface ColDef {
   dataField?: string;
 }
 
-// 이미지 셀 치수 — imagePreload(정규화 비율)와 buildDataRows(행높이·앵커)가 공유.
-// twoCell(셀 채움) 중앙배치 + 무왜곡을 위해 이미지 비율 = 셀 비율 이어야 함.
+// 이미지 셀 치수 — imagePreload(정규화 캔버스 비율)와 patchDrawingExt(xfrm ext)가 공유.
+// twoCell 앵커는 캔버스를 셀에 꽉 채우므로, 캔버스 비율 = 실제 렌더되는 셀 비율이어야
+// 병이 늘어나지 않는다. 맥 Excel 실측(AppleScript): 13자 컬럼=78pt, 90pt 행=120pt.
+// h=120 은 행 높이(90pt)와 일치해 폴백 뷰어에서도 셀 밖으로 넘치지 않는다.
 export const IMAGE_COL_WIDTH = 13; // image_url 컬럼 width (아래 ALL_EXCEL_COLUMNS 와 일치)
-export const IMG_ROW_HEIGHT = 90; // pt (=120px) — 이미지 행 높이 (이미지 비율도 이 값에 자동 동기화)
+export const IMG_ROW_HEIGHT = 90; // pt — 이미지 행 높이 (캔버스 비율도 이 값에 자동 동기화)
 export const IMAGE_CELL_PX = {
-  w: IMAGE_COL_WIDTH * 7 + 5, // 82px
-  h: Math.round(IMG_ROW_HEIGHT * (96 / 72)), // 133px
+  w: IMAGE_COL_WIDTH * 6, // 78 — 맥 Excel: 6pt/문자
+  h: Math.round(IMG_ROW_HEIGHT * (96 / 72)), // 120
 };
 
 export const ALL_EXCEL_COLUMNS: ColDef[] = [

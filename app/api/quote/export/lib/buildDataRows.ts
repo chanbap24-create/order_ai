@@ -111,9 +111,11 @@ function renderImageCell(
 
   const imgId = wb.addImage({ buffer: pre.buffer, extension: pre.ext });
 
-  // 이미지를 셀에 꽉 채우는 twoCell 앵커 → MS Excel 이 셀을 어떻게 렌더하든 항상 정중앙.
-  // 이미지는 셀 비율(IMAGE_CELL_PX)로 정규화돼(imagePreload) 채워도 왜곡 없음.
-  // 병은 그 캔버스 안에서 비율 유지·중앙배치되므로 늘어나지 않음.
+  // twoCell(셀 채움) 앵커 — MS Excel(맥/윈도우)은 앵커 from/to 로 이미지를
+  // 셀에 정확히 맞춰 항상 정중앙. (oneCell 고정크기는 맥 Excel 이 13자 컬럼을
+  // 78pt×120pt 로 계산해 이미지(72×90pt)가 좌상단에 작게 붙음 — 사용 금지.)
+  // ExcelJS 가 twoCell 의 그림 xfrm 크기를 0 으로 기록하는 문제는
+  // route.ts 의 patchDrawingExt 가 zip 후처리로 보정한다.
   ws.addImage(imgId, {
     tl: { col: ci, row: r - 1 },
     br: { col: ci + 1, row: r },

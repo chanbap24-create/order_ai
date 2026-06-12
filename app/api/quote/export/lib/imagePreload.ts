@@ -64,12 +64,11 @@ async function normalizeForExcel(buffer: Buffer): Promise<PreloadedImage | null>
     if (cw < 5 || ch < 5) return null; // 내용 없음
 
     const crop = await sharp(oriented).extract({ left: x0, top: y0, width: cw, height: ch }).toBuffer();
-    // 캔버스의 82%로 배치 → 셀을 채워도 병 사방(특히 상하)에 여백 확보
-    const PAD = 0.82;
-    // 병을 살짝 통통하게(가로만 1.15배). 너무 얇은 병 보정 — 캔버스 폭은 초과하지 않게 cap.
-    const FATTEN = 1.15;
+    // 캔버스의 90%로 배치 → 셀을 채워도 병 사방에 5%씩 여백.
+    // 캔버스 비율 = 셀 렌더 비율(IMAGE_CELL_PX)이라 병 비율은 그대로 유지된다.
+    const PAD = 0.9;
     const scale = Math.min((NORM_W * PAD) / cw, (NORM_H * PAD) / ch);
-    const w = Math.max(1, Math.min(NORM_W, Math.round(cw * scale * FATTEN)));
+    const w = Math.max(1, Math.round(cw * scale));
     const h = Math.max(1, Math.round(ch * scale));
     const resized = await sharp(crop).resize(w, h).toBuffer();
 

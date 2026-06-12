@@ -30,35 +30,34 @@ export function buildHeader(
     const rowHeight = imgH + 10;
     ws.getRow(1).height = rowHeight * 0.75;
 
-    // 각 열 width(px) = width * 7 + 5 (Excel 관례)
-    const colWidthsPx = activeCols.map((col) => col.width * 7 + 5);
-    const totalPxWidth = colWidthsPx.reduce((sum, w) => sum + w, 0);
+    // 가로 중앙 배치 — 맥 Excel 실측 메트릭 기준 (견적서_20260612 실측 검증):
+    //  · 컬럼 렌더 폭 = 문자수 × 6pt (7px+5 윈도우 관례와 다름)
+    //  · 그림 ext(px) 는 px × 0.75 pt 로 렌더
+    //  · 앵커 오프셋 EMU 는 절대 pt (EMU = pt × 12700)
+    // 컬럼이 추가/축소돼도 전체 폭에서 다시 계산하므로 항상 중앙 유지.
+    const PT_EMU = 12700;
+    const colWidthsPt = activeCols.map((col) => col.width * 6);
+    const totalPtWidth = colWidthsPt.reduce((sum, w) => sum + w, 0);
+    const logoWPt = imgW * 0.75;
 
-    // 가로 중앙 위치(px) → 해당 열 인덱스(0-base)와 열 내 오프셋(px)
-    const startXPx = Math.max(0, (totalPxWidth - imgW) / 2);
+    let offsetInColPt = Math.max(0, (totalPtWidth - logoWPt) / 2);
     let colIndex = 0;
-    let offsetInColPx = startXPx;
-    for (let i = 0; i < colWidthsPx.length; i++) {
-      if (offsetInColPx < colWidthsPx[i]) { colIndex = i; break; }
-      offsetInColPx -= colWidthsPx[i];
+    for (let i = 0; i < colWidthsPt.length; i++) {
+      if (offsetInColPt < colWidthsPt[i]) { colIndex = i; break; }
+      offsetInColPt -= colWidthsPt[i];
       colIndex = i + 1;
     }
 
-    // 행 1 높이(pt) 기준 세로 중앙(px)
-    const rowHeightPx = rowHeight * 0.75 * (96 / 72); // pt → px
-    const topOffsetPx = Math.max(0, (rowHeightPx - imgH) / 2);
+    // 세로 중앙 — 행 높이는 설정값(pt)의 4/3 으로 렌더됨(실측: ht 82.5 → 110pt)
+    const renderedRowPt = rowHeight; // = (rowHeight*0.75) * 4/3
+    const topOffsetPt = Math.max(0, (renderedRowPt - imgH * 0.75) / 2);
 
-    // 주의: ExcelJS fractional(tl.col) 방식은 열 폭을 width×10000 EMU로 가정해
-    // 열 내 오프셋이 실제의 ~1/7로 줄어드는 버그가 있음(중앙정렬 깨짐).
-    // 픽셀→EMU(×9525) 직접 변환으로 nativeColOff를 지정한다.
-    // 출력 XML(xdr:col/colOff) 구조는 fractional 방식과 동일 → 뷰어 호환성 차이 없음.
-    const PX_EMU = 9525;
     ws.addImage(logoId, {
       tl: {
         nativeCol: colIndex,
-        nativeColOff: Math.round(offsetInColPx * PX_EMU),
+        nativeColOff: Math.round(offsetInColPt * PT_EMU),
         nativeRow: 0,
-        nativeRowOff: Math.round(topOffsetPx * PX_EMU),
+        nativeRowOff: Math.round(topOffsetPt * PT_EMU),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       ext: { width: imgW, height: imgH },

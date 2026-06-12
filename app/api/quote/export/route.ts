@@ -9,6 +9,7 @@ import { ALL_EXCEL_COLUMNS, DEFAULT_DOC, type DocSettings } from './lib/types';
 import { loadTastingNoteIndex } from './lib/assets';
 import { buildQuote } from './lib/buildQuote';
 import { preloadBottleImages } from './lib/imagePreload';
+import { patchDrawingExt } from './lib/patchDrawingExt';
 
 export async function GET(request: NextRequest) {
   try {
@@ -128,11 +129,13 @@ export async function GET(request: NextRequest) {
       tastingNoteSet, bottleImages,
     );
 
-    const buffer = await workbook.xlsx.writeBuffer();
+    const rawBuffer = await workbook.xlsx.writeBuffer();
+    // twoCell 그림 xfrm 크기 0 보정 (Excel 외 뷰어 잘림/미표시 방지)
+    const buffer = await patchDrawingExt(rawBuffer as ArrayBuffer);
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `견적서_${dateStr}_${clientName || '미지정'}.xlsx`;
 
-    return new NextResponse(buffer as ArrayBuffer, {
+    return new NextResponse(buffer as unknown as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
