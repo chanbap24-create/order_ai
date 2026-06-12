@@ -113,14 +113,15 @@ function renderImageCell(
   const origW = pre.width || 1;
   const origH = pre.height || 2;
 
-  // 공식 ExcelJS API: tl.col/row fractional + ext(width,height) 사용.
-  // 모든 뷰어(카톡/모바일 포함) 호환. nativeCol EMU 방식은 일부 뷰어가 무시함.
-  // 이미지 컬럼 실제 width 를 worksheet 에서 동적으로 가져옴 (types.ts 변경에 자동 추종)
+  // 셀(컬럼폭×행높이) 안에 비율 유지 contain + 정확한 중앙정렬.
+  // ExcelJS 소수(fractional) 오프셋은 colWidth=width*10000 스케일로 잘못 변환돼(실제 EMU의 ~1/7)
+  // 이미지가 왼쪽/위로 쏠림. → nativeColOff/nativeRowOff 를 EMU 로 직접 지정해 정확히 중앙배치.
+  const EMU_PER_PX = 9525;
   const colDef = ws.getColumn(c);
   const colW = typeof colDef.width === 'number' ? colDef.width : 22;
   const colWPx = colW * 7 + 5;
   const rowHPx = IMG_ROW_HEIGHT * (96 / 72);
-  const padPx = 5; // 사방 균등 여백
+  const padPx = 5; // 최소 여백
 
   const availW = colWPx - padPx * 2;
   const availH = rowHPx - padPx * 2;
@@ -135,11 +136,12 @@ function renderImageCell(
     imgHPx = imgWPx / imgRatio;
   }
 
-  const offLFrac = ((colWPx - imgWPx) / 2) / colWPx;
-  const offTFrac = ((rowHPx - imgHPx) / 2) / rowHPx;
+  // 좌우·상하 각각 중앙(EMU): (셀 - 이미지)/2
+  const colOffEmu = Math.round(((colWPx - imgWPx) / 2) * EMU_PER_PX);
+  const rowOffEmu = Math.round(((rowHPx - imgHPx) / 2) * EMU_PER_PX);
 
   ws.addImage(imgId, {
-    tl: { col: ci + offLFrac, row: (r - 1) + offTFrac },
+    tl: { nativeCol: ci, nativeColOff: colOffEmu, nativeRow: r - 1, nativeRowOff: rowOffEmu },
     ext: { width: imgWPx, height: imgHPx },
     editAs: 'oneCell',
   });
