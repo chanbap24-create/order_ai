@@ -110,16 +110,39 @@ function renderImageCell(
   if (!pre) return; // preload 실패 or TIFF 제외 케이스
 
   const imgId = wb.addImage({ buffer: pre.buffer, extension: pre.ext });
+  const origW = pre.width || 1;
+  const origH = pre.height || 2;
 
-  // 이미지를 셀에 꽉 채우는 twoCell 앵커(셀 좌상단→다음 셀 좌상단 = 현재 셀 전체).
-  // 오프셋 계산(소수/EMU)은 MS Excel 의 폰트 기반 컬럼폭·자동 행높이와 어긋나 이미지가 쏠림.
-  // 셀을 채우면 MS Excel 이 셀을 어떻게 렌더하든 이미지가 항상 정중앙(=셀)에 위치.
-  // 셀 비율(폭11→82px : 행82pt→109px ≈ 3:4)을 이미지(300x400=3:4)와 맞춰 왜곡 없음.
-  // 병은 정규화 캔버스 안 ~92% 로 배치돼 사방 여백 확보(imagePreload).
+  // 비율 유지(contain) + 중앙배치. twoCell(셀채움)은 MS Excel 이 행을 자동확장하면
+  // 이미지가 같이 늘어나 왜곡되므로, 고정 크기(ext) oneCell 로 비율을 절대 보존.
+  // nativeColOff/nativeRowOff(EMU) 로 중앙 오프셋 직접 지정.
+  const EMU_PER_PX = 9525;
+  const colDef = ws.getColumn(c);
+  const colW = typeof colDef.width === 'number' ? colDef.width : 22;
+  const colWPx = colW * 7 + 5;
+  const rowHPx = IMG_ROW_HEIGHT * (96 / 72);
+  const padPx = 4;
+
+  const availW = colWPx - padPx * 2;
+  const availH = rowHPx - padPx * 2;
+  const imgRatio = origW / origH;
+  let imgWPx: number;
+  let imgHPx: number;
+  if (availW / availH > imgRatio) {
+    imgHPx = availH;
+    imgWPx = imgHPx * imgRatio;
+  } else {
+    imgWPx = availW;
+    imgHPx = imgWPx / imgRatio;
+  }
+
+  const colOffEmu = Math.round(((colWPx - imgWPx) / 2) * EMU_PER_PX);
+  const rowOffEmu = Math.round(((rowHPx - imgHPx) / 2) * EMU_PER_PX);
+
   ws.addImage(imgId, {
-    tl: { col: ci, row: r - 1 },
-    br: { col: ci + 1, row: r },
-    editAs: 'twoCell',
+    tl: { nativeCol: ci, nativeColOff: colOffEmu, nativeRow: r - 1, nativeRowOff: rowOffEmu },
+    ext: { width: imgWPx, height: imgHPx },
+    editAs: 'oneCell',
   });
 }
 
