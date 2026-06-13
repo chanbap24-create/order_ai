@@ -94,19 +94,24 @@ export async function retrieveCandidateItemNos(params: {
 
     const set = new Set<string>();
 
-    // 1) 임베딩 의미검색 (라인 전체를 한 번에 임베딩 → 라인별 match_items)
-    const vectors = await embedTexts(lines, "query");
-    for (let i = 0; i < lines.length; i++) {
-      const { data, error } = await supabase.rpc("match_items", {
-        p_tab: tab,
-        p_query: `[${vectors[i].join(",")}]`,
-        p_k: EMB_K,
-      });
-      if (error) throw new Error(`match_items: ${error.message}`);
-      for (const d of (data || []) as { item_no: string }[]) set.add((d.item_no || "").toUpperCase());
+    // 1) 임베딩 의미검색 — 모델번호(XXXX/XX) 없는 라인만.
+    //    글라스 모델번호는 의미검색이 노이즈(글라스끼리 다 유사)라 후보가 폭증하고 느림 →
+    //    모델 라인은 임베딩 건너뛰고 토큰매칭(정확)만 사용. (임베딩 호출도 절약)
+    const semanticLines = lines.filter((l) => !/\d{3,4}\/\d{1,3}/.test(l));
+    if (semanticLines.length > 0) {
+      const vectors = await embedTexts(semanticLines, "query");
+      for (let i = 0; i < semanticLines.length; i++) {
+        const { data, error } = await supabase.rpc("match_items", {
+          p_tab: tab,
+          p_query: `[${vectors[i].join(",")}]`,
+          p_k: EMB_K,
+        });
+        if (error) throw new Error(`match_items: ${error.message}`);
+        for (const d of (data || []) as { item_no: string }[]) set.add((d.item_no || "").toUpperCase());
+      }
     }
 
-    // 2) 토큰/모델번호 매칭
+    // 2) 토큰/모델번호 매칭 (전체 라인 — 모델 라인은 여기서 정확히 잡힘)
     addTokenMatches(set, lines, orderableWines);
     // 3) 입고이력
     for (const no of historyItemNos) set.add((no || "").trim().toUpperCase());
