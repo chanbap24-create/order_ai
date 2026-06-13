@@ -3,6 +3,30 @@ import { supabase } from '@/app/lib/db';
 import { getClaudeClient } from '@/app/lib/claudeClient';
 import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
 import { reviewOrderLines } from '@/app/lib/orderReviewer';
+import { injectAliasCandidates } from '@/app/lib/aliasInject';
+import { getBrandNameMap, matchedProducerCodes } from '@/app/lib/producerAliases';
+
+/** 응답이 잘려도 완성된 최상위 {…} 객체만 골라 복구 (균형 괄호 스캔) */
+function recoverObjects(text: string): any[] {
+  const start = text.indexOf('[');
+  const s = start >= 0 ? text.slice(start + 1) : text;
+  const objs: any[] = [];
+  let depth = 0, inStr = false, esc = false, cur = '';
+  for (const ch of s) {
+    if (inStr) {
+      cur += ch;
+      if (esc) esc = false;
+      else if (ch === '\\') esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') { inStr = true; cur += ch; continue; }
+    if (ch === '{') { depth++; cur += ch; continue; }
+    if (ch === '}') { depth--; cur += ch; if (depth === 0) { try { objs.push(JSON.parse(cur)); } catch { /* 불완전 객체 skip */ } cur = ''; } continue; }
+    if (depth > 0) cur += ch;
+  }
+  return objs;
+}
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { retrieveCandidateItemNos } from '@/app/lib/orderRetrieval';
 
@@ -97,7 +121,31 @@ export async function POST(req: NextRequest) {
     const candidateWines = retrievedSet
       ? orderableWines.filter(w => retrievedSet.has(w.item_no.toUpperCase()))
       : orderableWines;
-    const wineListText = candidateWines.map(w => `${w.item_no}|${w.item_name}`).join('\n');
+
+    // 생산자 약어(로쉬벨렌→BL)가 발주문에 있으면 그 코드(BL*) 품목을 후보풀에 포함
+    // (retrieval 축소로 통째로 빠지는 것 방지). 전체 카탈로그면 이미 포함.
+    const producerCodes = await matchedProducerCodes(order_text);
+    if (retrievalUsed && producerCodes.size > 0) {
+      const have = new Set(candidateWines.map(w => w.item_no.toUpperCase()));
+      for (const w of orderableWines) {
+        const upName = (w.item_name || '').trim().toUpperCase();
+        if ([...producerCodes].some(c => upName.startsWith(c + ' ')) && !have.has(w.item_no.toUpperCase())) {
+          candidateWines.push(w);
+          have.add(w.item_no.toUpperCase());
+        }
+      }
+    }
+
+    // 카탈로그 텍스트 enrich: 코드 뒤에 한글 생산자명 삽입(LLM이 보는 텍스트만).
+    // 예: "BL 부르고뉴 샤르도네" → "BL 로쉬벨렌 부르고뉴 샤르도네" → "로쉬벨렌 샤도" 자연 매칭.
+    const brandMap = await getBrandNameMap();
+    const enrichName = (name: string): string => {
+      const m = (name || '').match(/^([A-Za-z]{2,4})\s+(.+)$/);
+      if (!m) return name;
+      const kr = brandMap.get(m[1].toUpperCase());
+      return kr ? `${m[1]} ${kr} ${m[2]}` : name;
+    };
+    const wineListText = candidateWines.map(w => `${w.item_no}|${enrichName(w.item_name)}`).join('\n');
 
     // 4. 입고내역 텍스트
     const historyText = purchaseHistory.length > 0
@@ -154,6 +202,8 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     ].filter(Boolean).join('\n');
 
     // 캐시 블록(규칙 [+전체카탈로그]) / 변동 블록([축소카탈로그+]거래처/입고내역)
+    // 생산자 약어(로쉬벨렌→BL)는 프롬프트에 넣지 않는다 — LLM이 장황해져 응답이 잘릴 수 있음.
+    // 대신 파싱 후 injectProducerMatches 가 카탈로그에서 결정적으로 매칭한다.
     const cachedText = retrievalUsed ? rulesText : `${rulesText}\n\n${catalogBlock}`;
     const volatileText = [retrievalUsed ? catalogBlock : '', contextBlock].filter(Boolean).join('\n\n');
 
@@ -190,23 +240,21 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     let parsed: any[] = [];
     let parseError: string | null = null;
     try {
-      // 우선 정상 매칭. 응답이 잘려서 마지막 ']' 가 없는 경우엔
-      // 마지막 정상 후보 객체까지만 잘라 복구 시도.
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      } else {
-        // 닫힘 ']' 없는 케이스: 마지막 ',' 또는 '}' 직후까지 자르고 ']' 직접 보강
-        const start = text.indexOf('[');
-        if (start >= 0) {
-          const tail = text.slice(start);
-          const lastBrace = tail.lastIndexOf('}');
-          if (lastBrace > 0) {
-            const repaired = tail.slice(0, lastBrace + 1) + ']';
-            parsed = JSON.parse(repaired);
-            parseError = '응답이 잘려 일부 라인만 복구됨';
-          }
-        }
+      // ```json 코드펜스 제거
+      let body = text.trim();
+      const fence = body.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fence) body = fence[1].trim();
+      // 1) 정상 배열 파싱 시도
+      const arr = body.match(/\[[\s\S]*\]/);
+      let ok = false;
+      if (arr) {
+        try { parsed = JSON.parse(arr[0]); ok = true; } catch { /* 잘림/깨짐 → 복구로 */ }
+      }
+      // 2) 실패 시: 완성된 후보 객체만 스캔 복구 (잘림·문자열 내 대괄호 등 견고)
+      if (!ok) {
+        parsed = recoverObjects(body);
+        if (parsed.length === 0) throw new Error('복구 가능한 객체 없음');
+        parseError = '응답이 잘려 일부 라인만 복구됨';
       }
     } catch (e) {
       return NextResponse.json({
@@ -320,6 +368,10 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     // 추가 LLM 호출 없음. swap 발생 시 review_note에 사유 남김
     const reviewResult = await reviewOrderLines(orderLines, historySet);
 
+    // ── 학습 별칭 주입: 검수기가 건너뛴 "후보 0개(미인식)" 라인을 학습된 별칭으로 채움 ──
+    // (정규화 + 편집거리로 OCR 흔들림/수량 차이 흡수, LLM 호출 없음)
+    const injectedCount = await injectAliasCandidates(orderLines, wineMap);
+
     const usage = {
       input_tokens: response.usage?.input_tokens || 0,
       output_tokens: response.usage?.output_tokens || 0,
@@ -337,6 +389,8 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       review: {
         swapCount: reviewResult.swapCount,
         warnCount: reviewResult.warnCount,
+        injectedCount,
+        producerPool: producerCodes.size,
       },
       retrieval: { used: retrievalUsed, candidates: candidateWines.length, total: orderableWines.length },
     });

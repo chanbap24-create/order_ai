@@ -42,8 +42,10 @@ export async function fetchClientHistory(
 }
 
 /**
- * 정정 학습: 최종 선택이 파싱 1순위(llm_top_item_no)와 다른 라인을
- * "발주표현(query) → 선택 품번(item_no)" 별칭으로 학습한다.
+ * 정정 학습: 사용자의 최종 선택을 "발주표현(query) → 선택 품번(item_no)" 별칭으로 학습한다.
+ * 학습 대상:
+ *   - 파싱 1순위(llm_top_item_no)와 다른 후보를 고른 경우 (오매칭 정정)
+ *   - 파서가 후보를 못 낸 라인(llm_top_item_no 없음)을 검색으로 채운 경우 (미인식 보강 — 가장 값짐)
  * 기존 /api/learn-item-alias 재사용(item_alias + token_mapping + ml_training_data).
  * fire-and-forget — 복사/확정 흐름을 막지 않는다.
  */
@@ -52,10 +54,12 @@ export function learnOrderCorrections(lines: OrderLine[]): void {
   const corrections = lines
     .map((ol) => {
       const sel = ol.selectedIdx >= 0 ? ol.candidates[ol.selectedIdx] : undefined;
-      if (!sel || !ol.llm_top_item_no) return null;
-      if (sel.item_no === ol.llm_top_item_no) return null;      // 정답이었음
+      if (!sel) return null;                                    // 선택 없음
+      // 파싱 1순위와 같으면 정답이었음(정정 아님). 단, 파서가 후보를 못 낸 라인을
+      // 검색으로 채운 것(llm_top_item_no 없음)은 가장 값진 학습 케이스이므로 통과.
+      if (ol.llm_top_item_no && sel.item_no === ol.llm_top_item_no) return null;
       if (!isLearnable(ol.query)) return null;                  // 약한 신호
-      if (ol.query.trim() === (sel.item_name || "").trim()) return null; // 입고내역 직접추가 등
+      if (ol.query.trim() === (sel.item_name || "").trim()) return null; // 입고내역 직접추가/품명=질의
       return { alias: ol.query.trim(), canonical: sel.item_no };
     })
     .filter((c): c is { alias: string; canonical: string } => c !== null);
@@ -65,6 +69,7 @@ export function learnOrderCorrections(lines: OrderLine[]): void {
     corrections.map((c) =>
       fetch("/api/learn-item-alias", {
         method: "POST",
+        credentials: "include", // 세션 쿠키 확실히 동봉(학습 401 방지)
         headers: { "Content-Type": "application/json" },
         // 와인명 별칭은 거래처 무관 전역 매핑(*)으로 학습 — orderReviewer가 전역으로 읽음
         body: JSON.stringify({ alias: c.alias, canonical: c.canonical, client_code: "*" }),
