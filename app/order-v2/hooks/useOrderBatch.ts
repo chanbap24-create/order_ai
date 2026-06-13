@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { extractFromImage, fetchClients, learnOrderCorrections, parseOrder } from "../lib/api";
 import { buildBatchAllMessage } from "../lib/batchMessage";
-import { pickClientMatch } from "../lib/clientMatch";
+import { pickClientWithFuzzy } from "../lib/clientMatch";
 import { isLineShaky } from "../lib/confidence";
 import { fileToBase64 } from "../lib/imageFile";
 import type { BatchOrder, BatchStatus, Client, OrderLine, OrderTab } from "../types";
@@ -36,7 +36,7 @@ async function processOne(file: File, tab: OrderTab): Promise<Omit<BatchOrder, "
   if (extracted.client_hint) {
     try {
       clientOptions = await fetchClients(extracted.client_hint, tab);
-      client = pickClientMatch(extracted.client_hint, clientOptions);
+      client = pickClientWithFuzzy(extracted.client_hint, clientOptions);
     } catch { /* 매칭 실패 → needs_client */ }
   }
 

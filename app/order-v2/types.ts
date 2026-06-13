@@ -6,6 +6,7 @@ export interface Client {
   client_code: string;
   client_name: string;
   matched_alias?: string;
+  sim?: number; // 트라이그램 퍼지 검색 유사도 (있으면 오타/띄어쓰기 매칭 후보)
 }
 
 export interface Candidate {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { extractFromImage, fetchClients, learnOrderCorrections } from "../lib/api";
-import { pickClientMatch } from "../lib/clientMatch";
+import { pickClientWithFuzzy } from "../lib/clientMatch";
 import { allLinesReady } from "../lib/confidence";
 import { fileToBase64 } from "../lib/imageFile";
 import type { AutoResult } from "./useOrderBatch";
@@ -45,7 +45,7 @@ export function useAutoSingle(d: Deps) {
         d.setOrderText(ex.order_text);
         let selected: Client | null = null;
         if (ex.client_hint) {
-          try { selected = pickClientMatch(ex.client_hint, await fetchClients(ex.client_hint, d.tab)); } catch { /* 매칭 실패 */ }
+          try { selected = pickClientWithFuzzy(ex.client_hint, await fetchClients(ex.client_hint, d.tab)); } catch { /* 매칭 실패 */ }
         }
         if (selected) { d.setSelectedClient(selected); d.setClientQuery(selected.client_name); }
         else d.setClientQuery(ex.client_hint || "");

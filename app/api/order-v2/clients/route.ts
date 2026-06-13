@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 합치고 중복 제거
-    const map = new Map<string, { client_code: string; client_name: string; matched_alias?: string }>();
+    const map = new Map<string, { client_code: string; client_name: string; matched_alias?: string; sim?: number }>();
     for (const c of [...(direct || []), ...aliasClients]) {
       if (!map.has(c.client_code)) map.set(c.client_code, c);
     }
@@ -77,6 +77,18 @@ export async function GET(req: NextRequest) {
         if (!map.has(key)) {
           map.set(key, { client_code: r.client_code || r.client_name, client_name: r.client_name });
           seenNames.add(r.client_name);
+        }
+      }
+    }
+
+    // 정확/부분 검색 결과가 적으면 트라이그램 퍼지로 보강 (오타·띄어쓰기 흡수)
+    if (map.size < 8 && q.trim().length >= 2) {
+      const { data: fz } = await supabase.rpc('fuzzy_clients', {
+        p_q: q.trim(), p_glass: tab === 'DL', p_limit: 8,
+      });
+      for (const f of (fz || []) as { client_code: string; client_name: string; sim: number }[]) {
+        if (f.client_code && !map.has(f.client_code)) {
+          map.set(f.client_code, { client_code: f.client_code, client_name: f.client_name, sim: f.sim });
         }
       }
     }

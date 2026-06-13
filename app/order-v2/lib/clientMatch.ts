@@ -42,3 +42,23 @@ export function pickClientMatch(hint: string, list: Client[]): Client | null {
 
   return best; // 겹침 없으면 null
 }
+
+const AUTO_SIM = 0.6; // 퍼지 자동 선택 최소 유사도
+const SIM_GAP = 0.08; // 2순위와 최소 격차(애매하면 자동선택 안 함)
+
+/**
+ * pickClientMatch(정확/부분) 실패 시 트라이그램 유사도(sim)로 폴백.
+ * 오타·띄어쓰기로 정확 매칭이 안 되어도, 충분히 확실하면 자동 선택.
+ * 애매(2순위와 근소)하면 null → 사용자가 후보에서 직접 선택.
+ */
+export function pickClientWithFuzzy(hint: string, list: Client[]): Client | null {
+  const exact = pickClientMatch(hint, list);
+  if (exact) return exact;
+  const fz = list
+    .filter((c) => typeof c.sim === "number")
+    .sort((a, b) => (b.sim as number) - (a.sim as number));
+  if (fz[0] && (fz[0].sim as number) >= AUTO_SIM && (!fz[1] || (fz[0].sim as number) - (fz[1].sim as number) >= SIM_GAP)) {
+    return fz[0];
+  }
+  return null;
+}
