@@ -6,6 +6,19 @@ import { reviewOrderLines } from '@/app/lib/orderReviewer';
 import { injectAliasCandidates } from '@/app/lib/aliasInject';
 import { getBrandNameMap, matchedProducerCodes } from '@/app/lib/producerAliases';
 
+/**
+ * 글라스 박스당 개수(본입). 레스토랑 시리즈만 박스 발주:
+ *   공급가 2만 이하 → 12본입, 2만~4만 → 6본입. (그 외/비레스토랑 → 0 = 미적용)
+ */
+function glassBoxUnits(itemName: string, supplyPrice: unknown): number {
+  if (!/레스토랑/.test(itemName || '')) return 0;
+  const p = Number(supplyPrice) || 0;
+  if (p <= 0) return 0;
+  if (p <= 20000) return 12;
+  if (p <= 40000) return 6;
+  return 0;
+}
+
 /** 응답이 잘려도 완성된 최상위 {…} 객체만 골라 복구 (균형 괄호 스캔) */
 function recoverObjects(text: string): any[] {
   const start = text.indexOf('[');
@@ -383,12 +396,16 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
         const boxM = residual.match(/(\d+)\s*박스/);
         const numM = residual.match(/\d+/);
         const top = ol.candidates?.[0];
-        const upb = top ? Number(wineMap.get((top.item_no || '').trim().toUpperCase())?.units_per_box) || 0 : 0;
-        if (boxM && upb > 1) {
+        const upb = top ? glassBoxUnits(top.item_name, top.supply_price) : 0;
+        if (boxM) {
           const boxes = Number(boxM[1]) || 1;
-          ol.quantity = boxes * upb;
-          ol.qty_warning = undefined;
-          ol.review_note = `${boxes}박스 → ${boxes * upb}잔 (박스당 ${upb})`;
+          if (upb > 1) {
+            ol.quantity = boxes * upb;
+            ol.qty_warning = undefined;
+            ol.review_note = `${boxes}박스 → ${boxes * upb}잔 (박스당 ${upb})`;
+          } else {
+            ol.review_note = `⚠ ${boxes}박스 — 박스당 개수 확인 필요`; // 미정의(비레스토랑/4만초과)
+          }
         } else if (numM) {
           const qty = Number(numM[0]);
           if (qty >= 1 && qty !== ol.quantity) {
