@@ -8,6 +8,9 @@ export const HEADER_MAP: Record<string, string> = {
   '브랜드': 'brand',
   '수입사': 'importer',
   '용량': 'volume_ml',
+  '단위': 'unit',          // EA / B/T / 잔 등
+  'IP': 'units_per_box',   // 박스당 입수량(글라스: N박스 → N×IP 잔 환산)
+  '입수': 'units_per_box', // 변형 헤더 대응
   '빈티지': 'vintage',
   '알콜도수%': 'alcohol_content',
   '국가': 'country',
@@ -55,5 +58,5 @@ export const HEADER_MAP: Record<string, string> = {
 
 export const TEXT_COLUMNS = new Set([
   'item_no', 'item_name', 'brand', 'importer', 'volume_ml',
-  'vintage', 'alcohol_content', 'country', 'barcode',
+  'vintage', 'alcohol_content', 'country', 'barcode', 'unit',
 ]);

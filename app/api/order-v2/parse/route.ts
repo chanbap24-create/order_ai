@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const [winesRes, importScheduleRes] = await Promise.all([
       supabase
         .from(table)
-        .select('item_no, item_name, supply_price, available_stock')
+        .select('item_no, item_name, supply_price, available_stock, units_per_box')
         .order('item_no', { ascending: true }),
       supabase
         .from('import_schedule')
@@ -371,6 +371,33 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     // ── 학습 별칭 주입: 검수기가 건너뛴 "후보 0개(미인식)" 라인을 학습된 별칭으로 채움 ──
     // (정규화 + 편집거리로 OCR 흔들림/수량 차이 흡수, LLM 호출 없음)
     const injectedCount = await injectAliasCandidates(orderLines, wineMap);
+
+    // ── 글라스 수량 보정: 모델번호(XXXX/XX) 숫자를 수량으로 오인하는 문제 해결 ──
+    // 모델번호를 제거한 뒤 남는 숫자가 진짜 수량. "박스"면 박스당개수(IP)로 잔 환산.
+    //   "0884/0 12"   → (모델 제거) "12"    → 12잔
+    //   "0449/67 24"  → (모델 제거) "24"    → 24잔
+    //   "0884/0 3박스" → (모델 제거) "3박스" → 3 × IP(6) = 18잔
+    if (tab === 'DL') {
+      for (const ol of orderLines) {
+        const residual = (ol.query || '').replace(/\d{3,4}\/\d{1,3}[a-z]?/gi, ' ');
+        const boxM = residual.match(/(\d+)\s*박스/);
+        const numM = residual.match(/\d+/);
+        const top = ol.candidates?.[0];
+        const upb = top ? Number(wineMap.get((top.item_no || '').trim().toUpperCase())?.units_per_box) || 0 : 0;
+        if (boxM && upb > 1) {
+          const boxes = Number(boxM[1]) || 1;
+          ol.quantity = boxes * upb;
+          ol.qty_warning = undefined;
+          ol.review_note = `${boxes}박스 → ${boxes * upb}잔 (박스당 ${upb})`;
+        } else if (numM) {
+          const qty = Number(numM[0]);
+          if (qty >= 1 && qty !== ol.quantity) {
+            ol.quantity = qty;             // 모델번호 제거 후 수량이 정답
+            ol.qty_warning = undefined;
+          }
+        }
+      }
+    }
 
     const usage = {
       input_tokens: response.usage?.input_tokens || 0,
