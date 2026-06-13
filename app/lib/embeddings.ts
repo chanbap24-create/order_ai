@@ -10,27 +10,38 @@ const VOYAGE_URL = "https://api.voyageai.com/v1/embeddings";
 
 export type InputType = "document" | "query";
 
-async function voyageEmbed(inputs: string[], inputType: InputType): Promise<number[][]> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function voyageEmbed(inputs: string[], inputType: InputType, retries = 4): Promise<number[][]> {
   const apiKey = process.env.VOYAGE_API_KEY;
   if (!apiKey) throw new Error("VOYAGE_API_KEY 가 설정되지 않았습니다 (임베딩 필요).");
 
-  const res = await fetch(VOYAGE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: EMBED_MODEL,
-      input: inputs,
-      input_type: inputType,
-      output_dimension: EMBED_DIM,
-    }),
-  });
-  if (!res.ok) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(VOYAGE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: EMBED_MODEL,
+        input: inputs,
+        input_type: inputType,
+        output_dimension: EMBED_DIM,
+      }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      // OpenAI 호환: { data: [{ embedding, index }] }
+      const data = (json.data || []) as Array<{ embedding: number[]; index: number }>;
+      return data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
+    }
+    // 429(레이트리밋): Retry-After 또는 지수 백오프로 재시도 (무료 티어 3RPM 대응)
+    if (res.status === 429 && attempt < retries) {
+      const ra = Number(res.headers.get("retry-after"));
+      const waitMs = Number.isFinite(ra) && ra > 0 ? ra * 1000 : Math.min(2000 * 2 ** attempt, 25000);
+      await sleep(waitMs);
+      continue;
+    }
     throw new Error(`Voyage ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
-  const json = await res.json();
-  // OpenAI 호환: { data: [{ embedding, index }] }
-  const data = (json.data || []) as Array<{ embedding: number[]; index: number }>;
-  return data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
 }
 
 /** 품목 → 임베딩 입력 텍스트. 품명 + 국가(맥락)로 검색 정확도를 약간 높인다. */
@@ -50,7 +61,7 @@ export async function embedText(text: string, inputType: InputType = "query"): P
 export async function embedTexts(
   texts: string[],
   inputType: InputType = "document",
-  batchSize = 128,
+  batchSize = 96, // 무료 티어 TPM(10K) 안전 마진
 ): Promise<number[][]> {
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += batchSize) {
