@@ -4,6 +4,7 @@ import { ORDER_COLORS, ORDER_FONT } from "./constants";
 import { ActionButtons } from "./components/ActionButtons";
 import { ClientHistorySection } from "./components/ClientHistorySection";
 import { ClientSearchField } from "./components/ClientSearchField";
+import { AutoModeToggle } from "./components/AutoModeToggle";
 import { BatchQueue } from "./components/BatchQueue";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { ImageIntakeButton } from "./components/ImageIntakeButton";
@@ -79,8 +80,14 @@ export default function OrderV2Page() {
         >
           <TabSelector value={tab} onChange={g.setTab} />
 
+          <AutoModeToggle
+            on={g.autoMode}
+            onToggle={g.toggleAutoMode}
+            autoResult={g.autoResult}
+          />
+
           <ImageIntakeButton
-            loading={g.imageIntake.loading || g.batch.processing}
+            loading={g.imageIntake.loading || g.batch.processing || g.autoBusy}
             error={g.imageIntake.error}
             onFiles={g.handleFiles}
             onClearError={g.imageIntake.clearError}

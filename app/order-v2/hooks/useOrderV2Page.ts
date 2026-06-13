@@ -12,6 +12,7 @@ import type { HistoryItem, OrderLine, OrderTab, SearchResult } from "../types";
 import type { IntakeResult } from "../lib/api";
 import { learnOrderCorrections } from "../lib/api";
 import { useAutoPaste } from "./useAutoPaste";
+import { useAutoSingle } from "./useAutoSingle";
 import { useClientHistory } from "./useClientHistory";
 import { useClientSearch } from "./useClientSearch";
 import { useDeliveryDate } from "./useDeliveryDate";
@@ -20,6 +21,8 @@ import { useOrderBatch } from "./useOrderBatch";
 import { useItemEditor } from "./useItemEditor";
 import { useOrderParse } from "./useOrderParse";
 import { useWineSearch } from "./useWineSearch";
+
+const AUTO_MODE_KEY = "orderv2_auto_mode"; // 자동 모드 ON/OFF 마지막 선택 기억
 
 /**
  * 페이지 전역 상태 + 핸들러를 한 곳에서 조립하는 훅.
@@ -84,15 +87,11 @@ export function useOrderV2Page() {
   const imageIntake = useImageIntake(applyExtraction);
   const batch = useOrderBatch();
 
-  // 스샷 1장 → 단건 채움, 2장+ → 배치 인박스
-  const handleFiles = useCallback(
-    (files: File[]) => {
-      if (files.length === 0) return;
-      if (files.length === 1) void imageIntake.processFile(files[0]);
-      else void batch.start(files, tab);
-    },
-    [imageIntake, batch, tab],
-  );
+  // 자동 모드 ON/OFF — 마지막 선택을 localStorage 에 기억 (SSR 불일치 방지 위해 마운트 후 로드)
+  const [autoMode, setAutoMode] = useState(false);
+  useEffect(() => {
+    try { if (localStorage.getItem(AUTO_MODE_KEY) === "1") setAutoMode(true); } catch { /* 무시 */ }
+  }, []);
 
   // 파싱 실행
   const handleParse = useCallback(() => {
@@ -178,6 +177,44 @@ export function useOrderV2Page() {
     learnOrderCorrections(parse.orderLines);
   };
 
+  // 자동(단건) 오케스트레이션 — staffMessage 준비된 뒤 인스턴스화. 결과는 배치와 공용 노출.
+  const auto = useAutoSingle({
+    tab,
+    staffMessage,
+    selectedClient: client.selected,
+    parseLoading: parse.loading,
+    orderLines: parse.orderLines,
+    setOrderText,
+    setSelectedClient: client.setSelected,
+    setClientQuery: client.setQuery,
+    resetDiscounts: () => editor.setDiscountRates({}),
+    closeSearch: wineSearch.close,
+    runParse: parse.run,
+  });
+  const { run: autoRun, autoBusy, result: autoSingleResult, clear: autoClear } = auto;
+  const clearAutoResult = useCallback(() => { autoClear(); batch.clearAutoResult(); }, [autoClear, batch]);
+
+  // 스샷 처리. 자동 ON → 1장 단건 상세 자동 / 2장+ 배치 자동. 자동 OFF → 수동.
+  const handleFiles = useCallback(
+    (files: File[]) => {
+      if (files.length === 0) return;
+      if (autoMode) {
+        if (files.length === 1) void autoRun(files[0]);
+        else void batch.startAuto(files, tab);
+        return;
+      }
+      if (files.length === 1) void imageIntake.processFile(files[0]);
+      else void batch.start(files, tab);
+    },
+    [autoMode, autoRun, imageIntake, batch, tab],
+  );
+  const toggleAutoMode = useCallback((v: boolean) => {
+    setAutoMode(v);
+    try { localStorage.setItem(AUTO_MODE_KEY, v ? "1" : "0"); } catch { /* 무시 */ }
+    if (!v) clearAutoResult();
+  }, [clearAutoResult]);
+  const autoResult = autoSingleResult ?? batch.autoResult;
+
   const handleReset = () => {
     client.reset();
     setOrderText("");
@@ -187,6 +224,7 @@ export function useOrderV2Page() {
     delivery.reset();
     history.reset();
     batch.clear();
+    clearAutoResult();
     setDeliveryNotes("");
     setShowDeliveryDate(false);
     setShowDeliveryNotes(false);
@@ -211,6 +249,11 @@ export function useOrderV2Page() {
     imageIntake,
     batch,
     handleFiles,
+    autoMode,
+    toggleAutoMode,
+    autoResult,
+    clearAutoResult,
+    autoBusy,
     // 페이지 전용
     copied,
     copyMessage,

@@ -1,21 +1,20 @@
-import { useCallback, useState } from "react";
-import { extractFromImage, fetchClients, parseOrder } from "../lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { extractFromImage, fetchClients, learnOrderCorrections, parseOrder } from "../lib/api";
+import { buildBatchAllMessage } from "../lib/batchMessage";
 import { pickClientMatch } from "../lib/clientMatch";
+import { isLineShaky } from "../lib/confidence";
 import { fileToBase64 } from "../lib/imageFile";
 import type { BatchOrder, BatchStatus, Client, OrderLine, OrderTab } from "../types";
+
+/** 자동 발주 결과: 전부 확실하면 자동 복사, 아니면 확인필요 건수 안내 */
+export type AutoResult = { total: number; ready: number; attention: number; copied: boolean; message: string };
 
 const CONCURRENCY = 3;
 
 /** 후보/거래처 상태로 카드 status 산출 */
 function computeStatus(client: Client | null, lines: OrderLine[]): BatchStatus {
   if (!client) return "needs_client";
-  const shaky = lines.some((ol) => {
-    if (ol.candidates.length === 0 || ol.selectedIdx < 0) return true;
-    const sel = ol.candidates[ol.selectedIdx];
-    if (sel && sel.confidence < 0.7) return true;
-    return (ol.review_note || "").startsWith("⚠");
-  });
-  return shaky ? "needs_review" : "ready";
+  return lines.some(isLineShaky) ? "needs_review" : "ready";
 }
 
 /** 단일 파일 처리: 추출 → 거래처매칭 → 파싱 */
@@ -64,6 +63,11 @@ async function processOne(file: File, tab: OrderTab): Promise<Omit<BatchOrder, "
 export function useOrderBatch() {
   const [orders, setOrders] = useState<BatchOrder[]>([]);
   const [processing, setProcessing] = useState(false);
+  // 자동 발주: 처리 완료 후 불확정 0 이면 자동 복사
+  const autoRef = useRef(false);
+  const autoTabRef = useRef<OrderTab>("CDV");
+  const [autoResult, setAutoResult] = useState<AutoResult | null>(null);
+  const clearAutoResult = useCallback(() => setAutoResult(null), []);
 
   const patch = useCallback((id: string, p: Partial<BatchOrder>) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...p } : o)));
@@ -97,6 +101,35 @@ export function useOrderBatch() {
     setProcessing(false);
   }, [patch]);
 
+  /** 자동 발주: 장수 무관 배치 파이프라인 실행 → 완료 시 자동 마무리(아래 effect) */
+  const startAuto = useCallback((files: File[], tab: OrderTab) => {
+    if (files.length === 0) return;
+    autoRef.current = true;
+    autoTabRef.current = tab;
+    setAutoResult(null);
+    void start(files, tab);
+  }, [start]);
+
+  // 처리 완료 감지 → 자동 마무리. 불확정 0 이면 전체 복사 + 학습, 아니면 검토 안내만.
+  useEffect(() => {
+    if (!autoRef.current || processing || orders.length === 0) return;
+    const pending = orders.some((o) => o.status === "extracting" || o.status === "parsing");
+    if (pending) return;
+    autoRef.current = false;
+    const ready = orders.filter((o) => o.status === "ready");
+    const attention = orders.length - ready.length;
+    if (attention === 0) {
+      // 전부 확실 → 자동 복사 + 정정 학습 (마지막 복사까지 원샷).
+      // 비동기 처리 후라 클립보드 쓰기가 막힐 수 있어, 메시지를 보관해 토스트 탭으로 재복사 가능.
+      const message = buildBatchAllMessage(orders, autoTabRef.current);
+      navigator.clipboard.writeText(message).catch(() => {});
+      orders.forEach((o) => learnOrderCorrections(o.orderLines));
+      setAutoResult({ total: orders.length, ready: ready.length, attention: 0, copied: true, message });
+    } else {
+      setAutoResult({ total: orders.length, ready: ready.length, attention, copied: false, message: "" });
+    }
+  }, [orders, processing]);
+
   // ── 카드별 편집 ──
   const selectCandidate = useCallback((id: string, lineIdx: number, candIdx: number) => {
     setOrders((prev) => prev.map((o) => {
@@ -121,7 +154,7 @@ export function useOrderBatch() {
     setOrders((prev) => prev.filter((o) => o.id !== id));
   }, []);
 
-  const clear = useCallback(() => setOrders([]), []);
+  const clear = useCallback(() => { setOrders([]); setAutoResult(null); autoRef.current = false; }, []);
 
-  return { orders, processing, start, selectCandidate, setQuantity, setClient, removeOrder, clear };
+  return { orders, processing, start, startAuto, autoResult, clearAutoResult, selectCandidate, setQuantity, setClient, removeOrder, clear };
 }
