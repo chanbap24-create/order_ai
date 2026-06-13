@@ -125,7 +125,7 @@ export async function retrieveCandidateItemNos(params: {
     // 모델번호(글라스 XXXX/XX)가 있으면 토큰 매칭이 정확하므로 소수 후보도 신뢰.
     // → 전체 카탈로그(1002개) 폴백을 피해 입력을 크게 줄임(속도·비용↑).
     const hasModel = lines.some((l) => /\d{3,4}\/\d{1,3}/.test(l));
-    const minUnion = hasModel ? 2 : MIN_UNION;
+    const minUnion = hasModel ? 1 : MIN_UNION; // 모델 정확매칭은 1개여도 정답
     if (filtered.size < minUnion) {
       logger.warn(`[Retrieval] union too small (${filtered.size}) → full catalog`);
       return null;
