@@ -8,6 +8,8 @@ type EnvConfig = {
   // 세션 쿠키 HMAC 서명 시크릿. 미설정 시 SUPABASE_SERVICE_ROLE_KEY 폴백(경고 로그).
   // 프로덕션에서는 반드시 별도 시크릿 설정 (DB 키와 세션 키 분리).
   AUTH_SECRET?: string;
+  // Voyage AI 임베딩 키 (발주 후보 사전축소). 미설정 시 임베딩 동기화/검색 비활성.
+  VOYAGE_API_KEY?: string;
   // 원격 동기화 API용 bearer 토큰 (sync-agent.js 가 사용).
   // 미설정 시 /api/admin/remote-sync* 는 403 반환.
   REMOTE_SYNC_TOKEN?: string;
@@ -65,6 +67,7 @@ function validateEnv(): EnvConfig {
   return {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    VOYAGE_API_KEY: process.env.VOYAGE_API_KEY,
     SUPABASE_URL: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     AUTH_SECRET: authSecret,

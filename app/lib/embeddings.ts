@@ -1,47 +1,61 @@
-// OpenAI 임베딩 유틸 (발주 후보 사전축소 / Phase 2).
+// Voyage AI 임베딩 유틸 (발주 후보 사전축소 / Phase 2).
 //
-// text-embedding-3-small (1536차원). 한국어/로마자 혼용 와인명에 충분.
-// 더 높은 정확도가 필요하면 EMBED_MODEL 만 -large 또는 Voyage 로 교체(차원 동기화 필요).
+// Anthropic 추천 임베딩. voyage-4-lite(저비용, 한국어/로마자 혼용 우수).
+// document/query 비대칭 입력 지원(검색 정확도↑).
+// 모델/차원 교체 시 EMBED_MODEL·EMBED_DIM 만 변경 + DB 벡터 차원 동기화.
 
-import OpenAI from "openai";
+export const EMBED_MODEL = "voyage-4-lite";
+export const EMBED_DIM = 1024;
+const VOYAGE_URL = "https://api.voyageai.com/v1/embeddings";
 
-export const EMBED_MODEL = "text-embedding-3-small";
-export const EMBED_DIM = 1536;
+export type InputType = "document" | "query";
 
-let _client: OpenAI | null = null;
-function client(): OpenAI {
-  if (!_client) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error("OPENAI_API_KEY 가 설정되지 않았습니다 (임베딩 필요).");
-    _client = new OpenAI({ apiKey });
+async function voyageEmbed(inputs: string[], inputType: InputType): Promise<number[][]> {
+  const apiKey = process.env.VOYAGE_API_KEY;
+  if (!apiKey) throw new Error("VOYAGE_API_KEY 가 설정되지 않았습니다 (임베딩 필요).");
+
+  const res = await fetch(VOYAGE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: EMBED_MODEL,
+      input: inputs,
+      input_type: inputType,
+      output_dimension: EMBED_DIM,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Voyage ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
-  return _client;
+  const json = await res.json();
+  // OpenAI 호환: { data: [{ embedding, index }] }
+  const data = (json.data || []) as Array<{ embedding: number[]; index: number }>;
+  return data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
 }
 
-/** 품목 → 임베딩 입력 텍스트. 품명 + 국가(맥락) 로 검색 정확도를 약간 높인다. */
+/** 품목 → 임베딩 입력 텍스트. 품명 + 국가(맥락)로 검색 정확도를 약간 높인다. */
 export function buildItemContent(itemName: string, country?: string | null): string {
   const name = (itemName || "").trim();
   const c = (country || "").trim();
   return c ? `${name} · ${c}` : name;
 }
 
-/** 단일 텍스트 임베딩 */
-export async function embedText(text: string): Promise<number[]> {
-  const [v] = await embedTexts([text]);
+/** 단일 텍스트 임베딩 (기본 query — 발주문 검색용) */
+export async function embedText(text: string, inputType: InputType = "query"): Promise<number[]> {
+  const [v] = await embedTexts([text], inputType);
   return v;
 }
 
-/**
- * 배치 임베딩. OpenAI 는 한 요청에 다수 입력 가능(대용량은 분할).
- * 입력 순서와 동일한 순서로 벡터 배열 반환.
- */
-export async function embedTexts(texts: string[], batchSize = 256): Promise<number[][]> {
+/** 배치 임베딩 (Voyage 한 요청당 최대 1000개; 안전하게 분할) */
+export async function embedTexts(
+  texts: string[],
+  inputType: InputType = "document",
+  batchSize = 128,
+): Promise<number[][]> {
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += batchSize) {
     const chunk = texts.slice(i, i + batchSize).map((t) => (t && t.trim()) || " ");
-    const res = await client().embeddings.create({ model: EMBED_MODEL, input: chunk });
-    // res.data 는 index 순서 보장
-    for (const d of res.data) out.push(d.embedding as number[]);
+    out.push(...(await voyageEmbed(chunk, inputType)));
   }
   return out;
 }
