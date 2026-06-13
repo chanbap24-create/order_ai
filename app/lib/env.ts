@@ -10,6 +10,8 @@ type EnvConfig = {
   AUTH_SECRET?: string;
   // Voyage AI 임베딩 키 (발주 후보 사전축소). 미설정 시 임베딩 동기화/검색 비활성.
   VOYAGE_API_KEY?: string;
+  // 'on' 이면 발주 파싱 시 임베딩 retrieval 로 후보 축소 (기본 off → 전체 카탈로그).
+  ORDER_RETRIEVAL?: string;
   // 원격 동기화 API용 bearer 토큰 (sync-agent.js 가 사용).
   // 미설정 시 /api/admin/remote-sync* 는 403 반환.
   REMOTE_SYNC_TOKEN?: string;

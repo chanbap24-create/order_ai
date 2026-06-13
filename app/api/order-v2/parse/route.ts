@@ -4,6 +4,7 @@ import { getClaudeClient } from '@/app/lib/claudeClient';
 import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
 import { reviewOrderLines } from '@/app/lib/orderReviewer';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
+import { retrieveCandidateItemNos } from '@/app/lib/orderRetrieval';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -79,27 +80,35 @@ export async function POST(req: NextRequest) {
     const isRestaurantClient = tab === 'DL' && purchaseHistory.length > 0 &&
       purchaseHistory.filter(h => (h.item_name || '').includes('레스토랑')).length / purchaseHistory.length > 0.3;
 
-    // 3. 와인 리스트 텍스트 (품번|품명) — LLM 후보군
-    //    제외 기준 (토큰 절감 + 오매칭 방지):
-    //     a) 공급가 0/없음 → 출고 불가 품목 (비즈니스 규칙). 가격 채워지면 자동 복귀.
-    //     b) 비상품 패턴(포장/판촉/전시/더미) — 가격 있는 비상품 대비 보조 필터.
-    //    가격/재고 보강용 wineMap 은 전체 유지(후보 외 품번도 해석 가능).
-    const wineListText = (wines || [])
-      .filter(w => Number(w.supply_price) > 0
-        && !isNonOrderable(w.item_no, w.item_name, tab === 'DL' ? 'DL' : 'CDV'))
-      .map(w => `${w.item_no}|${w.item_name}`)
-      .join('\n');
+    // 3. 후보군 구성
+    //    a) 공급가 0/없음(출고 불가) + 비상품 패턴 제외 → orderableWines
+    //    b) (ORDER_RETRIEVAL=on) 임베딩 retrieval 로 발주문 관련 품목만 축소.
+    //       실패/비활성/너무 작으면 null → 전체 orderable 로 fallback(회귀 불가).
+    const tabKey: 'CDV' | 'DL' = tab === 'DL' ? 'DL' : 'CDV';
+    const orderableWines = (wines || []).filter(w =>
+      Number(w.supply_price) > 0 && !isNonOrderable(w.item_no, w.item_name, tabKey));
+    const historyItemNosPre = purchaseHistory.map(h => (h.item_no || '').trim()).filter(Boolean);
+    const retrievedSet = await retrieveCandidateItemNos({
+      orderText: order_text, tab: tabKey,
+      orderableWines: orderableWines.map(w => ({ item_no: w.item_no, item_name: w.item_name })),
+      historyItemNos: historyItemNosPre,
+    });
+    const retrievalUsed = !!retrievedSet;
+    const candidateWines = retrievedSet
+      ? orderableWines.filter(w => retrievedSet.has(w.item_no.toUpperCase()))
+      : orderableWines;
+    const wineListText = candidateWines.map(w => `${w.item_no}|${w.item_name}`).join('\n');
 
     // 4. 입고내역 텍스트
     const historyText = purchaseHistory.length > 0
       ? purchaseHistory.map(h => `${h.item_no}|${h.item_name}`).join('\n')
       : '';
 
-    // 5. 프롬프트 - CDV(와인) / DL(글라스) 분리
-    // 캐싱 최적화: 안정 블록(규칙 + 전체 카탈로그, tab별 동일)을 앞에 두고
-    //   cache_control 로 캐시. 변동 블록(거래처/입고내역/업장힌트)은 뒤에 둔다.
-    //   → 연속 호출(특히 배치)에서 카탈로그(~수만 토큰)가 캐시 적중되어 비용 급감.
-    const rulesBlock = tab === 'DL'
+    // 5. 프롬프트 - 규칙(정적) / 카탈로그 / 컨텍스트(변동) 분리
+    //    retrieval 미사용(전체 카탈로그) → 규칙+카탈로그를 cache_control(연속호출 캐시 적중).
+    //    retrieval 사용(축소 카탈로그=발주별 변동) → 규칙만 캐시, 카탈로그는 변동 블록으로.
+    const listLabel = tabKey === 'DL' ? '글라스리스트' : '와인리스트';
+    const rulesText = tabKey === 'DL'
       ? `리델 글라스 발주 파싱. 발주 메시지에서 글라스명/모델번호+수량 추출 후 리스트에서 후보 매칭.
 
 규칙:
@@ -115,9 +124,6 @@ export async function POST(req: NextRequest) {
 - confidence: 0.9+=확실, 0.7~0.9=높음, 0.5~0.7=중간, <0.5=불확실
 
 ★ Self-Check: 1순위 후보의 item_name 에 모델번호(XXXX/XX) 포함 안 되면 후보 재배치.
-
-글라스리스트(품번|품명):
-${wineListText}
 
 JSON배열만 응답. 텍스트 없이. item_no는 글라스리스트에 있는 품번을 정확히 복사:
 [{"query":"원문","quantity":수량,"candidates":[{"item_no":"품번","item_name":"품명","confidence":0~1,"reasoning":"근거"}]}]
@@ -136,19 +142,20 @@ JSON배열만 응답. 텍스트 없이. item_no는 글라스리스트에 있는 
 
 ★ Self-Check: 원문 핵심 키워드/색상/빈티지가 1순위 후보 item_name 과 일치 안 하면 후보 재배치 또는 confidence 하향.
 
-와인리스트(품번|품명):
-${wineListText}
-
 JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품번을 정확히 복사:
 [{"query":"원문","quantity":수량,"candidates":[{"item_no":"품번","item_name":"품명","confidence":0~1,"reasoning":"근거"}]}]
 없으면 []`;
 
-    // 변동 블록 (거래처별) — 캐시 안 함
+    const catalogBlock = `${listLabel}(품번|품명):\n${wineListText}`;
     const contextBlock = [
       `거래처: ${client_name || '미지정'}${client_code ? ` (${client_code})` : ''}`,
       isRestaurantClient ? '★ 이 거래처는 업장(레스토랑/바)입니다. 레스토랑 시리즈를 일반 버전보다 먼저 배치하세요.' : '',
       historyText ? `입고내역(품번|품명):\n${historyText}` : '',
     ].filter(Boolean).join('\n');
+
+    // 캐시 블록(규칙 [+전체카탈로그]) / 변동 블록([축소카탈로그+]거래처/입고내역)
+    const cachedText = retrievalUsed ? rulesText : `${rulesText}\n\n${catalogBlock}`;
+    const volatileText = [retrievalUsed ? catalogBlock : '', contextBlock].filter(Boolean).join('\n\n');
 
     // 6. Claude API 호출
     // ★ Prompt injection 1차 방어: order_text를 명시 구분자로 감싸 데이터로 한정.
@@ -164,10 +171,10 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       // 4096 으로는 self-check + 후보 5개 출력 시 일부 케이스에서 truncate 되어
       // JSON 닫힘 ']' 이 사라지고 파싱 실패가 발생했음. 8192 로 여유 확보.
       max_tokens: 8192,
-      // 안정 블록(규칙+카탈로그)에 cache_control → 연속 호출 시 카탈로그 캐시 적중
+      // 캐시 블록에 cache_control. retrieval 미사용 시 전체 카탈로그가 캐시 적중.
       system: [
-        { type: 'text', text: rulesBlock, cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: contextBlock },
+        { type: 'text', text: cachedText, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: volatileText },
       ],
       messages: [
         { role: 'user', content: wrappedUserContent }
@@ -331,6 +338,7 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
         swapCount: reviewResult.swapCount,
         warnCount: reviewResult.warnCount,
       },
+      retrieval: { used: retrievalUsed, candidates: candidateWines.length, total: orderableWines.length },
     });
   } catch (error: any) {
     console.error('Order v2 parse error:', error);
