@@ -4,7 +4,18 @@ import { logger } from "@/app/lib/logger";
 import { ensureWineTables } from "@/app/lib/wineDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
 import { recordInventoryValuePartial } from "@/app/lib/inventoryValueDb";
+import { syncItemEmbeddings } from "@/app/lib/itemEmbeddingSync";
 import { parseInventorySheet } from "./parseInventory";
+
+/** 임베딩 동기화 — 실패해도 재고 업로드는 성공 처리(임베딩은 보조, 수동 재동기화 가능) */
+async function syncEmbeddingsSafe(tab: "CDV" | "DL"): Promise<void> {
+  try {
+    const r = await syncItemEmbeddings(tab);
+    logger.info(`[Downloads] embeddings synced ${tab}: +${r.embedded} -${r.deleted}`);
+  } catch (e) {
+    logger.warn(`[Downloads] embedding sync skipped (${tab}): ${e instanceof Error ? e.message : e}`);
+  }
+}
 
 type OldItem = {
   item_no: string;
@@ -110,6 +121,7 @@ export async function processDownloads(buf: Buffer) {
   }
 
   await recordCdvInventoryValue(inventoryRows);
+  await syncEmbeddingsSafe('CDV');
   return { items: inventoryRows.length };
 }
 
@@ -130,6 +142,7 @@ export async function processDownloadsFromData(inventoryRows: Record<string, unk
   }
 
   await recordCdvInventoryValue(inventoryRows);
+  await syncEmbeddingsSafe('CDV');
   return { items: inventoryRows.length };
 }
 
@@ -149,6 +162,7 @@ export async function processDl(buf: Buffer) {
   }
 
   await recordDlInventoryValue(dlRows);
+  await syncEmbeddingsSafe('DL');
   return { items: dlRows.length };
 }
 
