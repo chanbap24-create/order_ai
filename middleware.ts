@@ -271,6 +271,7 @@ export const config = {
     // 보호할 페이지 (sales 로그인 페이지 제외 - 자체 인증)
     '/order',
     '/order-v2',
+    '/stock',
     '/inventory',
     '/glass',
     '/wine',
