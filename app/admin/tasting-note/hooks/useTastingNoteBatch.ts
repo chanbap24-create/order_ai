@@ -7,7 +7,7 @@ type Params = {
   setCheckedIds: (s: Set<string>) => void;
   refreshList: () => void;
   /** ghIndex 강제 재로딩 (PDF 업로드 후 호출하여 캐시 우회) */
-  refreshGhIndex?: (force?: boolean) => Promise<void> | void;
+  refreshGhIndex?: (force?: boolean) => Promise<boolean> | Promise<void> | void;
   loadSelectedDetail: (code: string) => Promise<void>;
   selectedId: string | null;
 };

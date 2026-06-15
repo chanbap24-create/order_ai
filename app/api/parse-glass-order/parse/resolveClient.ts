@@ -1,11 +1,16 @@
 import { supabase } from "@/app/lib/db";
 import { norm, firstLine, scoreName } from "./utils";
+import { extractDeliveryDestination } from "@/app/lib/orderDestination";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AliasRow = { client_code: any; alias: any; weight?: any };
 
 /**
  * glass_client_alias 기반 거래처 resolve.
- *  1) 숫자 코드 매칭 (alias + glass_clients 직접)
- *  2) exact norm
- *  3) fuzzy + weight 보너스 (>=0.93 auto, force >=0.45)
+ *  - 본문에 명시한 배송지("매쎄로 발주")가 거래처로 "확실히"(코드/exact/fuzzy auto) 매칭되면
+ *    발신자명·첫줄보다 우선한다. 확실치 않으면 무시 → 품목 오탐("올드월드 쉬라로")이
+ *    정상 거래처를 덮어쓰지 않는다.
+ *  1) 숫자 코드  2) exact norm  3) fuzzy (>=0.93 auto, force >=0.45)
  */
 export async function resolveClient({
   clientText,
@@ -17,13 +22,24 @@ export async function resolveClient({
   forceResolve: boolean;
 }) {
   const { data: rowsData } = await supabase
-    .from('glass_client_alias')
-    .select('client_code, alias, weight');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = (rowsData || []) as Array<{ client_code: any; alias: any; weight?: any }>;
+    .from("glass_client_alias")
+    .select("client_code, alias, weight");
+  const rows = (rowsData || []) as AliasRow[];
 
-  const candidate = String(clientText || "").trim() || firstLine(message);
+  const primary = String(clientText || "").trim() || firstLine(message);
+  const dest = extractDeliveryDestination(message);
 
+  // 배송지 우선: 거래처로 확실히 매칭될 때만 채택(force 미적용 → 약한 추정은 무시)
+  if (dest && dest !== primary) {
+    const r = await resolveOne(dest, rows, false);
+    if (r.status === "resolved") return { ...r, method: `dest_${r.method}` };
+  }
+
+  return resolveOne(primary, rows, forceResolve);
+}
+
+/** 단일 후보 문자열을 거래처로 해석 (코드 → exact norm → fuzzy) */
+async function resolveOne(candidate: string, rows: AliasRow[], forceResolve: boolean) {
   // 1) 숫자 코드 직접
   if (candidate && /^\d+$/.test(candidate)) {
     const codeMatch = rows.find((r) => String(r.client_code) === candidate);
@@ -37,9 +53,9 @@ export async function resolveClient({
     }
 
     const { data: directClient } = await supabase
-      .from('glass_clients')
-      .select('client_code, client_name')
-      .eq('client_code', candidate)
+      .from("glass_clients")
+      .select("client_code, client_name")
+      .eq("client_code", candidate)
       .maybeSingle();
 
     if (directClient) {
@@ -68,7 +84,7 @@ export async function resolveClient({
   }
 
   // 3) fuzzy
-  const q = candidate || message || "";
+  const q = candidate || "";
   const scored = rows
     .map((r) => {
       const base = scoreName(q, r.alias);

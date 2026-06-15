@@ -57,6 +57,42 @@ export default function TastingNoteTab({
         ops={ops}
       />
 
+      {list.ghError && (
+        <div
+          role="alert"
+          style={{
+            margin: '8px 0',
+            padding: '8px 12px',
+            background: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: 6,
+            color: '#92400e',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span>⚠️ PDF 발행 인덱스를 불러오지 못했습니다. 신규/미작성/작성완료 카운트가 정확하지 않을 수 있습니다.</span>
+          <button
+            type="button"
+            onClick={() => list.refreshGhIndex(true)}
+            style={{
+              marginLeft: 'auto',
+              padding: '2px 10px',
+              background: '#f59e0b',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
+
       <ProgressBars
         batchRunning={ops.batchRunning}
         batchProgress={ops.batchProgress}

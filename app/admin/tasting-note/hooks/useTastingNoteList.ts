@@ -20,6 +20,9 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   // 제외 보기: OFF(기본)면 제외 품목 숨김, ON이면 제외 품목만 표시(복원용)
   const [showExcluded, setShowExcluded] = useState(false);
   const [ghIndex, setGhIndex] = useState<Record<string, boolean>>({});
+  // PDF 인덱스 로드 실패 여부. true 면 PDF 보유 여부를 알 수 없어
+  // 신규/미작성/작성완료 카운트가 부정확할 수 있음 → UI 경고로 노출.
+  const [ghError, setGhError] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -30,12 +33,15 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
    * GitHub PDF 인덱스 로드. force=true 시 서버·CDN 캐시까지 우회.
    * 업로드 직후 호출하면 새로 올린 PDF 가 즉시 ghIndex 에 반영됨.
    */
-  const refreshGhIndex = useCallback(async (force = false) => {
-    try {
-      const url = force ? "/api/tasting-notes?refresh=1" : "/api/tasting-notes";
-      const r = await fetch(url, { cache: "no-store" });
-      const d = await r.json();
-      if (d.success && d.notes) {
+  const refreshGhIndex = useCallback(async (force = false): Promise<boolean> => {
+    const url = force ? "/api/tasting-notes?refresh=1" : "/api/tasting-notes";
+    // 일시적 네트워크/서버 오류에 대비해 최대 3회 재시도(지수 백오프).
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        if (!d.success || !d.notes) throw new Error("invalid response");
         const map: Record<string, boolean> = {};
         for (const [code, info] of Object.entries(
           d.notes as Record<string, { exists?: boolean }>,
@@ -43,10 +49,17 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
           if (info?.exists) map[code] = true;
         }
         setGhIndex(map);
+        setGhError(false);
+        return true;
+      } catch {
+        if (attempt < 2) {
+          await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+        }
       }
-    } catch {
-      /* ignore */
     }
+    // 끝까지 실패: 기존 ghIndex 는 덮어쓰지 않고(오판 방지) 에러만 표시.
+    setGhError(true);
+    return false;
   }, []);
 
   // 마운트 시 1회 로드 (캐시 허용)
@@ -156,7 +169,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     wineOnly, setWineOnly,
     lowStockThreshold, setLowStockThreshold,
     showExcluded, setShowExcluded, setExcluded,
-    ghIndex, refreshGhIndex, counts, newActionableCount,
+    ghIndex, ghError, refreshGhIndex, counts, newActionableCount,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
     fetchWines, patchWine, hasNote,

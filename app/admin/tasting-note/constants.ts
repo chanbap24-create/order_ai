@@ -34,7 +34,9 @@ export function isWithinNewWindow(w: TastingWineRow): boolean {
 
 /**
  * "신규(작업 대상)" 판정 — 탭 배지 · 신규 필터 공통 규칙.
- * status='new' · 등록 7일 이내 · 재고합>0 · 노트 미등록 · 제외상태 일치 · (옵션)와인 분류만.
+ * 정의: 최근 등장(등록 7일 이내) · 미작성 · 재고합>0 · 단종 아님 · 제외상태 일치 · (옵션)와인 분류만.
+ * (구버전은 status='new' 에 의존했으나, 마이그레이션으로 status/created_at 이 일괄 리셋되어
+ *  신규가 영구 0이 되는 문제가 있어 created_at 윈도우 기반으로 재정의함.)
  */
 export function isActionableNew(
   w: TastingWineRow,
@@ -42,7 +44,7 @@ export function isActionableNew(
   opts?: { requireWineCategory?: boolean; showExcluded?: boolean },
 ): boolean {
   if ((opts?.showExcluded ?? false) !== !!w.note_excluded) return false;
-  if (w.status !== "new") return false;
+  if (w.status === "discontinued") return false; // 단종은 신규 아님
   if (!isWithinNewWindow(w)) return false; // 등록 7일 경과 → 신규에서 빠짐(미작성엔 잔류)
   if (totalStock(w) <= 0) return false; // 재고+보세 합 0 → 신규에서 제외
   if (hasNote) return false; // 노트(DB/PDF) 등록되면 신규에서 제외
