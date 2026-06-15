@@ -56,9 +56,45 @@ export async function GET(req: NextRequest) {
 
     const all = [...build(wine.data, 'wine'), ...build(glass.data, 'glass')];
 
+    // ── 약속 이행 자동 판정 ──
+    // 약속일(promised_date) 이후 입금 합계가 약속금액(promised_amount) 이상이면 약속 이행 →
+    // 다른 미수가 남아 있어도(net_balance>0) "오늘의 수금"에서 제외(자연 소멸).
+    // wine→payments, glass→glass_payments.
+    const fulfilled = new Set<string>();
+    const promised = all.filter((it) => it.promised_date && (it.promised_amount || 0) > 0);
+    if (promised.length > 0) {
+      const minDate = promised.reduce((m, it) => (it.promised_date! < m ? it.promised_date! : m), promised[0].promised_date!);
+      const wineCodes = promised.filter((p) => p.client_type === 'wine').map((p) => p.client_code);
+      const glassCodes = promised.filter((p) => p.client_type === 'glass').map((p) => p.client_code);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const empty = Promise.resolve({ data: [] as any[] });
+      const [wp, gp] = await Promise.all([
+        wineCodes.length ? supabase.from('payments').select('client_code, payment_date, amount').in('client_code', wineCodes).gte('payment_date', minDate) : empty,
+        glassCodes.length ? supabase.from('glass_payments').select('client_code, payment_date, amount').in('client_code', glassCodes).gte('payment_date', minDate) : empty,
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tally = (rows: any[], type: string) => {
+        const byClient = new Map<string, Array<{ d: string; a: number }>>();
+        for (const r of rows || []) {
+          const k = r.client_code;
+          if (!byClient.has(k)) byClient.set(k, []);
+          byClient.get(k)!.push({ d: String(r.payment_date || '').slice(0, 10), a: Number(r.amount) || 0 });
+        }
+        for (const it of promised.filter((p) => p.client_type === type)) {
+          const sum = (byClient.get(it.client_code) || [])
+            .filter((x) => x.d >= it.promised_date!)
+            .reduce((s, x) => s + x.a, 0);
+          if (sum >= (it.promised_amount || 0) - 1) fulfilled.add(`${it.client_code}|${it.client_type}`);
+        }
+      };
+      tally(wp.data || [], 'wine');
+      tally(gp.data || [], 'glass');
+    }
+
     const promiseToday: CollItem[] = [], broken: CollItem[] = [], overdue: CollItem[] = [];
     for (const it of all) {
       if (it.status === 'paid' || it.net_balance <= 0) continue;
+      if (fulfilled.has(`${it.client_code}|${it.client_type}`)) continue; // 약속금액 입금 완료 → 제외
       if (it.promised_date === today) { promiseToday.push(it); continue; }
       if (it.promised_date && it.promised_date < today) { broken.push(it); continue; }
       if (it.overdue > 0) overdue.push(it);
