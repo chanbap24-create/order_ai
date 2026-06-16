@@ -48,6 +48,9 @@ import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { retrieveCandidateItemNos } from '@/app/lib/orderRetrieval';
 
 const MODEL = 'claude-haiku-4-5-20251001';
+// 불확실한 발주만 상위 모델로 1회 에스컬레이션 (정확도↑, 비용은 애매한 건에만 발생).
+const ESCALATE_MODEL = 'claude-sonnet-4-6';
+const ESCALATE_CONF = 0.7;
 
 export async function POST(req: NextRequest) {
   try {
@@ -235,56 +238,90 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       `<order_text>\n${order_text.trim()}\n</order_text>`;
     // 스트리밍으로 받아 finalMessage() 로 완성 응답 취합.
     // 비스트리밍은 입력이 크거나(전체 카탈로그 폴백) 출력이 길면 요청 타임아웃에 끊김 → 스트리밍 권장.
-    const response = await claude.messages.stream({
-      model: MODEL,
-      // 4096 으로는 self-check + 후보 5개 출력 시 일부 케이스에서 truncate 되어
-      // JSON 닫힘 ']' 이 사라지고 파싱 실패가 발생했음. 8192 로 여유 확보.
-      max_tokens: 8192,
-      // 캐시 블록에 cache_control. retrieval 미사용 시 전체 카탈로그가 캐시 적중.
-      system: [
-        { type: 'text', text: cachedText, cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: volatileText },
-      ],
-      messages: [
-        { role: 'user', content: wrappedUserContent }
-      ],
-    }).finalMessage();
+    // 스트리밍으로 받아 finalMessage() 로 완성 응답 취합.
+    // 모델 인자화: 기본 Haiku로 파싱하되, 결과가 "불확실"하면 상위 모델로 1회 재시도.
+    const callAndParse = async (model: string) => {
+      const resp = await claude.messages.stream({
+        model,
+        // 4096 으로는 self-check + 후보 5개 출력 시 일부 케이스에서 truncate 되어
+        // JSON 닫힘 ']' 이 사라지고 파싱 실패가 발생했음. 8192 로 여유 확보.
+        max_tokens: 8192,
+        // 캐시 블록에 cache_control. retrieval 미사용 시 전체 카탈로그가 캐시 적중.
+        system: [
+          { type: 'text', text: cachedText, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: volatileText },
+        ],
+        messages: [
+          { role: 'user', content: wrappedUserContent }
+        ],
+      }).finalMessage();
 
-    // 7. 응답 파싱
-    const text = response.content
-      .filter((b: any) => b.type === 'text')
-      .map((b: any) => b.text)
-      .join('');
+      const text = resp.content
+        .filter((b: any) => b.type === 'text')
+        .map((b: any) => b.text)
+        .join('');
 
-    let parsed: any[] = [];
-    let parseError: string | null = null;
-    try {
-      // ```json 코드펜스 제거
-      let body = text.trim();
-      const fence = body.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (fence) body = fence[1].trim();
-      // 1) 정상 배열 파싱 시도
-      const arr = body.match(/\[[\s\S]*\]/);
-      let ok = false;
-      if (arr) {
-        try { parsed = JSON.parse(arr[0]); ok = true; } catch { /* 잘림/깨짐 → 복구로 */ }
+      let parsed: any[] = [];
+      let parseError: string | null = null;
+      let parseFailed = false;
+      try {
+        // ```json 코드펜스 제거
+        let body = text.trim();
+        const fence = body.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (fence) body = fence[1].trim();
+        // 1) 정상 배열 파싱 시도
+        const arr = body.match(/\[[\s\S]*\]/);
+        let ok = false;
+        if (arr) {
+          try { parsed = JSON.parse(arr[0]); ok = true; } catch { /* 잘림/깨짐 → 복구로 */ }
+        }
+        // 2) 실패 시: 완성된 후보 객체만 스캔 복구 (잘림·문자열 내 대괄호 등 견고)
+        if (!ok) {
+          parsed = recoverObjects(body);
+          if (parsed.length === 0) throw new Error('복구 가능한 객체 없음');
+          parseError = '응답이 잘려 일부 라인만 복구됨';
+        }
+      } catch {
+        parseFailed = true;
       }
-      // 2) 실패 시: 완성된 후보 객체만 스캔 복구 (잘림·문자열 내 대괄호 등 견고)
-      if (!ok) {
-        parsed = recoverObjects(body);
-        if (parsed.length === 0) throw new Error('복구 가능한 객체 없음');
-        parseError = '응답이 잘려 일부 라인만 복구됨';
-      }
-    } catch (e) {
+      return { parsed, parseError, parseFailed, text, resp };
+    };
+
+    // 불확실 신호: 파싱 실패 / 결과 0 / 후보 0개 라인 / 최상위 후보 confidence < 임계
+    const isUncertain = (r: { parsed: any[]; parseError: string | null; parseFailed: boolean }): boolean =>
+      r.parseFailed || !!r.parseError || r.parsed.length === 0 ||
+      r.parsed.some((p: any) => {
+        const cs = p.candidates || [];
+        return cs.length === 0 || (Number(cs[0]?.confidence) || 0) < ESCALATE_CONF;
+      });
+
+    let result = await callAndParse(MODEL);
+    let usedModel = MODEL;
+    if (MODEL !== ESCALATE_MODEL && isUncertain(result)) {
+      try {
+        const retry = await callAndParse(ESCALATE_MODEL);
+        // 상위 모델이 파싱에 성공했고, (1차 실패 / 불확실도 해소 / 라인 수 동등 이상)이면 채택
+        if (!retry.parseFailed &&
+            (result.parseFailed || !isUncertain(retry) || retry.parsed.length >= result.parsed.length)) {
+          result = retry;
+          usedModel = ESCALATE_MODEL;
+        }
+      } catch { /* 에스컬레이션 실패 → 1차(Haiku) 결과 유지 */ }
+    }
+
+    if (result.parseFailed) {
       return NextResponse.json({
         error: 'AI 응답을 파싱할 수 없습니다.',
-        raw: text,
-        detail: e instanceof Error ? e.message : String(e),
-        stop_reason: response.stop_reason,
+        raw: result.text,
+        stop_reason: result.resp.stop_reason,
       }, { status: 500 });
     }
+
+    const response = result.resp;
+    const parsed = result.parsed;
+    const parseError = result.parseError;
     if (parseError) {
-      console.warn('[order-v2/parse] partial recovery:', parseError, 'stop_reason:', response.stop_reason);
+      console.warn('[order-v2/parse] partial recovery:', parseError, 'stop_reason:', response.stop_reason, 'model:', usedModel);
     }
 
     // 8. 와인맵으로 가격/재고 보강 (trim + 대소문자 무시)
@@ -461,7 +498,7 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
     return NextResponse.json({
       orderLines,
       usage,
-      model: MODEL,
+      model: usedModel,
       client: { client_code, client_name },
       historyItemNos,
       review: {
