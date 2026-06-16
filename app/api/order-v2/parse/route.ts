@@ -295,19 +295,23 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
         return cs.length === 0 || (Number(cs[0]?.confidence) || 0) < ESCALATE_CONF;
       });
 
-    let result = await callAndParse(MODEL);
+    const firstResult = await callAndParse(MODEL);
+    let result = firstResult;
     let usedModel = MODEL;
-    if (MODEL !== ESCALATE_MODEL && isUncertain(result)) {
+    let escResp: typeof firstResult.resp | null = null; // 에스컬레이션 호출 발생 시 비용 집계용
+    if (MODEL !== ESCALATE_MODEL && isUncertain(firstResult)) {
       try {
         const retry = await callAndParse(ESCALATE_MODEL);
+        escResp = retry.resp;
         // 상위 모델이 파싱에 성공했고, (1차 실패 / 불확실도 해소 / 라인 수 동등 이상)이면 채택
         if (!retry.parseFailed &&
-            (result.parseFailed || !isUncertain(retry) || retry.parsed.length >= result.parsed.length)) {
+            (firstResult.parseFailed || !isUncertain(retry) || retry.parsed.length >= firstResult.parsed.length)) {
           result = retry;
           usedModel = ESCALATE_MODEL;
         }
       } catch { /* 에스컬레이션 실패 → 1차(Haiku) 결과 유지 */ }
     }
+    const baseResp = firstResult.resp;
 
     if (result.parseFailed) {
       return NextResponse.json({
@@ -494,6 +498,24 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
       cache_read_input_tokens: response.usage?.cache_read_input_tokens || 0,
       cache_creation_input_tokens: response.usage?.cache_creation_input_tokens || 0,
     };
+
+    // 파싱 호출 로그 (에스컬레이션 비율/비용 집계용) — 실패해도 발주엔 영향 없음
+    try {
+      const bu = baseResp?.usage;
+      const eu = escResp?.usage;
+      await supabase.from('order_parse_log').insert({
+        tab: tabKey,
+        escalated: !!escResp,
+        final_model: usedModel,
+        base_input: bu?.input_tokens || 0,
+        base_output: bu?.output_tokens || 0,
+        base_cache_read: bu?.cache_read_input_tokens || 0,
+        esc_input: eu?.input_tokens || 0,
+        esc_output: eu?.output_tokens || 0,
+        esc_cache_read: eu?.cache_read_input_tokens || 0,
+        line_count: orderLines.length,
+      });
+    } catch { /* 로깅 실패 무시 */ }
 
     return NextResponse.json({
       orderLines,

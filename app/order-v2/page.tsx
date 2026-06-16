@@ -17,6 +17,7 @@ import {
 import { OrderTextareaSection } from "./components/OrderTextareaSection";
 import { OriginalTextCard } from "./components/OriginalTextCard";
 import { PageHeader } from "./components/PageHeader";
+import { ParseStats } from "./components/ParseStats";
 import { PageStyles } from "./components/PageStyles";
 import { StaffMessageCard } from "./components/StaffMessageCard";
 import { SummaryHeaderCard } from "./components/SummaryHeaderCard";
@@ -290,6 +291,7 @@ export default function OrderV2Page() {
             <TokenUsage usage={parse.usage} model={parse.model} />
           </div>
         )}
+        <ParseStats />
       </div>
     </>
   );
