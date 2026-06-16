@@ -11,6 +11,7 @@ export const COUNTRIES = [
   { value: '아르헨티나 Argentina', label: '아르헨티나', flag: '🇦🇷' },
   { value: '뉴질랜드 New Zealand', label: '뉴질랜드', flag: '🇳🇿' },
   { value: '칠레 Chile', label: '칠레', flag: '🇨🇱' },
+  { value: '영국 England', label: '영국', flag: '🇬🇧' },
 ];
 
 export const EMPTY_REGION: WineRegion = {
