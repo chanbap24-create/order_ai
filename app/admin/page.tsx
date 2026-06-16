@@ -25,6 +25,7 @@ const CompanyEventsTab = dynamic(() => import('./components/CompanyEventsTab'), 
 const ImportForecastTab = dynamic(() => import('./components/ImportForecastTab'), { ssr: false, loading: tabLoader });
 const FeatureUsageTab = dynamic(() => import('./components/FeatureUsageTab'), { ssr: false, loading: tabLoader });
 const GlassImagesTab = dynamic(() => import('./components/GlassImagesTab'), { ssr: false, loading: tabLoader });
+const ParseStatsTab = dynamic(() => import('./components/ParseStatsTab').then(m => m.ParseStatsTab), { ssr: false, loading: tabLoader });
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
@@ -265,6 +266,7 @@ export default function AdminPage() {
         {activeTab === 'import-forecast' && <ImportForecastTab />}
         {activeTab === 'feature-usage' && <FeatureUsageTab />}
         {activeTab === 'glass-images' && <GlassImagesTab />}
+        {activeTab === 'parse-stats' && <ParseStatsTab />}
       </div>
 
       {/* Toast container */}
