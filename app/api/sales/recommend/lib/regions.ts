@@ -43,6 +43,19 @@ export function extractEnglish(bilingual: string): string {
   return bilingual;
 }
 
+// 등급 약어(DO/DOC/AOC 등)·괄호주석 제거 후 영문 지명만 추출. 짧으면 매칭에서 제외.
+// "리마리 밸리 DO" → "" (등급만 있음), "Margaux AOC" → "margaux", "도우루 Douro" → "douro"
+const CLASS_WORDS = /\b(docg|doca|doc|dop|do|aoc|aop|ava|igt|igp|vdp|aova)\b/g;
+function cleanRegionToken(bilingual: string): string {
+  return extractEnglish(bilingual || '')
+    .toLowerCase()
+    .replace(/\(.*?\)/g, ' ')
+    .replace(CLASS_WORDS, ' ')
+    .replace(/\b1er cru\b|\bpremier cru\b|\bgrand cru\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export interface RegionHierarchy {
   sub_region: string;
   major_region: string;
@@ -76,20 +89,20 @@ export function matchRegionRow<T extends WineRegionRow>(
   let best: T | null = null;
   let bestScore = 0;
   for (const row of regionRows) {
-    const subEn = extractEnglish(row.sub_region || '').toLowerCase();
-    const appEn = extractEnglish(row.appellation || '').toLowerCase();
-    const cruEn = (row.cru_vineyard || '').toLowerCase();
+    const subEn = cleanRegionToken(row.sub_region || '');
+    const appEn = cleanRegionToken(row.appellation || '');
+    const cruEn = (row.cru_vineyard || '').toLowerCase().replace(/\(.*?\)/g, '').trim();
     let score = 0;
-    if (cruEn && (nameLower.includes(cruEn) || regionLower.includes(cruEn))) score = 100;
-    else if (appEn && specific.includes(appEn.replace(' aoc', '').replace(' 1er cru', ''))) score = 80;
-    else if (subEn && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
-    else if (subEn && regionLower.includes(subEn)) score = 40;
-    else if (subEn && nameLower.includes(subEn)) score = 30;
+    // 모든 부분문자열 매칭은 최소 길이(3~4)를 요구 — "do"/"doc" 같은 등급 약어/공백 catch-all 방지.
+    if (cruEn.length >= 4 && (nameLower.includes(cruEn) || regionLower.includes(cruEn))) score = 100;
+    else if (appEn.length >= 4 && specific.includes(appEn)) score = 80;
+    else if (subEn.length >= 3 && specific.length >= 3 && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
+    else if (subEn.length >= 4 && regionLower.includes(subEn)) score = 40;
+    else if (subEn.length >= 4 && nameLower.includes(subEn)) score = 30;
     else {
       // major_region(district/광역명)도 매칭 — sub 가 "도우루 DOC"처럼 식별 불가일 때 대비.
-      // 예: region "Douro Valley" ↔ major "도우루 Douro"(영문 Douro). sub 보다 낮은 점수.
-      const majorEn = extractEnglish(row.major_region || '').toLowerCase();
-      if (majorEn.length >= 3 && (specific.includes(majorEn) || regionLower.includes(majorEn))) score = 35;
+      const majorEn = cleanRegionToken(row.major_region || '');
+      if (majorEn.length >= 4 && (specific.includes(majorEn) || regionLower.includes(majorEn))) score = 35;
     }
     if (score > bestScore) { bestScore = score; best = row; }
   }
