@@ -287,7 +287,7 @@ export default function OrderV2Page() {
               })}
             </ItemListSection>
 
-            <TokenUsage usage={parse.usage} />
+            <TokenUsage usage={parse.usage} model={parse.model} />
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ export function useOrderParse() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [usage, setUsage] = useState<ParseUsage | null>(null);
+  const [model, setModel] = useState<string | null>(null);
   const [historySet, setHistorySet] = useState<Set<string>>(new Set());
 
   async function run(params: {
@@ -26,6 +27,7 @@ export function useOrderParse() {
     setError("");
     setOrderLines([]);
     setUsage(null);
+    setModel(null);
     params.onStart?.();
 
     try {
@@ -38,6 +40,7 @@ export function useOrderParse() {
       });
       setOrderLines(result.orderLines);
       setUsage(result.usage);
+      setModel(result.model);
       setHistorySet(
         new Set(result.historyItemNos.map((n) => n.trim().toUpperCase())),
       );
@@ -54,6 +57,7 @@ export function useOrderParse() {
     setOrderLines([]);
     setError("");
     setUsage(null);
+    setModel(null);
     setHistorySet(new Set());
   }
 
@@ -63,6 +67,7 @@ export function useOrderParse() {
     loading,
     error,
     usage,
+    model,
     historySet,
     run,
     reset,

@@ -109,6 +109,7 @@ export type ParseOrderResult = {
   orderLines: OrderLine[];
   usage: ParseUsage | null;
   historyItemNos: string[];
+  model: string | null;
 };
 
 /** 발주 텍스트 파싱 */
@@ -151,5 +152,6 @@ export async function parseOrder(params: {
     orderLines: lines,
     usage: json.usage || null,
     historyItemNos: json.historyItemNos || [],
+    model: json.model || null,
   };
 }
