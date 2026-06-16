@@ -21,6 +21,7 @@ export default function WineRegionsTab() {
   const [editItem, setEditItem] = useState<WineRegion | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [wineCounts, setWineCounts] = useState<RegionWineCounts | null>(null);
+  const [winesModal, setWinesModal] = useState<{ label: string; wines: string[] } | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/wine-regions/wine-counts')
@@ -134,6 +135,9 @@ export default function WineRegionsTab() {
             onEdit={handleEdit}
             onDelete={remove}
             wineCounts={wineCounts}
+            onShowWines={(key, label) =>
+              setWinesModal({ label, wines: wineCounts?.winesByKey[key] || [] })
+            }
           />
         ) : (
           <RegionTableView regions={f.filtered} onEdit={handleEdit} onDelete={remove} />
@@ -149,6 +153,38 @@ export default function WineRegionsTab() {
           onClose={() => setEditItem(null)}
           onSave={handleSave}
         />
+      )}
+
+      {winesModal && (
+        <div
+          onClick={() => setWinesModal(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 12, padding: 20, maxWidth: 520, width: '100%',
+              maxHeight: '70vh', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                🍷 {winesModal.label} · {winesModal.wines.length}종
+              </h3>
+              <button onClick={() => setWinesModal(null)} style={{ border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
+            </div>
+            {winesModal.wines.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>매핑된 와인이 없습니다.</div>
+            ) : (
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.9, color: 'var(--text-primary)' }}>
+                {winesModal.wines.map((w, i) => <li key={i}>{w}</li>)}
+              </ol>
+            )}
+          </div>
+        </div>
       )}
 
       {toast && (

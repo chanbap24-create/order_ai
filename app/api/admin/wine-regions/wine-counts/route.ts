@@ -20,6 +20,12 @@ export async function GET() {
     const byCountry: Record<string, number> = {};
     const byMajor: Record<string, number> = {};
     const bySub: Record<string, number> = {};
+    // 노드 key(국가 / 국가>대지역 / 국가>대지역>세부)별 실제 와인 이름 목록
+    const winesByKey: Record<string, string[]> = {};
+    const pushWine = (key: string, label: string) => {
+      const arr = winesByKey[key] || (winesByKey[key] = []);
+      if (arr.length < 200) arr.push(label);
+    };
     let matched = 0;
     let noRegion = 0; // 산지 문자열 자체가 비어있는 와인
     const unmatchedSamples: string[] = [];
@@ -37,14 +43,18 @@ export async function GET() {
       }
       matched++;
       const row = m.row;
+      const label = w.item_name_kr || w.item_name_en || w.item_code;
       byCountry[row.country] = (byCountry[row.country] || 0) + 1;
+      pushWine(row.country, label);
       // 광역 폴백(exact=false)은 대지역/세부산지로 단정하지 않고 국가 카운트만 (오귀속 방지)
       if (m.exact) {
         const mk = `${row.country}>${row.major_region}`;
         byMajor[mk] = (byMajor[mk] || 0) + 1;
+        pushWine(mk, label);
         if (row.sub_region) {
           const sk = `${mk}>${row.sub_region}`;
           bySub[sk] = (bySub[sk] || 0) + 1;
+          pushWine(sk, label);
         }
       }
     }
@@ -58,6 +68,7 @@ export async function GET() {
       byCountry,
       byMajor,
       bySub,
+      winesByKey,
       unmatchedSamples,
     });
   } catch (e) {

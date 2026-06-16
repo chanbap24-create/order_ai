@@ -12,22 +12,27 @@ type Props = {
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
   wineCounts?: RegionWineCounts | null;
+  onShowWines?: (key: string, label: string) => void;
 };
 
-/** 우리 와인 수 배지 (0이면 표시 안 함) */
-function WineBadge({ n }: { n?: number }) {
+/** 우리 와인 수 배지 (0이면 표시 안 함). 클릭 시 해당 산지 와인 목록. */
+function WineBadge({ n, onClick }: { n?: number; onClick?: () => void }) {
   if (!n) return null;
   return (
-    <span style={{
-      fontSize: 11, fontWeight: 700, color: '#fff', background: '#7C3AED',
-      borderRadius: 10, padding: '1px 8px',
-    }}>
+    <span
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
+      title="클릭: 이 산지의 우리 와인 목록"
+      style={{
+        fontSize: 11, fontWeight: 700, color: '#fff', background: '#7C3AED',
+        borderRadius: 10, padding: '1px 8px', cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
       🍷 {n}종
     </span>
   );
 }
 
-export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onEdit, onDelete, wineCounts }: Props) {
+export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onEdit, onDelete, wineCounts, onShowWines }: Props) {
   return (
     <div>
       {Array.from(tree.entries()).map(([country, majorMap]) => (
@@ -41,6 +46,7 @@ export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onE
           onEdit={onEdit}
           onDelete={onDelete}
           wineCounts={wineCounts}
+          onShowWines={onShowWines}
         />
       ))}
     </div>
@@ -58,6 +64,7 @@ function CountryNode({
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
   wineCounts?: RegionWineCounts | null;
+  onShowWines?: (key: string, label: string) => void;
 }) {
   const showCountryLevel = !hideCountryLevel;
   const isCountryOpen = !showCountryLevel || expanded.has(country);
@@ -77,6 +84,7 @@ function CountryNode({
       onEdit={onEdit}
       onDelete={onDelete}
       wineCounts={wineCounts}
+      onShowWines={onShowWines}
     />
   ));
 
@@ -104,7 +112,7 @@ function CountryNode({
         </span>
         <span>{getCountryFlag(country)}</span>
         <span style={{ flex: 1 }}>{country}</span>
-        <WineBadge n={wineCounts?.byCountry[country]} />
+        <WineBadge n={wineCounts?.byCountry[country]} onClick={onShowWines ? () => onShowWines(country, country) : undefined} />
         <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>{countryCount}</span>
       </div>
       {isCountryOpen && <div style={{ marginTop: 4 }}>{majorContent}</div>}
@@ -124,6 +132,7 @@ function MajorNode({
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
   wineCounts?: RegionWineCounts | null;
+  onShowWines?: (key: string, label: string) => void;
 }) {
   const majorKey = `${countryKey}>${major}`;
   const isMajorOpen = expanded.has(majorKey);
@@ -150,7 +159,7 @@ function MajorNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{major}</span>
-        <WineBadge n={wineCounts?.byMajor[majorKey]} />
+        <WineBadge n={wineCounts?.byMajor[majorKey]} onClick={onShowWines ? () => onShowWines(majorKey, major) : undefined} />
         <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.7 }}>{majorCount}</span>
       </div>
       {isMajorOpen && Array.from(subMap.entries()).map(([sub, items]) => (
@@ -164,6 +173,7 @@ function MajorNode({
           onEdit={onEdit}
           onDelete={onDelete}
           wineCounts={wineCounts}
+          onShowWines={onShowWines}
         />
       ))}
     </div>
@@ -181,6 +191,7 @@ function SubNode({
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
   wineCounts?: RegionWineCounts | null;
+  onShowWines?: (key: string, label: string) => void;
 }) {
   const subKey = `${majorKey}>${sub}`;
   const isSubOpen = expanded.has(subKey);
@@ -204,7 +215,7 @@ function SubNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{sub}</span>
-        <WineBadge n={wineCounts?.bySub[subKey]} />
+        <WineBadge n={wineCounts?.bySub[subKey]} onClick={onShowWines ? () => onShowWines(subKey, sub) : undefined} />
         <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{items.length}</span>
       </div>
       {isSubOpen && (

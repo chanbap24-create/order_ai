@@ -23,5 +23,6 @@ export interface RegionWineCounts {
   byCountry: Record<string, number>;   // key: country
   byMajor: Record<string, number>;     // key: `${country}>${major_region}`
   bySub: Record<string, number>;       // key: `${country}>${major_region}>${sub_region}`
+  winesByKey: Record<string, string[]>; // 동일 key별 실제 와인 이름 목록
   unmatchedSamples: string[];
 }
