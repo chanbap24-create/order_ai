@@ -1,25 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { loadMasterSheet, getDownloadsRetailPriceMap, getDlRetailPriceMap } from '@/app/lib/masterSheet';
+import { addQuoteItem } from '@/app/api/quote/lib/addItem';
 
-function extractVintage(itemCode: string): string {
-  if (!itemCode || itemCode.length < 4) return '';
-  const vPart = itemCode.substring(2, 4);
-  const upper = vPart.toUpperCase();
-  if (upper === 'NV' || upper === 'MV') return upper;
-  if (!/^\d{2}$/.test(vPart)) return vPart;
-  const num = parseInt(vPart);
-  return num >= 50 ? `19${vPart}` : `20${vPart}`;
-}
-
-function removePrefix(name: string): string {
-  if (!name) return '';
-  return name.replace(/^[A-Za-z]{2}\s+/, '').trim();
-}
-
+// 추천 와인 목록 → quote_items 적재.
+// 수동 견적 담기(addQuoteItem)와 "동일한" 보강(이미지/브랜드/산지/소매가/테이스팅노트/중복합산)을
+// 그대로 재사용한다. (이전엔 masterSheet 만 사용해 image_url='' · 브랜드/산지 누락 버그가 있었음)
 export async function POST(req: Request) {
   try {
-    const { items, client_code, client_name, clear_existing } = await req.json();
+    const { items, client_code, clear_existing } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: '추천 와인 목록이 필요합니다.' }, { status: 400 });
@@ -30,98 +18,28 @@ export async function POST(req: Request) {
       await supabase.from('quote_items').delete().neq('id', 0);
     }
 
-    // 마스터 시트 로드
-    let masterItems: any[] = [];
-    try { masterItems = loadMasterSheet(); } catch { /* ignore */ }
-
-    const retailPriceMap = getDownloadsRetailPriceMap();
-    const dlRetailMap = getDlRetailPriceMap();
-
-    // ── Phase 1: 모든 item_code 에 대한 기존 레코드 한 번에 조회 (N+1 제거) ──
-    const itemCodes = items
-      .map((i: any) => i.item_no || i.item_code || '')
-      .filter(Boolean);
-    const { data: existingRows } = await supabase
-      .from('quote_items')
-      .select('id, item_code, quantity')
-      .in('item_code', itemCodes);
-    const existingMap = new Map<string, { id: number; quantity: number }>();
-    for (const row of existingRows || []) {
-      existingMap.set(row.item_code, { id: row.id, quantity: row.quantity });
-    }
-
-    const addedItems: any[] = [];
-    const toInsert: Record<string, unknown>[] = [];
-    const updatePromises: Promise<unknown>[] = [];
-    const now = new Date().toISOString();
-
+    // 각 추천 와인을 수동 담기와 동일 로직으로 적재 (순차 — sort_order/중복합산 정확성)
+    const addedItems: unknown[] = [];
     for (const item of items) {
-      const itemCode = item.item_no || item.item_code || '';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const it = item as any;
+      const itemCode = it.item_no || it.item_code || '';
       if (!itemCode) continue;
-
-      // 마스터 시트에서 보강
-      const master = masterItems.find(m => m.itemNo === itemCode);
-      const brand = master?.producer || '';
-      const english_name = master?.englishName || '';
-      const korean_name = removePrefix(master?.koreanName || item.item_name || '');
-      const region = master?.region || '';
-      const country = master?.country || item.country || '';
-      const vintage = extractVintage(itemCode);
-      const product_name = korean_name;
-
-      const supply_price = item.price || master?.supplyPrice || 0;
-      const retail_price = retailPriceMap.get(itemCode) || dlRetailMap.get(itemCode) || 0;
-
-      const existing = existingMap.get(itemCode);
-      if (existing) {
-        const newQty = existing.quantity + 1;
-        updatePromises.push(
-          supabase
-            .from('quote_items')
-            .update({ quantity: newQty, updated_at: now })
-            .eq('id', existing.id),
-        );
-        addedItems.push({ item_code: itemCode, merged: true, quantity: newQty });
-        continue;
-      }
-
-      toInsert.push({
-        item_code: itemCode,
-        country,
-        brand,
-        region,
-        image_url: '',
-        vintage,
-        product_name,
-        english_name,
-        korean_name,
-        supply_price: Number(supply_price) || 0,
-        retail_price: Number(retail_price) || 0,
-        discount_rate: 0,
-        discounted_price: Number(supply_price) || 0,
-        quantity: 1,
-        note: '',
-        tasting_note: '',
-      });
-    }
-
-    // Phase 2: 기존 레코드 update 병렬 + 신규 레코드 일괄 insert
-    await Promise.all(updatePromises);
-
-    if (toInsert.length > 0) {
-      const { data: insertedRows, error: insertError } = await supabase
-        .from('quote_items')
-        .insert(toInsert)
-        .select();
-      if (insertError) {
-        console.error('Quote bulk insert error:', insertError);
-      } else if (insertedRows) {
-        addedItems.push(...insertedRows);
+      try {
+        const r = await addQuoteItem({
+          item_code: itemCode,
+          quantity: 1,
+          supply_price: it.price || 0,
+        });
+        if (r?.item) addedItems.push(r.item);
+      } catch (e) {
+        console.error('[recommend/quote] addQuoteItem 실패:', itemCode, e instanceof Error ? e.message : e);
       }
     }
 
     // recommendations 테이블에 이력 저장
     if (client_code) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const itemCodes = items.map((i: any) => i.item_no || i.item_code).filter(Boolean);
       await supabase.from('recommendations').insert({
         client_code,
@@ -138,12 +56,11 @@ export async function POST(req: Request) {
       items: addedItems,
       export_url: '/api/quote/export',
     });
-
   } catch (error) {
     console.error('Recommend quote error:', error);
     return NextResponse.json(
       { error: '견적서 생성 중 오류가 발생했습니다.' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
