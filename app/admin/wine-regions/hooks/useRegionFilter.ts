@@ -3,6 +3,21 @@
 import { useMemo, useState } from 'react';
 import type { RegionTree, WineRegion } from '../types';
 
+// 광역(super) 묶음 — major_region(district) → super_region(광역). 여러 district 를 거느린 광역만 등록.
+// 미등록 major(알자스·샴페인·이탈리아·미국 등)는 광역=자기자신 → 트리에서 평면 표시(collapse).
+const SUPER_REGION_KO: Record<string, string> = {
+  '메독 Médoc': '보르도 Bordeaux', '그라브 Graves': '보르도 Bordeaux',
+  '우안 Right Bank': '보르도 Bordeaux', '소테른 Sauternes': '보르도 Bordeaux', '기타 보르도': '보르도 Bordeaux',
+  '샤블리 Chablis': '부르고뉴 Bourgogne', '코트 드 뉘 Côte de Nuits': '부르고뉴 Bourgogne',
+  '코트 드 본 Côte de Beaune': '부르고뉴 Bourgogne', '코트 샬로네즈 Côte Chalonnaise': '부르고뉴 Bourgogne',
+  '마코네 Mâconnais': '부르고뉴 Bourgogne', '광역 Régionale': '부르고뉴 Bourgogne',
+  '북부 론 Northern Rhône': '론 Rhône', '남부 론 Southern Rhône': '론 Rhône',
+  '상부 루아르 Upper Loire': '루아르 Loire', '투렌 Touraine': '루아르 Loire',
+  '앙주소뮈르 Anjou-Saumur': '루아르 Loire', '낭트 Nantais': '루아르 Loire',
+  '랑그독 Languedoc': '랑그독·루시용 Languedoc-Roussillon', '루시용 Roussillon': '랑그독·루시용 Languedoc-Roussillon',
+};
+const superOf = (major: string) => SUPER_REGION_KO[major] || major;
+
 export function useRegionFilter(regions: WineRegion[]) {
   const [search, setSearch] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -42,9 +57,12 @@ export function useRegionFilter(regions: WineRegion[]) {
     for (const r of filtered) {
       const country = r.country || '(미지정)';
       const major = r.major_region || '(미지정)';
+      const sup = superOf(major);
       const sub = r.sub_region || '(직접)';
       if (!countryMap.has(country)) countryMap.set(country, new Map());
-      const majorMap = countryMap.get(country)!;
+      const superMap = countryMap.get(country)!;
+      if (!superMap.has(sup)) superMap.set(sup, new Map());
+      const majorMap = superMap.get(sup)!;
       if (!majorMap.has(major)) majorMap.set(major, new Map());
       const subMap = majorMap.get(major)!;
       if (!subMap.has(sub)) subMap.set(sub, []);
@@ -63,13 +81,15 @@ export function useRegionFilter(regions: WineRegion[]) {
 
   const expandAll = () => {
     const keys = new Set<string>();
-    tree.forEach((majorMap, country) => {
+    tree.forEach((superMap, country) => {
       keys.add(country);
-      majorMap.forEach((subMap, major) => {
-        const majorKey = `${country}>${major}`;
-        keys.add(majorKey);
-        subMap.forEach((_, sub) => {
-          keys.add(`${majorKey}>${sub}`);
+      superMap.forEach((majorMap, sup) => {
+        const superKey = `${country}>${sup}`;
+        keys.add(superKey);
+        majorMap.forEach((subMap, major) => {
+          const majorKey = `${superKey}>${major}`;
+          keys.add(majorKey);
+          subMap.forEach((_, sub) => keys.add(`${majorKey}>${sub}`));
         });
       });
     });

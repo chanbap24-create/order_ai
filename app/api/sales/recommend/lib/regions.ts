@@ -85,6 +85,12 @@ export function matchRegionRow<T extends WineRegionRow>(
     else if (subEn && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
     else if (subEn && regionLower.includes(subEn)) score = 40;
     else if (subEn && nameLower.includes(subEn)) score = 30;
+    else {
+      // major_region(district/광역명)도 매칭 — sub 가 "도우루 DOC"처럼 식별 불가일 때 대비.
+      // 예: region "Douro Valley" ↔ major "도우루 Douro"(영문 Douro). sub 보다 낮은 점수.
+      const majorEn = extractEnglish(row.major_region || '').toLowerCase();
+      if (majorEn.length >= 3 && (specific.includes(majorEn) || regionLower.includes(majorEn))) score = 35;
+    }
     if (score > bestScore) { bestScore = score; best = row; }
   }
   if (best && bestScore >= 30) return { row: best, exact: true };
@@ -127,6 +133,12 @@ export function findHierarchy(
     else if (subEn && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
     else if (subEn && regionLower.includes(subEn)) score = 40;
     else if (subEn && nameLower.includes(subEn)) score = 30;
+    else {
+      // major_region(district/광역명)도 매칭 — sub 가 "도우루 DOC"처럼 식별 불가일 때 대비.
+      // 예: region "Douro Valley" ↔ major "도우루 Douro"(영문 Douro). sub 보다 낮은 점수.
+      const majorEn = extractEnglish(row.major_region || '').toLowerCase();
+      if (majorEn.length >= 3 && (specific.includes(majorEn) || regionLower.includes(majorEn))) score = 35;
+    }
 
     if (score > bestScore) {
       bestScore = score;
