@@ -13,6 +13,29 @@ const SUPER_REGION_MAP: Record<string, string> = {
   '남서부 Sud-Ouest': 'Sud-Ouest', '코르시카 Corsica': 'Corsica',
 };
 
+// 광역(super) 산지 키워드 — 빌리지/밭이 안 잡혀도 광역 라벨("Bourgogne" 등)은 인식.
+// 값은 SUPER_REGION_MAP 의 super_region 과 일치시켜야 후보 와인과 매칭됨.
+const SUPER_KEYWORDS: Array<[RegExp, string]> = [
+  [/bourgogne|burgundy|부르고뉴/i, 'Burgundy'],
+  [/bordeaux|보르도/i, 'Bordeaux'],
+  [/champagne|샴페인|샹파뉴/i, 'Champagne'],
+  [/rh[oô]ne|론\b/i, 'Rhône'],
+  [/loire|루아르/i, 'Loire'],
+  [/alsace|알자스/i, 'Alsace'],
+  [/languedoc|roussillon|랑그독|루시용/i, 'Languedoc-Roussillon'],
+  [/provence|프로방스/i, 'Provence'],
+  [/jura|savoie|쥐라|사부아/i, 'Jura-Savoie'],
+  [/sud[-\s]?ouest|south\s*west|남서부/i, 'Sud-Ouest'],
+  [/corsica|corse|코르시카/i, 'Corsica'],
+];
+
+/** 산지/와인명 문자열에서 광역(super) 산지를 감지. 없으면 ''. */
+export function detectSuperRegion(text: string): string {
+  const t = text || '';
+  for (const [re, sup] of SUPER_KEYWORDS) if (re.test(t)) return sup;
+  return '';
+}
+
 export function extractEnglish(bilingual: string): string {
   const parts = bilingual.split(/\s+/);
   const enIdx = parts.findIndex((p) => /^[A-ZÀ-ÿ]/.test(p));
@@ -43,7 +66,7 @@ export function matchRegionRow<T extends WineRegionRow>(
   wineRegion: string,
   wineName: string,
   regionRows: T[],
-): T | null {
+): { row: T; exact: boolean } | null {
   if (!wineRegion && !wineName) return null;
   const regionLower = (wineRegion || '').toLowerCase();
   const nameLower = (wineName || '').toLowerCase();
@@ -64,7 +87,15 @@ export function matchRegionRow<T extends WineRegionRow>(
     else if (subEn && nameLower.includes(subEn)) score = 30;
     if (score > bestScore) { bestScore = score; best = row; }
   }
-  return bestScore >= 30 ? best : null;
+  if (best && bestScore >= 30) return { row: best, exact: true };
+
+  // 광역 폴백: 빌리지/밭이 안 잡혔지만 광역 라벨이면, 그 광역의 대표 행으로 매칭(정확도 낮음)
+  const sup = detectSuperRegion(`${wineRegion} ${wineName}`);
+  if (sup) {
+    const rep = regionRows.find((r) => SUPER_REGION_MAP[r.major_region] === sup);
+    if (rep) return { row: rep, exact: false };
+  }
+  return null;
 }
 
 /**
@@ -103,7 +134,19 @@ export function findHierarchy(
     }
   }
 
-  if (!bestMatch || bestScore < 30) return null;
+  if (!bestMatch || bestScore < 30) {
+    // 광역 폴백: 빌리지/밭 매칭 실패 시, 광역 라벨("Bourgogne" 등)만이라도 super_region 으로 인정.
+    // → 광역 단위 산지 선호가 추천에 반영되어, 국가(미국 등)로의 폴백을 줄인다.
+    const sup = detectSuperRegion(`${wineRegion} ${wineName}`);
+    if (sup) {
+      const text = `${wineName} ${wineRegion}`.toLowerCase();
+      let cls = '';
+      if (/grand\s*cru/.test(text) || text.includes('그랑 크뤼')) cls = 'Grand Cru';
+      else if (/1er\s*cru|premier\s*cru/.test(text) || text.includes('프리미에 크뤼')) cls = 'Premier Cru';
+      return { sub_region: '', major_region: '', super_region: sup, classification: cls };
+    }
+    return null;
+  }
 
   const subRegion = bestMatch.sub_region || bestMatch.major_region;
   const majorRegion = bestMatch.major_region;

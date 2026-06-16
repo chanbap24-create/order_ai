@@ -36,12 +36,16 @@ export async function GET() {
         continue;
       }
       matched++;
-      byCountry[m.country] = (byCountry[m.country] || 0) + 1;
-      const mk = `${m.country}>${m.major_region}`;
-      byMajor[mk] = (byMajor[mk] || 0) + 1;
-      if (m.sub_region) {
-        const sk = `${mk}>${m.sub_region}`;
-        bySub[sk] = (bySub[sk] || 0) + 1;
+      const row = m.row;
+      byCountry[row.country] = (byCountry[row.country] || 0) + 1;
+      // 광역 폴백(exact=false)은 대지역/세부산지로 단정하지 않고 국가 카운트만 (오귀속 방지)
+      if (m.exact) {
+        const mk = `${row.country}>${row.major_region}`;
+        byMajor[mk] = (byMajor[mk] || 0) + 1;
+        if (row.sub_region) {
+          const sk = `${mk}>${row.sub_region}`;
+          bySub[sk] = (bySub[sk] || 0) + 1;
+        }
       }
     }
 
