@@ -56,6 +56,12 @@ function cleanRegionToken(bilingual: string): string {
     .trim();
 }
 
+// 비교용 정규화: 발음기호 제거 + 영숫자만 남김(악센트·하이픈·공백·구두점 차이 무시).
+// "Châteauneuf-du-Pape" / "Chateauneuf du Pape" → "chateauneufdupape", "Mc Laren Vale" → "mclarenvale"
+function norm(s: string): string {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 export interface RegionHierarchy {
   sub_region: string;
   major_region: string;
@@ -85,25 +91,24 @@ export function matchRegionRow<T extends WineRegionRow>(
   const nameLower = (wineName || '').toLowerCase();
   const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
   const specific = parts[0] || '';
+  const sName = norm(specific), rName = norm(regionLower), nName = norm(nameLower);
 
   let best: T | null = null;
   let bestScore = 0;
   for (const row of regionRows) {
-    const subEn = cleanRegionToken(row.sub_region || '');
-    const appEn = cleanRegionToken(row.appellation || '');
-    const cruEn = (row.cru_vineyard || '').toLowerCase().replace(/\(.*?\)/g, '').trim();
+    // 정규화 비교(악센트/하이픈/공백 무시) + 등급약어 제거 + 최소 길이 가드(catch-all 방지)
+    const subN = norm(cleanRegionToken(row.sub_region || ''));
+    const appN = norm(cleanRegionToken(row.appellation || ''));
+    const cruN = norm((row.cru_vineyard || '').replace(/\(.*?\)/g, ''));
     let score = 0;
-    // 모든 부분문자열 매칭은 최소 길이(3~4)를 요구 — "do"/"doc" 같은 등급 약어/공백 catch-all 방지.
-    if (cruEn.length >= 4 && (nameLower.includes(cruEn) || regionLower.includes(cruEn))) score = 100;
-    else if (appEn.length >= 4 && specific.includes(appEn)) score = 80;
-    else if (subEn.length >= 3 && specific.length >= 3 && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
-    else if (subEn.length >= 4 && regionLower.includes(subEn)) score = 40;
-    // 와인 "이름" 기반 sub 매칭은 제거 — "스프리츠 오렌지"의 Orange 가 호주 Orange 산지에
-    // 오매칭되는 등 맛/품종 단어 오인이 잦음. 산지는 region 필드로만 판단.
+    if (cruN.length >= 4 && (nName.includes(cruN) || rName.includes(cruN))) score = 100;
+    else if (appN.length >= 4 && sName.includes(appN)) score = 80;
+    else if (subN.length >= 3 && sName.length >= 3 && (sName.includes(subN) || subN.includes(sName))) score = 60;
+    else if (subN.length >= 4 && rName.includes(subN)) score = 40;
+    // 와인 "이름" 기반 sub 매칭은 제거 — 맛/품종 단어(오렌지 등) 오매칭 방지. 산지는 region 필드로만.
     else {
-      // major_region(district/광역명)도 매칭 — sub 가 "도우루 DOC"처럼 식별 불가일 때 대비.
-      const majorEn = cleanRegionToken(row.major_region || '');
-      if (majorEn.length >= 4 && (specific.includes(majorEn) || regionLower.includes(majorEn))) score = 35;
+      const majorN = norm(cleanRegionToken(row.major_region || ''));
+      if (majorN.length >= 4 && (sName.includes(majorN) || rName.includes(majorN))) score = 35;
     }
     if (score > bestScore) { bestScore = score; best = row; }
   }
@@ -132,26 +137,25 @@ export function findHierarchy(
   const nameLower = (wineName || '').toLowerCase();
   const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
   const specific = parts[0] || '';
+  const sName = norm(specific), rName = norm(regionLower), nName = norm(nameLower);
 
   let bestMatch: WineRegionRow | null = null;
   let bestScore = 0;
 
   for (const row of regionRows) {
-    const subEn = extractEnglish(row.sub_region || '').toLowerCase();
-    const appEn = extractEnglish(row.appellation || '').toLowerCase();
-    const cruEn = (row.cru_vineyard || '').toLowerCase();
+    // matchRegionRow 와 동일한 정규화 스코어링(악센트/하이픈/공백 무시 + 최소 길이 가드)
+    const subN = norm(cleanRegionToken(row.sub_region || ''));
+    const appN = norm(cleanRegionToken(row.appellation || ''));
+    const cruN = norm((row.cru_vineyard || '').replace(/\(.*?\)/g, ''));
     let score = 0;
-
-    if (cruEn && (nameLower.includes(cruEn) || regionLower.includes(cruEn))) score = 100;
-    else if (appEn && specific.includes(appEn.replace(' aoc', '').replace(' 1er cru', ''))) score = 80;
-    else if (subEn && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
-    else if (subEn && regionLower.includes(subEn)) score = 40;
-    else if (subEn && nameLower.includes(subEn)) score = 30;
+    if (cruN.length >= 4 && (nName.includes(cruN) || rName.includes(cruN))) score = 100;
+    else if (appN.length >= 4 && sName.includes(appN)) score = 80;
+    else if (subN.length >= 3 && sName.length >= 3 && (sName.includes(subN) || subN.includes(sName))) score = 60;
+    else if (subN.length >= 4 && rName.includes(subN)) score = 40;
+    // 와인 "이름" 기반 sub 매칭은 제거 — 맛/품종 단어 오매칭 방지. 산지는 region 필드로만.
     else {
-      // major_region(district/광역명)도 매칭 — sub 가 "도우루 DOC"처럼 식별 불가일 때 대비.
-      // 예: region "Douro Valley" ↔ major "도우루 Douro"(영문 Douro). sub 보다 낮은 점수.
-      const majorEn = extractEnglish(row.major_region || '').toLowerCase();
-      if (majorEn.length >= 3 && (specific.includes(majorEn) || regionLower.includes(majorEn))) score = 35;
+      const majorN = norm(cleanRegionToken(row.major_region || ''));
+      if (majorN.length >= 4 && (sName.includes(majorN) || rName.includes(majorN))) score = 35;
     }
 
     if (score > bestScore) {

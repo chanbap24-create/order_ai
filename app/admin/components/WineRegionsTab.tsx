@@ -22,13 +22,35 @@ export default function WineRegionsTab() {
   const [isNew, setIsNew] = useState(false);
   const [wineCounts, setWineCounts] = useState<RegionWineCounts | null>(null);
   const [winesModal, setWinesModal] = useState<{ label: string; wines: string[] } | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
 
-  useEffect(() => {
+  const loadCounts = () => {
     fetch('/api/admin/wine-regions/wine-counts')
       .then((r) => r.json())
       .then((d) => { if (d.success) setWineCounts(d); })
       .catch(() => {});
-  }, []);
+  };
+  useEffect(() => { loadCounts(); }, []);
+
+  const handleAiClassify = async () => {
+    if (aiBusy) return;
+    setAiBusy(true);
+    showToast('AI가 미분류 산지를 분류 중…');
+    try {
+      const r = await fetch('/api/admin/wine-regions/ai-classify', { method: 'POST' });
+      const d = await r.json();
+      if (d.success) {
+        showToast(`AI 분류 완료 — ${d.classified ?? 0}개 산지 인식, ${d.addedRows ?? 0}개 추가`);
+        loadCounts();
+      } else {
+        showToast('AI 분류 실패');
+      }
+    } catch {
+      showToast('AI 분류 실패');
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   const handleEdit = (r: WineRegion) => {
     setEditItem({ ...r });
@@ -81,8 +103,23 @@ export default function WineRegionsTab() {
             </span>
           )}
         </div>
-        <button
-          onClick={handleNew}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {wineCounts && wineCounts.unmatched > wineCounts.noRegion && (
+            <button
+              onClick={handleAiClassify}
+              disabled={aiBusy}
+              title="미분류 와인의 산지 문자열을 AI가 읽어 나라/지역으로 자동 분류"
+              style={{
+                padding: '6px 14px', fontSize: 12, fontWeight: 600, border: 'none',
+                borderRadius: 6, background: aiBusy ? 'var(--gray-300)' : '#7C3AED',
+                color: '#fff', cursor: aiBusy ? 'default' : 'pointer',
+              }}
+            >
+              {aiBusy ? '분류 중…' : '🤖 AI 미분류 분류'}
+            </button>
+          )}
+          <button
+            onClick={handleNew}
           style={{
             padding: '6px 14px', fontSize: 12, fontWeight: 600, border: 'none',
             borderRadius: 6, background: 'var(--action)', color: '#fff', cursor: 'pointer',
@@ -90,6 +127,7 @@ export default function WineRegionsTab() {
         >
           + 새 산지 추가
         </button>
+        </div>
       </div>
 
       <SearchBar
