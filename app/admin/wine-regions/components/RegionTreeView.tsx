@@ -112,7 +112,7 @@ function CountryNode({
         </span>
         <span>{getCountryFlag(country)}</span>
         <span style={{ flex: 1 }}>{country}</span>
-        <WineBadge n={wineCounts?.byCountry[country]} onClick={onShowWines ? () => onShowWines(country, country) : undefined} />
+        <WineBadge n={wineCounts?.byCountry?.[country]} onClick={onShowWines ? () => onShowWines(country, country) : undefined} />
         <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>{countryCount}</span>
       </div>
       {isCountryOpen && <div style={{ marginTop: 4 }}>{majorContent}</div>}
@@ -159,7 +159,7 @@ function MajorNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{major}</span>
-        <WineBadge n={wineCounts?.byMajor[majorKey]} onClick={onShowWines ? () => onShowWines(majorKey, major) : undefined} />
+        <WineBadge n={wineCounts?.byMajor?.[majorKey]} onClick={onShowWines ? () => onShowWines(majorKey, major) : undefined} />
         <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.7 }}>{majorCount}</span>
       </div>
       {isMajorOpen && Array.from(subMap.entries()).map(([sub, items]) => (
@@ -215,7 +215,7 @@ function SubNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{sub}</span>
-        <WineBadge n={wineCounts?.bySub[subKey]} onClick={onShowWines ? () => onShowWines(subKey, sub) : undefined} />
+        <WineBadge n={wineCounts?.bySub?.[subKey]} onClick={onShowWines ? () => onShowWines(subKey, sub) : undefined} />
         <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{items.length}</span>
       </div>
       {isSubOpen && (

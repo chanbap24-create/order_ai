@@ -136,7 +136,7 @@ export default function WineRegionsTab() {
             onDelete={remove}
             wineCounts={wineCounts}
             onShowWines={(key, label) =>
-              setWinesModal({ label, wines: wineCounts?.winesByKey[key] || [] })
+              setWinesModal({ label, wines: wineCounts?.winesByKey?.[key] ?? [] })
             }
           />
         ) : (
