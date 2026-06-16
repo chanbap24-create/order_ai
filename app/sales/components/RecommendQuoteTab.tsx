@@ -11,6 +11,9 @@ import { ClientPickerCard } from '../recommend/components/ClientPickerCard';
 import { SummaryCard } from '../recommend/components/SummaryCard';
 import { RecommendationList } from '../recommend/components/RecommendationList';
 import { BottomActionBar } from '../recommend/components/BottomActionBar';
+import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
+import { useQuoteItems } from '@/app/inventory/hooks/useQuoteItems';
+import { RecommendQuoteEditPanel } from './RecommendQuoteEditPanel';
 
 type Props = {
   currentManager: string;
@@ -26,7 +29,14 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const cs = useClientSearch(filterManager, preselectedClient);
   const rec = useRecommendQuote();
   const cols = useQuoteCols();
-  const exp = useQuoteExport({ quoteCols: cols.quoteCols, selectedClient: cs.selectedClient });
+  const qm = useQuoteManager();
+  const quote = useQuoteItems({ quoteManager: qm.quoteManager, getManagerParam: qm.getManagerParam });
+  const exp = useQuoteExport({
+    quoteCols: cols.quoteCols,
+    selectedClient: cs.selectedClient,
+    manager: qm.getManagerParam(),
+    onAdded: quote.fetchQuoteItems,
+  });
 
   const [minScore, setMinScore] = useState(0); // 추천점수 허들
   const items = rec.result?.recommendations || [];
@@ -142,6 +152,14 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
             allSelected={allSelected}
             onToggleAll={toggleAll}
           />
+
+          {/* 하단 견적 편집 패널 — 견적서 빌더 재사용(할인률·수량·컬럼·발행) */}
+          <div style={{ marginTop: 24 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px' }}>
+              견적 편집
+            </h3>
+            <RecommendQuoteEditPanel quote={quote} getManagerParam={qm.getManagerParam} />
+          </div>
         </>
       )}
 

@@ -7,15 +7,18 @@ import { addQuoteItem } from '@/app/api/quote/lib/addItem';
 // 그대로 재사용한다. (이전엔 masterSheet 만 사용해 image_url='' · 브랜드/산지 누락 버그가 있었음)
 export async function POST(req: Request) {
   try {
-    const { items, client_code, clear_existing } = await req.json();
+    const { items, client_code, clear_existing, manager } = await req.json();
+    const mgr = typeof manager === 'string' ? manager : '';
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: '추천 와인 목록이 필요합니다.' }, { status: 400 });
     }
 
-    // 견적서 생성(download) 모드: 기존 quote_items 전체 삭제 후 새로 생성
+    // 견적서 생성(download) 모드: 기존 quote_items 삭제 후 새로 생성 (매니저 스코프)
     if (clear_existing) {
-      await supabase.from('quote_items').delete().neq('id', 0);
+      let del = supabase.from('quote_items').delete();
+      del = mgr ? del.eq('manager', mgr) : del.neq('id', 0);
+      await del;
     }
 
     // 각 추천 와인을 수동 담기와 동일 로직으로 적재 (순차 — sort_order/중복합산 정확성)
@@ -30,6 +33,7 @@ export async function POST(req: Request) {
           item_code: itemCode,
           quantity: 1,
           supply_price: it.price || 0,
+          manager: mgr,
         });
         if (r?.item) addedItems.push(r.item);
       } catch (e) {
