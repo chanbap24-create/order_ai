@@ -98,7 +98,8 @@ export function matchRegionRow<T extends WineRegionRow>(
     else if (appEn.length >= 4 && specific.includes(appEn)) score = 80;
     else if (subEn.length >= 3 && specific.length >= 3 && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
     else if (subEn.length >= 4 && regionLower.includes(subEn)) score = 40;
-    else if (subEn.length >= 4 && nameLower.includes(subEn)) score = 30;
+    // 와인 "이름" 기반 sub 매칭은 제거 — "스프리츠 오렌지"의 Orange 가 호주 Orange 산지에
+    // 오매칭되는 등 맛/품종 단어 오인이 잦음. 산지는 region 필드로만 판단.
     else {
       // major_region(district/광역명)도 매칭 — sub 가 "도우루 DOC"처럼 식별 불가일 때 대비.
       const majorEn = cleanRegionToken(row.major_region || '');
