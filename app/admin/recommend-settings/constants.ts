@@ -2,7 +2,8 @@ import type { StockRuleConfig, WeightConfig } from './types';
 
 export const WEIGHT_LABELS: Record<keyof WeightConfig, { label: string; desc: string; color: string }> = {
   REORDER: { label: '재주문', desc: '과거 2회+ 구매 후 3개월 미발주 와인', color: '#2196F3' },
-  COUNTRY_MATCH: { label: '선호 국가', desc: '거래처가 자주 구매하는 국가의 와인', color: '#9C27B0' },
+  REGION_MATCH: { label: '선호 산지', desc: '거래처 구매 산지(빌리지·밭) 계층 매칭 — 지역 기반 추천', color: '#7C3AED' },
+  COUNTRY_MATCH: { label: '선호 국가', desc: '산지 매칭 실패 시 국가 단위 fallback', color: '#9C27B0' },
   GRAPE_MATCH: { label: '선호 품종', desc: '거래처가 자주 구매하는 품종의 와인', color: '#E91E63' },
   TYPE_MATCH: { label: '선호 타입', desc: '거래처가 선호하는 와인 타입 (레드/화이트/스파클링 등)', color: '#00897B' },
   PRICE_FIT: { label: '가격 적합도', desc: '거래처 평균 구매가 ±20% 이내', color: '#4CAF50' },

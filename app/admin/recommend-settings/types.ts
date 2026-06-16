@@ -1,5 +1,6 @@
 export interface WeightConfig {
   REORDER: number;
+  REGION_MATCH: number;
   COUNTRY_MATCH: number;
   GRAPE_MATCH: number;
   TYPE_MATCH: number;

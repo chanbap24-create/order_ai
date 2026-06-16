@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 
-// 기본 가중치 (총 100점)
+// 기본 가중치 — 추천 엔진(app/api/sales/recommend/lib/settings.ts DEFAULT_W)과 일치시킬 것.
 const DEFAULT_WEIGHTS: Record<string, number> = {
   REORDER: 35,
-  COUNTRY_MATCH: 12,
+  REGION_MATCH: 22, // 산지(빌리지/밭) 계층 매칭 — 지역 기반 우선
+  COUNTRY_MATCH: 3, // 산지 매칭 실패 시 약한 fallback
   GRAPE_MATCH: 12,
   TYPE_MATCH: 8,
   PRICE_FIT: 10,
-  SALES_VELOCITY: 8,
-  SEASONAL: 10,
-  UPSELL: 5,
+  SALES_VELOCITY: 5,
+  SEASONAL: 7,
+  UPSELL: 3,
 };
 
 // 기본 재고 기준

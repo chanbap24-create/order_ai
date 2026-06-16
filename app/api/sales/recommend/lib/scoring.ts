@@ -138,6 +138,13 @@ export function scoreRecommendations(params: {
           score += W.UPSELL * fit;
           tags.push('프리미엄');
           reasons.push(`평균가 +${Math.round(priceDiff * 100)}%`);
+        } else if (invPrice > prefs.clientAvgPrice) {
+          // 평균가 대비 50% 초과 — 가격대를 크게 벗어난 고가 와인 감점(난입 방지).
+          // 배수(over)에 비례, 최대 PRICE_FIT*3 까지 차감 → 터무니없는 고가는 순위에서 탈락.
+          const over = invPrice / prefs.clientAvgPrice;
+          score -= W.PRICE_FIT * Math.min(3, (over - 1.5) * 0.5);
+          tags.push('가격높음');
+          reasons.push(`평균가 ${over.toFixed(1)}배`);
         }
       }
 
