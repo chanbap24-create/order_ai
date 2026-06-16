@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import type { ViewMode, WineRegion } from '../wine-regions/types';
+import { useEffect, useState } from 'react';
+import type { ViewMode, WineRegion, RegionWineCounts } from '../wine-regions/types';
 import { EMPTY_REGION } from '../wine-regions/constants';
 import { useToast } from '../wine-regions/hooks/useToast';
 import { useRegions } from '../wine-regions/hooks/useRegions';
@@ -20,6 +20,14 @@ export default function WineRegionsTab() {
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
   const [editItem, setEditItem] = useState<WineRegion | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [wineCounts, setWineCounts] = useState<RegionWineCounts | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/wine-regions/wine-counts')
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setWineCounts(d); })
+      .catch(() => {});
+  }, []);
 
   const handleEdit = (r: WineRegion) => {
     setEditItem({ ...r });
@@ -57,6 +65,19 @@ export default function WineRegionsTab() {
         <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
           전체 <strong style={{ color: 'var(--text-primary)' }}>{regions.length}</strong>개 산지
           {f.search && ` / 검색결과 ${f.filtered.length}개`}
+          {wineCounts && (
+            <span style={{ marginLeft: 10 }}>
+              · 우리 와인 <strong style={{ color: '#7C3AED' }}>{wineCounts.matched}</strong>/{wineCounts.total}종 산지매핑
+              {wineCounts.unmatched > 0 && (
+                <span
+                  title={wineCounts.unmatchedSamples.join('\n')}
+                  style={{ marginLeft: 6, color: '#dc2626', cursor: 'help' }}
+                >
+                  · 미분류 {wineCounts.unmatched}종{wineCounts.noRegion > 0 ? ` (산지없음 ${wineCounts.noRegion})` : ''}
+                </span>
+              )}
+            </span>
+          )}
         </div>
         <button
           onClick={handleNew}
@@ -112,6 +133,7 @@ export default function WineRegionsTab() {
             hideCountryLevel={!!f.selectedCountry}
             onEdit={handleEdit}
             onDelete={remove}
+            wineCounts={wineCounts}
           />
         ) : (
           <RegionTableView regions={f.filtered} onEdit={handleEdit} onDelete={remove} />

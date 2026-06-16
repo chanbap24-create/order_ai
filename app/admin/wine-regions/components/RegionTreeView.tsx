@@ -1,6 +1,6 @@
 'use client';
 
-import type { RegionTree, WineRegion } from '../types';
+import type { RegionTree, WineRegion, RegionWineCounts } from '../types';
 import { getCountryFlag } from '../constants';
 import { RegionItem } from './RegionItem';
 
@@ -11,9 +11,23 @@ type Props = {
   hideCountryLevel: boolean;
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
+  wineCounts?: RegionWineCounts | null;
 };
 
-export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onEdit, onDelete }: Props) {
+/** 우리 와인 수 배지 (0이면 표시 안 함) */
+function WineBadge({ n }: { n?: number }) {
+  if (!n) return null;
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 700, color: '#fff', background: '#7C3AED',
+      borderRadius: 10, padding: '1px 8px',
+    }}>
+      🍷 {n}종
+    </span>
+  );
+}
+
+export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onEdit, onDelete, wineCounts }: Props) {
   return (
     <div>
       {Array.from(tree.entries()).map(([country, majorMap]) => (
@@ -26,6 +40,7 @@ export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onE
           hideCountryLevel={hideCountryLevel}
           onEdit={onEdit}
           onDelete={onDelete}
+          wineCounts={wineCounts}
         />
       ))}
     </div>
@@ -33,7 +48,7 @@ export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onE
 }
 
 function CountryNode({
-  country, majorMap, expanded, onToggle, hideCountryLevel, onEdit, onDelete,
+  country, majorMap, expanded, onToggle, hideCountryLevel, onEdit, onDelete, wineCounts,
 }: {
   country: string;
   majorMap: Map<string, Map<string, WineRegion[]>>;
@@ -42,6 +57,7 @@ function CountryNode({
   hideCountryLevel: boolean;
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
+  wineCounts?: RegionWineCounts | null;
 }) {
   const showCountryLevel = !hideCountryLevel;
   const isCountryOpen = !showCountryLevel || expanded.has(country);
@@ -60,6 +76,7 @@ function CountryNode({
       onToggle={onToggle}
       onEdit={onEdit}
       onDelete={onDelete}
+      wineCounts={wineCounts}
     />
   ));
 
@@ -87,6 +104,7 @@ function CountryNode({
         </span>
         <span>{getCountryFlag(country)}</span>
         <span style={{ flex: 1 }}>{country}</span>
+        <WineBadge n={wineCounts?.byCountry[country]} />
         <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>{countryCount}</span>
       </div>
       {isCountryOpen && <div style={{ marginTop: 4 }}>{majorContent}</div>}
@@ -95,7 +113,7 @@ function CountryNode({
 }
 
 function MajorNode({
-  countryKey, major, subMap, showCountryLevel, expanded, onToggle, onEdit, onDelete,
+  countryKey, major, subMap, showCountryLevel, expanded, onToggle, onEdit, onDelete, wineCounts,
 }: {
   countryKey: string;
   major: string;
@@ -105,6 +123,7 @@ function MajorNode({
   onToggle: (key: string) => void;
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
+  wineCounts?: RegionWineCounts | null;
 }) {
   const majorKey = `${countryKey}>${major}`;
   const isMajorOpen = expanded.has(majorKey);
@@ -131,6 +150,7 @@ function MajorNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{major}</span>
+        <WineBadge n={wineCounts?.byMajor[majorKey]} />
         <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.7 }}>{majorCount}</span>
       </div>
       {isMajorOpen && Array.from(subMap.entries()).map(([sub, items]) => (
@@ -143,6 +163,7 @@ function MajorNode({
           onToggle={onToggle}
           onEdit={onEdit}
           onDelete={onDelete}
+          wineCounts={wineCounts}
         />
       ))}
     </div>
@@ -150,7 +171,7 @@ function MajorNode({
 }
 
 function SubNode({
-  majorKey, sub, items, expanded, onToggle, onEdit, onDelete,
+  majorKey, sub, items, expanded, onToggle, onEdit, onDelete, wineCounts,
 }: {
   majorKey: string;
   sub: string;
@@ -159,6 +180,7 @@ function SubNode({
   onToggle: (key: string) => void;
   onEdit: (r: WineRegion) => void;
   onDelete: (id: number) => void;
+  wineCounts?: RegionWineCounts | null;
 }) {
   const subKey = `${majorKey}>${sub}`;
   const isSubOpen = expanded.has(subKey);
@@ -182,6 +204,7 @@ function SubNode({
           ▶
         </span>
         <span style={{ flex: 1 }}>{sub}</span>
+        <WineBadge n={wineCounts?.bySub[subKey]} />
         <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{items.length}</span>
       </div>
       {isSubOpen && (

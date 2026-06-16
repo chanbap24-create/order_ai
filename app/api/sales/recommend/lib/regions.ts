@@ -36,6 +36,38 @@ export interface WineRegionRow {
 }
 
 /**
+ * findHierarchy 와 동일한 스코어링으로 "가장 잘 맞는 wine_regions 행"을 반환.
+ * (findHierarchy 는 계층 문자열을 반환 — 이쪽은 행 객체를 반환해 국가/대지역별 집계에 사용)
+ */
+export function matchRegionRow<T extends WineRegionRow>(
+  wineRegion: string,
+  wineName: string,
+  regionRows: T[],
+): T | null {
+  if (!wineRegion && !wineName) return null;
+  const regionLower = (wineRegion || '').toLowerCase();
+  const nameLower = (wineName || '').toLowerCase();
+  const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
+  const specific = parts[0] || '';
+
+  let best: T | null = null;
+  let bestScore = 0;
+  for (const row of regionRows) {
+    const subEn = extractEnglish(row.sub_region || '').toLowerCase();
+    const appEn = extractEnglish(row.appellation || '').toLowerCase();
+    const cruEn = (row.cru_vineyard || '').toLowerCase();
+    let score = 0;
+    if (cruEn && (nameLower.includes(cruEn) || regionLower.includes(cruEn))) score = 100;
+    else if (appEn && specific.includes(appEn.replace(' aoc', '').replace(' 1er cru', ''))) score = 80;
+    else if (subEn && (specific.includes(subEn) || subEn.includes(specific))) score = 60;
+    else if (subEn && regionLower.includes(subEn)) score = 40;
+    else if (subEn && nameLower.includes(subEn)) score = 30;
+    if (score > bestScore) { bestScore = score; best = row; }
+  }
+  return bestScore >= 30 ? best : null;
+}
+
+/**
  * wine region 문자열 + wine name으로 wine_regions 테이블에서 계층을 찾음.
  * cru > appellation > sub_region 순으로 매칭 후 score 높은 것 채택.
  */
