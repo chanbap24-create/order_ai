@@ -103,7 +103,8 @@ export function matchRegionRow<T extends WineRegionRow>(
     let score = 0;
     if (cruN.length >= 4 && (nName.includes(cruN) || rName.includes(cruN))) score = 100;
     else if (appN.length >= 4 && sName.includes(appN)) score = 80;
-    else if (subN.length >= 3 && sName.length >= 3 && (sName.includes(subN) || subN.includes(sName))) score = 60;
+    // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
+    else if (subN.length >= 4 && sName.includes(subN)) score = 60;
     else if (subN.length >= 4 && rName.includes(subN)) score = 40;
     // 와인 "이름" 기반 sub 매칭은 제거 — 맛/품종 단어(오렌지 등) 오매칭 방지. 산지는 region 필드로만.
     else {
@@ -150,7 +151,8 @@ export function findHierarchy(
     let score = 0;
     if (cruN.length >= 4 && (nName.includes(cruN) || rName.includes(cruN))) score = 100;
     else if (appN.length >= 4 && sName.includes(appN)) score = 80;
-    else if (subN.length >= 3 && sName.length >= 3 && (sName.includes(subN) || subN.includes(sName))) score = 60;
+    // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
+    else if (subN.length >= 4 && sName.includes(subN)) score = 60;
     else if (subN.length >= 4 && rName.includes(subN)) score = 40;
     // 와인 "이름" 기반 sub 매칭은 제거 — 맛/품종 단어 오매칭 방지. 산지는 region 필드로만.
     else {
