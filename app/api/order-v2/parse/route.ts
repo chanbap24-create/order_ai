@@ -5,6 +5,7 @@ import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
 import { reviewOrderLines } from '@/app/lib/orderReviewer';
 import { injectAliasCandidates } from '@/app/lib/aliasInject';
 import { getBrandNameMap, matchedProducerCodes } from '@/app/lib/producerAliases';
+import { extractOrderedVintage, codeToVintage } from '@/app/lib/resolve-items/vintage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 전체 카탈로그 폴백 등 느린 파싱 대비 (기본보다 여유)
@@ -339,25 +340,53 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
         }
       }
 
-      // ── 빈티지 자동 확정 로직 ──
-      // 재고가 가장 많은 빈티지를 우선 선택 (신규 빈티지 재고 반영)
-      if (tab !== 'DL' && candidates.length > 1) {
+      // ── 빈티지 선택 ──
+      // 원문에 빈티지가 명시되면("17빈","2018") 그 빈티지를 최우선(재고 무시).
+      // 명시 없을 때만 재고가 가장 많은 빈티지를 우선(신규 빈티지 재고 반영).
+      if (tab !== 'DL' && candidates.length > 0) {
         const first = candidates[0];
         const firstBase = getWineBase(first.item_no);
+        const orderedVintage = extractOrderedVintage(p.query || '');
 
-        // 같은 와인(브랜드+번호)의 다른 빈티지 후보 찾기
-        const sameWineCands = candidates.filter((c: any) => getWineBase(c.item_no) === firstBase);
-
-        if (sameWineCands.length > 1) {
-          // 재고가 가장 많은 빈티지를 우선 선택
-          const bestStock = [...sameWineCands].sort((a, b) => (b.available_stock || 0) - (a.available_stock || 0))[0];
-
-          if (bestStock && bestStock !== first && (bestStock.available_stock || 0) > (first.available_stock || 0)) {
-            const bsIdx = candidates.indexOf(bestStock);
-            if (bsIdx > 0) {
-              candidates.splice(bsIdx, 1);
-              candidates.unshift(bestStock);
-              bestStock.reasoning = (bestStock.reasoning || '') + ` [재고 최다 빈티지: ${bestStock.available_stock}병]`;
+        if (orderedVintage) {
+          // 1) 후보 중 같은 와인의 해당 빈티지
+          let target = candidates.find((c: any) =>
+            getWineBase(c.item_no) === firstBase && codeToVintage(c.item_no) === orderedVintage);
+          // 2) 후보에 없으면 카탈로그(wineMap)에서 코드 구성해 보충
+          if (!target && firstBase.includes('XX')) {
+            const targetCode = firstBase.replace('XX', String(orderedVintage % 100).padStart(2, '0')).toUpperCase();
+            const w = wineMap.get(targetCode);
+            if (w) {
+              target = {
+                item_no: w.item_no,
+                item_name: w.item_name,
+                confidence: first.confidence,
+                supply_price: w.supply_price || 0,
+                available_stock: w.available_stock || 0,
+                reasoning: '',
+              };
+            }
+          }
+          if (target) {
+            const idx = candidates.indexOf(target);
+            if (idx !== 0) {
+              if (idx > 0) candidates.splice(idx, 1);
+              candidates.unshift(target);
+              target.reasoning = (target.reasoning || '') + ` [원문 빈티지 ${orderedVintage} 우선]`;
+            }
+          }
+        } else if (candidates.length > 1) {
+          // 빈티지 미지정 → 같은 와인 중 재고 최다 빈티지 우선
+          const sameWineCands = candidates.filter((c: any) => getWineBase(c.item_no) === firstBase);
+          if (sameWineCands.length > 1) {
+            const bestStock = [...sameWineCands].sort((a, b) => (b.available_stock || 0) - (a.available_stock || 0))[0];
+            if (bestStock && bestStock !== first && (bestStock.available_stock || 0) > (first.available_stock || 0)) {
+              const bsIdx = candidates.indexOf(bestStock);
+              if (bsIdx > 0) {
+                candidates.splice(bsIdx, 1);
+                candidates.unshift(bestStock);
+                bestStock.reasoning = (bestStock.reasoning || '') + ` [재고 최다 빈티지: ${bestStock.available_stock}병]`;
+              }
             }
           }
         }
