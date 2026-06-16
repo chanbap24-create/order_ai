@@ -85,6 +85,48 @@ export async function backfillWineFieldsIfEmpty(
   return Object.keys(updates);
 }
 
+/**
+ * 발행된 노트에서 역추출한 테이스팅노트 텍스트를 tasting_notes의 "빈 칸만" 채운다.
+ * 기존 값(수동 편집/AI 조사분)은 절대 덮어쓰지 않는다. 행이 없으면 생성.
+ * 반환: 실제로 채운 컬럼명 배열.
+ */
+export async function backfillTastingNoteIfEmpty(
+  wineId: string,
+  fields: {
+    winemaking?: string; winery_description?: string;
+    color_note?: string; nose_note?: string; palate_note?: string;
+    vintage_note?: string; food_pairing?: string; glass_pairing?: string;
+    aging_potential?: string; serving_temp?: string;
+  },
+): Promise<string[]> {
+  const incoming = Object.entries(fields).filter(
+    ([, v]) => v != null && String(v).trim() !== '',
+  );
+  if (incoming.length === 0) return [];
+
+  const { data: existing } = await supabase
+    .from('tasting_notes')
+    .select('*')
+    .eq('wine_id', wineId)
+    .maybeSingle();
+
+  const patch: Record<string, string> = {};
+  for (const [k, v] of incoming) {
+    const cur = existing ? (existing as Record<string, unknown>)[k] : null;
+    if (cur == null || String(cur).trim() === '') patch[k] = String(v);
+  }
+  if (Object.keys(patch).length === 0) return [];
+
+  if (existing) {
+    await supabase.from('tasting_notes')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('wine_id', wineId);
+  } else {
+    await supabase.from('tasting_notes').insert({ wine_id: wineId, ...patch });
+  }
+  return Object.keys(patch);
+}
+
 export async function upsertWine(wine: Partial<Wine> & { item_code: string }) {
   const existing = await getWineByCode(wine.item_code);
 

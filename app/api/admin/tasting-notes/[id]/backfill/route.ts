@@ -1,7 +1,7 @@
 // 이미 릴리스에 업로드된 PPTX 노트로 wines 빈 칸을 즉시 backfill (행별 버튼용).
 import { NextRequest, NextResponse } from "next/server";
-import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
-import { backfillWineFieldsIfEmpty } from "@/app/lib/wineDb";
+import { parseWineFieldsFromPptx, parseTastingNotesFromPptx } from "@/app/lib/tastingNotePptxParse";
+import { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } from "@/app/lib/wineDb";
 import { syncBottleImage } from "@/app/lib/wineBottleImage";
 import { supabase } from "@/app/lib/db";
 import { handleApiError } from "@/app/lib/errors";
@@ -29,11 +29,15 @@ export async function POST(
     }
 
     const buffer = Buffer.from(await res.arrayBuffer());
+    // wines 기본 메타(지역/품종/빈티지/이름)
     const fields = await parseWineFieldsFromPptx(buffer);
     const backfilled = await backfillWineFieldsIfEmpty(itemCode, fields);
+    // tasting_notes 본문(양조/와이너리/색·향·맛/빈티지노트/페어링) — 빈 칸만 채움
+    const noteFields = await parseTastingNotesFromPptx(buffer);
+    const notesBackfilled = await backfillTastingNoteIfEmpty(itemCode, noteFields);
     const imageSynced = !!(await syncBottleImage(supabase, itemCode, buffer));
 
-    return NextResponse.json({ success: true, backfilled, imageSynced });
+    return NextResponse.json({ success: true, backfilled, notesBackfilled, imageSynced });
   } catch (e) {
     return handleApiError(e);
   }

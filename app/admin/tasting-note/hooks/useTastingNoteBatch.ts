@@ -25,6 +25,8 @@ export function useTastingNoteBatch(p: Params) {
   const [uploadingFileId, setUploadingFileId] = useState<string | null>(null);
   // 행별 "노트로 데이터 채우기" 진행 중인 item_code
   const [backfillingId, setBackfillingId] = useState<string | null>(null);
+  // 선택 일괄 동기화 진행 중 여부 (일괄조사와 구분된 라벨/진행 표시용)
+  const [backfillRunning, setBackfillRunning] = useState(false);
   // 일괄조사 중지 플래그 — true 면 다음 건부터 호출하지 않음 (진행 중인 1건은 완료됨)
   const batchCancelRef = useRef(false);
 
@@ -268,6 +270,44 @@ export function useTastingNoteBatch(p: Params) {
    * 이미 업로드된 PPTX 노트로 wines 빈 칸(영문명/지역/품종/빈티지 등)을 즉시 채움.
    * 신규 품목에 노트 추가 후 견적서 필드를 바로 반영할 때 사용.
    */
+  /** 선택 와인 일괄 동기화 — 발행 PPTX에서 기본정보+노트 본문을 빈 칸만 채움 (LLM 아님·무료) */
+  const backfillSelected = async () => {
+    const ids = [...p.checkedIds];
+    if (ids.length === 0) {
+      alert("동기화할 와인을 선택하세요. (전체선택 가능)");
+      return;
+    }
+    batchCancelRef.current = false;
+    setBackfillRunning(true);
+    setBatchProgress({ current: 0, total: ids.length, currentName: "" });
+    let updated = 0, noChange = 0, noPpt = 0, noteItems = 0;
+    for (let i = 0; i < ids.length; i++) {
+      if (batchCancelRef.current) break;
+      const id = ids[i];
+      const w = p.wines.find((w) => w.item_code === id);
+      setBatchProgress({ current: i + 1, total: ids.length, currentName: w?.item_name_kr || w?.item_name_en || id });
+      try {
+        const res = await fetch(`/api/admin/tasting-notes/${id}/backfill`, { method: "POST" });
+        const data = await res.json();
+        if (!data.success) { noPpt++; continue; }
+        const n = (data.backfilled?.length || 0) + (data.notesBackfilled?.length || 0);
+        noteItems += data.notesBackfilled?.length || 0;
+        if (n > 0 || data.imageSynced) updated++; else noChange++;
+      } catch {
+        noPpt++;
+      }
+    }
+    const stopped = batchCancelRef.current;
+    setBackfillRunning(false);
+    p.setCheckedIds(new Set());
+    p.refreshList();
+    if (p.selectedId) p.loadSelectedDetail(p.selectedId);
+    alert(
+      `${stopped ? "중지됨 · " : ""}동기화 완료\n` +
+      `갱신 ${updated}개 (노트 ${noteItems}항목) · 변동없음 ${noChange}개 · PPT없음 ${noPpt}개`,
+    );
+  };
+
   const backfillFromNote = async (itemCode: string) => {
     if (backfillingId) return;
     setBackfillingId(itemCode);
@@ -276,8 +316,16 @@ export function useTastingNoteBatch(p: Params) {
       const data = await res.json();
       if (data.success) {
         const cols: string[] = data.backfilled || [];
+        const noteCols: string[] = data.notesBackfilled || [];
+        const NOTE_KR: Record<string, string> = {
+          winemaking: "양조", winery_description: "와이너리",
+          color_note: "색", nose_note: "향", palate_note: "맛",
+          vintage_note: "빈티지노트", food_pairing: "푸드페어링",
+          glass_pairing: "글라스페어링", aging_potential: "숙성", serving_temp: "서빙온도",
+        };
         const parts = [
-          cols.length ? `데이터 채움: ${cols.join(", ")}` : "",
+          cols.length ? `기본정보: ${cols.join(", ")}` : "",
+          noteCols.length ? `노트: ${noteCols.map((c) => NOTE_KR[c] || c).join(", ")}` : "",
           data.imageSynced ? "병 이미지 채움" : "",
         ].filter(Boolean);
         alert(parts.length ? parts.join("\n") : "채울 빈 칸이 없습니다 (이미 입력됨).");
@@ -297,10 +345,11 @@ export function useTastingNoteBatch(p: Params) {
     uploadingGithub, dispatchingIndex,
     generatingPpt,
     batchPptRunning, batchPptProgress,
+    backfillRunning,
     uploadingFileId,
     backfillingId,
     batchResearch, cancelBatchResearch, githubRelease, dispatchIndex, generatePpt,
     batchPptGenerate,
-    uploadFileForWine, backfillFromNote,
+    uploadFileForWine, backfillFromNote, backfillSelected,
   };
 }

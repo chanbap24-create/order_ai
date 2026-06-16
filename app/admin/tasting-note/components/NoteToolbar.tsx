@@ -182,15 +182,30 @@ export function NoteToolbar(p: Props) {
             ? `${p.ops.batchProgress.current}/${p.ops.batchProgress.total} 조사 중...`
             : `일괄조사 (${p.checkedSize})`}
         </button>
-        {p.ops.batchRunning && (
+        {(p.ops.batchRunning || p.ops.backfillRunning) && (
           <button
             onClick={p.ops.cancelBatchResearch}
-            title="진행 중인 1건까지만 끝내고 일괄조사를 멈춥니다 (이후 건은 비용 발생 안 함)"
+            title="진행 중인 1건까지만 끝내고 멈춥니다"
             style={{ ...btn, background: "#dc2626", color: "#fff" }}
           >
             중지
           </button>
         )}
+        <button
+          onClick={p.ops.backfillSelected}
+          disabled={p.ops.backfillRunning || p.checkedSize === 0}
+          title="선택 와인의 발행 PPTX에서 기본정보+테이스팅노트 본문을 빈 칸만 채웁니다 (LLM 아님·무료). 전체선택 후 한 번에 가능."
+          style={{
+            ...btn,
+            background: p.ops.backfillRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            color: p.ops.backfillRunning ? "#fff" : "var(--text-muted)",
+            opacity: p.checkedSize === 0 && !p.ops.backfillRunning ? 0.5 : 1,
+          }}
+        >
+          {p.ops.backfillRunning
+            ? `${p.ops.batchProgress.current}/${p.ops.batchProgress.total} 동기화 중...`
+            : `일괄동기화 (${p.checkedSize})`}
+        </button>
         <button
           onClick={p.ops.batchPptGenerate}
           disabled={p.ops.batchPptRunning || p.checkedSize === 0}

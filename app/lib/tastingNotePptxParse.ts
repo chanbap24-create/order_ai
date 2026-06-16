@@ -143,6 +143,119 @@ export async function parseWineFieldsFromPptx(buffer: Buffer): Promise<ParsedWin
   return out;
 }
 
+export interface ParsedTastingNote {
+  winemaking?: string;
+  winery_description?: string;
+  color_note?: string;
+  nose_note?: string;
+  palate_note?: string;
+  vintage_note?: string;
+  food_pairing?: string;
+  glass_pairing?: string;
+  aging_potential?: string;
+  serving_temp?: string;
+}
+
+// 발행된 노트 PPTX의 라벨 집합(2종 템플릿 공통). 값 셀이 라벨로 오인되지 않게 한다.
+const TN_LABELS = new Set([
+  "지역", "품종", "빈티지", "포도밭", "와이너리", "양조", "양조 방식", "양조방식",
+  "테이스팅 노트", "테이스팅노트", "푸드 페어링", "글라스 페어링", "수상내역", "수상 경력",
+  "COLOR", "NOSE", "PALATE", "FOOD MATCHING", "STYLE", "BODY", "Dry", "Sweet", "Light", "Full",
+]);
+
+/**
+ * 발행된 테이스팅노트 PPTX에서 "텍스트 내용"(양조·와이너리·색/향/맛·빈티지노트·페어링)을 역추출.
+ * AI 조사 없이 이미 만들어진 노트의 내용을 그대로 가져온다. 2종 템플릿 모두 대응:
+ *  - A형: 라벨 아래 값 셀(테이스팅 노트는 컬러/노즈/팔렛/잠재력/서빙 서브라벨 한 박스)
+ *  - B형: COLOR/NOSE/PALATE 라벨 오른쪽 값 + "양조 방식" 라벨
+ * 매칭 실패한 필드는 비워 둔다(best-effort).
+ */
+export async function parseTastingNotesFromPptx(buffer: Buffer): Promise<ParsedTastingNote> {
+  const zip = await JSZip.loadAsync(buffer);
+  const slide = await zip.file("ppt/slides/slide1.xml")?.async("string");
+  if (!slide) return {};
+
+  const shapes: { paras: string[]; top: number; left: number }[] = [];
+  for (const sp of slide.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)) {
+    const paras = shapeParagraphs(sp[1]);
+    if (paras.length) shapes.push({ paras, ...shapeOffset(sp[1]) });
+  }
+
+  const isLabel = (t: string) => TN_LABELS.has((t || "").trim());
+  // 라벨 기준 값 셀: 같은 행 오른쪽(B형) 또는 바로 아래(A형) 최근접 non-label. (EMU)
+  const ROW_TOL = 140000, ROW_GAP = 360000, COL_TOL = 480000;
+  const findValueShape = (li: number) => {
+    const L = shapes[li];
+    let best: { d: number; s: (typeof shapes)[number] } | undefined;
+    for (let j = 0; j < shapes.length; j++) {
+      if (j === li) continue;
+      const s = shapes[j];
+      if (!s.paras.join("\n").trim() || isLabel(s.paras[0])) continue;
+      const sameRowRight = Math.abs(s.top - L.top) <= ROW_TOL && s.left > L.left;
+      const below = s.top > L.top && s.top - L.top <= ROW_GAP && Math.abs(s.left - L.left) <= COL_TOL;
+      if (!sameRowRight && !below) continue;
+      const d = Math.abs(s.top - L.top) + Math.abs(s.left - L.left);
+      if (!best || d < best.d) best = { d, s };
+    }
+    return best?.s;
+  };
+  const labelIdx = (label: string) => shapes.findIndex((s) => s.paras[0]?.trim() === label);
+  const valShapeOf = (...labels: string[]) => {
+    for (const l of labels) {
+      const i = labelIdx(l);
+      if (i >= 0) {
+        const v = findValueShape(i);
+        if (v) return v;
+      }
+    }
+    return undefined;
+  };
+  const clean = (v: string) => norm(v || "");
+
+  const out: ParsedTastingNote = {};
+
+  const wm = valShapeOf("양조", "양조 방식", "양조방식");
+  if (wm) out.winemaking = clean(wm.paras.join("\n")) || undefined;
+
+  const wd = valShapeOf("포도밭", "와이너리");
+  if (wd) out.winery_description = clean(wd.paras.join(" ")) || undefined;
+
+  const fp = valShapeOf("푸드 페어링", "FOOD MATCHING");
+  if (fp) out.food_pairing = clean(fp.paras.join(", ")) || undefined;
+
+  const gp = valShapeOf("글라스 페어링");
+  if (gp) out.glass_pairing = clean(gp.paras.join(", ")) || undefined;
+
+  // 빈티지 라벨: 값이 연도 숫자면 빈티지(다른 곳에서 처리), 산문이면 빈티지 노트.
+  const vn = valShapeOf("빈티지");
+  if (vn) {
+    const t = clean(vn.paras.join(" "));
+    if (t && !/^['‘’]?\d{2,4}\s*년?\.?$/.test(t)) out.vintage_note = t;
+  }
+
+  // A형: "테이스팅 노트" 한 박스 안의 서브라벨(컬러/노즈/팔렛/잠재력/서빙)
+  const tn = valShapeOf("테이스팅 노트", "테이스팅노트");
+  if (tn) {
+    for (const p of tn.paras) {
+      const m = p.match(/^\s*(컬러|노즈|팔렛|팔레트|잠재력|서빙\s*온도)\s*[:：]\s*(.+)$/);
+      if (!m) continue;
+      const v = clean(m[2]);
+      if (!v) continue;
+      if (m[1].startsWith("컬러")) out.color_note = v;
+      else if (m[1].startsWith("노즈")) out.nose_note = v;
+      else if (m[1].startsWith("팔")) out.palate_note = v;
+      else if (m[1].startsWith("잠재력")) out.aging_potential = v;
+      else out.serving_temp = v;
+    }
+  }
+  // B형: COLOR/NOSE/PALATE 개별 라벨(값 오른쪽)
+  if (!out.color_note) { const c = valShapeOf("COLOR"); if (c) out.color_note = clean(c.paras.join(" ")) || undefined; }
+  if (!out.nose_note) { const n = valShapeOf("NOSE"); if (n) out.nose_note = clean(n.paras.join(" ")) || undefined; }
+  if (!out.palate_note) { const p = valShapeOf("PALATE"); if (p) out.palate_note = clean(p.paras.join(" ")) || undefined; }
+
+  return out;
+}
+
 /**
  * PPTX 슬라이드에서 와인병 이미지를 추출.
  * 표시 면적이 가장 크고 세로로 긴(세로비율>1.3) <p:pic> 을 병으로 판별 →
