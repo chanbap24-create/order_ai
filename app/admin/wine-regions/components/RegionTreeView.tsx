@@ -54,7 +54,7 @@ export function RegionTreeView({ tree, expanded, onToggle, hideCountryLevel, onE
 }
 
 function CountryNode({
-  country, majorMap, expanded, onToggle, hideCountryLevel, onEdit, onDelete, wineCounts,
+  country, majorMap, expanded, onToggle, hideCountryLevel, onEdit, onDelete, wineCounts, onShowWines,
 }: {
   country: string;
   majorMap: Map<string, Map<string, WineRegion[]>>;
@@ -121,7 +121,7 @@ function CountryNode({
 }
 
 function MajorNode({
-  countryKey, major, subMap, showCountryLevel, expanded, onToggle, onEdit, onDelete, wineCounts,
+  countryKey, major, subMap, showCountryLevel, expanded, onToggle, onEdit, onDelete, wineCounts, onShowWines,
 }: {
   countryKey: string;
   major: string;
@@ -181,7 +181,7 @@ function MajorNode({
 }
 
 function SubNode({
-  majorKey, sub, items, expanded, onToggle, onEdit, onDelete, wineCounts,
+  majorKey, sub, items, expanded, onToggle, onEdit, onDelete, wineCounts, onShowWines,
 }: {
   majorKey: string;
   sub: string;
