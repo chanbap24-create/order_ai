@@ -40,12 +40,14 @@ type Props = {
 
   getQuoteCellValue: (item: QuoteItem, key: string) => any;
   formatQuoteCellValue: (item: QuoteItem, col: QuoteColumnConfig) => string;
+  fullWidth?: boolean;
 };
 
 /** 데스크톱 견적 사이드바 wiring 래퍼 — page.tsx의 prop bloat 제거 */
 export function DesktopSidebarContainer(p: Props) {
   return (
     <DesktopQuoteSidebar
+      fullWidth={p.fullWidth}
       activeTab={p.activeTab}
       quoteItems={p.quote.quoteItems}
       quoteLoading={p.quote.quoteLoading}

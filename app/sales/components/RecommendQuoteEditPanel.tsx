@@ -103,6 +103,7 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
       </div>
 
       <DesktopSidebarContainer
+        fullWidth
         activeTab="CDV"
         quote={quote}
         inlineEdit={inlineEdit}

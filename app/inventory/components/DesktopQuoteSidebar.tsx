@@ -58,6 +58,8 @@ type Props = {
   onReorderColumns: (
     updater: (prev: QuoteColumnConfig[]) => QuoteColumnConfig[],
   ) => void;
+  /** 사이드바(50%)가 아닌 전체폭으로 펼침 (추천견적 하단 패널용) */
+  fullWidth?: boolean;
 };
 
 /** 데스크톱 우측 견적 사이드바 — 헤더/설정/테이블/합계 */
@@ -67,8 +69,8 @@ export function DesktopQuoteSidebar(p: Props) {
       style={{
         flex: 1,
         minWidth: 0,
-        maxWidth: "50%",
-        position: "sticky",
+        maxWidth: p.fullWidth ? "100%" : "50%",
+        position: p.fullWidth ? "static" : "sticky",
         top: 72,
         alignSelf: "flex-start",
       }}
