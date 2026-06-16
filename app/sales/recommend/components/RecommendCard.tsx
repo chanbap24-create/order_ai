@@ -12,11 +12,17 @@ type Props = {
 
 export function RecommendCard({ item, isSelected, onToggle }: Props) {
   const sc = scoreColor(item.score);
+  // 견적서 화면과 동일한 메타: 국가 · 브랜드 · 빈티지 · 산지 · 품종
+  const meta = [item.country, item.brand, item.vintage, item.region, item.grape]
+    .map((v) => (v || '').trim())
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <div
       onClick={onToggle}
       style={{
-        background: '#fff', borderRadius: 10, padding: '14px',
+        background: '#fff', borderRadius: 10, padding: '12px 14px',
         border: isSelected ? '2px solid var(--action)' : '1px solid var(--action-muted)',
         boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(90,21,21,0.03)',
         cursor: 'pointer', transition: 'all 0.15s',
@@ -27,8 +33,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
         width: 22, height: 22, borderRadius: 6, flexShrink: 0,
         border: isSelected ? '2px solid var(--action)' : '2px solid rgba(90,21,21,0.12)',
         background: isSelected ? 'var(--action)' : '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginTop: 2,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2,
       }}>
         {isSelected && (
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -37,11 +42,22 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
         )}
       </div>
 
+      {/* 와인병 이미지 (견적서 화면과 동일 표기) */}
+      <div style={{
+        width: 44, height: 56, flexShrink: 0, borderRadius: 6, overflow: 'hidden',
+        background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>이미지</span>
+        )}
+      </div>
+
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: sc, minWidth: 32 }}>
-            {item.score}점
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: sc, minWidth: 30 }}>{item.score}점</span>
           <span style={{
             fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -49,35 +65,33 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
             {item.item_name}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
-          {item.tags.map(tag => (
+        {meta && (
+          <div style={{
+            fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {meta}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+          {item.tags.map((tag) => (
             <span key={tag} style={{
               fontSize: 10, padding: '1px 6px', borderRadius: 8,
               background: `${TAG_COLORS[tag] || 'var(--neutral-100)'}18`,
-              color: TAG_COLORS[tag] || 'var(--neutral-100)',
-              fontWeight: 600,
+              color: TAG_COLORS[tag] || 'var(--neutral-100)', fontWeight: 600,
             }}>
               {tag}
             </span>
           ))}
-          {(item.country || item.grape) && (
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--surface-muted)', padding: '1px 6px', borderRadius: 4 }}>
-              {[item.country, item.region, item.grape].filter(Boolean).join(' · ')}
-            </span>
-          )}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-          {item.reason}
-        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{item.reason}</div>
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
           {item.price ? fmt(item.price) + '원' : '-'}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-          재고 {item.stock || 0}
-        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>재고 {item.stock || 0}</div>
         {item.buy_count !== undefined && (
           <div style={{ fontSize: 11, color: '#2196F3', marginTop: 1, fontWeight: 500 }}>
             {item.buy_count}회 구매

@@ -175,6 +175,12 @@ export function scoreRecommendations(params: {
       tags.push('통관필요');
     }
 
+    // 빈티지: 품번 3~4번째 자리 (NV/MV 또는 2자리 연도)
+    const vv = String(itemNo).slice(2, 4);
+    const vintage = /^\d{2}$/.test(vv)
+      ? (Number(vv) >= 50 ? `19${vv}` : `20${vv}`)
+      : (['NV', 'MV'].includes(vv.toUpperCase()) ? vv.toUpperCase() : '');
+
     scored.push({
       item_no: itemNo,
       item_name: inv.item_name,
@@ -189,6 +195,9 @@ export function scoreRecommendations(params: {
       reason: reasons.join(' · ') || '추천 와인',
       buy_count: purchase?.count,
       last_order: purchase?.lastDate,
+      image_url: (wine?.image_url as string) || '',
+      brand: (wine?.supplier as string) || (wine?.brand as string) || '',
+      vintage,
     });
   }
 

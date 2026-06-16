@@ -20,6 +20,9 @@ export interface ScoredItem {
   reason: string;
   buy_count?: number;
   last_order?: string;
+  image_url?: string;
+  brand?: string;
+  vintage?: string;
 }
 
 export interface RecommendResult {

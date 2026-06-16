@@ -48,7 +48,7 @@ export async function buildCandidates(clientCode: string): Promise<CandidateCont
   }
   const wines = await fetchWinesByCodes<Record<string, unknown>>(
     Array.from(relevantCodes),
-    'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en',
+    'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
   );
 
   const clientName = clientDetail?.client_name || clientBasic?.client_name || clientCode;

@@ -2,8 +2,8 @@ import { supabase } from '@/app/lib/db';
 
 export const DEFAULT_W = {
   REORDER: 35,
-  REGION_MATCH: 15,  // 산지 계층 매칭
-  COUNTRY_MATCH: 5,  // 국가 매칭 (산지 매칭 불가 시 fallback)
+  REGION_MATCH: 22,  // 산지(빌리지/밭) 계층 매칭 — 지역 기반 우선
+  COUNTRY_MATCH: 3,  // 국가 매칭 (산지 매칭 불가 시 약한 fallback)
   GRAPE_MATCH: 12,
   TYPE_MATCH: 8,
   PRICE_FIT: 10,
