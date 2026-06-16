@@ -5,6 +5,8 @@ import { upsertWine, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 import { supabase } from "@/app/lib/db";
+import { logger } from "@/app/lib/logger";
+import { ensureRegionsClassified } from "../wine-regions/lib/classify";
 
 export const maxDuration = 60;
 
@@ -92,11 +94,23 @@ export async function POST(request: NextRequest) {
 
     await logChange('claude_research', 'wine', wine_id, { item_name_en: result.item_name_en, verification_status });
 
+    // 조사된 산지를 와인산지DB에 자동 반영(미분류면 LLM 분류 후 행 추가, 이미 있으면 무동작)
+    let regionClassified: string | undefined;
+    try {
+      const rc = await ensureRegionsClassified([
+        { region: result.region, name: `${item_name_kr || ''} ${userEnName || result.item_name_en || ''}`, country: result.country_en },
+      ]);
+      if (rc.addedRows > 0) regionClassified = rc.detail[0];
+    } catch (e) {
+      logger.error(`[wine-research] region auto-classify failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
     return NextResponse.json({
       success: true,
       data: result,
       validation,
       verification_status,
+      ...(regionClassified ? { regionClassified } : {}),
       ...(verification_status === 'mismatch'
         ? { message: "생산자가 다른 와인일 수 있습니다. 결과는 저장했으니 내용을 확인해주세요." }
         : {}),

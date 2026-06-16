@@ -62,6 +62,14 @@ function norm(s: string): string {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// 국가 비교 키: 영문부 정규화 + 흔한 별칭 통일(USA/United States, England/UK 등)
+export function countryKey(s: string): string {
+  const n = norm(extractEnglish(s || ''));
+  if (/unitedstate|^usa$|^us$|america/.test(n)) return 'usa';
+  if (/unitedkingdom|britain|^uk$|england|^gb$/.test(n)) return 'england';
+  return n;
+}
+
 export interface RegionHierarchy {
   sub_region: string;
   major_region: string;
@@ -70,6 +78,7 @@ export interface RegionHierarchy {
 }
 
 export interface WineRegionRow {
+  country?: string | null;
   sub_region: string | null;
   major_region: string;
   appellation: string | null;
@@ -85,8 +94,20 @@ export function matchRegionRow<T extends WineRegionRow>(
   wineRegion: string,
   wineName: string,
   regionRows: T[],
+  wineCountry?: string,
 ): { row: T; exact: boolean } | null {
   if (!wineRegion && !wineName) return null;
+
+  // 와인 국가가 주어지면 그 나라 산지로만 매칭(타국 오매칭 차단: 칠레→이탈리아, 미국→프랑스 등).
+  // 해당 국가 산지 행이 하나도 없으면 미분류(억지로 타국에 넣지 않음).
+  let rows = regionRows;
+  if (wineCountry) {
+    const ck = countryKey(wineCountry);
+    const same = regionRows.filter((r) => countryKey(r.country || '') === ck);
+    if (same.length === 0) return null;
+    rows = same;
+  }
+
   const regionLower = (wineRegion || '').toLowerCase();
   const nameLower = (wineName || '').toLowerCase();
   const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
@@ -95,7 +116,7 @@ export function matchRegionRow<T extends WineRegionRow>(
 
   let best: T | null = null;
   let bestScore = 0;
-  for (const row of regionRows) {
+  for (const row of rows) {
     // 정규화 비교(악센트/하이픈/공백 무시) + 등급약어 제거 + 최소 길이 가드(catch-all 방지)
     const subN = norm(cleanRegionToken(row.sub_region || ''));
     const appN = norm(cleanRegionToken(row.appellation || ''));
@@ -118,7 +139,7 @@ export function matchRegionRow<T extends WineRegionRow>(
   // 광역 폴백: 빌리지/밭이 안 잡혔지만 광역 라벨이면, 그 광역의 대표 행으로 매칭(정확도 낮음)
   const sup = detectSuperRegion(`${wineRegion} ${wineName}`);
   if (sup) {
-    const rep = regionRows.find((r) => SUPER_REGION_MAP[r.major_region] === sup);
+    const rep = rows.find((r) => SUPER_REGION_MAP[r.major_region] === sup);
     if (rep) return { row: rep, exact: false };
   }
   return null;

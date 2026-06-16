@@ -33,7 +33,7 @@ export async function GET() {
     for (const w of wines) {
       const region = (w.region || '').trim();
       const name = `${w.item_name_kr || ''} ${w.item_name_en || ''}`;
-      const m = matchRegionRow(region, name, rows);
+      const m = matchRegionRow(region, name, rows, w.country_en || w.country || '');
       if (!m) {
         if (!region) noRegion++;
         if (unmatchedSamples.length < 500) {

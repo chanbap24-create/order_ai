@@ -1,0 +1,1 @@
+- [Auth & AuthZ Architecture](project_authz_model.md) — 세션/역할 모델, middleware 게이트, authz.ts IDOR 방어층의 구조와 일관성 갭

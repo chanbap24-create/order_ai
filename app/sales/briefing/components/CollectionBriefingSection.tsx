@@ -11,9 +11,10 @@ const keyOf = (it: CollItem) => `${it.client_code}|${it.client_type}`;
 const todayKST = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 const daysSince = (d: string) => Math.max(0, Math.floor((Date.now() + 9 * 3600 * 1000 - new Date(d).getTime()) / 86400000));
 
-// 미수 발생(가장 오래된 미수일)이 N일 이내면 '신규' 미수
-const NEW_DAYS = 7;
-const isNew = (it: CollItem) => it.oldest_unpaid_date != null && daysSince(it.oldest_unpaid_date) <= NEW_DAYS;
+// '신규' 미수 = 새로 미수가 시작된 거래처. 옛 미수가 없고(연체일수가 곧 미수 시작일),
+// 연체된 지 3일 이내인 경우만. (기존 미수 누적분은 NEW 제외 → 노이즈 차단)
+const NEW_DAYS = 3;
+const isNew = (it: CollItem) => it.overdue > 0 && it.days_overdue >= 1 && it.days_overdue <= NEW_DAYS;
 
 type SaveFn = (clientCode: string, clientType: string, patch: Record<string, unknown>) => void;
 type OpenLedgerFn = (it: CollItem) => void;

@@ -5,6 +5,8 @@ import { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } from "@/app/lib
 import { syncBottleImage } from "@/app/lib/wineBottleImage";
 import { supabase } from "@/app/lib/db";
 import { handleApiError } from "@/app/lib/errors";
+import { logger } from "@/app/lib/logger";
+import { ensureRegionsClassified } from "@/app/api/admin/wine-regions/lib/classify";
 
 const RELEASE_BASE =
   "https://github.com/chanbap24-create/order_ai/releases/download/note";
@@ -37,7 +39,22 @@ export async function POST(
     const notesBackfilled = await backfillTastingNoteIfEmpty(itemCode, noteFields);
     const imageSynced = !!(await syncBottleImage(supabase, itemCode, buffer));
 
-    return NextResponse.json({ success: true, backfilled, notesBackfilled, imageSynced });
+    // 동기화된 산지를 와인산지DB에 자동 반영(미분류면 LLM 분류 후 행 추가)
+    let regionClassified: string | undefined;
+    try {
+      const { data: w } = await supabase
+        .from('wines').select('region, item_name_kr, item_name_en, country_en, country').eq('item_code', itemCode).single();
+      if (w) {
+        const rc = await ensureRegionsClassified([
+          { region: w.region, name: `${w.item_name_kr || ''} ${w.item_name_en || ''}`, country: w.country_en || w.country || '' },
+        ]);
+        if (rc.addedRows > 0) regionClassified = rc.detail[0];
+      }
+    } catch (e) {
+      logger.error(`[backfill] region auto-classify failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    return NextResponse.json({ success: true, backfilled, notesBackfilled, imageSynced, ...(regionClassified ? { regionClassified } : {}) });
   } catch (e) {
     return handleApiError(e);
   }

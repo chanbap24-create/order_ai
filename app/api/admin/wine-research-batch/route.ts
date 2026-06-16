@@ -5,6 +5,8 @@ import { getWineByCode, upsertWine, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
+import { supabase } from "@/app/lib/db";
+import { ensureRegionsClassified } from "../wine-regions/lib/classify";
 
 const CONCURRENCY = 2;
 
@@ -104,6 +106,23 @@ export async function POST(request: NextRequest) {
     }
 
     const successCount = results.filter(r => r.success).length;
+
+    // 조사 성공한 와인들의 산지를 와인산지DB에 일괄 자동 반영(미분류만 LLM 분류, 1회 호출)
+    try {
+      const okIds = results.filter(r => r.success).map(r => r.wine_id);
+      if (okIds.length > 0) {
+        const { data: okWines } = await supabase
+          .from('wines').select('region, item_name_kr, item_name_en, country_en, country').in('item_code', okIds);
+        await ensureRegionsClassified(
+          (okWines || []).map(w => ({
+            region: w.region, name: `${w.item_name_kr || ''} ${w.item_name_en || ''}`, country: w.country_en || w.country || '',
+          })),
+        );
+      }
+    } catch (e) {
+      logger.error(`[BatchResearch] region auto-classify failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
     return NextResponse.json({
       success: true,
       data: {

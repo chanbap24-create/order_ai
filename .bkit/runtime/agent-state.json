@@ -1,14 +1,25 @@
 {
   "version": "1.0",
-  "enabled": false,
+  "enabled": true,
   "teamName": "",
   "feature": "glass",
   "pdcaPhase": "do",
   "orchestrationPattern": "leader",
   "ctoAgent": "opus",
-  "startedAt": "2026-03-24T04:30:42.096Z",
-  "lastUpdated": "2026-03-24T04:34:59.372Z",
-  "teammates": [],
+  "startedAt": "2026-06-16T23:41:33.442Z",
+  "lastUpdated": "2026-06-16T23:42:46.161Z",
+  "teammates": [
+    {
+      "name": "a7aa98f6c981b3c89",
+      "role": "Explore",
+      "model": "sonnet",
+      "status": "completed",
+      "currentTask": null,
+      "taskId": null,
+      "startedAt": "2026-06-16T23:41:33.442Z",
+      "lastActivityAt": "2026-06-16T23:42:46.159Z"
+    }
+  ],
   "progress": {
     "totalTasks": 0,
     "completedTasks": 0,
@@ -17,5 +28,5 @@
     "pendingTasks": 0
   },
   "recentMessages": [],
-  "sessionId": "4ca10a8c-d12c-4fa7-9342-499346646b16"
+  "sessionId": "d481677e-cd8a-4cd6-9a15-9f7a793be699"
 }

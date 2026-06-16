@@ -13,3 +13,11 @@ data/
 # Large files not needed in deployment
 *.pptx
 *.sqlite
+*.sqlite3
+
+# Local-only data (git에는 없음 — CLI 배포 시 함수 크기 초과 방지)
+backups/
+_archive/
+.agents/
+.bkit/
+docs/
