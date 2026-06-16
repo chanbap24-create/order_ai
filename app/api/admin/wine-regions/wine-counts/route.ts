@@ -36,8 +36,8 @@ export async function GET() {
       const m = matchRegionRow(region, name, rows);
       if (!m) {
         if (!region) noRegion++;
-        if (unmatchedSamples.length < 20) {
-          unmatchedSamples.push(`${w.item_name_kr || w.item_code}${region ? ` (${region})` : ' (산지없음)'}`);
+        if (unmatchedSamples.length < 500) {
+          unmatchedSamples.push(`${w.item_name_kr || w.item_code}${region ? ` · ${region}` : ' · (산지없음)'}`);
         }
         continue;
       }

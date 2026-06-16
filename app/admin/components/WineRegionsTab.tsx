@@ -71,8 +71,9 @@ export default function WineRegionsTab() {
               · 우리 와인 <strong style={{ color: '#7C3AED' }}>{wineCounts.matched}</strong>/{wineCounts.total}종 산지매핑
               {wineCounts.unmatched > 0 && (
                 <span
-                  title={wineCounts.unmatchedSamples.join('\n')}
-                  style={{ marginLeft: 6, color: '#dc2626', cursor: 'help' }}
+                  onClick={() => setWinesModal({ label: '미분류 와인 (산지 매칭 실패)', wines: wineCounts.unmatchedSamples ?? [] })}
+                  title="클릭: 미분류 와인 목록"
+                  style={{ marginLeft: 6, color: '#dc2626', cursor: 'pointer', textDecoration: 'underline' }}
                 >
                   · 미분류 {wineCounts.unmatched}종{wineCounts.noRegion > 0 ? ` (산지없음 ${wineCounts.noRegion})` : ''}
                 </span>
