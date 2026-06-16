@@ -5,8 +5,11 @@ import { getClaudeClient } from '@/app/lib/claudeClient';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 import { buildCandidates, type CandidateContext } from './buildCandidates';
 
-const MODEL = 'claude-sonnet-4-6'; // 견적 사유 품질 우선 (거래처별 저빈도 호출)
-const CANDIDATE_N = 40; // LLM 에 제시할 후보 수
+// 비용 우선: 후보가 이미 규칙으로 선별돼 있어 Haiku 로 충분(선택+짧은 사유).
+const MODEL = 'claude-haiku-4-5-20251001';
+const CANDIDATE_N = 24; // LLM 에 제시할 후보 수 (프롬프트 비용 직결)
+const RECENT_N = 15; // 취향 프로파일에 넣을 최근 구매 와인 수
+const NOTE_MAX = 140; // 노트 표기 최대 길이
 const NOTE_BATCH = 400;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +31,7 @@ async function fetchNotes(codes: string[]): Promise<Map<string, NoteRow>> {
 const noteStr = (notes: Map<string, NoteRow>, code: string): string => {
   const n = notes.get(code);
   if (!n) return '';
-  return [n.color_note, n.nose_note, n.palate_note].filter(Boolean).join(' / ').replace(/\s+/g, ' ').trim().slice(0, 220);
+  return [n.color_note, n.nose_note, n.palate_note].filter(Boolean).join(' / ').replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX);
 };
 
 export interface LlmQuoteResult {
@@ -46,7 +49,7 @@ export async function buildLlmQuote(clientCode: string, pickCount = 10): Promise
   // 후보 + 최근구매 와인의 테이스팅 노트
   const notes = await fetchNotes([...candidates.map((c) => c.item_no), ...ctx.recentCodes]);
 
-  const recentLines = ctx.recentCodes.slice(0, 25).map((code) => {
+  const recentLines = ctx.recentCodes.slice(0, RECENT_N).map((code) => {
     const w = ctx.wineMap.get(code);
     const name = w ? (w.item_name_kr || w.item_name_en || code) : code;
     const ns = noteStr(notes, code);
@@ -83,7 +86,7 @@ ${candLines}`;
     const claude = getClaudeClient();
     const resp = await claude.messages.create({
       model: MODEL,
-      max_tokens: 1500,
+      max_tokens: 1200,
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: user }],
     });

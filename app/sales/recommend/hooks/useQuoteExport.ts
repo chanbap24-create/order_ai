@@ -44,7 +44,7 @@ export function useQuoteExport({ quoteCols, selectedClient }: Args) {
         setQuoteResult(`${json.added_count}개 와인 견적서 생성 완료`);
       } else {
         setQuoteResult(`${json.added_count}개 와인이 견적서에 추가되었습니다.`);
-        setTimeout(() => { window.location.href = '/quote'; }, 1500);
+        setTimeout(() => { window.location.href = '/inventory'; }, 1500);
       }
     } catch {
       setQuoteResult('견적서 생성에 실패했습니다.');
