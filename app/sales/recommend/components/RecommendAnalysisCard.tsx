@@ -29,7 +29,10 @@ export function RecommendAnalysisCard({ summary }: { summary: RecommendResult['s
       background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
       padding: '14px 16px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>📊 추천 근거 (거래처 분석)</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+        📊 추천 근거 (거래처 분석)
+        {a.period_months ? <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', marginLeft: 6 }}>· 최근 {a.period_months}개월 출고 기준</span> : null}
+      </div>
       {row('주력 타입', a.types)}
       {row('주력 산지(광역)', a.broad_regions)}
       {row('주력 마을', summary.top_regions)}
@@ -71,6 +74,25 @@ export function RecommendAnalysisCard({ summary }: { summary: RecommendResult['s
           {' · '}허용 가격대 <b style={{ color: 'var(--text-primary)' }}>{won(lo)}~{won(hi)}</b> (±{a.band_pct}%)
         </div>
       )}
+      {a.purchased && a.purchased.length > 0 && (
+        <div style={{ marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+            최근 구매 품목 ({a.purchased.length}종)
+          </div>
+          <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {a.purchased.map((p, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 12 }}>
+                <span style={{ color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                {p.region && <span style={{ color: 'var(--action)', whiteSpace: 'nowrap' }}>{p.region}</span>}
+                <span style={{ color: 'var(--text-tertiary)', whiteSpace: 'nowrap', minWidth: 92, textAlign: 'right' }}>
+                  {p.count}회{p.last ? ` · ${p.last}` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{
         fontSize: 12, lineHeight: 1.6, color: 'var(--neutral-600)',
         borderTop: '1px dashed var(--gray-200)', paddingTop: 8,

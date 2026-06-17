@@ -25,6 +25,8 @@ export interface CandidateContext {
       band_pct: number;        // 적용 가격밴드 ±%
       type_prices: { type: string; avg: number }[]; // 타입별 평균가
       region_dist: { label: string; count: number; pct: number }[]; // 지역별 매입 분포
+      period_months: number; // 분석 기간(개월)
+      purchased: { name: string; region: string; count: number; last: string | null }[]; // 최근 구매 품목
     };
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +34,13 @@ export interface CandidateContext {
   recentCodes: string[]; // 최근 6개월 구매 품번 (취향 프로파일용)
 }
 
+const PROFILE_MONTHS = 6; // 취향 분석에 쓰는 최근 출고 기간(개월)
+
 export async function buildCandidates(clientCode: string, priceBandPct = 0.2): Promise<CandidateContext> {
+  const sinceDate = new Date();
+  sinceDate.setMonth(sinceDate.getMonth() - PROFILE_MONTHS);
+  const sinceStr = sinceDate.toISOString().slice(0, 10);
+
   const [
     { SR },
     { data: clientDetail },
@@ -44,7 +52,7 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
     loadSettings(),
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
-    supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', clientCode),
+    supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
     fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'sub_region, major_region, appellation, cru_vineyard, classification'),
   ]);
@@ -184,6 +192,18 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
             .sort((a, b) => b[1] - a[1]).slice(0, 7)
             .map(([r, c]) => ({ label: extractEnglish(r), count: c, pct: Math.round((c / total) * 100) }));
         })(),
+        period_months: PROFILE_MONTHS,
+        purchased: Object.entries(purchaseAgg)
+          .map(([code, agg]) => {
+            const w = wineMap.get(code);
+            const h = w?._hierarchy;
+            const region = h?.sub_region ? extractEnglish(h.sub_region)
+              : h?.major_region ? extractEnglish(h.major_region)
+              : (w?.region || '');
+            return { name: w?.item_name_kr || agg.name || code, region, count: agg.count, last: agg.lastDate || null };
+          })
+          .sort((a, b) => (b.last || '').localeCompare(a.last || '') || b.count - a.count)
+          .slice(0, 20),
       },
     },
     wineMap,
