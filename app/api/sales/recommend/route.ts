@@ -6,7 +6,7 @@ import { buildCandidates } from './lib/buildCandidates';
 
 export async function POST(req: Request) {
   try {
-    const { client_code, price_band } = await req.json();
+    const { client_code, price_band, profile_months } = await req.json();
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
@@ -20,7 +20,9 @@ export async function POST(req: Request) {
 
     // 가격 밴드 ±%(슬라이더). 0.05~1.0 로 클램프, 기본 0.2
     const band = Math.min(1, Math.max(0.05, Number(price_band) || 0.2));
-    const { client, scored, summary } = await buildCandidates(client_code, band);
+    // 분석 기간(개월). 1~36 클램프, 기본 6
+    const months = Math.min(36, Math.max(1, Math.round(Number(profile_months) || 6)));
+    const { client, scored, summary } = await buildCandidates(client_code, band, months);
     const recommendations = scored.slice(0, 30);
 
     // 이력 저장

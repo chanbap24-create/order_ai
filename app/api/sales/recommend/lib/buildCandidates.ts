@@ -34,11 +34,13 @@ export interface CandidateContext {
   recentCodes: string[]; // 최근 6개월 구매 품번 (취향 프로파일용)
 }
 
-const PROFILE_MONTHS = 6; // 취향 분석에 쓰는 최근 출고 기간(개월)
-
-export async function buildCandidates(clientCode: string, priceBandPct = 0.2): Promise<CandidateContext> {
+export async function buildCandidates(
+  clientCode: string,
+  priceBandPct = 0.2,
+  profileMonths = 6, // 취향 분석에 쓰는 최근 출고 기간(개월)
+): Promise<CandidateContext> {
   const sinceDate = new Date();
-  sinceDate.setMonth(sinceDate.getMonth() - PROFILE_MONTHS);
+  sinceDate.setMonth(sinceDate.getMonth() - profileMonths);
   const sinceStr = sinceDate.toISOString().slice(0, 10);
 
   const [
@@ -192,7 +194,7 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
             .sort((a, b) => b[1] - a[1]).slice(0, 7)
             .map(([r, c]) => ({ label: extractEnglish(r), count: c, pct: Math.round((c / total) * 100) }));
         })(),
-        period_months: PROFILE_MONTHS,
+        period_months: profileMonths,
         purchased: Object.entries(purchaseAgg)
           .map(([code, agg]) => {
             const w = wineMap.get(code);

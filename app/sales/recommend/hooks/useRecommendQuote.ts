@@ -11,7 +11,7 @@ export function useRecommendQuote() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const generate = async (client: ClientOption, priceBand = 0.2) => {
+  const generate = async (client: ClientOption, priceBand = 0.2, profileMonths = 6) => {
     setLoading(true);
     setError('');
     setResult(null);
@@ -19,7 +19,7 @@ export function useRecommendQuote() {
       const res = await fetch('/api/sales/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_code: client.client_code, price_band: priceBand }),
+        body: JSON.stringify({ client_code: client.client_code, price_band: priceBand, profile_months: profileMonths }),
       });
       const json = await res.json();
       if (json.error) setError(json.error);

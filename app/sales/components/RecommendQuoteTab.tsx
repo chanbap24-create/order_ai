@@ -40,6 +40,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   });
 
   const [priceBand, setPriceBand] = useState(20); // 가격 밴드 ±% (하드 게이트, 서버 적용)
+  const [periodMonths, setPeriodMonths] = useState(6); // 분석 기간(개월)
   const items = rec.result?.recommendations || [];
   const visible = items; // 게이트는 서버에서 적용 — 받은 건 모두 표시
 
@@ -55,8 +56,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   // 거래처를 바꾸면 이전 거래처의 견적/결과를 비움
   const handleSelectClient = (c: ClientOption) => { cs.selectClient(c); rec.setResult(null); quote.clearAllQuoteSilent(); };
   const handleClearClient = () => { cs.clearClient(); rec.setResult(null); quote.clearAllQuoteSilent(); };
-  const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient, priceBand / 100); };
-  const reapplyBand = () => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, priceBand / 100); };
+  const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient, priceBand / 100, periodMonths); };
+  const reapply = () => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, priceBand / 100, periodMonths); };
 
   const toggleSelect = (itemNo: string) => {
     setSelected((prev) => {
@@ -124,34 +125,50 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
               {rec.result.comment}
             </div>
           )}
-          {/* 가격 밴드 ±% (거래처 평균가 대비 허용 폭 — 하드 게이트) */}
+          {/* 조절 — 분석 기간 + 가격 밴드 (둘 다 서버 적용, 변경 시 재생성) */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            display: 'flex', flexDirection: 'column', gap: 8,
             background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
             padding: '10px 14px', marginBottom: 12,
           }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>가격 밴드 ±</span>
-            <input
-              type="range" min={5} max={100} step={5} value={priceBand}
-              onChange={(e) => setPriceBand(Number(e.target.value))}
-              onMouseUp={reapplyBand} onTouchEnd={reapplyBand}
-              style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
-            />
-            <input
-              type="number" min={5} max={100} value={priceBand}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                setPriceBand(Number.isFinite(v) ? Math.min(100, Math.max(5, v)) : 20);
-              }}
-              onBlur={reapplyBand}
-              style={{
-                width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center',
-                border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)',
-              }}
-            />
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-              % · 평균가 ±{priceBand}% 이내 · {items.length}개
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 72 }}>분석 기간</span>
+              <input
+                type="range" min={1} max={24} step={1} value={periodMonths}
+                onChange={(e) => setPeriodMonths(Number(e.target.value))}
+                onMouseUp={reapply} onTouchEnd={reapply}
+                style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
+              />
+              <input
+                type="number" min={1} max={24} value={periodMonths}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setPeriodMonths(Number.isFinite(v) ? Math.min(24, Math.max(1, v)) : 6);
+                }}
+                onBlur={reapply}
+                style={{ width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>개월 · 최근 {periodMonths}개월 구매 기준</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 72 }}>가격 밴드 ±</span>
+              <input
+                type="range" min={5} max={100} step={5} value={priceBand}
+                onChange={(e) => setPriceBand(Number(e.target.value))}
+                onMouseUp={reapply} onTouchEnd={reapply}
+                style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
+              />
+              <input
+                type="number" min={5} max={100} value={priceBand}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setPriceBand(Number.isFinite(v) ? Math.min(100, Math.max(5, v)) : 20);
+                }}
+                onBlur={reapply}
+                style={{ width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>% · 평균가 ±{priceBand}% 이내 · {items.length}개</span>
+            </div>
           </div>
           <RecommendationList
             items={visible}
