@@ -93,12 +93,12 @@ export async function buildCandidates(
     const price = inv.supply_price || 0;
     const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0);
     if (stock <= 0) return false;
-    const sales90d = inv.avg_sales_90d || 0;
     if (stock < minStockForPrice(price)) return false;
-    if (sales90d > 0) {
-      const demandDays = sales90d * (SR.months_supply * 30);
-      if (stock < demandDays) return false;
-    }
+    // months_supply 개월치 수요를 덮을 재고만 추천(품절 위험 회피).
+    // 월 수요 = 최근 30일 판매량(sales_30days). (기존 avg_sales_90d×개월×30 은 단위 오류로
+    // 잘 팔리는 와인을 오히려 전부 제외했음 — 예: 부르고뉴 샤도네)
+    const monthly = inv.sales_30days || 0;
+    if (monthly > 0 && stock < monthly * SR.months_supply) return false;
     inv._totalStock = stock;
     return true;
   });
