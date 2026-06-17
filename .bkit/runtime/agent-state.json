@@ -1,25 +1,14 @@
 {
   "version": "1.0",
-  "enabled": true,
+  "enabled": false,
   "teamName": "",
   "feature": "glass",
   "pdcaPhase": "do",
   "orchestrationPattern": "leader",
   "ctoAgent": "opus",
   "startedAt": "2026-06-16T23:41:33.442Z",
-  "lastUpdated": "2026-06-16T23:42:46.161Z",
-  "teammates": [
-    {
-      "name": "a7aa98f6c981b3c89",
-      "role": "Explore",
-      "model": "sonnet",
-      "status": "completed",
-      "currentTask": null,
-      "taskId": null,
-      "startedAt": "2026-06-16T23:41:33.442Z",
-      "lastActivityAt": "2026-06-16T23:42:46.159Z"
-    }
-  ],
+  "lastUpdated": "2026-06-17T00:02:06.951Z",
+  "teammates": [],
   "progress": {
     "totalTasks": 0,
     "completedTasks": 0,

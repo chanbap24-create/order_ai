@@ -62,6 +62,12 @@ function norm(s: string): string {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// 단어 단위 정규화(공백 유지) — cru 를 region 과 "단어 경계"로 비교하기 위함.
+// region "Champagne, Oger" 안의 "Oger"(단어)만 매칭, "Roger"(생산자명) 같은 조각은 제외.
+function nWords(s: string): string {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
 // 국가 비교 키: 영문부 정규화 + 흔한 별칭 통일(USA/United States, England/UK 등)
 export function countryKey(s: string): string {
   const n = norm(extractEnglish(s || ''));
@@ -109,10 +115,10 @@ export function matchRegionRow<T extends WineRegionRow>(
   }
 
   const regionLower = (wineRegion || '').toLowerCase();
-  const nameLower = (wineName || '').toLowerCase();
   const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
   const specific = parts[0] || '';
-  const sName = norm(specific), rName = norm(regionLower), nName = norm(nameLower);
+  const sName = norm(specific), rName = norm(regionLower);
+  const regionW = ` ${nWords(regionLower)} `;
 
   let best: T | null = null;
   let bestScore = 0;
@@ -120,9 +126,10 @@ export function matchRegionRow<T extends WineRegionRow>(
     // 정규화 비교(악센트/하이픈/공백 무시) + 등급약어 제거 + 최소 길이 가드(catch-all 방지)
     const subN = norm(cleanRegionToken(row.sub_region || ''));
     const appN = norm(cleanRegionToken(row.appellation || ''));
-    const cruN = norm((row.cru_vineyard || '').replace(/\(.*?\)/g, ''));
+    // 분류는 와인 "이름"이 아니라 region 필드로만 — cru 도 region 에 단어로 있을 때만(이름 조각 오매칭 방지)
+    const cruP = nWords(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
     let score = 0;
-    if (cruN.length >= 4 && (nName.includes(cruN) || rName.includes(cruN))) score = 100;
+    if (cruP.length >= 4 && regionW.includes(` ${cruP} `)) score = 100;
     else if (appN.length >= 4 && sName.includes(appN)) score = 80;
     // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
     else if (subN.length >= 4 && sName.includes(subN)) score = 60;
@@ -137,7 +144,7 @@ export function matchRegionRow<T extends WineRegionRow>(
   if (best && bestScore >= 30) return { row: best, exact: true };
 
   // 광역 폴백: 빌리지/밭이 안 잡혔지만 광역 라벨이면, 그 광역의 대표 행으로 매칭(정확도 낮음)
-  const sup = detectSuperRegion(`${wineRegion} ${wineName}`);
+  const sup = detectSuperRegion(wineRegion);
   if (sup) {
     const rep = rows.find((r) => SUPER_REGION_MAP[r.major_region] === sup);
     if (rep) return { row: rep, exact: false };
@@ -156,10 +163,10 @@ export function findHierarchy(
 ): RegionHierarchy | null {
   if (!wineRegion && !wineName) return null;
   const regionLower = (wineRegion || '').toLowerCase();
-  const nameLower = (wineName || '').toLowerCase();
   const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
   const specific = parts[0] || '';
-  const sName = norm(specific), rName = norm(regionLower), nName = norm(nameLower);
+  const sName = norm(specific), rName = norm(regionLower);
+  const regionW = ` ${nWords(regionLower)} `;
 
   let bestMatch: WineRegionRow | null = null;
   let bestScore = 0;
@@ -168,9 +175,10 @@ export function findHierarchy(
     // matchRegionRow 와 동일한 정규화 스코어링(악센트/하이픈/공백 무시 + 최소 길이 가드)
     const subN = norm(cleanRegionToken(row.sub_region || ''));
     const appN = norm(cleanRegionToken(row.appellation || ''));
-    const cruN = norm((row.cru_vineyard || '').replace(/\(.*?\)/g, ''));
+    // 분류는 와인 "이름"이 아니라 region 필드로만 — cru 도 region 에 단어로 있을 때만(이름 조각 오매칭 방지)
+    const cruP = nWords(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
     let score = 0;
-    if (cruN.length >= 4 && (nName.includes(cruN) || rName.includes(cruN))) score = 100;
+    if (cruP.length >= 4 && regionW.includes(` ${cruP} `)) score = 100;
     else if (appN.length >= 4 && sName.includes(appN)) score = 80;
     // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
     else if (subN.length >= 4 && sName.includes(subN)) score = 60;
@@ -190,7 +198,7 @@ export function findHierarchy(
   if (!bestMatch || bestScore < 30) {
     // 광역 폴백: 빌리지/밭 매칭 실패 시, 광역 라벨("Bourgogne" 등)만이라도 super_region 으로 인정.
     // → 광역 단위 산지 선호가 추천에 반영되어, 국가(미국 등)로의 폴백을 줄인다.
-    const sup = detectSuperRegion(`${wineRegion} ${wineName}`);
+    const sup = detectSuperRegion(wineRegion);
     if (sup) {
       const text = `${wineName} ${wineRegion}`.toLowerCase();
       let cls = '';
