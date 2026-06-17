@@ -104,49 +104,58 @@ export function matchRegionRow<T extends WineRegionRow>(
 ): { row: T; exact: boolean } | null {
   if (!wineRegion && !wineName) return null;
 
-  // 와인 국가가 주어지면 그 나라 산지로만 매칭(타국 오매칭 차단: 칠레→이탈리아, 미국→프랑스 등).
-  // 해당 국가 산지 행이 하나도 없으면 미분류(억지로 타국에 넣지 않음).
-  let rows = regionRows;
-  if (wineCountry) {
-    const ck = countryKey(wineCountry);
-    const same = regionRows.filter((r) => countryKey(r.country || '') === ck);
-    if (same.length === 0) return null;
-    rows = same;
-  }
-
   const regionLower = (wineRegion || '').toLowerCase();
   const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
   const specific = parts[0] || '';
   const sName = norm(specific), rName = norm(regionLower);
   const regionW = ` ${nWords(regionLower)} `;
 
-  let best: T | null = null;
-  let bestScore = 0;
-  for (const row of rows) {
-    // 정규화 비교(악센트/하이픈/공백 무시) + 등급약어 제거 + 최소 길이 가드(catch-all 방지)
-    const subN = norm(cleanRegionToken(row.sub_region || ''));
-    const appN = norm(cleanRegionToken(row.appellation || ''));
-    // 분류는 와인 "이름"이 아니라 region 필드로만 — cru 도 region 에 단어로 있을 때만(이름 조각 오매칭 방지)
-    const cruP = nWords(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
-    let score = 0;
-    if (cruP.length >= 4 && regionW.includes(` ${cruP} `)) score = 100;
-    else if (appN.length >= 4 && sName.includes(appN)) score = 80;
-    // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
-    else if (subN.length >= 4 && sName.includes(subN)) score = 60;
-    else if (subN.length >= 4 && rName.includes(subN)) score = 40;
-    // 와인 "이름" 기반 sub 매칭은 제거 — 맛/품종 단어(오렌지 등) 오매칭 방지. 산지는 region 필드로만.
-    else {
-      const majorN = norm(cleanRegionToken(row.major_region || ''));
-      if (majorN.length >= 4 && (sName.includes(majorN) || rName.includes(majorN))) score = 35;
+  const scoreOver = (rowSet: T[]): { row: T; score: number } | null => {
+    let best: T | null = null;
+    let bestScore = 0;
+    for (const row of rowSet) {
+      // 정규화 비교(악센트/하이픈/공백 무시) + 등급약어 제거 + 최소 길이 가드(catch-all 방지)
+      const subN = norm(cleanRegionToken(row.sub_region || ''));
+      const appN = norm(cleanRegionToken(row.appellation || ''));
+      // 분류는 와인 "이름"이 아니라 region 필드로만 — cru 도 region 에 단어로 있을 때만(이름 조각 오매칭 방지)
+      const cruP = nWords(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
+      let score = 0;
+      if (cruP.length >= 4 && regionW.includes(` ${cruP} `)) score = 100;
+      else if (appN.length >= 4 && sName.includes(appN)) score = 80;
+      // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
+      else if (subN.length >= 4 && sName.includes(subN)) score = 60;
+      else if (subN.length >= 4 && rName.includes(subN)) score = 40;
+      else {
+        const majorN = norm(cleanRegionToken(row.major_region || ''));
+        if (majorN.length >= 4 && (sName.includes(majorN) || rName.includes(majorN))) score = 35;
+      }
+      if (score > bestScore) { bestScore = score; best = row; }
     }
-    if (score > bestScore) { bestScore = score; best = row; }
-  }
-  if (best && bestScore >= 30) return { row: best, exact: true };
+    return best && bestScore >= 30 ? { row: best, score: bestScore } : null;
+  };
 
-  // 광역 폴백: 빌리지/밭이 안 잡혔지만 광역 라벨이면, 그 광역의 대표 행으로 매칭(정확도 낮음)
+  // 1) 와인 국가 우선: 자국 산지에서 먼저 매칭(타국 region-토큰 충돌 차단: 칠레/미국 등)
+  let sameCountry: T[] | null = null;
+  if (wineCountry) {
+    const ck = countryKey(wineCountry);
+    const same = regionRows.filter((r) => countryKey(r.country || '') === ck);
+    if (same.length > 0) sameCountry = same;
+  }
+  const primary = sameCountry || regionRows;
+  const hit = scoreOver(primary);
+  if (hit) return { row: hit.row, exact: true };
+
+  // 2) 자국에서 못 찾으면 전체에서 재시도 — country_en 오입력/미보유 구제(예: Penedès인데 country=Italy)
+  if (sameCountry) {
+    const global = scoreOver(regionRows);
+    if (global) return { row: global.row, exact: true };
+  }
+
+  // 3) 광역(super) 폴백: 빌리지/밭이 안 잡혔지만 광역 라벨이면 대표 행으로(정확도 낮음). 자국 우선.
   const sup = detectSuperRegion(wineRegion);
   if (sup) {
-    const rep = rows.find((r) => SUPER_REGION_MAP[r.major_region] === sup);
+    const rep = primary.find((r) => SUPER_REGION_MAP[r.major_region] === sup)
+      || regionRows.find((r) => SUPER_REGION_MAP[r.major_region] === sup);
     if (rep) return { row: rep, exact: false };
   }
   return null;
