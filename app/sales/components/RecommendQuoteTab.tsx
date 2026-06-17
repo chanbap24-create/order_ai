@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ClientOption } from '../recommend/types';
 import { useManagers } from '../recommend/hooks/useManagers';
 import { useClientSearch } from '../recommend/hooks/useClientSearch';
@@ -15,6 +15,8 @@ import { BottomActionBar } from '../recommend/components/BottomActionBar';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
 import { useQuoteItems } from '@/app/inventory/hooks/useQuoteItems';
 import { RecommendQuoteEditPanel } from './RecommendQuoteEditPanel';
+
+const PREFS_KEY = 'recQuote.controlPrefs'; // 분석기간·가격밴드·추천점수 설정 저장 키
 
 type Props = {
   currentManager: string;
@@ -44,6 +46,24 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const [minScore, setMinScore] = useState(0); // 추천 점수 허들(클라이언트 즉시 필터)
   const items = rec.result?.recommendations || [];
   const visible = items.filter((i) => i.score >= minScore);
+
+  // 슬라이더 설정(분석기간·가격밴드·추천점수) 저장/복원 — localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p.periodMonths === 'number') setPeriodMonths(p.periodMonths);
+        if (typeof p.priceBand === 'number') setPriceBand(p.priceBand);
+        if (typeof p.minScore === 'number') setMinScore(p.minScore);
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ periodMonths, priceBand, minScore }));
+    } catch { /* ignore */ }
+  }, [periodMonths, priceBand, minScore]);
 
   // 새 결과 도착 시 전체 선택 기본값 (렌더 중 prop 변화 감지: effect 불필요)
   const [prevResult, setPrevResult] = useState(rec.result);
