@@ -1,6 +1,16 @@
 import { extractGrapesFromName, extractTypeFromName } from './patterns';
 import type { ClientPreferences, PurchaseAggEntry } from './types';
 import type { RegionHierarchy } from './regions';
+import { normalizeType, type TypeBucket } from './wineType';
+import { geoGroup, type RegionProfile } from './geoTier';
+import { extractFlavorKeys } from './flavor';
+
+/** 가격 밴드 기준 평균: 타입+지역 → 타입 → 전체 순으로 폴백(데이터 빈약 대비). */
+export function priceRef(prefs: ClientPreferences, bucket: TypeBucket, group: string): number {
+  const ps = prefs.priceStats;
+  const tryKey = (k: string) => (ps[k] && ps[k].count >= 2 ? ps[k].sum / ps[k].count : 0);
+  return tryKey(`${bucket}|${group}`) || tryKey(bucket) || tryKey('__all__') || prefs.clientAvgPrice;
+}
 
 type ShipmentRow = { item_no?: string; item_name?: string; unit_price?: number | null; ship_date?: string | null };
 
@@ -41,6 +51,17 @@ export function buildClientPreferences(
 
   let totalPurchases = 0;
   const priceList: number[] = [];
+  // 규칙기반 추천용 누적
+  const typeBuckets = new Set<TypeBucket>();
+  const regionProfile: RegionProfile = { subs: new Set(), majors: new Set(), supers: new Set() };
+  const priceStats: Record<string, { sum: number; count: number }> = {};
+  const flavorKeys = new Set<string>();
+  const grapeKeys = new Set<string>();
+  const addPrice = (key: string, price: number) => {
+    if (price <= 0) return;
+    const s = priceStats[key] || (priceStats[key] = { sum: 0, count: 0 });
+    s.sum += price; s.count++;
+  };
 
   for (const [itemNo, agg] of Object.entries(purchaseAgg)) {
     totalPurchases += agg.count;
@@ -54,10 +75,24 @@ export function buildClientPreferences(
 
     const h: RegionHierarchy | null = wine?._hierarchy || null;
     if (h) {
-      if (h.sub_region) subRegionBuyCount[h.sub_region] = (subRegionBuyCount[h.sub_region] || 0) + agg.count;
-      if (h.major_region) majorRegionBuyCount[h.major_region] = (majorRegionBuyCount[h.major_region] || 0) + agg.count;
-      if (h.super_region) superRegionBuyCount[h.super_region] = (superRegionBuyCount[h.super_region] || 0) + agg.count;
+      if (h.sub_region) { subRegionBuyCount[h.sub_region] = (subRegionBuyCount[h.sub_region] || 0) + agg.count; regionProfile.subs.add(h.sub_region); }
+      if (h.major_region) { majorRegionBuyCount[h.major_region] = (majorRegionBuyCount[h.major_region] || 0) + agg.count; regionProfile.majors.add(h.major_region); }
+      if (h.super_region) { superRegionBuyCount[h.super_region] = (superRegionBuyCount[h.super_region] || 0) + agg.count; regionProfile.supers.add(h.super_region); }
     }
+
+    // 타입 버킷 + 타입×지역 가격 통계
+    const bucket = normalizeType(wine?.wine_type || '', wine?.item_name_kr || inv?.item_name || agg.name);
+    if (bucket) {
+      typeBuckets.add(bucket);
+      const group = geoGroup(h);
+      addPrice('__all__', avgPrice);
+      addPrice(bucket, avgPrice);
+      if (group) addPrice(`${bucket}|${group}`, avgPrice);
+    } else {
+      addPrice('__all__', avgPrice);
+    }
+    // 향미 키(테이스팅노트)
+    for (const k of extractFlavorKeys(wine?._notes || '')) flavorKeys.add(k);
 
     // 품종
     let grapeStr = wine?.grape_varieties || '';
@@ -67,7 +102,7 @@ export function buildClientPreferences(
     }
     if (grapeStr) {
       const grapes = grapeStr.split(/[,\/]/).map((g: string) => g.trim()).filter(Boolean);
-      for (const g of grapes) grapeBuyCount[g] = (grapeBuyCount[g] || 0) + agg.count;
+      for (const g of grapes) { grapeBuyCount[g] = (grapeBuyCount[g] || 0) + agg.count; grapeKeys.add(g.toLowerCase()); }
     }
 
     // 와인 타입
@@ -102,5 +137,10 @@ export function buildClientPreferences(
     maxSuperRegionBuy: Math.max(...Object.values(superRegionBuyCount), 1),
     hasRegionPrefs: Object.keys(subRegionBuyCount).length > 0,
     hasHistory: totalPurchases > 0,
+    typeBuckets,
+    regionProfile,
+    priceStats,
+    flavorKeys,
+    grapeKeys,
   };
 }

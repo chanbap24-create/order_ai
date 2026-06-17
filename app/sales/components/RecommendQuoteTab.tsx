@@ -38,11 +38,11 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     onAdded: quote.fetchQuoteItems,
   });
 
-  const [minScore, setMinScore] = useState(0); // 추천점수 허들
+  const [priceBand, setPriceBand] = useState(20); // 가격 밴드 ±% (하드 게이트, 서버 적용)
   const items = rec.result?.recommendations || [];
-  const visible = items.filter((i) => i.score >= minScore); // 허들 통과분만 표시/담기
+  const visible = items; // 게이트는 서버에서 적용 — 받은 건 모두 표시
 
-  // LLM 이 이미 선별 → 새 결과 도착 시 전체 선택 기본값 (렌더 중 prop 변화 감지: effect 불필요)
+  // 새 결과 도착 시 전체 선택 기본값 (렌더 중 prop 변화 감지: effect 불필요)
   const [prevResult, setPrevResult] = useState(rec.result);
   if (rec.result !== prevResult) {
     setPrevResult(rec.result);
@@ -51,7 +51,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
 
   const handleSelectClient = (c: ClientOption) => { cs.selectClient(c); rec.setResult(null); };
   const handleClearClient = () => { cs.clearClient(); rec.setResult(null); };
-  const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient); };
+  const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient, priceBand / 100); };
+  const reapplyBand = () => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, priceBand / 100); };
 
   const toggleSelect = (itemNo: string) => {
     setSelected((prev) => {
@@ -118,31 +119,33 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
               {rec.result.comment}
             </div>
           )}
-          {/* 추천점수 허들 */}
+          {/* 가격 밴드 ±% (거래처 평균가 대비 허용 폭 — 하드 게이트) */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
             background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
             padding: '10px 14px', marginBottom: 12,
           }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>추천점수 허들</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>가격 밴드 ±</span>
             <input
-              type="range" min={0} max={60} step={1} value={minScore}
-              onChange={(e) => setMinScore(Number(e.target.value))}
+              type="range" min={5} max={100} step={5} value={priceBand}
+              onChange={(e) => setPriceBand(Number(e.target.value))}
+              onMouseUp={reapplyBand} onTouchEnd={reapplyBand}
               style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
             />
             <input
-              type="number" min={0} max={60} value={minScore}
+              type="number" min={5} max={100} value={priceBand}
               onChange={(e) => {
                 const v = parseInt(e.target.value, 10);
-                setMinScore(Number.isFinite(v) ? Math.min(60, Math.max(0, v)) : 0);
+                setPriceBand(Number.isFinite(v) ? Math.min(100, Math.max(5, v)) : 20);
               }}
+              onBlur={reapplyBand}
               style={{
                 width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center',
                 border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)',
               }}
             />
             <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-              점 이상 · {visible.length}/{items.length}개
+              % · 평균가 ±{priceBand}% 이내 · {items.length}개
             </span>
           </div>
           <RecommendationList

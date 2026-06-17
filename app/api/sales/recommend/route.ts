@@ -6,7 +6,7 @@ import { buildCandidates } from './lib/buildCandidates';
 
 export async function POST(req: Request) {
   try {
-    const { client_code } = await req.json();
+    const { client_code, price_band } = await req.json();
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     const accessCheck = await requireClientAccess(client_code);
     if (accessCheck) return accessCheck;
 
-    const { client, scored, summary } = await buildCandidates(client_code);
+    // 가격 밴드 ±%(슬라이더). 0.05~1.0 로 클램프, 기본 0.2
+    const band = Math.min(1, Math.max(0.05, Number(price_band) || 0.2));
+    const { client, scored, summary } = await buildCandidates(client_code, band);
     const recommendations = scored.slice(0, 30);
 
     // 이력 저장

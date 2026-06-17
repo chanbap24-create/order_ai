@@ -21,9 +21,9 @@ export interface CandidateContext {
   recentCodes: string[]; // 최근 6개월 구매 품번 (취향 프로파일용)
 }
 
-export async function buildCandidates(clientCode: string): Promise<CandidateContext> {
+export async function buildCandidates(clientCode: string, priceBandPct = 0.2): Promise<CandidateContext> {
   const [
-    { W, SR },
+    { SR },
     { data: clientDetail },
     { data: clientBasic },
     { data: shipments },
@@ -46,10 +46,18 @@ export async function buildCandidates(clientCode: string): Promise<CandidateCont
     const code = (inv as { item_no?: string }).item_no;
     if (code) relevantCodes.add(code);
   }
-  const wines = await fetchWinesByCodes<Record<string, unknown>>(
-    Array.from(relevantCodes),
-    'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
-  );
+  const codeList = Array.from(relevantCodes);
+  const [wines, { data: notes }] = await Promise.all([
+    fetchWinesByCodes<Record<string, unknown>>(
+      codeList,
+      'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
+    ),
+    supabase.from('tasting_notes').select('wine_id, nose_note, palate_note').in('wine_id', codeList),
+  ]);
+  const notesMap = new Map<string, string>();
+  for (const n of (notes || []) as Array<{ wine_id: string; nose_note?: string; palate_note?: string }>) {
+    notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
+  }
 
   const clientName = clientDetail?.client_name || clientBasic?.client_name || clientCode;
   const allRegionRows = regionRows as WineRegionRow[];
@@ -89,6 +97,7 @@ export async function buildCandidates(clientCode: string): Promise<CandidateCont
     if (!w.wine_type) w.wine_type = extractTypeFromName(w.item_name_kr || '');
     const fullName = `${w.item_name_kr || ''} ${w.item_name_en || ''}`;
     w._hierarchy = findHierarchy(w.region || '', fullName, allRegionRows);
+    w._notes = notesMap.get(w.item_code) || '';
     wineMap.set(w.item_code, w);
   }
 
@@ -105,7 +114,7 @@ export async function buildCandidates(clientCode: string): Promise<CandidateCont
   const threeMonthsAgoStr = threeMonthsAgo.toISOString().slice(0, 10);
 
   const scored = scoreRecommendations({
-    inventory, wineMap, purchaseAgg, prefs, W, maxSales90d, threeMonthsAgoStr,
+    inventory, wineMap, purchaseAgg, prefs, priceBandPct, maxSales90d, threeMonthsAgoStr,
   }) as ScoredItem[];
 
   let lastOrderDate: string | null = null;
