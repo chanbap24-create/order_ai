@@ -64,8 +64,14 @@ export function scoreRecommendations(params: {
       const t = geoTier(h, prefs.regionProfile);
       if (t === null) continue;
       tags.push(TIER_LABEL[t]);
-      const matchedRegion = t === 0 ? h?.sub_region : t === 1 ? h?.major_region : h?.super_region;
-      if (matchedRegion) reasons.push(extractEnglish(matchedRegion));
+      const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : h?.super_region) || '';
+      // 입고 빈도 가중: 그 지역을 자주 산 거래처일수록 가점, 1회성 지역은 강하게 감점
+      const matchedCount = t === 0 ? (prefs.subRegionBuyCount[matchedRegion] || 0)
+        : t === 1 ? (prefs.majorRegionBuyCount[matchedRegion] || 0)
+        : (prefs.superRegionBuyCount[matchedRegion] || 0);
+      const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : prefs.maxSuperRegionBuy;
+      const freqW = levelMax > 0 ? matchedCount / levelMax : 0;
+      if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 입고 ${matchedCount}회`);
 
       // 향미·품종 정렬(0~1)
       let grapeHit = false;
@@ -83,7 +89,8 @@ export function scoreRecommendations(params: {
       if (invPrice > 0) { tags.push('적정가격'); }
 
       const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
-      score = TIER_BASE[t] + soft * 8 + velocity * 2;
+      // 빈도 가중: 자주 산 지역은 1.0배, 1회성 지역은 ~0.35배로 강하게 하향
+      score = TIER_BASE[t] * (0.35 + 0.65 * freqW) + soft * 8 + velocity * 2;
     }
 
     if ((inv.available_stock || 0) <= 0 && (inv.bonded_warehouse || 0) > 0) tags.push('통관필요');

@@ -56,7 +56,7 @@ export async function buildCandidates(
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
     fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, sales_30days, avg_sales_90d, avg_sales_365d'),
-    fetchAll<WineRegionRow>('wine_regions', 'sub_region, major_region, appellation, cru_vineyard, classification'),
+    fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
   ]);
 
   const relevantCodes = new Set<string>();
@@ -118,7 +118,7 @@ export async function buildCandidates(
     }
     if (!w.wine_type) w.wine_type = extractTypeFromName(w.item_name_kr || '');
     const fullName = `${w.item_name_kr || ''} ${w.item_name_en || ''}`;
-    w._hierarchy = findHierarchy(w.region || '', fullName, allRegionRows);
+    w._hierarchy = findHierarchy(w.region || '', fullName, allRegionRows, w.country_en || w.country || '');
     w._notes = notesMap.get(w.item_code) || '';
     wineMap.set(w.item_code, w);
   }

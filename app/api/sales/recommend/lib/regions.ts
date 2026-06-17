@@ -165,6 +165,7 @@ export function findHierarchy(
   wineRegion: string,
   wineName: string,
   regionRows: WineRegionRow[],
+  wineCountry?: string,
 ): RegionHierarchy | null {
   if (!wineRegion && !wineName) return null;
   const regionLower = (wineRegion || '').toLowerCase();
@@ -172,27 +173,39 @@ export function findHierarchy(
   const segs = regionLower.split(/[,–—/()]|\s-\s/).map((p) => norm(cleanRegionToken(p))).filter((s) => s.length >= 2);
   const majors = new Set(regionRows.map((r) => norm(cleanRegionToken(r.major_region || ''))));
 
-  let bestMatch: WineRegionRow | null = null;
-  let bestScore = 0;
+  const best = (rowSet: WineRegionRow[]): WineRegionRow | null => {
+    let bm: WineRegionRow | null = null;
+    let bs = 0;
+    for (const row of rowSet) {
+      const subN = norm(cleanRegionToken(row.sub_region || ''));
+      const appN = norm(cleanRegionToken(row.appellation || ''));
+      const majorN = norm(cleanRegionToken(row.major_region || ''));
+      const cruN = norm(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
+      const appIn = appN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > appN.length && s.includes(appN));
+      const subIn = subN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > subN.length && s.includes(subN));
+      let score = 0;
+      if (cruN.length >= 4 && segs.includes(cruN)) score = 100;
+      else if (appN.length >= 4 && segs.includes(appN)) score = 90;
+      else if (subN.length >= 4 && segs.includes(subN)) score = 70;
+      else if (appIn) score = 60;
+      else if (subIn) score = 50;
+      else if (majorN.length >= 4 && (segs.includes(majorN) || segs.some((s) => s.includes(majorN)))) score = 35;
+      if (score > bs) { bs = score; bm = row; }
+    }
+    return bs >= 30 ? bm : null;
+  };
 
-  for (const row of regionRows) {
-    const subN = norm(cleanRegionToken(row.sub_region || ''));
-    const appN = norm(cleanRegionToken(row.appellation || ''));
-    const majorN = norm(cleanRegionToken(row.major_region || ''));
-    const cruN = norm(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
-    const appIn = appN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > appN.length && s.includes(appN));
-    const subIn = subN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > subN.length && s.includes(subN));
-    let score = 0;
-    if (cruN.length >= 4 && segs.includes(cruN)) score = 100;
-    else if (appN.length >= 4 && segs.includes(appN)) score = 90;
-    else if (subN.length >= 4 && segs.includes(subN)) score = 70;
-    else if (appIn) score = 60;
-    else if (subIn) score = 50;
-    else if (majorN.length >= 4 && (segs.includes(majorN) || segs.some((s) => s.includes(majorN)))) score = 35;
-    if (score > bestScore) { bestScore = score; bestMatch = row; }
+  // 와인 국가 우선(자국 산지에서 먼저), 못 찾으면 전체에서 재시도 — matchRegionRow 와 동일
+  let sameCountry: WineRegionRow[] | null = null;
+  if (wineCountry) {
+    const ck = countryKey(wineCountry);
+    const same = regionRows.filter((r) => countryKey(r.country || '') === ck);
+    if (same.length > 0) sameCountry = same;
   }
+  let bestMatch: WineRegionRow | null = best(sameCountry || regionRows);
+  if (!bestMatch && sameCountry) bestMatch = best(regionRows);
 
-  if (!bestMatch || bestScore < 30) {
+  if (!bestMatch) {
     // 광역 폴백: 빌리지/밭 매칭 실패 시, 광역 라벨("Bourgogne" 등)만이라도 super_region 으로 인정.
     // → 광역 단위 산지 선호가 추천에 반영되어, 국가(미국 등)로의 폴백을 줄인다.
     const sup = detectSuperRegion(wineRegion);

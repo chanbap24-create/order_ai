@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-17T05:36:22.619Z",
+  "lastUpdated": "2026-06-17T05:45:54.370Z",
   "activeFeatures": [
     "glass",
     "[type]",
@@ -838,9 +838,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-23T10:10:34.451Z",
-        "lastUpdated": "2026-06-17T05:35:21.246Z"
+        "lastUpdated": "2026-06-17T05:45:54.370Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/sales/recommend/hooks/useRecommendQuote.ts"
+      "lastFile": "/Users/hajin/order_ai/app/api/sales/recommend/lib/regions.ts"
     },
     "wine-regions": {
       "phase": "do",
@@ -1722,7 +1722,7 @@
   "session": {
     "startedAt": "2026-03-19T02:02:38.985Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-17T05:36:22.619Z"
+    "lastActivity": "2026-06-17T05:45:54.370Z"
   },
   "history": [
     {
@@ -24894,6 +24894,24 @@
     {
       "timestamp": "2026-06-17T05:36:22.619Z",
       "feature": "sales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-17T05:45:16.032Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-17T05:45:24.130Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-17T05:45:54.370Z",
+      "feature": "recommend",
       "phase": "do",
       "action": "updated"
     }
