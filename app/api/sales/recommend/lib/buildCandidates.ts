@@ -94,11 +94,10 @@ export async function buildCandidates(
     const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0);
     if (stock <= 0) return false;
     if (stock < minStockForPrice(price)) return false;
-    // months_supply 개월치 수요를 덮을 재고만 추천(품절 위험 회피).
-    // 월 수요 = 최근 30일 판매량(sales_30days). (기존 avg_sales_90d×개월×30 은 단위 오류로
-    // 잘 팔리는 와인을 오히려 전부 제외했음 — 예: 부르고뉴 샤도네)
+    // 최소 1개월치 재고만 확보되면 추천(품절 임박만 배제). 빠른 회전 와인이 과도하게
+    // 빠지지 않도록 완화 — 기존 3개월치(months_supply) 요구는 잘 팔리는 와인을 너무 많이 제외했음.
     const monthly = inv.sales_30days || 0;
-    if (monthly > 0 && stock < monthly * SR.months_supply) return false;
+    if (monthly > 0 && stock < monthly) return false;
     inv._totalStock = stock;
     return true;
   });

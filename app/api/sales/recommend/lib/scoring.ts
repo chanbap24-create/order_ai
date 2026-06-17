@@ -42,12 +42,15 @@ export function scoreRecommendations(params: {
     const reasons: string[] = [];
 
     if (purchase) {
-      // 재주문: 2회 이상 구매 + 3개월 이상 미발주만(같은 와인이라 게이트 자동 충족)
+      // 2회 이상 구매한 단골 와인은 항상 포함(같은 와인이라 게이트 자동 충족).
+      // 3개월 이상 미발주면 '재주문'(최우선), 최근 구매했으면 '단골'로 상단 노출.
+      if (purchase.count < 2) continue; // 1회성 구매는 제외
       const isStale = !purchase.lastDate || purchase.lastDate <= threeMonthsAgoStr;
-      if (purchase.count < 2 || !isStale) continue;
-      score = 100;
-      tags.push('재주문');
-      reasons.push(`${purchase.count}회 구매 · ${purchase.lastDate || '날짜미상'} 이후 미발주`);
+      score = isStale ? 100 : 95;
+      tags.push(isStale ? '재주문' : '단골');
+      reasons.push(isStale
+        ? `${purchase.count}회 구매 · ${purchase.lastDate || '날짜미상'} 이후 미발주`
+        : `단골 · ${purchase.count}회 구매${purchase.lastDate ? ` · 최근 ${purchase.lastDate}` : ''}`);
     } else {
       // 게이트 ① 타입: 거래처가 사는 타입만
       if (!prefs.hasHistory) continue;
