@@ -47,15 +47,16 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
     if (code) relevantCodes.add(code);
   }
   const codeList = Array.from(relevantCodes);
-  const [wines, { data: notes }] = await Promise.all([
+  const [wines, allNotes] = await Promise.all([
     fetchWinesByCodes<Record<string, unknown>>(
       codeList,
       'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
     ),
-    supabase.from('tasting_notes').select('wine_id, nose_note, palate_note').in('wine_id', codeList),
+    // 테이스팅노트는 작은 테이블 — 전체를 받아 맵으로(.in 500 한도 회피)
+    fetchAll<{ wine_id: string; nose_note?: string; palate_note?: string }>('tasting_notes', 'wine_id, nose_note, palate_note'),
   ]);
   const notesMap = new Map<string, string>();
-  for (const n of (notes || []) as Array<{ wine_id: string; nose_note?: string; palate_note?: string }>) {
+  for (const n of allNotes) {
     notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
   }
 
