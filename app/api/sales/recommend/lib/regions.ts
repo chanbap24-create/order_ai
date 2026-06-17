@@ -62,12 +62,6 @@ function norm(s: string): string {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// 단어 단위 정규화(공백 유지) — cru 를 region 과 "단어 경계"로 비교하기 위함.
-// region "Champagne, Oger" 안의 "Oger"(단어)만 매칭, "Roger"(생산자명) 같은 조각은 제외.
-function nWords(s: string): string {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
 // 국가 비교 키: 영문부 정규화 + 흔한 별칭 통일(USA/United States, England/UK 등)
 export function countryKey(s: string): string {
   const n = norm(extractEnglish(s || ''));
@@ -105,30 +99,27 @@ export function matchRegionRow<T extends WineRegionRow>(
   if (!wineRegion && !wineName) return null;
 
   const regionLower = (wineRegion || '').toLowerCase();
-  const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
-  const specific = parts[0] || '';
-  const sName = norm(specific), rName = norm(regionLower);
-  const regionW = ` ${nWords(regionLower)} `;
+  // region 을 콤마 구획으로 분해해 각 구획을 정규화 — "Burgundy, Côte de Beaune, Santenay"처럼
+  // 광역이 앞·마을이 뒤에 오는 표기에서도 마을(구획)을 정확히 집기 위함.
+  const segs = regionLower.split(',').map((p) => norm(cleanRegionToken(p))).filter((s) => s.length >= 2);
 
   const scoreOver = (rowSet: T[]): { row: T; score: number } | null => {
     let best: T | null = null;
     let bestScore = 0;
     for (const row of rowSet) {
-      // 정규화 비교(악센트/하이픈/공백 무시) + 등급약어 제거 + 최소 길이 가드(catch-all 방지)
       const subN = norm(cleanRegionToken(row.sub_region || ''));
       const appN = norm(cleanRegionToken(row.appellation || ''));
-      // 분류는 와인 "이름"이 아니라 region 필드로만 — cru 도 region 에 단어로 있을 때만(이름 조각 오매칭 방지)
-      const cruP = nWords(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
+      const majorN = norm(cleanRegionToken(row.major_region || ''));
+      // cru 도 콤마 "구획 정확일치"로만 — "Montrachet" 가 "Chassagne-Montrachet" 단어에 걸리는 것 방지
+      const cruN = norm(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
       let score = 0;
-      if (cruP.length >= 4 && regionW.includes(` ${cruP} `)) score = 100;
-      else if (appN.length >= 4 && sName.includes(appN)) score = 80;
-      // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
-      else if (subN.length >= 4 && sName.includes(subN)) score = 60;
-      else if (subN.length >= 4 && rName.includes(subN)) score = 40;
-      else {
-        const majorN = norm(cleanRegionToken(row.major_region || ''));
-        if (majorN.length >= 4 && (sName.includes(majorN) || rName.includes(majorN))) score = 35;
-      }
+      if (cruN.length >= 4 && segs.includes(cruN)) score = 100;
+      else if (appN.length >= 4 && segs.includes(appN)) score = 90;
+      else if (subN.length >= 4 && segs.includes(subN)) score = 70;
+      // 마을명이 더 긴 구획의 "접두"일 때만(예: "gevrey-chambertin clos st-jacques").
+      // 광역명(=major)·접미("…-lès-beaune"의 beaune)는 제외 → "Côte de Beaune"가 본 마을에 안 걸림.
+      else if (subN.length >= 4 && segs.some((s) => s !== majorN && s !== subN && s.startsWith(subN) && s.length > subN.length)) score = 50;
+      else if (majorN.length >= 4 && segs.includes(majorN)) score = 35;
       if (score > bestScore) { bestScore = score; best = row; }
     }
     return best && bestScore >= 30 ? { row: best, score: bestScore } : null;
