@@ -51,8 +51,9 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     if (rec.result && cs.selectedClient) quote.setClientName(cs.selectedClient.client_name);
   }
 
-  const handleSelectClient = (c: ClientOption) => { cs.selectClient(c); rec.setResult(null); };
-  const handleClearClient = () => { cs.clearClient(); rec.setResult(null); };
+  // 거래처를 바꾸면 이전 거래처의 견적/결과를 비움
+  const handleSelectClient = (c: ClientOption) => { cs.selectClient(c); rec.setResult(null); quote.clearAllQuoteSilent(); };
+  const handleClearClient = () => { cs.clearClient(); rec.setResult(null); quote.clearAllQuoteSilent(); };
   const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient, priceBand / 100); };
   const reapplyBand = () => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, priceBand / 100); };
 
@@ -82,7 +83,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
         isAdmin={isAdmin}
         managers={managers}
         filterManager={filterManager}
-        onFilterManagerChange={(v) => { setFilterManager(v); cs.clearClient(); rec.setResult(null); }}
+        onFilterManagerChange={(v) => { setFilterManager(v); cs.clearClient(); rec.setResult(null); quote.clearAllQuoteSilent(); }}
         dropdownRef={cs.dropdownRef}
         clientSearch={cs.clientSearch}
         onSearchChange={(v) => { cs.setClientSearch(v); cs.setSelectedClient(null); }}

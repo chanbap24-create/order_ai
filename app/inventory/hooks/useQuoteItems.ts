@@ -233,6 +233,15 @@ export function useQuoteItems(p: Params) {
     setQuoteItems([]);
   }, [quoteItems]);
 
+  // 확인창 없이 견적 비우기 (거래처 전환 등 자동 초기화용)
+  const clearAllQuoteSilent = useCallback(async () => {
+    const ids = quoteItems.map((i) => i.id);
+    setQuoteItems([]);
+    for (const id of ids) {
+      await fetch(`/api/quote?id=${id}`, { method: "DELETE" });
+    }
+  }, [quoteItems]);
+
   // 모바일 바텀시트
   const openBottomSheet = useCallback((item: QuoteItem) => {
     setBottomSheetItem(item);
@@ -283,6 +292,7 @@ export function useQuoteItems(p: Params) {
     moveItem,
     reorderItemTo,
     clearAllQuote,
+    clearAllQuoteSilent,
     // bottom sheet
     bottomSheetItem,
     sheetValues,
