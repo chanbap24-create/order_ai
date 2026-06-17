@@ -49,6 +49,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
 
   // 슬라이더 설정(분석기간·가격밴드·추천점수) 저장/복원 — localStorage
   useEffect(() => {
+    // mount 시 저장된 설정 복원(하이드레이션 불일치 방지 위해 effect 에서 적용)
+    /* eslint-disable react-hooks/set-state-in-effect */
     try {
       const raw = localStorage.getItem(PREFS_KEY);
       if (raw) {
@@ -58,6 +60,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
         if (typeof p.minScore === 'number') setMinScore(p.minScore);
       }
     } catch { /* ignore */ }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
   useEffect(() => {
     try {
