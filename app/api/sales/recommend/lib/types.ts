@@ -46,6 +46,7 @@ export interface ClientPreferences {
   priceStats: Record<string, { sum: number; count: number }>; // "bucket|group" / "bucket" / "__all__"
   flavorKeys: Set<string>;             // 거래처 향미 키
   grapeKeys: Set<string>;              // 거래처 품종(소문자)
+  regionDist: Record<string, number>;  // 지역(광역/대지역/국가)별 매입 횟수 분포
 }
 
 export interface PurchaseAggEntry {

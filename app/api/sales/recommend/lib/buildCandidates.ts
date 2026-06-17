@@ -23,6 +23,7 @@ export interface CandidateContext {
       flavors: string[];       // 향미 키워드
       avg_price: number;       // 거래처 평균가
       band_pct: number;        // 적용 가격밴드 ±%
+      region_dist: { label: string; count: number; pct: number }[]; // 지역별 매입 분포
     };
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,6 +173,12 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
         flavors: Array.from(prefs.flavorKeys).map(flavorLabel).slice(0, 6),
         avg_price: Math.round(prefs.clientAvgPrice),
         band_pct: Math.round(priceBandPct * 100),
+        region_dist: (() => {
+          const total = Object.values(prefs.regionDist).reduce((a, b) => a + b, 0) || 1;
+          return Object.entries(prefs.regionDist)
+            .sort((a, b) => b[1] - a[1]).slice(0, 7)
+            .map(([r, c]) => ({ label: extractEnglish(r), count: c, pct: Math.round((c / total) * 100) }));
+        })(),
       },
     },
     wineMap,

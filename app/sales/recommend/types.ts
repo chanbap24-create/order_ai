@@ -48,6 +48,7 @@ export interface RecommendResult {
       flavors: string[];
       avg_price: number;
       band_pct: number;
+      region_dist?: { label: string; count: number; pct: number }[];
     };
   };
 }

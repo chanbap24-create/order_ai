@@ -57,6 +57,7 @@ export function buildClientPreferences(
   const priceStats: Record<string, { sum: number; count: number }> = {};
   const flavorKeys = new Set<string>();
   const grapeKeys = new Set<string>();
+  const regionDist: Record<string, number> = {};
   const addPrice = (key: string, price: number) => {
     if (price <= 0) return;
     const s = priceStats[key] || (priceStats[key] = { sum: 0, count: 0 });
@@ -91,6 +92,10 @@ export function buildClientPreferences(
     } else {
       addPrice('__all__', avgPrice);
     }
+    // 지역 분포(광역 → 대지역 → 국가 → 기타 순으로 라벨)
+    const regionLabel = h?.super_region || h?.major_region || country || '기타';
+    regionDist[regionLabel] = (regionDist[regionLabel] || 0) + agg.count;
+
     // 향미 키(테이스팅노트)
     for (const k of extractFlavorKeys(wine?._notes || '')) flavorKeys.add(k);
 
@@ -142,5 +147,6 @@ export function buildClientPreferences(
     priceStats,
     flavorKeys,
     grapeKeys,
+    regionDist,
   };
 }
