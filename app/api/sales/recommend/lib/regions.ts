@@ -99,9 +99,12 @@ export function matchRegionRow<T extends WineRegionRow>(
   if (!wineRegion && !wineName) return null;
 
   const regionLower = (wineRegion || '').toLowerCase();
-  // region 을 콤마 구획으로 분해해 각 구획을 정규화 — "Burgundy, Côte de Beaune, Santenay"처럼
-  // 광역이 앞·마을이 뒤에 오는 표기에서도 마을(구획)을 정확히 집기 위함.
-  const segs = regionLower.split(',').map((p) => norm(cleanRegionToken(p))).filter((s) => s.length >= 2);
+  // region 을 구획으로 분해 — 콤마뿐 아니라 en/em-dash·슬래시·괄호·" - " 도 구분자
+  // ("USA – California – Napa Valley", "Italy-Toscana-...", "Douro Valley (Quinta..., Upper Douro)").
+  // 단, 일반 하이픈은 분해 안 함(Chassagne-Montrachet/Saint-Émilion 같은 이름 보호).
+  const segs = regionLower.split(/[,–—/()]|\s-\s/).map((p) => norm(cleanRegionToken(p))).filter((s) => s.length >= 2);
+  // 광역명 집합 — 부분일치가 광역 구획("Côte de Beaune")에 걸려 마을(Beaune)로 가는 것 방지
+  const majors = new Set(regionRows.map((r) => norm(cleanRegionToken(r.major_region || ''))));
 
   const scoreOver = (rowSet: T[]): { row: T; score: number } | null => {
     let best: T | null = null;
@@ -110,16 +113,18 @@ export function matchRegionRow<T extends WineRegionRow>(
       const subN = norm(cleanRegionToken(row.sub_region || ''));
       const appN = norm(cleanRegionToken(row.appellation || ''));
       const majorN = norm(cleanRegionToken(row.major_region || ''));
-      // cru 도 콤마 "구획 정확일치"로만 — "Montrachet" 가 "Chassagne-Montrachet" 단어에 걸리는 것 방지
+      // cru 는 "구획 정확일치"로만 — "Montrachet" 가 "Chassagne-Montrachet" 에 안 걸림
       const cruN = norm(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
+      // 부분일치: 마을/등급명이 더 긴 "비(非)광역" 구획 안에 들어있을 때(하이픈으로 붙은 표기 보완)
+      const appIn = appN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > appN.length && s.includes(appN));
+      const subIn = subN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > subN.length && s.includes(subN));
       let score = 0;
       if (cruN.length >= 4 && segs.includes(cruN)) score = 100;
       else if (appN.length >= 4 && segs.includes(appN)) score = 90;
       else if (subN.length >= 4 && segs.includes(subN)) score = 70;
-      // 마을명이 더 긴 구획의 "접두"일 때만(예: "gevrey-chambertin clos st-jacques").
-      // 광역명(=major)·접미("…-lès-beaune"의 beaune)는 제외 → "Côte de Beaune"가 본 마을에 안 걸림.
-      else if (subN.length >= 4 && segs.some((s) => s !== majorN && s !== subN && s.startsWith(subN) && s.length > subN.length)) score = 50;
-      else if (majorN.length >= 4 && segs.includes(majorN)) score = 35;
+      else if (appIn) score = 60;
+      else if (subIn) score = 50;
+      else if (majorN.length >= 4 && (segs.includes(majorN) || segs.some((s) => s.includes(majorN)))) score = 35;
       if (score > bestScore) { bestScore = score; best = row; }
     }
     return best && bestScore >= 30 ? { row: best, score: bestScore } : null;
