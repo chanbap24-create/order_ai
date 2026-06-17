@@ -8,6 +8,8 @@ import { findHierarchy, extractEnglish, type WineRegionRow } from './regions';
 import { loadSettings, makeMinStockForPrice } from './settings';
 import { aggregatePurchases, buildClientPreferences } from './preferences';
 import { scoreRecommendations } from './scoring';
+import { bucketLabel } from './wineType';
+import { flavorLabel } from './flavor';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -15,6 +17,13 @@ export interface CandidateContext {
   summary: {
     total_items: number; avg_price: number; last_order_date: string | null;
     top_countries: string[]; top_grapes: string[]; top_types: string[]; top_regions: string[];
+    analysis: {
+      types: string[];         // 주력 타입(레드/화이트/…)
+      broad_regions: string[]; // 주력 광역(부르고뉴 등)
+      flavors: string[];       // 향미 키워드
+      avg_price: number;       // 거래처 평균가
+      band_pct: number;        // 적용 가격밴드 ±%
+    };
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wineMap: Map<string, any>;
@@ -154,6 +163,16 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
       top_types: prefs.topTypes.slice(0, 3).map((e) => e[0]),
       top_regions: Object.entries(prefs.subRegionBuyCount)
         .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
+      analysis: {
+        types: Array.from(prefs.typeBuckets).map(bucketLabel).filter(Boolean),
+        broad_regions: (Object.keys(prefs.superRegionBuyCount).length
+          ? Object.entries(prefs.superRegionBuyCount)
+          : Object.entries(prefs.majorRegionBuyCount)
+        ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
+        flavors: Array.from(prefs.flavorKeys).map(flavorLabel).slice(0, 6),
+        avg_price: Math.round(prefs.clientAvgPrice),
+        band_pct: Math.round(priceBandPct * 100),
+      },
     },
     wineMap,
     recentCodes,

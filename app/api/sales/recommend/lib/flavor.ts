@@ -26,6 +26,16 @@ for (const [key, words] of Object.entries(FLAVOR_GROUPS)) {
   for (const w of words) TOKEN_TO_KEY.push([w.toLowerCase(), key]);
 }
 
+// 정규 향미 키 → 한글 표시 라벨
+export const FLAVOR_KO: Record<string, string> = {
+  oak: '오크', citrus: '시트러스', mineral: '미네랄', stonefruit: '핵과', tropical: '열대과일',
+  apple: '사과·배', redfruit: '붉은과실', blackfruit: '검은과실', floral: '꽃', spice: '향신료',
+  herb: '허브', earth: '흙·가죽', tannic: '탄닌', body_full: '풀바디', body_light: '라이트', creamy: '크리미',
+};
+export function flavorLabel(key: string): string {
+  return FLAVOR_KO[key] || key;
+}
+
 /** 자유 텍스트에서 정규 향미 키 집합 추출. */
 export function extractFlavorKeys(text: string): Set<string> {
   const t = (text || '').toLowerCase();

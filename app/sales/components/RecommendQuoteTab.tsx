@@ -9,6 +9,7 @@ import { useQuoteCols } from '../recommend/hooks/useQuoteCols';
 import { useQuoteExport } from '../recommend/hooks/useQuoteExport';
 import { ClientPickerCard } from '../recommend/components/ClientPickerCard';
 import { SummaryCard } from '../recommend/components/SummaryCard';
+import { RecommendAnalysisCard } from '../recommend/components/RecommendAnalysisCard';
 import { RecommendationList } from '../recommend/components/RecommendationList';
 import { BottomActionBar } from '../recommend/components/BottomActionBar';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
@@ -113,6 +114,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
       {rec.result && (
         <>
           <SummaryCard result={rec.result} />
+          <RecommendAnalysisCard summary={rec.result.summary} />
           {rec.result.comment && (
             <div style={{
               background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 10,

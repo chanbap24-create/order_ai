@@ -3,14 +3,9 @@ import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
 import { priceRef } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL } from './geoTier';
-import { extractFlavorKeys, flavorOverlap } from './flavor';
+import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 
 const TIER_BASE = [92, 74, 58]; // 같은마을 / 인근마을 / 같은광역 (점수 표시·정렬 기준)
-const FLAVOR_GROUP_KO: Record<string, string> = {
-  oak: '오크', citrus: '시트러스', mineral: '미네랄', stonefruit: '핵과', tropical: '열대과일',
-  apple: '사과·배', redfruit: '붉은과실', blackfruit: '검은과실', floral: '꽃', spice: '향신료',
-  herb: '허브', earth: '흙·가죽', tannic: '탄닌', body_full: '풀바디', body_light: '라이트', creamy: '크리미',
-};
 
 /**
  * 규칙기반 추천: 타입·가격은 하드 게이트, 지역은 계단(우선순위), 향미·품종은 그 안의 정렬.
@@ -82,7 +77,7 @@ export function scoreRecommendations(params: {
 
       if (grapeHit) { tags.push('선호품종'); reasons.push(matchedGrapeLabel(invGrapes, prefs)); }
       if (fOverlap > 0) {
-        const shared = [...candFlavor].filter((k) => prefs.flavorKeys.has(k)).map((k) => FLAVOR_GROUP_KO[k] || k);
+        const shared = [...candFlavor].filter((k) => prefs.flavorKeys.has(k)).map(flavorLabel);
         if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
       }
       if (invPrice > 0) { tags.push('적정가격'); }

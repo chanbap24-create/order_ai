@@ -41,5 +41,13 @@ export interface RecommendResult {
     top_countries: string[];
     top_grapes: string[];
     top_types: string[];
+    top_regions?: string[];
+    analysis?: {
+      types: string[];
+      broad_regions: string[];
+      flavors: string[];
+      avg_price: number;
+      band_pct: number;
+    };
   };
 }
