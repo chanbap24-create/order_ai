@@ -21,8 +21,9 @@ export interface CandidateContext {
       types: string[];         // 주력 타입(레드/화이트/…)
       broad_regions: string[]; // 주력 광역(부르고뉴 등)
       flavors: string[];       // 향미 키워드
-      avg_price: number;       // 거래처 평균가
+      avg_price: number;       // 거래처 평균가(전체)
       band_pct: number;        // 적용 가격밴드 ±%
+      type_prices: { type: string; avg: number }[]; // 타입별 평균가
       region_dist: { label: string; count: number; pct: number }[]; // 지역별 매입 분포
     };
   };
@@ -173,6 +174,10 @@ export async function buildCandidates(clientCode: string, priceBandPct = 0.2): P
         flavors: Array.from(prefs.flavorKeys).map(flavorLabel).slice(0, 6),
         avg_price: Math.round(prefs.clientAvgPrice),
         band_pct: Math.round(priceBandPct * 100),
+        type_prices: Array.from(prefs.typeBuckets).map((b) => {
+          const s = prefs.priceStats[b];
+          return { type: bucketLabel(b), avg: s && s.count ? Math.round(s.sum / s.count) : 0 };
+        }).filter((t) => t.type && t.avg > 0).sort((a, b) => b.avg - a.avg),
         region_dist: (() => {
           const total = Object.values(prefs.regionDist).reduce((a, b) => a + b, 0) || 1;
           return Object.entries(prefs.regionDist)

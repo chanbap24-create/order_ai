@@ -51,10 +51,26 @@ export function RecommendAnalysisCard({ summary }: { summary: RecommendResult['s
           </div>
         </div>
       )}
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-        평균가 <b style={{ color: 'var(--text-primary)' }}>{won(a.avg_price)}</b>
-        {' · '}허용 가격대 <b style={{ color: 'var(--text-primary)' }}>{won(lo)}~{won(hi)}</b> (±{a.band_pct}%)
-      </div>
+      {a.type_prices && a.type_prices.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>타입별 평균가 (±{a.band_pct}% 허용)</span>
+          {a.type_prices.map((t, i) => {
+            const tlo = Math.round((t.avg * (100 - a.band_pct)) / 100);
+            const thi = Math.round((t.avg * (100 + a.band_pct)) / 100);
+            return (
+              <div key={i} style={{ fontSize: 12, color: 'var(--text-primary)' }}>
+                <b>{t.type}</b> {won(t.avg)}
+                <span style={{ color: 'var(--text-tertiary)' }}> ({won(tlo)}~{won(thi)})</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+          평균가 <b style={{ color: 'var(--text-primary)' }}>{won(a.avg_price)}</b>
+          {' · '}허용 가격대 <b style={{ color: 'var(--text-primary)' }}>{won(lo)}~{won(hi)}</b> (±{a.band_pct}%)
+        </div>
+      )}
       <div style={{
         fontSize: 12, lineHeight: 1.6, color: 'var(--neutral-600)',
         borderTop: '1px dashed var(--gray-200)', paddingTop: 8,
