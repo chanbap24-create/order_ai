@@ -168,36 +168,28 @@ export function findHierarchy(
 ): RegionHierarchy | null {
   if (!wineRegion && !wineName) return null;
   const regionLower = (wineRegion || '').toLowerCase();
-  const parts = regionLower.split(',').map((p) => p.trim()).filter(Boolean);
-  const specific = parts[0] || '';
-  const sName = norm(specific), rName = norm(regionLower);
-  const regionW = ` ${nWords(regionLower)} `;
+  // matchRegionRow 와 동일한 콤마/대시 구획 정확일치 + 비광역 부분일치
+  const segs = regionLower.split(/[,–—/()]|\s-\s/).map((p) => norm(cleanRegionToken(p))).filter((s) => s.length >= 2);
+  const majors = new Set(regionRows.map((r) => norm(cleanRegionToken(r.major_region || ''))));
 
   let bestMatch: WineRegionRow | null = null;
   let bestScore = 0;
 
   for (const row of regionRows) {
-    // matchRegionRow 와 동일한 정규화 스코어링(악센트/하이픈/공백 무시 + 최소 길이 가드)
     const subN = norm(cleanRegionToken(row.sub_region || ''));
     const appN = norm(cleanRegionToken(row.appellation || ''));
-    // 분류는 와인 "이름"이 아니라 region 필드로만 — cru 도 region 에 단어로 있을 때만(이름 조각 오매칭 방지)
-    const cruP = nWords(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
+    const majorN = norm(cleanRegionToken(row.major_region || ''));
+    const cruN = norm(extractEnglish(row.cru_vineyard || '').replace(/\(.*?\)/g, ' '));
+    const appIn = appN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > appN.length && s.includes(appN));
+    const subIn = subN.length >= 4 && segs.some((s) => !majors.has(s) && s.length > subN.length && s.includes(subN));
     let score = 0;
-    if (cruP.length >= 4 && regionW.includes(` ${cruP} `)) score = 100;
-    else if (appN.length >= 4 && sName.includes(appN)) score = 80;
-    // 정방향만: DB 산지명이 와인 region 에 포함될 때만(역방향은 "lodi"⊂"cerasuoLODIvittoria" 같은 조각 오매칭)
-    else if (subN.length >= 4 && sName.includes(subN)) score = 60;
-    else if (subN.length >= 4 && rName.includes(subN)) score = 40;
-    // 와인 "이름" 기반 sub 매칭은 제거 — 맛/품종 단어 오매칭 방지. 산지는 region 필드로만.
-    else {
-      const majorN = norm(cleanRegionToken(row.major_region || ''));
-      if (majorN.length >= 4 && (sName.includes(majorN) || rName.includes(majorN))) score = 35;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = row;
-    }
+    if (cruN.length >= 4 && segs.includes(cruN)) score = 100;
+    else if (appN.length >= 4 && segs.includes(appN)) score = 90;
+    else if (subN.length >= 4 && segs.includes(subN)) score = 70;
+    else if (appIn) score = 60;
+    else if (subIn) score = 50;
+    else if (majorN.length >= 4 && (segs.includes(majorN) || segs.some((s) => s.includes(majorN)))) score = 35;
+    if (score > bestScore) { bestScore = score; bestMatch = row; }
   }
 
   if (!bestMatch || bestScore < 30) {
