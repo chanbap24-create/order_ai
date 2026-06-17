@@ -47,6 +47,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   if (rec.result !== prevResult) {
     setPrevResult(rec.result);
     setSelected(new Set(items.map((i) => i.item_no)));
+    // 견적 편집 거래처명을 선택한 거래처로 미리 채움
+    if (rec.result && cs.selectedClient) quote.setClientName(cs.selectedClient.client_name);
   }
 
   const handleSelectClient = (c: ClientOption) => { cs.selectClient(c); rec.setResult(null); };
