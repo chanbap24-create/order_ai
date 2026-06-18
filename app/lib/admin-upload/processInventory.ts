@@ -86,12 +86,12 @@ async function recordCdvInventoryValue(rows: Record<string, unknown>[]) {
 async function recordDlInventoryValue(rows: Record<string, unknown>[]) {
   let dlTotal = 0;
   for (const row of rows) {
+    // DL 물리재고 = GIG + 보세(KCTC) + KCTC (DL 도 KCTC 창고로 이전 중)
     const supply = Number(row.supply_price) || 0;
-    const anseong = Number(row.anseong_warehouse) || 0;
     const gig = Number(row.gig_warehouse) || 0;
-    const gigMkt = Number(row.gig_marketing) || 0;
-    const gigSales = Number(row.gig_sales1) || 0;
-    dlTotal += (anseong + gig + gigMkt + gigSales) * supply;
+    const bondedKctc = Number(row.bonded_kctc) || 0;
+    const kctc = Number(row.kctc) || 0;
+    dlTotal += (gig + bondedKctc + kctc) * supply;
   }
   try {
     await recordInventoryValuePartial('dl', dlTotal);

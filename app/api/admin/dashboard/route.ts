@@ -31,7 +31,7 @@ function calcFromUploadedFiles(): { cdv: number; dl: number } {
     }
   }
 
-  // DL: dl.xlsx → (안성[25] + GIG[26] + GIG마케팅[27] + GIG영업1[28]) * 공급가[17]
+  // DL: dl.xlsx → (KCTC[X=23] + 보세(KCTC)[Y=24] + GIG[Z=25]) * 공급가[R=17]
   const dlPath = getUploadedFilePath('dl');
   if (dlPath && fs.existsSync(dlPath)) {
     const wb = XLSX.read(fs.readFileSync(dlPath), { type: 'buffer' });
@@ -41,11 +41,10 @@ function calcFromUploadedFiles(): { cdv: number; dl: number } {
       for (let i = 1; i < rows.length; i++) {
         const r = (rows[i] || []) as unknown[];
         const supply = Number(r[17]) || 0;
-        const anseong = Number(r[25]) || 0;
-        const gig = Number(r[26]) || 0;
-        const gigMkt = Number(r[27]) || 0;
-        const gigSales = Number(r[28]) || 0;
-        dl += (anseong + gig + gigMkt + gigSales) * supply;
+        const kctc = Number(r[23]) || 0;
+        const bondedKctc = Number(r[24]) || 0;
+        const gig = Number(r[25]) || 0;
+        dl += (kctc + bondedKctc + gig) * supply;
       }
     }
   }
