@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-18T00:53:57.227Z",
+  "lastUpdated": "2026-06-18T01:05:51.943Z",
   "activeFeatures": [
     "glass",
     "[type]",
@@ -162,9 +162,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-19T04:04:15.111Z",
-        "lastUpdated": "2026-06-16T09:04:42.422Z"
+        "lastUpdated": "2026-06-18T01:05:37.118Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/admin/components/WineRegionsTab.tsx"
+      "lastFile": "/Users/hajin/order_ai/app/admin/page.tsx"
     },
     "order_ai": {
       "phase": "do",
@@ -175,9 +175,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-19T04:04:29.751Z",
-        "lastUpdated": "2026-06-16T02:27:06.314Z"
+        "lastUpdated": "2026-06-18T01:05:51.943Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/lib/wineDb.ts"
+      "lastFile": "/Users/hajin/order_ai/app/types/wine.ts"
     },
     "sales": {
       "phase": "do",
@@ -1722,7 +1722,7 @@
   "session": {
     "startedAt": "2026-03-19T02:02:38.985Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-18T00:53:57.227Z"
+    "lastActivity": "2026-06-18T01:05:51.943Z"
   },
   "history": [
     {
@@ -25068,6 +25068,30 @@
     {
       "timestamp": "2026-06-18T00:53:57.227Z",
       "feature": "sales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:05:18.117Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:05:27.527Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:05:37.118Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:05:51.943Z",
+      "feature": "order_ai",
       "phase": "do",
       "action": "updated"
     }

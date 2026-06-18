@@ -8,7 +8,6 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'dashboard', label: '재고분석' },
   { id: 'all-wines', label: '와인리스트' },
   { id: 'tasting-note', label: '테이스팅노트' },
-  { id: 'recommend-settings', label: 'AI추천설정' },
   { id: 'wine-regions', label: '와인산지DB' },
   { id: 'brand-library', label: '브랜드자료실' },
   { id: 'glass-images', label: '글라스이미지' },
