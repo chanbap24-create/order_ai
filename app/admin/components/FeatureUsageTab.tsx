@@ -12,7 +12,7 @@ import {
 } from './featureUsage/dates';
 
 export default function FeatureUsageTab() {
-  const [start, setStart] = useState(daysAgoKst(6));
+  const [start, setStart] = useState(daysAgoKst(29)); // 기본 최근 30일
   const [end, setEnd] = useState(todayKst());
   const [manager, setManager] = useState('');
   const [data, setData] = useState<UsageApiResp | null>(null);

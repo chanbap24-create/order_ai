@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-18T02:10:52.618Z",
+  "lastUpdated": "2026-06-18T02:18:30.348Z",
   "activeFeatures": [
     "glass",
     "[type]",
@@ -162,9 +162,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-19T04:04:15.111Z",
-        "lastUpdated": "2026-06-18T01:05:37.118Z"
+        "lastUpdated": "2026-06-18T02:18:30.348Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/admin/page.tsx"
+      "lastFile": "/Users/hajin/order_ai/app/admin/components/FeatureUsageTab.tsx"
     },
     "order_ai": {
       "phase": "do",
@@ -1722,7 +1722,7 @@
   "session": {
     "startedAt": "2026-03-19T02:02:38.985Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-18T02:10:52.618Z"
+    "lastActivity": "2026-06-18T02:18:30.348Z"
   },
   "history": [
     {
@@ -25206,6 +25206,12 @@
     {
       "timestamp": "2026-06-18T02:10:52.618Z",
       "feature": "inventory",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T02:18:30.348Z",
+      "feature": "admin",
       "phase": "do",
       "action": "updated"
     }
