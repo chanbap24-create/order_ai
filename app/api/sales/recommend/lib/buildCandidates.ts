@@ -10,6 +10,7 @@ import { aggregatePurchases, buildClientPreferences } from './preferences';
 import { scoreRecommendations } from './scoring';
 import { bucketLabel } from './wineType';
 import { flavorLabel } from './flavor';
+import { isNonOrderable } from '@/app/lib/catalogFilter';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -91,6 +92,8 @@ export async function buildCandidates(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inventory = (rawInventory || []).filter((inv: any) => {
     const price = inv.supply_price || 0;
+    // 비(非)상품 제외 — 포장/더미/판촉/케이스, CDV 품번 '9' 접두(catalogFilter 규칙)
+    if (isNonOrderable(inv.item_no, inv.item_name, 'CDV')) return false;
     const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0);
     if (stock <= 0) return false;
     if (stock < minStockForPrice(price)) return false;
