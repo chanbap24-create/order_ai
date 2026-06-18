@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-18T02:18:30.348Z",
+  "lastUpdated": "2026-06-18T03:47:34.085Z",
   "activeFeatures": [
     "glass",
     "[type]",
@@ -175,9 +175,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-19T04:04:29.751Z",
-        "lastUpdated": "2026-06-18T01:41:51.641Z"
+        "lastUpdated": "2026-06-18T02:19:00.462Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/lib/inventoryHeaders.ts"
+      "lastFile": "/Users/hajin/order_ai/app/lib/crossCheckQuantity.ts"
     },
     "sales": {
       "phase": "do",
@@ -266,9 +266,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-23T06:44:28.580Z",
-        "lastUpdated": "2026-06-18T02:10:52.618Z"
+        "lastUpdated": "2026-06-18T03:46:24.479Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/inventory/lib/renderCell.tsx"
+      "lastFile": "/Users/hajin/order_ai/app/inventory/lib/filterResults.ts"
     },
     "filter": {
       "phase": "do",
@@ -279,7 +279,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-23T06:44:39.161Z",
-        "lastUpdated": "2026-03-23T06:44:45.012Z"
+        "lastUpdated": "2026-06-18T03:46:42.846Z"
       },
       "lastFile": "/Users/hajin/order_ai/app/api/inventory/filter/route.ts"
     },
@@ -838,9 +838,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-23T10:10:34.451Z",
-        "lastUpdated": "2026-06-18T01:29:40.047Z"
+        "lastUpdated": "2026-06-18T03:47:34.085Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/sales/recommend/hooks/useQuoteCols.ts"
+      "lastFile": "/Users/hajin/order_ai/app/api/sales/recommend/lib/scoring.ts"
     },
     "wine-regions": {
       "phase": "do",
@@ -1722,7 +1722,7 @@
   "session": {
     "startedAt": "2026-03-19T02:02:38.985Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-18T02:18:30.348Z"
+    "lastActivity": "2026-06-18T03:47:34.085Z"
   },
   "history": [
     {
@@ -25212,6 +25212,48 @@
     {
       "timestamp": "2026-06-18T02:18:30.348Z",
       "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T02:19:00.462Z",
+      "feature": "order_ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T03:46:17.488Z",
+      "feature": "inventory",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T03:46:24.479Z",
+      "feature": "inventory",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T03:46:42.846Z",
+      "feature": "filter",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T03:46:56.849Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T03:47:26.477Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T03:47:34.085Z",
+      "feature": "recommend",
       "phase": "do",
       "action": "updated"
     }

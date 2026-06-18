@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       const lo = stockMin ? Number(stockMin) : null;
       const hi = stockMax ? Number(stockMax) : null;
       results = results.filter((r: any) => {
-        const total = (r.available_stock || 0) + (r.bonded_warehouse || 0);
+        const total = (r.available_stock || 0) + (r.bonded_warehouse || 0) + (r.bonded_kctc || 0);
         if (lo !== null && total < lo) return false;
         if (hi !== null && total > hi) return false;
         return true;

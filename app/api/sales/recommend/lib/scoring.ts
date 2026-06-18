@@ -108,7 +108,7 @@ export function scoreRecommendations(params: {
       score = TIER_BASE[t] * ((1 - strength) + strength * freqW) + soft * 8 + velocity * 2;
     }
 
-    if ((inv.available_stock || 0) <= 0 && (inv.bonded_warehouse || 0) > 0) tags.push('통관필요');
+    if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 
     const vv = String(itemNo).slice(2, 4);
     const vintage = /^\d{2}$/.test(vv)
@@ -123,7 +123,7 @@ export function scoreRecommendations(params: {
       grape: invGrapes,
       wine_type: bucketLabel(bucket) || wine?.wine_type || '',
       price: invPrice,
-      stock: inv._totalStock ?? ((inv.available_stock || 0) + (inv.bonded_warehouse || 0)),
+      stock: inv._totalStock ?? ((inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0)),
       score: Math.round(score * 10) / 10,
       tags,
       reason: reasons.join(' · ') || '추천 와인',

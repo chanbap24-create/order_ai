@@ -23,16 +23,16 @@ export function applyClientFilters(p: Params): InventoryItem[] {
     )
       return false;
 
+    // 보세 = 보세(용마) + 보세(KCTC). 재고 존재 = 재고수량/통관후(KCTC)/보세 중 하나라도.
+    const bondedQty = (item.bonded_warehouse || 0) + (item.bonded_kctc || 0);
+    const hasAnyStock =
+      (item.total_stock || 0) > 0 || (item.kctc || 0) > 0 || bondedQty > 0;
+
     if (p.activeTab === "CDV" && p.showOnlyBondedStock) {
-      const hasNoStock = !item.total_stock || item.total_stock <= 0;
-      const hasBondedStock = item.bonded_warehouse && item.bonded_warehouse > 0;
-      return Boolean(hasNoStock && hasBondedStock);
+      const hasNoCleared = (item.total_stock || 0) <= 0 && (item.kctc || 0) <= 0;
+      return Boolean(hasNoCleared && bondedQty > 0);
     }
-    if (
-      p.hideNoStock &&
-      (!item.total_stock || item.total_stock <= 0) &&
-      !p.importScheduleMap[item.item_no]
-    )
+    if (p.hideNoStock && !hasAnyStock && !p.importScheduleMap[item.item_no])
       return false;
 
     const inRange = (
@@ -51,7 +51,7 @@ export function applyClientFilters(p: Params): InventoryItem[] {
 
     if (
       !inRange(
-        (item.available_stock || 0) + (item.bonded_warehouse || 0),
+        (item.available_stock || 0) + (item.bonded_warehouse || 0) + (item.bonded_kctc || 0),
         f.stock.enabled,
         f.stock.min,
         f.stock.max,
