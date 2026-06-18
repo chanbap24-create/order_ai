@@ -68,10 +68,12 @@ async function seedWinesBaselineIfEmpty() {
 async function recordCdvInventoryValue(rows: Record<string, unknown>[]) {
   let cdvTotal = 0;
   for (const row of rows) {
+    // 물리재고 = 보세(용마 잔여) + KCTC 통관후 + 보세(KCTC). (창고 용마→KCTC 개명 반영)
     const supply = Number(row.supply_price) || 0;
     const bonded = Number(row.bonded_warehouse) || 0;
-    const yongma = Number(row.yongma_logistics) || 0;
-    cdvTotal += (bonded + yongma) * supply;
+    const kctc = Number(row.kctc) || 0;
+    const bondedKctc = Number(row.bonded_kctc) || 0;
+    cdvTotal += (bonded + kctc + bondedKctc) * supply;
   }
   try {
     await recordInventoryValuePartial('cdv', cdvTotal);

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-18T01:46:07.347Z",
+  "lastUpdated": "2026-06-18T02:00:19.952Z",
   "activeFeatures": [
     "glass",
     "[type]",
@@ -669,9 +669,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-23T04:03:24.490Z",
-        "lastUpdated": "2026-06-08T00:51:43.780Z"
+        "lastUpdated": "2026-06-18T02:00:19.952Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/admin/upload/lib/detectType.ts"
+      "lastFile": "/Users/hajin/order_ai/app/api/admin/remote-sync/upload/route.ts"
     },
     "parsers": {
       "phase": "do",
@@ -1124,7 +1124,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-23T12:23:19.871Z",
-        "lastUpdated": "2026-06-13T00:29:08.290Z"
+        "lastUpdated": "2026-06-18T01:59:54.625Z"
       },
       "lastFile": "/Users/hajin/order_ai/app/lib/admin-upload/processInventory.ts"
     },
@@ -1722,7 +1722,7 @@
   "session": {
     "startedAt": "2026-03-19T02:02:38.985Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-18T01:46:07.347Z"
+    "lastActivity": "2026-06-18T02:00:19.952Z"
   },
   "history": [
     {
@@ -25170,6 +25170,18 @@
     {
       "timestamp": "2026-06-18T01:46:07.347Z",
       "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:59:54.625Z",
+      "feature": "admin-upload",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T02:00:19.952Z",
+      "feature": "upload",
       "phase": "do",
       "action": "updated"
     }

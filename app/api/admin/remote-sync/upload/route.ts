@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         const table = type === 'downloads' ? 'inventory_cdv' : 'inventory_dl';
 
         // CDV 전용 컬럼이 DL에 들어가는 문제 방지: 테이블에 없는 컬럼 제거
-        const CDV_ONLY_COLS = ['yongma_logistics', 'yongma_reserve', 'yongma_marketing', 'yongma_sales1', 'yongma_sales2'];
+        const CDV_ONLY_COLS = ['yongma_logistics', 'yongma_reserve', 'yongma_marketing', 'yongma_sales1', 'yongma_sales2', 'kctc', 'bonded_kctc'];
         const DL_ONLY_COLS = ['gig_warehouse', 'gig_marketing', 'gig_sales1'];
         const removeCols = type === 'dl' ? CDV_ONLY_COLS : DL_ONLY_COLS;
         const cleanRows = rows.map((r: Record<string, unknown>) => {
