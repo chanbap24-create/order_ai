@@ -36,9 +36,15 @@ export const HEADER_MAP: Record<string, string> = {
   '도매장가': 'wholesale_price',
   '최저판매가': 'min_price',
   '미착품재고': 'incoming_stock',
-  // 창고 — CDV (까브드뱅)
-  '보세(용마)': 'bonded_warehouse',
-  '용마로지스': 'yongma_logistics',
+  // 창고 — CDV (까브드뱅). 2026 창고 개명: 용마 → KCTC
+  '보세(용마)': 'bonded_warehouse',     // 통관전 보세(용마) — 이전 못한 잔여
+  'KCTC': 'kctc',                       // KCTC 통관후(가용)
+  '보세(KCTC)': 'bonded_kctc',          // KCTC 통관전 보세
+  '용마로지스': 'kctc',                 // 구 명칭 호환 → KCTC
+  'KCTC(리져브)': 'yongma_reserve',
+  'KCTC(마케팅부)': 'yongma_marketing',
+  'KCTC(영업1부)': 'yongma_sales1',
+  'KCTC(영업2부)': 'yongma_sales2',
   '용마(리져브)': 'yongma_reserve',
   '용마(마케팅부)': 'yongma_marketing',
   '용마(영업1부)': 'yongma_sales1',

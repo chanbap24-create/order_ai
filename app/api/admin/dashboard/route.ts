@@ -12,7 +12,8 @@ function calcFromUploadedFiles(): { cdv: number; dl: number } {
   let cdv = 0;
   let dl = 0;
 
-  // CDV: downloads.xlsx → (보세(용마)[23] + 용마로지스[24]) * 공급가[17]
+  // CDV: downloads.xlsx → (보세용마[X=23] + KCTC통관후[Y=24] + 보세KCTC[Z=25]) * 공급가[R=17]
+  // (2026 창고 개명: 용마→KCTC. 보세용마 X는 아직 못 옮긴 잔여 재고)
   const cdvPath = getUploadedFilePath('downloads');
   if (cdvPath && fs.existsSync(cdvPath)) {
     const wb = XLSX.read(fs.readFileSync(cdvPath), { type: 'buffer' });
@@ -22,9 +23,10 @@ function calcFromUploadedFiles(): { cdv: number; dl: number } {
       for (let i = 1; i < rows.length; i++) {
         const r = (rows[i] || []) as unknown[];
         const supply = Number(r[17]) || 0;
-        const bonded = Number(r[23]) || 0;
-        const yongma = Number(r[24]) || 0;
-        cdv += (bonded + yongma) * supply;
+        const bondedYongma = Number(r[23]) || 0;
+        const kctc = Number(r[24]) || 0;
+        const bondedKctc = Number(r[25]) || 0;
+        cdv += (bondedYongma + kctc + bondedKctc) * supply;
       }
     }
   }
@@ -66,51 +68,40 @@ export async function GET() {
     const cdvSummary = cdvSummaryRes.data;
     const dlSummary = dlSummaryRes.data;
 
-    let cdvInventoryValue = 0;
-    let dlInventoryValue = 0;
+    // 헤드라인 = DB live 합계(RPC total) → 국가/브랜드 분포 합과 항상 일치.
+    let cdvInventoryValue = Number(cdvSummary?.total) || 0;
+    let dlInventoryValue = Number(dlSummary?.total) || 0;
     let cdvChange = null;
     let dlChange = null;
 
-    // 이력이 없으면 업로드된 엑셀에서 현재값 계산 후 첫 이력으로 기록
-    if (history.length === 0) {
-      const current = calcFromUploadedFiles();
-      cdvInventoryValue = current.cdv;
-      dlInventoryValue = current.dl;
+    // DB가 비어 합계가 0이면 업로드 엑셀에서 보조 계산
+    if (cdvInventoryValue === 0 && dlInventoryValue === 0) {
+      const cur = calcFromUploadedFiles();
+      cdvInventoryValue = cur.cdv;
+      dlInventoryValue = cur.dl;
+    }
 
-      if (current.cdv > 0 || current.dl > 0) {
-        if (current.cdv > 0) await recordInventoryValuePartial('cdv', current.cdv);
-        if (current.dl > 0) await recordInventoryValuePartial('dl', current.dl);
+    if (history.length === 0) {
+      // 첫 이력 기록
+      if (cdvInventoryValue > 0) await recordInventoryValuePartial('cdv', cdvInventoryValue);
+      if (dlInventoryValue > 0) await recordInventoryValuePartial('dl', dlInventoryValue);
+      if (cdvInventoryValue > 0 || dlInventoryValue > 0) {
         history.push({
           recorded_date: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          cdv_value: current.cdv,
-          dl_value: current.dl,
+          cdv_value: cdvInventoryValue,
+          dl_value: dlInventoryValue,
         });
       }
     } else {
+      // 변동 = 현재 live 값 vs 직전 이력 스냅샷
       const latest = history[history.length - 1];
-      cdvInventoryValue = latest.cdv_value;
-      dlInventoryValue = latest.dl_value;
-
-      if (history.length >= 2) {
-        const prev = history[history.length - 2];
-
-        if (prev.cdv_value > 0) {
-          const cdvDiff = latest.cdv_value - prev.cdv_value;
-          cdvChange = {
-            amount: cdvDiff,
-            rate: (cdvDiff / prev.cdv_value) * 100,
-            previousDate: prev.recorded_date,
-          };
-        }
-
-        if (prev.dl_value > 0) {
-          const dlDiff = latest.dl_value - prev.dl_value;
-          dlChange = {
-            amount: dlDiff,
-            rate: (dlDiff / prev.dl_value) * 100,
-            previousDate: prev.recorded_date,
-          };
-        }
+      if (latest.cdv_value > 0) {
+        const d = cdvInventoryValue - latest.cdv_value;
+        cdvChange = { amount: d, rate: (d / latest.cdv_value) * 100, previousDate: latest.recorded_date };
+      }
+      if (latest.dl_value > 0) {
+        const d = dlInventoryValue - latest.dl_value;
+        dlChange = { amount: d, rate: (d / latest.dl_value) * 100, previousDate: latest.recorded_date };
       }
     }
 
