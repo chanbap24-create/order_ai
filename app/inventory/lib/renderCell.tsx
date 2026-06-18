@@ -60,6 +60,12 @@ export function renderInvCellValue(
     case "pending_shipment":
     case "bonded_warehouse":
     case "yongma_logistics":
+    case "kctc":
+    case "bonded_kctc":
+    case "yongma_reserve":
+    case "yongma_marketing":
+    case "yongma_sales1":
+    case "yongma_sales2":
     case "anseong_warehouse":
     case "gig_warehouse":
     case "gig_marketing":

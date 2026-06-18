@@ -25,6 +25,8 @@ export interface InventoryItem {
   avg_sales_90d?: number;
   avg_sales_365d?: number;
   yongma_logistics?: number;
+  kctc?: number;
+  bonded_kctc?: number;
   yongma_reserve?: number;
   yongma_marketing?: number;
   yongma_sales1?: number;
@@ -70,7 +72,7 @@ export type InvColumnKey =
   | "total_stock" | "stock_excl_available" | "pending_shipment" | "available_stock"
   | "bonded_warehouse" | "anseong_warehouse" | "incoming_stock"
   | "sales_30days" | "avg_sales_90d" | "avg_sales_365d"
-  | "yongma_logistics" | "yongma_reserve" | "yongma_marketing" | "yongma_sales1" | "yongma_sales2"
+  | "yongma_logistics" | "kctc" | "bonded_kctc" | "yongma_reserve" | "yongma_marketing" | "yongma_sales1" | "yongma_sales2"
   | "gig_warehouse" | "gig_marketing" | "gig_sales1"
   | "vintage" | "alcohol_content" | "country";
 
