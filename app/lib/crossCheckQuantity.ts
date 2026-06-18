@@ -69,13 +69,20 @@ function extractQtyFromQuery(query: string): number | null {
   const csMatch = raw.match(new RegExp(`^.+?\\s*(?:cs|CS)\\s*(\\d+)\\s*$`));
   if (csMatch) return parseInt(csMatch[1], 10);
 
-  // 패턴 2: 끝에 수량 — "xxx 12병", "xxx 12"
-  const endMatch = raw.match(new RegExp(`^.+?[\\s]*([0-9]{1,4})\\s*${UNIT}?\\s*$`));
-  if (endMatch) {
-    const n = parseInt(endMatch[1], 10);
-    // 연도면 스킵
+  // 패턴 2a: 단위가 붙은 끝 수량 — "xxx 12병" (확실)
+  const unitEnd = raw.match(new RegExp(`([0-9]{1,4})\\s*${UNIT}\\s*$`));
+  if (unitEnd) {
+    const n = parseInt(unitEnd[1], 10);
     if (n >= 1900 && n <= 2099) return null;
     if (n > 0) return n;
+  }
+  // 패턴 2b: 단위 없는 끝 숫자 — '공백으로 분리된 비-빈티지' 숫자만 수량으로.
+  //   이름에 붙은 2자리(예: 상피몽21)나 빈티지 범위(10~30)는 빈티지 → 유보(=LLM 수량 신뢰).
+  //   query 는 LLM이 수량을 떼어낸 결과라, 단위 없이 끝에 붙은 2자리는 거의 빈티지임.
+  const bareEnd = raw.match(/(?:^|\s)([0-9]{1,4})\s*$/);
+  if (bareEnd) {
+    const n = parseInt(bareEnd[1], 10);
+    if (!(n >= 1900 && n <= 2099) && !(n >= 10 && n <= 30) && n > 0) return n;
   }
 
   // 패턴 3: 글라스 코드 + 수량 — "0447/07 12"
