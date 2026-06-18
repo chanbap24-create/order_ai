@@ -56,8 +56,7 @@ export function renderInvCellValue(
           {formatNumber(item.available_stock ?? 0)}
         </span>
       );
-    case "stock_excl_available":
-    case "pending_shipment":
+    // 창고별 재고 — 값이 있으면 초록색(재고 있음 강조)
     case "bonded_warehouse":
     case "yongma_logistics":
     case "kctc":
@@ -69,7 +68,14 @@ export function renderInvCellValue(
     case "anseong_warehouse":
     case "gig_warehouse":
     case "gig_marketing":
-    case "gig_sales1":
+    case "gig_sales1": {
+      const qty = Number(item[key]) || 0;
+      return qty > 0
+        ? <span style={{ color: "var(--color-success)", fontWeight: 700 }}>{formatNumber(qty)}</span>
+        : formatNumber(0);
+    }
+    case "stock_excl_available":
+    case "pending_shipment":
     case "incoming_stock":
     case "sales_30days":
     case "avg_sales_90d":
