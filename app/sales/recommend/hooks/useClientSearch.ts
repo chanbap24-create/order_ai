@@ -11,6 +11,7 @@ export function useClientSearch(filterManager: string, preselected?: ClientOptio
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(preselected || null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressNextSearch = useRef(false); // 거래처 선택 시 검색창 값 변경으로 드롭다운 재오픈 방지
 
   const searchClients = useCallback(async (q: string) => {
     setClientLoading(true);
@@ -29,6 +30,8 @@ export function useClientSearch(filterManager: string, preselected?: ClientOptio
   }, [filterManager]);
 
   useEffect(() => {
+    // 거래처 선택 직후엔 검색을 건너뜀(선택으로 바뀐 검색창 값이 드롭다운을 다시 열지 않게)
+    if (suppressNextSearch.current) { suppressNextSearch.current = false; return; }
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (clientSearch.length >= 1) {
       searchTimer.current = setTimeout(() => searchClients(clientSearch), 300);
@@ -50,6 +53,7 @@ export function useClientSearch(filterManager: string, preselected?: ClientOptio
   }, []);
 
   const selectClient = (c: ClientOption) => {
+    suppressNextSearch.current = true;
     setSelectedClient(c);
     setClientSearch(c.client_name);
     setShowDropdown(false);

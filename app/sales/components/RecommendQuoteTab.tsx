@@ -13,7 +13,7 @@ import { RecommendAnalysisCard } from '../recommend/components/RecommendAnalysis
 import { RecommendationList } from '../recommend/components/RecommendationList';
 import { BottomActionBar } from '../recommend/components/BottomActionBar';
 import { RecControls } from '../recommend/components/RecControls';
-import { type RecSettings, DEFAULT_REC_SETTINGS, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
+import { type RecSettings, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
 import { useQuoteItems } from '@/app/inventory/hooks/useQuoteItems';
 import { RecommendQuoteEditPanel } from './RecommendQuoteEditPanel';
@@ -41,15 +41,13 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     onAdded: quote.fetchQuoteItems,
   });
 
-  const [settings, setSettings] = useState<RecSettings>(DEFAULT_REC_SETTINGS); // 영업사원 추천 설정
+  // lazy 초기화로 처음부터 저장값 사용(remount 시 DEFAULT 로 덮어쓰는 레이스 방지).
+  // 컨트롤은 rec.result 이후에만 렌더되어 SSR 하이드레이션 불일치 없음.
+  const [settings, setSettings] = useState<RecSettings>(loadRecSettings);
   const items = rec.result?.recommendations || [];
   const visible = items.filter((i) => i.score >= settings.minScore);
 
-  // 설정 저장/복원 — localStorage (영업사원별)
-  useEffect(() => {
-    /* eslint-disable-next-line react-hooks/set-state-in-effect */
-    setSettings(loadRecSettings());
-  }, []);
+  // 설정 변경 시 저장(영업사원별, localStorage)
   useEffect(() => { saveRecSettings(settings); }, [settings]);
 
   // 새 결과 도착 시 전체 선택 기본값 (렌더 중 prop 변화 감지: effect 불필요)

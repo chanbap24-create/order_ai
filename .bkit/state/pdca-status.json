@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-18T01:05:51.943Z",
+  "lastUpdated": "2026-06-18T01:15:49.321Z",
   "activeFeatures": [
     "glass",
     "[type]",
@@ -188,7 +188,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-19T05:26:40.021Z",
-        "lastUpdated": "2026-06-18T00:53:57.227Z"
+        "lastUpdated": "2026-06-18T01:15:49.321Z"
       },
       "lastFile": "/Users/hajin/order_ai/app/sales/components/RecommendQuoteTab.tsx"
     },
@@ -838,9 +838,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-23T10:10:34.451Z",
-        "lastUpdated": "2026-06-18T00:52:37.708Z"
+        "lastUpdated": "2026-06-18T01:15:30.682Z"
       },
-      "lastFile": "/Users/hajin/order_ai/app/sales/recommend/components/RecControls.tsx"
+      "lastFile": "/Users/hajin/order_ai/app/sales/recommend/hooks/useClientSearch.ts"
     },
     "wine-regions": {
       "phase": "do",
@@ -1722,7 +1722,7 @@
   "session": {
     "startedAt": "2026-03-19T02:02:38.985Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-18T01:05:51.943Z"
+    "lastActivity": "2026-06-18T01:15:49.321Z"
   },
   "history": [
     {
@@ -25092,6 +25092,36 @@
     {
       "timestamp": "2026-06-18T01:05:51.943Z",
       "feature": "order_ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:15:13.908Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:15:23.223Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:15:30.682Z",
+      "feature": "recommend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:15:40.551Z",
+      "feature": "sales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-18T01:15:49.321Z",
+      "feature": "sales",
       "phase": "do",
       "action": "updated"
     }
