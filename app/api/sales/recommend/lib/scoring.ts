@@ -125,6 +125,17 @@ export function scoreRecommendations(params: {
   return scored;
 }
 
+// 견적 표시 순서: 타입(스파클링→화이트→레드→로제→주정강화) 그룹 + 각 타입 내 공급가 내림차순
+const QUOTE_TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4 };
+export function orderForDisplay(items: ScoredItem[]): ScoredItem[] {
+  return [...items].sort((a, b) => {
+    const ra = QUOTE_TYPE_RANK[a.wine_type] ?? 9;
+    const rb = QUOTE_TYPE_RANK[b.wine_type] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return (b.price || 0) - (a.price || 0);
+  });
+}
+
 // 후보 품종 중 거래처 선호품종과 겹친 것의 한글/원문 라벨
 function matchedGrapeLabel(invGrapes: string, prefs: ClientPreferences): string {
   const gl = invGrapes.toLowerCase();

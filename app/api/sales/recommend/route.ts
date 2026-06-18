@@ -3,6 +3,7 @@ import { supabase } from '@/app/lib/db';
 import { isValidClientCode } from '@/app/lib/validators';
 import { requireClientAccess } from '@/app/lib/authz';
 import { buildCandidates } from './lib/buildCandidates';
+import { orderForDisplay } from './lib/scoring';
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +24,8 @@ export async function POST(req: Request) {
     // 분석 기간(개월). 1~36 클램프, 기본 6
     const months = Math.min(36, Math.max(1, Math.round(Number(profile_months) || 6)));
     const { client, scored, summary } = await buildCandidates(client_code, band, months);
-    const recommendations = scored.slice(0, 30);
+    // 관련도 점수로 상위 선별 후, 견적 표시 순서(스파클링→화이트→레드 · 타입내 공급가 내림차순)로 정렬
+    const recommendations = orderForDisplay(scored.slice(0, 30));
 
     // 이력 저장
     if (recommendations.length > 0) {
