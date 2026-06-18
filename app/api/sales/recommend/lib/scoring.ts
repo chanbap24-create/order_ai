@@ -1,11 +1,14 @@
-import { extractEnglish, type RegionHierarchy } from './regions';
+import { extractEnglish, countryKey, type RegionHierarchy } from './regions';
 import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
 import { priceRef } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 
-const TIER_BASE = [92, 74, 58]; // 같은마을 / 인근마을 / 같은광역 (점수 표시·정렬 기준)
+const TIER_BASE = [92, 74, 58, 42]; // 같은마을/인근마을/같은광역/타지역(국가·제한없음 폴백)
+const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
+export type GeoCeiling = 'super' | 'country' | 'any';
+export type FreqStrength = 'strong' | 'soft' | 'off';
 
 /**
  * 규칙기반 추천: 타입·가격은 하드 게이트, 지역은 계단(우선순위), 향미·품종은 그 안의 정렬.
@@ -19,11 +22,15 @@ export function scoreRecommendations(params: {
   purchaseAgg: Record<string, PurchaseAggEntry>;
   prefs: ClientPreferences;
   priceBandPct: number; // 0.2 = ±20%
+  geoCeiling: GeoCeiling;   // 지역 확장 천장(광역/국가/제한없음)
+  freqStrength: FreqStrength; // 입고빈도 반영 강도
   maxSales90d: number;
   threeMonthsAgoStr: string;
 }): ScoredItem[] {
-  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, maxSales90d, threeMonthsAgoStr } = params;
+  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr } = params;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
+  const strength = FREQ_STRENGTH[freqStrength] ?? 0.65;
+  const clientCountries = new Set(Object.keys(prefs.countryBuyCount).map(countryKey));
   const scored: ScoredItem[] = [];
 
   for (const inv of inventory || []) {
@@ -62,17 +69,24 @@ export function scoreRecommendations(params: {
       }
 
       // 계단: 광역 천장(밖이면 제외)
-      const t = geoTier(h, prefs.regionProfile);
-      if (t === null) continue;
+      let t = geoTier(h, prefs.regionProfile);
+      if (t === null) {
+        // 광역 천장 밖 — '확장 범위' 설정에 따라 처리
+        if (geoCeiling === 'super') continue; // 광역까지만: 제외
+        else if (geoCeiling === 'country') {
+          if (invCountry && clientCountries.has(countryKey(invCountry))) t = 3; else continue; // 같은 국가까지
+        } else t = 3; // 제한없음: 타입·가격만 통과
+      }
       tags.push(TIER_LABEL[t]);
-      const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : h?.super_region) || '';
+      const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : t === 2 ? h?.super_region : '') || '';
       // 입고 빈도 가중: 그 지역을 자주 산 거래처일수록 가점, 1회성 지역은 강하게 감점
       const matchedCount = t === 0 ? (prefs.subRegionBuyCount[matchedRegion] || 0)
         : t === 1 ? (prefs.majorRegionBuyCount[matchedRegion] || 0)
-        : (prefs.superRegionBuyCount[matchedRegion] || 0);
-      const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : prefs.maxSuperRegionBuy;
+        : t === 2 ? (prefs.superRegionBuyCount[matchedRegion] || 0) : 0;
+      const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : t === 2 ? prefs.maxSuperRegionBuy : 1;
       const freqW = levelMax > 0 ? matchedCount / levelMax : 0;
       if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 입고 ${matchedCount}회`);
+      else if (invCountry) reasons.push(extractEnglish(invCountry));
 
       // 향미·품종 정렬(0~1)
       let grapeHit = false;
@@ -90,8 +104,8 @@ export function scoreRecommendations(params: {
       if (invPrice > 0) { tags.push('적정가격'); }
 
       const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
-      // 빈도 가중: 자주 산 지역은 1.0배, 1회성 지역은 ~0.35배로 강하게 하향
-      score = TIER_BASE[t] * (0.35 + 0.65 * freqW) + soft * 8 + velocity * 2;
+      // 빈도 가중(강도 조절): strong 0.65 / soft 0.3 / off 0. off면 빈도 무시(고정 배수 1).
+      score = TIER_BASE[t] * ((1 - strength) + strength * freqW) + soft * 8 + velocity * 2;
     }
 
     if ((inv.available_stock || 0) <= 0 && (inv.bonded_warehouse || 0) > 0) tags.push('통관필요');

@@ -5,7 +5,7 @@ import type { ScoredItem } from '@/app/sales/recommend/types';
 import { fetchAll, fetchInventoryInStock, fetchWinesByCodes } from './fetchers';
 import { extractGrapesFromName, extractTypeFromName } from './patterns';
 import { findHierarchy, extractEnglish, type WineRegionRow } from './regions';
-import { loadSettings, makeMinStockForPrice } from './settings';
+import { makeMinStockForPrice, DEFAULT_REC_OPTS, type RecOpts } from './settings';
 import { aggregatePurchases, buildClientPreferences } from './preferences';
 import { scoreRecommendations } from './scoring';
 import { bucketLabel } from './wineType';
@@ -37,22 +37,23 @@ export interface CandidateContext {
 
 export async function buildCandidates(
   clientCode: string,
-  priceBandPct = 0.2,
-  profileMonths = 6, // 취향 분석에 쓰는 최근 출고 기간(개월)
+  opts: Partial<RecOpts> = {},
 ): Promise<CandidateContext> {
+  const o: RecOpts = {
+    ...DEFAULT_REC_OPTS, ...opts,
+    minStock: { ...DEFAULT_REC_OPTS.minStock, ...(opts.minStock || {}) },
+  };
   const sinceDate = new Date();
-  sinceDate.setMonth(sinceDate.getMonth() - profileMonths);
+  sinceDate.setMonth(sinceDate.getMonth() - o.profileMonths);
   const sinceStr = sinceDate.toISOString().slice(0, 10);
 
   const [
-    { SR },
     { data: clientDetail },
     { data: clientBasic },
     { data: shipments },
     rawInventory,
     regionRows,
   ] = await Promise.all([
-    loadSettings(),
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
@@ -88,7 +89,7 @@ export async function buildCandidates(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const purchaseAgg = aggregatePurchases((shipments || []) as any);
 
-  const minStockForPrice = makeMinStockForPrice(SR);
+  const minStockForPrice = makeMinStockForPrice(o.minStock);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inventory = (rawInventory || []).filter((inv: any) => {
     const price = inv.supply_price || 0;
@@ -100,7 +101,7 @@ export async function buildCandidates(
     // 최소 1개월치 재고만 확보되면 추천(품절 임박만 배제). 빠른 회전 와인이 과도하게
     // 빠지지 않도록 완화 — 기존 3개월치(months_supply) 요구는 잘 팔리는 와인을 너무 많이 제외했음.
     const monthly = inv.sales_30days || 0;
-    if (monthly > 0 && stock < monthly) return false;
+    if (monthly > 0 && stock < monthly * o.stockMonths) return false;
     inv._totalStock = stock;
     return true;
   });
@@ -138,7 +139,9 @@ export async function buildCandidates(
   const threeMonthsAgoStr = threeMonthsAgo.toISOString().slice(0, 10);
 
   const scored = scoreRecommendations({
-    inventory, wineMap, purchaseAgg, prefs, priceBandPct, maxSales90d, threeMonthsAgoStr,
+    inventory, wineMap, purchaseAgg, prefs,
+    priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
+    maxSales90d, threeMonthsAgoStr,
   }) as ScoredItem[];
 
   let lastOrderDate: string | null = null;
@@ -185,7 +188,7 @@ export async function buildCandidates(
         ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
         flavors: Array.from(prefs.flavorKeys).map(flavorLabel).slice(0, 6),
         avg_price: Math.round(prefs.clientAvgPrice),
-        band_pct: Math.round(priceBandPct * 100),
+        band_pct: Math.round(o.priceBandPct * 100),
         type_prices: Array.from(prefs.typeBuckets).map((b) => {
           const s = prefs.priceStats[b];
           return { type: bucketLabel(b), avg: s && s.count ? Math.round(s.sum / s.count) : 0 };
@@ -196,7 +199,7 @@ export async function buildCandidates(
             .sort((a, b) => b[1] - a[1]).slice(0, 7)
             .map(([r, c]) => ({ label: extractEnglish(r), count: c, pct: Math.round((c / total) * 100) }));
         })(),
-        period_months: profileMonths,
+        period_months: o.profileMonths,
         purchased: Object.entries(purchaseAgg)
           .map(([code, agg]) => {
             const w = wineMap.get(code);

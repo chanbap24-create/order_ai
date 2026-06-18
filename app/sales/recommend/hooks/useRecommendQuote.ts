@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 import type { ClientOption, RecommendResult } from '../types';
+import type { RecSettings } from '../recSettings';
 
 export type RecommendQuoteResult = RecommendResult & { comment?: string; model?: string };
 
-/** 추천 견적(순수 규칙): /api/sales/recommend 호출. priceBand = ±비율(0.2=±20%). */
+/** 추천 견적(순수 규칙): /api/sales/recommend 호출. 영업사원 설정(RecSettings) 전달. */
 export function useRecommendQuote() {
   const [result, setResult] = useState<RecommendQuoteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const generate = async (client: ClientOption, priceBand = 0.2, profileMonths = 6) => {
+  const generate = async (client: ClientOption, s: RecSettings) => {
     setLoading(true);
     setError('');
     setResult(null);
@@ -19,7 +20,15 @@ export function useRecommendQuote() {
       const res = await fetch('/api/sales/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_code: client.client_code, price_band: priceBand, profile_months: profileMonths }),
+        body: JSON.stringify({
+          client_code: client.client_code,
+          price_band: s.priceBand / 100,
+          profile_months: s.periodMonths,
+          geo_ceiling: s.geoCeiling,
+          freq_strength: s.freqStrength,
+          stock_months: s.stockMonths,
+          min_stock: s.minStock,
+        }),
       });
       const json = await res.json();
       if (json.error) setError(json.error);

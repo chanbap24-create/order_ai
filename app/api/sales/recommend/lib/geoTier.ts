@@ -26,4 +26,4 @@ export function geoTier(h: RegionHierarchy | null, p: RegionProfile): number | n
   return null;
 }
 
-export const TIER_LABEL = ['같은 마을', '인근 마을', '같은 광역'];
+export const TIER_LABEL = ['같은 마을', '인근 마을', '같은 광역', '타지역'];

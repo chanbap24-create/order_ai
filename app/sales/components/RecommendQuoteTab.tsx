@@ -12,11 +12,11 @@ import { SummaryCard } from '../recommend/components/SummaryCard';
 import { RecommendAnalysisCard } from '../recommend/components/RecommendAnalysisCard';
 import { RecommendationList } from '../recommend/components/RecommendationList';
 import { BottomActionBar } from '../recommend/components/BottomActionBar';
+import { RecControls } from '../recommend/components/RecControls';
+import { type RecSettings, DEFAULT_REC_SETTINGS, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
 import { useQuoteItems } from '@/app/inventory/hooks/useQuoteItems';
 import { RecommendQuoteEditPanel } from './RecommendQuoteEditPanel';
-
-const PREFS_KEY = 'recQuote.controlPrefs'; // 분석기간·가격밴드·추천점수 설정 저장 키
 
 type Props = {
   currentManager: string;
@@ -41,32 +41,16 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     onAdded: quote.fetchQuoteItems,
   });
 
-  const [priceBand, setPriceBand] = useState(20); // 가격 밴드 ±% (하드 게이트, 서버 적용)
-  const [periodMonths, setPeriodMonths] = useState(6); // 분석 기간(개월)
-  const [minScore, setMinScore] = useState(0); // 추천 점수 허들(클라이언트 즉시 필터)
+  const [settings, setSettings] = useState<RecSettings>(DEFAULT_REC_SETTINGS); // 영업사원 추천 설정
   const items = rec.result?.recommendations || [];
-  const visible = items.filter((i) => i.score >= minScore);
+  const visible = items.filter((i) => i.score >= settings.minScore);
 
-  // 슬라이더 설정(분석기간·가격밴드·추천점수) 저장/복원 — localStorage
+  // 설정 저장/복원 — localStorage (영업사원별)
   useEffect(() => {
-    // mount 시 저장된 설정 복원(하이드레이션 불일치 방지 위해 effect 에서 적용)
-    /* eslint-disable react-hooks/set-state-in-effect */
-    try {
-      const raw = localStorage.getItem(PREFS_KEY);
-      if (raw) {
-        const p = JSON.parse(raw);
-        if (typeof p.periodMonths === 'number') setPeriodMonths(p.periodMonths);
-        if (typeof p.priceBand === 'number') setPriceBand(p.priceBand);
-        if (typeof p.minScore === 'number') setMinScore(p.minScore);
-      }
-    } catch { /* ignore */ }
-    /* eslint-enable react-hooks/set-state-in-effect */
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    setSettings(loadRecSettings());
   }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ periodMonths, priceBand, minScore }));
-    } catch { /* ignore */ }
-  }, [periodMonths, priceBand, minScore]);
+  useEffect(() => { saveRecSettings(settings); }, [settings]);
 
   // 새 결과 도착 시 전체 선택 기본값 (렌더 중 prop 변화 감지: effect 불필요)
   const [prevResult, setPrevResult] = useState(rec.result);
@@ -80,8 +64,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   // 거래처를 바꾸면 이전 거래처의 견적/결과를 비움
   const handleSelectClient = (c: ClientOption) => { cs.selectClient(c); rec.setResult(null); quote.clearAllQuoteSilent(); };
   const handleClearClient = () => { cs.clearClient(); rec.setResult(null); quote.clearAllQuoteSilent(); };
-  const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient, priceBand / 100, periodMonths); };
-  const reapply = () => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, priceBand / 100, periodMonths); };
+  const handleGenerate = () => { if (cs.selectedClient) rec.generate(cs.selectedClient, settings); };
+  const reapplyWith = (st: RecSettings) => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, st); };
 
   const toggleSelect = (itemNo: string) => {
     setSelected((prev) => {
@@ -149,68 +133,13 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
               {rec.result.comment}
             </div>
           )}
-          {/* 조절 — 분석 기간 + 가격 밴드 (둘 다 서버 적용, 변경 시 재생성) */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: 8,
-            background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
-            padding: '10px 14px', marginBottom: 12,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 72 }}>분석 기간</span>
-              <input
-                type="range" min={1} max={24} step={1} value={periodMonths}
-                onChange={(e) => setPeriodMonths(Number(e.target.value))}
-                onMouseUp={reapply} onTouchEnd={reapply}
-                style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
-              />
-              <input
-                type="number" min={1} max={24} value={periodMonths}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  setPeriodMonths(Number.isFinite(v) ? Math.min(24, Math.max(1, v)) : 6);
-                }}
-                onBlur={reapply}
-                style={{ width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>개월 · 최근 {periodMonths}개월 구매 기준</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 72 }}>가격 밴드 ±</span>
-              <input
-                type="range" min={5} max={100} step={5} value={priceBand}
-                onChange={(e) => setPriceBand(Number(e.target.value))}
-                onMouseUp={reapply} onTouchEnd={reapply}
-                style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
-              />
-              <input
-                type="number" min={5} max={100} value={priceBand}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  setPriceBand(Number.isFinite(v) ? Math.min(100, Math.max(5, v)) : 20);
-                }}
-                onBlur={reapply}
-                style={{ width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>% · 평균가 ±{priceBand}% 이내 · {items.length}개</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 72 }}>추천 점수 ≥</span>
-              <input
-                type="range" min={0} max={100} step={5} value={minScore}
-                onChange={(e) => setMinScore(Number(e.target.value))}
-                style={{ flex: 1, minWidth: 120, accentColor: 'var(--action)' }}
-              />
-              <input
-                type="number" min={0} max={100} value={minScore}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  setMinScore(Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 0);
-                }}
-                style={{ width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>점 이상 · {visible.length}/{items.length}개</span>
-            </div>
-          </div>
+          <RecControls
+            settings={settings}
+            onChange={setSettings}
+            onReapply={reapplyWith}
+            itemsCount={items.length}
+            visibleCount={visible.length}
+          />
           <RecommendationList
             items={visible}
             selected={selected}

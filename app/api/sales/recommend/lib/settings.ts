@@ -21,6 +21,20 @@ export const DEFAULT_STOCK_RULES = {
 export type Weights = typeof DEFAULT_W;
 export type StockRules = typeof DEFAULT_STOCK_RULES;
 
+// 영업사원이 추천견적 탭에서 조절하는 옵션(어드민 아님). 요청마다 전달.
+export interface RecOpts {
+  priceBandPct: number;            // 0.2 = ±20%
+  profileMonths: number;           // 분석 기간(개월)
+  geoCeiling: 'super' | 'country' | 'any'; // 지역 확장 천장
+  freqStrength: 'strong' | 'soft' | 'off'; // 입고빈도 반영 강도
+  stockMonths: number;             // 재고 여유분(개월) — 수요충당
+  minStock: { price_300k: number; price_200k: number; price_100k: number; price_50k: number; price_20k: number; price_under_20k: number }; // 가격대별 최소재고
+}
+export const DEFAULT_REC_OPTS: RecOpts = {
+  priceBandPct: 0.2, profileMonths: 6, geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
+  minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
+};
+
 export async function loadSettings(): Promise<{ W: Weights; SR: StockRules }> {
   const { data: wRow } = await supabase
     .from('admin_settings').select('value').eq('key', 'recommend_weights').maybeSingle();
@@ -31,7 +45,7 @@ export async function loadSettings(): Promise<{ W: Weights; SR: StockRules }> {
   return { W, SR };
 }
 
-export function makeMinStockForPrice(SR: StockRules) {
+export function makeMinStockForPrice(SR: RecOpts['minStock']) {
   return (price: number): number => {
     if (price >= 300000) return SR.price_300k;
     if (price >= 200000) return SR.price_200k;
