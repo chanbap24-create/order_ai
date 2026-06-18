@@ -31,7 +31,7 @@ function calcFromUploadedFiles(): { cdv: number; dl: number } {
     }
   }
 
-  // DL: dl.xlsx → (KCTC[X=23] + 보세(KCTC)[Y=24] + GIG[Z=25]) * 공급가[R=17]
+  // DL: dl.xlsx → (KCTC[X=23] + 보세(KCTC)[Y=24] + GIG[Z=25] + 안성창고(DL)[AB=27]) * 공급가[R=17]
   const dlPath = getUploadedFilePath('dl');
   if (dlPath && fs.existsSync(dlPath)) {
     const wb = XLSX.read(fs.readFileSync(dlPath), { type: 'buffer' });
@@ -44,7 +44,8 @@ function calcFromUploadedFiles(): { cdv: number; dl: number } {
         const kctc = Number(r[23]) || 0;
         const bondedKctc = Number(r[24]) || 0;
         const gig = Number(r[25]) || 0;
-        dl += (kctc + bondedKctc + gig) * supply;
+        const anseong = Number(r[27]) || 0;
+        dl += (kctc + bondedKctc + gig + anseong) * supply;
       }
     }
   }
