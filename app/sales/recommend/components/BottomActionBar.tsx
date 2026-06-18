@@ -8,7 +8,6 @@ type Props = {
   selectedCount: number;
   selectedTotal: number;
   quoteLoading: boolean;
-  onAdd: () => void;
   onDownload: () => void;
   quoteCols: string[];
   toggleCol: (k: string) => void;
@@ -56,17 +55,6 @@ export function BottomActionBar(p: Props) {
             />
           )}
         </div>
-        <button
-          onClick={p.onAdd}
-          disabled={p.quoteLoading}
-          style={{
-            padding: '10px 16px', borderRadius: 8, border: '1px solid var(--action)',
-            background: '#fff', color: 'var(--action)', fontSize: 13, fontWeight: 600,
-            cursor: p.quoteLoading ? 'default' : 'pointer',
-          }}
-        >
-          견적서에 추가
-        </button>
         <button
           onClick={p.onDownload}
           disabled={p.quoteLoading}
