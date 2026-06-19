@@ -1,13 +1,29 @@
 'use client';
 
+import { useState } from 'react';
 import { useClientList } from '../client-list/hooks/useClientList';
 import { FilterPanel } from '../client-list/components/FilterPanel';
 import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
+import { ClientDetailPanel } from '../analysis/components/ClientDetailPanel';
+import type { SelectedRankClient, AnalysisFilters } from '../analysis/types';
 import { Stack } from '@/app/components/ui';
 
 export default function ClientListTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const s = useClientList({ currentManager, isAdmin });
+  const [selected, setSelected] = useState<{ client: SelectedRankClient; filters: AnalysisFilters } | null>(null);
+
+  if (selected) {
+    return (
+      <ClientDetailPanel
+        client={selected.client}
+        currentManager={currentManager}
+        isAdmin={isAdmin}
+        filters={selected.filters}
+        onBack={() => setSelected(null)}
+      />
+    );
+  }
 
   return (
     <Stack direction="vertical" gap={16}>
@@ -41,6 +57,19 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         sortKey={s.sortKey}
         onSort={s.handleSort}
         sortIcon={s.sortIcon}
+        onRowClick={(c) =>
+          setSelected({
+            client: {
+              client_code: c.client_code,
+              client_name: c.client_name,
+              importance: 3,
+              manager: s.managerFilter && s.managerFilter !== '전체' ? s.managerFilter : null,
+              business_type: c.business_type || null,
+              client_type: s.type,
+            },
+            filters: { type: s.type, startDate: s.startDate, endDate: s.endDate, manager: s.managerFilter },
+          })
+        }
       />
 
       {!s.loading && s.clients.length > 0 && (

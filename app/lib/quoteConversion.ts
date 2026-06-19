@@ -36,11 +36,12 @@ export async function getQuoteConversion(id: number, windowDays = DEFAULT_WINDOW
   const start = String(sq.created_at).slice(0, 10);
   const end = addDays(start, windowDays);
 
+  const shipTable = sq.company === 'DL' ? 'glass_shipments' : 'shipments';
   const shipMap = new Map<string, { qty: number; last: string }>();
   const codes = items.map((it) => it.item_code).filter(Boolean);
   if (code && codes.length) {
     const { data } = await supabase
-      .from('shipments')
+      .from(shipTable)
       .select('item_no, quantity, ship_date')
       .eq('client_code', code)
       .in('item_no', codes)
@@ -100,12 +101,18 @@ export interface ClientConversionWine {
  * 거래처의 모든 저장 견적을 합산한 와인별 전환.
  * "이 거래처에 과거 견적한 와인 중 실제로 팔린 것" — 다음 견적 작성 시 참고용.
  */
-export async function getClientConversion(clientCode: string, windowDays = DEFAULT_WINDOW_DAYS) {
-  const { data: quotes } = await supabase
+export async function getClientConversion(
+  clientCode: string,
+  windowDays = DEFAULT_WINDOW_DAYS,
+  type?: 'wine' | 'glass',
+) {
+  const shipTable = type === 'glass' ? 'glass_shipments' : 'shipments';
+  let qq = supabase
     .from('saved_quotes')
     .select('items, created_at')
-    .eq('client_code', clientCode)
-    .order('created_at', { ascending: true });
+    .eq('client_code', clientCode);
+  if (type) qq = qq.eq('company', type === 'glass' ? 'DL' : 'CDV');
+  const { data: quotes } = await qq.order('created_at', { ascending: true });
 
   const qList = (quotes || []) as AnyRow[];
   if (qList.length === 0) {
@@ -126,7 +133,7 @@ export async function getClientConversion(clientCode: string, windowDays = DEFAU
   const shipByCode = new Map<string, { date: string; qty: number }[]>();
   for (let i = 0; i < codeArr.length; i += 200) {
     const { data } = await supabase
-      .from('shipments')
+      .from(shipTable)
       .select('item_no, quantity, ship_date')
       .eq('client_code', clientCode)
       .in('item_no', codeArr.slice(i, i + 200))

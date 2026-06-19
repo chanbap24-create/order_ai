@@ -10,13 +10,15 @@ export async function GET(req: NextRequest) {
     const days = Math.min(365, Math.max(1, Number(sp.get('days')) || 60));
     const id = sp.get('id');
     const clientCode = sp.get('client_code');
+    const typeParam = sp.get('type');
+    const type = typeParam === 'glass' ? 'glass' : typeParam === 'wine' ? 'wine' : undefined;
 
     if (id) {
       const data = await getQuoteConversion(Number(id), days);
       return NextResponse.json({ success: true, ...data });
     }
     if (clientCode) {
-      const data = await getClientConversion(clientCode, days);
+      const data = await getClientConversion(clientCode, days, type);
       return NextResponse.json({ success: true, ...data });
     }
     return NextResponse.json({ error: 'id 또는 client_code가 필요합니다.' }, { status: 400 });

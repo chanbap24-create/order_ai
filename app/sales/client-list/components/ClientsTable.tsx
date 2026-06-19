@@ -12,6 +12,7 @@ type Props = {
   sortKey: SortKey;
   onSort: (k: SortKey) => void;
   sortIcon: (k: SortKey) => string;
+  onRowClick?: (c: ClientRow) => void;
 };
 
 const COLS: Array<{ key: SortKey; label: string; align: 'left' | 'right' }> = [
@@ -24,7 +25,7 @@ const COLS: Array<{ key: SortKey; label: string; align: 'left' | 'right' }> = [
   { key: 'period_total', label: '총액', align: 'right' },
 ];
 
-export function ClientsTable({ clients, loading, sortKey, onSort, sortIcon }: Props) {
+export function ClientsTable({ clients, loading, sortKey, onSort, sortIcon, onRowClick }: Props) {
   if (loading) {
     return (
       <Section padding="md">
@@ -80,7 +81,8 @@ export function ClientsTable({ clients, loading, sortKey, onSort, sortIcon }: Pr
             {clients.map((c, i) => (
               <tr
                 key={c.client_code || c.client_name + i}
-                style={{ transition: 'background 0.12s ease' }}
+                onClick={() => onRowClick?.(c)}
+                style={{ transition: 'background 0.12s ease', cursor: onRowClick ? 'pointer' : 'default' }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.background = 'var(--surface-hover)')
                 }
