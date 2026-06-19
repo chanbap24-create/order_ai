@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { ScoredItem } from '../types';
 import { TAG_COLORS } from '../constants';
 import { fmt, scoreColor } from '../lib/format';
@@ -12,6 +13,7 @@ type Props = {
 
 export function RecommendCard({ item, isSelected, onToggle }: Props) {
   const sc = scoreColor(item.score);
+  const [showBreak, setShowBreak] = useState(false);
   // 견적서 화면과 동일한 메타: 국가 · 브랜드 · 빈티지 · 산지 · 품종
   const meta = [item.country, item.brand, item.vintage, item.region, item.grape]
     .map((v) => (v || '').trim())
@@ -85,6 +87,42 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
           ))}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{item.reason}</div>
+
+        {item.breakdown && item.breakdown.length > 0 && (
+          <div style={{ marginTop: 5 }} onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowBreak(!showBreak)}
+              style={{
+                fontSize: 11, color: 'var(--action)', background: 'none', border: 'none',
+                cursor: 'pointer', padding: 0, fontWeight: 600,
+              }}
+            >
+              {showBreak ? '▾' : '▸'} 점수 분해
+            </button>
+            {showBreak && (
+              <div style={{
+                marginTop: 4, padding: '6px 10px', borderRadius: 6,
+                background: 'var(--surface-muted)', border: '1px solid var(--gray-100)',
+                fontFamily: 'ui-monospace, monospace',
+              }}>
+                {item.breakdown.map((line, i) => {
+                  const isTotal = line.startsWith('=');
+                  return (
+                    <div key={i} style={{
+                      fontSize: 11.5, lineHeight: 1.7,
+                      color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      fontWeight: isTotal ? 700 : 400,
+                      borderTop: isTotal ? '1px solid var(--gray-200)' : 'none',
+                      marginTop: isTotal ? 3 : 0, paddingTop: isTotal ? 3 : 0,
+                    }}>
+                      {line}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>

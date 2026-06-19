@@ -71,6 +71,7 @@ export function scoreRecommendations(params: {
     let score = 0;
     const tags: string[] = [];
     const reasons: string[] = [];
+    const breakdown: string[] = []; // 점수 분해(표시용)
 
     if (purchase) {
       // 이미 정기적으로 받는 와인은 추천에서 제외(이상함). 최근 구매/1회성은 빼고,
@@ -80,6 +81,7 @@ export function scoreRecommendations(params: {
       score = sp.reorderScore;
       tags.push('재주문');
       reasons.push(`${purchase.count}회 구매 · ${purchase.lastDate || '날짜미상'} 이후 미발주`);
+      breakdown.push(`재주문 고정 ${sp.reorderScore}`);
     } else {
       // 게이트 ① 타입: 거래처가 사는 타입만
       if (!prefs.hasHistory) continue;
@@ -130,26 +132,40 @@ export function scoreRecommendations(params: {
 
       const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
       // 빈도 가중(강도 조절): strong 0.65 / soft 0.3 / off 0. off면 빈도 무시(고정 배수 1).
-      score = TIER_BASE[t] * ((1 - strength) + strength * freqW) + soft * sp.softWeight + velocity * sp.velocityWeight;
+      const freqMult = (1 - strength) + strength * freqW;
+      const tierScore = TIER_BASE[t] * freqMult;
+      const softAdd = soft * sp.softWeight;
+      const velAdd = velocity * sp.velocityWeight;
+      score = tierScore + softAdd + velAdd;
+      breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
+      if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
+      if (velAdd > 0) breakdown.push(`회전 ${velocity.toFixed(2)}×${sp.velocityWeight} = +${velAdd.toFixed(1)}`);
     }
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 
     // 최근 30일 이미 제안한 품목은 강등(영구 제외 아님 — 신선한 후보가 위로 올라오게).
-    if (recentlyRecommended?.has(String(itemNo))) { score *= sp.recentPenalty; tags.push('최근제안'); }
+    if (recentlyRecommended?.has(String(itemNo))) {
+      score *= sp.recentPenalty; tags.push('최근제안');
+      breakdown.push(`최근제안 ×${sp.recentPenalty}`);
+    }
 
     // 과거 견적→실제 출고 전환 반영: 팔린 와인은 가점, 여러 번 권했는데 안 팔린 건 감점.
     const cv = conversionMap?.get(String(itemNo));
     if (cv) {
       if (cv.converted > 0) {
-        score += Math.min(cv.converted, 3) * sp.convBoost;
+        const boost = Math.min(cv.converted, 3) * sp.convBoost;
+        score += boost;
         tags.push('과거전환');
         reasons.push(`과거 견적 ${cv.quoted}회 중 ${cv.converted}회 출고`);
+        breakdown.push(`과거전환 +${boost}`);
       } else if (cv.quoted >= 2) {
         score *= sp.noconvPenalty;
         tags.push('미전환');
+        breakdown.push(`미전환 ×${sp.noconvPenalty}`);
       }
     }
+    breakdown.push(`= ${(Math.round(score * 10) / 10).toFixed(1)}`);
 
     const vv = String(itemNo).slice(2, 4);
     const vintage = /^\d{2}$/.test(vv)
@@ -173,6 +189,7 @@ export function scoreRecommendations(params: {
       image_url: (wine?.image_url as string) || '',
       brand: (wine?.supplier as string) || (wine?.brand as string) || '',
       vintage,
+      breakdown,
     });
   }
 

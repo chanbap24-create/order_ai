@@ -15,6 +15,7 @@ export interface ScoredItem {
   image_url?: string;
   brand?: string;
   vintage?: string;
+  breakdown?: string[]; // 점수 분해(표시용)
 }
 
 import type { TypeBucket } from './wineType';
