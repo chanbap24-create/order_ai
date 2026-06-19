@@ -28,6 +28,7 @@ type Props = {
   visibleQuoteColumns: QuoteColumnKey[];
   setVisibleQuoteColumns: React.Dispatch<React.SetStateAction<QuoteColumnKey[]>>;
   visibleQuoteCols: QuoteColumnConfig[];
+  onOpenSaved: () => void;
 };
 
 /** 모바일 전용 오버레이들: 플로팅 카트 + 견적 패널 + 바텀시트 */
@@ -50,6 +51,8 @@ export function MobileOverlays(p: Props) {
           totalDiscount={p.totalDiscount}
           clientName={p.quote.clientName}
           setClientName={p.quote.setClientName}
+          setClientCode={p.quote.setClientCode}
+          onOpenSaved={p.onOpenSaved}
           showDocSettings={p.showDocSettings}
           setShowDocSettings={p.setShowDocSettings}
           docSettings={p.docSettings}

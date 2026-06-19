@@ -24,6 +24,7 @@ export function useQuoteItems(p: Params) {
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [quoteLoading, setQuoteLoading] = useState(true);
   const [clientName, setClientName] = useState("");
+  const [clientCode, setClientCode] = useState<string | null>(null);
   const [wineProfiles, setWineProfiles] = useState<Record<string, WineProfile>>({});
 
   // 바텀시트
@@ -282,6 +283,8 @@ export function useQuoteItems(p: Params) {
     quoteLoading,
     clientName,
     setClientName,
+    clientCode,
+    setClientCode,
     wineProfiles,
     addedItemNo,
     // CRUD

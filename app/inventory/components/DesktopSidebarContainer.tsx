@@ -26,6 +26,7 @@ type Props = {
 
   clientNameFocused: boolean;
   setClientNameFocused: (v: boolean) => void;
+  onOpenSaved: () => void;
 
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;
@@ -58,8 +59,10 @@ export function DesktopSidebarContainer(p: Props) {
       totalRetailDiscount={p.totalRetailDiscount}
       clientName={p.quote.clientName}
       setClientName={p.quote.setClientName}
+      setClientCode={p.quote.setClientCode}
       clientNameFocused={p.clientNameFocused}
       setClientNameFocused={p.setClientNameFocused}
+      onOpenSaved={p.onOpenSaved}
       showDocSettings={p.showDocSettings}
       setShowDocSettings={p.setShowDocSettings}
       docSettings={p.docSettings}

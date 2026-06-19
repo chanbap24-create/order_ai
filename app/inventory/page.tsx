@@ -31,6 +31,7 @@ import { Header as InventoryHeader } from './components/Header';
 import { InventorySearchPanel } from './components/InventorySearchPanel';
 import { DesktopSidebarContainer } from './components/DesktopSidebarContainer';
 import { MobileOverlays } from './components/MobileOverlays';
+import { SavedQuotesPanel } from './components/SavedQuotesPanel';
 import { ItemLedgerPopup } from './components/ItemLedgerPopup';
 import { useItemLedgerPopup } from './hooks/useItemLedgerPopup';
 import { useServerPreferences } from './hooks/useServerPreferences';
@@ -62,6 +63,7 @@ export default function InventoryPage() {
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [clientNameFocused, setClientNameFocused] = useState(false);
+  const [showSavedQuotes, setShowSavedQuotes] = useState(false);
 
   // ── 도메인 훅 ──
   const { quoteManager, getManagerParam } = useQuoteManager();
@@ -95,10 +97,12 @@ export default function InventoryPage() {
 
   const exports = useQuoteExports({
     clientName: quote.clientName,
+    clientCode: quote.clientCode,
     activeTab,
     visibleQuoteColumns,
     docSettings,
     getManagerParam,
+    quoteItems: quote.quoteItems,
     flushPendingEdit: inlineEdit.commitEdit,
   });
 
@@ -248,6 +252,7 @@ export default function InventoryPage() {
               totalRetailDiscount={totalRetailDiscount}
               clientNameFocused={clientNameFocused}
               setClientNameFocused={setClientNameFocused}
+              onOpenSaved={() => setShowSavedQuotes(true)}
               showDocSettings={showDocSettings}
               setShowDocSettings={setShowDocSettings}
               docSettings={docSettings}
@@ -268,6 +273,7 @@ export default function InventoryPage() {
           layout={layout}
           quote={quote}
           exports={exports}
+          onOpenSaved={() => setShowSavedQuotes(true)}
           totalQty={totalQty}
           totalNormal={totalNormal}
           totalDiscount={totalDiscount}
@@ -282,6 +288,20 @@ export default function InventoryPage() {
           visibleQuoteCols={visibleQuoteCols}
         />
       </div>
+
+      <SavedQuotesPanel
+        open={showSavedQuotes}
+        onClose={() => setShowSavedQuotes(false)}
+        getManagerParam={getManagerParam}
+        hasDraftItems={quote.quoteItems.length > 0}
+        onLoaded={(name, code) => {
+          quote.setClientName(name);
+          quote.setClientCode(code);
+          void quote.fetchQuoteItems();
+          if (layout.isMobile) layout.setShowQuotePanel(true);
+          else layout.setQuoteOpen(true);
+        }}
+      />
 
       <ItemLedgerPopup popup={itemLedgerPopup} warehouse={activeTab} />
       <TastingNoteModal

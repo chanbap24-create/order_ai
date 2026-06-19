@@ -1,14 +1,19 @@
 import { useCallback, useState } from "react";
-import type { DocSettings, QuoteColumnKey, WarehouseTab } from "../types";
+import type { DocSettings, QuoteColumnKey, QuoteItem, WarehouseTab } from "../types";
 
 type Params = {
   clientName: string;
+  clientCode?: string | null;
   activeTab: WarehouseTab;
   visibleQuoteColumns: QuoteColumnKey[];
   docSettings: DocSettings;
   getManagerParam: () => string;
+  /** 자동 저장(견적 이력)용 현재 견적 항목 */
+  quoteItems?: QuoteItem[];
   /** 편집 중인 셀이 있으면 먼저 저장 완료 후 export */
   flushPendingEdit?: () => Promise<void> | void;
+  /** 저장 견적 목록 갱신 트리거(자동저장 직후) */
+  onSaved?: () => void;
 };
 
 /** 오늘 날짜 YYYYMMDD */
@@ -55,6 +60,28 @@ export function useQuoteExports(p: Params) {
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       triggerDownload(blob, `견적서_${todayStamp()}_${p.clientName || "미지정"}.xlsx`);
+
+      // 내보낼 때 자동으로 견적 이력 저장(담당·거래처별). 빈 견적은 저장 안 함.
+      if (p.quoteItems && p.quoteItems.length > 0) {
+        try {
+          await fetch("/api/quote/saved", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              manager: mgr,
+              client_code: p.clientCode || null,
+              client_name: p.clientName || "",
+              company: p.activeTab,
+              items: p.quoteItems,
+              doc_settings: p.docSettings,
+              columns: p.visibleQuoteColumns,
+            }),
+          });
+          p.onSaved?.();
+        } catch (saveErr) {
+          console.error("견적 이력 자동 저장 실패(내보내기는 성공):", saveErr);
+        }
+      }
     } catch (e) {
       console.error("Export failed:", e);
       alert("엑셀 다운로드에 실패했습니다.");

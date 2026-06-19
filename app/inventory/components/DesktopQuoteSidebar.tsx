@@ -26,8 +26,10 @@ type Props = {
   // client name
   clientName: string;
   setClientName: (v: string) => void;
+  setClientCode: (v: string | null) => void;
   clientNameFocused: boolean;
   setClientNameFocused: (v: boolean) => void;
+  onOpenSaved: () => void;
   // settings
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;
@@ -91,12 +93,15 @@ export function DesktopQuoteSidebar(p: Props) {
           itemCount={p.quoteItems.length}
           clientName={p.clientName}
           setClientName={p.setClientName}
+          setClientCode={p.setClientCode}
+          company={p.activeTab}
           clientNameFocused={p.clientNameFocused}
           setClientNameFocused={p.setClientNameFocused}
           showDocSettings={p.showDocSettings}
           setShowDocSettings={p.setShowDocSettings}
           showQuoteColumnSettings={p.showQuoteColumnSettings}
           setShowQuoteColumnSettings={p.setShowQuoteColumnSettings}
+          onOpenSaved={p.onOpenSaved}
           onClearAll={p.onClearAll}
         />
 

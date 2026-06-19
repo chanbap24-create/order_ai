@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { CDV_DOC_DEFAULTS, DL_DOC_DEFAULTS } from "../constants/docDefaults";
 import { formatWon } from "../lib/format";
 import type {
@@ -9,6 +10,7 @@ import type {
   QuoteItem,
   WarehouseTab,
 } from "../types";
+import { ClientSearchInput } from "./ClientSearchInput";
 import { DocSettingsForm } from "./DocSettingsForm";
 import { MobilePanelActions } from "./MobilePanelActions";
 import { MobileQuoteItemCard } from "./MobileQuoteItemCard";
@@ -22,6 +24,8 @@ type Props = {
   totalDiscount: number;
   clientName: string;
   setClientName: (v: string) => void;
+  setClientCode: (v: string | null) => void;
+  onOpenSaved: () => void;
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;
   docSettings: DocSettings;
@@ -83,6 +87,9 @@ export function MobileQuotePanel(p: Props) {
           itemCount={p.quoteItems.length}
           clientName={p.clientName}
           setClientName={p.setClientName}
+          setClientCode={p.setClientCode}
+          company={p.activeTab}
+          onOpenSaved={p.onOpenSaved}
           onClose={p.onClose}
           showDocSettings={p.showDocSettings}
           setShowDocSettings={p.setShowDocSettings}
@@ -159,6 +166,9 @@ function PanelHeader({
   itemCount,
   clientName,
   setClientName,
+  setClientCode,
+  company,
+  onOpenSaved,
   onClose,
   showDocSettings,
   setShowDocSettings,
@@ -168,12 +178,16 @@ function PanelHeader({
   itemCount: number;
   clientName: string;
   setClientName: (v: string) => void;
+  setClientCode: (v: string | null) => void;
+  company: string;
+  onOpenSaved: () => void;
   onClose: () => void;
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;
   showQuoteColumnSettings: boolean;
   setShowQuoteColumnSettings: (v: boolean) => void;
 }) {
+  const [clientFocused, setClientFocused] = useState(false);
   return (
     <div
       style={{
@@ -219,22 +233,18 @@ function PanelHeader({
         )}
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <input
-          type="text"
-          placeholder="거래처명"
-          value={clientName}
-          onChange={(e) => setClientName(e.target.value)}
-          style={{
-            flex: 1,
-            fontSize: 16,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid var(--gray-200)",
-            boxSizing: "border-box",
-            outline: "none",
-            minWidth: 0,
-          }}
-        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <ClientSearchInput
+            clientName={clientName}
+            setClientName={setClientName}
+            setClientCode={setClientCode}
+            focused={clientFocused}
+            setFocused={setClientFocused}
+            company={company}
+            width="100%"
+          />
+        </div>
+        <IconBtn active={false} onClick={onOpenSaved} title="저장된 견적">🗂</IconBtn>
         <IconBtn active={showDocSettings} onClick={() => setShowDocSettings(!showDocSettings)} title="문서 설정">📄</IconBtn>
         <IconBtn
           active={showQuoteColumnSettings}

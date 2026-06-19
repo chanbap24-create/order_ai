@@ -1,29 +1,37 @@
 "use client";
 
+import { ClientSearchInput } from "./ClientSearchInput";
+
 type Props = {
   itemCount: number;
   clientName: string;
   setClientName: (v: string) => void;
+  setClientCode: (v: string | null) => void;
+  company: string;
   clientNameFocused: boolean;
   setClientNameFocused: (v: boolean) => void;
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;
   showQuoteColumnSettings: boolean;
   setShowQuoteColumnSettings: (v: boolean) => void;
+  onOpenSaved: () => void;
   onClearAll: () => void;
 };
 
-/** 데스크톱 견적 사이드바 헤더 — 타이틀 + 카운트 + 거래처명 + 설정 + 전체 삭제 */
+/** 데스크톱 견적 사이드바 헤더 — 타이틀 + 카운트 + 거래처 + 저장견적/설정 + 전체 삭제 */
 export function DesktopSidebarHeader({
   itemCount,
   clientName,
   setClientName,
+  setClientCode,
+  company,
   clientNameFocused,
   setClientNameFocused,
   showDocSettings,
   setShowDocSettings,
   showQuoteColumnSettings,
   setShowQuoteColumnSettings,
+  onOpenSaved,
   onClearAll,
 }: Props) {
   return (
@@ -66,24 +74,18 @@ export function DesktopSidebarHeader({
         </span>
       )}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-        <input
-          type="text"
-          placeholder="거래처명"
-          value={clientName}
-          onChange={(e) => setClientName(e.target.value)}
-          onFocus={() => setClientNameFocused(true)}
-          onBlur={() => setClientNameFocused(false)}
-          style={{
-            width: 120,
-            fontSize: 16,
-            padding: "5px 10px",
-            borderRadius: 8,
-            border: `1.5px solid ${clientNameFocused ? "var(--action)" : "var(--gray-200)"}`,
-            outline: "none",
-            boxShadow: clientNameFocused ? "0 0 0 3px rgba(90,21,21,0.06)" : "none",
-            transition: "border-color 0.15s, box-shadow 0.15s",
-          }}
+        <ClientSearchInput
+          clientName={clientName}
+          setClientName={setClientName}
+          setClientCode={setClientCode}
+          focused={clientNameFocused}
+          setFocused={setClientNameFocused}
+          company={company}
+          width={130}
         />
+        <IconBtn active={false} onClick={onOpenSaved} title="저장된 견적">
+          🗂
+        </IconBtn>
         <IconBtn
           active={showDocSettings}
           onClick={() => setShowDocSettings(!showDocSettings)}
