@@ -53,6 +53,24 @@ export function useSavedQuotes(getManagerParam: () => string) {
     }
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const quoteConversion = useCallback(async (id: number): Promise<any | null> => {
+    try {
+      const res = await fetch(`/api/quote/saved/conversion?id=${id}`);
+      const d = await res.json();
+      return d.success ? d : null;
+    } catch { return null; }
+  }, []);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clientConversion = useCallback(async (clientCode: string): Promise<any | null> => {
+    try {
+      const res = await fetch(`/api/quote/saved/conversion?client_code=${encodeURIComponent(clientCode)}`);
+      const d = await res.json();
+      return d.success ? d : null;
+    } catch { return null; }
+  }, []);
+
   const restore = useCallback(
     async (id: number): Promise<{ client_name: string; client_code: string | null; count: number } | null> => {
       try {
@@ -71,5 +89,5 @@ export function useSavedQuotes(getManagerParam: () => string) {
     [getManagerParam],
   );
 
-  return { items, loading, search, setSearch, load, remove, getOne, restore };
+  return { items, loading, search, setSearch, load, remove, getOne, restore, quoteConversion, clientConversion };
 }

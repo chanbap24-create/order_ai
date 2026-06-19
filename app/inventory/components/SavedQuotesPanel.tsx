@@ -24,10 +24,14 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   const [expandedId, setExpandedId] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [expandedItems, setExpandedItems] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [expandedSummary, setExpandedSummary] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [clientConv, setClientConv] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) { setOpenKey(null); setExpandedId(null); void sq.load(); }
+    if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); void sq.load(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -49,10 +53,24 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
 
   if (!open) return null;
 
+  const openFolder = async (f: Folder) => {
+    setOpenKey(f.key);
+    setExpandedId(null);
+    setClientConv(null);
+    const code = f.quotes[0]?.client_code;
+    if (code) {
+      const conv = await sq.clientConversion(code);
+      setClientConv(conv);
+    }
+  };
+
+  const goBack = () => { setOpenKey(null); setExpandedId(null); setClientConv(null); };
+
   const toggleView = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
-    const full = await sq.getOne(id);
-    setExpandedItems(Array.isArray(full?.items) ? full.items : []);
+    const conv = await sq.quoteConversion(id);
+    setExpandedItems(Array.isArray(conv?.items) ? conv.items : []);
+    setExpandedSummary(conv?.summary || null);
     setExpandedId(id);
   };
 
@@ -71,7 +89,7 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
         <div style={headerRow}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             {current && (
-              <button onClick={() => { setOpenKey(null); setExpandedId(null); }} style={backBtn}>←</button>
+              <button onClick={goBack} style={backBtn}>←</button>
             )}
             <span style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {current ? `📁 ${current.name}` : "저장된 견적"}
@@ -88,7 +106,7 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
 
           {/* 1단계: 거래처 폴더 목록 */}
           {!sq.loading && !current && folders.map((f) => (
-            <button key={f.key} onClick={() => setOpenKey(f.key)} style={folderRow}>
+            <button key={f.key} onClick={() => openFolder(f)} style={folderRow}>
               <span style={{ fontSize: 20 }}>📁</span>
               <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
                 <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -102,6 +120,33 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
               <span style={{ color: "var(--text-tertiary)", fontSize: 16 }}>›</span>
             </button>
           ))}
+
+          {/* 2단계 상단: 이 거래처 전환 요약(견적→실제 출고, 60일 기준) */}
+          {!sq.loading && current && clientConv?.summary && (
+            <div style={convBanner}>
+              <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>
+                견적 → 실제 출고 (60일)
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                견적 {clientConv.summary.quotes}건 · 전환 와인{" "}
+                <b style={{ color: "var(--color-success)" }}>
+                  {clientConv.summary.converted_wines}/{clientConv.summary.wines}종
+                </b>{" "}
+                ({clientConv.summary.rate}%)
+              </div>
+              {clientConv.wines?.length > 0 && (
+                <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {clientConv.wines.slice(0, 6).filter((w: { converted_count: number }) => w.converted_count > 0)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    .map((w: any) => (
+                      <span key={w.item_code} style={convChip} title={`견적 ${w.quoted_count}회 중 ${w.converted_count}회 출고`}>
+                        {w.name} ✓{w.converted_count}/{w.quoted_count}
+                      </span>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 2단계: 선택한 거래처의 견적 목록 */}
           {!sq.loading && current && current.quotes.map((it) => (
@@ -130,14 +175,24 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
               </div>
               {expandedId === it.id && (
                 <div style={{ padding: "0 16px 12px 16px" }}>
+                  {expandedSummary && (
+                    <div style={{ fontSize: 11, color: "var(--text-tertiary)", padding: "2px 0 6px" }}>
+                      출고 전환 {expandedSummary.converted}/{expandedSummary.total}종 · 수량 {expandedSummary.shipped_qty}/{expandedSummary.quoted_qty}
+                    </div>
+                  )}
                   {expandedItems.length === 0 && <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>항목 없음</div>}
                   {expandedItems.map((q, i) => (
                     <div key={i} style={viewItem}>
                       <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {q.product_name || q.korean_name || q.item_code}
+                        {q.name}
                       </span>
-                      <span style={{ color: "var(--text-tertiary)" }}>×{q.quantity}</span>
-                      <span style={{ minWidth: 70, textAlign: "right" }}>{formatWon(Number(q.supply_price) || 0)}</span>
+                      <span style={{ color: "var(--text-tertiary)" }}>견적 ×{q.quoted_qty}</span>
+                      <span style={{
+                        minWidth: 64, textAlign: "right", fontWeight: 700,
+                        color: q.converted ? "var(--color-success)" : "var(--text-tertiary)",
+                      }}>
+                        {q.converted ? `출고 ×${q.shipped_qty}` : "미출고"}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -171,6 +226,14 @@ const closeBtn: React.CSSProperties = {
   border: "none", background: "transparent", fontSize: 16, cursor: "pointer", color: "var(--text-tertiary)",
 };
 const empty: React.CSSProperties = { padding: 28, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 };
+const convBanner: React.CSSProperties = {
+  margin: "10px 16px", padding: "10px 12px", borderRadius: 10,
+  background: "var(--border-subtle, #f6f4f2)", border: "1px solid var(--gray-100)",
+};
+const convChip: React.CSSProperties = {
+  fontSize: 10.5, padding: "2px 7px", borderRadius: 8,
+  background: "white", border: "1px solid var(--gray-200)", color: "var(--text-secondary)",
+};
 const folderRow: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 10, width: "100%",
   padding: "12px 16px", border: "none", borderBottom: "1px solid var(--gray-100)",
