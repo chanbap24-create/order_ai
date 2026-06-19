@@ -10,6 +10,7 @@ import { SalesStatusCard } from "./SalesStatusCard";
 import { PreferenceCharts } from "./PreferenceCharts";
 import { ClientTagsCard } from "./ClientTagsCard";
 import { ConversionCard } from "./ConversionCard";
+import { ClientSavedQuotes } from "./ClientSavedQuotes";
 
 type Props = {
   client: SelectedRankClient;
@@ -20,7 +21,7 @@ type Props = {
 };
 
 export function ClientDetailPanel({ client, currentManager, isAdmin, filters, onBack }: Props) {
-  const [subTab, setSubTab] = useState<"info" | "recommend">("info");
+  const [subTab, setSubTab] = useState<"info" | "quotes" | "recommend">("info");
   const detail = useClientDetail(client, filters);
 
   return (
@@ -33,7 +34,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
       />
 
       <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
-        {([["info", "거래처 정보"], ["recommend", "AI 추천"]] as const).map(([id, label]) => {
+        {([["info", "거래처 정보"], ["quotes", "견적서"], ["recommend", "AI 추천"]] as const).map(([id, label]) => {
           const active = subTab === id;
           return (
             <button
@@ -85,6 +86,13 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
             </>
           )}
         </>
+      )}
+
+      {subTab === "quotes" && (
+        <ClientSavedQuotes
+          clientCode={client.client_code}
+          manager={isAdmin ? "" : currentManager}
+        />
       )}
 
       {subTab === "recommend" && (
