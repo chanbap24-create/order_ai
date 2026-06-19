@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { AnalysisFilters, SelectedRankClient } from "../types";
 import { useClientDetail } from "../hooks/useClientDetail";
-import RecommendTab from "../../components/RecommendTab";
+import RecommendQuoteTab from "../../components/RecommendQuoteTab";
 import { ClientDetailHeader } from "./ClientDetailHeader";
 import { ClientContactCard } from "./ClientContactCard";
 import { SalesStatusCard } from "./SalesStatusCard";
@@ -34,7 +34,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
       />
 
       <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
-        {([["info", "거래처 정보"], ["quotes", "견적서"], ["recommend", "AI 추천"]] as const).map(([id, label]) => {
+        {([["info", "거래처 정보"], ["quotes", "견적서"], ["recommend", "추천 견적"]] as const).map(([id, label]) => {
           const active = subTab === id;
           return (
             <button
@@ -96,7 +96,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
       )}
 
       {subTab === "recommend" && (
-        <RecommendTab
+        <RecommendQuoteTab
           currentManager={currentManager}
           isAdmin={isAdmin}
           preselectedClient={{
