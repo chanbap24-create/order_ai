@@ -5,13 +5,29 @@ import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 
-const TIER_BASE = [92, 74, 58, 42]; // 같은마을/인근마을/같은광역/타지역(국가·제한없음 폴백)
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
-const RECENT_RECO_PENALTY = 0.45; // 최근 30일 이미 제안한 품목 점수 배율(중복 견적 방지)
-const CONV_BOOST = 8;             // 과거 견적→실제 출고 전환 1회당 가점(최대 3회)
-const NOCONV_PENALTY = 0.6;       // 2회+ 견적했는데 한 번도 출고 안 된 품목 배율
 export type GeoCeiling = 'super' | 'country' | 'any';
 export type FreqStrength = 'strong' | 'soft' | 'off';
+
+/** 화면에서 조절하는 점수 가중치(전부 숫자라 슬라이더/입력으로 노출 가능). */
+export interface ScoreParams {
+  tierBase: [number, number, number, number]; // 같은마을/인근마을/같은광역/타지역
+  reorderScore: number;   // 재주문(옛 단골) 고정 점수
+  softWeight: number;     // 품종·향미 가산 배수(soft 0~1 × 이 값)
+  velocityWeight: number; // 회전 가산 배수(velocity 0~1 × 이 값)
+  recentPenalty: number;  // 최근 30일 제안 품목 점수 배율
+  convBoost: number;      // 과거 견적→출고 전환 1회당 가점(최대 3회)
+  noconvPenalty: number;  // 2회+ 견적·미출고 품목 점수 배율
+}
+export const DEFAULT_SCORE_PARAMS: ScoreParams = {
+  tierBase: [92, 74, 58, 42],
+  reorderScore: 100,
+  softWeight: 8,
+  velocityWeight: 2,
+  recentPenalty: 0.45,
+  convBoost: 8,
+  noconvPenalty: 0.6,
+};
 
 /**
  * 규칙기반 추천: 타입·가격은 하드 게이트, 지역은 계단(우선순위), 향미·품종은 그 안의 정렬.
@@ -31,8 +47,11 @@ export function scoreRecommendations(params: {
   threeMonthsAgoStr: string;
   recentlyRecommended?: Set<string>; // 최근 제안 품번(중복 강등)
   conversionMap?: Map<string, { quoted: number; converted: number }>; // 과거 견적→출고 전환
+  scoreParams?: ScoreParams; // 화면 조절 가중치(없으면 기본값)
 }): ScoredItem[] {
   const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap } = params;
+  const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
+  const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
   const strength = FREQ_STRENGTH[freqStrength] ?? 0.65;
   const clientCountries = new Set(Object.keys(prefs.countryBuyCount).map(countryKey));
@@ -58,7 +77,7 @@ export function scoreRecommendations(params: {
       // 3개월 이상 미발주한 옛 단골만 '재주문'으로 환기(지금은 안 받는 와인).
       const isStale = !purchase.lastDate || purchase.lastDate <= threeMonthsAgoStr;
       if (purchase.count < 2 || !isStale) continue;
-      score = 100;
+      score = sp.reorderScore;
       tags.push('재주문');
       reasons.push(`${purchase.count}회 구매 · ${purchase.lastDate || '날짜미상'} 이후 미발주`);
     } else {
@@ -111,23 +130,23 @@ export function scoreRecommendations(params: {
 
       const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
       // 빈도 가중(강도 조절): strong 0.65 / soft 0.3 / off 0. off면 빈도 무시(고정 배수 1).
-      score = TIER_BASE[t] * ((1 - strength) + strength * freqW) + soft * 8 + velocity * 2;
+      score = TIER_BASE[t] * ((1 - strength) + strength * freqW) + soft * sp.softWeight + velocity * sp.velocityWeight;
     }
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 
     // 최근 30일 이미 제안한 품목은 강등(영구 제외 아님 — 신선한 후보가 위로 올라오게).
-    if (recentlyRecommended?.has(String(itemNo))) { score *= RECENT_RECO_PENALTY; tags.push('최근제안'); }
+    if (recentlyRecommended?.has(String(itemNo))) { score *= sp.recentPenalty; tags.push('최근제안'); }
 
     // 과거 견적→실제 출고 전환 반영: 팔린 와인은 가점, 여러 번 권했는데 안 팔린 건 감점.
     const cv = conversionMap?.get(String(itemNo));
     if (cv) {
       if (cv.converted > 0) {
-        score += Math.min(cv.converted, 3) * CONV_BOOST;
+        score += Math.min(cv.converted, 3) * sp.convBoost;
         tags.push('과거전환');
         reasons.push(`과거 견적 ${cv.quoted}회 중 ${cv.converted}회 출고`);
       } else if (cv.quoted >= 2) {
-        score *= NOCONV_PENALTY;
+        score *= sp.noconvPenalty;
         tags.push('미전환');
       }
     }

@@ -3,12 +3,33 @@ import { supabase } from '@/app/lib/db';
 import { isValidClientCode } from '@/app/lib/validators';
 import { requireClientAccess } from '@/app/lib/authz';
 import { buildCandidates } from './lib/buildCandidates';
-import { orderForDisplay } from './lib/scoring';
+import { orderForDisplay, DEFAULT_SCORE_PARAMS, type ScoreParams } from './lib/scoring';
+
+/** 화면에서 온 점수 가중치를 숫자만 클램프해 안전화(없으면 undefined → 기본값 사용). */
+function parseScoreParams(raw: unknown): ScoreParams | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const d = DEFAULT_SCORE_PARAMS;
+  const num = (v: unknown, def: number, min: number, max: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+  };
+  const tb = Array.isArray(r.tierBase) ? r.tierBase : d.tierBase;
+  return {
+    tierBase: [0, 1, 2, 3].map((i) => num(tb[i], d.tierBase[i], 0, 300)) as [number, number, number, number],
+    reorderScore: num(r.reorderScore, d.reorderScore, 0, 1000),
+    softWeight: num(r.softWeight, d.softWeight, 0, 100),
+    velocityWeight: num(r.velocityWeight, d.velocityWeight, 0, 100),
+    recentPenalty: num(r.recentPenalty, d.recentPenalty, 0, 1),
+    convBoost: num(r.convBoost, d.convBoost, 0, 100),
+    noconvPenalty: num(r.noconvPenalty, d.noconvPenalty, 0, 1),
+  };
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock } = body;
+    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock, score_params } = body;
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
@@ -35,12 +56,16 @@ export async function POST(req: Request) {
         if (Number.isFinite(v) && v >= 0) minStock[k] = Math.round(v);
       }
     }
+    // score_params: 화면에서 조절한 점수 가중치 — 숫자만 클램프해 전달(없으면 기본값)
+    const scoreParams = parseScoreParams(score_params);
+
     const { client, scored, summary } = await buildCandidates(client_code, {
       priceBandPct: band, profileMonths: months,
       geoCeiling: geoCeiling as 'super' | 'country' | 'any',
       freqStrength: freqStrength as 'strong' | 'soft' | 'off',
       stockMonths,
       ...(minStock && Object.keys(minStock).length ? { minStock: minStock as never } : {}),
+      ...(scoreParams ? { scoreParams } : {}),
     });
     // 관련도 점수로 상위 선별 후, 견적 표시 순서(스파클링→화이트→레드 · 타입내 공급가 내림차순)로 정렬
     const recommendations = orderForDisplay(scored.slice(0, 30));

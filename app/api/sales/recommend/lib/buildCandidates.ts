@@ -163,6 +163,7 @@ export async function buildCandidates(
     inventory, wineMap, purchaseAgg, prefs,
     priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
     maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap,
+    scoreParams: o.scoreParams,
   }) as ScoredItem[];
 
   let lastOrderDate: string | null = null;

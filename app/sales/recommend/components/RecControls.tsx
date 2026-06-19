@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { RecSettings, GeoCeiling, FreqStrength } from '../recSettings';
+import type { RecSettings, GeoCeiling, FreqStrength, ScoreParams } from '../recSettings';
+import { DEFAULT_SCORE_PARAMS } from '../recSettings';
 
 type Props = {
   settings: RecSettings;
@@ -33,8 +34,13 @@ const STOCK_TIERS: { k: keyof RecSettings['minStock']; t: string }[] = [
 
 export function RecControls({ settings: s, onChange, onReapply, itemsCount, visibleCount }: Props) {
   const [showStock, setShowStock] = useState(false);
+  const [showScore, setShowScore] = useState(false);
   const set = (patch: Partial<RecSettings>) => onChange({ ...s, ...patch });
   const setReapply = (patch: Partial<RecSettings>) => { const next = { ...s, ...patch }; onChange(next); onReapply(next); };
+  const sp = s.scoreParams;
+  const setSP = (patch: Partial<ScoreParams>) => set({ scoreParams: { ...sp, ...patch } });
+  const setTier = (i: number, v: number) =>
+    setSP({ tierBase: sp.tierBase.map((x, idx) => (idx === i ? v : x)) as [number, number, number, number] });
 
   const btnGroup = <T,>(opts: { v: T; t: string }[], cur: T, pick: (v: T) => void) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -123,6 +129,50 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
                   onBlur={() => onReapply(s)} />
               </label>
             ))}
+          </div>
+        )}
+      </div>
+      {/* 점수 가중치(고급) — 추천 정렬 점수를 직접 조절. 변경 시 서버 재조회. */}
+      <div>
+        <button onClick={() => setShowScore(!showScore)} style={{ ...hint, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+          {showScore ? '▾' : '▸'} 점수 가중치(고급)
+        </button>
+        {showScore && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>지역 계단 점수</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(['같은마을', '인근마을', '같은광역', '타지역'] as const).map((t, i) => (
+                  <label key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{t}</span>
+                    <input type="number" min={0} max={300} value={sp.tierBase[i]} style={{ ...numIn, width: 60 }}
+                      onChange={(e) => setTier(i, Math.max(0, parseFloat(e.target.value) || 0))}
+                      onBlur={() => onReapply(s)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {([
+                ['재주문', 'reorderScore', 1, 1000],
+                ['품종·향미', 'softWeight', 1, 100],
+                ['회전', 'velocityWeight', 1, 100],
+                ['전환가점/회', 'convBoost', 1, 100],
+                ['최근제안×', 'recentPenalty', 0.05, 1],
+                ['미전환×', 'noconvPenalty', 0.05, 1],
+              ] as const).map(([label, key, step, max]) => (
+                <label key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
+                  <input type="number" min={0} max={max} step={step} value={sp[key]} style={{ ...numIn, width: 66 }}
+                    onChange={(e) => setSP({ [key]: Math.min(max, Math.max(0, parseFloat(e.target.value) || 0)) } as Partial<ScoreParams>)}
+                    onBlur={() => onReapply(s)} />
+                </label>
+              ))}
+            </div>
+            <button onClick={() => setReapply({ scoreParams: { ...DEFAULT_SCORE_PARAMS } })}
+              style={{ ...hint, alignSelf: 'flex-start', background: 'none', border: '1px solid var(--gray-300)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer' }}>
+              기본값으로 초기화
+            </button>
           </div>
         )}
       </div>

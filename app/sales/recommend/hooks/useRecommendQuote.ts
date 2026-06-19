@@ -28,6 +28,7 @@ export function useRecommendQuote() {
           freq_strength: s.freqStrength,
           stock_months: s.stockMonths,
           min_stock: s.minStock,
+          score_params: s.scoreParams,
         }),
       });
       const json = await res.json();
