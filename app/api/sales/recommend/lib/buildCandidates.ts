@@ -47,19 +47,33 @@ export async function buildCandidates(
   sinceDate.setMonth(sinceDate.getMonth() - o.profileMonths);
   const sinceStr = sinceDate.toISOString().slice(0, 10);
 
+  // 최근 제안 중복 회피용 기간(KST): [30일 전 00:00, 오늘 00:00) — 오늘 재생성분은 제외.
+  const RECO_LOOKBACK_DAYS = 30;
+  const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayKstMidnight = `${nowKst.toISOString().slice(0, 10)}T00:00:00+09:00`;
+  const recoSinceMidnight = `${new Date(nowKst.getTime() - RECO_LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10)}T00:00:00+09:00`;
+
   const [
     { data: clientDetail },
     { data: clientBasic },
     { data: shipments },
     rawInventory,
     regionRows,
+    { data: recoRows },
   ] = await Promise.all([
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('shipments').select('item_no, item_name, unit_price, quantity, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
     fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
+    supabase.from('recommendations').select('item_codes').eq('client_code', clientCode).eq('status', 'sent').gte('created_at', recoSinceMidnight).lt('created_at', todayKstMidnight),
   ]);
+
+  // 최근 30일(오늘 제외) 실제 견적서로 나간 품번 집합 — 중복 제안 강등용
+  const recentlyRecommended = new Set<string>();
+  for (const r of (recoRows || []) as Array<{ item_codes?: string[] | null }>) {
+    for (const c of r.item_codes || []) recentlyRecommended.add(String(c));
+  }
 
   const relevantCodes = new Set<string>();
   for (const s of (shipments || []) as Array<{ item_no?: string }>) {
@@ -141,7 +155,7 @@ export async function buildCandidates(
   const scored = scoreRecommendations({
     inventory, wineMap, purchaseAgg, prefs,
     priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
-    maxSales90d, threeMonthsAgoStr,
+    maxSales90d, threeMonthsAgoStr, recentlyRecommended,
   }) as ScoredItem[];
 
   let lastOrderDate: string | null = null;

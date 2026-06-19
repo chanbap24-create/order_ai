@@ -7,6 +7,7 @@ import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 
 const TIER_BASE = [92, 74, 58, 42]; // 같은마을/인근마을/같은광역/타지역(국가·제한없음 폴백)
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
+const RECENT_RECO_PENALTY = 0.45; // 최근 30일 이미 제안한 품목 점수 배율(중복 견적 방지)
 export type GeoCeiling = 'super' | 'country' | 'any';
 export type FreqStrength = 'strong' | 'soft' | 'off';
 
@@ -26,8 +27,9 @@ export function scoreRecommendations(params: {
   freqStrength: FreqStrength; // 입고빈도 반영 강도
   maxSales90d: number;
   threeMonthsAgoStr: string;
+  recentlyRecommended?: Set<string>; // 최근 제안 품번(중복 강등)
 }): ScoredItem[] {
-  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr } = params;
+  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr, recentlyRecommended } = params;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
   const strength = FREQ_STRENGTH[freqStrength] ?? 0.65;
   const clientCountries = new Set(Object.keys(prefs.countryBuyCount).map(countryKey));
@@ -110,6 +112,9 @@ export function scoreRecommendations(params: {
     }
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
+
+    // 최근 30일 이미 제안한 품목은 강등(영구 제외 아님 — 신선한 후보가 위로 올라오게).
+    if (recentlyRecommended?.has(String(itemNo))) { score *= RECENT_RECO_PENALTY; tags.push('최근제안'); }
 
     const vv = String(itemNo).slice(2, 4);
     const vintage = /^\d{2}$/.test(vv)
