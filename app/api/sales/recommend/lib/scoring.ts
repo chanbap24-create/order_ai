@@ -85,7 +85,8 @@ export function scoreRecommendations(params: {
         : t === 2 ? (prefs.superRegionBuyCount[matchedRegion] || 0) : 0;
       const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : t === 2 ? prefs.maxSuperRegionBuy : 1;
       const freqW = levelMax > 0 ? matchedCount / levelMax : 0;
-      if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 입고 ${matchedCount}회`);
+      // 가중치가 매입액 기반이므로 raw 수치 대신 동급 산지 내 선호 비중(%)으로 표기
+      if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 선호 ${Math.round(freqW * 100)}%`);
       else if (invCountry) reasons.push(extractEnglish(invCountry));
 
       // 향미·품종 정렬(0~1)

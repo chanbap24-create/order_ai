@@ -12,24 +12,34 @@ export function priceRef(prefs: ClientPreferences, bucket: TypeBucket, group: st
   return tryKey(`${bucket}|${group}`) || tryKey(bucket) || tryKey('__all__') || prefs.clientAvgPrice;
 }
 
-type ShipmentRow = { item_no?: string; item_name?: string; unit_price?: number | null; ship_date?: string | null };
+type ShipmentRow = { item_no?: string; item_name?: string; unit_price?: number | null; quantity?: number | null; ship_date?: string | null };
 
 /**
  * shipments → purchaseAgg 집계.
+ * count=출고 행 수(재주문 판정용), qty=병수, spend=매입액(병수×단가, 선호 가중치 기준).
  */
 export function aggregatePurchases(shipments: ShipmentRow[] | null): Record<string, PurchaseAggEntry> {
   const purchaseAgg: Record<string, PurchaseAggEntry> = {};
   for (const s of shipments || []) {
     if (!s.item_no) continue;
     if (!purchaseAgg[s.item_no]) {
-      purchaseAgg[s.item_no] = { count: 0, lastDate: '', totalPrice: 0, name: s.item_name || '' };
+      purchaseAgg[s.item_no] = { count: 0, qty: 0, spend: 0, lastDate: '', totalPrice: 0, name: s.item_name || '' };
     }
     const agg = purchaseAgg[s.item_no];
     agg.count++;
+    const qty = Number(s.quantity) || 0;
+    const price = Number(s.unit_price) || 0;
+    if (qty > 0) agg.qty += qty;
+    if (qty > 0 && price > 0) agg.spend += qty * price;
     if (s.ship_date && s.ship_date > agg.lastDate) agg.lastDate = s.ship_date;
-    if (s.unit_price) agg.totalPrice += s.unit_price;
+    if (price) agg.totalPrice += price;
   }
   return purchaseAgg;
+}
+
+/** 선호도 가중치: 매입액 우선, 없으면 병수, 그것도 없으면 횟수로 폴백. */
+export function preferenceWeight(agg: PurchaseAggEntry): number {
+  return agg.spend > 0 ? agg.spend : agg.qty > 0 ? agg.qty : agg.count;
 }
 
 /**
@@ -66,19 +76,21 @@ export function buildClientPreferences(
 
   for (const [itemNo, agg] of Object.entries(purchaseAgg)) {
     totalPurchases += agg.count;
+    // 선호도(국가·지역·품종·타입) 가중치 = 매입액. "돈을 어디에 쓰는가"가 횟수보다 강한 신호.
+    const w = preferenceWeight(agg);
     const avgPrice = agg.totalPrice / agg.count;
     if (avgPrice > 0) priceList.push(avgPrice);
 
     const wine = wineMap.get(itemNo);
     const inv = inventoryMap.get(itemNo);
     const country = wine?.country || wine?.country_en || inv?.country || '';
-    if (country) countryBuyCount[country] = (countryBuyCount[country] || 0) + agg.count;
+    if (country) countryBuyCount[country] = (countryBuyCount[country] || 0) + w;
 
     const h: RegionHierarchy | null = wine?._hierarchy || null;
     if (h) {
-      if (h.sub_region) { subRegionBuyCount[h.sub_region] = (subRegionBuyCount[h.sub_region] || 0) + agg.count; regionProfile.subs.add(h.sub_region); }
-      if (h.major_region) { majorRegionBuyCount[h.major_region] = (majorRegionBuyCount[h.major_region] || 0) + agg.count; regionProfile.majors.add(h.major_region); }
-      if (h.super_region) { superRegionBuyCount[h.super_region] = (superRegionBuyCount[h.super_region] || 0) + agg.count; regionProfile.supers.add(h.super_region); }
+      if (h.sub_region) { subRegionBuyCount[h.sub_region] = (subRegionBuyCount[h.sub_region] || 0) + w; regionProfile.subs.add(h.sub_region); }
+      if (h.major_region) { majorRegionBuyCount[h.major_region] = (majorRegionBuyCount[h.major_region] || 0) + w; regionProfile.majors.add(h.major_region); }
+      if (h.super_region) { superRegionBuyCount[h.super_region] = (superRegionBuyCount[h.super_region] || 0) + w; regionProfile.supers.add(h.super_region); }
     }
 
     // 타입 버킷 + 타입×지역 가격 통계
@@ -92,7 +104,7 @@ export function buildClientPreferences(
     } else {
       addPrice('__all__', avgPrice);
     }
-    // 지역 분포(광역 → 대지역 → 국가 → 기타 순으로 라벨)
+    // 지역 분포(광역 → 대지역 → 국가 → 기타 순으로 라벨) — 표시용 "건수"는 횟수 그대로
     const regionLabel = h?.super_region || h?.major_region || country || '기타';
     regionDist[regionLabel] = (regionDist[regionLabel] || 0) + agg.count;
 
@@ -107,7 +119,7 @@ export function buildClientPreferences(
     }
     if (grapeStr) {
       const grapes = grapeStr.split(/[,\/]/).map((g: string) => g.trim()).filter(Boolean);
-      for (const g of grapes) { grapeBuyCount[g] = (grapeBuyCount[g] || 0) + agg.count; grapeKeys.add(g.toLowerCase()); }
+      for (const g of grapes) { grapeBuyCount[g] = (grapeBuyCount[g] || 0) + w; grapeKeys.add(g.toLowerCase()); }
     }
 
     // 와인 타입
@@ -117,7 +129,7 @@ export function buildClientPreferences(
     }
     if (wt) {
       wt = wt.trim();
-      if (wt) typeBuyCount[wt] = (typeBuyCount[wt] || 0) + agg.count;
+      if (wt) typeBuyCount[wt] = (typeBuyCount[wt] || 0) + w;
     }
   }
 

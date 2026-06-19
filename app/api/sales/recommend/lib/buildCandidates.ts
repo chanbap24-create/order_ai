@@ -56,7 +56,7 @@ export async function buildCandidates(
   ] = await Promise.all([
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
-    supabase.from('shipments').select('item_no, item_name, unit_price, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
+    supabase.from('shipments').select('item_no, item_name, unit_price, quantity, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
     fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
   ]);

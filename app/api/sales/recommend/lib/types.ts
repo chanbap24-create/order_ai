@@ -50,7 +50,9 @@ export interface ClientPreferences {
 }
 
 export interface PurchaseAggEntry {
-  count: number;
+  count: number;       // 구매 발생 횟수(출고 행 수) — 재주문 판정·표시용
+  qty: number;         // 누적 병수
+  spend: number;       // 누적 매입액(병수×단가) — 선호도 가중치 기준
   lastDate: string;
   totalPrice: number;
   name: string;
