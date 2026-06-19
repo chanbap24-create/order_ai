@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatWon } from "../lib/format";
-import { useSavedQuotes } from "../hooks/useSavedQuotes";
+import { useSavedQuotes, type SavedQuoteMeta } from "../hooks/useSavedQuotes";
 
 type Props = {
   open: boolean;
@@ -13,20 +13,39 @@ type Props = {
   onLoaded: (clientName: string, clientCode: string | null) => void;
 };
 
+type Folder = { key: string; name: string; quotes: SavedQuoteMeta[]; latest: string };
+
 const fmtDate = (s: string) => (s ? s.slice(0, 16).replace("T", " ") : "");
 
-/** 저장된 견적(이력) 목록 모달 — 열람 / 불러와 편집 / 삭제 */
+/** 저장된 견적(이력) — 거래처별 폴더로 보기 → 폴더 열면 해당 거래처 견적 목록 */
 export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems, onLoaded }: Props) {
   const sq = useSavedQuotes(getManagerParam);
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [expandedItems, setExpandedItems] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) { setExpandedId(null); void sq.load(); }
+    if (open) { setOpenKey(null); setExpandedId(null); void sq.load(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // 거래처별 그룹핑(폴더). key = client_code || client_name.
+  const folders = useMemo<Folder[]>(() => {
+    const map = new Map<string, Folder>();
+    for (const q of sq.items) {
+      const key = q.client_code || q.client_name || "(미지정)";
+      const name = q.client_name || "(거래처 미지정)";
+      const f = map.get(key) || { key, name, quotes: [], latest: "" };
+      f.quotes.push(q);
+      if (q.created_at > f.latest) f.latest = q.created_at;
+      map.set(key, f);
+    }
+    return Array.from(map.values()).sort((a, b) => b.latest.localeCompare(a.latest));
+  }, [sq.items]);
+
+  const current = folders.find((f) => f.key === openKey) || null;
 
   if (!open) return null;
 
@@ -50,18 +69,15 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
     <div onClick={onClose} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={modal}>
         <div style={headerRow}>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>저장된 견적</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            {current && (
+              <button onClick={() => { setOpenKey(null); setExpandedId(null); }} style={backBtn}>←</button>
+            )}
+            <span style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {current ? `📁 ${current.name}` : "저장된 견적"}
+            </span>
+          </div>
           <button onClick={onClose} style={closeBtn}>✕</button>
-        </div>
-
-        <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--gray-100)" }}>
-          <input
-            placeholder="거래처명으로 검색"
-            value={sq.search}
-            onChange={(e) => sq.setSearch(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void sq.load(); }}
-            style={searchInput}
-          />
         </div>
 
         <div style={{ overflowY: "auto", flex: 1 }}>
@@ -69,16 +85,35 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
           {!sq.loading && sq.items.length === 0 && (
             <div style={empty}>저장된 견적이 없습니다. (견적서를 내보내면 자동 저장됩니다)</div>
           )}
-          {!sq.loading && sq.items.map((it) => (
+
+          {/* 1단계: 거래처 폴더 목록 */}
+          {!sq.loading && !current && folders.map((f) => (
+            <button key={f.key} onClick={() => setOpenKey(f.key)} style={folderRow}>
+              <span style={{ fontSize: 20 }}>📁</span>
+              <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
+                <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {f.name}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>
+                  최근 {fmtDate(f.latest)}
+                </div>
+              </div>
+              <span style={countPill}>{f.quotes.length}</span>
+              <span style={{ color: "var(--text-tertiary)", fontSize: 16 }}>›</span>
+            </button>
+          ))}
+
+          {/* 2단계: 선택한 거래처의 견적 목록 */}
+          {!sq.loading && current && current.quotes.map((it) => (
             <div key={it.id} style={{ borderBottom: "1px solid var(--gray-100)" }}>
               <div style={rowMain}>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {it.client_name || "(거래처 미지정)"}
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    {fmtDate(it.created_at)}
                     {it.company && <span style={badge}>{it.company}</span>}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>
-                    {fmtDate(it.created_at)} · {it.item_count}개 · {formatWon(Number(it.total_supply) || 0)}
+                    {it.item_count}개 · {formatWon(Number(it.total_supply) || 0)}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -126,16 +161,25 @@ const modal: React.CSSProperties = {
 };
 const headerRow: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "space-between",
-  padding: "12px 16px", borderBottom: "1px solid var(--gray-100)",
+  padding: "12px 16px", borderBottom: "1px solid var(--gray-100)", gap: 8,
+};
+const backBtn: React.CSSProperties = {
+  border: "none", background: "transparent", fontSize: 18, cursor: "pointer",
+  color: "var(--text-secondary)", padding: 0, lineHeight: 1,
 };
 const closeBtn: React.CSSProperties = {
   border: "none", background: "transparent", fontSize: 16, cursor: "pointer", color: "var(--text-tertiary)",
 };
-const searchInput: React.CSSProperties = {
-  width: "100%", fontSize: 16, padding: "7px 11px", borderRadius: 8,
-  border: "1.5px solid var(--gray-200)", outline: "none",
-};
 const empty: React.CSSProperties = { padding: 28, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 };
+const folderRow: React.CSSProperties = {
+  display: "flex", alignItems: "center", gap: 10, width: "100%",
+  padding: "12px 16px", border: "none", borderBottom: "1px solid var(--gray-100)",
+  background: "white", cursor: "pointer",
+};
+const countPill: React.CSSProperties = {
+  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
+  background: "var(--border-default)", color: "var(--text-secondary)",
+};
 const rowMain: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px" };
 const badge: React.CSSProperties = {
   marginLeft: 6, fontSize: 10, fontWeight: 700, padding: "1px 6px",
