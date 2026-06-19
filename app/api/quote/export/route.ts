@@ -3,6 +3,7 @@ import { logger } from '@/app/lib/logger';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
+import { getSavedQuote } from '@/app/lib/savedQuotes';
 import ExcelJS from 'exceljs';
 
 import { ALL_EXCEL_COLUMNS, DEFAULT_DOC, type DocSettings } from './lib/types';
@@ -11,24 +12,38 @@ import { buildQuote } from './lib/buildQuote';
 import { preloadBottleImages } from './lib/imagePreload';
 import { patchDrawingExt } from './lib/patchDrawingExt';
 
+function safeJson(s: string): unknown {
+  try { return JSON.parse(s); } catch { return undefined; }
+}
+
 export async function GET(request: NextRequest) {
   try {
     ensureQuoteTable();
     ensureWineProfileTable();
 
-    const clientName = request.nextUrl.searchParams.get('client_name') || '';
     const manager = request.nextUrl.searchParams.get('manager') || '';
 
-    let quoteQuery = supabase
-      .from('quote_items')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('id', { ascending: true });
-    if (manager) quoteQuery = quoteQuery.eq('manager', manager);
-    const { data: quoteRows, error: quoteErr } = await quoteQuery;
-    if (quoteErr) throw quoteErr;
+    // saved_id 있으면 저장 견적 스냅샷에서 렌더(작업 초안 quote_items 미변경 — 비파괴 재내보내기)
+    const savedId = request.nextUrl.searchParams.get('saved_id');
+    const savedQuote = savedId ? await getSavedQuote(Number(savedId)) : null;
 
-    const quoteItems = (quoteRows || []) as Array<Record<string, unknown>>;
+    const clientName =
+      request.nextUrl.searchParams.get('client_name') || savedQuote?.client_name || '';
+
+    let quoteItems: Array<Record<string, unknown>>;
+    if (savedQuote) {
+      quoteItems = (Array.isArray(savedQuote.items) ? savedQuote.items : []) as Array<Record<string, unknown>>;
+    } else {
+      let quoteQuery = supabase
+        .from('quote_items')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true });
+      if (manager) quoteQuery = quoteQuery.eq('manager', manager);
+      const { data: quoteRows, error: quoteErr } = await quoteQuery;
+      if (quoteErr) throw quoteErr;
+      quoteItems = (quoteRows || []) as Array<Record<string, unknown>>;
+    }
     const itemCodes = quoteItems
       .map((q) => String(q.item_code || ''))
       .filter(Boolean);
@@ -71,27 +86,25 @@ export async function GET(request: NextRequest) {
     // Visible columns — JSON.parse 후 형/길이 가드로 DoS·이상 입력 차단
     const columnsParam = request.nextUrl.searchParams.get('columns');
     let visibleColumns: string[] = [];
-    if (columnsParam) {
-      try {
-        const parsed = JSON.parse(columnsParam);
-        if (
-          Array.isArray(parsed) &&
-          parsed.length <= 50 &&
-          parsed.every((x) => typeof x === 'string' && x.length <= 60)
-        ) {
-          visibleColumns = parsed;
-        }
-      } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const colSource: any = columnsParam ? safeJson(columnsParam) : savedQuote?.columns;
+    if (
+      Array.isArray(colSource) &&
+      colSource.length <= 50 &&
+      colSource.every((x) => typeof x === 'string' && x.length <= 60)
+    ) {
+      visibleColumns = colSource;
     }
 
     // Doc settings
     const settingsParam = request.nextUrl.searchParams.get('doc_settings');
     let docSettings: DocSettings = { ...DEFAULT_DOC };
-    if (settingsParam) {
-      try { docSettings = { ...docSettings, ...JSON.parse(settingsParam) }; } catch (e) { logger.debug('비치명적 실패(기본값·무시)', { error: String(e) }); }
+    const settingsSource = settingsParam ? safeJson(settingsParam) : savedQuote?.doc_settings;
+    if (settingsSource && typeof settingsSource === 'object') {
+      docSettings = { ...docSettings, ...settingsSource };
     }
 
-    const company = request.nextUrl.searchParams.get('company') || 'CDV';
+    const company = request.nextUrl.searchParams.get('company') || savedQuote?.company || 'CDV';
 
     // columns 파라미터가 없으면 전체 열 표시 (기본 세트)
     // 있으면 사용자가 ◀▶로 지정한 visibleColumns 배열 순서대로 출력.
