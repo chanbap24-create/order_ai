@@ -29,6 +29,7 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [clientConv, setClientConv] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); void sq.load(); }
@@ -72,6 +73,28 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
     setExpandedItems(Array.isArray(conv?.items) ? conv.items : []);
     setExpandedSummary(conv?.summary || null);
     setExpandedId(id);
+  };
+
+  // 저장 스냅샷에서 바로 Excel 재생성(작업 초안 미변경)
+  const downloadExcel = async (id: number, createdAt: string) => {
+    setDownloading(id);
+    try {
+      const res = await fetch(`/api/quote/export?saved_id=${id}`);
+      if (!res.ok) throw new Error("export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `견적서_${createdAt.slice(0, 10).replace(/-/g, "")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("엑셀 다운로드에 실패했습니다.");
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const handleLoad = async (id: number) => {
@@ -164,6 +187,9 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button style={btnGhost} onClick={() => toggleView(it.id)}>
                     {expandedId === it.id ? "접기" : "열람"}
+                  </button>
+                  <button style={btnGhost} disabled={downloading === it.id} onClick={() => downloadExcel(it.id, it.created_at)}>
+                    {downloading === it.id ? "생성 중…" : "Excel"}
                   </button>
                   <button style={btnPrimary} disabled={busy} onClick={() => handleLoad(it.id)}>
                     불러오기
