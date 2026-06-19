@@ -11,6 +11,7 @@ import { scoreRecommendations } from './scoring';
 import { bucketLabel } from './wineType';
 import { flavorLabel } from './flavor';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
+import { getClientConversion } from '@/app/lib/quoteConversion';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -84,17 +85,23 @@ export async function buildCandidates(
     if (code) relevantCodes.add(code);
   }
   const codeList = Array.from(relevantCodes);
-  const [wines, allNotes] = await Promise.all([
+  const [wines, allNotes, conv] = await Promise.all([
     fetchWinesByCodes<Record<string, unknown>>(
       codeList,
       'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
     ),
     // 테이스팅노트는 작은 테이블 — 전체를 받아 맵으로(.in 500 한도 회피)
     fetchAll<{ wine_id: string; nose_note?: string; palate_note?: string }>('tasting_notes', 'wine_id, nose_note, palate_note'),
+    // 과거 견적→실제 출고 전환(거래처별) — 추천 가점/감점 참고자료
+    getClientConversion(clientCode),
   ]);
   const notesMap = new Map<string, string>();
   for (const n of allNotes) {
     notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
+  }
+  const conversionMap = new Map<string, { quoted: number; converted: number }>();
+  for (const w of conv.wines) {
+    conversionMap.set(w.item_code, { quoted: w.quoted_count, converted: w.converted_count });
   }
 
   const clientName = clientDetail?.client_name || clientBasic?.client_name || clientCode;
@@ -155,7 +162,7 @@ export async function buildCandidates(
   const scored = scoreRecommendations({
     inventory, wineMap, purchaseAgg, prefs,
     priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
-    maxSales90d, threeMonthsAgoStr, recentlyRecommended,
+    maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap,
   }) as ScoredItem[];
 
   let lastOrderDate: string | null = null;

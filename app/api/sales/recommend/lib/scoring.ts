@@ -8,6 +8,8 @@ import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 const TIER_BASE = [92, 74, 58, 42]; // 같은마을/인근마을/같은광역/타지역(국가·제한없음 폴백)
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
 const RECENT_RECO_PENALTY = 0.45; // 최근 30일 이미 제안한 품목 점수 배율(중복 견적 방지)
+const CONV_BOOST = 8;             // 과거 견적→실제 출고 전환 1회당 가점(최대 3회)
+const NOCONV_PENALTY = 0.6;       // 2회+ 견적했는데 한 번도 출고 안 된 품목 배율
 export type GeoCeiling = 'super' | 'country' | 'any';
 export type FreqStrength = 'strong' | 'soft' | 'off';
 
@@ -28,8 +30,9 @@ export function scoreRecommendations(params: {
   maxSales90d: number;
   threeMonthsAgoStr: string;
   recentlyRecommended?: Set<string>; // 최근 제안 품번(중복 강등)
+  conversionMap?: Map<string, { quoted: number; converted: number }>; // 과거 견적→출고 전환
 }): ScoredItem[] {
-  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr, recentlyRecommended } = params;
+  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap } = params;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
   const strength = FREQ_STRENGTH[freqStrength] ?? 0.65;
   const clientCountries = new Set(Object.keys(prefs.countryBuyCount).map(countryKey));
@@ -115,6 +118,19 @@ export function scoreRecommendations(params: {
 
     // 최근 30일 이미 제안한 품목은 강등(영구 제외 아님 — 신선한 후보가 위로 올라오게).
     if (recentlyRecommended?.has(String(itemNo))) { score *= RECENT_RECO_PENALTY; tags.push('최근제안'); }
+
+    // 과거 견적→실제 출고 전환 반영: 팔린 와인은 가점, 여러 번 권했는데 안 팔린 건 감점.
+    const cv = conversionMap?.get(String(itemNo));
+    if (cv) {
+      if (cv.converted > 0) {
+        score += Math.min(cv.converted, 3) * CONV_BOOST;
+        tags.push('과거전환');
+        reasons.push(`과거 견적 ${cv.quoted}회 중 ${cv.converted}회 출고`);
+      } else if (cv.quoted >= 2) {
+        score *= NOCONV_PENALTY;
+        tags.push('미전환');
+      }
+    }
 
     const vv = String(itemNo).slice(2, 4);
     const vintage = /^\d{2}$/.test(vv)
