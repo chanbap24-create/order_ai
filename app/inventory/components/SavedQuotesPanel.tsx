@@ -26,6 +26,11 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   const [expandedItems, setExpandedItems] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [expandedSummary, setExpandedSummary] = useState<any>(null);
+  // 열람 시 스냅샷 항목(가격 포함) — 전환 항목과 같은 순서로 zip
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [expandedSnap, setExpandedSnap] = useState<any[]>([]);
+  // 저장 견적의 표시 컬럼 — 가격 항목은 견적서에 포함된 컬럼만 노출
+  const [expandedCols, setExpandedCols] = useState<string[] | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [clientConv, setClientConv] = useState<any>(null);
   const [busy, setBusy] = useState(false);
@@ -69,9 +74,11 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
 
   const toggleView = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
-    const conv = await sq.quoteConversion(id);
+    const [conv, snap] = await Promise.all([sq.quoteConversion(id), sq.getOne(id)]);
     setExpandedItems(Array.isArray(conv?.items) ? conv.items : []);
     setExpandedSummary(conv?.summary || null);
+    setExpandedSnap(Array.isArray(snap?.items) ? snap.items : []);
+    setExpandedCols(Array.isArray(snap?.columns) ? snap.columns : null);
     setExpandedId(id);
   };
 
@@ -207,20 +214,37 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
                     </div>
                   )}
                   {expandedItems.length === 0 && <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>항목 없음</div>}
-                  {expandedItems.map((q, i) => (
-                    <div key={i} style={viewItem}>
-                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {q.name}
-                      </span>
-                      <span style={{ color: "var(--text-tertiary)" }}>견적 ×{q.quoted_qty}</span>
-                      <span style={{
-                        minWidth: 64, textAlign: "right", fontWeight: 700,
-                        color: q.converted ? "var(--color-success)" : "var(--text-tertiary)",
-                      }}>
-                        {q.converted ? `출고 ×${q.shipped_qty}` : "미출고"}
-                      </span>
-                    </div>
-                  ))}
+                  {expandedItems.map((q, i) => {
+                    const s = expandedSnap[i] || {};
+                    const supply = Number(s.supply_price) || 0;
+                    const rate = Number(s.discount_rate) || 0;
+                    const stored = Number(s.discounted_price) || 0;
+                    const disc = stored > 0 ? stored : Math.round(supply * (1 - rate));
+                    const retailDisc = Math.round((Number(s.retail_price) || 0) * (1 - rate));
+                    // 견적서에 포함된 컬럼만 노출(컬럼 정보 없으면 할인율·할인공급가 기본 표시)
+                    const showCol = (k: string) => (expandedCols ? expandedCols.includes(k) : k !== "retail_discounted_price");
+                    const parts: string[] = [];
+                    if (showCol("discount_rate") && rate > 0) parts.push(`할인 ${Math.round(rate * 100)}%`);
+                    if (showCol("discounted_price")) parts.push(`할인공급가 ${formatWon(disc)}`);
+                    if (showCol("retail_discounted_price")) parts.push(`할인판매가 ${formatWon(retailDisc)}`);
+                    return (
+                      <div key={i} style={viewItem}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {q.name}
+                          </div>
+                          {parts.length > 0 && <div style={priceLine}>{parts.join(" · ")}</div>}
+                        </div>
+                        <span style={{ color: "var(--text-tertiary)" }}>견적 ×{q.quoted_qty}</span>
+                        <span style={{
+                          minWidth: 64, textAlign: "right", fontWeight: 700,
+                          color: q.converted ? "var(--color-success)" : "var(--text-tertiary)",
+                        }}>
+                          {q.converted ? `출고 ×${q.shipped_qty}` : "미출고"}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -281,6 +305,10 @@ const btnGhost: React.CSSProperties = { ...btnBase, borderColor: "var(--gray-200
 const btnPrimary: React.CSSProperties = { ...btnBase, borderColor: "var(--action)", background: "var(--action)", color: "white" };
 const btnDanger: React.CSSProperties = { ...btnBase, borderColor: "var(--status-danger)", background: "white", color: "var(--status-danger)" };
 const viewItem: React.CSSProperties = {
-  display: "flex", gap: 8, fontSize: 12, padding: "3px 0",
+  display: "flex", gap: 8, fontSize: 12, padding: "5px 0", alignItems: "flex-start",
   borderTop: "1px dashed var(--gray-100)", color: "var(--text-secondary)",
+};
+const priceLine: React.CSSProperties = {
+  fontSize: 11, color: "var(--text-tertiary)", marginTop: 1,
+  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
 };
