@@ -66,9 +66,11 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const pt = c.payment_type;
   const manualDate = c.promised_date ? new Date(`${c.promised_date}T00:00:00Z`) : null;
 
-  // 브리핑 탭에서 직접 정한 예정금액이 있으면 자동계산보다 우선 (분할상환 직접입력 포함)
+  // 브리핑 탭에서 직접 정한 예정금액이 있으면 자동계산보다 우선 (분할상환 직접입력 포함).
+  // 단 입금예정금액은 총미수를 넘을 수 없음(기납입/반품으로 잔액이 줄어든 경우 캡).
   if (c.promised_amount != null) {
-    return { expected: c.promised_amount, remain: c.net_now - c.promised_amount, dueDate: manualDate };
+    const expected = Math.min(c.promised_amount, c.net_now);
+    return { expected, remain: c.net_now - expected, dueDate: manualDate };
   }
 
   // 분할상환·선결제·미지정·미수없음: 금액 공란 (예정일은 직접 정한 값이 있으면 표기)
@@ -80,7 +82,9 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const eff = Math.max(c.net_close - c.period_payment, 0);
   const due = manualDate ?? scheduleDue(pt, today, eff > 0);
 
-  // 월말: 미수 전액 / 익월: 남은 이월분(있으면) 없으면 이 기간 판매액(부가세포함)
-  const expected = pt === 'eom' ? c.net_now : (eff > 0 ? eff : c.period_total);
+  // 월말: 미수 전액 / 익월: 남은 이월분(있으면) 없으면 현미수(이번달 출고분, 기납입 제외).
+  // 입금예정금액은 총미수를 넘을 수 없음.
+  const raw = pt === 'eom' ? c.net_now : (eff > 0 ? eff : c.net_now);
+  const expected = Math.min(raw, c.net_now);
   return { expected, remain: c.net_now - expected, dueDate: due };
 }
