@@ -53,6 +53,7 @@ export function useQuoteExports(p: Params) {
       const mgr = p.getManagerParam();
       const url =
         `/api/quote/export?client_name=${encodeURIComponent(p.clientName)}` +
+        (p.clientCode ? `&client_code=${encodeURIComponent(p.clientCode)}` : "") +
         `&columns=${columnsParam}&doc_settings=${settingsParam}&company=${p.activeTab}` +
         (mgr ? `&manager=${encodeURIComponent(mgr)}` : "");
 
@@ -61,27 +62,9 @@ export function useQuoteExports(p: Params) {
       const blob = await res.blob();
       triggerDownload(blob, `견적서_${todayStamp()}_${p.clientName || "미지정"}.xlsx`);
 
-      // 내보낼 때 자동으로 견적 이력 저장(담당·거래처별). 빈 견적은 저장 안 함.
-      if (p.quoteItems && p.quoteItems.length > 0) {
-        try {
-          await fetch("/api/quote/saved", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              manager: mgr,
-              client_code: p.clientCode || null,
-              client_name: p.clientName || "",
-              company: p.activeTab,
-              items: p.quoteItems,
-              doc_settings: p.docSettings,
-              columns: p.visibleQuoteColumns,
-            }),
-          });
-          p.onSaved?.();
-        } catch (saveErr) {
-          console.error("견적 이력 자동 저장 실패(내보내기는 성공):", saveErr);
-        }
-      }
+      // 견적 이력 자동 저장은 export 라우트가 서버 견적(quote_items) 기준으로 수행 →
+      // 클라이언트는 저장 견적 패널만 갱신(서버에 항목이 있었으면 저장됨).
+      p.onSaved?.();
     } catch (e) {
       console.error("Export failed:", e);
       alert("엑셀 다운로드에 실패했습니다.");

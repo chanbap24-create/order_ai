@@ -3,7 +3,7 @@ import { logger } from '@/app/lib/logger';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
 import { ensureWineProfileTable } from '@/app/lib/wineProfileDb';
-import { getSavedQuote } from '@/app/lib/savedQuotes';
+import { getSavedQuote, saveQuote } from '@/app/lib/savedQuotes';
 import ExcelJS from 'exceljs';
 
 import { ALL_EXCEL_COLUMNS, DEFAULT_DOC, type DocSettings } from './lib/types';
@@ -105,6 +105,20 @@ export async function GET(request: NextRequest) {
     }
 
     const company = request.nextUrl.searchParams.get('company') || savedQuote?.company || 'CDV';
+
+    // 작업 초안을 새로 내보낼 때만 견적 이력 자동 저장(거래처/담당별). saved_id 재내보내기(비파괴)는 제외.
+    // 서버 견적(quote_items) 기준이라 클라이언트 React 상태와 무관하게 항상 일관되게 저장된다.
+    if (!savedQuote && quoteItems.length > 0) {
+      const clientCode = request.nextUrl.searchParams.get('client_code') || null;
+      try {
+        await saveQuote({
+          manager, client_code: clientCode, client_name: clientName,
+          company, items: quoteItems, doc_settings: docSettings, columns: visibleColumns,
+        });
+      } catch (e) {
+        logger.error('견적 이력 자동 저장 실패(내보내기는 계속):', e);
+      }
+    }
 
     // columns 파라미터가 없으면 전체 열 표시 (기본 세트)
     // 있으면 사용자가 ◀▶로 지정한 visibleColumns 배열 순서대로 출력.
