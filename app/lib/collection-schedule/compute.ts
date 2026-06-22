@@ -18,6 +18,9 @@ export interface ScheduleClient {
   period_payment: number;
   payment_type: PaymentType | null;
   manual_amount: boolean;
+  // 브리핑 탭에서 직접 정한 예정일/금액 (있으면 자동계산보다 우선)
+  promised_date: string | null;
+  promised_amount: number | null;
 }
 
 export interface ScheduleCols {
@@ -61,15 +64,21 @@ function scheduleDue(pt: PaymentType, today: Date, hasEff: boolean): Date | null
 export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const today = new Date(`${todayISO}T00:00:00Z`);
   const pt = c.payment_type;
+  const manualDate = c.promised_date ? new Date(`${c.promised_date}T00:00:00Z`) : null;
 
-  // 분할상환·선결제·미지정·미수없음: 공란
-  if (c.manual_amount) return { expected: null, remain: null, dueDate: null };
-  if (!pt || pt === 'prepay') return { expected: null, remain: null, dueDate: null };
-  if (c.net_now <= 0) return { expected: null, remain: null, dueDate: null };
+  // 브리핑 탭에서 직접 정한 예정금액이 있으면 자동계산보다 우선 (분할상환 직접입력 포함)
+  if (c.promised_amount != null) {
+    return { expected: c.promised_amount, remain: c.net_now - c.promised_amount, dueDate: manualDate };
+  }
+
+  // 분할상환·선결제·미지정·미수없음: 금액 공란 (예정일은 직접 정한 값이 있으면 표기)
+  if (c.manual_amount) return { expected: null, remain: null, dueDate: manualDate };
+  if (!pt || pt === 'prepay') return { expected: null, remain: null, dueDate: manualDate };
+  if (c.net_now <= 0) return { expected: null, remain: null, dueDate: manualDate };
 
   // 남은 이월분 = 마감시점 이월잔액 − 이 기간 수금
   const eff = Math.max(c.net_close - c.period_payment, 0);
-  const due = scheduleDue(pt, today, eff > 0);
+  const due = manualDate ?? scheduleDue(pt, today, eff > 0);
 
   // 월말: 미수 전액 / 익월: 남은 이월분(있으면) 없으면 이 기간 판매액(부가세포함)
   const expected = pt === 'eom' ? c.net_now : (eff > 0 ? eff : c.period_total);
