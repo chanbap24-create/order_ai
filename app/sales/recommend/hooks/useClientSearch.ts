@@ -32,6 +32,9 @@ export function useClientSearch(filterManager: string, preselected?: ClientOptio
   useEffect(() => {
     // 거래처 선택 직후엔 검색을 건너뜀(선택으로 바뀐 검색창 값이 드롭다운을 다시 열지 않게)
     if (suppressNextSearch.current) { suppressNextSearch.current = false; return; }
+    // 입력값이 이미 선택된 거래처명 그대로면 검색/드롭다운 열기 건너뜀
+    // (탭 전환·담당자필터 변경 등 재렌더 시 자동으로 열리는 것 방지). 새로 타이핑하면 selectedClient가 풀려 정상 검색.
+    if (selectedClient && clientSearch === selectedClient.client_name) return;
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (clientSearch.length >= 1) {
       searchTimer.current = setTimeout(() => searchClients(clientSearch), 300);
@@ -40,7 +43,7 @@ export function useClientSearch(filterManager: string, preselected?: ClientOptio
       setShowDropdown(false);
     }
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [clientSearch, searchClients]);
+  }, [clientSearch, searchClients, selectedClient]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

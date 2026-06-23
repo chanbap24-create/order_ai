@@ -24,6 +24,14 @@ export type StockRules = typeof DEFAULT_STOCK_RULES;
 
 // 영업사원이 추천견적 탭에서 조절하는 옵션(어드민 아님). 요청마다 전달.
 export interface RecOpts {
+  mode: 'new' | 'substitute' | 'discovery'; // 신규제안/대체상품/발굴(이력무관)
+  anchorItemCode?: string;         // 대체상품 모드: 쇼트난 기준 상품 품번
+  anchorPrice?: number;            // 대체상품 모드: 기준 상품 가격(없으면 inventory/이력에서 추정)
+  discoveryTypes?: string[];       // 발굴 모드: 포함할 와인타입 버킷(비면 전체)
+  discoveryMinPrice?: number;      // 발굴 모드: 최소 공급가
+  discoveryMaxPrice?: number;      // 발굴 모드: 최대 공급가
+  discoverySegment?: string;       // 발굴 모드: 업태(없으면 거래처 업태 자동)
+  includeNonStandard?: boolean;    // true면 375ml(하프)·1.5L+(매그넘 이상)도 포함(기본 750ml만)
   priceBandPct: number;            // 0.2 = ±20%
   profileMonths: number;           // 분석 기간(개월)
   geoCeiling: 'super' | 'country' | 'any'; // 지역 확장 천장
@@ -33,6 +41,7 @@ export interface RecOpts {
   scoreParams: ScoreParams;        // 점수 가중치(화면 조절)
 }
 export const DEFAULT_REC_OPTS: RecOpts = {
+  mode: 'new',
   priceBandPct: 0.2, profileMonths: 6, geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,

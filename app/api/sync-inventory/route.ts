@@ -104,6 +104,13 @@ export async function POST() {
     const dlCount = dlRows.length;
     console.log(`DL: ${dlCount} items synced`);
 
+    // 재고 스냅샷 적재(주 1회 게이트는 함수 내부). 과거 품절 여부 판별용 — 실패해도 동기화엔 영향 없음.
+    try {
+      await supabase.rpc('record_inventory_snapshot');
+    } catch (e) {
+      console.warn('inventory snapshot skipped:', e);
+    }
+
     return NextResponse.json({
       success: true,
       message: '재고 데이터 동기화 완료',

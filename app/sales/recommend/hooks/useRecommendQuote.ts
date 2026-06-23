@@ -12,7 +12,11 @@ export function useRecommendQuote() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const generate = async (client: ClientOption, s: RecSettings) => {
+  const generate = async (
+    client: ClientOption,
+    s: RecSettings,
+    anchor?: { item_code: string; price?: number } | null,
+  ) => {
     setLoading(true);
     setError('');
     setResult(null);
@@ -29,6 +33,19 @@ export function useRecommendQuote() {
           stock_months: s.stockMonths,
           min_stock: s.minStock,
           score_params: s.scoreParams,
+          mode: s.mode,
+          include_nonstandard: s.includeNonStandard,
+          ...(s.mode === 'substitute' && anchor
+            ? { anchor_item_code: anchor.item_code, anchor_price: anchor.price }
+            : {}),
+          ...(s.mode === 'discovery'
+            ? {
+                discovery_types: s.discoveryTypes,
+                discovery_min_price: s.discoveryMinPrice,
+                discovery_max_price: s.discoveryMaxPrice,
+                discovery_segment: s.discoverySegment,
+              }
+            : {}),
         }),
       });
       const json = await res.json();

@@ -17,19 +17,20 @@ function parseScoreParams(raw: unknown): ScoreParams | undefined {
   const tb = Array.isArray(r.tierBase) ? r.tierBase : d.tierBase;
   return {
     tierBase: [0, 1, 2, 3].map((i) => num(tb[i], d.tierBase[i], 0, 300)) as [number, number, number, number],
-    reorderScore: num(r.reorderScore, d.reorderScore, 0, 1000),
+    reorderBonus: num(r.reorderBonus, d.reorderBonus, 0, 100),
     softWeight: num(r.softWeight, d.softWeight, 0, 100),
     velocityWeight: num(r.velocityWeight, d.velocityWeight, 0, 100),
     recentPenalty: num(r.recentPenalty, d.recentPenalty, 0, 1),
     convBoost: num(r.convBoost, d.convBoost, 0, 100),
     noconvPenalty: num(r.noconvPenalty, d.noconvPenalty, 0, 1),
+    quoteFeedbackWeight: num(r.quoteFeedbackWeight, d.quoteFeedbackWeight, 0, 100),
   };
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock, score_params } = body;
+    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock, score_params, mode: modeRaw, anchor_item_code, anchor_price, discovery_types, discovery_min_price, discovery_max_price, discovery_segment, include_nonstandard } = body;
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
@@ -59,7 +60,33 @@ export async function POST(req: Request) {
     // score_params: 화면에서 조절한 점수 가중치 — 숫자만 클램프해 전달(없으면 기본값)
     const scoreParams = parseScoreParams(score_params);
 
+    // 추천 타입: new(신규제안) | substitute(대체상품) | discovery(발굴/신규).
+    const mode = modeRaw === 'substitute' ? 'substitute' : modeRaw === 'discovery' ? 'discovery' : 'new';
+    const anchorItemCode = mode === 'substitute' && typeof anchor_item_code === 'string' && anchor_item_code ? anchor_item_code : undefined;
+    if (mode === 'substitute' && !anchorItemCode) {
+      return NextResponse.json({ error: '대체상품 모드는 기준 상품(쇼트난 품목)을 선택해야 합니다.' }, { status: 400 });
+    }
+    const anchorPrice = Number.isFinite(Number(anchor_price)) && Number(anchor_price) > 0 ? Number(anchor_price) : undefined;
+
+    // 발굴 모드 파라미터 — 타입 버킷 화이트리스트, 가격 정수, 업태 문자열
+    const TYPE_BUCKETS = ['sparkling', 'fortified', 'rose', 'white', 'red'];
+    const discoveryTypes = Array.isArray(discovery_types)
+      ? discovery_types.filter((t: unknown): t is string => typeof t === 'string' && TYPE_BUCKETS.includes(t))
+      : undefined;
+    const dMin = Number(discovery_min_price); const dMax = Number(discovery_max_price);
+    const discoveryMinPrice = Number.isFinite(dMin) && dMin > 0 ? Math.round(dMin) : undefined;
+    const discoveryMaxPrice = Number.isFinite(dMax) && dMax > 0 ? Math.round(dMax) : undefined;
+    const discoverySegment = typeof discovery_segment === 'string' && discovery_segment.trim() ? discovery_segment.trim().slice(0, 40) : undefined;
+
     const { client, scored, summary } = await buildCandidates(client_code, {
+      mode,
+      ...(anchorItemCode ? { anchorItemCode } : {}),
+      ...(anchorPrice ? { anchorPrice } : {}),
+      ...(discoveryTypes && discoveryTypes.length ? { discoveryTypes } : {}),
+      ...(discoveryMinPrice ? { discoveryMinPrice } : {}),
+      ...(discoveryMaxPrice ? { discoveryMaxPrice } : {}),
+      ...(discoverySegment ? { discoverySegment } : {}),
+      ...(include_nonstandard ? { includeNonStandard: true } : {}),
       priceBandPct: band, profileMonths: months,
       geoCeiling: geoCeiling as 'super' | 'country' | 'any',
       freqStrength: freqStrength as 'strong' | 'soft' | 'off',

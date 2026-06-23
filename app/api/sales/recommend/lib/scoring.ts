@@ -2,31 +2,45 @@ import { extractEnglish, countryKey, type RegionHierarchy } from './regions';
 import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
 import { priceRef } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
-import { geoGroup, geoTier, TIER_LABEL } from './geoTier';
+import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
+import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
+import type { ReorderInfo } from './reorderSignals';
 
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
 export type GeoCeiling = 'super' | 'country' | 'any';
 export type FreqStrength = 'strong' | 'soft' | 'off';
+export type RecMode = 'new' | 'substitute';
+
+/** 대체상품 모드 기준점: 쇼트난 상품의 지역·가격·타입을 닻으로 삼아 근접 상품을 찾는다. */
+export interface SubstituteAnchor {
+  itemCode: string;
+  profile: RegionProfile; // 쇼트상품 산지 계층(같은마을/인근/광역 판정 기준)
+  price: number;          // 쇼트상품 가격(±band 기준)
+  bucket: string;         // 쇼트상품 와인타입(레드→레드만 대체)
+}
 
 /** 화면에서 조절하는 점수 가중치(전부 숫자라 슬라이더/입력으로 노출 가능). */
 export interface ScoreParams {
   tierBase: [number, number, number, number]; // 같은마을/인근마을/같은광역/타지역
-  reorderScore: number;   // 재주문(옛 단골) 고정 점수
+  reorderBonus: number;   // 재주문(검증된 구매) 보너스 — 구매강도·발주지연으로 차등 가산
   softWeight: number;     // 품종·향미 가산 배수(soft 0~1 × 이 값)
   velocityWeight: number; // 회전 가산 배수(velocity 0~1 × 이 값)
   recentPenalty: number;  // 최근 30일 제안 품목 점수 배율
   convBoost: number;      // 과거 견적→출고 전환 1회당 가점(최대 3회)
   noconvPenalty: number;  // 2회+ 견적·미출고 품목 점수 배율
+  quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) ±가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  tierBase: [92, 74, 58, 42],
-  reorderScore: 100,
+  tierBase: [46, 37, 29, 21], // 지역 비중을 반으로 — 견적학습·취향이 순위를 움직일 여지 확보
+  reorderBonus: 30,
   softWeight: 8,
   velocityWeight: 2,
   recentPenalty: 0.45,
   convBoost: 8,
   noconvPenalty: 0.6,
+  // 신규제안 완벽 매칭 = 지역46 + 학습44 + 취향8 + 회전2 = 100점 만점
+  quoteFeedbackWeight: 44,
 };
 
 /**
@@ -48,8 +62,16 @@ export function scoreRecommendations(params: {
   recentlyRecommended?: Set<string>; // 최근 제안 품번(중복 강등)
   conversionMap?: Map<string, { quoted: number; converted: number }>; // 과거 견적→출고 전환
   scoreParams?: ScoreParams; // 화면 조절 가중치(없으면 기본값)
+  mode?: RecMode;            // 추천 타입(신규제안/대체상품)
+  anchor?: SubstituteAnchor; // 대체상품 모드: 쇼트상품 기준점
+  quoteFeedback?: QuoteFeedbackProfile; // 거래처 견적학습 프로필(속성 단위 전환)
+  reorderInfo?: Map<string, ReorderInfo>; // 재주문 신호(주기·대체·구매강도)
 }): ScoredItem[] {
   const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap } = params;
+  const mode: RecMode = params.mode ?? 'new';
+  const anchor = params.anchor;
+  const quoteFeedback = params.quoteFeedback;
+  const reorderInfo = params.reorderInfo;
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
@@ -59,6 +81,8 @@ export function scoreRecommendations(params: {
 
   for (const inv of inventory || []) {
     const itemNo = inv.item_no;
+    // 대체상품 모드: 쇼트난 기준 상품 자기 자신은 제외
+    if (mode === 'substitute' && anchor && String(itemNo) === anchor.itemCode) continue;
     const wine = wineMap.get(itemNo);
     const invCountry = wine?.country || wine?.country_en || inv.country || '';
     const invGrapes = wine?.grape_varieties || '';
@@ -73,73 +97,94 @@ export function scoreRecommendations(params: {
     const reasons: string[] = [];
     const breakdown: string[] = []; // 점수 분해(표시용)
 
-    if (purchase) {
-      // 이미 정기적으로 받는 와인은 추천에서 제외(이상함). 최근 구매/1회성은 빼고,
-      // 3개월 이상 미발주한 옛 단골만 '재주문'으로 환기(지금은 안 받는 와인).
-      const isStale = !purchase.lastDate || purchase.lastDate <= threeMonthsAgoStr;
-      if (purchase.count < 2 || !isStale) continue;
-      score = sp.reorderScore;
-      tags.push('재주문');
-      reasons.push(`${purchase.count}회 구매 · ${purchase.lastDate || '날짜미상'} 이후 미발주`);
-      breakdown.push(`재주문 고정 ${sp.reorderScore}`);
-    } else {
-      // 게이트 ① 타입: 거래처가 사는 타입만
+    // 재주문 후보 = 신규제안 모드 + 2회+ 구매한 와인(검증된 구매). 고정점수 대신 일반점수 + 보너스.
+    const isReorder = mode !== 'substitute' && !!purchase && purchase.count >= 2;
+    // 1회성 구매는 추천에서 제외(기존 동작 유지 — '검증' 안 된 단발성)
+    if (mode !== 'substitute' && purchase && !isReorder) continue;
+
+    // 게이트 ① 타입: 대체=쇼트상품과 같은 타입 / 신규=거래처가 사는 타입 / 재주문=면제(이미 산 와인)
+    if (mode === 'substitute') {
+      if (!anchor || !bucket || bucket !== anchor.bucket) continue;
+    } else if (!isReorder) {
       if (!prefs.hasHistory) continue;
       if (!bucket || !prefs.typeBuckets.has(bucket)) continue;
+    }
 
-      // 게이트 ② 가격: 타입+지역 평균 ±band 밖이면 제외
-      const ref = priceRef(prefs, bucket, geoGroup(h));
+    // 게이트 ② 가격: 기준가 ±band 밖이면 제외 (재주문은 면제 — 이미 산 가격대)
+    if (!isReorder) {
+      const ref = mode === 'substitute' && anchor ? anchor.price : priceRef(prefs, bucket, geoGroup(h));
       if (ref > 0 && invPrice > 0) {
         const diff = Math.abs(invPrice - ref) / ref;
         if (diff > band) continue;
       }
+    }
 
-      // 계단: 광역 천장(밖이면 제외)
-      let t = geoTier(h, prefs.regionProfile);
-      if (t === null) {
-        // 광역 천장 밖 — '확장 범위' 설정에 따라 처리
-        if (geoCeiling === 'super') continue; // 광역까지만: 제외
-        else if (geoCeiling === 'country') {
-          if (invCountry && clientCountries.has(countryKey(invCountry))) t = 3; else continue; // 같은 국가까지
-        } else t = 3; // 제한없음: 타입·가격만 통과
-      }
-      tags.push(TIER_LABEL[t]);
-      const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : t === 2 ? h?.super_region : '') || '';
-      // 입고 빈도 가중: 그 지역을 자주 산 거래처일수록 가점, 1회성 지역은 강하게 감점
-      const matchedCount = t === 0 ? (prefs.subRegionBuyCount[matchedRegion] || 0)
-        : t === 1 ? (prefs.majorRegionBuyCount[matchedRegion] || 0)
-        : t === 2 ? (prefs.superRegionBuyCount[matchedRegion] || 0) : 0;
-      const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : t === 2 ? prefs.maxSuperRegionBuy : 1;
-      const freqW = levelMax > 0 ? matchedCount / levelMax : 0;
-      // 가중치가 매입액 기반이므로 raw 수치 대신 동급 산지 내 선호 비중(%)으로 표기
+    // 계단: 대체=쇼트상품 산지 / 그 외=거래처 산지. 광역 천장 밖이면 제외(재주문은 타지역 취급).
+    const tierProfile = mode === 'substitute' && anchor ? anchor.profile : prefs.regionProfile;
+    let t = geoTier(h, tierProfile);
+    if (t === null) {
+      if (isReorder) t = 3; // 재주문인데 산지 매칭 안되면(드묾) 타지역 취급
+      else if (geoCeiling === 'super') continue; // 광역까지만: 제외
+      else if (geoCeiling === 'country') {
+        if (invCountry && clientCountries.has(countryKey(invCountry))) t = 3; else continue; // 같은 국가까지
+      } else t = 3; // 제한없음
+    }
+    tags.push(TIER_LABEL[t]);
+    const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : t === 2 ? h?.super_region : '') || '';
+    const matchedCount = t === 0 ? (prefs.subRegionBuyCount[matchedRegion] || 0)
+      : t === 1 ? (prefs.majorRegionBuyCount[matchedRegion] || 0)
+      : t === 2 ? (prefs.superRegionBuyCount[matchedRegion] || 0) : 0;
+    const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : t === 2 ? prefs.maxSuperRegionBuy : 1;
+    const freqW = levelMax > 0 ? matchedCount / levelMax : 0;
+    if (mode === 'substitute') {
+      if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} (대체)`);
+      else if (invCountry) reasons.push(extractEnglish(invCountry));
+    } else if (!isReorder) {
       if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 선호 ${Math.round(freqW * 100)}%`);
       else if (invCountry) reasons.push(extractEnglish(invCountry));
+    }
 
-      // 향미·품종 정렬(0~1)
-      let grapeHit = false;
-      const gl = invGrapes.toLowerCase();
-      for (const g of prefs.grapeKeys) { if (g.length >= 3 && gl.includes(g)) { grapeHit = true; break; } }
-      const candFlavor = extractFlavorKeys(wine?._notes || '');
-      const fOverlap = flavorOverlap(candFlavor, prefs.flavorKeys);
-      const soft = (grapeHit ? 0.6 : 0) + 0.4 * fOverlap;
+    // 향미·품종 정렬(0~1)
+    let grapeHit = false;
+    const gl = invGrapes.toLowerCase();
+    for (const g of prefs.grapeKeys) { if (g.length >= 3 && gl.includes(g)) { grapeHit = true; break; } }
+    const candFlavor = extractFlavorKeys(wine?._notes || '');
+    const fOverlap = flavorOverlap(candFlavor, prefs.flavorKeys);
+    const soft = (grapeHit ? 0.6 : 0) + 0.4 * fOverlap;
 
-      if (grapeHit) { tags.push('선호품종'); reasons.push(matchedGrapeLabel(invGrapes, prefs)); }
-      if (fOverlap > 0) {
-        const shared = [...candFlavor].filter((k) => prefs.flavorKeys.has(k)).map(flavorLabel);
-        if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
-      }
-      if (invPrice > 0) { tags.push('적정가격'); }
+    if (grapeHit) { tags.push('선호품종'); reasons.push(matchedGrapeLabel(invGrapes, prefs)); }
+    if (fOverlap > 0) {
+      const shared = [...candFlavor].filter((k) => prefs.flavorKeys.has(k)).map(flavorLabel);
+      if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
+    }
+    if (invPrice > 0) { tags.push('적정가격'); }
 
-      const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
-      // 빈도 가중(강도 조절): strong 0.65 / soft 0.3 / off 0. off면 빈도 무시(고정 배수 1).
-      const freqMult = (1 - strength) + strength * freqW;
-      const tierScore = TIER_BASE[t] * freqMult;
-      const softAdd = soft * sp.softWeight;
-      const velAdd = velocity * sp.velocityWeight;
-      score = tierScore + softAdd + velAdd;
-      breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
-      if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
-      if (velAdd > 0) breakdown.push(`회전 ${velocity.toFixed(2)}×${sp.velocityWeight} = +${velAdd.toFixed(1)}`);
+    const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
+    // 빈도 가중: 대체상품은 거래처 빈도 개념이 없으니 순수 지역점수(배수 1).
+    const effStrength = mode === 'substitute' ? 0 : strength;
+    const freqMult = (1 - effStrength) + effStrength * freqW;
+    const tierScore = TIER_BASE[t] * freqMult;
+    const softAdd = soft * sp.softWeight;
+    const velAdd = velocity * sp.velocityWeight;
+    score = tierScore + softAdd + velAdd;
+    breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
+    if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
+    if (velAdd > 0) breakdown.push(`회전 ${velocity.toFixed(2)}×${sp.velocityWeight} = +${velAdd.toFixed(1)}`);
+
+    // 재주문 보너스: 고정점수 대신, 검증된 구매에 '구매강도+발주지연'으로 차등 가산.
+    if (isReorder) {
+      const info = reorderInfo?.get(String(itemNo));
+      if (info?.substituted) continue; // 비슷한 와인으로 갈아탐 → 다시 권할 의미 없음, 제외
+      // overdueRatio: 정상 발주주기 대비 경과. 정보 없으면 3개월 기준으로 폴백.
+      const overdue = info ? info.overdueRatio : ((purchase!.lastDate && purchase!.lastDate <= threeMonthsAgoStr) ? 1.5 : 0);
+      if (overdue < 1) continue; // 아직 발주 주기 전 → 제외(중복 제안 방지)
+      const overdueBoost = Math.min(overdue, 3) / 3; // 0~1
+      const strengthW = info?.strengthW ?? 0;
+      const bonus = sp.reorderBonus * (0.4 + 0.4 * strengthW + 0.2 * overdueBoost);
+      score += bonus;
+      tags.push('재주문');
+      reasons.push(`${purchase!.count}회 구매 · 주기 ${overdue.toFixed(1)}배 경과`);
+      breakdown.push(`재주문 +${bonus.toFixed(1)} (강도 ${strengthW.toFixed(2)}·지연 ${overdue.toFixed(1)}x)`);
     }
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
@@ -165,6 +210,24 @@ export function scoreRecommendations(params: {
         breakdown.push(`미전환 ×${sp.noconvPenalty}`);
       }
     }
+
+    // 견적학습(긍정만): 과거 견적에서 '먹힌 속성(산지·가격대·타입·품종·향)'을 비슷한 새 후보로 넓혀 가산.
+    // 거절(안 산 것)은 그 병 특유일 수 있어 일반화하지 않음 — 위의 미전환 ×0.6(품목 단위)이 담당.
+    if (quoteFeedback && sp.quoteFeedbackWeight > 0) {
+      const fb = scoreQuoteFeedback(quoteFeedback, {
+        region: geoGroup(h),
+        priceBand: priceBandKey(invPrice),
+        type: bucket,
+        grapes: grapeKeysOf(invGrapes),
+        flavors: [...extractFlavorKeys(wine?._notes || '')],
+      }, sp.quoteFeedbackWeight);
+      if (fb > 0) {
+        score += fb;
+        tags.push('견적선호');
+        breakdown.push(`견적학습 +${fb.toFixed(1)}`);
+      }
+    }
+
     breakdown.push(`= ${(Math.round(score * 10) / 10).toFixed(1)}`);
 
     const vv = String(itemNo).slice(2, 4);

@@ -7,11 +7,15 @@ import { extractGrapesFromName, extractTypeFromName } from './patterns';
 import { findHierarchy, extractEnglish, type WineRegionRow } from './regions';
 import { makeMinStockForPrice, DEFAULT_REC_OPTS, type RecOpts } from './settings';
 import { aggregatePurchases, buildClientPreferences } from './preferences';
-import { scoreRecommendations } from './scoring';
-import { bucketLabel } from './wineType';
+import { scoreRecommendations, type SubstituteAnchor } from './scoring';
+import { bucketLabel, normalizeType } from './wineType';
 import { flavorLabel } from './flavor';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { getClientConversion } from '@/app/lib/quoteConversion';
+import { getClientQuoteFeatures } from './quoteFeedback';
+import { buildReorderSignals } from './reorderSignals';
+import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
+import { isNonStandardBottle, isGiftBox } from './bottleSize';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -85,7 +89,7 @@ export async function buildCandidates(
     if (code) relevantCodes.add(code);
   }
   const codeList = Array.from(relevantCodes);
-  const [wines, allNotes, conv] = await Promise.all([
+  const [wines, allNotes, conv, quoteFeedback] = await Promise.all([
     fetchWinesByCodes<Record<string, unknown>>(
       codeList,
       'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
@@ -94,6 +98,8 @@ export async function buildCandidates(
     fetchAll<{ wine_id: string; nose_note?: string; palate_note?: string }>('tasting_notes', 'wine_id, nose_note, palate_note'),
     // 과거 견적→실제 출고 전환(거래처별) — 추천 가점/감점 참고자료
     getClientConversion(clientCode),
+    // 견적학습: 과거 견적을 속성 단위 전환 프로필로(거래처 단위). 신규 후보 ±조정.
+    getClientQuoteFeatures(clientCode, regionRows as WineRegionRow[]),
   ]);
   const notesMap = new Map<string, string>();
   for (const n of allNotes) {
@@ -116,6 +122,10 @@ export async function buildCandidates(
     const price = inv.supply_price || 0;
     // 비(非)상품 제외 — 포장/더미/판촉/케이스, CDV 품번 '9' 접두(catalogFilter 규칙)
     if (isNonOrderable(inv.item_no, inv.item_name, 'CDV')) return false;
+    // 병 용량: 기본은 750ml 표준만(375ml·1.5L+ 제외). 버튼으로 포함 가능.
+    if (!o.includeNonStandard && isNonStandardBottle(inv.item_name as string)) return false;
+    // 기프트박스(GB) — 선물용 패키지라 항상 제외
+    if (isGiftBox(inv.item_name as string)) return false;
     const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0);
     if (stock <= 0) return false;
     if (stock < minStockForPrice(price)) return false;
@@ -158,13 +168,57 @@ export async function buildCandidates(
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
   const threeMonthsAgoStr = threeMonthsAgo.toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
 
-  const scored = scoreRecommendations({
-    inventory, wineMap, purchaseAgg, prefs,
-    priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
-    maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap,
-    scoreParams: o.scoreParams,
-  }) as ScoredItem[];
+  // 재주문 신호(발주 주기·대체 여부·구매 강도) — 고정 100 대신 차등 보너스/필터에 사용
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reorderInfo = buildReorderSignals((shipments || []) as any, purchaseAgg, wineMap, todayStr);
+
+  // 대체상품 모드: 쇼트난 기준 상품의 산지·가격·타입으로 닻을 구성(거래처 평균 대신 이 상품에 근접 추천)
+  let anchor: SubstituteAnchor | undefined;
+  if (o.mode === 'substitute' && o.anchorItemCode) {
+    const aw = wineMap.get(o.anchorItemCode);
+    if (aw) {
+      const h = aw._hierarchy;
+      const aInv = inventoryMap.get(o.anchorItemCode);
+      anchor = {
+        itemCode: o.anchorItemCode,
+        profile: {
+          subs: new Set<string>(h?.sub_region ? [h.sub_region] : []),
+          majors: new Set<string>(h?.major_region ? [h.major_region] : []),
+          supers: new Set<string>(h?.super_region ? [h.super_region] : []),
+        },
+        price: o.anchorPrice || (aInv as { supply_price?: number } | undefined)?.supply_price || 0,
+        bucket: normalizeType(aw.wine_type || '', aw.item_name_kr || ''),
+      };
+    }
+  }
+
+  let scored: ScoredItem[];
+  if (o.mode === 'discovery') {
+    // 발굴/신규: 거래처 이력 무관. 인기(구매처수·매출·최근성 백분위) + 업태(있을 때). 업태는 지정값 우선, 없으면 거래처 업태.
+    const seg = o.discoverySegment || clientDetail?.business_type || '';
+    const [popMap, segmentPop] = await Promise.all([
+      getItemPopularity(),
+      seg ? getSegmentPopularity(seg) : Promise.resolve(new Map<string, number>()),
+    ]);
+    scored = scoreDiscovery(inventory, wineMap, {
+      types: o.discoveryTypes,
+      minPrice: o.discoveryMinPrice,
+      maxPrice: o.discoveryMaxPrice,
+      segment: seg,
+    }, popMap, segmentPop);
+  } else {
+    scored = scoreRecommendations({
+      inventory, wineMap, purchaseAgg, prefs,
+      priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
+      maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap,
+      scoreParams: o.scoreParams,
+      mode: o.mode, anchor,
+      ...(quoteFeedback ? { quoteFeedback } : {}),
+      reorderInfo,
+    }) as ScoredItem[];
+  }
 
   let lastOrderDate: string | null = null;
   for (const agg of Object.values(purchaseAgg)) {

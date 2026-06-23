@@ -18,6 +18,15 @@ function addDays(dateStr: string, days: number): string {
 const itemName = (it: AnyRow): string =>
   it.product_name || it.korean_name || it.english_name || it.item_code || '';
 
+// 프로모션 가상 거래처: 매월 전체 발송분을 견적서로 기록한다.
+// 전 거래처 대상이므로 전환은 거래처를 가리지 않고 전 거래처 출고로 집계한다.
+const PROMO_CLIENT_CODES: Record<string, 'wine' | 'glass'> = {
+  'PROMO-CDV': 'wine',
+  'PROMO-DL': 'glass',
+};
+export const isPromoClient = (code: string | null | undefined): boolean =>
+  !!code && code in PROMO_CLIENT_CODES;
+
 export interface QuoteConversionItem {
   item_code: string;
   name: string;
@@ -39,14 +48,16 @@ export async function getQuoteConversion(id: number, windowDays = DEFAULT_WINDOW
   const shipTable = sq.company === 'DL' ? 'glass_shipments' : 'shipments';
   const shipMap = new Map<string, { qty: number; last: string }>();
   const codes = items.map((it) => it.item_code).filter(Boolean);
+  const isPromo = isPromoClient(code);
   if (code && codes.length) {
-    const { data } = await supabase
+    let q = supabase
       .from(shipTable)
       .select('item_no, quantity, ship_date')
-      .eq('client_code', code)
       .in('item_no', codes)
       .gte('ship_date', start)
       .lte('ship_date', end);
+    if (!isPromo) q = q.eq('client_code', code); // 프로모션은 전 거래처 출고로 매칭
+    const { data } = await q;
     for (const s of (data || []) as AnyRow[]) {
       const m = shipMap.get(s.item_no) || { qty: 0, last: '' };
       m.qty += Number(s.quantity) || 0;
@@ -106,7 +117,9 @@ export async function getClientConversion(
   windowDays = DEFAULT_WINDOW_DAYS,
   type?: 'wine' | 'glass',
 ) {
-  const shipTable = type === 'glass' ? 'glass_shipments' : 'shipments';
+  const isPromo = isPromoClient(clientCode);
+  const effType = isPromo ? PROMO_CLIENT_CODES[clientCode] : type;
+  const shipTable = effType === 'glass' ? 'glass_shipments' : 'shipments';
   let qq = supabase
     .from('saved_quotes')
     .select('items, created_at')
@@ -132,12 +145,13 @@ export async function getClientConversion(
   const codeArr = [...allCodes];
   const shipByCode = new Map<string, { date: string; qty: number }[]>();
   for (let i = 0; i < codeArr.length; i += 200) {
-    const { data } = await supabase
+    let q = supabase
       .from(shipTable)
       .select('item_no, quantity, ship_date')
-      .eq('client_code', clientCode)
       .in('item_no', codeArr.slice(i, i + 200))
       .gte('ship_date', earliest);
+    if (!isPromo) q = q.eq('client_code', clientCode); // 프로모션은 전 거래처 출고로 매칭
+    const { data } = await q;
     for (const s of (data || []) as AnyRow[]) {
       const arr = shipByCode.get(s.item_no) || [];
       arr.push({ date: String(s.ship_date), qty: Number(s.quantity) || 0 });

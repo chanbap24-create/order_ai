@@ -6,10 +6,11 @@ import { DEFAULT_SCORE_PARAMS } from '../recSettings';
 
 type Props = {
   settings: RecSettings;
-  onChange: (s: RecSettings) => void;       // 즉시 반영(클라이언트 필터: 추천점수)
-  onReapply: (s: RecSettings) => void;      // 서버 재조회 필요한 변경
+  onChange: (s: RecSettings) => void;       // 설정만 갱신(즉시 재생성 안 함)
+  onReapply: (s: RecSettings) => void;      // '다시 생성' 버튼에서만 호출(서버 재조회)
   itemsCount: number;
   visibleCount: number;
+  loading?: boolean;
 };
 
 const card: React.CSSProperties = {
@@ -32,11 +33,12 @@ const STOCK_TIERS: { k: keyof RecSettings['minStock']; t: string }[] = [
   { k: 'price_50k', t: '5만↑' }, { k: 'price_20k', t: '2만↑' }, { k: 'price_under_20k', t: '2만↓' },
 ];
 
-export function RecControls({ settings: s, onChange, onReapply, itemsCount, visibleCount }: Props) {
+export function RecControls({ settings: s, onChange, onReapply, itemsCount, visibleCount, loading }: Props) {
   const [showStock, setShowStock] = useState(false);
   const [showScore, setShowScore] = useState(false);
   const set = (patch: Partial<RecSettings>) => onChange({ ...s, ...patch });
-  const setReapply = (patch: Partial<RecSettings>) => { const next = { ...s, ...patch }; onChange(next); onReapply(next); };
+  // 옵션 변경은 설정만 갱신(자동 재생성 안 함). 실제 반영은 '다시 생성' 버튼.
+  const setReapply = (patch: Partial<RecSettings>) => onChange({ ...s, ...patch });
   const sp = s.scoreParams;
   const setSP = (patch: Partial<ScoreParams>) => set({ scoreParams: { ...sp, ...patch } });
   const setTier = (i: number, v: number) =>
@@ -56,16 +58,23 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
 
   return (
     <div style={card}>
+      {/* 옵션 변경 후 명시적으로 재생성. (추천 점수 ≥ 는 이미 받은 목록을 거르는 즉시 필터라 버튼 불필요) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--gray-200)', paddingBottom: 8, marginBottom: 2 }}>
+        <button onClick={() => onReapply(s)} disabled={loading} style={{
+          padding: '6px 16px', fontSize: 13, fontWeight: 700, borderRadius: 8, border: 'none',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          background: loading ? 'var(--gray-300)' : 'var(--action)', color: '#fff',
+        }}>{loading ? '생성 중…' : '↻ 이 설정으로 다시 생성'}</button>
+        <span style={hint}>옵션을 바꾼 뒤 눌러야 반영됩니다</span>
+      </div>
       {/* 분석 기간 */}
       <div style={rowS}>
         <span style={lbl}>분석 기간</span>
         <input type="range" min={1} max={24} step={1} value={s.periodMonths}
           onChange={(e) => set({ periodMonths: Number(e.target.value) })}
-          onMouseUp={() => onReapply(s)} onTouchEnd={() => onReapply(s)}
           style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
         <input type="number" min={1} max={24} value={s.periodMonths} style={numIn}
-          onChange={(e) => set({ periodMonths: Math.min(24, Math.max(1, parseInt(e.target.value, 10) || 6)) })}
-          onBlur={() => onReapply(s)} />
+          onChange={(e) => set({ periodMonths: Math.min(24, Math.max(1, parseInt(e.target.value, 10) || 6)) })} />
         <span style={hint}>개월 · 최근 {s.periodMonths}개월 구매 기준</span>
       </div>
       {/* 가격 밴드 */}
@@ -73,11 +82,9 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         <span style={lbl}>가격 밴드 ±</span>
         <input type="range" min={5} max={100} step={5} value={s.priceBand}
           onChange={(e) => set({ priceBand: Number(e.target.value) })}
-          onMouseUp={() => onReapply(s)} onTouchEnd={() => onReapply(s)}
           style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
         <input type="number" min={5} max={100} value={s.priceBand} style={numIn}
-          onChange={(e) => set({ priceBand: Math.min(100, Math.max(5, parseInt(e.target.value, 10) || 20)) })}
-          onBlur={() => onReapply(s)} />
+          onChange={(e) => set({ priceBand: Math.min(100, Math.max(5, parseInt(e.target.value, 10) || 20)) })} />
         <span style={hint}>% · 평균가 ±{s.priceBand}% 이내 · {itemsCount}개</span>
       </div>
       {/* 추천 점수 허들(즉시 필터) */}
@@ -107,11 +114,9 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         <span style={lbl}>재고 여유분</span>
         <input type="range" min={0} max={6} step={1} value={s.stockMonths}
           onChange={(e) => set({ stockMonths: Number(e.target.value) })}
-          onMouseUp={() => onReapply(s)} onTouchEnd={() => onReapply(s)}
           style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
         <input type="number" min={0} max={12} value={s.stockMonths} style={numIn}
-          onChange={(e) => set({ stockMonths: Math.min(12, Math.max(0, parseInt(e.target.value, 10) || 0)) })}
-          onBlur={() => onReapply(s)} />
+          onChange={(e) => set({ stockMonths: Math.min(12, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
         <span style={hint}>개월치 이상 재고만 추천</span>
       </div>
       {/* 가격대별 최소재고(고급) */}
@@ -125,14 +130,13 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
               <label key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{t}</span>
                 <input type="number" min={0} value={s.minStock[k]} style={{ ...numIn, width: 60 }}
-                  onChange={(e) => set({ minStock: { ...s.minStock, [k]: Math.max(0, parseInt(e.target.value, 10) || 0) } })}
-                  onBlur={() => onReapply(s)} />
+                  onChange={(e) => set({ minStock: { ...s.minStock, [k]: Math.max(0, parseInt(e.target.value, 10) || 0) } })} />
               </label>
             ))}
           </div>
         )}
       </div>
-      {/* 점수 가중치(고급) — 추천 정렬 점수를 직접 조절. 변경 시 서버 재조회. */}
+      {/* 점수 가중치(고급) — 추천 정렬 점수를 직접 조절. 변경 후 '다시 생성'으로 반영. */}
       <div>
         <button onClick={() => setShowScore(!showScore)} style={{ ...hint, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
           {showScore ? '▾' : '▸'} 점수 가중치(고급)
@@ -146,26 +150,25 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
                   <label key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{t}</span>
                     <input type="number" min={0} max={300} value={sp.tierBase[i]} style={{ ...numIn, width: 60 }}
-                      onChange={(e) => setTier(i, Math.max(0, parseFloat(e.target.value) || 0))}
-                      onBlur={() => onReapply(s)} />
+                      onChange={(e) => setTier(i, Math.max(0, parseFloat(e.target.value) || 0))} />
                   </label>
                 ))}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {([
-                ['재주문', 'reorderScore', 1, 1000],
+                ['재주문보너스', 'reorderBonus', 1, 100],
                 ['품종·향미', 'softWeight', 1, 100],
                 ['회전', 'velocityWeight', 1, 100],
                 ['전환가점/회', 'convBoost', 1, 100],
+                ['견적학습±', 'quoteFeedbackWeight', 1, 100],
                 ['최근제안×', 'recentPenalty', 0.05, 1],
                 ['미전환×', 'noconvPenalty', 0.05, 1],
               ] as const).map(([label, key, step, max]) => (
                 <label key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
                   <input type="number" min={0} max={max} step={step} value={sp[key]} style={{ ...numIn, width: 66 }}
-                    onChange={(e) => setSP({ [key]: Math.min(max, Math.max(0, parseFloat(e.target.value) || 0)) } as Partial<ScoreParams>)}
-                    onBlur={() => onReapply(s)} />
+                    onChange={(e) => setSP({ [key]: Math.min(max, Math.max(0, parseFloat(e.target.value) || 0)) } as Partial<ScoreParams>)} />
                 </label>
               ))}
             </div>
