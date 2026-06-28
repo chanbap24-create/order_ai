@@ -10,6 +10,10 @@ type Props = {
   countries: CountryOption[];
   hideZero: boolean;
   onToggleHideZero: () => void;
+  minStock: { u20k: number; u50k: number; u100k: number; u200k: number; over: number };
+  onMinStockChange: (key: 'u20k' | 'u50k' | 'u100k' | 'u200k' | 'over', v: number) => void;
+  onSaveMinStock: () => void;
+  savingPref: boolean;
   total: number;
   checkedCount: number;
   deleting: boolean;
@@ -49,6 +53,30 @@ export function AllWinesToolbar(p: Props) {
           }}
         >
           재고 있는 것만
+        </button>
+        {/* 가격대(공급가)별 최소 가용재고 — 미만이면 숨김(0=무필터) */}
+        <span style={{ fontSize: 12, color: 'var(--gray-500)', marginLeft: 4 }}>가격대별 최소재고</span>
+        {([['u20k', '~2만'], ['u50k', '~5만'], ['u100k', '~10만'], ['u200k', '~20만'], ['over', '20만+']] as const).map(([k, label]) => (
+          <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--gray-500)' }}>
+            {label}
+            <input
+              type="number" min={0} placeholder="0"
+              value={p.minStock[k] || ''}
+              onChange={e => p.onMinStockChange(k, Math.max(0, parseInt(e.target.value, 10) || 0))}
+              style={{ width: 46, padding: '5px 6px', border: '1px solid var(--gray-300)', borderRadius: 6, fontSize: 13, textAlign: 'center' }}
+            />
+          </label>
+        ))}
+        <button
+          onClick={p.onSaveMinStock}
+          disabled={p.savingPref}
+          title="현재 가격대별 최소재고 설정을 계정에 저장"
+          style={{
+            padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: p.savingPref ? 'wait' : 'pointer',
+            border: '1px solid var(--color-primary-light)', background: '#fff', color: 'var(--color-primary-light)',
+          }}
+        >
+          {p.savingPref ? '저장 중...' : '설정 저장'}
         </button>
         <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>총 {p.total}개</span>
       </div>

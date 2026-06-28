@@ -32,6 +32,8 @@ export interface RecOpts {
   discoveryMaxPrice?: number;      // 발굴 모드: 최대 공급가
   discoverySegment?: string;       // 발굴 모드: 업태(없으면 거래처 업태 자동)
   includeNonStandard?: boolean;    // true면 375ml(하프)·1.5L+(매그넘 이상)도 포함(기본 750ml만)
+  discountApply?: boolean;         // 권장 할인율 적용 여부(기본 true)
+  discountScope?: 'team1' | 'rest';// 권장 할인 산출 범위(영업1부/나머지, 기본 team1)
   priceBandPct: number;            // 0.2 = ±20%
   profileMonths: number;           // 분석 기간(개월)
   geoCeiling: 'super' | 'country' | 'any'; // 지역 확장 천장

@@ -33,6 +33,7 @@ export async function POST(req: Request) {
           item_code: itemCode,
           quantity: 1,
           supply_price: it.price || 0,
+          discount_rate: Number(it.rec_discount) || 0, // 권장 할인율 자동 입력
           manager: mgr,
         });
         if (r?.item) addedItems.push(r.item);

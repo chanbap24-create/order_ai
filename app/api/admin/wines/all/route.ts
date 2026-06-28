@@ -17,6 +17,21 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const limit = Math.min(200, Math.max(10, parseInt(url.searchParams.get("limit") || "50", 10)));
 
+    // 가격대별 최소 가용재고 필터(JSON) — 정수만 추려 RPC에 전달(없으면 null=무필터)
+    let minStock: Record<string, number> | null = null;
+    const rawMin = url.searchParams.get("minStock");
+    if (rawMin) {
+      try {
+        const o = JSON.parse(rawMin) as Record<string, unknown>;
+        const pick: Record<string, number> = {};
+        for (const k of ["u20k", "u50k", "u100k", "u200k", "over"]) {
+          const v = Math.round(Number(o[k]));
+          if (Number.isFinite(v) && v > 0) pick[k] = v;
+        }
+        if (Object.keys(pick).length) minStock = pick;
+      } catch { /* ignore */ }
+    }
+
     const { data, error } = await supabase.rpc("fn_wines_list", {
       p_search: search,
       p_country: country,
@@ -26,6 +41,7 @@ export async function GET(request: NextRequest) {
       p_sort_dir: sortDir,
       p_page: page,
       p_limit: limit,
+      p_min_stock: minStock,
     });
 
     if (error) throw new Error(error.message);

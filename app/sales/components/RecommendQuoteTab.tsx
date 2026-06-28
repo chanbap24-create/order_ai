@@ -131,6 +131,9 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           onDiscoveryChange={(patch) => setSettings((p) => ({ ...p, ...patch }))}
           includeNonStandard={settings.includeNonStandard}
           onToggleNonStandard={(v) => setSettings((p) => ({ ...p, includeNonStandard: v }))}
+          discountApply={settings.discountApply}
+          discountScope={settings.discountScope}
+          onDiscountChange={(patch) => setSettings((p) => ({ ...p, ...patch }))}
           onGenerate={handleGenerate}
           loading={rec.loading}
         />

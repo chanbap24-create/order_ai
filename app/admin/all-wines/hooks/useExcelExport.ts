@@ -5,13 +5,14 @@ import { useState } from 'react';
 export function useExcelExport() {
   const [exporting, setExporting] = useState(false);
 
-  const exportExcel = async ({ search, country, hideZero }: { search: string; country: string; hideZero: boolean }) => {
+  const exportExcel = async ({ search, country, hideZero, minStock }: { search: string; country: string; hideZero: boolean; minStock?: Record<string, number> }) => {
     setExporting(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (country) params.set('country', country);
       if (hideZero) params.set('hideZero', '1');
+      if (minStock && Object.values(minStock).some(v => v > 0)) params.set('minStock', JSON.stringify(minStock));
       const res = await fetch(`/api/admin/wines/export?${params}`);
       if (!res.ok) throw new Error('다운로드 실패');
       const blob = await res.blob();

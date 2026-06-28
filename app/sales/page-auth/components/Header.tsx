@@ -1,6 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/app/components/ui';
+import { WineListExportMenu } from './WineListExportMenu';
 
 type Props = {
   currentManager: string;
@@ -20,6 +21,7 @@ export function Header({ currentManager, isAdmin, showPwChange, onTogglePwChange
       title="Sales"
       actions={
         <>
+          <WineListExportMenu />
           <HeaderActionButton active={showPwChange} onClick={onTogglePwChange}>
             PW
           </HeaderActionButton>

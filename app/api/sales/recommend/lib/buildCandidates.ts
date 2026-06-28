@@ -16,6 +16,7 @@ import { getClientQuoteFeatures } from './quoteFeedback';
 import { buildReorderSignals } from './reorderSignals';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
+import { applyRecommendedDiscounts } from './recommendDiscount';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -92,7 +93,7 @@ export async function buildCandidates(
   const [wines, allNotes, conv, quoteFeedback] = await Promise.all([
     fetchWinesByCodes<Record<string, unknown>>(
       codeList,
-      'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier',
+      'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier, supply_price',
     ),
     // 테이스팅노트는 작은 테이블 — 전체를 받아 맵으로(.in 500 한도 회피)
     fetchAll<{ wine_id: string; nose_note?: string; palate_note?: string }>('tasting_notes', 'wine_id, nose_note, palate_note'),
@@ -219,6 +220,9 @@ export async function buildCandidates(
       reorderInfo,
     }) as ScoredItem[];
   }
+
+  // 권장 할인율: 영업범위 최근 6개월 '최빈가' 기반(적용 토글 시).
+  if (o.discountApply !== false) await applyRecommendedDiscounts(scored, o.discountScope === 'rest' ? 'rest' : 'team1');
 
   let lastOrderDate: string | null = null;
   for (const agg of Object.values(purchaseAgg)) {

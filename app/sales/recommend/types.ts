@@ -24,6 +24,7 @@ export interface ScoredItem {
   brand?: string;
   vintage?: string;
   breakdown?: string[]; // 점수 분해(표시용)
+  rec_discount?: number; // 권장 할인율(0~1, 출고 기반). 견적 자동입력용
 }
 
 export interface RecommendResult {

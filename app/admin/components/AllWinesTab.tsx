@@ -49,12 +49,16 @@ export default function AllWinesTab() {
         countries={list.countries}
         hideZero={list.hideZero}
         onToggleHideZero={() => list.setHideZero(h => !h)}
+        minStock={list.minStock}
+        onMinStockChange={(k, v) => list.setMinStock(s => ({ ...s, [k]: v }))}
+        onSaveMinStock={list.saveMinStock}
+        savingPref={list.savingPref}
         total={list.total}
         checkedCount={del.checkedIds.size}
         deleting={del.deleting}
         onBatchDelete={del.handleBatchDelete}
         exporting={xport.exporting}
-        onExport={() => xport.exportExcel({ search: list.search, country: list.country, hideZero: list.hideZero })}
+        onExport={() => xport.exportExcel({ search: list.search, country: list.country, hideZero: list.hideZero, minStock: list.minStock })}
       />
 
       <div style={{ display: 'flex', flex: 1, gap: isMobile ? 0 : 12, overflow: 'hidden', position: 'relative' }}>
