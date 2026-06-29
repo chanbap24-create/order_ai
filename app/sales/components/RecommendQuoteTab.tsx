@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ClientOption } from '../recommend/types';
 import { useManagers } from '../recommend/hooks/useManagers';
 import { useClientSearch } from '../recommend/hooks/useClientSearch';
@@ -34,11 +34,17 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const rec = useRecommendQuote();
   const cols = useQuoteCols();
   const qm = useQuoteManager();
-  const quote = useQuoteItems({ quoteManager: qm.quoteManager, getManagerParam: qm.getManagerParam });
+  // 추천견적 작업 초안은 인벤토리 견적과 분리(같은 manager면 초안이 공유됨).
+  // '::rec' 스코프로 quote_items 를 따로 적재·편집. 저장 기록(saved_quotes)은 export 시 실제 manager로 저장돼 공유됨.
+  const getRecManager = useCallback(() => {
+    const m = qm.getManagerParam();
+    return m ? `${m}::rec` : '';
+  }, [qm]);
+  const quote = useQuoteItems({ quoteManager: qm.quoteManager, getManagerParam: getRecManager });
   const exp = useQuoteExport({
     quoteCols: cols.quoteCols,
     selectedClient: cs.selectedClient,
-    manager: qm.getManagerParam(),
+    manager: getRecManager(),
     onAdded: quote.fetchQuoteItems,
   });
 
@@ -185,7 +191,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
             <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px' }}>
               견적 편집
             </h3>
-            <RecommendQuoteEditPanel quote={quote} getManagerParam={qm.getManagerParam} />
+            <RecommendQuoteEditPanel quote={quote} getManagerParam={getRecManager} />
           </div>
         </>
       )}

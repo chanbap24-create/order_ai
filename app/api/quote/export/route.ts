@@ -110,9 +110,11 @@ export async function GET(request: NextRequest) {
     // 서버 견적(quote_items) 기준이라 클라이언트 React 상태와 무관하게 항상 일관되게 저장된다.
     if (!savedQuote && quoteItems.length > 0) {
       const clientCode = request.nextUrl.searchParams.get('client_code') || null;
+      // 작업 초안 스코프('<manager>::rec' 등)는 떼고 실제 manager로 저장 → 저장 기록은 인벤토리와 공유.
+      const saveManager = manager.includes('::') ? manager.split('::')[0] : manager;
       try {
         await saveQuote({
-          manager, client_code: clientCode, client_name: clientName,
+          manager: saveManager, client_code: clientCode, client_name: clientName,
           company, items: quoteItems, doc_settings: docSettings, columns: visibleColumns,
         });
       } catch (e) {
