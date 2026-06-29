@@ -41,17 +41,20 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // 거래처별 그룹핑(폴더). key = client_code || client_name.
+  // 거래처별 그룹핑(폴더). key = 거래처명 우선(옛 저장본은 client_code 없이 저장돼
+  // 코드로 묶으면 같은 거래처가 둘로 쪼개짐 → 이름으로 묶어 한 폴더로 합침).
   const folders = useMemo<Folder[]>(() => {
     const map = new Map<string, Folder>();
     for (const q of sq.items) {
-      const key = q.client_code || q.client_name || "(미지정)";
+      const key = q.client_name || q.client_code || "(미지정)";
       const name = q.client_name || "(거래처 미지정)";
       const f = map.get(key) || { key, name, quotes: [], latest: "" };
       f.quotes.push(q);
       if (q.created_at > f.latest) f.latest = q.created_at;
       map.set(key, f);
     }
+    // 폴더 내 견적은 최신순 정렬
+    for (const f of map.values()) f.quotes.sort((a, b) => b.created_at.localeCompare(a.created_at));
     return Array.from(map.values()).sort((a, b) => b.latest.localeCompare(a.latest));
   }, [sq.items]);
 
@@ -63,7 +66,7 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
     setOpenKey(f.key);
     setExpandedId(null);
     setClientConv(null);
-    const code = f.quotes[0]?.client_code;
+    const code = f.quotes.find((q) => q.client_code)?.client_code;
     if (code) {
       const conv = await sq.clientConversion(code);
       setClientConv(conv);
