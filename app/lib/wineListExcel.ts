@@ -3,6 +3,7 @@
 import { supabase } from '@/app/lib/db';
 import { getSupplierByBrand } from '@/app/lib/brandMapping';
 import { sanitizeFilterValue } from '@/app/lib/validation';
+import { isNonOrderable } from '@/app/lib/catalogFilter';
 import ExcelJS from 'exceljs';
 
 export const DEFAULT_WINE_MIN_STOCK = { u20k: 120, u50k: 60, u100k: 24, u200k: 12, over: 1 };
@@ -60,9 +61,10 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
 
   if (hideZero) allWines = allWines.filter(w => realAvail(w) + (bondedMap.get(w.item_code) || 0) > 0);
 
-  // 공통 제외: 공급가 5천 이하, 국가 미표기, 실재고 0(보세만)
+  // 공통 제외: 비상품(포장/케이스/더미 등), 공급가 5천 이하, 국가 미표기, 실재고 0(보세만)
   allWines = allWines.filter(w => {
     const price = w.supply_price || 0;
+    if (isNonOrderable(w.item_code, w.item_name_kr || w.item_name_en || '', 'CDV')) return false;
     if (price <= 5000 || !(w.country_en || w.country)) return false;
     if (realAvail(w) <= 0) return false;
     return true;
