@@ -29,7 +29,7 @@ type Props = {
   setClientCode: (v: string | null) => void;
   clientNameFocused: boolean;
   setClientNameFocused: (v: boolean) => void;
-  onOpenSaved: () => void;
+  onOpenSaved?: () => void;
   // settings
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;

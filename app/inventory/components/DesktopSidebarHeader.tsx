@@ -14,7 +14,7 @@ type Props = {
   setShowDocSettings: (v: boolean) => void;
   showQuoteColumnSettings: boolean;
   setShowQuoteColumnSettings: (v: boolean) => void;
-  onOpenSaved: () => void;
+  onOpenSaved?: () => void;
   onClearAll: () => void;
 };
 
@@ -83,9 +83,11 @@ export function DesktopSidebarHeader({
           company={company}
           width={130}
         />
-        <IconBtn active={false} onClick={onOpenSaved} title="저장된 견적">
-          🗂
-        </IconBtn>
+        {onOpenSaved && (
+          <IconBtn active={false} onClick={onOpenSaved} title="저장된 견적">
+            🗂
+          </IconBtn>
+        )}
         <IconBtn
           active={showDocSettings}
           onClick={() => setShowDocSettings(!showDocSettings)}

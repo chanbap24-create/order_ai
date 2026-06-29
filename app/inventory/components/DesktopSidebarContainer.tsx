@@ -26,7 +26,7 @@ type Props = {
 
   clientNameFocused: boolean;
   setClientNameFocused: (v: boolean) => void;
-  onOpenSaved: () => void;
+  onOpenSaved?: () => void;
 
   showDocSettings: boolean;
   setShowDocSettings: (v: boolean) => void;
