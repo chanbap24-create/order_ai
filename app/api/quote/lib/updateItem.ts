@@ -7,7 +7,7 @@ import { supabase } from '@/app/lib/db';
 const ALLOWED_FIELDS = [
   'item_code', 'country', 'brand', 'region', 'image_url', 'spec', 'vintage',
   'product_name', 'english_name', 'korean_name',
-  'supply_price', 'retail_price', 'discount_rate', 'quantity', 'note', 'tasting_note',
+  'supply_price', 'retail_price', 'discount_rate', 'discounted_price', 'quantity', 'note', 'tasting_note',
 ];
 
 /**
@@ -44,10 +44,15 @@ export async function updateQuoteItem(id: number | string, fields: Record<string
     return { status: 400, body: { error: '수정할 필드가 없습니다.' } };
   }
 
-  // discounted_price 재계산
-  const newPrice = 'supply_price' in fields ? Number(fields.supply_price) : existing.supply_price;
-  const newRate = 'discount_rate' in fields ? Number(fields.discount_rate) : existing.discount_rate;
-  updateData.discounted_price = Math.round(newPrice * (1 - newRate));
+  // discounted_price: 사용자가 직접 입력한 값이 있으면 그대로 존중(임의 할인가 허용).
+  // 없을 때만 공급가×(1-할인율)로 재계산(공급가·할인율만 바뀐 경우).
+  if ('discounted_price' in fields) {
+    updateData.discounted_price = Math.round(Number(fields.discounted_price) || 0);
+  } else if ('supply_price' in fields || 'discount_rate' in fields) {
+    const newPrice = 'supply_price' in fields ? Number(fields.supply_price) : existing.supply_price;
+    const newRate = 'discount_rate' in fields ? Number(fields.discount_rate) : existing.discount_rate;
+    updateData.discounted_price = Math.round(newPrice * (1 - newRate));
+  }
   updateData.updated_at = new Date().toISOString();
 
   const { data: updated } = await supabase

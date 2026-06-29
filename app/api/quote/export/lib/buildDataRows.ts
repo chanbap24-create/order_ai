@@ -173,18 +173,19 @@ function renderFormulaCell(
     return;
   }
   if (col.uiKey === 'discount_total') {
-    if (pos['supply_price'] && pos['discount_rate'] && pos['quantity']) {
+    // 할인가 컬럼이 있으면 '할인가 셀 × 수량'으로 계산 → 표시 할인가(수동 입력 포함)와 합계가 항상 일치.
+    if (pos['discounted_price'] && pos['quantity']) {
+      const dp = colLetter(pos['discounted_price']);
+      const qty = colLetter(pos['quantity']);
+      const dpVal = n('discounted_price') > 0 ? n('discounted_price') : Math.round(n('supply_price') * (1 - n('discount_rate')));
+      const result = Math.round(dpVal * n('quantity'));
+      sf(row, c, `IFERROR(${dp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL, result });
+    } else if (pos['supply_price'] && pos['discount_rate'] && pos['quantity']) {
       const sp = colLetter(pos['supply_price']);
       const dr = colLetter(pos['discount_rate']);
       const qty = colLetter(pos['quantity']);
       const result = Math.round(n('supply_price') * (1 - n('discount_rate')) * n('quantity'));
       sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r})*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL, result });
-    } else if (pos['discounted_price'] && pos['quantity']) {
-      const dp = colLetter(pos['discounted_price']);
-      const qty = colLetter(pos['quantity']);
-      const dpVal = n('discounted_price') > 0 ? n('discounted_price') : Math.round(n('supply_price') * (1 - n('discount_rate')));
-      const result = dpVal * n('quantity');
-      sf(row, c, `IFERROR(${dp}${r}*${qty}${r},"")`, { border: THIN, fmt: CURR, fill: SUMMARY_FILL, result });
     } else {
       const dp = Math.round(n('supply_price') * (1 - n('discount_rate')));
       sc(row, c, dp * n('quantity'), { border: THIN, fmt: CURR, fill: SUMMARY_FILL });
