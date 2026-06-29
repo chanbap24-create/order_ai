@@ -8,8 +8,8 @@ export const SALES_TEAM_1 = ['조성재', '김효직', '김기범', '성창우',
 export type DiscountScope = 'team1' | 'rest';
 
 const clamp = (d: number) => (d < 0 ? 0 : d > MAX_DISC ? MAX_DISC : d);
-// 할인율은 정밀하게(4자리) — 반올림하면 공급가×(1-할인)이 실제 최빈가에서 어긋남(예: 48,000→47,740)
-const round4 = (n: number) => Math.round(n * 10000) / 10000;
+// 할인율은 정수%로 반올림 → 화면 할인율(정수%)과 할인가(공급가×(1-할인))가 항상 일치(예: 10% → 184,500)
+const roundPct = (n: number) => Math.round(n * 100) / 100;
 function since6mo(): string {
   const d = new Date(); d.setMonth(d.getMonth() - 6);
   return d.toISOString().slice(0, 10);
@@ -24,7 +24,7 @@ async function getItemDiscounts(scope: DiscountScope): Promise<Map<string, numbe
   for (const r of (data || []) as Array<{ item_no: string; modal_price: number; supply_price: number }>) {
     const supply = Number(r.supply_price) || 0;
     const modal = Number(r.modal_price) || 0;
-    if (supply > 0 && modal > 0) out.set(String(r.item_no), round4(clamp(1 - modal / supply)));
+    if (supply > 0 && modal > 0) out.set(String(r.item_no), roundPct(clamp(1 - modal / supply)));
   }
   return out;
 }

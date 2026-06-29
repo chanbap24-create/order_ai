@@ -65,7 +65,7 @@ export function BottomActionBar(p: Props) {
             cursor: p.quoteLoading ? 'default' : 'pointer',
           }}
         >
-          {p.quoteLoading ? '처리 중...' : '견적서 생성'}
+          {p.quoteLoading ? '처리 중...' : '견적 편집에 담기'}
         </button>
       </div>
     </div>

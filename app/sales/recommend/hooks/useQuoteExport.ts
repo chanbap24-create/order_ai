@@ -20,7 +20,7 @@ export function useQuoteExport({ quoteCols, selectedClient, manager, onAdded }: 
     return () => clearTimeout(t);
   }, [quoteResult]);
 
-  const createQuote = async (items: ScoredItem[], mode: 'download' | 'add') => {
+  const createQuote = async (items: ScoredItem[], mode: 'download' | 'add' | 'fill') => {
     if (items.length === 0) return;
     setQuoteLoading(true);
     setQuoteResult(null);
@@ -33,7 +33,8 @@ export function useQuoteExport({ quoteCols, selectedClient, manager, onAdded }: 
           client_code: selectedClient?.client_code,
           client_name: selectedClient?.client_name,
           manager: manager || '',
-          clear_existing: mode === 'download',
+          // download·fill 은 기존 비우고 새로(편집 패널 갱신), add 는 이어 담기
+          clear_existing: mode === 'download' || mode === 'fill',
         }),
       });
       const json = await res.json();
@@ -48,6 +49,8 @@ export function useQuoteExport({ quoteCols, selectedClient, manager, onAdded }: 
         if (selectedClient?.client_name) params.set('client_name', selectedClient.client_name);
         window.location.href = `/api/quote/export?${params}`;
         setQuoteResult(`${json.added_count}개 와인 견적서 생성 완료`);
+      } else if (mode === 'fill') {
+        setQuoteResult(`${json.added_count}개 와인을 견적 편집에 담았어요. 아래 '엑셀 견적서 생성'으로 발행하세요.`);
       } else {
         setQuoteResult(`${json.added_count}개 와인을 아래 견적 편집 패널에 담았습니다.`);
       }

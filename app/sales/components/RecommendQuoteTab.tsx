@@ -195,7 +195,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           selectedCount={selectedItems.length}
           selectedTotal={selectedTotal}
           quoteLoading={exp.quoteLoading}
-          onDownload={() => exp.createQuote(selectedItems, 'download')}
+          onDownload={() => exp.createQuote(selectedItems, 'fill')}
           quoteCols={cols.quoteCols}
           toggleCol={cols.toggle}
           resetCols={cols.reset}

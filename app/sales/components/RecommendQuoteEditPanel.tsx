@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DocSettings, QuoteColumnKey, QuoteColumnConfig, QuoteItem } from '@/app/inventory/types';
 import { QUOTE_COLUMNS, DEFAULT_QUOTE_VISIBLE } from '@/app/inventory/constants/columns';
 import { CDV_DOC_DEFAULTS } from '@/app/inventory/constants/docDefaults';
@@ -21,12 +21,40 @@ type Props = {
   getManagerParam: () => string;
 };
 
+// 견적 편집 컬럼: 계정(user_preferences) + localStorage 저장. 마운트마다 기본값으로 리셋되던 문제 방지.
+const COLS_KEY = 'recommend_edit_columns';
+
 /**
  * 추천견적 하단 견적 편집 패널 — /inventory 의 견적 빌더(DesktopSidebarContainer)를 그대로 재사용.
  * 할인률·수량 인라인 편집, 컬럼 표시/순서, 문서설정, 엑셀/테이스팅노트 발행까지 동일 기능.
  */
 export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
-  const [visibleQuoteColumns, setVisibleQuoteColumns] = useState<QuoteColumnKey[]>(DEFAULT_QUOTE_VISIBLE);
+  const [visibleQuoteColumns, setVisibleQuoteColumns] = useState<QuoteColumnKey[]>(() => {
+    if (typeof window !== 'undefined') {
+      try { const s = localStorage.getItem(COLS_KEY); if (s) return JSON.parse(s) as QuoteColumnKey[]; } catch { /* ignore */ }
+    }
+    return DEFAULT_QUOTE_VISIBLE;
+  });
+  const colsLoaded = useRef(false);
+  // 계정 저장값 로드(기기 무관 유지)
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/user/preferences', { credentials: 'include' })
+      .then(r => r.json())
+      .then(j => { const v = j?.preferences?.[COLS_KEY]; if (alive && Array.isArray(v) && v.length) setVisibleQuoteColumns(v); })
+      .catch(() => {})
+      .finally(() => { colsLoaded.current = true; });
+    return () => { alive = false; };
+  }, []);
+  // 변경 시 localStorage(즉시) + 계정 저장
+  useEffect(() => {
+    try { localStorage.setItem(COLS_KEY, JSON.stringify(visibleQuoteColumns)); } catch { /* ignore */ }
+    if (!colsLoaded.current) return;
+    fetch('/api/user/preferences', {
+      method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: COLS_KEY, value: visibleQuoteColumns }),
+    }).catch(() => {});
+  }, [visibleQuoteColumns]);
   const [docSettings, setDocSettings] = useState<DocSettings>(CDV_DOC_DEFAULTS);
   const [showDocSettings, setShowDocSettings] = useState(false);
   const [showQuoteColumnSettings, setShowQuoteColumnSettings] = useState(false);
