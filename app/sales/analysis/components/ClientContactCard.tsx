@@ -37,7 +37,7 @@ export function ClientContactCard(p: Props) {
 
   const renderInfoField = (label: string, value: string | null | undefined) => (
     <div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 1 }}>{label}</div>
       <div style={{ fontSize: 14, color: value ? "var(--neutral-700)" : "var(--gray-300)" }}>{value || "-"}</div>
     </div>
   );
@@ -47,7 +47,7 @@ export function ClientContactCard(p: Props) {
       style={{
         background: "white",
         borderRadius: 8,
-        padding: 20,
+        padding: "12px 20px",
         boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
         marginBottom: 16,
       }}
@@ -57,7 +57,7 @@ export function ClientContactCard(p: Props) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 12,
+          marginBottom: 8,
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>연락처 정보</div>
@@ -155,7 +155,7 @@ export function ClientContactCard(p: Props) {
           </div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 24px" }}>
           {renderInfoField("담당자", c.contact_name)}
           {renderInfoField("전화번호", c.contact_phone)}
           {renderInfoField("이메일", c.contact_email)}

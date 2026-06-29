@@ -1,7 +1,7 @@
 "use client";
 
 import type { AnalysisFilters, DetailStats } from "../types";
-import { fmt } from "../lib/format";
+import { fmtFull } from "../lib/format";
 
 type Props = { stats: DetailStats | null; filters?: AnalysisFilters };
 
@@ -33,7 +33,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
               marginBottom: 16,
             }}
           >
-            <StatBox value={fmt(stats.totalSales)} label="총 매출" valueColor="var(--action)" />
+            <StatBox value={fmtFull(stats.totalSales)} label="총 매출" valueColor="var(--action)" />
             <StatBox
               value={String(stats.itemStats?.length || 0)}
               label="구매 품목 수"
@@ -67,7 +67,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
                     <span style={{ flex: 1, color: "var(--text-primary)" }}>{item.item_name}</span>
                     <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{item.buy_count}회</span>
                     <span style={{ color: "var(--action)", fontWeight: 600, fontSize: 12 }}>
-                      {item.avg_price ? fmt(item.avg_price) : "-"}
+                      {item.avg_price ? fmtFull(item.avg_price) : "-"}
                     </span>
                   </div>
                 ))}
@@ -98,7 +98,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
                     <span style={{ flex: 1, color: "var(--text-primary)" }}>{s.item_name}</span>
                     <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{s.quantity}개</span>
                     <span style={{ color: "var(--action)", fontWeight: 600, fontSize: 12 }}>
-                      {s.total_amount ? fmt(s.total_amount) : "-"}
+                      {s.total_amount ? fmtFull(s.total_amount) : "-"}
                     </span>
                   </div>
                 ))}
