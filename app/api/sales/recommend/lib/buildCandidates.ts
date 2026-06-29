@@ -13,7 +13,6 @@ import { flavorLabel } from './flavor';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { getClientConversion } from '@/app/lib/quoteConversion';
 import { getClientQuoteFeatures } from './quoteFeedback';
-import { buildReorderSignals } from './reorderSignals';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
@@ -166,15 +165,6 @@ export async function buildCandidates(
     if ((inv.avg_sales_90d || 0) > maxSales90d) maxSales90d = inv.avg_sales_90d;
   }
 
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-  const threeMonthsAgoStr = threeMonthsAgo.toISOString().slice(0, 10);
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  // 재주문 신호(발주 주기·대체 여부·구매 강도) — 고정 100 대신 차등 보너스/필터에 사용
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const reorderInfo = buildReorderSignals((shipments || []) as any, purchaseAgg, wineMap, todayStr);
-
   // 대체상품 모드: 쇼트난 기준 상품의 산지·가격·타입으로 닻을 구성(거래처 평균 대신 이 상품에 근접 추천)
   let anchor: SubstituteAnchor | undefined;
   if (o.mode === 'substitute' && o.anchorItemCode) {
@@ -213,11 +203,10 @@ export async function buildCandidates(
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
       priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
-      maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap,
+      maxSales90d, recentlyRecommended, conversionMap,
       scoreParams: o.scoreParams,
       mode: o.mode, anchor,
       ...(quoteFeedback ? { quoteFeedback } : {}),
-      reorderInfo,
     }) as ScoredItem[];
   }
 

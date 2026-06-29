@@ -5,7 +5,6 @@ import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
-import type { ReorderInfo } from './reorderSignals';
 
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
 export type GeoCeiling = 'super' | 'country' | 'any';
@@ -23,7 +22,6 @@ export interface SubstituteAnchor {
 /** 화면에서 조절하는 점수 가중치(전부 숫자라 슬라이더/입력으로 노출 가능). */
 export interface ScoreParams {
   tierBase: [number, number, number, number]; // 같은마을/인근마을/같은광역/타지역
-  reorderBonus: number;   // 재주문(검증된 구매) 보너스 — 구매강도·발주지연으로 차등 가산
   softWeight: number;     // 품종·향미 가산 배수(soft 0~1 × 이 값)
   velocityWeight: number; // 회전 가산 배수(velocity 0~1 × 이 값)
   recentPenalty: number;  // 최근 30일 제안 품목 점수 배율
@@ -33,7 +31,6 @@ export interface ScoreParams {
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
   tierBase: [46, 37, 29, 21], // 지역 비중을 반으로 — 견적학습·취향이 순위를 움직일 여지 확보
-  reorderBonus: 30,
   softWeight: 8,
   velocityWeight: 2,
   recentPenalty: 0.45,
@@ -45,7 +42,8 @@ export const DEFAULT_SCORE_PARAMS: ScoreParams = {
 
 /**
  * 규칙기반 추천: 타입·가격은 하드 게이트, 지역은 계단(우선순위), 향미·품종은 그 안의 정렬.
- * 정렬 = 점수 내림차순(재주문 100 > 같은마을 > 인근마을 > 같은광역, 동순위는 향미·품종).
+ * 정렬 = 점수 내림차순(같은마을 > 인근마을 > 같은광역, 동순위는 향미·품종·견적학습).
+ * 신규제안 모드는 거래처가 아직 안 산 와인만 대상(이미 산 와인은 제외 — 재주문은 일반 발주로).
  */
 export function scoreRecommendations(params: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,20 +56,17 @@ export function scoreRecommendations(params: {
   geoCeiling: GeoCeiling;   // 지역 확장 천장(광역/국가/제한없음)
   freqStrength: FreqStrength; // 입고빈도 반영 강도
   maxSales90d: number;
-  threeMonthsAgoStr: string;
   recentlyRecommended?: Set<string>; // 최근 제안 품번(중복 강등)
   conversionMap?: Map<string, { quoted: number; converted: number }>; // 과거 견적→출고 전환
   scoreParams?: ScoreParams; // 화면 조절 가중치(없으면 기본값)
   mode?: RecMode;            // 추천 타입(신규제안/대체상품)
   anchor?: SubstituteAnchor; // 대체상품 모드: 쇼트상품 기준점
   quoteFeedback?: QuoteFeedbackProfile; // 거래처 견적학습 프로필(속성 단위 전환)
-  reorderInfo?: Map<string, ReorderInfo>; // 재주문 신호(주기·대체·구매강도)
 }): ScoredItem[] {
-  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, threeMonthsAgoStr, recentlyRecommended, conversionMap } = params;
+  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
   const anchor = params.anchor;
   const quoteFeedback = params.quoteFeedback;
-  const reorderInfo = params.reorderInfo;
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
@@ -97,21 +92,19 @@ export function scoreRecommendations(params: {
     const reasons: string[] = [];
     const breakdown: string[] = []; // 점수 분해(표시용)
 
-    // 재주문 후보 = 신규제안 모드 + 2회+ 구매한 와인(검증된 구매). 고정점수 대신 일반점수 + 보너스.
-    const isReorder = mode !== 'substitute' && !!purchase && purchase.count >= 2;
-    // 1회성 구매는 추천에서 제외(기존 동작 유지 — '검증' 안 된 단발성)
-    if (mode !== 'substitute' && purchase && !isReorder) continue;
+    // 신규제안 모드: 이미 산 와인은 제외(재주문은 일반 발주로 — 추천은 새 와인만).
+    if (mode !== 'substitute' && purchase) continue;
 
-    // 게이트 ① 타입: 대체=쇼트상품과 같은 타입 / 신규=거래처가 사는 타입 / 재주문=면제(이미 산 와인)
+    // 게이트 ① 타입: 대체=쇼트상품과 같은 타입 / 신규=거래처가 사는 타입
     if (mode === 'substitute') {
       if (!anchor || !bucket || bucket !== anchor.bucket) continue;
-    } else if (!isReorder) {
+    } else {
       if (!prefs.hasHistory) continue;
       if (!bucket || !prefs.typeBuckets.has(bucket)) continue;
     }
 
-    // 게이트 ② 가격: 기준가 ±band 밖이면 제외 (재주문은 면제 — 이미 산 가격대)
-    if (!isReorder) {
+    // 게이트 ② 가격: 기준가 ±band 밖이면 제외
+    {
       const ref = mode === 'substitute' && anchor ? anchor.price : priceRef(prefs, bucket, geoGroup(h));
       if (ref > 0 && invPrice > 0) {
         const diff = Math.abs(invPrice - ref) / ref;
@@ -119,12 +112,11 @@ export function scoreRecommendations(params: {
       }
     }
 
-    // 계단: 대체=쇼트상품 산지 / 그 외=거래처 산지. 광역 천장 밖이면 제외(재주문은 타지역 취급).
+    // 계단: 대체=쇼트상품 산지 / 그 외=거래처 산지. 광역 천장 밖이면 제외.
     const tierProfile = mode === 'substitute' && anchor ? anchor.profile : prefs.regionProfile;
     let t = geoTier(h, tierProfile);
     if (t === null) {
-      if (isReorder) t = 3; // 재주문인데 산지 매칭 안되면(드묾) 타지역 취급
-      else if (geoCeiling === 'super') continue; // 광역까지만: 제외
+      if (geoCeiling === 'super') continue; // 광역까지만: 제외
       else if (geoCeiling === 'country') {
         if (invCountry && clientCountries.has(countryKey(invCountry))) t = 3; else continue; // 같은 국가까지
       } else t = 3; // 제한없음
@@ -139,7 +131,7 @@ export function scoreRecommendations(params: {
     if (mode === 'substitute') {
       if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} (대체)`);
       else if (invCountry) reasons.push(extractEnglish(invCountry));
-    } else if (!isReorder) {
+    } else {
       if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 선호 ${Math.round(freqW * 100)}%`);
       else if (invCountry) reasons.push(extractEnglish(invCountry));
     }
@@ -170,22 +162,6 @@ export function scoreRecommendations(params: {
     breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
     if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
     if (velAdd > 0) breakdown.push(`회전 ${velocity.toFixed(2)}×${sp.velocityWeight} = +${velAdd.toFixed(1)}`);
-
-    // 재주문 보너스: 고정점수 대신, 검증된 구매에 '구매강도+발주지연'으로 차등 가산.
-    if (isReorder) {
-      const info = reorderInfo?.get(String(itemNo));
-      if (info?.substituted) continue; // 비슷한 와인으로 갈아탐 → 다시 권할 의미 없음, 제외
-      // overdueRatio: 정상 발주주기 대비 경과. 정보 없으면 3개월 기준으로 폴백.
-      const overdue = info ? info.overdueRatio : ((purchase!.lastDate && purchase!.lastDate <= threeMonthsAgoStr) ? 1.5 : 0);
-      if (overdue < 1) continue; // 아직 발주 주기 전 → 제외(중복 제안 방지)
-      const overdueBoost = Math.min(overdue, 3) / 3; // 0~1
-      const strengthW = info?.strengthW ?? 0;
-      const bonus = sp.reorderBonus * (0.4 + 0.4 * strengthW + 0.2 * overdueBoost);
-      score += bonus;
-      tags.push('재주문');
-      reasons.push(`${purchase!.count}회 구매 · 주기 ${overdue.toFixed(1)}배 경과`);
-      breakdown.push(`재주문 +${bonus.toFixed(1)} (강도 ${strengthW.toFixed(2)}·지연 ${overdue.toFixed(1)}x)`);
-    }
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 

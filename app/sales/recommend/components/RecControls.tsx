@@ -157,7 +157,6 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {([
-                ['재주문보너스', 'reorderBonus', 1, 100],
                 ['품종·향미', 'softWeight', 1, 100],
                 ['회전', 'velocityWeight', 1, 100],
                 ['전환가점/회', 'convBoost', 1, 100],

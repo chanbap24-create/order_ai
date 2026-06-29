@@ -7,7 +7,6 @@ export type RecMode = 'new' | 'substitute' | 'discovery';
 /** 점수 가중치(화면 조절). 서버 scoring.ts ScoreParams 와 동일 형태. */
 export interface ScoreParams {
   tierBase: [number, number, number, number]; // 같은마을/인근마을/같은광역/타지역
-  reorderBonus: number;   // 재주문(검증된 구매) 보너스 — 구매강도·지연 차등
   softWeight: number;     // 품종·향미 가산 배수
   velocityWeight: number; // 회전 가산 배수
   recentPenalty: number;  // 최근제안 강등 배율
@@ -16,7 +15,7 @@ export interface ScoreParams {
   quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) ±가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  tierBase: [46, 37, 29, 21], reorderBonus: 30,
+  tierBase: [46, 37, 29, 21],
   softWeight: 8, velocityWeight: 2, recentPenalty: 0.45, convBoost: 8, noconvPenalty: 0.6,
   quoteFeedbackWeight: 44, // 지역46+학습44+취향8+회전2 = 100점 만점
 };

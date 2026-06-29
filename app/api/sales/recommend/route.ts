@@ -17,7 +17,6 @@ function parseScoreParams(raw: unknown): ScoreParams | undefined {
   const tb = Array.isArray(r.tierBase) ? r.tierBase : d.tierBase;
   return {
     tierBase: [0, 1, 2, 3].map((i) => num(tb[i], d.tierBase[i], 0, 300)) as [number, number, number, number],
-    reorderBonus: num(r.reorderBonus, d.reorderBonus, 0, 100),
     softWeight: num(r.softWeight, d.softWeight, 0, 100),
     velocityWeight: num(r.velocityWeight, d.velocityWeight, 0, 100),
     recentPenalty: num(r.recentPenalty, d.recentPenalty, 0, 1),
