@@ -9,8 +9,8 @@ import { extractFlavorKeys } from './flavor';
 import { geoGroup } from './geoTier';
 
 const WINDOW_DAYS = 60; // 견적일 ~ +60일 내 출고면 '전환'
-const SHRINK_K = 2;     // 신뢰도 보정(견적 적은 속성은 영향 축소)
-const CLAMP = 3;        // 속성 합 정규화 범위
+const SHRINK_K = 6;     // 신뢰도 보정(견적 적은 속성은 영향 축소). 클수록 단발 전환에 둔감 → 점진적
+const CLAMP = 5;        // 속성 합 정규화 범위(=속성 수). 클수록 한 속성당 칸이 작아 촘촘
 
 export type FB = { quoted: number; converted: number };
 export interface QuoteFeedbackProfile {
