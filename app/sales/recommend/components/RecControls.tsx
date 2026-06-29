@@ -94,8 +94,19 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           onChange={(e) => set({ minScore: Number(e.target.value) })}
           style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
         <input type="number" min={0} max={100} value={s.minScore} style={numIn}
-          onChange={(e) => set({ minScore: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={hint}>점 이상 · {visibleCount}/{itemsCount}개</span>
+          onChange={(e) => set({ minScore: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })}
+          disabled={s.lockCount > 0} />
+        <span style={hint}>{s.lockCount > 0 ? '락 사용 중 — 허들 무시' : `점 이상 · ${visibleCount}/${itemsCount}개`}</span>
+      </div>
+      {/* 추천 개수 고정(락): N개로 항상 맞춤 — 초과는 점수 상위만, 부족은 다음 점수로 채움 */}
+      <div style={rowS}>
+        <span style={lbl}>개수 고정(락)</span>
+        <input type="range" min={0} max={30} step={1} value={s.lockCount}
+          onChange={(e) => set({ lockCount: Number(e.target.value) })}
+          style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
+        <input type="number" min={0} max={30} value={s.lockCount} style={numIn}
+          onChange={(e) => set({ lockCount: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+        <span style={hint}>{s.lockCount > 0 ? `${s.lockCount}개로 고정 · 현재 ${visibleCount}개` : '0=끔'}</span>
       </div>
       {/* 지역 확장 범위 */}
       <div style={rowS}>

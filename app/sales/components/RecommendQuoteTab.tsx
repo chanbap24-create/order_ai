@@ -53,7 +53,12 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const [settings, setSettings] = useState<RecSettings>(loadRecSettings);
   const [anchor, setAnchor] = useState<AnchorItem | null>(null); // 대체상품 모드 기준 상품(쇼트난 품목)
   const items = rec.result?.recommendations || [];
-  const visible = items.filter((i) => i.score >= settings.minScore);
+  // 추천 개수 고정(락): items 는 점수 내림차순 → 상위 N개를 취하면
+  // 초과분 컷(조건 통과>N)·부족분 백필(조건 통과<N, 다음 점수로 채움)이 동시에 해결됨.
+  // 락 끔(0)이면 점수 허들(minScore) 즉시 필터만 적용.
+  const visible = settings.lockCount > 0
+    ? items.slice(0, settings.lockCount)
+    : items.filter((i) => i.score >= settings.minScore);
 
   // 설정 변경 시 저장(영업사원별, localStorage)
   useEffect(() => { saveRecSettings(settings); }, [settings]);

@@ -32,6 +32,7 @@ export interface RecSettings {
   periodMonths: number; // 분석 기간(개월)
   priceBand: number;    // 가격 밴드 ±%
   minScore: number;     // 추천 점수 허들(클라이언트 즉시 필터)
+  lockCount: number;    // 추천 개수 고정(락). 0=끔. >0이면 점수 상위 N개로 항상 맞춤(초과 컷·부족 백필)
   geoCeiling: GeoCeiling;     // 지역 확장 범위
   freqStrength: FreqStrength; // 입고빈도 반영 강도
   stockMonths: number;  // 재고 여유분(개월)
@@ -44,7 +45,7 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
   discoveryTypes: [], discoveryMinPrice: 0, discoveryMaxPrice: 0, discoverySegment: '',
   includeNonStandard: false,
   discountApply: true, discountScope: 'team1',
-  periodMonths: 6, priceBand: 20, minScore: 0,
+  periodMonths: 6, priceBand: 20, minScore: 0, lockCount: 0,
   geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,
