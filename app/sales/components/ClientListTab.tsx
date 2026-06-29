@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useClientList } from '../client-list/hooks/useClientList';
+import { useBatchRecommend } from '../client-list/hooks/useBatchRecommend';
 import { FilterPanel } from '../client-list/components/FilterPanel';
 import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
+import { BatchRecommendBar } from '../client-list/components/BatchRecommendBar';
 import { ClientDetailPanel } from '../analysis/components/ClientDetailPanel';
 import type { SelectedRankClient, AnalysisFilters } from '../analysis/types';
 import { Stack } from '@/app/components/ui';
@@ -12,6 +14,23 @@ import { Stack } from '@/app/components/ui';
 export default function ClientListTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const s = useClientList({ currentManager, isAdmin });
   const [selected, setSelected] = useState<{ client: SelectedRankClient; filters: AnalysisFilters } | null>(null);
+  // 추천견적 일괄 생성: 까브드뱅(CDV/wine)에서만 — 추천엔진이 CDV 재고 기반.
+  const batchable = s.type === 'wine';
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const batch = useBatchRecommend(currentManager);
+
+  const selectableClients = s.clients.filter((c) => c.client_code);
+  const allSelected = selectableClients.length > 0 && selectableClients.every((c) => picked.has(c.client_code));
+  const togglePick = (code: string) =>
+    setPicked((prev) => { const n = new Set(prev); if (n.has(code)) n.delete(code); else n.add(code); return n; });
+  const toggleAll = () =>
+    setPicked(() => (allSelected ? new Set() : new Set(selectableClients.map((c) => c.client_code))));
+  const runBatch = () => {
+    const targets = s.clients
+      .filter((c) => picked.has(c.client_code))
+      .map((c) => ({ client_code: c.client_code, client_name: c.client_name }));
+    void batch.run(targets);
+  };
 
   if (selected) {
     return (
@@ -51,12 +70,28 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         totalAmount={s.totalAmount}
       />
 
+      {batchable && (
+        <BatchRecommendBar
+          count={picked.size}
+          running={batch.running}
+          progress={batch.progress}
+          message={batch.message}
+          onRun={runBatch}
+          onClear={() => setPicked(new Set())}
+        />
+      )}
+
       <ClientsTable
         clients={s.clients}
         loading={s.loading}
         sortKey={s.sortKey}
         onSort={s.handleSort}
         sortIcon={s.sortIcon}
+        selectable={batchable}
+        selectedCodes={picked}
+        onToggleSelect={togglePick}
+        onToggleAll={toggleAll}
+        allSelected={allSelected}
         onRowClick={(c) =>
           setSelected({
             client: {

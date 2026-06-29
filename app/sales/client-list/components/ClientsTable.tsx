@@ -13,6 +13,12 @@ type Props = {
   onSort: (k: SortKey) => void;
   sortIcon: (k: SortKey) => string;
   onRowClick?: (c: ClientRow) => void;
+  // 다중 선택(추천견적 일괄 생성용). selectable 일 때만 체크박스 열 노출.
+  selectable?: boolean;
+  selectedCodes?: Set<string>;
+  onToggleSelect?: (code: string) => void;
+  onToggleAll?: () => void;
+  allSelected?: boolean;
 };
 
 const COLS: Array<{ key: SortKey; label: string; align: 'left' | 'right' }> = [
@@ -25,7 +31,10 @@ const COLS: Array<{ key: SortKey; label: string; align: 'left' | 'right' }> = [
   { key: 'period_total', label: '총액', align: 'right' },
 ];
 
-export function ClientsTable({ clients, loading, sortKey, onSort, sortIcon, onRowClick }: Props) {
+export function ClientsTable({
+  clients, loading, sortKey, onSort, sortIcon, onRowClick,
+  selectable, selectedCodes, onToggleSelect, onToggleAll, allSelected,
+}: Props) {
   if (loading) {
     return (
       <Section padding="md">
@@ -51,6 +60,17 @@ export function ClientsTable({ clients, loading, sortKey, onSort, sortIcon, onRo
         <table style={{ ...tableStyle, minWidth: 720 }}>
           <thead>
             <tr>
+              {selectable && (
+                <th style={{ ...thStyle, width: 36, textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!allSelected}
+                    onChange={() => onToggleAll?.()}
+                    title="전체 선택"
+                    style={{ cursor: 'pointer' }}
+                  />
+                </th>
+              )}
               {COLS.map((col) => {
                 const active = sortKey === col.key;
                 return (
@@ -88,6 +108,17 @@ export function ClientsTable({ clients, loading, sortKey, onSort, sortIcon, onRo
                 }
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
+                {selectable && (
+                  <td style={{ ...tdStyle, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={!!c.client_code && !!selectedCodes?.has(c.client_code)}
+                      disabled={!c.client_code}
+                      onChange={() => c.client_code && onToggleSelect?.(c.client_code)}
+                      style={{ cursor: c.client_code ? 'pointer' : 'not-allowed' }}
+                    />
+                  </td>
+                )}
                 <td style={{ ...tdStyle, fontWeight: 600 }}>{c.client_name}</td>
                 <td style={tdStyle}>
                   {c.business_type ? (
