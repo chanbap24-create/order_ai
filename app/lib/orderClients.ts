@@ -11,6 +11,11 @@ export interface MgrClient {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
+/** "/ 사업자변경" 등 안 쓰는(이전) 사업자 표기 — 발주 거래처 선택에서 제외. */
+function isUnusedClient(name: string): boolean {
+  return name.replace(/\s/g, "").includes("사업자변경");
+}
+
 /** 담당자의 거래처 목록(별칭 최대 3개 포함). manager 없으면 빈 배열. */
 export async function getManagerClients(manager: string, tab: string): Promise<MgrClient[]> {
   if (!manager?.trim()) return [];
@@ -28,7 +33,7 @@ export async function getManagerClients(manager: string, tab: string): Promise<M
     for (const r of (data || []) as Row[]) {
       const code = String(r.client_code || "").trim();
       const name = String(r.client_name || "").trim();
-      if (code && name && !byCode.has(code)) byCode.set(code, name);
+      if (code && name && !isUnusedClient(name) && !byCode.has(code)) byCode.set(code, name);
     }
   } else {
     const { data } = await supabase
@@ -39,7 +44,7 @@ export async function getManagerClients(manager: string, tab: string): Promise<M
     for (const r of (data || []) as Row[]) {
       const code = String(r.client_code || "").trim();
       const name = String(r.client_name || code).trim();
-      if (code && name && !byCode.has(code)) byCode.set(code, name);
+      if (code && name && !isUnusedClient(name) && !byCode.has(code)) byCode.set(code, name);
     }
   }
   if (byCode.size === 0) return [];
