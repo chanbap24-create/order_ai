@@ -11,6 +11,7 @@ import { PreferenceCharts } from "./PreferenceCharts";
 import { ClientTagsCard } from "./ClientTagsCard";
 import { ConversionCard } from "./ConversionCard";
 import { ClientSavedQuotes } from "./ClientSavedQuotes";
+import { ClientTastingCard } from "./ClientTastingCard";
 
 type Props = {
   client: SelectedRankClient;
@@ -79,6 +80,13 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
               <SalesStatusCard stats={detail.detailStats} filters={filters} />
 
               <ConversionCard clientCode={client.client_code} type={filters?.type ?? "wine"} />
+
+              <ClientTastingCard
+                clientCode={client.client_code}
+                clientName={client.client_name}
+                clientType={filters?.type ?? client.client_type ?? "wine"}
+                manager={client.manager ?? currentManager}
+              />
 
               <PreferenceCharts prefs={detail.prefs} loading={detail.prefsLoading} />
 

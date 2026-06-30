@@ -49,6 +49,7 @@ export function useOrderV2Page() {
   // 토큰 및 UI 상태
   const [copied, setCopied] = useState(false);
   const [clientCopied, setClientCopied] = useState(false);
+  const [tastingBusy, setTastingBusy] = useState(false);
   const [showDeliveryDate, setShowDeliveryDate] = useState(false);
   const [showDeliveryNotes, setShowDeliveryNotes] = useState(false);
   const [deliveryNotes, setDeliveryNotes] = useState("");
@@ -157,6 +158,49 @@ export function useOrderV2Page() {
       return [...prev, newLine];
     });
   };
+
+  // 시음주를 현재 발주에 한 줄 추가(정책/한도 확인 후 기록) — 자연스럽게 발주와 함께 등록.
+  const addTasting = useCallback(async () => {
+    const sel = client.selected;
+    if (!sel) { alert("거래처를 먼저 선택하세요."); return; }
+    setTastingBusy(true);
+    try {
+      const clientType = tab === "DL" ? "glass" : "wine";
+      const res = await fetch("/api/sales/tasting/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_code: sel.client_code, client_type: clientType, client_name: sel.client_name }),
+      });
+      const d = await res.json();
+      if (!d.ok) { alert(`시음주 추가 실패: ${d.reason || ""}`); return; }
+      const w = d.item;
+      const label =
+        d.source === "ai" ? "거래처 AI 추천"
+        : d.source === "monthly" ? "이달의 시음주(1픽)"
+        : d.source === "manual" ? "수동 지정"
+        : "재고순";
+      const newIdx = parse.orderLines.length;
+      parse.setOrderLines((prev) => [
+        ...prev,
+        {
+          query: "시음주",
+          quantity: 1,
+          candidates: [{
+            item_no: w.item_no, item_name: w.item_name, confidence: 1,
+            supply_price: w.supply_price || 0, available_stock: 0, reasoning: `시음주 · ${label}`,
+          }],
+          selectedIdx: 0,
+        },
+      ]);
+      editor.setDiscount(newIdx, 100); // 100% 할인 = 시음주
+      // 어떻게 골랐는지 알림(진단). note 있으면 같이.
+      alert(`시음주 추가: ${w.item_name}\n선정: ${label}${d.note ? `\n(${d.note})` : ""}`);
+    } catch {
+      alert("시음주 추가에 실패했습니다.");
+    } finally {
+      setTastingBusy(false);
+    }
+  }, [client.selected, tab, parse, editor]);
 
   // 메시지 빌드 (직원용 + 거래처 전달용 — 같은 파라미터)
   const msgParams = {
@@ -285,5 +329,7 @@ export function useOrderV2Page() {
     updateQty,
     updatePrice,
     addLineFromHistory,
+    addTasting,
+    tastingBusy,
   };
 }

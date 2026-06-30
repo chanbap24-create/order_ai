@@ -7,10 +7,11 @@ type Props = {
   copied: boolean;
   onCopy: () => void;
   title?: string;
+  leftAction?: React.ReactNode; // 복사 버튼 좌측 추가 액션(예: 시음주 추가)
 };
 
 /** 메시지 카드 — pre 본문 + 복사 버튼 (직원/거래처 공용, title로 구분) */
-export function StaffMessageCard({ staffMessage, copied, onCopy, title = "발주 메시지" }: Props) {
+export function StaffMessageCard({ staffMessage, copied, onCopy, title = "발주 메시지", leftAction }: Props) {
   return (
     <div
       className="order-card"
@@ -45,24 +46,27 @@ export function StaffMessageCard({ staffMessage, copied, onCopy, title = "발주
             {title}
           </span>
         </div>
-        <button
-          onClick={onCopy}
-          className="order-copy-btn"
-          style={{
-            padding: "6px 16px",
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 600,
-            border: copied ? "1px solid var(--status-success)" : "1px solid rgba(90,21,21,0.1)",
-            background: copied ? ORDER_COLORS.confHigh : "#fff",
-            color: copied ? "#fff" : "var(--text-tertiary)",
-            cursor: "pointer",
-            transition: "all 0.2s ease",
-            letterSpacing: "0.02em",
-          }}
-        >
-          {copied ? "복사됨!" : "복사"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {leftAction}
+          <button
+            onClick={onCopy}
+            className="order-copy-btn"
+            style={{
+              padding: "6px 16px",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              border: copied ? "1px solid var(--status-success)" : "1px solid rgba(90,21,21,0.1)",
+              background: copied ? ORDER_COLORS.confHigh : "#fff",
+              color: copied ? "#fff" : "var(--text-tertiary)",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {copied ? "복사됨!" : "복사"}
+          </button>
+        </div>
       </div>
       <pre
         style={{

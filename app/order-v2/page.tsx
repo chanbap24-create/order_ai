@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { ORDER_COLORS, ORDER_FONT } from "./constants";
+import { TastingSettingsModal } from "./components/TastingSettingsModal";
 import { ActionButtons } from "./components/ActionButtons";
 import { ClientHistorySection } from "./components/ClientHistorySection";
 import { ClientSearchField } from "./components/ClientSearchField";
@@ -28,6 +30,7 @@ import { calcTotalAmount } from "./lib/priceCalc";
 
 export default function OrderV2Page() {
   const g = useOrderV2Page();
+  const [showTastingSettings, setShowTastingSettings] = useState(false);
   const {
     tab,
     client,
@@ -178,8 +181,43 @@ export default function OrderV2Page() {
                 staffMessage={g.staffMessage}
                 copied={copied}
                 onCopy={g.copyMessage}
+                leftAction={
+                  g.client.selected ? (
+                    <>
+                      <button
+                        onClick={g.addTasting}
+                        disabled={g.tastingBusy}
+                        style={{
+                          padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                          border: "1px solid var(--action)", background: "#fff", color: "var(--action)",
+                          cursor: g.tastingBusy ? "default" : "pointer", letterSpacing: "0.02em",
+                        }}
+                      >
+                        {g.tastingBusy ? "추가 중…" : "시음주 추가"}
+                      </button>
+                      <button
+                        onClick={() => setShowTastingSettings(true)}
+                        title="시음주 선정 설정"
+                        style={{
+                          padding: "6px 9px", borderRadius: 8, fontSize: 12,
+                          border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-tertiary)", cursor: "pointer",
+                        }}
+                      >
+                        ⚙
+                      </button>
+                    </>
+                  ) : null
+                }
               />
             </div>
+
+            {showTastingSettings && (
+              <TastingSettingsModal
+                tab={tab}
+                clientCode={g.client.selected?.client_code}
+                onClose={() => setShowTastingSettings(false)}
+              />
+            )}
 
             {/* 거래처에 보낼 카톡 문구 (인사 + 배송예정일 + 품목/수량/가용재고) */}
             <StaffMessageCard

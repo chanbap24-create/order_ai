@@ -20,6 +20,7 @@ export interface SaveQuoteInput {
   items: AnyRow[];
   doc_settings?: unknown;
   columns?: unknown;
+  is_tasting?: boolean; // 시음주 견적(100%할인 1병) 구분
 }
 
 /** 현재 견적을 스냅샷으로 저장. 빈 견적은 저장하지 않음. */
@@ -44,6 +45,7 @@ export async function saveQuote(input: SaveQuoteInput): Promise<{ id: number }> 
       items,
       doc_settings: input.doc_settings ?? null,
       columns: input.columns ?? null,
+      is_tasting: input.is_tasting ?? false,
     })
     .select('id')
     .single();
