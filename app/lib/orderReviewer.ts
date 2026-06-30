@@ -202,12 +202,18 @@ export async function reviewOrderLines<T extends ReviewerOrderLine>(
       const aliasBonus = aliasStrong ? 0.45 : aliasWeak ? 0.2 : 0;
 
       const baseConfidence = Number(c.confidence) || 0;
+      // 재고/수량 충족: 발주 수량을 채울 재고면 가점, 재고 0이면 감점(주문을 못 채우는 후보 demote).
+      const stock = Number(c.available_stock) || 0;
+      const qty = Number(line.quantity) || 1;
+      const canFulfill = stock >= qty;
+      const stockScore = stock <= 0 ? -0.12 : canFulfill ? 0.1 : 0;
       const reviewed =
         baseConfidence +
         aliasBonus + // alias 매칭 (strong/weak 차등)
         0.2 * overlap + // 키워드 overlap
-        (inHistory ? 0.08 : 0); // 입고 이력
-      return { idx, reviewed, overlap, inHistory, aliasHit, aliasStrong, aliasItemNoHit };
+        (inHistory ? 0.12 : 0) + // 입고 이력(거래처 실제 구매) 가중 ↑
+        stockScore; // 재고/수량 충족
+      return { idx, reviewed, overlap, inHistory, aliasHit, aliasStrong, aliasItemNoHit, canFulfill, stock };
     });
 
     // reviewed 가장 높은 후보 찾기
@@ -242,6 +248,7 @@ export async function reviewOrderLines<T extends ReviewerOrderLine>(
       if (top.aliasHit) reasons.push("별칭 매칭");
       if (top.overlap > 0.5) reasons.push(`키워드 ${Math.round(top.overlap * 100)}%`);
       if (top.inHistory) reasons.push("이전 구매");
+      if (top.canFulfill && !origTop.canFulfill) reasons.push(`재고 충분(${top.stock}병)`);
       const reason = reasons.length > 0 ? reasons.join(" + ") : "재점수 결과";
       line.review_note = `검수: 1순위 변경 (${reason})`;
       swapped.reasoning = (swapped.reasoning || "") + ` [검수: ${reason}]`;
