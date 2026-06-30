@@ -77,8 +77,7 @@ function stripBrandPrefix(name: string): string {
 export function buildClientMessage(p: BuildParams): string {
   if (p.orderLines.length === 0) return "";
 
-  const name = p.selectedClient?.client_name || p.clientQuery || "";
-  const greeting = name ? `안녕하세요, ${name}님. 발주 확인드립니다.` : "안녕하세요. 발주 확인드립니다.";
+  const greeting = "안녕하세요\n발주 감사합니다~";
   const deliveryLine = p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "";
 
   const lines = p.orderLines.map((ol) => {
@@ -89,10 +88,10 @@ export function buildClientMessage(p: BuildParams): string {
     }
     const unit = getUnit(p.tab, sel.item_no, sel.item_name);
     const stock = Number(sel.available_stock) || 0;
-    // 품명+발주수량 한 줄, 남은재고는 다음 줄(들여쓰기)로 분리 — 수량/재고 혼동 방지
-    return `- ${stripBrandPrefix(sel.item_name)} ${ol.quantity}${unit}\n  (남은재고 ${stock}${unit})`;
+    // 품명+발주수량 한 줄, 재고는 다음 줄(들여쓰기)로 분리 — 수량/재고 혼동 방지
+    return `- ${stripBrandPrefix(sel.item_name)} ${ol.quantity}${unit}\n  (재고 ${stock}${unit})`;
   });
 
-  const head = [greeting, deliveryLine].filter(Boolean).join("\n");
-  return `${head}\n\n${lines.join("\n")}\n\n감사합니다.`;
+  const head = [greeting, deliveryLine].filter(Boolean).join("\n\n");
+  return `${head}\n\n${lines.join("\n")}\n\n좋은 하루 되세요!`;
 }
