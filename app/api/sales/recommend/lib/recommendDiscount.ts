@@ -32,28 +32,30 @@ function median(xs: number[]): number {
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 }
 
+type ExactDeal = { d: number; qty: number }; // 자기 할인율 + 최빈 수량(같이 나간 묶음)
 type DiscountTables = {
-  exact: Map<string, number>;   // 건수 충분한 품목의 자기 할인율
-  band: Map<string, number>;    // 가격대별 할인율 중앙값(신뢰 품목 기준)
-  global: number | null;        // 전체 중앙값(최후 폴백)
+  exact: Map<string, ExactDeal>; // 건수 충분한 품목의 자기 할인율·최빈 수량
+  band: Map<string, number>;     // 가격대별 할인율 중앙값(신뢰 품목 기준)
+  global: number | null;         // 전체 중앙값(최후 폴백)
 };
 
-/** 영업범위 6개월 출고에서 (1)신뢰 품목 할인 (2)가격대 중앙값 (3)전체 중앙값 테이블 구성. */
+/** 영업범위 6개월 출고에서 (1)신뢰 품목 할인·최빈수량 (2)가격대 중앙값 (3)전체 중앙값 테이블 구성. */
 async function getDiscountTables(scope: DiscountScope): Promise<DiscountTables> {
   const { data } = await supabase.rpc('item_modal_price', {
     managers: SALES_TEAM_1, since: since6mo(), exclude: scope === 'rest',
   });
-  const exact = new Map<string, number>();
+  const exact = new Map<string, ExactDeal>();
   const bandVals = new Map<string, number[]>();
   const allVals: number[] = [];
-  for (const r of (data || []) as Array<{ item_no: string; modal_price: number; supply_price: number; n: number }>) {
+  for (const r of (data || []) as Array<{ item_no: string; modal_price: number; modal_qty: number; supply_price: number; n: number }>) {
     const supply = Number(r.supply_price) || 0;
     const modal = Number(r.modal_price) || 0;
     const n = Number(r.n) || 0;
     if (supply <= 0 || modal <= 0) continue;
     if (n < MIN_N) continue; // 건수 미달 → 자기 할인도 안 쓰고 폴백 통계에서도 제외
     const d = roundPct(clamp(1 - modal / supply));
-    exact.set(String(r.item_no), d);
+    const qty = Number(r.modal_qty) || 0;
+    exact.set(String(r.item_no), { d, qty });
     const b = bandOf(supply);
     const arr = bandVals.get(b); if (arr) arr.push(d); else bandVals.set(b, [d]);
     allVals.push(d);
@@ -65,17 +67,22 @@ async function getDiscountTables(scope: DiscountScope): Promise<DiscountTables> 
 }
 
 /**
- * 추천 결과에 권장 할인율 부여.
- * 건수 충분 → 자기 할인 / 미달·이력없음 → 같은 가격대 중앙값 → 전체 중앙값 → 없음(0%).
+ * 추천 결과에 권장 할인율(+최빈 수량) 부여.
+ * 건수 충분 → 자기 할인·수량 / 미달·이력없음 → 같은 가격대 중앙값 → 전체 중앙값 → 없음(0%).
+ * 수량은 신뢰 품목만 부여(폴백은 수량 미상 → 기본 1병).
  */
 export async function applyRecommendedDiscounts(
-  scored: Array<{ item_no: string; price?: number; rec_discount?: number }>,
+  scored: Array<{ item_no: string; price?: number; rec_discount?: number; rec_quantity?: number }>,
   scope: DiscountScope,
 ): Promise<void> {
   const { exact, band, global } = await getDiscountTables(scope);
   for (const s of scored) {
     const own = exact.get(s.item_no);
-    if (own != null) { s.rec_discount = own; continue; }
+    if (own != null) {
+      s.rec_discount = own.d;
+      if (own.qty > 0) s.rec_quantity = own.qty;
+      continue;
+    }
     const b = bandOf(Number(s.price) || 0);
     const fb = band.get(b);
     s.rec_discount = fb != null ? fb : (global != null ? global : undefined);

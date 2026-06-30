@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       try {
         const r = await addQuoteItem({
           item_code: itemCode,
-          quantity: 1,
+          quantity: Number(it.rec_quantity) > 0 ? Number(it.rec_quantity) : 1, // 권장 수량(최빈가 묶음) 자동 입력
           supply_price: it.price || 0,
           discount_rate: Number(it.rec_discount) || 0, // 권장 할인율 자동 입력
           manager: mgr,
