@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractOrderFromImage } from "@/app/lib/orderIntake";
+import { getManagerClients } from "@/app/lib/orderClients";
+import { getSession } from "@/app/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -9,7 +11,7 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // base64 디코드 기준 약 8MB
 // POST: 카톡 스크린샷(base64) → { client_hint, order_text }
 export async function POST(req: NextRequest) {
   try {
-    const { image_data, media_type } = await req.json();
+    const { image_data, media_type, tab } = await req.json();
 
     if (typeof image_data !== "string" || !image_data) {
       return NextResponse.json({ error: "이미지 데이터가 없습니다." }, { status: 400 });
@@ -22,7 +24,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "이미지가 너무 큽니다. (최대 8MB)" }, { status: 400 });
     }
 
-    const result = await extractOrderFromImage(image_data, media_type);
+    // 로그인 담당자의 거래처 목록을 주면 LLM이 거래처 코드까지 직접 고른다(미로그인 시 기존 동작).
+    const session = await getSession();
+    const clients = session?.manager
+      ? await getManagerClients(session.manager, tab === "DL" ? "DL" : "CDV")
+      : [];
+
+    const result = await extractOrderFromImage(image_data, media_type, clients);
     if (!result.found) {
       return NextResponse.json(
         { ...result, error: "스크린샷에서 발주 내용을 찾지 못했습니다. 발주 메시지가 잘 보이게 다시 찍어주세요." },

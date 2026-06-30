@@ -79,17 +79,26 @@ export function learnOrderCorrections(lines: OrderLine[]): void {
 }
 // client_code 는 전역 별칭으로 학습(거래처별 학습은 후속 과제)
 
-export type IntakeResult = { client_hint: string; order_text: string; found: boolean };
+export type IntakeResult = {
+  client_hint: string;
+  order_text: string;
+  found: boolean;
+  // 로그인 담당자 거래처 목록을 줬을 때 LLM이 직접 고른 거래처(코드 검증 통과분)
+  client_code?: string;
+  client_name?: string;
+  client_confidence?: number;
+};
 
-/** 카톡 스크린샷(base64) → 거래처힌트 + 발주텍스트 추출 */
+/** 카톡 스크린샷(base64) → 거래처힌트 + 발주텍스트 추출. tab으로 담당자 거래처 스코프. */
 export async function extractFromImage(
   imageData: string,
   mediaType: string,
+  tab?: OrderTab,
 ): Promise<IntakeResult & { error?: string }> {
   const res = await fetch("/api/order-v2/extract", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_data: imageData, media_type: mediaType }),
+    body: JSON.stringify({ image_data: imageData, media_type: mediaType, tab }),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "이미지 분석 실패");

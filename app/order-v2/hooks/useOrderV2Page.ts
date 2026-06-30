@@ -76,15 +76,15 @@ export function useOrderV2Page() {
     }
   };
 
-  // 스샷 추출 → 거래처힌트 자동매칭 + 발주텍스트 채움 (단건)
+  // 스샷 추출 → 거래처 자동확정(LLM 선택 우선, 애매하면 힌트 퍼지) + 발주텍스트 채움 (단건)
   const applyExtraction = useCallback(
     (r: IntakeResult) => {
       setOrderText(r.order_text);
-      if (r.client_hint) void client.applyHint(r.client_hint);
+      void client.selectResolved(r);
     },
     [client],
   );
-  const imageIntake = useImageIntake(applyExtraction);
+  const imageIntake = useImageIntake(applyExtraction, tab);
   const batch = useOrderBatch();
 
   // 자동 모드 ON/OFF — 마지막 선택을 localStorage 에 기억 (SSR 불일치 방지 위해 마운트 후 로드)

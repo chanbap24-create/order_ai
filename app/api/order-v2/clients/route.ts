@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
+import { getSession } from '@/app/lib/auth';
+import { getManagerClientCodes } from '@/app/lib/orderClients';
 
 // 거래처 검색 API (자동완성용) - tab에 따라 CDV/DL 테이블 분리
 export async function GET(req: NextRequest) {
@@ -11,6 +13,16 @@ export async function GET(req: NextRequest) {
   const aliasTable = tab === 'DL' ? 'glass_client_alias' : 'client_alias';
 
   try {
+    // 로그인 담당자 거래처로 스코프 — 내 거래처에 매칭이 있으면 그쪽만, 없으면 전체(폴백).
+    const session = await getSession();
+    const mine = session?.manager ? await getManagerClientCodes(session.manager, tab) : new Set<string>();
+    const scope = <T extends { client_code: string }>(list: T[]): (T & { mine?: boolean })[] => {
+      if (mine.size === 0) return list as (T & { mine?: boolean })[];
+      const own = list.filter((c) => mine.has(c.client_code));
+      const pool = own.length > 0 ? own : list; // 내 거래처 매칭 없으면 전체로 폴백
+      return pool.map((c) => ({ ...c, mine: mine.has(c.client_code) }));
+    };
+
     if (!q.trim()) {
       const { data, error } = await supabase
         .from(clientTable)
@@ -18,7 +30,7 @@ export async function GET(req: NextRequest) {
         .order('client_name', { ascending: true })
         .limit(50);
       if (error) throw error;
-      return NextResponse.json({ clients: data || [] });
+      return NextResponse.json({ clients: scope(data || []) });
     }
 
     const words = splitSearchWords(q);
@@ -93,7 +105,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ clients: [...map.values()] });
+    return NextResponse.json({ clients: scope([...map.values()]) });
   } catch (error: any) {
     return NextResponse.json({ clients: [], error: error.message }, { status: 500 });
   }

@@ -10,6 +10,7 @@
 //  - 잡담/인사/결제문의 등은 제외, 품목+수량 형태의 가장 최근 발주만.
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
+import type { MgrClient } from "@/app/lib/orderClients";
 
 // 추출(이미지 OCR)은 정확도 우선 → Sonnet (파싱 단계의 Haiku와 분리).
 // Haiku는 카톡 스샷에서 글자를 흐리게 읽어("샤를루"→"사롱루") 뒤 매칭이 오매칭됨.
@@ -20,6 +21,10 @@ export interface IntakeResult {
   client_hint: string;
   order_text: string;
   found: boolean;
+  // 담당자 거래처 목록을 줬을 때 LLM이 직접 고른 거래처(코드 검증 통과분만)
+  client_code?: string;
+  client_name?: string;
+  client_confidence?: number;
 }
 
 const SYSTEM_PROMPT = `너는 카카오톡 발주 스크린샷에서 "거래처"와 "발주 내용"을 추출하는 도우미다.
@@ -55,16 +60,44 @@ JSON만 출력. 설명 금지.
 {"client_hint":"상호","order_text":"품목 수량\\n품목 수량","found":true}
 발주를 못 찾으면 {"client_hint":"","order_text":"","found":false}`;
 
-/** base64 이미지에서 거래처+발주 추출 */
+// 담당자 거래처 후보를 줄 때 추가되는 규칙 — LLM이 코드까지 직접 고른다.
+const CLIENT_PICK_RULE = `[거래처 코드 선택 — 후보 목록이 주어졌을 때]
+- 아래 [거래처 후보] 목록은 "이 담당자의 거래처"다. 스크린샷의 거래처를 이 목록에서 골라 client_code를 출력한다.
+- 채팅방 제목/상호/별칭(괄호 안)을 종합해 가장 일치하는 한 곳을 고른다. OCR 오독·약어·지점명·존칭을 감안한다.
+- 목록에 확실히 없으면 client_code는 "" (빈 문자열)로 두고 client_hint만 채운다. 억지로 고르지 마라.
+- client_confidence: 그 거래처라고 확신하는 정도 0~1.
+- 반드시 목록에 실제로 있는 코드만 출력한다(없는 코드 창작 금지).
+출력 JSON에 client_code, client_confidence 를 추가:
+{"client_hint":"상호","client_code":"31960","client_confidence":0.95,"order_text":"품목 수량","found":true}`;
+
+function buildCandidateBlock(clients: MgrClient[]): string {
+  const lines = clients.map((c) => {
+    const al = c.aliases.length ? ` (${c.aliases.join(", ")})` : "";
+    return `${c.client_code}\t${c.client_name}${al}`;
+  });
+  return `[거래처 후보] (code\\t상호(별칭))\n${lines.join("\n")}`;
+}
+
+/** base64 이미지에서 거래처+발주 추출. clients를 주면 거래처 코드까지 LLM이 직접 고른다. */
 export async function extractOrderFromImage(
   imageData: string,
   mediaType: string,
+  clients?: MgrClient[],
 ): Promise<IntakeResult> {
   const claude = getClaudeClient();
+  const hasCandidates = !!clients && clients.length > 0;
+  // 후보 목록은 담당자별로 안정적 → ephemeral 캐시(배치/연속 처리 시 재사용).
+  const system = hasCandidates
+    ? [
+        { type: "text" as const, text: `${SYSTEM_PROMPT}\n\n${CLIENT_PICK_RULE}` },
+        { type: "text" as const, text: buildCandidateBlock(clients!), cache_control: { type: "ephemeral" as const } },
+      ]
+    : SYSTEM_PROMPT;
+
   const response = await claude.messages.create({
     model: EXTRACT_MODEL,
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    system,
     messages: [
       {
         role: "user",
@@ -92,10 +125,10 @@ export async function extractOrderFromImage(
     .map((b) => (b as { text: string }).text)
     .join("");
 
-  return parseIntakeJson(text);
+  return parseIntakeJson(text, clients);
 }
 
-function parseIntakeJson(text: string): IntakeResult {
+function parseIntakeJson(text: string, clients?: MgrClient[]): IntakeResult {
   const empty: IntakeResult = { client_hint: "", order_text: "", found: false };
   try {
     const match = text.match(/\{[\s\S]*\}/);
@@ -103,11 +136,23 @@ function parseIntakeJson(text: string): IntakeResult {
     const obj = JSON.parse(match[0]);
     const client_hint = String(obj.client_hint || "").trim();
     const order_text = String(obj.order_text || "").trim();
-    return {
+    const result: IntakeResult = {
       client_hint,
       order_text,
       found: Boolean(obj.found) && order_text.length > 0,
     };
+    // LLM이 고른 거래처 코드 검증 — 반드시 제공한 후보 목록에 실제로 있는 코드만 채택(환각 차단).
+    const pickedCode = String(obj.client_code || "").trim();
+    if (pickedCode && clients?.length) {
+      const hit = clients.find((c) => c.client_code === pickedCode);
+      if (hit) {
+        result.client_code = hit.client_code;
+        result.client_name = hit.client_name;
+        const conf = Number(obj.client_confidence);
+        result.client_confidence = Number.isFinite(conf) ? Math.max(0, Math.min(1, conf)) : undefined;
+      }
+    }
+    return result;
   } catch {
     return empty;
   }

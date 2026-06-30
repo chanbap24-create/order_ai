@@ -40,11 +40,14 @@ export function useAutoSingle(d: Deps) {
       setAutoBusy(true);
       try {
         const { data, mediaType } = await fileToBase64(file);
-        const ex = await extractFromImage(data, mediaType);
+        const ex = await extractFromImage(data, mediaType, d.tab);
         if (!ex.found) { activeRef.current = false; setResult(fail()); return; }
         d.setOrderText(ex.order_text);
         let selected: Client | null = null;
-        if (ex.client_hint) {
+        // LLM이 담당자 거래처에서 고른 코드가 확신 높으면 우선, 아니면 힌트 퍼지 매칭
+        if (ex.client_code && ex.client_name && (ex.client_confidence ?? 0) >= 0.75) {
+          selected = { client_code: ex.client_code, client_name: ex.client_name } as Client;
+        } else if (ex.client_hint) {
           try { selected = pickClientWithFuzzy(ex.client_hint, await fetchClients(ex.client_hint, d.tab)); } catch { /* 매칭 실패 */ }
         }
         if (selected) { d.setSelectedClient(selected); d.setClientQuery(selected.client_name); }

@@ -94,6 +94,25 @@ export function useClientSearch(tab: OrderTab) {
     [tab],
   );
 
+  /**
+   * 스샷 분석 결과로 거래처 확정.
+   * LLM이 담당자 거래처 목록에서 고른 코드가 확신 높으면 바로 선택,
+   * 아니면 힌트로 기존 퍼지 매칭(applyHint) 폴백.
+   */
+  const CLIENT_AUTO_CONF = 0.75;
+  const selectResolved = useCallback(
+    async (r: { client_code?: string; client_name?: string; client_confidence?: number; client_hint?: string }) => {
+      if (r.client_code && r.client_name && (r.client_confidence ?? 0) >= CLIENT_AUTO_CONF) {
+        setSelected({ client_code: r.client_code, client_name: r.client_name } as Client);
+        setQuery(r.client_name);
+        setShowDropdown(false);
+        return;
+      }
+      await applyHint(r.client_hint || r.client_name || "");
+    },
+    [applyHint],
+  );
+
   return {
     query,
     setQuery,
@@ -105,6 +124,7 @@ export function useClientSearch(tab: OrderTab) {
     dropdownRef,
     pick,
     applyHint,
+    selectResolved,
     reset,
   };
 }

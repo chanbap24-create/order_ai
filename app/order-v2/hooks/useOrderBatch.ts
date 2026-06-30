@@ -20,7 +20,7 @@ function computeStatus(client: Client | null, lines: OrderLine[]): BatchStatus {
 /** 단일 파일 처리: 추출 → 거래처매칭 → 파싱 */
 async function processOne(file: File, tab: OrderTab): Promise<Omit<BatchOrder, "id" | "fileName">> {
   const { data, mediaType } = await fileToBase64(file);
-  const extracted = await extractFromImage(data, mediaType);
+  const extracted = await extractFromImage(data, mediaType, tab);
   if (!extracted.found) {
     return {
       clientHint: extracted.client_hint || "",
@@ -30,10 +30,13 @@ async function processOne(file: File, tab: OrderTab): Promise<Omit<BatchOrder, "
     };
   }
 
-  // 거래처 매칭
+  // 거래처 매칭 — LLM이 담당자 거래처에서 고른 코드가 확신 높으면 우선, 아니면 힌트 퍼지
   let client: Client | null = null;
   let clientOptions: Client[] = [];
-  if (extracted.client_hint) {
+  if (extracted.client_code && extracted.client_name && (extracted.client_confidence ?? 0) >= 0.75) {
+    client = { client_code: extracted.client_code, client_name: extracted.client_name } as Client;
+  }
+  if (!client && extracted.client_hint) {
     try {
       clientOptions = await fetchClients(extracted.client_hint, tab);
       client = pickClientWithFuzzy(extracted.client_hint, clientOptions);
