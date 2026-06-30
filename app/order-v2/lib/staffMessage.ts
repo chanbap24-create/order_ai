@@ -63,3 +63,36 @@ export function buildStaffMessage(p: BuildParams): string {
   const notesLine = p.deliveryNotes.trim() ? `\n${p.deliveryNotes.trim()}\n` : "";
   return `[${name}]\n${deliveryLine ? deliveryLine + "\n" : ""}${notesLine}\n${lines.join("\n")}\n\n발주 요청드립니다.`;
 }
+
+/** 품명 앞 생산자 약어 코드(예: "RO ", "LM ", "BL ") 제거 — 거래처 전달용. */
+function stripBrandPrefix(name: string): string {
+  return (name || "").replace(/^[A-Z]{2,3}\s+/, "").trim() || name;
+}
+
+/**
+ * 거래처에 전달할 카톡 메시지(붙여넣기용).
+ * 직원 메시지와 달리 품번·가격은 빼고, 인사 + 배송예정일 + (품목/수량/가용재고)만.
+ * 품명 앞 약어는 제거. 재고는 가용재고(available_stock) 기준.
+ */
+export function buildClientMessage(p: BuildParams): string {
+  if (p.orderLines.length === 0) return "";
+
+  const name = p.selectedClient?.client_name || p.clientQuery || "";
+  const greeting = name ? `안녕하세요, ${name}님. 발주 확인드립니다.` : "안녕하세요. 발주 확인드립니다.";
+  const deliveryLine = p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "";
+
+  const lines = p.orderLines.map((ol) => {
+    const sel = getSelected(ol);
+    if (!sel) {
+      const unit = getUnit(p.tab, undefined, ol.query);
+      return `- ${ol.query} ${ol.quantity}${unit}`;
+    }
+    const unit = getUnit(p.tab, sel.item_no, sel.item_name);
+    const stock = Number(sel.available_stock) || 0;
+    // 품명+발주수량 한 줄, 남은재고는 다음 줄(들여쓰기)로 분리 — 수량/재고 혼동 방지
+    return `- ${stripBrandPrefix(sel.item_name)} ${ol.quantity}${unit}\n  (남은재고 ${stock}${unit})`;
+  });
+
+  const head = [greeting, deliveryLine].filter(Boolean).join("\n");
+  return `${head}\n\n${lines.join("\n")}\n\n감사합니다.`;
+}

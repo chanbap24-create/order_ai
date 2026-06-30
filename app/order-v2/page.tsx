@@ -181,6 +181,14 @@ export default function OrderV2Page() {
               />
             </div>
 
+            {/* 거래처에 보낼 카톡 문구 (인사 + 배송예정일 + 품목/수량/가용재고) */}
+            <StaffMessageCard
+              title="거래처 전달 메시지"
+              staffMessage={g.clientMessage}
+              copied={g.clientCopied}
+              onCopy={g.copyClientMessage}
+            />
+
             <ItemListSection count={parse.orderLines.length}>
               {parse.orderLines.map((ol, lineIdx) => {
                 const isExpanded = editor.expandedLines.has(lineIdx);

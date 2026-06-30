@@ -6,10 +6,11 @@ type Props = {
   staffMessage: string;
   copied: boolean;
   onCopy: () => void;
+  title?: string;
 };
 
-/** 직원 메시지 카드 — pre 본문 + 복사 버튼 */
-export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
+/** 메시지 카드 — pre 본문 + 복사 버튼 (직원/거래처 공용, title로 구분) */
+export function StaffMessageCard({ staffMessage, copied, onCopy, title = "발주 메시지" }: Props) {
   return (
     <div
       className="order-card"
@@ -41,7 +42,7 @@ export function StaffMessageCard({ staffMessage, copied, onCopy }: Props) {
             }}
           />
           <span style={{ fontSize: 13, fontWeight: 700, color: ORDER_COLORS.text }}>
-            발주 메시지
+            {title}
           </span>
         </div>
         <button

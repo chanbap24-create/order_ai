@@ -7,7 +7,7 @@ import {
   setSelected,
   setSelectedSupplyPrice,
 } from "../lib/lineOps";
-import { buildStaffMessage } from "../lib/staffMessage";
+import { buildStaffMessage, buildClientMessage } from "../lib/staffMessage";
 import type { HistoryItem, OrderLine, OrderTab, SearchResult } from "../types";
 import type { IntakeResult } from "../lib/api";
 import { learnOrderCorrections } from "../lib/api";
@@ -48,6 +48,7 @@ export function useOrderV2Page() {
 
   // 토큰 및 UI 상태
   const [copied, setCopied] = useState(false);
+  const [clientCopied, setClientCopied] = useState(false);
   const [showDeliveryDate, setShowDeliveryDate] = useState(false);
   const [showDeliveryNotes, setShowDeliveryNotes] = useState(false);
   const [deliveryNotes, setDeliveryNotes] = useState("");
@@ -157,8 +158,8 @@ export function useOrderV2Page() {
     });
   };
 
-  // 직원 메시지 빌드
-  const staffMessage = buildStaffMessage({
+  // 메시지 빌드 (직원용 + 거래처 전달용 — 같은 파라미터)
+  const msgParams = {
     orderLines: parse.orderLines,
     tab,
     selectedClient: client.selected,
@@ -167,7 +168,9 @@ export function useOrderV2Page() {
     historySet: parse.historySet,
     finalDeliveryLabel: delivery.finalLabel,
     deliveryNotes,
-  });
+  };
+  const staffMessage = buildStaffMessage(msgParams);
+  const clientMessage = buildClientMessage(msgParams);
 
   const copyMessage = () => {
     navigator.clipboard.writeText(staffMessage);
@@ -175,6 +178,12 @@ export function useOrderV2Page() {
     setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
     // 확정(복사) 시점에 정정 학습 — 다음 파싱부터 자동 반영
     learnOrderCorrections(parse.orderLines);
+  };
+
+  const copyClientMessage = () => {
+    navigator.clipboard.writeText(clientMessage);
+    setClientCopied(true);
+    setTimeout(() => setClientCopied(false), COPY_FEEDBACK_MS);
   };
 
   // 자동(단건) 오케스트레이션 — staffMessage 준비된 뒤 인스턴스화. 결과는 배치와 공용 노출.
@@ -258,6 +267,9 @@ export function useOrderV2Page() {
     copied,
     copyMessage,
     staffMessage,
+    clientMessage,
+    clientCopied,
+    copyClientMessage,
     deliveryNotes,
     setDeliveryNotes,
     showDeliveryDate,
