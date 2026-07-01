@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   LedgerRow, Company, POSITIONS, Copy, F, won, mmdd,
-  chip, chipOn, card, mut, th, td, badgeDone, badgePending, dateInput, fw, lbl, inp, muted,
+  chip, chipOn, card, mut, th, td, badgeDone, badgePending, dateInput, fw, lbl, inp, muted, panel,
 } from "./tastingShared";
 
 type StatusFilter = "pending" | "submitted" | "all";
@@ -24,6 +24,7 @@ export default function TastingApprovalView({ rows, company, currentManager, dep
   const [extra, setExtra] = useState("-신규 리스트 제안");
   const [dateOverride, setDateOverride] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending"); // 기본 미상신 먼저
+  const [showSettings, setShowSettings] = useState(false); // 결재정보 접기
 
   // 담당자/부서가 바뀌면 결재정보를 그 기준으로 리셋(effect 없이 렌더 중 조정).
   const [syncKey, setSyncKey] = useState(`${currentManager}|${department || ""}`);
@@ -65,14 +66,19 @@ export default function TastingApprovalView({ rows, company, currentManager, dep
 
   return (
     <div>
-      {/* 공용 결재정보(부서·사용자·직위·비고) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12, maxWidth: 620 }}>
-        <F label="사용부서" v={dept} set={setDept} /><F label="사용자" v={user} set={setUser} />
-        <F label="직위" v={position} set={setPosition} />
-        <label style={{ ...fw, gridColumn: "1 / -1" }}><span style={lbl}>비고 추가문구</span>
-          <input value={extra} onChange={(e) => setExtra(e.target.value)} style={inp} /></label>
+      {/* 결재정보(부서·사용자·직위·비고) — 설정 버튼으로 접기 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: showSettings ? 10 : 12, flexWrap: "wrap" }}>
+        <button onClick={() => setShowSettings((s) => !s)} style={chip}>⚙ 결재정보 {showSettings ? "닫기" : "설정"}</button>
+        <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>값을 클릭하면 복사 · 지급일자(출고일) 수정 가능 · [JSON 복사]→매크로</span>
       </div>
-      <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 10 }}>값을 클릭하면 복사됩니다. 지급일자(출고일)는 수정 가능. [JSON 복사] → eKP 매크로에 붙여넣기.</div>
+      {showSettings && (
+        <div style={{ ...panel, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, maxWidth: 640 }}>
+          <F label="사용부서" v={dept} set={setDept} /><F label="사용자" v={user} set={setUser} />
+          <F label="직위" v={position} set={setPosition} />
+          <label style={{ ...fw, gridColumn: "1 / -1" }}><span style={lbl}>비고 추가문구</span>
+            <input value={extra} onChange={(e) => setExtra(e.target.value)} style={inp} /></label>
+        </div>
+      )}
 
       {/* 상신 상태 필터(미상신 먼저) */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
