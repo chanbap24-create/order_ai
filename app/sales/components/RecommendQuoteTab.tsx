@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { ClientOption } from '../recommend/types';
+import type { ClientOption, ScoredItem } from '../recommend/types';
+import { diversify } from '../recommend/lib/diversify';
 import { useManagers } from '../recommend/hooks/useManagers';
 import { useClientSearch } from '../recommend/hooks/useClientSearch';
 import { useRecommendQuote } from '../recommend/hooks/useRecommendQuote';
@@ -53,12 +54,12 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const [settings, setSettings] = useState<RecSettings>(loadRecSettings);
   const [anchor, setAnchor] = useState<AnchorItem | null>(null); // 대체상품 모드 기준 상품(쇼트난 품목)
   const items = rec.result?.recommendations || [];
-  // 추천 개수 고정(락): items 는 점수 내림차순 → 상위 N개를 취하면
-  // 초과분 컷(조건 통과>N)·부족분 백필(조건 통과<N, 다음 점수로 채움)이 동시에 해결됨.
-  // 락 끔(0)이면 점수 허들(minScore) 즉시 필터만 적용.
-  const visible = settings.lockCount > 0
-    ? items.slice(0, settings.lockCount)
-    : items.filter((i) => i.score >= settings.minScore);
+  // 다양성 캡(타입/지역당 최대) + 락(개수 고정) 적용. items 는 점수 내림차순.
+  // 락 ON: 상위 N개를 캡 지켜가며 채움(부족하면 백필). 락 OFF: 점수 허들 필터 후 캡만.
+  const diversifyOpts = { maxPerType: settings.maxPerType, maxPerRegion: settings.maxPerRegion };
+  const visible: ScoredItem[] = settings.lockCount > 0
+    ? diversify(items, { ...diversifyOpts, targetCount: settings.lockCount })
+    : diversify(items.filter((i) => i.score >= settings.minScore), diversifyOpts);
 
   // 설정 변경 시 저장(영업사원별, localStorage)
   useEffect(() => { saveRecSettings(settings); }, [settings]);

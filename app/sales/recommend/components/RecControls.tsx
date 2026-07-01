@@ -108,6 +108,17 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           onChange={(e) => set({ lockCount: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
         <span style={hint}>{s.lockCount > 0 ? `${s.lockCount}개로 고정 · 현재 ${visibleCount}개` : '0=끔'}</span>
       </div>
+      {/* 다양성: 타입/지역당 최대 개수 — 한 타입(샴페인 등)·한 지역 쏠림 방지 */}
+      <div style={rowS}>
+        <span style={lbl}>다양성 캡</span>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>타입당</span>
+        <input type="number" min={0} max={30} value={s.maxPerType} style={numIn}
+          onChange={(e) => set({ maxPerType: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>지역당</span>
+        <input type="number" min={0} max={30} value={s.maxPerRegion} style={numIn}
+          onChange={(e) => set({ maxPerRegion: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+        <span style={hint}>최대 개수 · 0=끔 (예: 타입당 2면 샴페인 최대 2개)</span>
+      </div>
       {/* 지역 확장 범위 */}
       <div style={rowS}>
         <span style={lbl}>지역 확장</span>
