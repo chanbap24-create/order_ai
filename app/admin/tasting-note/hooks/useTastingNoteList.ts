@@ -137,10 +137,11 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     ).length,
   };
 
-  // 탭 배지용: 토글(와인만/제외됨)과 무관한 안정적 "신규 작업대상" 수
-  const newActionableCount = wines.filter((w) =>
+  // 탭 배지용: 토글(와인만/제외됨)과 무관한 안정적 "신규 작업대상" 목록/수
+  const newWines = wines.filter((w) =>
     isActionableNew(w, hasNote(w), { requireWineCategory: true, showExcluded: false }),
-  ).length;
+  );
+  const newActionableCount = newWines.length;
 
   /** 전체 재조회 없이 리스트의 단일 행만 갱신 (편집 시 정렬/스크롤 유지용) */
   const patchWine = (itemCode: string, patch: Partial<TastingWineRow>) =>
@@ -169,7 +170,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     wineOnly, setWineOnly,
     lowStockThreshold, setLowStockThreshold,
     showExcluded, setShowExcluded, setExcluded,
-    ghIndex, ghError, refreshGhIndex, counts, newActionableCount,
+    ghIndex, ghError, refreshGhIndex, counts, newActionableCount, newWines,
     selectedId, setSelectedId,
     checkedIds, setCheckedIds, toggleCheck, toggleAllChecks,
     fetchWines, patchWine, hasNote,

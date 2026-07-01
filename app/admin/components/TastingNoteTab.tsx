@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTastingNoteList } from '../tasting-note/hooks/useTastingNoteList';
 import { useTastingNoteBatch } from '../tasting-note/hooks/useTastingNoteBatch';
+import { useNewWinePipeline } from '../tasting-note/hooks/useNewWinePipeline';
 import { useWineDetail } from '../new-wine/hooks/useWineDetail';
 import { NoteToolbar } from '../tasting-note/components/NoteToolbar';
 import { NoteListPanel } from '../tasting-note/components/NoteListPanel';
+import { NewWinePopup } from '../tasting-note/components/NewWinePopup';
 import { WineEditPanel } from '../new-wine/components/WineEditPanel';
 import { ResearchDetailPanel } from '../new-wine/components/ResearchDetailPanel';
 import { ProgressBars } from '../new-wine/components/ProgressBars';
-import type { NoteFilter } from '../tasting-note/types';
+import type { NoteFilter, TastingWineRow } from '../tasting-note/types';
+
+const SEEN_KEY = 'tn_new_seen'; // 이미 알린 신규 품번(중복 팝업 방지)
 
 export default function TastingNoteTab({
   initialFilter = 'all',
@@ -37,8 +41,57 @@ export default function TastingNoteTab({
 
   const [showDetailPanel, setShowDetailPanel] = useState(true);
 
+  // 신규 와인 감지 팝업 — 진입 시 미확인 신규가 있으면 자동 표시. 체크한 것만 일괄 파이프라인.
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [popupWines, setPopupWines] = useState<TastingWineRow[]>([]);
+  const seenRef = useRef<Set<string>>(new Set());
+  const [seenLoaded, setSeenLoaded] = useState(false);
+  useEffect(() => {
+    try { seenRef.current = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); } catch { /* ignore */ }
+    setSeenLoaded(true);
+  }, []);
+
+  const newKey = list.newWines.map((w) => w.item_code).sort().join(',');
+  useEffect(() => {
+    if (!seenLoaded || list.newWines.length === 0) return;
+    if (list.newWines.some((w) => !seenRef.current.has(w.item_code))) {
+      setPopupWines(list.newWines);
+      setPopupOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newKey, seenLoaded]);
+
+  const pipeline = useNewWinePipeline({
+    onDone: () => { list.fetchWines(); list.refreshGhIndex(true); },
+  });
+
+  const closePopup = () => {
+    for (const w of popupWines) seenRef.current.add(w.item_code);
+    try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seenRef.current])); } catch { /* ignore */ }
+    setPopupOpen(false);
+  };
+
+  // 수동 트리거: 체크한 와인으로 동일 파이프라인 팝업 열기(신규 0개여도 테스트·실행 가능)
+  const openPipelineForChecked = () => {
+    const rows = list.wines.filter((w) => list.checkedIds.has(w.item_code));
+    if (rows.length === 0) return;
+    setPopupWines(rows);
+    setPopupOpen(true);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)' }}>
+      {popupOpen && popupWines.length > 0 && (
+        <NewWinePopup
+          wines={popupWines}
+          running={pipeline.running}
+          progress={pipeline.progress}
+          result={pipeline.result}
+          onRun={pipeline.run}
+          onClose={closePopup}
+        />
+      )}
+
       <NoteToolbar
         filterNote={list.filterNote}
         setFilterNote={list.setFilterNote}
@@ -55,6 +108,7 @@ export default function TastingNoteTab({
         setLowStockThreshold={list.setLowStockThreshold}
         checkedSize={list.checkedIds.size}
         ops={ops}
+        onOpenPipeline={openPipelineForChecked}
       />
 
       {list.ghError && (

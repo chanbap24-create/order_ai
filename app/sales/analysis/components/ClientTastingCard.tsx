@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTasting, type SelectionMode } from "../hooks/useTasting";
+import { useTasting, type SelectionMode, type TastingHistoryRow } from "../hooks/useTasting";
+import { TastingApprovalModal } from "./TastingApprovalModal";
 
 type Props = {
   clientCode: string;
@@ -22,6 +23,7 @@ const won = (n: number) => (n || 0).toLocaleString();
 export function ClientTastingCard({ clientCode, clientName, clientType, manager }: Props) {
   const t = useTasting(clientCode, clientType, clientName, manager);
   const [msg, setMsg] = useState<string>("");
+  const [approval, setApproval] = useState<TastingHistoryRow | null>(null);
 
   if (t.loading || !t.policy) {
     return <div style={card}><div style={title}>시음주</div><div style={muted}>불러오는 중…</div></div>;
@@ -109,9 +111,21 @@ export function ClientTastingCard({ clientCode, clientName, clientType, manager 
               <span style={{ color: "var(--text-tertiary)", width: 76 }}>{fmtDate(h.created_at)}</span>
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.item_name}</span>
               <span style={{ color: "var(--text-tertiary)" }}>{won(h.supply)}원</span>
+              <button onClick={() => setApproval(h)} style={approvalBtn}>결재</button>
             </div>
           ))}
         </div>
+      )}
+
+      {approval && (
+        <TastingApprovalModal
+          clientName={clientName}
+          manager={manager}
+          itemName={approval.item_name}
+          supply={approval.supply}
+          date={approval.created_at}
+          onClose={() => setApproval(null)}
+        />
       )}
     </div>
   );
@@ -132,6 +146,10 @@ const btnPrimary: React.CSSProperties = {
   border: "1px solid var(--action)", background: "var(--action)", color: "white",
 };
 const histRow: React.CSSProperties = {
-  display: "flex", gap: 8, fontSize: 12, padding: "3px 0",
+  display: "flex", gap: 8, alignItems: "center", fontSize: 12, padding: "3px 0",
   borderTop: "1px dashed var(--gray-100)", color: "var(--text-secondary)",
+};
+const approvalBtn: React.CSSProperties = {
+  padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+  border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-secondary)",
 };

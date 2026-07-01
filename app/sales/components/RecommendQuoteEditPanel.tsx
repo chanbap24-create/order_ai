@@ -15,6 +15,7 @@ import { useQuoteExports } from '@/app/inventory/hooks/useQuoteExports';
 import { useTastingNoteModal } from '@/app/inventory/hooks/useTastingNoteModal';
 import { DesktopSidebarContainer } from '@/app/inventory/components/DesktopSidebarContainer';
 import { TastingNoteModal } from '@/app/inventory/components/TastingNoteModal';
+import { QuoteItemSearchAdd } from '@/app/sales/recommend/components/QuoteItemSearchAdd';
 
 type Props = {
   quote: ReturnType<typeof useQuoteItems>;
@@ -94,17 +95,21 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
 
   if (items.length === 0) {
     return (
-      <div style={{
-        textAlign: 'center', padding: '28px 20px', color: 'var(--text-muted)', fontSize: 13,
-        border: '1px dashed var(--action-muted)', borderRadius: 10,
-      }}>
-        추천에서 와인을 선택하고 <b>“견적에 담기”</b>를 누르면, 여기서 할인률·수량·컬럼을 바로 편집하고 견적서를 발행할 수 있습니다.
+      <div>
+        <QuoteItemSearchAdd onAdd={quote.addToQuote} />
+        <div style={{
+          textAlign: 'center', padding: '28px 20px', color: 'var(--text-muted)', fontSize: 13,
+          border: '1px dashed var(--action-muted)', borderRadius: 10,
+        }}>
+          추천에서 와인을 선택해 <b>“견적에 담기”</b>를 누르거나, 위에서 <b>직접 검색해 담을</b> 수 있습니다.
+        </div>
       </div>
     );
   }
 
   return (
     <div>
+      <QuoteItemSearchAdd onAdd={quote.addToQuote} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <button onClick={exports.handleExport} disabled={exports.exporting}
           style={{ ...btn, background: 'var(--action)', color: '#fff', borderColor: 'var(--action)', opacity: exports.exporting ? 0.6 : 1 }}>

@@ -20,6 +20,8 @@ type Props = {
   setLowStockThreshold: (n: number) => void;
   checkedSize: number;
   ops: ReturnType<typeof useTastingNoteBatch>;
+  /** 체크한 와인으로 일괄 파이프라인(리서치→PPTX/PDF 발행→인덱스) 팝업 열기 */
+  onOpenPipeline: () => void;
 };
 
 const btn: React.CSSProperties = {
@@ -168,6 +170,21 @@ export function NoteToolbar(p: Props) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <button
+          onClick={p.onOpenPipeline}
+          disabled={p.checkedSize === 0}
+          title="체크한 와인을 리서치 → PPTX·PDF 발행 → 인덱스까지 한 번에 (신규 감지 팝업과 동일 파이프라인)"
+          style={{
+            ...btn,
+            background: p.checkedSize > 0 ? "linear-gradient(135deg,var(--action),#8B2252)" : "rgba(90,21,21,0.05)",
+            color: p.checkedSize > 0 ? "#fff" : "var(--text-muted)",
+            fontWeight: 700,
+            opacity: p.checkedSize === 0 ? 0.5 : 1,
+          }}
+        >
+          🍷 일괄생성·발행 ({p.checkedSize})
+        </button>
+        <div style={DIVIDER} />
         <button
           onClick={p.ops.batchResearch}
           disabled={p.ops.batchRunning || p.checkedSize === 0}
