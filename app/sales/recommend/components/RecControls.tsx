@@ -36,6 +36,7 @@ const STOCK_TIERS: { k: keyof RecSettings['minStock']; t: string }[] = [
 export function RecControls({ settings: s, onChange, onReapply, itemsCount, visibleCount, loading }: Props) {
   const [showStock, setShowStock] = useState(false);
   const [showScore, setShowScore] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); // 옵션 본문 접기
   const set = (patch: Partial<RecSettings>) => onChange({ ...s, ...patch });
   // 옵션 변경은 설정만 갱신(자동 재생성 안 함). 실제 반영은 '다시 생성' 버튼.
   const setReapply = (patch: Partial<RecSettings>) => onChange({ ...s, ...patch });
@@ -66,7 +67,12 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           background: loading ? 'var(--gray-300)' : 'var(--action)', color: '#fff',
         }}>{loading ? '생성 중…' : '↻ 이 설정으로 다시 생성'}</button>
         <span style={hint}>옵션을 바꾼 뒤 눌러야 반영됩니다</span>
+        <button onClick={() => setShowSettings(!showSettings)} style={{
+          marginLeft: 'auto', padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: 'pointer',
+          border: '1px solid var(--gray-300)', background: '#fff', color: 'var(--text-secondary)',
+        }}>⚙ 설정 {showSettings ? '닫기' : '열기'}</button>
       </div>
+      {showSettings && (<>
       {/* 분석 기간 */}
       <div style={rowS}>
         <span style={lbl}>분석 기간</span>
@@ -200,6 +206,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           </div>
         )}
       </div>
+      </>)}
     </div>
   );
 }
