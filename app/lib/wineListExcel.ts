@@ -53,11 +53,19 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
   const codes = allWines.map(w => w.item_code);
   const bondedMap = new Map<string, number>();
   const availMap = new Map<string, number | null>();
+  const priceMap = new Map<string, number>();
   for (let i = 0; i < codes.length; i += 1000) {
-    const { data: invRows } = await supabase.from('inventory_cdv').select('item_no, available_stock, bonded_warehouse').in('item_no', codes.slice(i, i + 1000));
-    for (const r of (invRows || [])) { bondedMap.set(r.item_no, r.bonded_warehouse || 0); availMap.set(r.item_no, r.available_stock); }
+    const { data: invRows } = await supabase.from('inventory_cdv').select('item_no, available_stock, bonded_warehouse, supply_price').in('item_no', codes.slice(i, i + 1000));
+    for (const r of (invRows || [])) {
+      bondedMap.set(r.item_no, r.bonded_warehouse || 0);
+      availMap.set(r.item_no, r.available_stock);
+      if (r.supply_price) priceMap.set(r.item_no, r.supply_price);
+    }
   }
   const realAvail = (w: WineRow): number => availMap.get(w.item_code) ?? (w.available_stock ?? 0);
+  // 공급가도 실재고처럼 inventory_cdv(엑셀 업로드값) 우선 — wines.supply_price 는 0/구값이라
+  // '5천 이하 제외'·가격대 필터에 잘못 걸려 정상 품목이 리스트에서 누락되던 문제 방지.
+  for (const w of allWines) { const p = priceMap.get(w.item_code); if (p && p > 0) w.supply_price = p; }
 
   if (hideZero) allWines = allWines.filter(w => realAvail(w) + (bondedMap.get(w.item_code) || 0) > 0);
 
