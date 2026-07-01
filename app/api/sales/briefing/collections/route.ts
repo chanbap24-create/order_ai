@@ -94,9 +94,11 @@ export async function GET(req: NextRequest) {
     const promiseToday: CollItem[] = [], broken: CollItem[] = [], overdue: CollItem[] = [];
     for (const it of all) {
       if (it.status === 'paid' || it.net_balance <= 0) continue;
-      if (fulfilled.has(`${it.client_code}|${it.client_type}`)) continue; // 약속금액 입금 완료 → 제외
-      if (it.promised_date === today) { promiseToday.push(it); continue; }
-      if (it.promised_date && it.promised_date < today) { broken.push(it); continue; }
+      // 약속금액 입금 완료 → '약속(오늘 약속·약속어김)'에서만 제외.
+      // 단 미수가 남아 연체면 '연체'에는 계속 표기(약속 이행이 잔여 미수까지 없애면 안 됨).
+      const promiseDone = fulfilled.has(`${it.client_code}|${it.client_type}`);
+      if (!promiseDone && it.promised_date === today) { promiseToday.push(it); continue; }
+      if (!promiseDone && it.promised_date && it.promised_date < today) { broken.push(it); continue; }
       if (it.overdue > 0) overdue.push(it);
     }
     const byOverdue = (a: CollItem, b: CollItem) => b.overdue - a.overdue || b.days_overdue - a.days_overdue;
