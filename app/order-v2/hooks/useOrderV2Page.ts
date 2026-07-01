@@ -166,10 +166,16 @@ export function useOrderV2Page() {
     setTastingBusy(true);
     try {
       const clientType = tab === "DL" ? "glass" : "wine";
+      // 출고일 = 발주 배송일(직접 지정 우선, 없으면 계산된 배송일) → 시음주 결재 지급일자로 사용.
+      let shipDate = delivery.customDate || "";
+      const dd = delivery.info && delivery.info.date;
+      if (!shipDate && dd instanceof Date) {
+        shipDate = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
+      }
       const res = await fetch("/api/sales/tasting/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_code: sel.client_code, client_type: clientType, client_name: sel.client_name }),
+        body: JSON.stringify({ client_code: sel.client_code, client_type: clientType, client_name: sel.client_name, ship_date: shipDate }),
       });
       const d = await res.json();
       if (!d.ok) { alert(`시음주 추가 실패: ${d.reason || ""}`); return; }
@@ -187,7 +193,7 @@ export function useOrderV2Page() {
           quantity: 1,
           candidates: [{
             item_no: w.item_no, item_name: w.item_name, confidence: 1,
-            supply_price: w.supply_price || 0, available_stock: 0, reasoning: `시음주 · ${label}`,
+            supply_price: w.supply_price || 0, available_stock: w.available_stock || 0, reasoning: `시음주 · ${label}`,
           }],
           selectedIdx: 0,
         },
@@ -200,7 +206,7 @@ export function useOrderV2Page() {
     } finally {
       setTastingBusy(false);
     }
-  }, [client.selected, tab, parse, editor]);
+  }, [client.selected, tab, parse, editor, delivery]);
 
   // 메시지 빌드 (직원용 + 거래처 전달용 — 같은 파라미터)
   const msgParams = {

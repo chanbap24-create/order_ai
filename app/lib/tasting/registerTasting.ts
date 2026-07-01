@@ -31,13 +31,14 @@ export interface RegisterTastingParams {
   itemNo?: string; // 수동 지정(있으면 선정방식 무시)
   modeOverride?: SelectionMode; // 정책 선정방식 대신 강제
   force?: boolean; // 월 한도 무시(관리자)
+  shipDate?: string; // 출고일(YYYY-MM-DD) — 발주 배송일. 결재 지급일자로 사용.
 }
 
 export interface RegisterTastingResult {
   ok: boolean;
   reason?: string;
   savedQuoteId?: number;
-  item?: { item_no: string; item_name: string; supply_price: number };
+  item?: { item_no: string; item_name: string; supply_price: number; available_stock: number };
   usage?: { qty: number; amount: number; qtyLimit: number; amountLimit: number | null };
   source?: "manual" | "monthly" | "ai" | "stock"; // 와인을 어떻게 골랐는지
   note?: string; // 진단(추천 실패 사유 등)
@@ -152,12 +153,13 @@ export async function registerTasting(p: RegisterTastingParams): Promise<Registe
     company,
     items: [quoteItem],
     is_tasting: true,
+    doc_settings: p.shipDate ? { ship_date: p.shipDate } : undefined, // 출고일 기록(결재 지급일자)
   });
 
   return {
     ok: true,
     savedQuoteId: id,
-    item: { item_no: item.item_no, item_name: item.item_name, supply_price: supply },
+    item: { item_no: item.item_no, item_name: item.item_name, supply_price: supply, available_stock: stock },
     usage: usageInfo,
     source,
     note: note || undefined,

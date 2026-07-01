@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const manager = isAdmin(session.role) ? body.manager || session.manager : session.manager;
     const mode: SelectionMode | undefined = ["recommend", "manual", "monthly"].includes(body.mode) ? body.mode : undefined;
 
+    const shipDate = /^\d{4}-\d{2}-\d{2}$/.test(String(body.ship_date || "")) ? String(body.ship_date) : undefined;
     const result = await registerTasting({
       clientCode,
       clientName: String(body.client_name || ""),
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
       itemNo: body.item_no ? String(body.item_no).trim() : undefined,
       modeOverride: mode,
       force: !!body.force,
+      shipDate,
     });
     return NextResponse.json(result, { status: result.ok ? 200 : 400 });
   } catch (err) {
