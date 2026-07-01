@@ -3,15 +3,15 @@
 export type SalesTabId =
   | 'meetings' | 'briefing' | 'shipments' | 'client-list' | 'analysis'
   | 'ledger' | 'item-ledger' | 'outstanding' | 'payment-terms' | 'alerts' | 'expense'
-  | 'recommend-quote';
+  | 'recommend-quote' | 'tasting-approval';
 
 const TABS: { id: SalesTabId; label: string }[] = [
   { id: 'meetings', label: '미팅' },
   { id: 'briefing', label: '브리핑' },
-  { id: 'recommend-quote', label: '추천견적' },
   { id: 'shipments', label: '출고현황' },
   { id: 'client-list', label: '거래처' },
   { id: 'expense', label: '경비' },
+  { id: 'tasting-approval', label: '시음주' },
   { id: 'alerts', label: '알림' },
   { id: 'analysis', label: '분석' },
   { id: 'outstanding', label: '미수현황' },
