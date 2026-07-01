@@ -21,31 +21,13 @@ export async function getManagerClients(manager: string, tab: string): Promise<M
   if (!manager?.trim()) return [];
   const isGlass = tab === "DL";
 
-  // 1) 거래처 코드·이름
+  // 1) 거래처 코드·이름 — DISTINCT RPC로 담당자 전체 거래처를 정확히 조회(원행 limit 누락 방지)
   const byCode = new Map<string, string>(); // code → name
-  if (isGlass) {
-    // 글라스는 client_details.manager가 비어 있어 출고이력에서 거래처를 모음
-    const { data } = await supabase
-      .from("glass_shipments")
-      .select("client_code, client_name")
-      .eq("manager", manager)
-      .limit(8000);
-    for (const r of (data || []) as Row[]) {
-      const code = String(r.client_code || "").trim();
-      const name = String(r.client_name || "").trim();
-      if (code && name && !isUnusedClient(name) && !byCode.has(code)) byCode.set(code, name);
-    }
-  } else {
-    const { data } = await supabase
-      .from("client_details")
-      .select("client_code, client_name")
-      .eq("manager", manager)
-      .eq("client_type", "wine");
-    for (const r of (data || []) as Row[]) {
-      const code = String(r.client_code || "").trim();
-      const name = String(r.client_name || code).trim();
-      if (code && name && !isUnusedClient(name) && !byCode.has(code)) byCode.set(code, name);
-    }
+  const { data } = await supabase.rpc("manager_clients", { p_manager: manager, p_glass: isGlass });
+  for (const r of (data || []) as Row[]) {
+    const code = String(r.client_code || "").trim();
+    const name = String(r.client_name || code).trim();
+    if (code && name && !isUnusedClient(name) && !byCode.has(code)) byCode.set(code, name);
   }
   if (byCode.size === 0) return [];
 
@@ -79,20 +61,8 @@ export async function getManagerClients(manager: string, tab: string): Promise<M
 export async function getManagerClientCodes(manager: string, tab: string): Promise<Set<string>> {
   const set = new Set<string>();
   if (!manager?.trim()) return set;
-  if (tab === "DL") {
-    const { data } = await supabase
-      .from("glass_shipments")
-      .select("client_code")
-      .eq("manager", manager)
-      .limit(8000);
-    for (const r of (data || []) as Row[]) if (r.client_code) set.add(String(r.client_code));
-  } else {
-    const { data } = await supabase
-      .from("client_details")
-      .select("client_code")
-      .eq("manager", manager)
-      .eq("client_type", "wine");
-    for (const r of (data || []) as Row[]) if (r.client_code) set.add(String(r.client_code));
-  }
+  // DISTINCT RPC로 담당자 전체 거래처 코드를 정확히 조회(원행 limit 누락 방지)
+  const { data } = await supabase.rpc("manager_clients", { p_manager: manager, p_glass: tab === "DL" });
+  for (const r of (data || []) as Row[]) if (r.client_code) set.add(String(r.client_code));
   return set;
 }
