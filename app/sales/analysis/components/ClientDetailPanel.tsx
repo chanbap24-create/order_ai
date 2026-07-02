@@ -6,6 +6,7 @@ import { useClientDetail } from "../hooks/useClientDetail";
 import RecommendQuoteTab from "../../components/RecommendQuoteTab";
 import { ClientDetailHeader } from "./ClientDetailHeader";
 import { ClientContactCard } from "./ClientContactCard";
+import { ClientVenueCard } from "./ClientVenueCard";
 import { SalesStatusCard } from "./SalesStatusCard";
 import { PreferenceCharts } from "./PreferenceCharts";
 import { ClientTagsCard } from "./ClientTagsCard";
@@ -76,6 +77,11 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
                   onSave={detail.handleSave}
                 />
               )}
+
+              <ClientVenueCard
+                clientCode={client.client_code}
+                clientType={(filters?.type ?? client.client_type ?? "wine") as "wine" | "glass"}
+              />
 
               <SalesStatusCard stats={detail.detailStats} filters={filters} />
 
