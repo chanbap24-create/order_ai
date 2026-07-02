@@ -31,6 +31,7 @@ export const VENUE_GROUPS: VenueGroup[] = [
       { key: 'hanjeongsik', label: '한정식·모던한식', wine: '화이트·레드 균형·다양' },
       { key: 'hoetjip', label: '횟집·해산물', wine: '화이트·샴페인' },
       { key: 'jjim', label: '찜·탕·전골', wine: '화이트·가벼운 레드' },
+      { key: 'kfusion', label: '퓨전 한식', wine: '다양(전 타입 균형)·주정강화 제외' },
     ],
   },
   {
