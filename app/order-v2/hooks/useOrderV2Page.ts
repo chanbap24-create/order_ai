@@ -182,7 +182,7 @@ export function useOrderV2Page() {
       const w = d.item;
       const label =
         d.source === "ai" ? "거래처 AI 추천"
-        : d.source === "monthly" ? "이달의 시음주(1픽)"
+        : d.source === "favorite" ? "즐겨찾기 기본값"
         : d.source === "manual" ? "수동 지정"
         : "재고순";
       const newIdx = parse.orderLines.length;

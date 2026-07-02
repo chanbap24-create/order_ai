@@ -13,16 +13,17 @@ type Settings = {
   wine_types: string[];
 };
 type Candidate = { item_no: string; item_name: string; available_stock: number; supply_price: number; wine_type: string; score?: number };
+type FavRow = { item_no: string; item_name: string; is_default: boolean; available_stock?: number | null; supply_price?: number | null };
 const won = (n: number) => (n || 0).toLocaleString();
 
-/** 시음주 선정 설정(필터/1픽) 모달. clientCode 있으면 후보=그 거래처 AI 추천. */
+/** 시음주 선정 설정(필터 + 즐겨찾기) 모달. clientCode 있으면 후보=그 거래처 AI 추천. */
 export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderTab; clientCode?: string; onClose: () => void }) {
   const company = tab === "DL" ? "DL" : "CDV";
   const [s, setS] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
-  const [pick, setPick] = useState<{ item_no: string; item_name: string; available_stock?: number | null; supply_price?: number | null } | null>(null);
-  const [pickQ, setPickQ] = useState("");
-  const [pickResults, setPickResults] = useState<SearchResult[]>([]);
+  const [favorites, setFavorites] = useState<FavRow[]>([]);
+  const [favQ, setFavQ] = useState("");
+  const [favResults, setFavResults] = useState<SearchResult[]>([]);
   const [rawCandidates, setRawCandidates] = useState<Candidate[]>([]);
   const [candLoading, setCandLoading] = useState(false);
 
@@ -31,15 +32,14 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
       .then((r) => r.json())
       .then((d) => { if (d.settings) setS(d.settings); })
       .catch(() => setS({ min_stock: 1, price_min: null, price_max: null, wine_types: [] }));
-    fetch(`/api/sales/tasting/monthly-pick?company=${company}`)
+    fetch(`/api/sales/tasting/favorites?company=${company}`)
       .then((r) => r.json())
-      .then((d) => setPick(d.pick || null))
-      .catch(() => setPick(null));
+      .then((d) => setFavorites(d.favorites || []))
+      .catch(() => setFavorites([]));
   }, [company]);
 
-  // 후보 풀 한 번 로드(거래처 있으면 그 거래처 AI 추천, 없으면 재고). 필터는 아래서 클라이언트 적용.
+  // 후보 풀 로드(거래처 있으면 그 거래처 AI 추천순, 없으면 재고). 클릭하면 즐겨찾기에 추가.
   useEffect(() => {
-    if (pick) { setRawCandidates([]); return; }
     const params = new URLSearchParams({ company });
     if (clientCode) params.set("client_code", clientCode);
     setCandLoading(true);
@@ -48,7 +48,7 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
       .then((d) => setRawCandidates(d.candidates || []))
       .catch(() => setRawCandidates([]))
       .finally(() => setCandLoading(false));
-  }, [company, clientCode, pick]);
+  }, [company, clientCode]);
 
   // 현재 필터(미저장 포함)로 클라이언트 필터링
   const WT_LEN = WINE_TYPES.length;
@@ -61,24 +61,35 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
     return true;
   });
 
-  const onPickSearch = async (q: string) => {
-    setPickQ(q);
-    if (q.trim().length < 1) { setPickResults([]); return; }
-    try { setPickResults(await searchWines(q, tab)); } catch { setPickResults([]); }
+  const onFavSearch = async (q: string) => {
+    setFavQ(q);
+    if (q.trim().length < 1) { setFavResults([]); return; }
+    try { setFavResults(await searchWines(q, tab)); } catch { setFavResults([]); }
   };
-  const choosePick = async (itemNo: string, itemName: string) => {
-    setPickQ(""); setPickResults([]);
-    const res = await fetch("/api/sales/tasting/monthly-pick", {
-      method: "PUT", headers: { "Content-Type": "application/json" },
+  const addFav = async (itemNo: string, itemName: string) => {
+    setFavQ(""); setFavResults([]);
+    const res = await fetch("/api/sales/tasting/favorites", {
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ company, item_no: itemNo, item_name: itemName }),
     });
     const d = await res.json();
-    setPick(d.pick || { item_no: itemNo, item_name: itemName });
+    setFavorites(d.favorites || []);
   };
-  const clearPick = async () => {
-    await fetch(`/api/sales/tasting/monthly-pick?company=${company}`, { method: "DELETE" });
-    setPick(null);
+  const removeFav = async (itemNo: string) => {
+    const res = await fetch(`/api/sales/tasting/favorites?company=${company}&item_no=${encodeURIComponent(itemNo)}`, { method: "DELETE" });
+    const d = await res.json();
+    setFavorites(d.favorites || []);
   };
+  const toggleDefault = async (itemNo: string, makeDefault: boolean) => {
+    const res = await fetch("/api/sales/tasting/favorites", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company, item_no: itemNo, is_default: makeDefault }),
+    });
+    const d = await res.json();
+    setFavorites(d.favorites || []);
+  };
+  const favSet = new Set(favorites.map((f) => f.item_no));
+  const hasDefault = favorites.some((f) => f.is_default);
 
   const save = async () => {
     if (!s) return;
@@ -136,69 +147,75 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
                 })}
               </div>
             </div>
-            {/* 이달의 시음주 = 1픽(지정 시 추천보다 최우선) */}
+            {/* 즐겨찾기 = 여러 개 등록 + 기본값 1개(선택). 기본값 있으면 우선, 없으면 AI 추천 */}
             <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--gray-100)" }}>
-              <div style={{ ...label, marginBottom: 6, fontWeight: 600 }}>이달의 시음주 (지정 시 1픽)</div>
-              {pick ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ flex: 1, fontSize: 13, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <b>{pick.item_no}</b> {pick.item_name}
-                    {(pick.available_stock != null || pick.supply_price != null) && (
-                      <span style={{ color: "var(--text-tertiary)" }}>
-                        {pick.available_stock != null ? ` · 재고 ${pick.available_stock}` : ""}
-                        {pick.supply_price != null ? ` · ${won(pick.supply_price)}원` : ""}
+              <div style={{ ...label, marginBottom: 2, fontWeight: 600 }}>즐겨찾기</div>
+              <div style={{ fontSize: 11, color: hasDefault ? "var(--action)" : "var(--text-muted)", marginBottom: 8 }}>
+                {hasDefault ? "★ 기본값이 지정됨 — 시음주 추가 시 이 와인을 우선 사용" : "기본값 미지정 → AI 추천으로 자동 선정"}
+              </div>
+
+              {/* 검색해서 즐겨찾기 추가 */}
+              <div style={{ position: "relative", marginBottom: 8 }}>
+                <input value={favQ} onChange={(e) => onFavSearch(e.target.value)}
+                  placeholder="와인 검색해서 즐겨찾기 추가" style={{ ...input, width: "100%", textAlign: "left" }} />
+                {favResults.length > 0 && (
+                  <div style={dropdown}>
+                    {favResults.slice(0, 8).map((r) => (
+                      <button key={r.item_no} onClick={() => addFav(r.item_no, r.item_name)} style={dropItem} disabled={favSet.has(r.item_no)}>
+                        <b>{r.item_no}</b> {r.item_name}
+                        <span style={{ color: "var(--text-tertiary)" }}>
+                          {` · 재고 ${r.available_stock ?? 0}`}{r.supply_price ? ` · ${won(r.supply_price)}원` : ""}{favSet.has(r.item_no) ? " · 이미 있음" : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 즐겨찾기 목록 */}
+              {favorites.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
+                  {favorites.map((f) => (
+                    <div key={f.item_no} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 6px", borderRadius: 6, background: f.is_default ? "var(--action-muted, #f3e9e9)" : "transparent" }}>
+                      <button onClick={() => toggleDefault(f.item_no, !f.is_default)} title={f.is_default ? "기본값 해제" : "기본값으로"}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: f.is_default ? "var(--action)" : "var(--gray-300)", padding: 0 }}>
+                        {f.is_default ? "★" : "☆"}
+                      </button>
+                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13 }}>
+                        {f.item_name}
+                        <span style={{ color: "var(--text-tertiary)" }}>
+                          {f.available_stock != null ? ` · 재고 ${f.available_stock}` : ""}{f.supply_price != null ? ` · ${won(f.supply_price)}원` : ""}
+                        </span>
                       </span>
-                    )}
-                  </span>
-                  <button onClick={clearPick} style={btnGhost}>해제</button>
+                      <button onClick={() => removeFav(f.item_no)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: 15, padding: 0 }} title="삭제">×</button>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <>
-                  <div style={{ position: "relative", marginBottom: 8 }}>
-                    <input
-                      value={pickQ}
-                      onChange={(e) => onPickSearch(e.target.value)}
-                      placeholder="와인 검색해서 지정 (없으면 추천+필터)"
-                      style={{ ...input, width: "100%", textAlign: "left" }}
-                    />
-                    {pickResults.length > 0 && (
-                      <div style={dropdown}>
-                        {pickResults.slice(0, 8).map((r) => (
-                          <button key={r.item_no} onClick={() => choosePick(r.item_no, r.item_name)} style={dropItem}>
-                            <b>{r.item_no}</b> {r.item_name}
-                            <span style={{ color: "var(--text-tertiary)" }}>
-                              {` · 재고 ${r.available_stock ?? 0}`}
-                              {r.supply_price ? ` · ${won(r.supply_price)}원` : ""}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {/* 후보군 — 거래처 있으면 AI 추천순, 없으면 재고순. 클릭해 1픽 지정 */}
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
-                    후보 {candidates.length}종 ({clientCode ? "거래처 AI 추천순" : "재고 많은 순"})
-                  </div>
-                  <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--gray-100)", borderRadius: 8 }}>
-                    {candLoading ? (
-                      <div style={{ padding: 10, fontSize: 12, color: "var(--text-tertiary)" }}>불러오는 중…</div>
-                    ) : candidates.length === 0 ? (
-                      <div style={{ padding: 10, fontSize: 12, color: "var(--text-tertiary)" }}>조건에 맞는 후보가 없습니다.</div>
-                    ) : (
-                      candidates.map((c) => (
-                        <button key={c.item_no} onClick={() => choosePick(c.item_no, c.item_name)} style={candRow}>
-                          {c.score != null && <span style={{ color: "var(--action)", fontWeight: 700, whiteSpace: "nowrap" }}>{Math.round(c.score)}점</span>}
-                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {c.item_name}{c.wine_type ? ` · ${c.wine_type}` : ""}
-                          </span>
-                          <span style={{ color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>재고 {c.available_stock}</span>
-                          <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{won(c.supply_price)}원</span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </>
               )}
+
+              {/* 후보군 — 클릭해 즐겨찾기에 추가 */}
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
+                후보 {candidates.length}종 ({clientCode ? "거래처 AI 추천순" : "재고 많은 순"}) · 클릭해 즐겨찾기 추가
+              </div>
+              <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid var(--gray-100)", borderRadius: 8 }}>
+                {candLoading ? (
+                  <div style={{ padding: 10, fontSize: 12, color: "var(--text-tertiary)" }}>불러오는 중…</div>
+                ) : candidates.length === 0 ? (
+                  <div style={{ padding: 10, fontSize: 12, color: "var(--text-tertiary)" }}>조건에 맞는 후보가 없습니다.</div>
+                ) : (
+                  candidates.map((c) => (
+                    <button key={c.item_no} onClick={() => addFav(c.item_no, c.item_name)} style={candRow} disabled={favSet.has(c.item_no)}>
+                      {c.score != null && <span style={{ color: "var(--action)", fontWeight: 700, whiteSpace: "nowrap" }}>{Math.round(c.score)}점</span>}
+                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.item_name}{c.wine_type ? ` · ${c.wine_type}` : ""}
+                      </span>
+                      <span style={{ color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>재고 {c.available_stock}</span>
+                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{won(c.supply_price)}원</span>
+                      {favSet.has(c.item_no) && <span style={{ color: "var(--action)", whiteSpace: "nowrap" }}>✓</span>}
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}>

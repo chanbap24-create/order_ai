@@ -3,7 +3,7 @@
 import { supabase } from "@/app/lib/db";
 import { saveQuote } from "@/app/lib/savedQuotes";
 import { getTastingPolicy, getMonthlyTastingUsage, type SelectionMode } from "./policy";
-import { getMonthlyPick } from "./monthlyPick";
+import { getFavoriteDefault } from "./favorites";
 import { getTastingSettings } from "./settings";
 import { listTastingCandidates, getAiCandidates, passesTasting } from "./candidates";
 
@@ -40,7 +40,7 @@ export interface RegisterTastingResult {
   savedQuoteId?: number;
   item?: { item_no: string; item_name: string; supply_price: number; available_stock: number };
   usage?: { qty: number; amount: number; qtyLimit: number; amountLimit: number | null };
-  source?: "manual" | "monthly" | "ai" | "stock"; // 와인을 어떻게 골랐는지
+  source?: "manual" | "favorite" | "ai" | "stock"; // 와인을 어떻게 골랐는지
   note?: string; // 진단(추천 실패 사유 등)
 }
 
@@ -65,19 +65,19 @@ export async function registerTasting(p: RegisterTastingParams): Promise<Registe
   const policy = await getTastingPolicy(p.clientCode, p.clientType);
   const mode: SelectionMode = p.modeOverride ?? policy.selection_mode;
 
-  // 1) 시음주 와인 결정 — 우선순위: 수동 지정 > 이달의 시음주(1픽) > 거래처 AI 추천+필터
+  // 1) 시음주 와인 결정 — 우선순위: 수동 지정 > 즐겨찾기 기본값 > 거래처 AI 추천+필터
   let itemNo = p.itemNo;
   let source: RegisterTastingResult["source"] = p.itemNo ? "manual" : undefined;
   let note = "";
   if (!itemNo) {
-    // 이달의 시음주가 지정돼 있으면 그게 1픽(선정방식과 무관하게 최우선).
-    const monthly = await getMonthlyPick(company, p.manager);
-    if (monthly) {
-      itemNo = monthly.item_no;
-      source = "monthly";
-    } else if (mode === "monthly") {
-      return { ok: false, reason: "이달의 시음주가 지정되지 않았습니다." };
-    } else if (mode === "recommend") {
+    // 즐겨찾기 기본값이 지정돼 있으면 그게 최우선(없으면 AI 추천).
+    const fav = await getFavoriteDefault(company, p.manager);
+    if (fav) {
+      itemNo = fav.item_no;
+      source = "favorite";
+    } else if (mode === "manual") {
+      return { ok: false, reason: "시음주 품번이 필요합니다(수동 모드)." };
+    } else {
       const settings = await getTastingSettings(company);
       // 1순위: 거래처 AI 추천견적 후보(필터 통과) 중 점수 최상위.
       if (p.clientType === "wine") {
@@ -105,8 +105,6 @@ export async function registerTasting(p: RegisterTastingParams): Promise<Registe
         itemNo = picked.itemNo;
         source = "stock";
       }
-    } else {
-      return { ok: false, reason: "시음주 품번이 필요합니다(수동 모드)." };
     }
   }
 
