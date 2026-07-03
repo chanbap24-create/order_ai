@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>추천견적 공식 백테스트 & 개선안</title>
+<style>
+  :root{
+    --bg:#f7f5f3; --card:#ffffff; --ink:#1f2430; --mut:#6b7280; --line:#e7e3df;
+    --accent:#5a1515; --good:#16a34a; --bad:#dc2626; --warn:#d97706; --blue:#2563eb; --purple:#9333ea;
+    --chip:#f1ede9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;
+    font-family:-apple-system,'Segoe UI',Roboto,'Apple SD Gothic Neo',sans-serif;padding:28px 16px 80px}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 2px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:22px}
+  h2{font-size:16px;margin:32px 0 12px;padding-left:9px;border-left:4px solid var(--accent)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.03)}
+  .muted{color:var(--mut);font-size:13px}
+  code,.mono{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12.5px}
+  .formula{background:#1f2430;color:#e6e9ef;border-radius:10px;padding:13px 15px;font-family:'SF Mono',Menlo,Consolas,monospace;
+    font-size:13px;overflow-x:auto;margin:8px 0;white-space:pre-wrap}
+  .formula .c{color:#86efac}.formula .n{color:#fca5a5}.formula .cm{color:#9aa3b2}
+  .tblwrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600;font-size:11.5px}
+  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+  ul{margin:6px 0;padding-left:20px}li{margin:4px 0;font-size:13.5px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+  .p-good{background:var(--good)}.p-bad{background:var(--bad)}.p-warn{background:var(--warn)}.p-blue{background:var(--blue)}
+  .note{font-size:12.5px;color:var(--mut);margin-top:8px}
+  .win{background:#f0fdf4}.win td{border-color:#dcfce7}
+  .big{font-size:15px;font-weight:700}
+  .kpi{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0}
+  .kpi div{background:var(--chip);border:1px solid var(--line);border-radius:9px;padding:9px 13px;flex:1;min-width:150px}
+  .kpi b{display:block;font-size:20px;color:var(--accent)}
+  .kpi span{font-size:11.5px;color:var(--mut)}
+  .flag{border-left:3px solid var(--warn);background:#fffaf0;padding:10px 13px;border-radius:0 8px 8px 0;margin:8px 0;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>추천견적 공식 백테스트 & 개선안</h1>
+  <div class="sub">CDV · 신규제안 모드 · <span class="mono">scripts/recommend-backtest.ts</span> · 2026-07-03 · 2개 컷오프(2026-01·2025-09)로 재현 확인</div>
+
+  <!-- 요약 -->
+  <div class="card">
+    <div class="kpi">
+      <div><b>3~5개</b><span>현행 공식이 게이트 통과시키는 후보 수 (유니버스 205개 중)</span></div>
+      <div><b>0.3~0.6×</b><span>현행 공식의 precision@10 (인기순 대비) — 진다</span></div>
+      <div><b>~2배↑</b><span>개선안(인기 블렌드)의 hit@10 (현행 대비)</span></div>
+    </div>
+    <div class="note">한 줄: <b>순위 로직이 아니라 하드 게이트가 병목.</b> 게이트를 풀고 인기(구매폭) 신호를 섞으면 현행을 크게 이기고 순수 인기순도 따라잡는다.</div>
+  </div>
+
+  <!-- 방법 -->
+  <h2>① 무엇을 어떻게 측정했나</h2>
+  <div class="card">
+    <ul>
+      <li>과거 컷오프일 <b>T</b>로 되돌아가 <b>T 이전 출고로만</b> 취향 프로필을 만들고, 현행 <span class="mono">scoreRecommendations</span>를 그대로 재사용해 순위 산출.</li>
+      <li><b>정답</b> = 그 거래처가 <span class="mono">[T, T+60일]</span>에 <b>처음</b> 산(=T 이전 미구매) 품목 ∩ 재고 유니버스.</li>
+      <li><b>지표</b> = hit@k(상위 k에 정답 1개+ 포함한 거래처 비율)·precision@k·recall@k, 거래처 매크로 평균.</li>
+      <li><b>베이스라인</b> = 인기순(컷오프 이전 구매폭, <span class="pill p-good" style="background:#334155">leakage 제거</span>) · 랜덤(해석적 기대값).</li>
+    </ul>
+    <div class="flag"><b>정직한 한계</b> — ① 구매예측 ≠ 도구의 영업가치(프로모션·영업푸시 등 off-model 요인). ② 재고는 과거 스냅샷이 없어 <b>현재 재고(205개)</b>로 근사 → 절대 recall은 하한, <b>상대 비교는 유효</b>. ③ v1은 견적학습/전환 레이어 off(as-of-T 재구성 필요). ④ CDV 전용(DL은 glass 별도).</div>
+  </div>
+
+  <!-- 발견 -->
+  <h2>② 핵심 발견 — 하드 게이트가 카탈로그의 97%를 버린다</h2>
+  <div class="card">
+    <p style="margin:2px 0 10px">타입 + 가격±20% + 지역천장 <span class="mono">'super'</span>(기본값) 게이트를 통과하는 후보가 거래처당 <b class="big">평균 3~5개</b>뿐. 그래서 top-30을 채우지도 못하고 recall이 구조적으로 ~6%에 묶인다. <b>leakage를 제거한 순수 인기순이 모든 k에서 현행을 이긴다.</b></p>
+    <div class="tblwrap"><table>
+      <tr><th>컷오프</th><th class="r">게이트통과</th><th class="r">현행 hit@10</th><th class="r">현행 P@10</th><th class="r">인기순 hit@10</th><th class="r">P@10 lift</th></tr>
+      <tr><td>2026-01-04</td><td class="r">5개</td><td class="r">17.0%</td><td class="r">2.4%</td><td class="r">27.9%</td><td class="r"><span class="pill p-bad">0.63×</span></td></tr>
+      <tr><td>2025-09-01</td><td class="r">3개</td><td class="r">10.8%</td><td class="r">1.7%</td><td class="r">36.0%</td><td class="r"><span class="pill p-bad">0.29×</span></td></tr>
+    </table></div>
+    <div class="flag">실제 사례: 거래처 <span class="mono">28738</span>은 현행 공식이 <b>후보를 0개</b> 내놓는다(게이트로 전부 탈락). 개선안으로 205개가 살아난다.</div>
+    <div class="note"><b>시사점:</b> 가중치 튜닝(tierBase 46/37/29/21, quoteFeedbackWeight 44…)은 게이트가 후보를 5개로 조르는 한 무의미하다. 순서를 바꿀 후보 자체가 없다.</div>
+  </div>
+
+  <!-- 민감도 -->
+  <h2>③ 게이트가 병목임을 증명 — 풀수록 단조 개선</h2>
+  <div class="card">
+    <div class="tblwrap"><table>
+      <tr><th>설정 (2026-01)</th><th class="r">게이트통과</th><th class="r">hit@10</th><th class="r">P@10</th><th class="r">P@10 lift</th></tr>
+      <tr><td>기본 (super · ±20%)</td><td class="r">5개</td><td class="r">17%</td><td class="r">2.4%</td><td class="r">0.63×</td></tr>
+      <tr><td>지역 any</td><td class="r">13개</td><td class="r">25%</td><td class="r">3.6%</td><td class="r">0.88×</td></tr>
+      <tr><td>지역 any · ±50%</td><td class="r">33개</td><td class="r">32%</td><td class="r">4.6%</td><td class="r">1.07×</td></tr>
+    </table></div>
+    <div class="note">후보 풀(5→13→33)과 성능이 함께 오른다. 지역·가격 게이트를 다 풀어야 겨우 인기순을 넘어선다.</div>
+  </div>
+
+  <!-- 해결책 -->
+  <h2>④ 해결책 — 전체유니버스 인기 블렌드</h2>
+  <div class="card">
+    <div class="muted">게이트를 풀어 후보 풀을 살린 뒤, 개인화 점수와 <b>전사 구매폭 백분위</b>를 섞는다. 게이트 밖 인기 품목은 개인화 0으로 두고 breadth로 끌어올려 <b>인기순의 도달 범위까지 흡수</b>한다.</div>
+    <div class="formula"><span class="cm">// 전체 재고 유니버스를 이 점수로 재랭킹</span>
+최종 = (1−α)·<span class="c">개인화점수정규화</span> + α·<span class="n">구매폭백분위</span>     <span class="cm">// α = popularityWeight, 권장 0.3~0.5</span></div>
+    <p style="margin:10px 0 8px" class="muted"><b>프로덕션 <span class="mono">blendPopularity</span> 함수로 검증한 결과</b> (승자 행 강조):</p>
+    <div class="tblwrap"><table>
+      <tr><th>전략</th><th class="r">2026-01 hit@10 / P@10 / R@30</th><th class="r">2025-09 hit@10 / P@10 / R@30</th></tr>
+      <tr><td>현행공식(기본게이트)</td><td class="r">17% / 2.4% / 5.9%</td><td class="r">11% / 1.7% / 3.2%</td></tr>
+      <tr><td>현행공식(게이트완화)</td><td class="r">33% / 4.6% / 33%</td><td class="r">24% / 3.1% / 21%</td></tr>
+      <tr class="win"><td><b>전체블렌드 α0.3~0.5</b></td><td class="r"><b>38% / 5.5% / 48%</b></td><td class="r"><b>41% / 6.1% / 61%</b></td></tr>
+      <tr><td>순수 인기순 (참조)</td><td class="r">31% / 4.1% / 46%</td><td class="r">40% / 6.0% / 58%</td></tr>
+    </table></div>
+    <ul style="margin-top:12px">
+      <li><b>현행 대비 hit@10 약 2~3배</b>(17%→38%, 11%→41%), recall@30도 6%→48%로 대폭 개선.</li>
+      <li><b>순수 인기순도 매 컷오프에서 따라잡거나 넘는다</b> — 상위는 개인화, 하위는 인기 도달범위를 함께 가져가기 때문.</li>
+      <li>인기순은 모든 거래처에 <b>같은 리스트</b>라 도구의 존재 이유(취향·산지 적합성)를 버린다. 블렌드는 개인화를 유지한다.</li>
+    </ul>
+  </div>
+
+  <!-- 프로덕션 -->
+  <h2>⑤ 프로덕션 반영 (구현 완료 · 기본 off · 가역적)</h2>
+  <div class="card">
+    <ul>
+      <li>공용 함수 <span class="mono">lib/popularityBlend.ts</span> 신설 — <span class="mono">blendPopularity</span>(순수 재랭커) + <span class="mono">applyPopularityBlend</span>(getItemPopularity로 breadth 산출). <b>백테스트가 이 함수를 그대로 호출</b>해 검증.</li>
+      <li><span class="mono">buildCandidates</span>: 신규제안 모드 + <span class="mono">popularityWeight&gt;0</span>일 때만 블렌드 적용.</li>
+      <li>파라미터 <span class="mono">popularity_weight</span>(0~1) 라우트에 추가. <b>기본 0 = 미적용</b> → 켜기 전엔 현행과 동일(안전).</li>
+      <li><span class="mono">scoring.ts</span>는 미수정. 전 파일 300줄 이하 · lint 통과.</li>
+    </ul>
+    <div class="formula"><span class="cm"># 켜는 법 (권장 조합)</span>
+popularity_weight = <span class="c">0.4</span>      <span class="cm"># 인기 블렌드 α</span>
+geo_ceiling       = <span class="c">"any"</span>    <span class="cm"># 지역 하드게이트 해제(제외 대신 tier 점수로만)</span>
+price_band        = <span class="c">0.5</span>      <span class="cm"># 가격밴드 완화</span></div>
+    <div class="note">전부 기존 <span class="mono">score_params</span>/<span class="mono">RecControls</span> 메커니즘 안. 되돌리기 쉽고 같은 백테스트로 재검증 가능.</div>
+  </div>
+
+  <!-- 다음 -->
+  <h2>⑥ 남은 것 / 다음 스텝</h2>
+  <div class="card">
+    <ul>
+      <li><b>α 정밀 튜닝</b>: 분기별 여러 컷오프로 안정성 재확인 후 UI 기본값 확정(현재 0.3~0.5 권장). 스크립트로 바로 가능.</li>
+      <li><b>가격 소프트 감점</b>: 현재는 밴드 완화(하드컷 유지). 거리 비례 소프트 감점으로 바꾸면 경계 절벽 제거(선택).</li>
+      <li><b>v2 백테스트</b>: 견적학습/전환 레이어를 as-of-T로 재구성해 실제 lift 측정(v1은 코어 공식만).</li>
+      <li><b>Tier 1 폐루프</b>: 추천 시점의 score·params를 <span class="mono">recommendations</span>에 박제 → 라이브 성과를 사후에 직접 조인(현재는 실시간 조인이라 복원 불가).</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

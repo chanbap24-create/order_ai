@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>추천견적 점수 공식 (현행)</title>
+<style>
+  :root{
+    --bg:#f7f5f3; --card:#ffffff; --ink:#1f2430; --mut:#6b7280; --line:#e7e3df;
+    --accent:#5a1515; --gate:#2563eb; --skip:#dc2626; --add:#16a34a; --mul:#9333ea; --reorder:#d97706;
+    --chip:#f1ede9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;
+    font-family:-apple-system,'Segoe UI',Roboto,'Apple SD Gothic Neo',sans-serif;padding:28px 16px 80px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 2px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:22px}
+  h2{font-size:16px;margin:30px 0 12px;padding-left:9px;border-left:4px solid var(--accent)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.03)}
+  .muted{color:var(--mut);font-size:13px}
+  code,.mono{font-family:'SF Mono',Menlo,Consolas,monospace}
+  .formula{background:#1f2430;color:#e6e9ef;border-radius:10px;padding:13px 15px;font-family:'SF Mono',Menlo,Consolas,monospace;
+    font-size:13.5px;overflow-x:auto;margin:8px 0}
+  .formula .k{color:#7dd3fc}.formula .n{color:#fca5a5}.formula .c{color:#86efac}.formula .cm{color:#9aa3b2}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600;font-size:12px}
+  td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+  .p-gate{background:var(--gate)}.p-skip{background:var(--skip)}.p-add{background:var(--add)}.p-mul{background:var(--mul)}.p-re{background:var(--reorder)}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .step{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:600}
+  .arrow{color:var(--mut);font-weight:700}
+  ul{margin:6px 0;padding-left:20px}li{margin:3px 0;font-size:13.5px}
+  .tier td:first-child{font-weight:700}
+  .big{font-size:15px;font-weight:700}
+  .note{font-size:12.5px;color:var(--mut);margin-top:6px}
+  .ok{color:var(--add);font-weight:700}.no{color:var(--skip);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>추천견적 점수 공식</h1>
+  <div class="sub">코드 기준: <span class="mono">app/api/sales/recommend/lib/scoring.ts</span> · 기본값 = 화면 "점수 가중치(고급)"</div>
+
+  <!-- PIPELINE -->
+  <h2>전체 흐름</h2>
+  <div class="card">
+    <div class="flow">
+      <span class="step">후보 재고</span><span class="arrow">→</span>
+      <span class="step" style="border-color:var(--gate)">게이트 ① 타입</span><span class="arrow">→</span>
+      <span class="step" style="border-color:var(--gate)">게이트 ② 가격(±band)</span><span class="arrow">→</span>
+      <span class="step" style="border-color:var(--gate)">게이트 ③ 지역 천장</span><span class="arrow">→</span>
+      <span class="step" style="border-color:var(--add)">기본점수</span><span class="arrow">→</span>
+      <span class="step" style="border-color:var(--reorder)">보너스/감점</span><span class="arrow">→</span>
+      <span class="step" style="border-color:var(--mul)">견적학습</span><span class="arrow">→</span>
+      <span class="step">점수 내림차순 정렬</span>
+    </div>
+    <div class="note">게이트 통과 못 하면 후보에서 <span class="no">제외(continue)</span>. 점수는 게이트를 모두 통과한 와인에만 매겨짐.</div>
+  </div>
+
+  <!-- GATES -->
+  <h2>하드 게이트 (통과 못 하면 제외)</h2>
+  <div class="card">
+    <ul>
+      <li><b>1회성 구매 제외</b> — 신규제안 모드에서 과거 1회만 산 와인은 제외. 2회+ 구매 = "재주문" 후보로 별도 처리.</li>
+      <li><span class="pill p-gate">타입</span> 신규=거래처가 사는 와인타입만 / 대체=쇼트상품과 같은 타입 / 재주문=면제.</li>
+      <li><span class="pill p-gate">가격</span> 기준가 대비 <span class="mono">|가격−기준가|/기준가 &gt; band</span> 면 제외. <span class="muted">band 기본 ±20%. 재주문은 면제.</span></li>
+      <li><span class="pill p-gate">지역 천장</span> 지역 계단 매칭 실패 시: <b>광역</b>=제외 / <b>국가</b>=같은 국가면 타지역(3)로 / <b>제한없음</b>=타지역(3).</li>
+    </ul>
+  </div>
+
+  <!-- TIER -->
+  <h2>① 지역 계단 (tier) — wine_regions 계층</h2>
+  <div class="card">
+    <table class="tier">
+      <tr><th>tier</th><th>의미</th><th>매칭 기준(거래처 구매 산지와 비교)</th><th class="r">기본점수</th></tr>
+      <tr><td>0</td><td>같은 마을</td><td>세부산지(sub_region) 일치 — 예: 둘 다 본로마네</td><td class="r big">46</td></tr>
+      <tr><td>1</td><td>인근 마을</td><td>대지역(major_region) 일치 — 예: 둘 다 코트 드 뉘</td><td class="r big">37</td></tr>
+      <tr><td>2</td><td>같은 광역</td><td>광역(super_region) 일치 — 예: 둘 다 부르고뉴</td><td class="r big">29</td></tr>
+      <tr><td>3</td><td>타지역</td><td>천장 설정에 따라 같은 국가/전체</td><td class="r big">21</td></tr>
+    </table>
+    <div class="note">광역(부르고뉴/보르도)은 코드의 <span class="mono">SUPER_REGION_MAP</span>으로 대지역을 묶어 만든 값. 신대륙은 광역이 없어 대지역=광역.</div>
+  </div>
+
+  <!-- BASE -->
+  <h2>② 기본 점수</h2>
+  <div class="card">
+    <div class="formula">
+<span class="cm">// 지역점수 = 계단 기본점수 × 빈도배수</span>
+freqW   = 해당 계단 매칭산지 구매량 / 그 계단 최다구매량   <span class="cm">// 0~1</span>
+freqMult= (1 − strength) + strength × freqW
+tierScore = <span class="k">TIER_BASE</span>[t] × freqMult
+
+<span class="cm">// 품종·향미 (그 안의 미세 정렬)</span>
+soft    = (선호품종 일치 ? <span class="n">0.6</span> : 0) + <span class="n">0.4</span> × 향미겹침(0~1)
+softAdd = soft × <span class="k">softWeight</span>
+
+<span class="cm">// 회전(최근 90일 평균 판매량)</span>
+velocity = avg_sales_90d / 최대avg_sales_90d
+velAdd   = velocity × <span class="k">velocityWeight</span>
+
+<span class="c">score = tierScore + softAdd + velAdd</span>
+    </div>
+    <div class="note"><b>strength</b>(입고빈도 반영강도): 강함 0.65 · 약함 0.3 · 끔 0. 대체상품 모드는 0(순수 지역점수).</div>
+  </div>
+
+  <!-- BONUS -->
+  <h2>③ 보너스 / 감점 (순서대로 누적·곱셈)</h2>
+  <div class="card">
+    <table>
+      <tr><th>구분</th><th>조건</th><th>식</th></tr>
+      <tr>
+        <td><span class="pill p-re">재주문</span></td>
+        <td>2회+ 구매 · 발주주기 경과(overdue≥1) · 대체구매 아님</td>
+        <td class="mono">+ reorderBonus × (0.4 + 0.4·강도W + 0.2·min(overdue,3)/3)</td>
+      </tr>
+      <tr>
+        <td><span class="pill p-mul">최근제안</span></td>
+        <td>최근 30일 이미 제안한 품목</td>
+        <td class="mono">score × recentPenalty</td>
+      </tr>
+      <tr>
+        <td><span class="pill p-add">과거전환</span></td>
+        <td>과거 견적→출고 전환 있음</td>
+        <td class="mono">+ min(전환수,3) × convBoost</td>
+      </tr>
+      <tr>
+        <td><span class="pill p-mul">미전환</span></td>
+        <td>2회+ 견적했지만 한 번도 출고 안 됨</td>
+        <td class="mono">score × noconvPenalty</td>
+      </tr>
+    </table>
+    <div class="note">재주문은 "갈아탄(substituted)" 와인이면 제외. 발주주기 전(overdue&lt;1)이면 중복 제안 방지로 제외.</div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <h2>④ 견적학습 (속성 단위 전환, 긍정만 가산)</h2>
+  <div class="card">
+    <div class="muted">과거 견적을 <b>산지·가격대·타입·품종·향</b> 5개 속성으로 분해해, 비슷한 새 후보에 "먹혔던 속성"을 가산. 거절은 일반화하지 않음(품목 단위 미전환 감점이 담당).</div>
+    <div class="formula">
+<span class="cm">// 속성별</span>  rate = 전환수/견적수 ,  conf = 견적수/(견적수 + <span class="n">6</span>)
+dim  = mean( rate × conf )            <span class="cm">// 전환 없으면 0 (감점 아님)</span>
+sum  = dim(산지)+dim(가격대)+dim(타입)+dim(품종)+dim(향)
+norm = min(<span class="n">5</span>, sum) / <span class="n">5</span>          <span class="cm">// 0~1</span>
+<span class="c">+= norm × quoteFeedbackWeight</span>
+    </div>
+  </div>
+
+  <!-- WEIGHTS -->
+  <h2>기본 가중치 (화면값과 동일)</h2>
+  <div class="card">
+    <table>
+      <tr><th>화면 라벨</th><th>코드 키</th><th class="r">기본값</th></tr>
+      <tr><td>지역 계단(같은마을/인근/광역/타지역)</td><td class="mono">tierBase</td><td class="r">36 / 29 / 23 / 16</td></tr>
+      <tr><td><b>업장적합</b>(스시·프렌치 등 업장 유형)</td><td class="mono">venueWeight</td><td class="r"><b>20</b></td></tr>
+      <tr><td>재주문보너스</td><td class="mono">reorderBonus</td><td class="r">30</td></tr>
+      <tr><td>품종·향미</td><td class="mono">softWeight</td><td class="r">8</td></tr>
+      <tr><td>회전</td><td class="mono">velocityWeight</td><td class="r">2</td></tr>
+      <tr><td>전환가점/회</td><td class="mono">convBoost</td><td class="r">8</td></tr>
+      <tr><td>견적학습±</td><td class="mono">quoteFeedbackWeight</td><td class="r">34</td></tr>
+      <tr><td>최근제안×</td><td class="mono">recentPenalty</td><td class="r">0.45</td></tr>
+      <tr><td>미전환×</td><td class="mono">noconvPenalty</td><td class="r">0.6</td></tr>
+    </table>
+    <div class="note">이 값들은 브라우저(localStorage)에 영업사원별로 저장 — 팀 공유 아님. 바꾼 뒤 <b>"다시 생성"</b>을 눌러야 반영.</div>
+  </div>
+
+  <!-- 100 -->
+  <h2>신규제안 만점 구성 (100점)</h2>
+  <div class="card">
+    <div class="formula"><span class="c">지역 36</span> + <span class="c">견적학습 34</span> + <span class="c">업장 20</span> + <span class="c">취향 8</span> + <span class="c">회전 2</span> = <b>100</b>
+<span class="cm">// 지역·견적학습에서 10씩 차출해 업장 가산(20) 신설</span></div>
+    <div class="note">업장 20점은 <b>타입 8 + 나라 4 + 지역 8</b>로 나눠 각 축이 맞을 때 독립 가산(특정 와인을 콕 집지 않음).</div>
+  </div>
+
+  <!-- EXAMPLE -->
+  <h2>예시 계산</h2>
+  <div class="card">
+    <div class="muted">스시 거래처 · 같은마을(t=0, 빈도 100%) · 프랑스 샴페인(타입·나라·지역 모두 적합) · 향미겹침 0.5 · 회전 0.5 · 견적학습 norm 0.5 가정</div>
+    <div class="formula">
+tierScore = 36 × (0.35 + 0.65×1.0) = 36 × 1.0   = <span class="c">36.0</span>
+업장적합  = 타입 8 + 나라 4 + 지역 8              = <span class="c">20.0</span>
+견적학습  = 0.5 × 34                               = <span class="c">17.0</span>
+softAdd   = (0.6 + 0.4×0.5) × 8    = 0.8 × 8     = <span class="c">6.4</span>
+velAdd    = 0.5 × 2                                = <span class="c">1.0</span>
+<span class="c">합계 ≈ 80.4점</span>
+    </div>
+    <div class="note">strength=0.65(강함) 기준. freqMult = (1−0.65) + 0.65×1.0 = 1.0.</div>
+  </div>
+
+</div>
+</body>
+</html>

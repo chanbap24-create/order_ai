@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발굴/신규 모드 점수 산출</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --ink:#e6e9ef; --mut:#9aa3b2;
+    --gate:#3b82f6; --skip:#ef4444; --vel:#22c55e; --seg:#a855f7; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,'Segoe UI',Roboto,'Apple SD Gothic Neo',sans-serif;line-height:1.5;padding:28px 18px 90px}
+  .wrap{max-width:1060px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:14px;margin-bottom:22px}
+  code{background:#0c0e13;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12.5px;color:#cbd5e1}
+  .flow{display:flex;flex-direction:column;align-items:center;gap:0}
+  .node{border-radius:12px;padding:12px 16px;width:100%;max-width:640px;border:1px solid var(--line);background:var(--panel);position:relative}
+  .node .t{font-weight:600;font-size:15px}
+  .node .d{color:var(--mut);font-size:13px;margin-top:3px}
+  .diamond{background:#1c2230;border:1px dashed var(--gate);max-width:640px}
+  .diamond .t{color:#93c5fd}
+  .arrow{width:2px;height:20px;background:var(--line);position:relative}
+  .arrow::after{content:'';position:absolute;bottom:-1px;left:-3px;border:4px solid transparent;border-top-color:var(--line)}
+  .lbl{font-size:12px;color:var(--mut);background:var(--bg);padding:0 8px;position:absolute;top:50%;left:10px;transform:translateY(-50%)}
+  .formula{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#0c0e13;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px;color:#cbd5e1;white-space:pre-wrap}
+  .inbox{border-color:var(--gate);background:#0d1626}.inbox .t{color:#93c5fd}
+  .velbox{border-color:var(--vel);background:#0f2417}.velbox .t{color:#86efac}
+  .segbox{border-color:var(--seg);background:#1d1230}.segbox .t{color:#d8b4fe}
+  .skipbox{border-color:var(--skip);background:#241115}.skipbox .t{color:#fca5a5}
+  .sumbox{border-color:var(--ink);background:#1a1d24}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--mut);margin-right:4px}
+  .warn{max-width:720px;margin:26px auto 0;border:1px solid var(--warn);background:#221a0c;border-radius:12px;padding:16px 18px}
+  .warn h3{margin:0 0 8px;color:#fcd34d;font-size:16px}
+  .warn p{margin:6px 0;font-size:13.5px}
+  .ex{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#fde68a;background:#0c0e13;border-radius:8px;padding:8px 10px;margin-top:8px}
+  .note{max-width:720px;margin:14px auto 0;font-size:12.5px;color:var(--mut);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>발굴 / 신규 모드 — 점수 산출</h1>
+  <div class="sub">거래처 구매이력·취향·견적학습을 <b>전혀 안 씀</b>. 신규 거래처/이력무관 발굴용. <code>discovery.ts</code></div>
+
+  <div class="flow">
+    <div class="node inbox"><div class="t">① 영업사원이 지정</div>
+      <div class="formula">· 와인타입(칩): 스파클링/화이트/레드/로제/주정강화 (비우면 전체)
+· 가격대: 최소~최대 (0=무제한)
+· 업태: 직접 선택 또는 '거래처 업태 자동'</div></div>
+    <div class="arrow"></div>
+
+    <div class="node"><div class="t">② 재고 품목 1건씩 순회 (재고 있는 와인만)</div></div>
+    <div class="arrow"></div>
+
+    <div class="node diamond"><div class="t">◇ 필터</div>
+      <div class="d">지정한 타입에 없으면 제외 · 가격대 밖이면 제외</div></div>
+    <div class="arrow"><span class="lbl">탈락</span></div>
+
+    <div class="node velbox"><div class="t">③ 회전(베스트셀러) 점수 — 최대 70</div>
+      <div class="formula">velocity = 이 와인 90일 평균판매 / 전사 1등 와인 판매   (0~1)
+회전점수 = velocity × 70</div>
+      <div class="d" style="margin-top:6px">전 거래처 통틀어 잘 나가는 순. 전사 1등이면 velocity=1.0 → 70점.</div></div>
+    <div class="arrow"></div>
+
+    <div class="node segbox"><div class="t">④ 업태 인기 점수 — 최대 30</div>
+      <div class="formula">segPop = (지정/거래처 업태) 거래처들이 산 이 와인 수량 / 그 업태 1등 수량  (0~1)
+업태점수 = segPop × 30</div>
+      <div class="d" style="margin-top:6px">같은 업태(편의점·백화점 등)가 많이 산 와인에 가점. <b style="color:#fca5a5">업태가 비어있으면 0.</b></div></div>
+    <div class="arrow"></div>
+
+    <div class="node sumbox"><div class="t">⑤ 합계 = 회전(≤70) + 업태(≤30) = 최대 100</div>
+      <div class="d"><span class="tag">베스트셀러</span><span class="tag">업태인기</span> 태그로 표시</div></div>
+    <div class="arrow"></div>
+
+    <div class="node"><div class="t">⑥ 다양성 + 정렬</div>
+      <div class="d">점수 내림차순 → (여러 타입이면) 타입별 상한 10개 → 상위 30 → 견적 표시순</div></div>
+  </div>
+
+  <div class="warn">
+    <h3>⚠ 지금 문제 — 업태 없는 거래처는 상한 70</h3>
+    <p>업태 점수(30)는 <b>거래처의 business_type</b>이 있어야 붙어요. 그런데 <b>전체 거래처의 76%(659/863)가 업태 비어있음.</b> 그런 거래처는 ④가 항상 0 → 점수가 <b>회전 70에 묶여요.</b></p>
+    <div class="ex">세브도르코리아(업태 비어있음)
+ GH 그라함 식스 그레이프 = 회전 1.0×70 + 업태 0 = <b>70</b>  ← 실질 만점
+ GH 그라함 10년 토니     = 회전 0.48×70 + 0    = 34</div>
+    <p style="margin-top:10px">→ 업태가 없으면 70이 사실상 천장. 이게 "데이터 부재의 페널티"라 아쉬운 지점.</p>
+    <p style="margin:10px 0 0"><b style="color:#fcd34d">선택지</b><br>
+    <b>A.</b> 지금처럼 70 상한 유지 (업태 맞아야 100)<br>
+    <b>B.</b> 업태 정보가 <b>없으면</b> 회전을 0~100으로 풀기 / <b>있으면</b> 회전70+업태30 — 업태 없는 다수 거래처도 100까지 평가</p>
+  </div>
+  <div class="note">이 모드는 지역·취향·견적학습을 쓰지 않습니다(그건 '신규 제안' 모드). 발굴은 오직 회전 + 업태.</div>
+</div>
+</body>
+</html>

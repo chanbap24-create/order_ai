@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>추천 점수, 어떻게 매기나 (쉬운 버전)</title>
+<style>
+  :root{
+    --bg:#f7f5f3; --card:#ffffff; --ink:#242a33; --mut:#6b7280; --line:#e7e3df;
+    --accent:#5a1515; --gate:#2563eb; --skip:#dc2626; --score:#16a34a; --pop:#9333ea; --gold:#d97706;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;
+    font-family:-apple-system,'Segoe UI',Roboto,'Apple SD Gothic Neo',sans-serif;padding:30px 16px 90px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 4px;text-align:center}
+  .sub{color:var(--mut);font-size:14px;margin-bottom:8px;text-align:center}
+  .oneline{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:18px 0 26px;
+    font-size:15px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+  .oneline b{color:var(--accent)}
+  /* 흐름 */
+  .flow{display:flex;flex-direction:column;align-items:center;gap:0}
+  .step{width:100%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;
+    box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative}
+  .step .num{position:absolute;top:-13px;left:18px;width:28px;height:28px;border-radius:50%;
+    background:var(--accent);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .step h3{margin:6px 0 6px;font-size:17px}
+  .step p{margin:4px 0;font-size:14px;color:#3a414c}
+  .step small{color:var(--mut);font-size:12.5px}
+  .arrow{width:3px;height:26px;background:#cfc9c3;position:relative;margin:2px 0}
+  .arrow::after{content:'';position:absolute;bottom:-2px;left:-4px;border:5px solid transparent;border-top-color:#cfc9c3}
+  .gatebox{border-color:var(--gate);background:#f3f7ff}
+  .gatebox h3{color:#1d4ed8}
+  .scorebox{border-color:var(--score);background:#f2fbf5}
+  .scorebox h3{color:#15803d}
+  .popbox{border-color:var(--pop);background:#faf5ff}
+  .popbox h3{color:#7e22ce}
+  .goldbox{border-color:var(--gold);background:#fffaf0}
+  .goldbox h3{color:#b45309}
+  .chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin:3px 4px 3px 0}
+  .c-pass{background:#dcfce7;color:#15803d}.c-fail{background:#fee2e2;color:#b91c1c}
+  .gate-item{display:flex;align-items:flex-start;gap:9px;margin:9px 0;font-size:14px}
+  .gate-item .q{font-weight:700;min-width:20px}
+  .tip{border-left:4px solid var(--pop);background:#faf5ff;padding:10px 14px;border-radius:0 8px 8px 0;
+    font-size:13.5px;margin-top:12px;color:#4a2d63}
+  .scoretbl{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  .scoretbl td{padding:7px 6px;border-bottom:1px solid #e6f2ea}
+  .scoretbl td:first-child{font-weight:700;white-space:nowrap}
+  .scoretbl td:last-child{text-align:right;color:var(--mut);font-size:12.5px}
+  .example{background:#242a33;color:#e6e9ef;border-radius:14px;padding:20px 22px;margin-top:30px}
+  .example h3{margin:0 0 12px;font-size:16px;color:#fcd34d}
+  .exrow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #3a414c;font-size:14px}
+  .exrow:last-child{border:none;font-weight:800;font-size:16px;color:#86efac}
+  .exrow span:last-child{font-variant-numeric:tabular-nums}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:24px;font-size:12.5px;color:var(--mut)}
+  .legend .k{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>추천 점수, 어떻게 매기나</h1>
+  <div class="sub">신규제안 모드 · 와인 한 병이 추천되기까지</div>
+
+  <div class="oneline">
+    재고에 있는 와인들을 <b>거래처 취향</b>으로 걸러 <b>점수</b>를 매기고, <b>높은 순</b>으로 추천합니다.<br>
+    <small style="color:#6b7280">여기에 원하면 <b style="color:#7e22ce">'인기 블렌드'</b>로 전사 베스트셀러를 섞을 수 있어요.</small>
+  </div>
+
+  <div class="flow">
+
+    <!-- 1 -->
+    <div class="step">
+      <div class="num">1</div>
+      <h3>🍷 후보 고르기</h3>
+      <p>지금 <b>재고가 있는</b> 와인만 후보로 둡니다.</p>
+      <small>선물용 기프트박스, 375ml(하프)·1.5L 이상, 비상품(포장·더미)은 제외 — 기본은 750ml만.</small>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- 2 -->
+    <div class="step gatebox">
+      <div class="num">2</div>
+      <h3>🚪 관문 3개 — 못 넘으면 탈락</h3>
+      <div class="gate-item"><span class="q">①</span><div><b>타입</b>이 맞나? <small>이 거래처가 레드를 산다면 레드만 통과 (화이트·샴페인 교차 안 함)</small></div></div>
+      <div class="gate-item"><span class="q">②</span><div><b>가격대</b>가 맞나? <small>평소 사던 가격 ±범위 안이면 통과 (기본 ±20%)</small></div></div>
+      <div class="gate-item"><span class="q">③</span><div><b>산지</b>가 통하나? <small>평소 사던 지역과 가까운지 (지역확장 설정만큼 넓힘)</small></div></div>
+      <p style="margin-top:10px"><span class="chip c-pass">셋 다 통과 → 3단계</span><span class="chip c-fail">하나라도 실패 → 탈락</span></p>
+      <div class="tip">💡 <b>여기서 대부분 탈락합니다</b>(보통 몇 개만 남음). 그래서 <b>인기 블렌드</b>를 켜거나 <b>지역확장 '제한없음'</b>으로 관문을 느슨하게 하면 후보가 확 늘어납니다.</div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- 3 -->
+    <div class="step scorebox">
+      <div class="num">3</div>
+      <h3>📊 점수 매기기 <small style="color:#15803d">(통과한 와인만)</small></h3>
+      <p>관문을 넘은 와인에 이런 점수를 더합니다:</p>
+      <table class="scoretbl">
+        <tr><td>산지 궁합</td><td>같은마을일수록 高 (같은마을 36 › 인근 29 › 광역 23 › 타지역 16), 자주 산 지역이면 더 ↑</td></tr>
+        <tr><td style="color:#7e22ce">업장 적합 ✨</td><td>거래처 <b>업장 유형</b>(스시·프렌치 등)에 맞으면 <b>타입 8 + 나라 4 + 지역 8 = 최대 20</b> (각 축 따로) — 스시집엔 프랑스 샴페인·독일 리슬링 ↑</td></tr>
+        <tr><td>견적학습</td><td>과거에 '먹혔던' 속성(산지·가격대 등)이면 +</td></tr>
+        <tr><td>품종·향</td><td>좋아하는 품종/향과 겹치면 +</td></tr>
+        <tr><td>잘 나감</td><td>회전 빠른 와인이면 소폭 +</td></tr>
+        <tr><td>과거 반응</td><td>권했더니 실제로 산 적 있으면 +, 여러 번 권했는데 안 사면 −</td></tr>
+      </table>
+      <small style="display:block;margin-top:8px">완벽히 맞으면 <b>100점</b> 만점 구성 (산지 36 + 견적학습 34 + <b style="color:#7e22ce">업장 20</b> + 취향 8 + 회전 2).</small>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- 4 -->
+    <div class="step popbox">
+      <div class="num">4</div>
+      <h3>🔀 인기 블렌드 <small style="color:#7e22ce">(선택 — 슬라이더로 켬)</small></h3>
+      <p>개인화 점수에 <b>전사 베스트셀러(많은 거래처가 산 와인)</b>를 섞습니다.</p>
+      <p style="margin-top:6px;font-size:13.5px;color:#5b3a78">
+        슬라이더 <b>0%</b> = 순수 개인화(지금까지) · <b>40%</b> = 취향 60% + 인기 40% 혼합<br>
+        관문 밖이라도 인기 와인은 끌어올려 후보에 넣어줍니다.</p>
+      <div class="tip" style="border-color:var(--gold);background:#fffaf0;color:#7c4a12">
+        ✅ 테스트 결과 <b>30~50% + 지역확장 '제한없음'</b>이 가장 잘 맞았습니다 (추천 적중률 약 2배).</div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- 5 -->
+    <div class="step goldbox">
+      <div class="num">5</div>
+      <h3>🏆 줄 세워서 추천</h3>
+      <p><b>점수 높은 순</b>으로 정렬 → <b>상위 30개</b> → 견적서 보기 좋게 재배열(타입별 → 가격순).</p>
+    </div>
+
+  </div>
+
+  <!-- 예시 -->
+  <div class="example">
+    <h3>예시 · 스시집에 "샴페인 그랑크뤼"가 78점 받는 과정</h3>
+    <div class="exrow"><span>산지 궁합 (같은 마을 · 자주 삼)</span><span>36점</span></div>
+    <div class="exrow"><span>업장 적합 (타입 8 + 나라 4 + 지역 8)</span><span>+20점</span></div>
+    <div class="exrow"><span>견적학습 (이 가격대 잘 먹힘)</span><span>+16점</span></div>
+    <div class="exrow"><span>품종·향 궁합 (샤르도네 선호)</span><span>+6점</span></div>
+    <div class="exrow"><span>합계</span><span>78점</span></div>
+  </div>
+
+  <div class="legend">
+    <span class="k"><i class="dot" style="background:var(--gate)"></i>관문(통과/탈락)</span>
+    <span class="k"><i class="dot" style="background:var(--score)"></i>점수 계산</span>
+    <span class="k"><i class="dot" style="background:var(--pop)"></i>인기 블렌드(선택)</span>
+    <span class="k"><i class="dot" style="background:var(--gold)"></i>정렬·추천</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>추천견적 점수 산출 흐름도 v3</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --ink:#e6e9ef; --mut:#9aa3b2;
+    --gate:#3b82f6; --skip:#ef4444; --reorder:#f59e0b; --score:#22c55e; --pos:#a855f7; --neg:#fb7185; --anchor:#06b6d4; --disc:#14b8a6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,'Segoe UI',Roboto,'Apple SD Gothic Neo',sans-serif;line-height:1.5;padding:26px 16px 90px}
+  .wrap{max-width:1160px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:13.5px;margin-bottom:18px}
+  code{background:#0c0e13;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;color:#cbd5e1}
+  .params{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:22px}
+  .params .p{font-size:12px}.params .p span{color:var(--mut)}.params .p b{color:var(--score);font-variant-numeric:tabular-nums}
+  .flow{display:flex;flex-direction:column;align-items:center;gap:0}
+  .node{border-radius:11px;padding:11px 15px;width:100%;max-width:660px;border:1px solid var(--line);background:var(--panel);position:relative}
+  .node .t{font-weight:600;font-size:14.5px}.node .d{color:var(--mut);font-size:12.5px;margin-top:3px}
+  .diamond{background:#1c2230;border:1px dashed var(--gate);max-width:660px}.diamond .t{color:#93c5fd}
+  .arrow{width:2px;height:18px;background:var(--line);position:relative}
+  .arrow::after{content:'';position:absolute;bottom:-1px;left:-3px;border:4px solid transparent;border-top-color:var(--line)}
+  .lbl{font-size:11.5px;color:var(--mut);background:var(--bg);padding:0 8px;position:absolute;top:50%;left:10px;transform:translateY(-50%)}
+  .formula{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#0c0e13;border:1px solid var(--line);border-radius:7px;padding:9px 11px;margin-top:7px;color:#cbd5e1;white-space:pre-wrap}
+  .skipbox{border-color:var(--skip);background:#241115}.skipbox .t{color:#fca5a5}
+  .scorebox{border-color:var(--score);background:#0f2417}.scorebox .t{color:#86efac}
+  .reorderbox{border-color:var(--reorder);background:#241c0d}.reorderbox .t{color:#fcd34d}
+  .posbox{border-color:var(--pos);background:#1d1230}.posbox .t{color:#d8b4fe}
+  .negbox{border-color:var(--neg);background:#2a1217}.negbox .t{color:#fda4af}
+  .discbox{border-color:var(--disc);background:#082826}.discbox .t{color:#5eead4}
+  .branch{display:flex;gap:18px;width:100%;max-width:1100px;justify-content:center;align-items:flex-start;margin-top:4px}
+  .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
+  .colhead{font-size:12px;font-weight:700;letter-spacing:.03em;padding:6px 14px;border-radius:999px;margin-bottom:10px}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--mut);margin-right:4px}
+  .sech{font-size:11.5px;color:var(--mut);margin:22px 0 6px;align-self:center;letter-spacing:.03em}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:14px;color:var(--mut)}
+  .chip{display:inline-flex;align-items:center;gap:6px}.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>추천견적 점수 산출 흐름도 <span style="color:#86efac;font-size:15px">v3 (현행)</span></h1>
+  <div class="sub"><code>scoring.ts</code> · <code>discovery.ts</code> 기준 · 신규제안 완벽매칭 = 100점</div>
+
+  <div class="legend">
+    <span class="chip"><i class="dot" style="background:var(--gate)"></i>판정</span>
+    <span class="chip"><i class="dot" style="background:var(--skip)"></i>탈락</span>
+    <span class="chip"><i class="dot" style="background:var(--score)"></i>기본점수</span>
+    <span class="chip"><i class="dot" style="background:var(--reorder)"></i>재주문</span>
+    <span class="chip"><i class="dot" style="background:var(--pos)"></i>가점</span>
+    <span class="chip"><i class="dot" style="background:var(--neg)"></i>감점</span>
+    <span class="chip"><i class="dot" style="background:var(--disc)"></i>발굴</span>
+  </div>
+
+  <div class="params">
+    <div class="p"><span>지역 tierBase</span><br><b>46/37/29/21</b></div>
+    <div class="p"><span>견적학습</span><br><b>+0~44</b></div>
+    <div class="p"><span>품종·향미</span><br><b>×8</b></div>
+    <div class="p"><span>회전</span><br><b>×2</b></div>
+    <div class="p"><span>재주문보너스</span><br><b>~30</b></div>
+    <div class="p"><span>전환</span><br><b>+8/회·×0.6</b></div>
+    <div class="p"><span>최근제안</span><br><b>×0.45</b></div>
+  </div>
+
+  <div class="flow">
+    <!-- 공통 진입 -->
+    <div class="node"><div class="t">① 재고 품목 순회 — 공통 필터</div>
+      <div class="formula">✓ 재고 있는 것만(가격대별 최소재고·재고여유분 충족)
+✗ 비상품(포장·더미·9접두)   ✗ 기프트박스(GB)
+✗ 375ml·1.5L+ (기본 750ml만 · '375ml·매그넘 포함' 토글로 해제)</div></div>
+    <div class="arrow"></div>
+    <div class="node diamond"><div class="t">◇ 추천 타입(mode)?</div></div>
+
+    <div class="branch">
+      <!-- ===== 경로 A: 신규/대체/재주문 ===== -->
+      <div class="col">
+        <div class="colhead" style="background:#10243a;color:#93c5fd">신규제안 · 대체상품 · 재주문 &nbsp;(scoring.ts)</div>
+
+        <div class="node anchorbox" style="border-color:var(--anchor);background:#082730"><div class="t" style="color:#67e8f9">대체상품: 자기 자신 제외</div><div class="d">신규제안에서 2회+ 구매 = <b style="color:#fcd34d">재주문</b> 분기</div></div>
+        <div class="arrow"></div>
+
+        <div class="node diamond"><div class="t">◇ 게이트 ①타입 ②가격밴드</div>
+          <div class="d">대체=쇼트상품 / 신규=거래처취향 기준 · <b style="color:#fcd34d">재주문은 면제</b></div></div>
+        <div class="arrow"><span class="lbl">밖이면 탈락</span></div>
+
+        <div class="node scorebox"><div class="t">② 기본 점수</div>
+          <div class="formula">지역  tierBase[t] × 빈도   (같은마을 46)
+취향  품종·향미 × 8
+회전  velocity × 2</div></div>
+        <div class="arrow"></div>
+
+        <div class="node reorderbox"><div class="t">③ 재주문 보너스 <span class="tag">검증구매</span></div>
+          <div class="formula">대체구매했거나 발주주기 전 → 제외
+bonus = 30 × (0.4 + 0.4×구매강도 + 0.2×지연)</div></div>
+        <div class="arrow"></div>
+
+        <div class="node posbox"><div class="t">④ 견적학습 (긍정·속성)</div>
+          <div class="formula">과거 견적에서 먹힌 속성(산지·가격대·타입·품종·향)
++ 0~44  (전환율×신뢰도, 감점 없음)</div></div>
+        <div class="arrow"></div>
+
+        <div class="node negbox"><div class="t">⑤ 전환·최근제안 보정</div>
+          <div class="formula">전환 미스 2회+: ×0.6   (그 품목만)
+최근 30일 제안: ×0.45</div></div>
+        <div class="arrow"></div>
+
+        <div class="node scorebox"><div class="t">⑥ 완벽 신규매칭 = 100</div>
+          <div class="formula">지역46 + 학습44 + 취향8 + 회전2 = 100
+(단골·전환은 그 위로 프리미엄 → 100 초과 가능)</div></div>
+      </div>
+
+      <!-- ===== 경로 B: 발굴 ===== -->
+      <div class="col">
+        <div class="colhead" style="background:#0a2e2a;color:#5eead4">발굴 / 신규 &nbsp;(discovery.ts) — 이력 무관</div>
+
+        <div class="node diamond"><div class="t">◇ 필터: 영업사원 지정</div>
+          <div class="d">타입칩 · 가격대(min~max) · 업태(지정/거래처자동)</div></div>
+        <div class="arrow"><span class="lbl">밖이면 탈락</span></div>
+
+        <div class="node discbox"><div class="t">인기 = 4축 백분위 순위</div>
+          <div class="formula">후보 집합 내에서 각 축을 백분위(0~1)로:
+ · 구매 거래처 수 (breadth, 핵심)
+ · 매출액 (싼 대량 보정)
+ · 최근 3개월 구매처 (트렌드)
+ · 업태 인기 (있을 때만)</div>
+          <div class="d" style="margin-top:6px">수량 1등 대비 비율 ✗ → 백분위라 분포가 고르게 펴짐</div></div>
+        <div class="arrow"></div>
+
+        <div class="node scorebox"><div class="t">가중 합 → 0~100</div>
+          <div class="formula">업태 있음: 구매처0.30 매출0.22 최근0.18 업태0.30
+업태 없음: 구매처0.45 매출0.30 최근0.25  (3축 재분배)
+→ 업태 빈 거래처도 100까지 평가</div>
+          <div class="d" style="margin-top:6px"><span class="tag">베스트셀러</span><span class="tag">업태인기</span></div></div>
+        <div class="arrow"></div>
+
+        <div class="node"><div class="t">다양성</div><div class="d">여러 타입이면 타입별 상한 10개</div></div>
+      </div>
+    </div>
+
+    <div class="sech">▼ 공통 마무리 ▼</div>
+    <div class="arrow"></div>
+    <div class="node scorebox"><div class="t">⑦ 최종 — 점수 내림차순 → 상위 30 → 견적 표시순(타입→공급가)</div></div>
+  </div>
+</div>
+</body>
+</html>
