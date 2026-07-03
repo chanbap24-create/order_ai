@@ -37,6 +37,7 @@ async function main() {
   const { isNonOrderable } = await import('@/app/lib/catalogFilter');
   const { isNonStandardBottle, isGiftBox } = await import('@/app/api/sales/recommend/lib/bottleSize');
   const { blendPopularity } = await import('@/app/api/sales/recommend/lib/popularityBlend'); // 프로덕션 블렌드 함수(검증 대상)
+  const { VENUE_WINE_MAP } = await import('@/app/api/sales/recommend/lib/venueScoring');
   type WineRegionRow = Awaited<ReturnType<typeof findHierarchy>> extends any ? any : any;
 
   // ---- CLI ----
@@ -49,6 +50,7 @@ async function main() {
   const minHistory = Number(arg('min-history', '3'));    // T 이전 최소 구매 품목 수
   const limit = Number(arg('limit', '0'));               // 거래처 상한(0=전체)
   const blend = argv.includes('--blend');                // 인기(breadth) prior 블렌드 α-스윕
+  const venueMode = argv.includes('--venue');            // 업장 A/B: 옛(지역46·업장0) vs 현행(지역36·업장20)
   const ALPHAS = [0.3, 0.5, 0.7];                        // 최종 = (1-α)·개인화 + α·구매폭백분위
   const o = { ...DEFAULT_REC_OPTS };
   // 게이트 민감도 실험용 오버라이드(기본=라이브 default)
@@ -159,8 +161,16 @@ async function main() {
     blend: ALPHAS.map(() => mkBuckets()),  // 풀-내 블렌드(게이트 통과분만)
     blendU: ALPHAS.map(() => mkBuckets()), // 전체유니버스 블렌드(게이트밖 인기품목 포함)
     randPrecision: KS.map(() => 0), randRecall: KS.map(() => 0),
+    aOld: mkBuckets(), aNew: mkBuckets(), // 업장 A/B
   };
-  let evaluated = 0, sumUniverse = 0, sumPositives = 0, sumCandidates = 0;
+  let evaluated = 0, sumUniverse = 0, sumPositives = 0, sumCandidates = 0, venEval = 0;
+
+  // 업장 A/B 점수설정: 옛(지역46·견적44·업장0) vs 현행(지역36·업장20). 둘 다 velocity/견적학습 off(leakage).
+  const SP_NEW = scoreParams; // 이미 36/29/23/16 · venueWeight 20 · velocity 0
+  const SP_OLD = { ...scoreParams, tierBase: [46, 37, 29, 21] as [number, number, number, number], quoteFeedbackWeight: 44, venueWeight: 0 };
+  const cvRows = (await supabase.from('client_venue').select('client_code, venue').eq('client_type', 'wine')).data || [];
+  const venueOf = new Map<string, string>();
+  for (const r of cvRows as any[]) venueOf.set(String(r.client_code), r.venue);
 
   // 정답/랭킹으로 지표 누적
   const scoreRankMetrics = (rankedCodes: string[], positives: Set<string>, bucket: { hit: number; precision: number; recall: number }[]) => {
@@ -173,8 +183,7 @@ async function main() {
     });
   };
 
-  const clients = [...byClient.values()];
-  for (const e of clients) {
+  for (const [code, e] of byClient.entries()) {
     if (limit && evaluated >= limit) break;
     // 정답: [T,T+H]에 산 것 중 T 이전 미구매(신규) & 유니버스 내
     const preItems = new Set(e.pre.map((s) => s.item_no));
@@ -185,6 +194,20 @@ async function main() {
     const purchaseAgg = aggregatePurchases(e.pre as any);
     const prefs = buildClientPreferences(purchaseAgg, wineMap, inventoryMap);
     if (!prefs.hasHistory) continue;
+
+    // 업장 A/B 모드: 태깅된 거래처만. 옛(46·업장0) vs 현행(36·업장20) 랭킹 비교.
+    if (venueMode) {
+      const venue = venueOf.get(code);
+      if (!venue) continue;
+      const venuePref = VENUE_WINE_MAP[venue] || null;
+      const core = { inventory, wineMap, purchaseAgg, prefs, priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength, maxSales90d: 1, mode: 'new' as const };
+      const rankA = scoreRecommendations({ ...core, scoreParams: SP_OLD }).map((s) => s.item_no);
+      const rankB = scoreRecommendations({ ...core, scoreParams: SP_NEW, venuePref }).map((s) => s.item_no);
+      scoreRankMetrics(rankA, positives, agg.aOld);
+      scoreRankMetrics(rankB, positives, agg.aNew);
+      venEval++;
+      continue;
+    }
 
     const scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
@@ -224,6 +247,18 @@ async function main() {
   }
 
   // ---- 4) 출력 ----
+  if (venueMode) {
+    if (venEval === 0) { console.log('업장 태깅된 평가 거래처 0곳.'); return; }
+    const vp = (x: number) => (100 * x / venEval).toFixed(1);
+    const vrow = (label: string, m: { hit: number; precision: number; recall: number }[]) =>
+      `  ${label.padEnd(16)} ` + KS.map((k, ki) => `k=${k}: hit ${vp(m[ki].hit)}%  P ${vp(m[ki].precision)}%  R ${vp(m[ki].recall)}%`).join('   |  ');
+    console.log(`[업장 A/B] 태깅 거래처 ${venEval}곳 (견적학습·velocity off — 측정가능=지역tier축소+업장추가)\n`);
+    console.log(vrow('A 옛(지역46,업장0)', agg.aOld));
+    console.log(vrow('B 현행(지역36,업장20)', agg.aNew));
+    const dHit = (agg.aNew[0].hit - agg.aOld[0].hit) / Math.max(1, venEval) * 100;
+    console.log(`\n  ▶ hit@10 변화(B−A) = ${dHit >= 0 ? '+' : ''}${dHit.toFixed(1)}%p`);
+    return;
+  }
   if (evaluated === 0) { console.log('평가 대상 거래처 0곳 — 컷오프/최소이력 조건을 완화해 보세요.'); return; }
   const pct = (x: number) => (100 * x / evaluated).toFixed(1);
   const row = (label: string, m: { hit: number; precision: number; recall: number }[]) =>
