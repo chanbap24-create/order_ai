@@ -24,10 +24,14 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    // 담당자 필터: shipments에서 해당 담당자의 거래처 코드를 전체 조회
+    // 담당자 필터
+    //  - 와인: 권한(requireClientAccess)과 동일하게 client_details.manager 로 필터(아래 wine 쿼리).
+    //    인수인계 시 '현재 담당'이 목록·원장 전부 접근 = 일치. 옛 담당은 넘긴 거래처가 목록에서 빠져
+    //    "목록엔 보이는데 원장 403" 불일치가 사라짐. (담당은 shipment 동기화로 최신 유지)
+    //  - 글라스: 별도 마스터 담당 컬럼이 없어 glass_shipments 담당 기반(기존 유지).
     let managerClientCodes: string[] | null = null;
-    if (manager) {
-      const shipmentsTable = clientType === 'glass' ? 'glass_shipments' : 'shipments';
+    if (manager && clientType === 'glass') {
+      const shipmentsTable = 'glass_shipments';
       const codesSet = new Set<string>();
       let from = 0;
       const batchSize = 1000;
@@ -147,6 +151,10 @@ export async function GET(req: NextRequest) {
     }
     if (managerClientCodes) {
       query = query.in('client_code', managerClientCodes);
+    }
+    // 와인 담당자 필터 = client_details.manager (권한 소스와 동일 → 인수인계 시 현재 담당이 전부 접근)
+    if (manager && clientType !== 'glass') {
+      query = query.eq('manager', manager);
     }
     if (clientType) {
       query = query.eq('client_type', clientType);

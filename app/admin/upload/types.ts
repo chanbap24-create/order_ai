@@ -16,6 +16,8 @@ export type DetectedType =
   | "dl-client"
   | "payments"
   | "dl-payments"
+  | "client-info"
+  | "dl-client-info"
   | "unknown";
 
 export interface BatchFile {

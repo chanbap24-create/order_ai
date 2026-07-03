@@ -3,6 +3,7 @@ import { parsePaymentsFile } from "./parsers/payments";
 import { parseShipmentsFile } from "./parsers/shipments";
 import { parseImportScheduleFile } from "./parsers/importSchedule";
 import { parseInventoryFile } from "./parsers/inventory";
+import { parseClientInfoFile } from "./parsers/clientInfo";
 
 export type UpdateCardFn = (type: string, patch: Partial<UploadCardState>) => void;
 
@@ -193,6 +194,31 @@ export async function uploadShipments(ctx: UploadContext): Promise<Response> {
   }
 
   ctx.checkStatus();
+  return res;
+}
+
+/**
+ * 거래처정보(ERP 명부) 업로드 — 세일즈 거래처 마스터(client_details/glass_clients) 갱신.
+ * type: 'client-info'(와인) | 'dl-client-info'(글라스). N/P/X/Z 열 제외.
+ */
+export async function uploadClientInfo(ctx: UploadContext): Promise<Response> {
+  const { type, file, updateCard } = ctx;
+  updateCard(type, { status: "uploading", fileName: file.name, message: "거래처정보 분석 중..." });
+
+  const rows = await parseClientInfoFile(file);
+  if (rows.length === 0) {
+    alert("⚠️ 거래처 데이터가 0건입니다. 거래처정보 파일이 맞는지 확인해주세요.");
+    updateCard(type, { status: "error", fileName: file.name, message: "거래처 데이터 0건 - 파일 확인 필요" });
+    throw new Error("empty");
+  }
+
+  updateCard(type, { status: "uploading", fileName: file.name, message: `${rows.length}개 거래처정보 업데이트 중...` });
+  const res = await fetch(`/api/admin/upload-data/${type}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows }),
+  });
+  if (res.ok) ctx.checkStatus();
   return res;
 }
 

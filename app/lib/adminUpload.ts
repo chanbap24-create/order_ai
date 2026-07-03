@@ -23,6 +23,8 @@ export { processClientFromData } from "./admin-upload/processClient";
 export { processDlClientFromData } from "./admin-upload/processDlClient";
 export { processDownloadsFromData, processDlFromData } from "./admin-upload/processInventory";
 export { processShipmentsFromData } from "./admin-upload/processShipments";
+export { processClientInfoFromData } from "./admin-upload/processClientInfo";
+export type { ClientInfoRow } from "./admin-upload/processClientInfo";
 export {
   processPaymentsFromData,
   processCarryoverFromData,

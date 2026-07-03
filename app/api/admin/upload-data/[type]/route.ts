@@ -1,13 +1,13 @@
 // app/api/admin/upload-data/[type]/route.ts
 // 클라이언트에서 파싱된 JSON 데이터를 받아 DB에 저장 (대용량 파일 대응)
 import { NextRequest, NextResponse } from "next/server";
-import { processClientFromData, processDlClientFromData, processShipmentsFromData, processPaymentsFromData, processCarryoverFromData, processDlPaymentsFromData, processDlCarryoverFromData } from "@/app/lib/adminUpload";
-import type { ShipmentRow, PaymentRow, CarryoverRow } from "@/app/lib/adminUpload";
+import { processClientFromData, processDlClientFromData, processShipmentsFromData, processPaymentsFromData, processCarryoverFromData, processDlPaymentsFromData, processDlCarryoverFromData, processClientInfoFromData } from "@/app/lib/adminUpload";
+import type { ShipmentRow, PaymentRow, CarryoverRow, ClientInfoRow } from "@/app/lib/adminUpload";
 import { handleApiError } from "@/app/lib/errors";
 import { logger } from "@/app/lib/logger";
 import { supabase } from "@/app/lib/db";
 
-const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments', 'dl-payments', 'downloads', 'dl'] as const;
+const VALID_TYPES = ['client', 'dl-client', 'client-shipments', 'dl-client-shipments', 'payments', 'dl-payments', 'downloads', 'dl', 'client-info', 'dl-client-info'] as const;
 
 export async function POST(
   request: NextRequest,
@@ -91,6 +91,17 @@ export async function POST(
         carryoverResult = await processDlCarryoverFromData(carryovers, append);
       }
       return NextResponse.json({ success: true, type, ...result, carryover: carryoverResult, carryover_skipped: append ? true : undefined });
+    }
+
+    // 거래처정보 업로드 (ERP 명부 → 세일즈 마스터 갱신)
+    if (type === 'client-info' || type === 'dl-client-info') {
+      const { rows } = body as { rows: ClientInfoRow[] };
+      if (!rows || !Array.isArray(rows)) {
+        return NextResponse.json({ success: false, error: '거래처정보(rows)가 필요합니다.' }, { status: 400 });
+      }
+      logger.info(`Admin upload-data: type=${type}, rows=${rows.length}`);
+      const result = await processClientInfoFromData(rows, type === 'dl-client-info');
+      return NextResponse.json({ success: true, type, ...result });
     }
 
     // Shipments 배치 업로드

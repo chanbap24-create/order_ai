@@ -12,6 +12,8 @@ export const UPLOAD_LABELS: Record<string, string> = {
   payments: "수금내역(Wine)",
   "dl-payments": "수금내역(DL)",
   "import-schedule": "수입일정",
+  "client-info": "거래처정보(와인)",
+  "dl-client-info": "거래처정보(글라스)",
 };
 
 export const FILE_KEY_MAP: Record<string, string> = {
@@ -39,6 +41,8 @@ export const BATCH_TYPE_OPTIONS: { value: DetectedType; label: string }[] = [
   { value: "dl-client", label: "글라스 출고현황" },
   { value: "payments", label: "수금내역(Wine)" },
   { value: "dl-payments", label: "수금내역(DL)" },
+  { value: "client-info", label: "거래처정보(와인)" },
+  { value: "dl-client-info", label: "거래처정보(글라스)" },
 ];
 
 const STROKE = "var(--color-primary)";
@@ -129,6 +133,27 @@ export const UPLOAD_AREAS: readonly UploadAreaDef[] = [
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
       <polyline points="10 9 9 9 8 9" />
+    </>),
+  },
+  {
+    type: "client-info",
+    label: "거래처정보(와인)",
+    description: "ERP 거래처 명부 → 세일즈 거래처 갱신(담당·업종·주소). 가끔 최종값 반영",
+    icon: SVG(<>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6M22 11h-6" />
+    </>),
+  },
+  {
+    type: "dl-client-info",
+    label: "거래처정보(글라스)",
+    description: "ERP 거래처 명부(DL) → 글라스 거래처 갱신. 가끔 최종값 반영",
+    icon: SVG(<>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M19 8v6M22 11h-6" />
+      <circle cx="20" cy="4" r="3" fill={STROKE} stroke="none" opacity="0.3" />
     </>),
   },
   {

@@ -38,6 +38,36 @@ export async function detectFileType(file: File): Promise<DetectResult> {
       return { type: "downloads", confidence: "low", reason: "재고파일이나 CDV/DL 구분 불가" };
     }
 
+    // 1.7) 거래처정보(ERP 거래처 명부) — 컬럼 30+지만 출고/재고/수금과 헤더가 다름.
+    //   거래처번호+상호+영업담당자 있고 출고(판매처/출고일)·재고(품번)는 없음.
+    //   출고현황 분기(colCount>=30)보다 먼저 걸러야 오판(사업장소재지 헤더가 '사업장' 매치) 방지.
+    if (
+      headerText.includes("거래처번호") &&
+      headerText.includes("상호") &&
+      headerText.includes("영업담당자") &&
+      !headerText.includes("판매처") &&
+      !headerText.includes("출고일") &&
+      !headerText.includes("품번")
+    ) {
+      const upCol = headers.findIndex((h) => h.includes("업종구분"));
+      const ui = upCol >= 0 ? upCol : 9;
+      const upVals = new Set<string>();
+      for (let i = 1; i < Math.min(400, rows.length); i++) {
+        const v = String((rows[i] as unknown[])[ui] ?? "").trim();
+        if (v) upVals.add(v);
+      }
+      const upText = Array.from(upVals).join("|");
+      const fname = file.name.toLowerCase();
+      // CDV(와인)는 업종에 on//off/ 프리픽스. DL(글라스)은 프리픽스 없음 + 기물벤더/리빙샵 고유.
+      if (upText.includes("on/") || upText.includes("off/")) {
+        return { type: "client-info", confidence: "high", reason: "거래처정보 - 업종 on//off/ 프리픽스 (CDV 와인)" };
+      }
+      if (upText.includes("기물벤더") || upText.includes("리빙샵") || fname.includes("dl") || fname.includes("글라스") || fname.includes("대유")) {
+        return { type: "dl-client-info", confidence: "high", reason: "거래처정보 - 글라스 고유 업종/파일명 (DL)" };
+      }
+      return { type: "client-info", confidence: "medium", reason: "거래처정보 - CDV 추정 (필요시 글라스로 변경)" };
+    }
+
     // 2) 출고현황
     if (colCount >= 30) {
       // 1순위: 사업장(C열) — 까브드뱅=와인(CDV), 대유라이프=글라스(DL). 가장 명확한 신호.

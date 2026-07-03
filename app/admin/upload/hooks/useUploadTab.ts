@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { UploadCardState, UploadMode } from "../types";
 import { UPLOAD_AREAS } from "../constants";
 import {
+  uploadClientInfo,
   uploadFormData,
   uploadImportSchedule,
   uploadInventory,
@@ -20,6 +21,8 @@ const INVALIDATION_KEY_MAP: Record<string, string> = {
   "dl-payments": "payments",
   downloads: "inventory",
   dl: "inventory",
+  "client-info": "shipments",
+  "dl-client-info": "shipments",
 };
 
 type Props = {
@@ -99,6 +102,7 @@ export function useUploadTab({ onUploadComplete }: Props) {
         let res: Response;
         if (type === "payments" || type === "dl-payments") res = await uploadPayments(ctx);
         else if (type === "client" || type === "dl-client") res = await uploadShipments(ctx);
+        else if (type === "client-info" || type === "dl-client-info") res = await uploadClientInfo(ctx);
         else if (type === "import-schedule") res = await uploadImportSchedule(ctx);
         else if (type === "downloads" || type === "dl") res = await uploadInventory(ctx);
         else res = await uploadFormData(ctx);
