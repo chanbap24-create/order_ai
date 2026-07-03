@@ -35,7 +35,12 @@ begin
           when cd.address like '충청북%%' or cd.address like '충북%%' then '충북'
           else '기타'
         end as sido,
-        coalesce((regexp_match(cd.address, '([가-힣]+구)(\s|,)'))[1], '(구외)') as gu,
+        case
+          when split_part(cd.address,' ',2) like '%%구' then split_part(cd.address,' ',2)
+          when split_part(cd.address,' ',2) like '%%시' and split_part(cd.address,' ',3) like '%%구' then split_part(cd.address,' ',2) || split_part(cd.address,' ',3)
+          when split_part(cd.address,' ',2) like '%%시' or split_part(cd.address,' ',2) like '%%군' then split_part(cd.address,' ',2)
+          else '(구외)'
+        end as gu,
         case
           when coalesce(s.selling_price,0)=0 and coalesce(s.supply_amount,0)=0 then 0
           else (case when coalesce(s.quantity,0) < 0 then -1 else 1 end) *

@@ -4,16 +4,24 @@ import { useEffect, useState } from 'react';
 import Card from '@/app/components/ui/Card';
 import { formatKrw } from '../lib/format';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from '../lib/recharts';
-import { SeoulSalesMap } from './SeoulSalesMap';
+import { ChoroplethMap } from './ChoroplethMap';
 
 type Row = { sido: string; gu: string; sales: number; clients: number };
 type Props = { type: 'wine' | 'glass'; startDate: string; endDate: string };
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8 };
 
+// 전국 시군구 GeoJSON code 접두 2자리 → 시도 (fn_region_sales 의 sido 정규화와 동일 키)
+const CODE_SIDO: Record<string, string> = {
+  '11': '서울', '21': '부산', '22': '대구', '23': '인천', '24': '광주', '25': '대전', '26': '울산', '29': '세종',
+  '31': '경기', '32': '강원', '33': '충북', '34': '충남', '35': '전북', '36': '전남', '37': '경북', '38': '경남', '39': '제주',
+};
+const sidoOfCode = (code: unknown) => CODE_SIDO[String(code).slice(0, 2)] || '기타';
+
 export function RegionSalesCard({ type, startDate, endDate }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [mapMode, setMapMode] = useState<'korea' | 'seoul'>('korea');
 
   useEffect(() => {
     if (!startDate || !endDate) return;
@@ -50,9 +58,14 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
   const guData = [...guMap.values()].filter((g) => g.gu !== '(구외)').sort((a, b) => b.sales - a.sales).slice(0, 15);
   const guMax = guData[0]?.sales || 1;
 
-  // 서울 자치구 지도용: 구명 → 매출
+  // 지도용 매출 맵: 전국='시도|시군구' / 서울='구명'
+  const salesBySidoGu: Record<string, number> = {};
   const seoulByGu: Record<string, number> = {};
-  for (const g of guMap.values()) if (g.sido === '서울' && g.gu !== '(구외)') seoulByGu[g.gu] = (seoulByGu[g.gu] || 0) + g.sales;
+  for (const g of guMap.values()) {
+    if (g.gu === '(구외)') continue;
+    salesBySidoGu[`${g.sido}|${g.gu}`] = (salesBySidoGu[`${g.sido}|${g.gu}`] || 0) + g.sales;
+    if (g.sido === '서울') seoulByGu[g.gu] = (seoulByGu[g.gu] || 0) + g.sales;
+  }
 
   return (
     <Card>
@@ -84,10 +97,22 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
               </ResponsiveContainer>
             </div>
 
-            {/* 서울 자치구 지도(코로플레스) */}
+            {/* 지역 지도(코로플레스) — 전국/서울 토글 */}
             <div>
-              <div style={label}>서울 자치구 지도</div>
-              <SeoulSalesMap salesByGu={seoulByGu} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8 }}>
+                <span style={{ ...label, marginBottom: 0 }}>{mapMode === 'korea' ? '전국 시군구 지도' : '서울 자치구 지도'}</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {([['korea', '전국'], ['seoul', '서울']] as const).map(([m, t]) => (
+                    <button key={m} onClick={() => setMapMode(m)} style={{ padding: '3px 12px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--gray-300)', background: mapMode === m ? 'var(--action)' : '#fff', color: mapMode === m ? '#fff' : 'var(--text-secondary)' }}>{t}</button>
+                  ))}
+                </div>
+              </div>
+              {mapMode === 'korea'
+                ? <ChoroplethMap url="/korea-districts.geojson" values={salesBySidoGu} width={440}
+                    keyOf={(p) => `${sidoOfCode(p.code)}|${p.name}`}
+                    labelOf={(p) => `${sidoOfCode(p.code)} ${p.name}`} />
+                : <ChoroplethMap url="/seoul-districts.geojson" values={seoulByGu} width={460}
+                    keyOf={(p) => String(p.name)} labelOf={(p) => String(p.name)} />}
             </div>
           </div>
 
