@@ -11,9 +11,27 @@ type Props = {
   onToggle: () => void;
 };
 
+// 점수 분해(공식)를 컬럼별 간단 점수로 요약 — 접힘 상태 표시용. 펼치면 원본 공식 표시.
+function briefFromBreakdown(breakdown?: string[]): string[] {
+  if (!breakdown) return [];
+  const out: string[] = [];
+  for (const line of breakdown) {
+    if (line.startsWith('=')) continue;
+    let m: RegExpMatchArray | null;
+    if ((m = line.match(/^(?:같은 마을|인근 마을|같은 광역|타지역).*=\s*([\d.]+)\s*$/))) out.push(`산지 ${(+m[1]).toFixed(0)}`);
+    else if ((m = line.match(/^품종·향미.*=\s*\+?([\d.]+)/))) out.push(`취향 ${(+m[1]).toFixed(1)}`);
+    else if ((m = line.match(/^견적학습\s*\+?([\d.]+)/))) out.push(`견적 ${(+m[1]).toFixed(1)}`);
+    else if ((m = line.match(/^(업장|업태|지역) 타입 \+([\d.]+)·국가 \+([\d.]+)/))) out.push(`${m[1]} ${(+m[2] + +m[3]).toFixed(0)}`);
+    else if ((m = line.match(/^과거거절\s*[−-]\s*([\d.]+)/))) out.push(`거절 -${m[1]}`);
+    else if ((m = line.match(/^비주력타입.*[−-]\s*([\d.]+)\s*$/))) out.push(`비주력 -${m[1]}`);
+  }
+  return out;
+}
+
 export function RecommendCard({ item, isSelected, onToggle }: Props) {
   const sc = scoreColor(item.score);
-  const [showBreak, setShowBreak] = useState(true); // 점수 세부정보 기본 표시
+  const [showBreak, setShowBreak] = useState(false); // 기본 접힘(카드 높이 축소)
+  const brief = briefFromBreakdown(item.breakdown);
   // 거래처 이력 기반(개인화) vs 동종업장·일반 기반(세그먼트) — 통합 스코어러가 큰 축으로 라벨 태그를 붙임
   const isClientBased = !item.tags?.includes('동종업장');
   // 견적서 화면과 동일한 메타: 국가 · 브랜드 · 빈티지 · 산지 · 품종
@@ -46,17 +64,28 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
         )}
       </div>
 
-      {/* 와인병 이미지 (견적서 화면과 동일 표기) */}
-      <div style={{
-        width: 44, height: 56, flexShrink: 0, borderRadius: 6, overflow: 'hidden',
-        background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {item.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        ) : (
-          <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>이미지</span>
-        )}
+      {/* 왼쪽: 병 이미지 + 기반 배지(밑으로 이동 → 세로 축소) */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, flexShrink: 0, width: 54 }}>
+        <div style={{
+          width: 44, height: 56, borderRadius: 6, overflow: 'hidden',
+          background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {item.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          ) : (
+            <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>이미지</span>
+          )}
+        </div>
+        <span style={{
+          fontSize: 9.5, fontWeight: 700, padding: '2px 3px', borderRadius: 5, width: '100%',
+          textAlign: 'center', lineHeight: 1.15, wordBreak: 'keep-all',
+          background: isClientBased ? 'rgba(21,101,52,0.13)' : 'rgba(180,110,20,0.16)',
+          color: isClientBased ? '#166534' : '#9a5b00',
+          border: `1px solid ${isClientBased ? 'rgba(21,101,52,0.3)' : 'rgba(180,110,20,0.35)'}`,
+        }}>
+          {isClientBased ? '🎯 거래처이력' : '🏢 동종업장'}
+        </span>
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -77,17 +106,6 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
             {meta}
           </div>
         )}
-        {/* 거래처 기반인지 아닌지 — 명확·눈에 띄게 */}
-        <div style={{ marginBottom: 5 }}>
-          <span style={{
-            fontSize: 11.5, fontWeight: 800, padding: '3px 9px', borderRadius: 6, letterSpacing: '-0.2px',
-            background: isClientBased ? 'rgba(21,101,52,0.13)' : 'rgba(180,110,20,0.16)',
-            color: isClientBased ? '#166534' : '#9a5b00',
-            border: `1px solid ${isClientBased ? 'rgba(21,101,52,0.3)' : 'rgba(180,110,20,0.35)'}`,
-          }}>
-            {isClientBased ? '🎯 거래처 이력 기반' : '🏢 동종업장·일반 기반'}
-          </span>
-        </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
           {item.tags.filter((t) => t !== '거래처이력' && t !== '동종업장').map((tag) => (
             <span key={tag} style={{
@@ -103,15 +121,24 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
 
         {item.breakdown && item.breakdown.length > 0 && (
           <div style={{ marginTop: 5 }} onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setShowBreak(!showBreak)}
-              style={{
-                fontSize: 11, color: 'var(--action)', background: 'none', border: 'none',
-                cursor: 'pointer', padding: 0, fontWeight: 600,
-              }}
-            >
-              {showBreak ? '▾' : '▸'} 점수 분해
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowBreak(!showBreak)}
+                style={{
+                  fontSize: 11, color: 'var(--action)', background: 'none', border: 'none',
+                  cursor: 'pointer', padding: 0, fontWeight: 600, flexShrink: 0,
+                }}
+              >
+                {showBreak ? '▾' : '▸'} 점수 분해
+              </button>
+              {/* 접힘 상태: 컬럼별 간단 점수 */}
+              {!showBreak && brief.map((b, i) => (
+                <span key={i} style={{
+                  fontSize: 10.5, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace',
+                  background: 'var(--surface-muted)', padding: '1px 6px', borderRadius: 6,
+                }}>{b}</span>
+              ))}
+            </div>
             {showBreak && (
               <div style={{
                 marginTop: 4, padding: '6px 10px', borderRadius: 6,

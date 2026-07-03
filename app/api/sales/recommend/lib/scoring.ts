@@ -81,6 +81,7 @@ export function scoreRecommendations(params: {
   venuePref?: VenueWinePref | null; // 거래처 업장 유형 선호(스시·프렌치 등) — 있으면 적합 가산
   segScorers?: SegScorers;          // 업장·업태·지역 세그먼트의 타입/국가 분포 순위
   regionPriceRef?: number;          // 지역별 추천가(중앙값). >0이면 ±band로 가격 게이트.
+  typeShares?: Record<string, number>; // 타입별 비중(본인 이력 우선). 비주력 타입(<5%) 강등용. bucketLabel 키.
 }): ScoredItem[] {
   const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
@@ -89,6 +90,7 @@ export function scoreRecommendations(params: {
   const venuePref = params.venuePref;
   const segScorers = params.segScorers;
   const regionPriceRef = params.regionPriceRef ?? 0;
+  const typeShares = params.typeShares;
   const unified = mode !== 'substitute'; // 신규제안: 게이트 풀고 모든 와인을 하나의 점수판으로(개인화+세그먼트)
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
@@ -99,6 +101,8 @@ export function scoreRecommendations(params: {
 
   for (const inv of inventory || []) {
     const itemNo = inv.item_no;
+    // 통관 안 된 아이템(국내 가용재고 0, 보세창고만) 추천 제외 — 바로 못 파는 재고는 제안 X.
+    if ((inv.available_stock || 0) <= 0) continue;
     // 대체상품 모드: 쇼트난 기준 상품 자기 자신은 제외
     if (mode === 'substitute' && anchor && String(itemNo) === anchor.itemCode) continue;
     const wine = wineMap.get(itemNo);
@@ -203,7 +207,7 @@ export function scoreRecommendations(params: {
     // ('+'는 없음 — 산 와인은 신규제안에서 이미 제외되므로.)
     const cv = conversionMap?.get(String(itemNo));
     if (cv && cv.converted === 0 && cv.quoted > 0) {
-      const penalty = cv.quoted >= 3 ? 15 : cv.quoted === 2 ? 10 : 5;
+      const penalty = cv.quoted >= 3 ? 21 : cv.quoted === 2 ? 14 : 7;
       score -= penalty;
       tags.push('과거거절');
       reasons.push(`과거 견적 ${cv.quoted}회 미구매`);
@@ -254,6 +258,16 @@ export function scoreRecommendations(params: {
       addSeg(segScorers.venue, SEG_PTS.venueType, SEG_PTS.venueCtry, '업장');
       addSeg(segScorers.bt, SEG_PTS.segType, SEG_PTS.segCtry, '업태');
       addSeg(segScorers.region, SEG_PTS.segType, SEG_PTS.segCtry, '지역');
+    }
+    // 비주력 타입 강등: 본인(무이력이면 업장) 타입 비중 < 5%면 감점(0%에 가까울수록 세게). 스시야 레드 등.
+    if (unified && typeShares && Object.keys(typeShares).length) {
+      const tShare = typeShares[bucketLabel(bucket) || ''] || 0;
+      if (tShare < 0.05) {
+        const pen = Math.round(40 * (1 - tShare / 0.05) * 10) / 10;
+        score -= pen;
+        tags.push('비주력타입');
+        breakdown.push(`비주력타입 ${Math.round(tShare * 100)}% → -${pen}`);
+      }
     }
     if (unified) {
       if (score <= 0) continue; // 아무 축도 안 맞음 → 후보 아님

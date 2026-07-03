@@ -8,7 +8,7 @@ import { findHierarchy, type WineRegionRow } from './regions';
 import { makeMinStockForPrice, DEFAULT_REC_OPTS, type RecOpts } from './settings';
 import { aggregatePurchases, buildClientPreferences } from './preferences';
 import { scoreRecommendations, type SubstituteAnchor, type SegRank } from './scoring';
-import { normalizeType } from './wineType';
+import { normalizeType, bucketLabel } from './wineType';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { getClientConversion } from '@/app/lib/quoteConversion';
 import { getClientQuoteFeatures } from './quoteFeedback';
@@ -227,6 +227,23 @@ export async function buildCandidates(
     // 가격 기준: 이력 있으면 거래처 본인 대표가(횟수가중평균), 없으면 지역 추천가(무이력 폴백).
     const ownMean = prefs.priceStats['__all__']?.mean || prefs.clientAvgPrice || 0;
     const regionPriceRef = ownMean > 0 ? ownMean : regionPriceMedian;
+    // 타입 비중(비주력 타입 강등용): 본인 이력(설정기간) + 업장(없으면 업태) 세그먼트 블렌드.
+    //  이력 얇으면 세그먼트 우세 → 프레르(스파클링 3건)가 그 하나에 안 묶이고 프렌치 성향(화이트·레드도) 반영.
+    const ownTypeCnt: Record<string, number> = {}; let ownTot = 0;
+    for (const [no, a] of Object.entries(purchaseAgg)) {
+      const w = wineMap.get(String(no));
+      const bl = bucketLabel(normalizeType(w?.wine_type || '', w?.item_name_kr || a.name || ''));
+      if (!bl || bl === '기타') continue;
+      ownTypeCnt[bl] = (ownTypeCnt[bl] || 0) + a.count; ownTot += a.count;
+    }
+    const TYPE_CONF_K = 10; // 이력 이만큼(출고건) 쌓이면 본인 타입성향 100% 신뢰, 얇으면 세그먼트 쪽
+    const ownConf = Math.min(1, ownTot / TYPE_CONF_K);
+    const segDist = venueProfile?.type_dist || btProfile?.type_dist || {};
+    const typeShares: Record<string, number> = {};
+    for (const t of new Set([...Object.keys(ownTypeCnt), ...Object.keys(segDist)])) {
+      const own = ownTot > 0 ? (ownTypeCnt[t] || 0) / ownTot : 0;
+      typeShares[t] = ownConf * own + (1 - ownConf) * ((segDist as Record<string, number>)[t] || 0);
+    }
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
       priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
@@ -235,7 +252,7 @@ export async function buildCandidates(
       mode: o.mode, anchor,
       ...(quoteFeedback ? { quoteFeedback } : {}),
       ...(venuePref ? { venuePref } : {}),
-      ...(o.mode === 'new' ? { segScorers, regionPriceRef } : {}),
+      ...(o.mode === 'new' ? { segScorers, regionPriceRef, typeShares } : {}),
     }) as ScoredItem[];
   }
 
