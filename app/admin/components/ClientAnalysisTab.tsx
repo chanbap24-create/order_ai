@@ -12,6 +12,7 @@ import { BusinessBrandPie } from '../client-analysis/components/BusinessBrandPie
 import { TrendChart } from '../client-analysis/components/TrendChart';
 import { YoYChart } from '../client-analysis/components/YoYChart';
 import { ClientRankingTable } from '../client-analysis/components/ClientRankingTable';
+import { RegionSalesCard } from '../client-analysis/components/RegionSalesCard';
 import { ClientDetailSheet } from '../client-analysis/components/ClientDetailSheet';
 
 export default function ClientAnalysisTab() {
@@ -54,6 +55,10 @@ export default function ClientAnalysisTab() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20, marginBottom: 24 }}>
             <ManagerAnalysisTable data={data.managerAnalysis} />
             <BusinessBrandPie data={data} view={bizView} onViewChange={setBizView} />
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <RegionSalesCard type={type} startDate={filterState.startDate} endDate={filterState.endDate} />
           </div>
 
           <TrendChart
