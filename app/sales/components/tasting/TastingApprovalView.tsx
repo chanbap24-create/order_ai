@@ -62,6 +62,17 @@ export default function TastingApprovalView({ rows, company, currentManager, dep
     onChanged();
   };
 
+  // 실수로 등록한 시음주(등록분) 삭제. 출고분은 quoteIds가 없어 대상 아님.
+  const del = async (ids?: number[]) => {
+    if (!ids || ids.length === 0) return;
+    if (!window.confirm("실수로 등록한 시음주입니다. 삭제할까요?")) return;
+    await fetch("/api/sales/tasting/ledger", {
+      method: "DELETE", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    onChanged();
+  };
+
   if (rows.length === 0) return <div style={muted}>해당 조건의 시음주가 없습니다.</div>;
 
   return (
@@ -126,7 +137,7 @@ export default function TastingApprovalView({ rows, company, currentManager, dep
                 </span>
               </div>
               <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
-                <thead><tr>{["계정과목", "품목", "금액(공급가)", "거래처명", "수량"].map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                <thead><tr>{["계정과목", "품목", "금액(공급가)", "거래처명", "수량", ""].map((h, i) => <th key={h || `_${i}`} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {g.rows.map((r) => (
                     <tr key={r.key}>
@@ -135,6 +146,11 @@ export default function TastingApprovalView({ rows, company, currentManager, dep
                       <td style={{ ...td, textAlign: "right" }}><Copy text={won(r.supply)} /></td>
                       <td style={td}><Copy text={g.name} /></td>
                       <td style={{ ...td, textAlign: "right" }}><Copy text="1" /></td>
+                      <td style={{ ...td, textAlign: "center" }}>
+                        {r.quoteIds && r.quoteIds.length > 0 && (
+                          <button onClick={() => del(r.quoteIds)} style={delBtn} title="시음주 등록 삭제">삭제</button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -148,3 +164,8 @@ export default function TastingApprovalView({ rows, company, currentManager, dep
     </div>
   );
 }
+
+const delBtn: React.CSSProperties = {
+  padding: "1px 7px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+  border: "1px solid var(--status-danger)", background: "#fff", color: "var(--status-danger)",
+};

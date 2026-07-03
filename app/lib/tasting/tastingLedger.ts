@@ -15,6 +15,7 @@ export interface TastingLedgerRow {
   manager: string;
   converted: boolean;   // 이후 같은 거래처가 그 와인을 유상 구매(발주 전환)했는지
   submitted: boolean;   // 결재 상신 완료 여부
+  quoteIds: number[];   // 이 행을 만든 saved_quotes id (등록분). 실제 출고분은 빈 배열 → 삭제 불가.
 }
 
 // 부자재(쇼핑백·지함·박스 등) — 시음주에서 제외.
@@ -38,6 +39,7 @@ interface Cand {
   ship_date: string; client_code: string; client_name: string;
   item_no: string; item_name: string; supply: number; manager: string;
   quoteSubmitted: boolean; // saved_quotes.tasting_submitted_at 기반
+  quoteIds: number[];      // saved_quotes id (출고분은 빈 배열)
 }
 
 export async function getTastingLedger(opts: LedgerQuery): Promise<TastingLedgerRow[]> {
@@ -68,12 +70,12 @@ export async function getTastingLedger(opts: LedgerQuery): Promise<TastingLedger
   for (const r of ship as Row[]) cands.push({
     ship_date: ymd(r.ship_date), client_code: r.client_code || "", client_name: r.client_name || "",
     item_no: r.item_no || "", item_name: r.item_name || "", supply: Number(r.unit_price) || 0,
-    manager: r.manager || "", quoteSubmitted: false,
+    manager: r.manager || "", quoteSubmitted: false, quoteIds: [],
   });
 
   // B) order-v2 등록분: saved_quotes(is_tasting) — 아직 출고 안 된 것도 포함(출고일 또는 등록일이 기간 내)
   let sq = supabase.from("saved_quotes")
-    .select("client_code, client_name, manager, items, created_at, doc_settings, tasting_submitted_at")
+    .select("id, client_code, client_name, manager, items, created_at, doc_settings, tasting_submitted_at")
     .eq("is_tasting", true).eq("company", company);
   if (managers && managers.length) sq = sq.in("manager", managers);
   const { data: sqData } = await sq;
@@ -88,6 +90,7 @@ export async function getTastingLedger(opts: LedgerQuery): Promise<TastingLedger
       ship_date: shipD, client_code: r.client_code || "", client_name: r.client_name || "",
       item_no: String(it.item_code || ""), item_name: String(it.product_name || ""), supply: Number(it.supply_price) || 0,
       manager: r.manager || "", quoteSubmitted: !!r.tasting_submitted_at,
+      quoteIds: r.id != null ? [Number(r.id)] : [],
     });
   }
   if (!cands.length) return [];
@@ -97,8 +100,10 @@ export async function getTastingLedger(opts: LedgerQuery): Promise<TastingLedger
   for (const c of cands) {
     const k = mkKey(c);
     const prev = byKey.get(k);
-    if (prev) prev.quoteSubmitted = prev.quoteSubmitted || c.quoteSubmitted;
-    else byKey.set(k, c);
+    if (prev) {
+      prev.quoteSubmitted = prev.quoteSubmitted || c.quoteSubmitted;
+      prev.quoteIds.push(...c.quoteIds);
+    } else byKey.set(k, c);
   }
   const merged = [...byKey.entries()];
 
@@ -128,6 +133,7 @@ export async function getTastingLedger(opts: LedgerQuery): Promise<TastingLedger
     item_no: c.item_no, item_name: c.item_name, supply: c.supply, manager: c.manager,
     converted: (paid.get(`${c.client_code}|${c.item_no}`) || []).some((d) => d > c.ship_date),
     submitted: subSet.has(key) || c.quoteSubmitted,
+    quoteIds: c.quoteIds,
   }));
   rows.sort((a, b) => (a.ship_date < b.ship_date ? 1 : a.ship_date > b.ship_date ? -1 : 0));
   return rows;

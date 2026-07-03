@@ -1,4 +1,6 @@
 // 브랜드 약어 → 공급자명 매핑
+import { supabase } from '@/app/lib/db';
+
 export const BRAND_TO_SUPPLIER: Record<string, { en: string; kr: string }> = {
   CH: { en: 'Charles Heidsieck', kr: '찰스하이직' },
   GH: { en: "Graham's Port", kr: '그라함' },
@@ -47,8 +49,36 @@ export const BRAND_TO_SUPPLIER: Record<string, { en: string; kr: string }> = {
   EM: { en: 'Emiliana', kr: '에밀리아나' },
 };
 
-/** 브랜드 약어로 공급자명 조회 */
+/** 브랜드 약어로 공급자명 조회 (하드코딩 맵) */
 export function getSupplierByBrand(brand: string | null): { en: string; kr: string } | null {
   if (!brand) return null;
   return BRAND_TO_SUPPLIER[brand.toUpperCase()] || null;
+}
+
+export type SupplierName = { en: string; kr: string };
+
+/**
+ * 브랜드 약어 → 공급자명 맵 로드 (하드코딩 맵 + 브랜드 자료실 병합).
+ * 자료실(brands 테이블)이 우선. 자료실에 브랜드를 등록해두면 동기화·엑셀에서 자동 반영된다.
+ */
+export async function loadBrandSupplierMap(): Promise<Map<string, SupplierName>> {
+  const map = new Map<string, SupplierName>();
+  // 1) 하드코딩 폴백
+  for (const [code, v] of Object.entries(BRAND_TO_SUPPLIER)) map.set(code.toUpperCase(), v);
+  // 2) 브랜드 자료실로 덮어쓰기(최신 소스)
+  const { data } = await supabase.from('brands').select('brand_code, brand_name_en, brand_name_kr');
+  for (const b of (data || []) as { brand_code: string | null; brand_name_en: string | null; brand_name_kr: string | null }[]) {
+    const code = String(b.brand_code || '').trim().toUpperCase();
+    if (!code) continue;
+    const en = (b.brand_name_en || '').trim();
+    const kr = (b.brand_name_kr || '').trim();
+    if (en || kr) map.set(code, { en: en || kr, kr: kr || en });
+  }
+  return map;
+}
+
+/** 병합 맵에서 공급자명 조회 (약어 → 공급자명, 자동) */
+export function supplierFromMap(brand: string | null, map: Map<string, SupplierName>): SupplierName | null {
+  if (!brand) return null;
+  return map.get(brand.toUpperCase()) || null;
 }

@@ -86,5 +86,25 @@ export function useTasting(clientCode: string, clientType: string, clientName: s
     [clientCode, type, clientName, manager, load],
   );
 
-  return { policy, usage, history, loading, busy, savePolicy, register };
+  const remove = useCallback(
+    async (id: number): Promise<{ ok: boolean; error?: string }> => {
+      setBusy(true);
+      try {
+        const res = await fetch(
+          `/api/sales/tasting/register?id=${id}&client_code=${encodeURIComponent(clientCode)}&type=${type}`,
+          { method: "DELETE" },
+        );
+        const d = await res.json();
+        await load();
+        return d.ok ? { ok: true } : { ok: false, error: d.error };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : "삭제 실패" };
+      } finally {
+        setBusy(false);
+      }
+    },
+    [clientCode, type, load],
+  );
+
+  return { policy, usage, history, loading, busy, savePolicy, register, remove };
 }

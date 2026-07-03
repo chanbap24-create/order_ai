@@ -4,7 +4,7 @@ import { supabase } from "@/app/lib/db";
 import { ensureWineTables } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
-import { getSupplierByBrand } from "@/app/lib/brandMapping";
+import { loadBrandSupplierMap, supplierFromMap } from "@/app/lib/brandMapping";
 import { translateWineName } from "@/app/lib/koreanToEnglish";
 import { logger } from "@/app/lib/logger";
 
@@ -57,6 +57,9 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
   const wineCount = winesMap.size;
   logger.info(`[WineDetection] wines table: ${wineCount} existing, inventory: ${items.length} items`);
 
+  // 브랜드 약어 → 공급자명 맵 (하드코딩 + 브랜드 자료실). 약어를 보고 공급자명 자동 기입.
+  const brandMap = await loadBrandSupplierMap();
+
   // 신규/업데이트 분류
   const newRows: any[] = [];
   const updateRows: any[] = [];
@@ -76,7 +79,7 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
     }
 
     if (!existing) {
-      const supplierInfo = getSupplierByBrand(brandCode);
+      const supplierInfo = supplierFromMap(brandCode, brandMap);
       const autoEnName = translateWineName(cleanName);
       newRows.push({
         item_code: item.item_no,
@@ -115,7 +118,7 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
       }
       // 공급자명 비어있으면 브랜드 약어로 자동 기입
       if (!existing.supplier || !existing.supplier_kr) {
-        const supplierInfo = getSupplierByBrand(brandCode || existing.brand);
+        const supplierInfo = supplierFromMap(brandCode || existing.brand, brandMap);
         if (supplierInfo) {
           if (!existing.supplier) update.supplier = supplierInfo.en;
           if (!existing.supplier_kr) update.supplier_kr = supplierInfo.kr;

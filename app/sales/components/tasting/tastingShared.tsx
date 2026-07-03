@@ -14,6 +14,7 @@ export type LedgerRow = {
   manager: string;
   converted: boolean;
   submitted: boolean;
+  quoteIds?: number[]; // 등록분(saved_quotes) id — 있으면 삭제 가능(출고분은 없음)
 };
 
 export type Company = "CDV" | "DL";

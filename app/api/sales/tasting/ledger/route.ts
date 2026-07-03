@@ -62,3 +62,27 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
   }
 }
+
+// 시음주 등록분 삭제 — DELETE { ids: number[] }
+// 실수로 등록한 시음주 견적(saved_quotes.is_tasting) 삭제. 출고분은 id가 없어 대상 아님.
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    const body = await req.json();
+    const ids: number[] = Array.isArray(body.ids)
+      ? body.ids.map((x: unknown) => Number(x)).filter((n: number) => Number.isInteger(n) && n > 0)
+      : [];
+    if (ids.length === 0) return NextResponse.json({ error: "ids required" }, { status: 400 });
+
+    // 비관리자는 본인 등록분만 삭제 가능
+    let q = supabase.from("saved_quotes").delete().in("id", ids).eq("is_tasting", true);
+    if (!isAdmin(session.role)) q = q.eq("manager", session.manager);
+    const { error } = await q;
+    if (error) throw error;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/sales/tasting/ledger error:", err);
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
+  }
+}

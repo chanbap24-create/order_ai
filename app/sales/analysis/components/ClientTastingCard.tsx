@@ -42,6 +42,13 @@ export function ClientTastingCard({ clientCode, clientName, clientType, manager 
     setMsg(r.ok ? `등록됨: ${r.item?.item_name || ""}` : `실패: ${r.reason || ""}`);
   };
 
+  const onDelete = async (h: TastingHistoryRow) => {
+    if (!window.confirm(`시음주 이력을 삭제할까요?\n${fmtDate(h.created_at)} · ${h.item_name}`)) return;
+    setMsg("");
+    const r = await t.remove(h.id);
+    setMsg(r.ok ? "삭제됨" : `실패: ${r.error || ""}`);
+  };
+
   const usageText = t.usage
     ? `이번 달 ${t.usage.qty}/${p.monthly_qty_limit}병` +
       (p.monthly_amount_limit != null ? ` · ${won(t.usage.amount)}/${won(p.monthly_amount_limit)}원` : "")
@@ -112,6 +119,7 @@ export function ClientTastingCard({ clientCode, clientName, clientType, manager 
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.item_name}</span>
               <span style={{ color: "var(--text-tertiary)" }}>{won(h.supply)}원</span>
               <button onClick={() => setApproval(h)} style={approvalBtn}>결재</button>
+              <button onClick={() => onDelete(h)} disabled={t.busy} style={deleteBtn} title="시음주 등록 삭제">삭제</button>
             </div>
           ))}
         </div>
@@ -152,4 +160,8 @@ const histRow: React.CSSProperties = {
 const approvalBtn: React.CSSProperties = {
   padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
   border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-secondary)",
+};
+const deleteBtn: React.CSSProperties = {
+  padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+  border: "1px solid var(--status-danger)", background: "#fff", color: "var(--status-danger)",
 };

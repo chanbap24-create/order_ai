@@ -80,20 +80,32 @@ export function buildClientMessage(p: BuildParams): string {
   const greeting = "안녕하세요\n발주 감사합니다~";
   const deliveryLine = p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "";
 
-  const lines = p.orderLines.map((ol, idx) => {
-    const sel = getSelected(ol);
-    // 할인율 100% = 시음주 (직원 메시지와 동일 규칙)
-    const tastingTag = (p.discountRates[idx] || 0) === 100 ? " (시음주)" : "";
-    if (!sel) {
-      const unit = getUnit(p.tab, undefined, ol.query);
-      return `- ${ol.query} ${ol.quantity}${unit}${tastingTag}`;
-    }
-    const unit = getUnit(p.tab, sel.item_no, sel.item_name);
-    const stock = Number(sel.available_stock) || 0;
-    // 품명+발주수량 한 줄, 재고는 다음 줄(들여쓰기)로 분리 — 수량/재고 혼동 방지
-    return `- ${stripBrandPrefix(sel.item_name)} ${ol.quantity}${unit}${tastingTag}\n  (재고 ${stock}${unit})`;
-  });
+  const tastingItems: string[] = [];
+  const lines = p.orderLines
+    .map((ol, idx) => {
+      const sel = getSelected(ol);
+      const displayName = sel ? stripBrandPrefix(sel.item_name) : ol.query;
+      const unit = sel ? getUnit(p.tab, sel.item_no, sel.item_name) : getUnit(p.tab, undefined, ol.query);
+      // 할인율 100% = 시음주: 품목 목록에서 제외하고 아래 안내 문구로만 표기
+      if ((p.discountRates[idx] || 0) === 100) {
+        tastingItems.push(`${displayName} ${ol.quantity}${unit}`);
+        return null;
+      }
+      if (!sel) {
+        return `- ${ol.query} ${ol.quantity}${unit}`;
+      }
+      const stock = Number(sel.available_stock) || 0;
+      // 품명+발주수량 한 줄, 재고는 다음 줄(들여쓰기)로 분리 — 수량/재고 혼동 방지
+      return `- ${displayName} ${ol.quantity}${unit}\n  (재고 ${stock}${unit})`;
+    })
+    .filter((l): l is string => l !== null);
+
+  // 시음주가 포함되면 안내 문구 추가
+  const tastingMsg =
+    tastingItems.length > 0
+      ? `\n\n- ${tastingItems.join(", ")}\n시음용으로 보내드려요.\n부담 없이 한번 맛보시라고 드리는 거니 편하실 때 한번 테이스팅해 보세요.`
+      : "";
 
   const head = [greeting, deliveryLine].filter(Boolean).join("\n\n");
-  return `${head}\n\n${lines.join("\n")}\n\n좋은 하루 되세요!`;
+  return `${head}\n\n${lines.join("\n")}${tastingMsg}\n\n좋은 하루 되세요!`;
 }

@@ -1,12 +1,17 @@
 // 와인리스트 Excel 생성 (어드민·세일즈 공용). 와인 조회 + 큐레이션 필터 + ExcelJS 생성.
 // 재고는 inventory_cdv.available_stock(엑셀 L열=실재고) 우선, 없으면 wines 폴백.
 import { supabase } from '@/app/lib/db';
-import { getSupplierByBrand } from '@/app/lib/brandMapping';
+import { loadBrandSupplierMap, supplierFromMap } from '@/app/lib/brandMapping';
 import { sanitizeFilterValue } from '@/app/lib/validation';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import ExcelJS from 'exceljs';
 
 export const DEFAULT_WINE_MIN_STOCK = { u20k: 120, u50k: 60, u100k: 24, u200k: 12, over: 1 };
+
+// 세일즈 와인리스트에서 수동 제외할 품번 (실상품이지만 리스트 노출 원치 않음)
+const WINE_LIST_EXCLUDE_CODES = new Set<string>([
+  '2014533', // 르로아(메) 쇼레 레 본
+]);
 
 export interface WineExportOpts {
   search?: string;
@@ -72,6 +77,7 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
   // 공통 제외: 비상품(포장/케이스/더미 등), 공급가 5천 이하, 국가 미표기, 실재고 0(보세만)
   allWines = allWines.filter(w => {
     const price = w.supply_price || 0;
+    if (WINE_LIST_EXCLUDE_CODES.has(w.item_code)) return false;
     if (isNonOrderable(w.item_code, w.item_name_kr || w.item_name_en || '', 'CDV')) return false;
     if (price <= 5000 || !(w.country_en || w.country)) return false;
     if (realAvail(w) <= 0) return false;
@@ -92,6 +98,9 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
     }
     return !(price <= 100000 && avail < 10);
   });
+
+  // 브랜드 약어 → 공급자명 맵 (하드코딩 + 브랜드 자료실)
+  const brandMap = await loadBrandSupplierMap();
 
   // 빈티지 변환
   for (const w of allWines) {
@@ -203,7 +212,7 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
     prevCountry = countryName;
     const row = ws.addRow({
       item_code: w.item_code, country: countryName, region: w.region || '',
-      supplier: w.supplier || w.supplier_kr || getSupplierByBrand(w.brand)?.en || '',
+      supplier: w.supplier || w.supplier_kr || supplierFromMap(w.brand || null, brandMap)?.en || '',
       name_en: w.item_name_en || '', name_kr: w.item_name_kr || '', vintage: w.vintage || '',
       price: w.supply_price || null,
     });
