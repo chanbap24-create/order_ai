@@ -4,7 +4,8 @@
 // 게이트 밖(개인화 점수 없는) 인기 품목은 개인화 0으로 두고 breadth로 끌어올려 노출.
 import type { ScoredItem } from './types';
 import { normalizeType, bucketLabel } from './wineType';
-import { getItemPopularity } from './discovery';
+import { getItemPopularity, getSegmentPopularity, scoreDiscovery } from './discovery';
+import type { VenueWinePref } from './venueScoring';
 
 /** 값 배열 → 각 원소의 백분위(0~1). 동점은 평균 순위. (discovery.percentileRanks와 동일 규약) */
 export function percentileRanks(values: number[]): number[] {
@@ -57,6 +58,7 @@ export function blendPopularity(
   wineMap: Map<string, any>,
   breadthPct: Map<string, number>,
   alpha: number,
+  exclude?: Set<string>, // 이미 산 와인(신규제안에서 제외) — 블렌드가 유니버스로 되살리지 않게
 ): ScoredItem[] {
   const a = Math.min(1, Math.max(0, alpha));
   // 개인화 점수 min-max 정규화(후보 집합 내)
@@ -70,6 +72,7 @@ export function blendPopularity(
   const out: ScoredItem[] = [];
   for (const inv of inventory) {
     const code = inv.item_no;
+    if (exclude?.has(String(code))) continue; // 이미 산 와인 제외
     const pn = persNorm.get(code) ?? 0;
     const bp = breadthPct.get(code) ?? 0;
     if (pn === 0 && bp === 0) continue; // 개인화도 인기도 없는 품목은 노출 안 함
@@ -82,6 +85,40 @@ export function blendPopularity(
   }
   out.sort((x, y) => y.score - x.score);
   return out;
+}
+
+const ADAPTIVE_K = 6; // α = K/(K+구매품목수). 25품목≈0.2(8:2), 6품목=0.5, 1품목≈0.86. 작을수록 빨리 개인화로.
+
+/**
+ * 적응형 발굴 블렌드: 개인화 + α·발굴(인기+업장적합). α = K/(K+이력깊이) — 이력 얇을수록 발굴↑.
+ * 신규 거래처(이력 0) → α≈1(순수 발굴), 단골 → α↓(취향 위주). manualWeight>0이면 α 고정(UI override).
+ * 발굴 성분은 scoreDiscovery(무캡·유니버스) → 새 지역/타입도 진입.
+ */
+export async function applyAdaptiveBlend(
+  scored: ScoredItem[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  inventory: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  wineMap: Map<string, any>,
+  segment: string,
+  venuePref: VenueWinePref | null,
+  historyDepth: number,
+  manualWeight: number,
+  exclude?: Set<string>, // 이미 산 와인 제외(신규제안)
+  priceCeiling = 0,      // 거래처 가격 상한(0=무제한). 발굴/인기가 저가 업장에 고가 베스트셀러 꽂는 것 방지.
+): Promise<ScoredItem[]> {
+  const [popMap, segmentPop] = await Promise.all([
+    getItemPopularity(),
+    segment ? getSegmentPopularity(segment) : Promise.resolve(new Map<string, number>()),
+  ]);
+  const disc = scoreDiscovery(inventory, wineMap, { segment }, popMap, segmentPop, venuePref, false);
+  const discNorm = new Map<string, number>();
+  for (const d of disc) {
+    if (priceCeiling > 0 && (d.price || 0) > priceCeiling) continue; // 거래처 가격대 초과 발굴 제외
+    discNorm.set(d.item_no, (d.score || 0) / 100);
+  }
+  const alpha = manualWeight > 0 ? Math.min(1, manualWeight) : ADAPTIVE_K / (ADAPTIVE_K + Math.max(0, historyDepth));
+  return blendPopularity(scored, inventory, wineMap, discNorm, alpha, exclude);
 }
 
 /** 프로덕션 래퍼: getItemPopularity(구매처 수)로 breadth 백분위를 만들어 blendPopularity 적용. */

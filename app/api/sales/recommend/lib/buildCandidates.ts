@@ -4,19 +4,19 @@ import type { ScoredItem } from '@/app/sales/recommend/types';
 
 import { fetchAll, fetchInventoryInStock, fetchWinesByCodes } from './fetchers';
 import { extractGrapesFromName, extractTypeFromName } from './patterns';
-import { findHierarchy, extractEnglish, type WineRegionRow } from './regions';
+import { findHierarchy, type WineRegionRow } from './regions';
 import { makeMinStockForPrice, DEFAULT_REC_OPTS, type RecOpts } from './settings';
 import { aggregatePurchases, buildClientPreferences } from './preferences';
 import { scoreRecommendations, type SubstituteAnchor } from './scoring';
-import { bucketLabel, normalizeType } from './wineType';
-import { flavorLabel } from './flavor';
+import { normalizeType } from './wineType';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { getClientConversion } from '@/app/lib/quoteConversion';
 import { getClientQuoteFeatures } from './quoteFeedback';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
-import { applyPopularityBlend } from './popularityBlend';
+import { applyAdaptiveBlend } from './popularityBlend';
+import { buildSummary } from './buildSummary';
 import { getClientVenue } from '@/app/lib/clientVenue';
 import { VENUE_WINE_MAP } from './venueScoring';
 
@@ -68,6 +68,7 @@ export async function buildCandidates(
     rawInventory,
     regionRows,
     { data: recoRows },
+    { data: allShipItems },
   ] = await Promise.all([
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
@@ -75,7 +76,10 @@ export async function buildCandidates(
     fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
     supabase.from('recommendations').select('item_codes').eq('client_code', clientCode).eq('status', 'sent').gte('created_at', recoSinceMidnight).lt('created_at', todayKstMidnight),
+    // 적응형 α용 이력 깊이 = 전체(기간 무관) 구매 품목 종수. 최근 6개월만 보면 단골이 신규로 오판됨.
+    supabase.from('shipments').select('item_no').eq('client_code', clientCode).not('item_no', 'is', null),
   ]);
+  const historyDepthAll = new Set((allShipItems || []).map((r: { item_no?: string }) => r.item_no)).size;
 
   // 최근 30일(오늘 제외) 실제 견적서로 나간 품번 집합 — 중복 제안 강등용
   const recentlyRecommended = new Set<string>();
@@ -215,9 +219,15 @@ export async function buildCandidates(
       ...(quoteFeedback ? { quoteFeedback } : {}),
       ...(venuePref ? { venuePref } : {}),
     }) as ScoredItem[];
-    // 인기(구매폭) prior 블렌드 — 신규제안 모드에서 α>0일 때만. 개인화+인기 도달범위 결합.
-    if (o.mode === 'new' && (o.popularityWeight ?? 0) > 0) {
-      scored = await applyPopularityBlend(scored, inventory, wineMap, o.popularityWeight as number);
+    // 적응형 발굴 블렌드 — 신규제안: 이력 얇을수록 발굴↑(업장적합 포함). popularityWeight 지정 시 α 고정.
+    if (o.mode === 'new') {
+      // 이미 산 와인은 신규제안에서 제외 — 블렌드가 유니버스로 되살리지 않게 purchaseAgg 전달
+      const boughtCodes = new Set(Object.keys(purchaseAgg));
+      // 발굴 가격 상한: 프리미엄 밴드(있으면) 또는 주력 중앙값×3 + 여유 → 저가 업장에 고가 베스트셀러 방지
+      const mainMed = prefs.priceStats['__all__']?.median || prefs.clientAvgPrice || 0;
+      const bandPct = o.priceBandPct > 0 ? o.priceBandPct : 0.2;
+      const priceCeiling = (prefs.premiumBand > 0 ? prefs.premiumBand : mainMed * 3) * (1 + bandPct);
+      scored = await applyAdaptiveBlend(scored, inventory, wineMap, clientDetail?.business_type || '', venuePref, historyDepthAll, o.popularityWeight ?? 0, boughtCodes, priceCeiling);
     }
   }
 
@@ -251,48 +261,7 @@ export async function buildCandidates(
       manager: clientDetail?.manager || '',
     },
     scored,
-    summary: {
-      total_items: Object.keys(purchaseAgg).length,
-      avg_price: Math.round(prefs.clientAvgPrice),
-      last_order_date: lastOrderDate,
-      top_countries: prefs.topCountries.slice(0, 3).map((e) => e[0]),
-      top_grapes: prefs.topGrapes.slice(0, 3).map((e) => e[0]),
-      top_types: prefs.topTypes.slice(0, 3).map((e) => e[0]),
-      top_regions: Object.entries(prefs.subRegionBuyCount)
-        .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
-      analysis: {
-        types: Array.from(prefs.typeBuckets).map(bucketLabel).filter(Boolean),
-        broad_regions: (Object.keys(prefs.superRegionBuyCount).length
-          ? Object.entries(prefs.superRegionBuyCount)
-          : Object.entries(prefs.majorRegionBuyCount)
-        ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
-        flavors: Array.from(prefs.flavorKeys).map(flavorLabel).slice(0, 6),
-        avg_price: Math.round(prefs.clientAvgPrice),
-        band_pct: Math.round(o.priceBandPct * 100),
-        type_prices: Array.from(prefs.typeBuckets).map((b) => {
-          const s = prefs.priceStats[b];
-          return { type: bucketLabel(b), avg: s && s.count ? Math.round(s.sum / s.count) : 0 };
-        }).filter((t) => t.type && t.avg > 0).sort((a, b) => b.avg - a.avg),
-        region_dist: (() => {
-          const total = Object.values(prefs.regionDist).reduce((a, b) => a + b, 0) || 1;
-          return Object.entries(prefs.regionDist)
-            .sort((a, b) => b[1] - a[1]).slice(0, 7)
-            .map(([r, c]) => ({ label: extractEnglish(r), count: c, pct: Math.round((c / total) * 100) }));
-        })(),
-        period_months: o.profileMonths,
-        purchased: Object.entries(purchaseAgg)
-          .map(([code, agg]) => {
-            const w = wineMap.get(code);
-            const h = w?._hierarchy;
-            const region = h?.sub_region ? extractEnglish(h.sub_region)
-              : h?.major_region ? extractEnglish(h.major_region)
-              : (w?.region || '');
-            return { name: w?.item_name_kr || agg.name || code, region, count: agg.count, last: agg.lastDate || null };
-          })
-          .sort((a, b) => (b.last || '').localeCompare(a.last || '') || b.count - a.count)
-          .slice(0, 20),
-      },
-    },
+    summary: buildSummary(purchaseAgg, prefs, wineMap, o.profileMonths, o.priceBandPct, lastOrderDate),
     wineMap,
     recentCodes,
   };

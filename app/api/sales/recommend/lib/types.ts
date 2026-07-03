@@ -44,7 +44,8 @@ export interface ClientPreferences {
   // --- 규칙기반(게이트+계단) 추천용 ---
   typeBuckets: Set<TypeBucket>;        // 거래처가 사는 타입(레드/화이트/…)
   regionProfile: RegionProfile;        // 구매 지역 셋(sub/major/super)
-  priceStats: Record<string, { sum: number; count: number }>; // "bucket|group" / "bucket" / "__all__"
+  priceStats: Record<string, { median: number; n: number }>; // 횟수 가중 중앙값(초고가 제외). "bucket|group"/"bucket"/"__all__"
+  premiumBand: number;                 // 초고가(주력 중앙값의 K배 초과) 구매의 중앙값. 없으면 0.
   flavorKeys: Set<string>;             // 거래처 향미 키
   grapeKeys: Set<string>;              // 거래처 품종(소문자)
   regionDist: Record<string, number>;  // 지역(광역/대지역/국가)별 매입 횟수 분포

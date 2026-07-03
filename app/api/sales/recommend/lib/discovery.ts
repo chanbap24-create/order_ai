@@ -78,6 +78,7 @@ export function scoreDiscovery(
   popMap: Map<string, ItemPop>,
   segmentPop: Map<string, number>,
   venuePref: VenueWinePref | null,
+  applyCap = true, // false면 다양성 상한 없이 전 후보 점수 반환(적응형 블렌드용)
 ): ScoredItem[] {
   const types = opts.types && opts.types.length ? new Set(opts.types) : null;
   const singleType = !!types && types.size <= 1;
@@ -151,7 +152,7 @@ export function scoreDiscovery(
   });
 
   scored.sort((a, b) => b.score - a.score);
-  if (singleType) return scored;
+  if (singleType || !applyCap) return scored;
 
   // 다양성: 타입별 상한(여러 타입/전체일 때)
   const perType = new Map<string, number>();

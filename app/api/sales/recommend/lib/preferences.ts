@@ -5,11 +5,24 @@ import { normalizeType, type TypeBucket } from './wineType';
 import { geoGroup, type RegionProfile } from './geoTier';
 import { extractFlavorKeys } from './flavor';
 
-/** 가격 밴드 기준 평균: 타입+지역 → 타입 → 전체 순으로 폴백(데이터 빈약 대비). */
+/** 가격 밴드 기준: 타입+지역 → 타입 → 전체 순 폴백(데이터 빈약 대비). 값=횟수 가중 중앙값(초고가 제외). */
 export function priceRef(prefs: ClientPreferences, bucket: TypeBucket, group: string): number {
   const ps = prefs.priceStats;
-  const tryKey = (k: string) => (ps[k] && ps[k].count >= 2 ? ps[k].sum / ps[k].count : 0);
+  const tryKey = (k: string) => (ps[k] && ps[k].n >= 2 ? ps[k].median : 0);
   return tryKey(`${bucket}|${group}`) || tryKey(bucket) || tryKey('__all__') || prefs.clientAvgPrice;
+}
+
+const OUTLIER_K = 3; // 주력 중앙값의 K배 초과 = 초고가 → 밴드 계산 제외 + 프리미엄 트랙으로 분리
+const MIN_CREDIBLE_PRICE = 3000; // 이 미만 unit_price는 와인가 아님(글라스/샘플/구포맷 오염) → 밴드에서 제외
+
+/** 횟수(w) 가중 중앙값 — 구매 이벤트를 횟수만큼 반영. 평균과 달리 고가 아웃라이어에 안 흔들림. */
+function weightedMedian(samples: Array<{ p: number; w: number }>): number {
+  if (!samples.length) return 0;
+  const sorted = [...samples].sort((a, b) => a.p - b.p);
+  const total = sorted.reduce((s, x) => s + x.w, 0);
+  let cum = 0;
+  for (const s of sorted) { cum += s.w; if (cum >= total / 2) return s.p; }
+  return sorted[sorted.length - 1].p;
 }
 
 type ShipmentRow = { item_no?: string; item_name?: string; unit_price?: number | null; quantity?: number | null; ship_date?: string | null };
@@ -64,14 +77,13 @@ export function buildClientPreferences(
   // 규칙기반 추천용 누적
   const typeBuckets = new Set<TypeBucket>();
   const regionProfile: RegionProfile = { subs: new Set(), majors: new Set(), supers: new Set() };
-  const priceStats: Record<string, { sum: number; count: number }> = {};
+  const priceSamples: Record<string, Array<{ p: number; w: number }>> = {}; // 키별 (평균단가, 구매횟수) 표본 → 후처리에서 가중 중앙값
   const flavorKeys = new Set<string>();
   const grapeKeys = new Set<string>();
   const regionDist: Record<string, number> = {};
-  const addPrice = (key: string, price: number) => {
-    if (price <= 0) return;
-    const s = priceStats[key] || (priceStats[key] = { sum: 0, count: 0 });
-    s.sum += price; s.count++;
+  const addPrice = (key: string, price: number, w: number) => {
+    if (price < MIN_CREDIBLE_PRICE || w <= 0) return; // 오염 저가 제외
+    (priceSamples[key] || (priceSamples[key] = [])).push({ p: price, w });
   };
 
   for (const [itemNo, agg] of Object.entries(purchaseAgg)) {
@@ -98,11 +110,11 @@ export function buildClientPreferences(
     if (bucket) {
       typeBuckets.add(bucket);
       const group = geoGroup(h);
-      addPrice('__all__', avgPrice);
-      addPrice(bucket, avgPrice);
-      if (group) addPrice(`${bucket}|${group}`, avgPrice);
+      addPrice('__all__', avgPrice, agg.count);
+      addPrice(bucket, avgPrice, agg.count);
+      if (group) addPrice(`${bucket}|${group}`, avgPrice, agg.count);
     } else {
-      addPrice('__all__', avgPrice);
+      addPrice('__all__', avgPrice, agg.count);
     }
     // 지역 분포(광역 → 대지역 → 국가 → 기타 순으로 라벨) — 표시용 "건수"는 횟수 그대로
     const regionLabel = h?.super_region || h?.major_region || country || '기타';
@@ -136,6 +148,19 @@ export function buildClientPreferences(
   const clientAvgPrice = priceList.length > 0
     ? priceList.reduce((a, b) => a + b, 0) / priceList.length : 0;
 
+  // 가격 밴드: 키별 '횟수 가중 중앙값'. 전체 중앙값의 K배 초과(초고가)는 제외해 주력이 안 흔들리게.
+  // 초고가 구매가 있으면 그 중앙값을 프리미엄 밴드로 따로 보관(별도 제안 트랙).
+  const allSamples = priceSamples['__all__'] || [];
+  const medAll = weightedMedian(allSamples);
+  const threshold = medAll > 0 ? medAll * OUTLIER_K : Infinity;
+  const priceStats: Record<string, { median: number; n: number }> = {};
+  for (const [key, arr] of Object.entries(priceSamples)) {
+    const main = arr.filter((s) => s.p <= threshold);
+    priceStats[key] = { median: weightedMedian(main), n: main.length };
+  }
+  const premiumSamples = allSamples.filter((s) => s.p > threshold);
+  const premiumBand = premiumSamples.length ? weightedMedian(premiumSamples) : 0;
+
   const topCountries = Object.entries(countryBuyCount).sort((a, b) => b[1] - a[1]);
   const topGrapes = Object.entries(grapeBuyCount).sort((a, b) => b[1] - a[1]);
   const topTypes = Object.entries(typeBuyCount).sort((a, b) => b[1] - a[1]);
@@ -157,6 +182,7 @@ export function buildClientPreferences(
     typeBuckets,
     regionProfile,
     priceStats,
+    premiumBand,
     flavorKeys,
     grapeKeys,
     regionDist,

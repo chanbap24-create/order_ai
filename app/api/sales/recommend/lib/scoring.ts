@@ -108,12 +108,18 @@ export function scoreRecommendations(params: {
       if (!bucket || !prefs.typeBuckets.has(bucket)) continue;
     }
 
-    // 게이트 ② 가격: 기준가 ±band 밖이면 제외
+    // 게이트 ② 가격: 주력 밴드(기준가 ±band). 신규제안은 프리미엄(초고가) 밴드도 허용 — 별도 트랙.
+    let isPremium = false;
     {
       const ref = mode === 'substitute' && anchor ? anchor.price : priceRef(prefs, bucket, geoGroup(h));
       if (ref > 0 && invPrice > 0) {
-        const diff = Math.abs(invPrice - ref) / ref;
-        if (diff > band) continue;
+        const inMain = Math.abs(invPrice - ref) / ref <= band;
+        if (!inMain) {
+          const pb = prefs.premiumBand;
+          const inPremium = mode !== 'substitute' && pb > 0 && Math.abs(invPrice - pb) / pb <= band;
+          if (!inPremium) continue;
+          isPremium = true; // 초고가 구매 이력이 있는 거래처에만, 그 가격대 신규 와인을 프리미엄으로 제안
+        }
       }
     }
 
@@ -154,7 +160,7 @@ export function scoreRecommendations(params: {
       const shared = [...candFlavor].filter((k) => prefs.flavorKeys.has(k)).map(flavorLabel);
       if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
     }
-    if (invPrice > 0) { tags.push('적정가격'); }
+    if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
 
     const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
     // 빈도 가중: 대체상품은 거래처 빈도 개념이 없으니 순수 지역점수(배수 1).
@@ -220,6 +226,8 @@ export function scoreRecommendations(params: {
       }
     }
 
+    if (isPremium) { tags.push('프리미엄'); reasons.push('💎 프리미엄 제안'); breakdown.push('프리미엄 트랙(초고가 밴드)'); }
+
     breakdown.push(`= ${(Math.round(score * 10) / 10).toFixed(1)}`);
 
     const vv = String(itemNo).slice(2, 4);
@@ -249,6 +257,12 @@ export function scoreRecommendations(params: {
   }
 
   scored.sort((a, b) => b.score - a.score);
+  // 프리미엄(초고가 트랙)은 주력을 밀어내지 않게 상위 MAX_PREMIUM개만 유지.
+  const MAX_PREMIUM = 2;
+  if (mode !== 'substitute') {
+    let kept = 0;
+    return scored.filter((it) => (it.tags.includes('프리미엄') ? ++kept <= MAX_PREMIUM : true));
+  }
   return scored;
 }
 
