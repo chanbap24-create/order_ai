@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import type { TastingNote, Wine } from "@/app/types/wine";
 import type { EditForm, EditFormKey } from "../types";
 import { EMPTY_EDIT_FORM } from "../constants";
+import { checkVintage } from "@/app/lib/vintageCheck";
 
 /** 중앙 편집 패널 state: selectedWine + tastingNote + editForm + save/approve 핸들러 */
 export function useWineDetail(
@@ -143,6 +144,14 @@ export function useWineDetail(
       alert("영문명을 먼저 입력해주세요.");
       return;
     }
+    // 빈티지 확인 — 노트·PPT가 vintage에서 파생되므로 오입력(예: 22↔23)을 여기서 차단.
+    const vc = checkVintage(selectedWine.vintage);
+    const vLabel = vc.display || "(빈티지 없음)";
+    const vWarn = vc.level !== "ok" ? `\n\n⚠ ${vc.message}` : "";
+    if (!confirm(
+      `이 빈티지로 AI 조사·테이스팅 노트를 생성합니다.\n\n  빈티지: ${vLabel}${vWarn}\n\n` +
+      `빈티지가 정확한가요?\n(틀리면 [취소] 후 재고/원장에서 빈티지를 먼저 바로잡으세요 — 원본이 안 고쳐지면 동기화 때 되돌아갑니다.)`
+    )) return;
     setResearching(true);
     try {
       const res = await fetch("/api/admin/wine-research", {
