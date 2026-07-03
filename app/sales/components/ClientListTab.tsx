@@ -40,6 +40,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         isAdmin={isAdmin}
         filters={selected.filters}
         onBack={() => setSelected(null)}
+        onVenueChange={s.updateVenue}
       />
     );
   }

@@ -20,9 +20,10 @@ type Props = {
   isAdmin: boolean;
   filters?: AnalysisFilters;
   onBack: () => void;
+  onVenueChange?: (clientCode: string, venue: string) => void; // 리스트 즉시 반영용
 };
 
-export function ClientDetailPanel({ client, currentManager, isAdmin, filters, onBack }: Props) {
+export function ClientDetailPanel({ client, currentManager, isAdmin, filters, onBack, onVenueChange }: Props) {
   const [subTab, setSubTab] = useState<"info" | "quotes" | "recommend">("info");
   const detail = useClientDetail(client, filters);
 
@@ -81,6 +82,7 @@ export function ClientDetailPanel({ client, currentManager, isAdmin, filters, on
               <ClientVenueCard
                 clientCode={client.client_code}
                 clientType={(filters?.type ?? client.client_type ?? "wine") as "wine" | "glass"}
+                onSaved={(v) => onVenueChange?.(client.client_code, v)}
               />
 
               <SalesStatusCard stats={detail.detailStats} filters={filters} />

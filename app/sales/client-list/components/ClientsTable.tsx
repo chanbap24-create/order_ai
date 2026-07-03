@@ -1,6 +1,7 @@
 'use client';
 
 import type { ClientRow, SortKey } from '../types';
+import { VENUE_MAP } from '@/app/lib/venueTypes';
 import { fmt, fmtDate } from '../lib/format';
 import { Section } from '@/app/components/ui';
 import { tdStyle, tdRight, tdMuted, tableStyle } from '@/app/styles/table';
@@ -24,6 +25,7 @@ type Props = {
 const COLS: Array<{ key: SortKey; label: string; align: 'left' | 'right' }> = [
   { key: 'client_name', label: '거래처명', align: 'left' },
   { key: 'business_type', label: '업종', align: 'left' },
+  { key: 'venue', label: '업장유형', align: 'left' },
   { key: 'last_order_date', label: '최종발주', align: 'right' },
   { key: 'order_days', label: '발주일수', align: 'right' },
   { key: 'period_qty', label: '수량', align: 'right' },
@@ -136,6 +138,17 @@ export function ClientsTable({
                     </span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
+                  )}
+                </td>
+                <td style={tdStyle}>
+                  {c.venue && VENUE_MAP[c.venue] ? (
+                    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, background: 'var(--surface-muted)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                      {VENUE_MAP[c.venue].label}
+                    </span>
+                  ) : (
+                    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, background: '#FEF3C7', fontSize: 11, fontWeight: 600, color: '#92400E' }}>
+                      미지정
+                    </span>
                   )}
                 </td>
                 <td style={{ ...tdRight, color: 'var(--text-tertiary)' }}>

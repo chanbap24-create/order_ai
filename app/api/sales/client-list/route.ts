@@ -103,11 +103,26 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 2.5) 업장 유형 태그 부착 (미태깅 거래처 식별용)
+    const venueMap = new Map<string, string>();
+    if (clientCodes.length > 0) {
+      const vType = type === 'glass' ? 'glass' : 'wine';
+      for (let i = 0; i < clientCodes.length; i += 500) {
+        const { data: vRows } = await supabase
+          .from('client_venue')
+          .select('client_code, venue')
+          .eq('client_type', vType)
+          .in('client_code', clientCodes.slice(i, i + 500));
+        for (const v of (vRows || [])) venueMap.set(v.client_code, v.venue);
+      }
+    }
+
     // 3) 결과 조합
     const clients = [...clientMap.values()].map(c => ({
       client_code: c.client_code,
       client_name: c.client_name,
       business_type: c.business_type,
+      venue: venueMap.get(c.client_code) || '',
       period_supply: Math.round(c.period_supply),
       period_total: Math.round(c.period_total),
       period_qty: c.period_qty,

@@ -87,7 +87,7 @@ export function useClientList({ currentManager, isAdmin }: Args) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
-      setSortDir(key === 'client_name' || key === 'business_type' ? 'asc' : 'desc');
+      setSortDir(key === 'client_name' || key === 'business_type' || key === 'venue' ? 'asc' : 'desc');
     }
   };
 
@@ -96,7 +96,14 @@ export function useClientList({ currentManager, isAdmin }: Args) {
     return sortDir === 'asc' ? ' ↑' : ' ↓';
   };
 
+  // 상세에서 업장 유형을 바꾸면 리스트 행을 즉시 반영(재조회 없이 표기 갱신).
+  const updateVenue = (clientCode: string, venue: string) => {
+    if (!clientCode) return;
+    setClients(prev => prev.map(c => (c.client_code === clientCode ? { ...c, venue } : c)));
+  };
+
   return {
+    updateVenue,
     preset, setPreset,
     startDate, setStartDate, endDate, setEndDate,
     type, setType, businessType, setBusinessType,
