@@ -35,9 +35,10 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   const [clientConv, setClientConv] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); void sq.load(); }
+    if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); setSearch(""); void sq.load(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -59,6 +60,14 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   }, [sq.items]);
 
   const current = folders.find((f) => f.key === openKey) || null;
+
+  // 거래처 검색(폴더 목록 필터) — 이름/코드 부분일치
+  const q = search.trim().toLowerCase();
+  const filteredFolders = q
+    ? folders.filter((f) =>
+        f.name.toLowerCase().includes(q) ||
+        f.quotes.some((x) => (x.client_code || "").toLowerCase().includes(q)))
+    : folders;
 
   if (!open) return null;
 
@@ -131,6 +140,19 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
 
+        {/* 거래처 검색(폴더 목록에서만) */}
+        {!current && !sq.loading && sq.items.length > 0 && (
+          <div style={{ padding: "0 4px 8px" }}>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="거래처명 검색…"
+              autoFocus
+              style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--gray-300)", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
+            />
+          </div>
+        )}
+
         <div style={{ overflowY: "auto", flex: 1 }}>
           {sq.loading && <div style={empty}>불러오는 중…</div>}
           {!sq.loading && sq.items.length === 0 && (
@@ -138,7 +160,10 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
           )}
 
           {/* 1단계: 거래처 폴더 목록 */}
-          {!sq.loading && !current && folders.map((f) => (
+          {!sq.loading && !current && q && filteredFolders.length === 0 && (
+            <div style={empty}>&ldquo;{search.trim()}&rdquo;와 일치하는 거래처가 없습니다.</div>
+          )}
+          {!sq.loading && !current && filteredFolders.map((f) => (
             <button key={f.key} onClick={() => openFolder(f)} style={folderRow}>
               <span style={{ fontSize: 20 }}>📁</span>
               <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
