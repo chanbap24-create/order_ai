@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Card from '@/app/components/ui/Card';
 import { formatKrw } from '../lib/format';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from '../lib/recharts';
+import { SeoulSalesMap } from './SeoulSalesMap';
 
 type Row = { sido: string; gu: string; sales: number; clients: number };
 type Props = { type: 'wine' | 'glass'; startDate: string; endDate: string };
@@ -49,6 +50,10 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
   const guData = [...guMap.values()].filter((g) => g.gu !== '(구외)').sort((a, b) => b.sales - a.sales).slice(0, 15);
   const guMax = guData[0]?.sales || 1;
 
+  // 서울 자치구 지도용: 구명 → 매출
+  const seoulByGu: Record<string, number> = {};
+  for (const g of guMap.values()) if (g.sido === '서울' && g.gu !== '(구외)') seoulByGu[g.gu] = (seoulByGu[g.gu] || 0) + g.sales;
+
   return (
     <Card>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8, flexWrap: 'wrap' }}>
@@ -63,25 +68,33 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
       ) : rows.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-tertiary)', fontSize: 13 }}>주소가 매칭된 매출이 없습니다.</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-          {/* 시도별 가로 막대 */}
-          <div>
-            <div style={label}>시도별</div>
-            <ResponsiveContainer width="100%" height={Math.max(220, sidoData.length * 26)}>
-              <BarChart data={sidoData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }}>
-                <CartesianGrid horizontal={false} stroke="var(--gray-200, #eee)" />
-                <XAxis type="number" tickFormatter={(v: number) => (v >= 1e8 ? `${Math.round(v / 1e8)}억` : `${Math.round(v / 1e4)}만`)} fontSize={11} stroke="var(--text-tertiary)" />
-                <YAxis type="category" dataKey="name" width={44} fontSize={11} stroke="var(--text-tertiary)" />
-                <Tooltip formatter={(v: number) => [formatKrw(Number(v)), '매출']} />
-                <Bar dataKey="sales" fill="#8B1538" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+            {/* 시도별 가로 막대 */}
+            <div>
+              <div style={label}>시도별</div>
+              <ResponsiveContainer width="100%" height={Math.max(220, sidoData.length * 26)}>
+                <BarChart data={sidoData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }}>
+                  <CartesianGrid horizontal={false} stroke="var(--gray-200, #eee)" />
+                  <XAxis type="number" tickFormatter={(v: number) => (v >= 1e8 ? `${Math.round(v / 1e8)}억` : `${Math.round(v / 1e4)}만`)} fontSize={11} stroke="var(--text-tertiary)" />
+                  <YAxis type="category" dataKey="name" width={44} fontSize={11} stroke="var(--text-tertiary)" />
+                  <Tooltip formatter={(v: number) => [formatKrw(Number(v)), '매출']} />
+                  <Bar dataKey="sales" fill="#8B1538" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 서울 자치구 지도(코로플레스) */}
+            <div>
+              <div style={label}>서울 자치구 지도</div>
+              <SeoulSalesMap salesByGu={seoulByGu} />
+            </div>
           </div>
 
           {/* 구별 상위 15 */}
-          <div>
+          <div style={{ marginTop: 20 }}>
             <div style={label}>구별 상위 15</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', columnGap: 24, rowGap: 6 }}>
               {guData.map((g) => (
                 <div key={`${g.sido}|${g.gu}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ width: 110, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-secondary)' }}>
@@ -96,7 +109,7 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
               ))}
             </div>
           </div>
-        </div>
+        </>
       )}
     </Card>
   );
