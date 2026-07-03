@@ -197,11 +197,23 @@ export async function POST(req: NextRequest) {
     }
     const body = await req.json();
 
-    // 단일 등록/수정
+    // 단일 등록/수정 — client_type 으로 테이블 라우팅.
+    // CDV/DL 코드공간 독립: 글라스 편집은 glass_clients 로, 와인 client_details 를 절대 안 건드림.
     if (!Array.isArray(body)) {
       const { client_code, ...rest } = body;
       if (!client_code) {
         return NextResponse.json({ error: 'client_code is required' }, { status: 400 });
+      }
+
+      if ((rest as { client_type?: string }).client_type === 'glass') {
+        // 편집은 기존 거래처 대상 → UPDATE(부분). glass_clients 지원 컬럼만 화이트리스트(오염/오류 방지).
+        // client_name NOT NULL 이라 upsert 대신 update 로 제공 필드만 갱신. (신규 등록은 거래처정보 업로드로)
+        const GLASS_COLS = ['client_name', 'manager', 'business_type', 'contact_name', 'contact_phone', 'contact_email', 'address', 'memo', 'importance'];
+        const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        for (const k of GLASS_COLS) if (k in rest) patch[k] = (rest as Record<string, unknown>)[k];
+        const { data, error } = await supabase.from('glass_clients').update(patch).eq('client_code', client_code).select().maybeSingle();
+        if (error) throw error;
+        return NextResponse.json({ success: true, client: { ...(data || { client_code }), ...patch, client_type: 'glass' } });
       }
 
       const { data, error } = await supabase

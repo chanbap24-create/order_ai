@@ -54,7 +54,7 @@ export function useClientDetail(client: SelectedRankClient, filters?: AnalysisFi
       await fetch("/api/sales/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_code: client.client_code, importance: n }),
+        body: JSON.stringify({ client_code: client.client_code, importance: n, client_type: clientDetail?.client_type || client.client_type }),
       });
       setImportance(n);
       if (clientDetail) setClientDetail({ ...clientDetail, importance: n });
@@ -69,7 +69,7 @@ export function useClientDetail(client: SelectedRankClient, filters?: AnalysisFi
       const res = await fetch("/api/sales/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_code: client.client_code, ...editData }),
+        body: JSON.stringify({ client_code: client.client_code, ...editData, client_type: clientDetail.client_type || client.client_type }),
       });
       const json = await res.json();
       if (json.success) {
