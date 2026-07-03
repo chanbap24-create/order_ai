@@ -54,12 +54,26 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const [settings, setSettings] = useState<RecSettings>(loadRecSettings);
   const [anchor, setAnchor] = useState<AnchorItem | null>(null); // 대체상품 모드 기준 상품(쇼트난 품목)
   const items = rec.result?.recommendations || [];
-  // 다양성 캡(타입/지역당 최대) + 락(개수 고정) 적용. items 는 점수 내림차순.
-  // 락 ON: 상위 N개를 캡 지켜가며 채움(부족하면 백필). 락 OFF: 점수 허들 필터 후 캡만.
+  // API가 표시용(타입·가격순, orderForDisplay)으로 주므로 캡은 반드시 '점수순'으로 걸어야 한다.
+  // 안 그러면 타입당 상위가 '고득점'이 아니라 '고가'로 뽑혀, 저가 주력(고득점)이 밀려남.
+  const byScore = [...items].sort((a, b) => b.score - a.score);
   const diversifyOpts = { maxPerType: settings.maxPerType, maxPerRegion: settings.maxPerRegion };
-  const visible: ScoredItem[] = settings.lockCount > 0
-    ? diversify(items, { ...diversifyOpts, targetCount: settings.lockCount })
-    : diversify(items.filter((i) => i.score >= settings.minScore), diversifyOpts);
+  const capped: ScoredItem[] = settings.lockCount > 0
+    ? diversify(byScore, { ...diversifyOpts, targetCount: settings.lockCount })
+    : diversify(byScore.filter((i) => i.score >= settings.minScore), diversifyOpts);
+  // 개인화 우선: 개인화 추천이 있으면 인기(발굴)는 1개만 노출(새 제안 seasoning).
+  // 신규 거래처(개인화 0)는 인기로 전부 채움.
+  const isDiscovery = (it: ScoredItem) => (it.breakdown || []).some((b) => b.startsWith('발굴'));
+  const persItems = capped.filter((it) => !isDiscovery(it));
+  const finalItems = persItems.length > 0
+    ? [...persItems, ...capped.filter(isDiscovery).slice(0, 1)]
+    : capped;
+  // 표시용 정렬: 타입(스파클링→화이트→레드) → 타입 내 가격 내림차순
+  const TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4 };
+  const visible: ScoredItem[] = [...finalItems].sort((a, b) => {
+    const ra = TYPE_RANK[a.wine_type] ?? 9, rb = TYPE_RANK[b.wine_type] ?? 9;
+    return ra !== rb ? ra - rb : (b.price || 0) - (a.price || 0);
+  });
 
   // 설정 변경 시 저장(영업사원별, localStorage)
   useEffect(() => { saveRecSettings(settings); }, [settings]);

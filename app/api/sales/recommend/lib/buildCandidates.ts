@@ -130,6 +130,7 @@ export async function buildCandidates(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const inventory = (rawInventory || []).filter((inv: any) => {
     const price = inv.supply_price || 0;
+    if (price <= 0) return false; // 공급가 미입력 품목은 추천 제외(가격 없이 견적 불가)
     // 비(非)상품 제외 — 포장/더미/판촉/케이스, CDV 품번 '9' 접두(catalogFilter 규칙)
     if (isNonOrderable(inv.item_no, inv.item_name, 'CDV')) return false;
     // 병 용량: 기본은 750ml 표준만(375ml·1.5L+ 제외). 버튼으로 포함 가능.

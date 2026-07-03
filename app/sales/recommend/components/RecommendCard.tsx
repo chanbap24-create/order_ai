@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ScoredItem } from '../types';
 import { TAG_COLORS } from '../constants';
-import { fmt, scoreColor } from '../lib/format';
+import { scoreColor } from '../lib/format';
 
 type Props = {
   item: ScoredItem;
@@ -127,11 +127,11 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-          {item.price ? fmt(item.price) + '원' : '-'}
+          {item.price ? item.price.toLocaleString() + '원' : '-'}
         </div>
         {item.rec_discount ? (
           <div style={{ fontSize: 11, color: 'var(--action)', marginTop: 1, fontWeight: 600 }}>
-            권장 {Math.round(item.rec_discount * 100)}% → {fmt(Math.round(item.price * (1 - item.rec_discount)))}원
+            권장 {Math.round(item.rec_discount * 100)}% → {Math.round(item.price * (1 - item.rec_discount)).toLocaleString()}원
           </div>
         ) : null}
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>재고 {item.stock || 0}</div>

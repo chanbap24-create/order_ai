@@ -1,7 +1,6 @@
-// 인기(구매폭) prior 블렌드: 개인화 점수와 전사 구매폭 백분위를 섞어 전체 재고 유니버스를 재랭킹.
-// 백테스트(scripts/recommend-backtest.ts)로 검증된 설계 — 개인화(상위)와 인기 도달범위(하위)를 함께 확보.
-//   최종 = (1-α)·개인화점수정규화 + α·구매폭백분위 ,  α = popularityWeight(0~1, 0이면 미적용)
-// 게이트 밖(개인화 점수 없는) 인기 품목은 개인화 0으로 두고 breadth로 끌어올려 노출.
+// 개인화(raw) + 발굴 병합: 개인화 통과 와인은 원점수(raw) 그대로 노출(정규화 없음 → 뻥튀기 방지),
+// 게이트 밖 와인만 '발굴점수 × α'로 낮게 얹어 노출. α는 이력 많을수록 작아짐(발굴 비중↓).
+// 개인화 raw(≈0~100 절대값)와 발굴(α×0~1×100)이 같은 스케일 → 단골은 개인화가 상위 지배.
 import type { ScoredItem } from './types';
 import { normalizeType, bucketLabel } from './wineType';
 import { getItemPopularity, getSegmentPopularity, scoreDiscovery } from './discovery';
@@ -61,26 +60,26 @@ export function blendPopularity(
   exclude?: Set<string>, // 이미 산 와인(신규제안에서 제외) — 블렌드가 유니버스로 되살리지 않게
 ): ScoredItem[] {
   const a = Math.min(1, Math.max(0, alpha));
-  // 개인화 점수 min-max 정규화(후보 집합 내)
-  let lo = Infinity, hi = -Infinity;
-  for (const s of scored) { if (s.score < lo) lo = s.score; if (s.score > hi) hi = s.score; }
-  const span = hi - lo;
-  const persNorm = new Map<string, number>();
   const scoredMap = new Map<string, ScoredItem>();
-  for (const s of scored) { persNorm.set(s.item_no, span > 0 ? (s.score - lo) / span : 1); scoredMap.set(s.item_no, s); }
+  for (const s of scored) scoredMap.set(s.item_no, s);
 
   const out: ScoredItem[] = [];
   for (const inv of inventory) {
     const code = inv.item_no;
     if (exclude?.has(String(code))) continue; // 이미 산 와인 제외
-    const pn = persNorm.get(code) ?? 0;
+    const personalized = scoredMap.get(code);
+    if (personalized) {
+      out.push(personalized); // 개인화 통과 = 원점수(raw) 그대로. 정규화/뻥튀기 없음.
+      continue;
+    }
+    // 개인화 못 뚫은 와인은 발굴로만 노출: 발굴점수 × α (이력 많을수록 α↓ → 낮게 깔림).
     const bp = breadthPct.get(code) ?? 0;
-    if (pn === 0 && bp === 0) continue; // 개인화도 인기도 없는 품목은 노출 안 함
-    const final = (1 - a) * pn + a * bp;
-    const base = scoredMap.get(code) || stubItem(inv, wineMap.get(code));
-    const item: ScoredItem = { ...base, score: Math.round(final * 1000) / 10 };
-    if (bp >= 0.7 && !item.tags.includes('인기')) item.tags = [...item.tags, '인기'];
-    item.breakdown = [...(base.breakdown || []), `블렌드 개인화 ${pn.toFixed(2)}×${(1 - a).toFixed(1)} + 인기 ${bp.toFixed(2)}×${a.toFixed(1)} = ${(final * 100).toFixed(1)}`];
+    const discScore = Math.round(a * bp * 1000) / 10;
+    if (discScore <= 0) continue; // 발굴 값도 없으면 노출 안 함
+    const item = stubItem(inv, wineMap.get(code));
+    item.score = discScore;
+    if (bp >= 0.7) item.tags = [...item.tags, '인기'];
+    item.breakdown = [`발굴 ${bp.toFixed(2)} × α ${a.toFixed(2)} = ${discScore.toFixed(1)}`];
     out.push(item);
   }
   out.sort((x, y) => y.score - x.score);
