@@ -55,7 +55,8 @@ export async function getQuoteConversion(id: number, windowDays = DEFAULT_WINDOW
       .select('item_no, quantity, ship_date')
       .in('item_no', codes)
       .gte('ship_date', start)
-      .lte('ship_date', end);
+      .lte('ship_date', end)
+      .gt('selling_price', 0); // 무상 시음주 출고(selling_price=0)는 전환에서 제외 — 유상 주문만 전환
     if (!isPromo) q = q.eq('client_code', code); // 프로모션은 전 거래처 출고로 매칭
     const { data } = await q;
     for (const s of (data || []) as AnyRow[]) {
@@ -149,7 +150,8 @@ export async function getClientConversion(
       .from(shipTable)
       .select('item_no, quantity, ship_date')
       .in('item_no', codeArr.slice(i, i + 200))
-      .gte('ship_date', earliest);
+      .gte('ship_date', earliest)
+      .gt('selling_price', 0); // 무상 시음주 출고(selling_price=0)는 전환에서 제외 — 유상 주문만 전환
     if (!isPromo) q = q.eq('client_code', clientCode); // 프로모션은 전 거래처 출고로 매칭
     const { data } = await q;
     for (const s of (data || []) as AnyRow[]) {
