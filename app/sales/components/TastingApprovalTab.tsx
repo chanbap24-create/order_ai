@@ -72,7 +72,7 @@ export default function TastingApprovalTab({ currentManager, isAdmin, department
       </div>
 
       {sub === "status"
-        ? <TastingStatusView rows={shown} loading={loading} />
+        ? <TastingStatusView rows={shown} loading={loading} company={company} currentManager={approvalManager} department={department} onChanged={load} />
         : <TastingApprovalView rows={approvalRows} company={company} currentManager={approvalManager} department={department} onChanged={load} />}
     </div>
   );
