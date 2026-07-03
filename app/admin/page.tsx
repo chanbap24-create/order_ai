@@ -18,6 +18,7 @@ const DashboardTab = dynamic(() => import('./components/DashboardTab'), { ssr: f
 const AllWinesTab = dynamic(() => import('./components/AllWinesTab'), { ssr: false, loading: tabLoader });
 const TastingNoteTab = dynamic(() => import('./components/TastingNoteTab'), { ssr: false, loading: tabLoader });
 const ClientAnalysisTab = dynamic(() => import('./components/ClientAnalysisTab'), { ssr: false, loading: tabLoader });
+const SegmentsTab = dynamic(() => import('./components/SegmentsTab'), { ssr: false, loading: tabLoader });
 const WineRegionsTab = dynamic(() => import('./components/WineRegionsTab'), { ssr: false, loading: tabLoader });
 const BrandTab = dynamic(() => import('./components/BrandTab'), { ssr: false, loading: tabLoader });
 const CompanyEventsTab = dynamic(() => import('./components/CompanyEventsTab'), { ssr: false, loading: tabLoader });
@@ -258,6 +259,7 @@ export default function AdminPage() {
         {activeTab === 'all-wines' && <AllWinesTab />}
         {activeTab === 'tasting-note' && <TastingNoteTab onNewCountChange={setNewWineCount} />}
         {activeTab === 'client-analysis' && <ClientAnalysisTab />}
+        {activeTab === 'segments' && <SegmentsTab />}
         {activeTab === 'wine-regions' && <WineRegionsTab />}
         {activeTab === 'brand-library' && <BrandTab />}
         {activeTab === 'company-events' && <CompanyEventsTab />}

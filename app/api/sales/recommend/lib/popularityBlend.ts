@@ -105,12 +105,13 @@ export async function applyAdaptiveBlend(
   manualWeight: number,
   exclude?: Set<string>, // 이미 산 와인 제외(신규제안)
   priceCeiling = 0,      // 거래처 가격 상한(0=무제한). 발굴/인기가 저가 업장에 고가 베스트셀러 꽂는 것 방지.
+  segItems?: Map<string, number>, // 업장유형 실구매 프로파일(신규 거래처 추천 핵심)
 ): Promise<ScoredItem[]> {
   const [popMap, segmentPop] = await Promise.all([
     getItemPopularity(),
     segment ? getSegmentPopularity(segment) : Promise.resolve(new Map<string, number>()),
   ]);
-  const disc = scoreDiscovery(inventory, wineMap, { segment }, popMap, segmentPop, venuePref, false);
+  const disc = scoreDiscovery(inventory, wineMap, { segment }, popMap, segmentPop, venuePref, false, segItems);
   const discNorm = new Map<string, number>();
   for (const d of disc) {
     if (priceCeiling > 0 && (d.price || 0) > priceCeiling) continue; // 거래처 가격대 초과 발굴 제외

@@ -79,6 +79,7 @@ export function scoreDiscovery(
   segmentPop: Map<string, number>,
   venuePref: VenueWinePref | null,
   applyCap = true, // false면 다양성 상한 없이 전 후보 점수 반환(적응형 블렌드용)
+  segItems?: Map<string, number>, // 업장유형 실구매 프로파일(item_no→세그먼트 침투율 0~1). 신규 거래처 핵심 신호.
 ): ScoredItem[] {
   const types = opts.types && opts.types.length ? new Set(opts.types) : null;
   const singleType = !!types && types.size <= 1;
@@ -108,14 +109,20 @@ export function scoreDiscovery(
 
   // 3) 합성 → 0~100.  인기 = 구매처 0.7 + 최근 0.3.
   //   업장 태그 있으면 업장적합(scoreVenue, 절대 0~1)로 개인화 / 없으면 업태 세그먼트 폴백 / 둘 다 없으면 순수 인기.
+  const hasSegItems = !!segItems && segItems.size > 0;
   const scored: ScoredItem[] = cand.map((c, i) => {
     const pop = 0.7 * pctB[i] + 0.3 * pctT[i];
     let vf = 0;
-    let composite: number;
     if (venuePref) {
       const h = c.wine?._hierarchy;
       const regionText = `${h?.sub_region || ''} ${h?.major_region || ''} ${h?.super_region || ''} ${c.wine?.region || ''}`;
       vf = scoreVenue(venuePref, { bucket: c.bucket, country: `${c.wine?.country || ''} ${c.wine?.country_en || ''}`, regionText }, 1).total;
+    }
+    const seg = hasSegItems ? (segItems!.get(String(c.itemNo)) || 0) : 0; // 이 업장유형 실구매 침투율
+    let composite: number;
+    if (hasSegItems) {
+      composite = 0.4 * pop + 0.4 * seg + 0.2 * vf; // 데이터기반: 인기 + 업장유형 실구매(top_items) + 업장적합
+    } else if (venuePref) {
       composite = 0.6 * pop + 0.4 * vf;
     } else if (pctS) {
       composite = 0.7 * pop + 0.3 * pctS[i];
@@ -126,10 +133,11 @@ export function scoreDiscovery(
     const tags: string[] = [];
     const reasons: string[] = [`${c.pop.buyers}곳 구매`];
     if (score >= 70) tags.push('베스트셀러');
-    if (venuePref && vf >= 0.7) { tags.push('업장적합'); reasons.push('업장 어울림'); }
+    if (seg >= 0.3) { tags.push('업장주력'); reasons.push(`동종업장 ${Math.round(seg * 100)}% 취급`); }
+    else if (venuePref && vf >= 0.7) { tags.push('업장적합'); reasons.push('업장 어울림'); }
     else if (pctS && pctS[i] >= 0.7) { tags.push('업태인기'); reasons.push(`${opts.segment} 인기`); }
     const breakdown = [
-      `구매처 ${Math.round(pctB[i] * 100)}%·최근 ${Math.round(pctT[i] * 100)}%${venuePref ? `·업장 ${Math.round(vf * 100)}%` : pctS ? `·업태 ${Math.round(pctS[i] * 100)}%` : ''}`,
+      `구매처 ${Math.round(pctB[i] * 100)}%·최근 ${Math.round(pctT[i] * 100)}%${hasSegItems ? `·동종업장 ${Math.round(seg * 100)}%` : ''}${venuePref ? `·업장 ${Math.round(vf * 100)}%` : pctS ? `·업태 ${Math.round(pctS[i] * 100)}%` : ''}`,
       `= ${score.toFixed(1)}`,
     ];
     return {

@@ -19,6 +19,7 @@ import { applyAdaptiveBlend } from './popularityBlend';
 import { buildSummary } from './buildSummary';
 import { getClientVenue } from '@/app/lib/clientVenue';
 import { VENUE_WINE_MAP } from './venueScoring';
+import { getSegmentProfile } from '@/app/lib/segmentProfiles';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -111,6 +112,12 @@ export async function buildCandidates(
     getClientVenue(clientCode, 'wine'),
   ]);
   const venuePref = venueKey ? VENUE_WINE_MAP[venueKey] ?? null : null;
+  // 업장유형 실구매 프로파일(신규 거래처 추천용): item_no → 동종업장 침투율(0~1)
+  const segProfile = venueKey ? await getSegmentProfile('venue', venueKey) : null;
+  const segItems = new Map<string, number>();
+  if (segProfile?.top_items?.length && segProfile.client_count > 0) {
+    for (const it of segProfile.top_items) segItems.set(String(it.item_no), Math.min(1, it.breadth / segProfile.client_count));
+  }
   const notesMap = new Map<string, string>();
   for (const n of allNotes) {
     notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
@@ -209,7 +216,7 @@ export async function buildCandidates(
       minPrice: o.discoveryMinPrice,
       maxPrice: o.discoveryMaxPrice,
       segment: seg,
-    }, popMap, segmentPop, venuePref);
+    }, popMap, segmentPop, venuePref, true, segItems);
   } else {
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
@@ -228,7 +235,7 @@ export async function buildCandidates(
       const mainMed = prefs.priceStats['__all__']?.median || prefs.clientAvgPrice || 0;
       const bandPct = o.priceBandPct > 0 ? o.priceBandPct : 0.2;
       const priceCeiling = (prefs.premiumBand > 0 ? prefs.premiumBand : mainMed * 3) * (1 + bandPct);
-      scored = await applyAdaptiveBlend(scored, inventory, wineMap, clientDetail?.business_type || '', venuePref, historyDepthAll, o.popularityWeight ?? 0, boughtCodes, priceCeiling);
+      scored = await applyAdaptiveBlend(scored, inventory, wineMap, clientDetail?.business_type || '', venuePref, historyDepthAll, o.popularityWeight ?? 0, boughtCodes, priceCeiling, segItems);
     }
   }
 

@@ -5,6 +5,7 @@ import type { TabId } from '@/app/types/wine';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'upload', label: '업로드' },
   { id: 'client-analysis', label: '매출분석' },
+  { id: 'segments', label: '업장추천' },
   { id: 'dashboard', label: '재고분석' },
   { id: 'all-wines', label: '와인리스트' },
   { id: 'tasting-note', label: '테이스팅노트' },
