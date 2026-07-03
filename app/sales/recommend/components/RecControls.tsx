@@ -131,6 +131,18 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         {btnGroup(GEO_OPTS, s.geoCeiling, (v) => setReapply({ geoCeiling: v }))}
         <span style={hint}>광역 밖을 어디까지 추천할지</span>
       </div>
+      {/* 인기 블렌드 — 개인화 점수에 전사 베스트셀러(구매폭)를 섞음. 신규제안 모드만. */}
+      {s.mode === 'new' && (
+        <div style={rowS}>
+          <span style={lbl}>인기 블렌드</span>
+          <input type="range" min={0} max={100} step={5} value={s.popularityWeight}
+            onChange={(e) => setReapply({ popularityWeight: Number(e.target.value) })}
+            style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
+          <input type="number" min={0} max={100} value={s.popularityWeight} style={numIn}
+            onChange={(e) => setReapply({ popularityWeight: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+          <span style={hint}>% · 베스트셀러(구매폭) 혼합 · 0=끔 · 권장 30~50%(지역확장 ‘제한없음’과 함께)</span>
+        </div>
+      )}
       {/* 입고빈도 반영 강도 */}
       <div style={rowS}>
         <span style={lbl}>입고빈도</span>
@@ -187,6 +199,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
               {([
                 ['품종·향미', 'softWeight', 1, 100],
                 ['회전', 'velocityWeight', 1, 100],
+                ['업장적합', 'venueWeight', 1, 100],
                 ['전환가점/회', 'convBoost', 1, 100],
                 ['견적학습±', 'quoteFeedbackWeight', 1, 100],
                 ['최근제안×', 'recentPenalty', 0.05, 1],

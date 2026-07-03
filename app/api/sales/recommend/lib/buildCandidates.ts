@@ -16,6 +16,9 @@ import { getClientQuoteFeatures } from './quoteFeedback';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
+import { applyPopularityBlend } from './popularityBlend';
+import { getClientVenue } from '@/app/lib/clientVenue';
+import { VENUE_WINE_MAP } from './venueScoring';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -89,7 +92,7 @@ export async function buildCandidates(
     if (code) relevantCodes.add(code);
   }
   const codeList = Array.from(relevantCodes);
-  const [wines, allNotes, conv, quoteFeedback] = await Promise.all([
+  const [wines, allNotes, conv, quoteFeedback, venueKey] = await Promise.all([
     fetchWinesByCodes<Record<string, unknown>>(
       codeList,
       'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier, supply_price',
@@ -100,7 +103,10 @@ export async function buildCandidates(
     getClientConversion(clientCode),
     // 견적학습: 과거 견적을 속성 단위 전환 프로필로(거래처 단위). 신규 후보 ±조정.
     getClientQuoteFeatures(clientCode, regionRows as WineRegionRow[]),
+    // 업장 유형 태그(스시·프렌치 등) — 있으면 적합 가산. CDV=wine.
+    getClientVenue(clientCode, 'wine'),
   ]);
+  const venuePref = venueKey ? VENUE_WINE_MAP[venueKey] ?? null : null;
   const notesMap = new Map<string, string>();
   for (const n of allNotes) {
     notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
@@ -207,7 +213,12 @@ export async function buildCandidates(
       scoreParams: o.scoreParams,
       mode: o.mode, anchor,
       ...(quoteFeedback ? { quoteFeedback } : {}),
+      ...(venuePref ? { venuePref } : {}),
     }) as ScoredItem[];
+    // 인기(구매폭) prior 블렌드 — 신규제안 모드에서 α>0일 때만. 개인화+인기 도달범위 결합.
+    if (o.mode === 'new' && (o.popularityWeight ?? 0) > 0) {
+      scored = await applyPopularityBlend(scored, inventory, wineMap, o.popularityWeight as number);
+    }
   }
 
   // 권장 할인율: 영업범위 최근 6개월 '최빈가' 기반(적용 토글 시).

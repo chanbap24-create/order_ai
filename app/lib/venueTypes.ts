@@ -49,6 +49,7 @@ export const VENUE_GROUPS: VenueGroup[] = [
       { key: 'bar', label: '바·펍·라운지', wine: '스파클링·캐주얼' },
       { key: 'cafe', label: '카페·디저트·베이커리', wine: '스파클링·스위트·데일리' },
       { key: 'retail', label: '리테일(샵·편의점·백화점)', wine: '대중 인기·가성비' },
+      { key: 'wholesale', label: '도매장', wine: '재판매용·대중 인기·전 타입' },
     ],
   },
 ];

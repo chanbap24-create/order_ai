@@ -5,6 +5,7 @@ import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
+import { scoreVenue, type VenueWinePref } from './venueScoring';
 
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
 export type GeoCeiling = 'super' | 'country' | 'any';
@@ -28,16 +29,18 @@ export interface ScoreParams {
   convBoost: number;      // 과거 견적→출고 전환 1회당 가점(최대 3회)
   noconvPenalty: number;  // 2회+ 견적·미출고 품목 점수 배율
   quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) ±가중치
+  venueWeight: number;    // 업장 유형(스시·프렌치 등) 적합 가산 — 지역·견적학습에서 10씩 차출
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  tierBase: [46, 37, 29, 21], // 지역 비중을 반으로 — 견적학습·취향이 순위를 움직일 여지 확보
+  tierBase: [36, 29, 23, 16], // 지역에서 10점 차출(같은마을 46→36) — 업장 가산에 재배분
   softWeight: 8,
   velocityWeight: 2,
   recentPenalty: 0.45,
   convBoost: 8,
   noconvPenalty: 0.6,
-  // 신규제안 완벽 매칭 = 지역46 + 학습44 + 취향8 + 회전2 = 100점 만점
-  quoteFeedbackWeight: 44,
+  quoteFeedbackWeight: 34, // 견적학습에서 10점 차출(44→34) — 업장 가산에 재배분
+  // 신규제안 완벽 매칭 = 지역36 + 학습34 + 업장20 + 취향8 + 회전2 = 100점 만점
+  venueWeight: 20,
 };
 
 /**
@@ -62,11 +65,13 @@ export function scoreRecommendations(params: {
   mode?: RecMode;            // 추천 타입(신규제안/대체상품)
   anchor?: SubstituteAnchor; // 대체상품 모드: 쇼트상품 기준점
   quoteFeedback?: QuoteFeedbackProfile; // 거래처 견적학습 프로필(속성 단위 전환)
+  venuePref?: VenueWinePref | null; // 거래처 업장 유형 선호(스시·프렌치 등) — 있으면 적합 가산
 }): ScoredItem[] {
   const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
   const anchor = params.anchor;
   const quoteFeedback = params.quoteFeedback;
+  const venuePref = params.venuePref;
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
@@ -201,6 +206,17 @@ export function scoreRecommendations(params: {
         score += fb;
         tags.push('견적선호');
         breakdown.push(`견적학습 +${fb.toFixed(1)}`);
+      }
+    }
+
+    // 업장 유형 적합: 거래처 업장(스시·프렌치 등) 선호와 맞으면 가산 — 타입·나라·지역 3축 독립.
+    if (venuePref && sp.venueWeight > 0) {
+      const regionText = `${h?.sub_region || ''} ${h?.major_region || ''} ${h?.super_region || ''} ${wine?.region || ''}`;
+      const vb = scoreVenue(venuePref, { bucket, country: `${wine?.country || ''} ${invCountry}`, regionText }, sp.venueWeight);
+      if (vb.total > 0) {
+        score += vb.total;
+        tags.push('업장적합');
+        breakdown.push(`업장적합 +${vb.total.toFixed(1)} (타입 ${vb.type}+나라 ${vb.country}+지역 ${vb.region})`);
       }
     }
 

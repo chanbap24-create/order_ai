@@ -13,11 +13,13 @@ export interface ScoreParams {
   convBoost: number;      // 전환 1회당 가점
   noconvPenalty: number;  // 미전환 감점 배율
   quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) ±가중치
+  venueWeight: number;    // 업장 유형(스시·프렌치 등) 적합 가산
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  tierBase: [46, 37, 29, 21],
+  tierBase: [36, 29, 23, 16],
   softWeight: 8, velocityWeight: 2, recentPenalty: 0.45, convBoost: 8, noconvPenalty: 0.6,
-  quoteFeedbackWeight: 44, // 지역46+학습44+취향8+회전2 = 100점 만점
+  quoteFeedbackWeight: 34, // 지역36+학습34+업장20+취향8+회전2 = 100점 만점
+  venueWeight: 20,
 };
 
 export interface RecSettings {
@@ -40,6 +42,7 @@ export interface RecSettings {
   stockMonths: number;  // 재고 여유분(개월)
   minStock: { price_300k: number; price_200k: number; price_100k: number; price_50k: number; price_20k: number; price_under_20k: number };
   scoreParams: ScoreParams; // 점수 가중치
+  popularityWeight: number; // 인기(구매폭) 블렌드 α, 0~100(%) · 0=끔 · 신규제안 모드만
 }
 
 export const DEFAULT_REC_SETTINGS: RecSettings = {
@@ -51,11 +54,13 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
   geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,
+  popularityWeight: 0,
 };
 
 // 가중치 스킴이 바뀌면 키를 올린다(옛 저장값을 통째로 버려 새 기본값을 강제 적용).
-const KEY = 'recQuote.settings.v2';
-const SETTINGS_VERSION = 2;
+// v3: 업장 가산(venueWeight 20) 도입 — 지역·견적학습에서 10씩 차출.
+const KEY = 'recQuote.settings.v3';
+const SETTINGS_VERSION = 3;
 
 export function loadRecSettings(): RecSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_REC_SETTINGS };
