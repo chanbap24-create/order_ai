@@ -5,23 +5,37 @@ import { normalizeType, type TypeBucket } from './wineType';
 import { geoGroup, type RegionProfile } from './geoTier';
 import { extractFlavorKeys } from './flavor';
 
-/** 가격 밴드 기준: 타입+지역 → 타입 → 전체 순 폴백(데이터 빈약 대비). 값=횟수 가중 중앙값(초고가 제외). */
+/** 표시/참고용 대표가 = 타입별 횟수 가중 평균(폴백: 타입+지역→타입→전체→단순평균). */
 export function priceRef(prefs: ClientPreferences, bucket: TypeBucket, group: string): number {
   const ps = prefs.priceStats;
-  const tryKey = (k: string) => (ps[k] && ps[k].n >= 2 ? ps[k].median : 0);
+  const tryKey = (k: string) => (ps[k] && ps[k].n >= 2 ? ps[k].mean : 0);
   return tryKey(`${bucket}|${group}`) || tryKey(bucket) || tryKey('__all__') || prefs.clientAvgPrice;
 }
 
-const OUTLIER_K = 3; // 주력 중앙값의 K배 초과 = 초고가 → 밴드 계산 제외 + 프리미엄 트랙으로 분리
+/** 가격 하한 = 그 '타입' 실제 구매가 p10(자주 사는 저가 봉우리 포함). 타입별. */
+export function priceFloor(prefs: ClientPreferences, bucket: TypeBucket, group: string): number {
+  const ps = prefs.priceStats;
+  const tryKey = (k: string) => (ps[k] && ps[k].n >= 1 ? ps[k].lo : 0);
+  return tryKey(bucket) || tryKey(`${bucket}|${group}`) || tryKey('__all__') || 0;
+}
+
+/** 가격 상한 = 그 '타입' 실제 구매가 p90(비싼 봉우리 포함). 타입별로 잡아 다른 타입 초고가가 안 새어들게. */
+export function priceCeil(prefs: ClientPreferences, bucket: TypeBucket, group: string): number {
+  const ps = prefs.priceStats;
+  const tryKey = (k: string) => (ps[k] && ps[k].n >= 1 ? ps[k].hi : 0);
+  return tryKey(bucket) || tryKey(`${bucket}|${group}`) || tryKey('__all__') || 0;
+}
+
 const MIN_CREDIBLE_PRICE = 3000; // 이 미만 unit_price는 와인가 아님(글라스/샘플/구포맷 오염) → 밴드에서 제외
 
-/** 횟수(w) 가중 중앙값 — 구매 이벤트를 횟수만큼 반영. 평균과 달리 고가 아웃라이어에 안 흔들림. */
-function weightedMedian(samples: Array<{ p: number; w: number }>): number {
+/** 횟수(w) 가중 q-분위수. q=0.1/0.9로 강건한 [lo,hi] 범위 산출(단발 극단 방어). */
+function weightedQuantile(samples: Array<{ p: number; w: number }>, q: number): number {
   if (!samples.length) return 0;
   const sorted = [...samples].sort((a, b) => a.p - b.p);
   const total = sorted.reduce((s, x) => s + x.w, 0);
+  const target = total * q;
   let cum = 0;
-  for (const s of sorted) { cum += s.w; if (cum >= total / 2) return s.p; }
+  for (const s of sorted) { cum += s.w; if (cum >= target) return s.p; }
   return sorted[sorted.length - 1].p;
 }
 
@@ -148,18 +162,15 @@ export function buildClientPreferences(
   const clientAvgPrice = priceList.length > 0
     ? priceList.reduce((a, b) => a + b, 0) / priceList.length : 0;
 
-  // 가격 밴드: 키별 '횟수 가중 중앙값'. 전체 중앙값의 K배 초과(초고가)는 제외해 주력이 안 흔들리게.
-  // 초고가 구매가 있으면 그 중앙값을 프리미엄 밴드로 따로 보관(별도 제안 트랙).
-  const allSamples = priceSamples['__all__'] || [];
-  const medAll = weightedMedian(allSamples);
-  const threshold = medAll > 0 ? medAll * OUTLIER_K : Infinity;
-  const priceStats: Record<string, { median: number; n: number }> = {};
+  // 가격은 '한 숫자'로 안 뭉침(정대처럼 샤블리8만+뫼르소28만 두 가격대는 어떤 값도 못 맞춤).
+  //  타입별 [실제 최저 lo ~ 최고 hi] 범위로 게이트하고, 그 안 순위는 취향 점수가 매김. mean=표시용 횟수가중평균.
+  const priceStats: Record<string, { mean: number; lo: number; hi: number; n: number }> = {};
   for (const [key, arr] of Object.entries(priceSamples)) {
-    const main = arr.filter((s) => s.p <= threshold);
-    priceStats[key] = { median: weightedMedian(main), n: main.length };
+    const sumW = arr.reduce((a, s) => a + s.w, 0) || 1;
+    const mean = arr.reduce((a, s) => a + s.p * s.w, 0) / sumW; // 횟수 가중 평균(표시용)
+    // 강건 범위: 가중 p10~p90. 자주 사는 가격대는 포함, 드문 극단(1/n)은 트림.
+    priceStats[key] = { mean, lo: weightedQuantile(arr, 0.1), hi: weightedQuantile(arr, 0.9), n: arr.length };
   }
-  const premiumSamples = allSamples.filter((s) => s.p > threshold);
-  const premiumBand = premiumSamples.length ? weightedMedian(premiumSamples) : 0;
 
   const topCountries = Object.entries(countryBuyCount).sort((a, b) => b[1] - a[1]);
   const topGrapes = Object.entries(grapeBuyCount).sort((a, b) => b[1] - a[1]);
@@ -182,7 +193,6 @@ export function buildClientPreferences(
     typeBuckets,
     regionProfile,
     priceStats,
-    premiumBand,
     flavorKeys,
     grapeKeys,
     regionDist,

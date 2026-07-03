@@ -7,7 +7,7 @@ import { extractGrapesFromName, extractTypeFromName } from './patterns';
 import { findHierarchy, type WineRegionRow } from './regions';
 import { makeMinStockForPrice, DEFAULT_REC_OPTS, type RecOpts } from './settings';
 import { aggregatePurchases, buildClientPreferences } from './preferences';
-import { scoreRecommendations, type SubstituteAnchor } from './scoring';
+import { scoreRecommendations, type SubstituteAnchor, type SegRank } from './scoring';
 import { normalizeType } from './wineType';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { getClientConversion } from '@/app/lib/quoteConversion';
@@ -15,11 +15,10 @@ import { getClientQuoteFeatures } from './quoteFeedback';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
-import { applyAdaptiveBlend } from './popularityBlend';
 import { buildSummary } from './buildSummary';
 import { getClientVenue } from '@/app/lib/clientVenue';
 import { VENUE_WINE_MAP } from './venueScoring';
-import { getSegmentProfile } from '@/app/lib/segmentProfiles';
+import { getSegmentProfile, extractRegion, type SegmentProfile } from '@/app/lib/segmentProfiles';
 
 export interface CandidateContext {
   client: { code: string; name: string; importance: number; business_type: string; manager: string };
@@ -69,7 +68,6 @@ export async function buildCandidates(
     rawInventory,
     regionRows,
     { data: recoRows },
-    { data: allShipItems },
   ] = await Promise.all([
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
@@ -77,10 +75,7 @@ export async function buildCandidates(
     fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
     supabase.from('recommendations').select('item_codes').eq('client_code', clientCode).eq('status', 'sent').gte('created_at', recoSinceMidnight).lt('created_at', todayKstMidnight),
-    // 적응형 α용 이력 깊이 = 전체(기간 무관) 구매 품목 종수. 최근 6개월만 보면 단골이 신규로 오판됨.
-    supabase.from('shipments').select('item_no').eq('client_code', clientCode).not('item_no', 'is', null),
   ]);
-  const historyDepthAll = new Set((allShipItems || []).map((r: { item_no?: string }) => r.item_no)).size;
 
   // 최근 30일(오늘 제외) 실제 견적서로 나간 품번 집합 — 중복 제안 강등용
   const recentlyRecommended = new Set<string>();
@@ -112,12 +107,23 @@ export async function buildCandidates(
     getClientVenue(clientCode, 'wine'),
   ]);
   const venuePref = venueKey ? VENUE_WINE_MAP[venueKey] ?? null : null;
-  // 업장유형 실구매 프로파일(신규 거래처 추천용): item_no → 동종업장 침투율(0~1)
-  const segProfile = venueKey ? await getSegmentProfile('venue', venueKey) : null;
-  const segItems = new Map<string, number>();
-  if (segProfile?.top_items?.length && segProfile.client_count > 0) {
-    for (const it of segProfile.top_items) segItems.set(String(it.item_no), Math.min(1, it.breadth / segProfile.client_count));
-  }
+  // 업장·업태·지역 세그먼트 = 그 세그먼트가 사는 '타입'·'국가' 분포로 점수. (아이템 재구매 아님 — generic 오염 방지)
+  const clientRegion = extractRegion(clientDetail?.address);
+  const [venueProfile, btProfile, regionProfile] = await Promise.all([
+    venueKey ? getSegmentProfile('venue', venueKey) : Promise.resolve(null),
+    clientDetail?.business_type ? getSegmentProfile('business_type', clientDetail.business_type) : Promise.resolve(null),
+    clientRegion ? getSegmentProfile('region', clientRegion) : Promise.resolve(null),
+  ]);
+  const toSegRank = (p: SegmentProfile | null): SegRank | null => {
+    if (!p) return null;
+    const typeRank = new Map<string, number>();
+    Object.entries(p.type_dist || {}).sort((a, b) => b[1] - a[1]).forEach(([t], i) => { if (t !== '기타') typeRank.set(t, i); });
+    const countryRank = new Map<string, number>();
+    (p.top_countries || []).forEach((c, i) => { if (c.country && c.country !== '기타') countryRank.set(c.country, i); });
+    return { typeRank, countryRank };
+  };
+  const segScorers = { venue: toSegRank(venueProfile), bt: toSegRank(btProfile), region: toSegRank(regionProfile) };
+  const regionPriceMedian = regionProfile?.price_median || 0; // 지역 추천가(무이력 거래처 폴백)
   const notesMap = new Map<string, string>();
   for (const n of allNotes) {
     notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
@@ -216,8 +222,11 @@ export async function buildCandidates(
       minPrice: o.discoveryMinPrice,
       maxPrice: o.discoveryMaxPrice,
       segment: seg,
-    }, popMap, segmentPop, venuePref, true, segItems);
+    }, popMap, segmentPop, venuePref, true);
   } else {
+    // 가격 기준: 이력 있으면 거래처 본인 대표가(횟수가중평균), 없으면 지역 추천가(무이력 폴백).
+    const ownMean = prefs.priceStats['__all__']?.mean || prefs.clientAvgPrice || 0;
+    const regionPriceRef = ownMean > 0 ? ownMean : regionPriceMedian;
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
       priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
@@ -226,17 +235,8 @@ export async function buildCandidates(
       mode: o.mode, anchor,
       ...(quoteFeedback ? { quoteFeedback } : {}),
       ...(venuePref ? { venuePref } : {}),
+      ...(o.mode === 'new' ? { segScorers, regionPriceRef } : {}),
     }) as ScoredItem[];
-    // 적응형 발굴 블렌드 — 신규제안: 이력 얇을수록 발굴↑(업장적합 포함). popularityWeight 지정 시 α 고정.
-    if (o.mode === 'new') {
-      // 이미 산 와인은 신규제안에서 제외 — 블렌드가 유니버스로 되살리지 않게 purchaseAgg 전달
-      const boughtCodes = new Set(Object.keys(purchaseAgg));
-      // 발굴 가격 상한: 프리미엄 밴드(있으면) 또는 주력 중앙값×3 + 여유 → 저가 업장에 고가 베스트셀러 방지
-      const mainMed = prefs.priceStats['__all__']?.median || prefs.clientAvgPrice || 0;
-      const bandPct = o.priceBandPct > 0 ? o.priceBandPct : 0.2;
-      const priceCeiling = (prefs.premiumBand > 0 ? prefs.premiumBand : mainMed * 3) * (1 + bandPct);
-      scored = await applyAdaptiveBlend(scored, inventory, wineMap, clientDetail?.business_type || '', venuePref, historyDepthAll, o.popularityWeight ?? 0, boughtCodes, priceCeiling, segItems);
-    }
   }
 
   // 권장 할인율: 영업범위 최근 6개월 '최빈가' 기반(적용 토글 시).

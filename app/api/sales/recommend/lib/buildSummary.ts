@@ -33,7 +33,7 @@ export function buildSummary(
       band_pct: Math.round(bandPct * 100),
       type_prices: Array.from(prefs.typeBuckets).map((b) => {
         const s = prefs.priceStats[b];
-        return { type: bucketLabel(b), avg: s && s.n ? Math.round(s.median) : 0 }; // 횟수 가중 중앙값
+        return { type: bucketLabel(b), avg: s && s.n ? Math.round(s.mean) : 0 }; // 횟수 가중 평균
       }).filter((t) => t.type && t.avg > 0).sort((a, b) => b.avg - a.avg),
       region_dist: (() => {
         const total = Object.values(prefs.regionDist).reduce((a, b) => a + b, 0) || 1;

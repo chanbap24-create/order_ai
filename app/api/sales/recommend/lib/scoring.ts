@@ -1,6 +1,6 @@
 import { extractEnglish, countryKey, type RegionHierarchy } from './regions';
 import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
-import { priceRef } from './preferences';
+import { priceRef, priceFloor, priceCeil } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
@@ -32,16 +32,29 @@ export interface ScoreParams {
   venueWeight: number;    // 업장 유형(스시·프렌치 등) 적합 가산 — 지역·견적학습에서 10씩 차출
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  tierBase: [36, 29, 23, 16], // 지역에서 10점 차출(같은마을 46→36) — 업장 가산에 재배분
-  softWeight: 8,
-  velocityWeight: 2,
+  // 통합 100점 = 산지20 + 취향10 + 견적15(이력) + 업장15 + 업태20 + 지역20(타입·국가 분포). 업장/업태/지역은 profile 기반(scoreParams 밖).
+  tierBase: [20, 16, 12, 8],  // 산지: 같은마을20/인근16/광역12/타지역8
+  softWeight: 10,             // 취향(품종·향)
+  velocityWeight: 0,          // 회전 제외(거래처 무관 + leakage)
   recentPenalty: 0.45,
-  convBoost: 8,
-  noconvPenalty: 0.6,
-  quoteFeedbackWeight: 34, // 견적학습에서 10점 차출(44→34) — 업장 가산에 재배분
-  // 신규제안 완벽 매칭 = 지역36 + 학습34 + 업장20 + 취향8 + 회전2 = 100점 만점
-  venueWeight: 20,
+  convBoost: 0,               // 과거전환 '+' 제거(신규제안은 산 걸 이미 제외)
+  noconvPenalty: 0.6,         // (미사용 — 아래 flat 감점으로 대체)
+  quoteFeedbackWeight: 15,    // 견적학습
+  venueWeight: 0,             // 업장은 타입·국가 분포(세그먼트)로 이관
 };
+
+// 세그먼트(업장·업태·지역) = 그 세그먼트가 사는 '와인 타입' 순위 + '국가' 순위로 배점.
+export interface SegRank { typeRank: Map<string, number>; countryRank: Map<string, number>; }
+export interface SegScorers { venue?: SegRank | null; bt?: SegRank | null; region?: SegRank | null; }
+const SEG_PTS = {
+  venueType: [10, 7, 4], venueCtry: [5, 3, 2], // 업장 15 = 타입10 + 국가5
+  segType: [12, 8, 4], segCtry: [8, 5, 3],     // 업태·지역 20 = 타입12 + 국가8
+};
+// rank 0/1/2 = 1등/2등/3등, 그 외(≥3, 분포엔 있음) = 1점, 없음(undefined) = 0.
+function rankPts(rank: number | undefined, tbl: number[]): number {
+  if (rank === undefined || rank < 0) return 0;
+  return rank < tbl.length ? tbl[rank] : 1;
+}
 
 /**
  * 규칙기반 추천: 타입·가격은 하드 게이트, 지역은 계단(우선순위), 향미·품종은 그 안의 정렬.
@@ -66,12 +79,17 @@ export function scoreRecommendations(params: {
   anchor?: SubstituteAnchor; // 대체상품 모드: 쇼트상품 기준점
   quoteFeedback?: QuoteFeedbackProfile; // 거래처 견적학습 프로필(속성 단위 전환)
   venuePref?: VenueWinePref | null; // 거래처 업장 유형 선호(스시·프렌치 등) — 있으면 적합 가산
+  segScorers?: SegScorers;          // 업장·업태·지역 세그먼트의 타입/국가 분포 순위
+  regionPriceRef?: number;          // 지역별 추천가(중앙값). >0이면 ±band로 가격 게이트.
 }): ScoredItem[] {
   const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
   const anchor = params.anchor;
   const quoteFeedback = params.quoteFeedback;
   const venuePref = params.venuePref;
+  const segScorers = params.segScorers;
+  const regionPriceRef = params.regionPriceRef ?? 0;
+  const unified = mode !== 'substitute'; // 신규제안: 게이트 풀고 모든 와인을 하나의 점수판으로(개인화+세그먼트)
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
@@ -104,35 +122,34 @@ export function scoreRecommendations(params: {
     if (mode === 'substitute') {
       if (!anchor || !bucket || bucket !== anchor.bucket) continue;
     } else {
-      if (!prefs.hasHistory) continue;
-      if (!bucket || !prefs.typeBuckets.has(bucket)) continue;
+      if (!bucket) continue; // 통합: 타입 게이트 없음 — 안 사본 타입도 점수로 자연 구분(세그먼트가 채움)
     }
 
-    // 게이트 ② 가격: 주력 밴드(기준가 ±band). 신규제안은 프리미엄(초고가) 밴드도 허용 — 별도 트랙.
-    let isPremium = false;
-    {
-      const ref = mode === 'substitute' && anchor ? anchor.price : priceRef(prefs, bucket, geoGroup(h));
-      if (ref > 0 && invPrice > 0) {
-        const inMain = Math.abs(invPrice - ref) / ref <= band;
-        if (!inMain) {
-          const pb = prefs.premiumBand;
-          const inPremium = mode !== 'substitute' && pb > 0 && Math.abs(invPrice - pb) / pb <= band;
-          if (!inPremium) continue;
-          isPremium = true; // 초고가 구매 이력이 있는 거래처에만, 그 가격대 신규 와인을 프리미엄으로 제안
-        }
-      }
+    // 게이트 ② 가격. 대체=주력밴드(±band). 신규제안(통합)=가격 상한만(밴드 게이트 없음 — 점수로 정렬).
+    const isPremium = false;
+    if (mode === 'substitute') {
+      const ref = anchor ? anchor.price : priceRef(prefs, bucket, geoGroup(h));
+      if (ref > 0 && invPrice > 0 && Math.abs(invPrice - ref) / ref > band) continue;
+    } else {
+      // 통합: 가격은 '범위'. 그 타입 실제 구매가 p10~p90(정대 화이트 9만~28만, 슬리피 2~4만) ±옵션 band.
+      //   단일 대표값 안 씀 — 두 봉우리(싼 다수+비싼 소수) 다 포함, 순위는 취향 점수가 매김.
+      const ref = priceRef(prefs, bucket, geoGroup(h)) || regionPriceRef; // 데이터 유무 판정용
+      const lo = priceFloor(prefs, bucket, geoGroup(h)) || ref;
+      const hi = Math.max(lo, priceCeil(prefs, bucket, geoGroup(h)), ref);
+      if (ref > 0 && invPrice > 0 && (invPrice < lo * (1 - band) || invPrice > hi * (1 + band))) continue;
     }
 
     // 계단: 대체=쇼트상품 산지 / 그 외=거래처 산지. 광역 천장 밖이면 제외.
     const tierProfile = mode === 'substitute' && anchor ? anchor.profile : prefs.regionProfile;
     let t = geoTier(h, tierProfile);
     if (t === null) {
-      if (geoCeiling === 'super') continue; // 광역까지만: 제외
+      if (unified) t = -1; // 통합: 산지 매칭 없음 → 산지 0점(제외 안 함, 세그먼트로 점수)
+      else if (geoCeiling === 'super') continue; // 광역까지만: 제외
       else if (geoCeiling === 'country') {
         if (invCountry && clientCountries.has(countryKey(invCountry))) t = 3; else continue; // 같은 국가까지
       } else t = 3; // 제한없음
     }
-    tags.push(TIER_LABEL[t]);
+    if (t >= 0) tags.push(TIER_LABEL[t]);
     const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : t === 2 ? h?.super_region : '') || '';
     const matchedCount = t === 0 ? (prefs.subRegionBuyCount[matchedRegion] || 0)
       : t === 1 ? (prefs.majorRegionBuyCount[matchedRegion] || 0)
@@ -166,11 +183,11 @@ export function scoreRecommendations(params: {
     // 빈도 가중: 대체상품은 거래처 빈도 개념이 없으니 순수 지역점수(배수 1).
     const effStrength = mode === 'substitute' ? 0 : strength;
     const freqMult = (1 - effStrength) + effStrength * freqW;
-    const tierScore = TIER_BASE[t] * freqMult;
+    const tierScore = t >= 0 ? TIER_BASE[t] * freqMult : 0; // 통합: 산지 매칭 없음(t=-1)이면 0
     const softAdd = soft * sp.softWeight;
     const velAdd = velocity * sp.velocityWeight;
     score = tierScore + softAdd + velAdd;
-    breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
+    if (t >= 0) breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
     if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
     if (velAdd > 0) breakdown.push(`회전 ${velocity.toFixed(2)}×${sp.velocityWeight} = +${velAdd.toFixed(1)}`);
 
@@ -182,20 +199,15 @@ export function scoreRecommendations(params: {
       breakdown.push(`최근제안 ×${sp.recentPenalty}`);
     }
 
-    // 과거 견적→실제 출고 전환 반영: 팔린 와인은 가점, 여러 번 권했는데 안 팔린 건 감점.
+    // 과거 견적에 넣었는데 안 산 와인 → 거절 횟수 비례 flat 감점(1회 −5 / 2회 −10 / 3회+ −15).
+    // ('+'는 없음 — 산 와인은 신규제안에서 이미 제외되므로.)
     const cv = conversionMap?.get(String(itemNo));
-    if (cv) {
-      if (cv.converted > 0) {
-        const boost = Math.min(cv.converted, 3) * sp.convBoost;
-        score += boost;
-        tags.push('과거전환');
-        reasons.push(`과거 견적 ${cv.quoted}회 중 ${cv.converted}회 출고`);
-        breakdown.push(`과거전환 +${boost}`);
-      } else if (cv.quoted >= 2) {
-        score *= sp.noconvPenalty;
-        tags.push('미전환');
-        breakdown.push(`미전환 ×${sp.noconvPenalty}`);
-      }
+    if (cv && cv.converted === 0 && cv.quoted > 0) {
+      const penalty = cv.quoted >= 3 ? 15 : cv.quoted === 2 ? 10 : 5;
+      score -= penalty;
+      tags.push('과거거절');
+      reasons.push(`과거 견적 ${cv.quoted}회 미구매`);
+      breakdown.push(`과거거절 −${penalty}`);
     }
 
     // 견적학습(긍정만): 과거 견적에서 '먹힌 속성(산지·가격대·타입·품종·향)'을 비슷한 새 후보로 넓혀 가산.
@@ -228,6 +240,26 @@ export function scoreRecommendations(params: {
 
     if (isPremium) { tags.push('프리미엄'); reasons.push('💎 프리미엄 제안'); breakdown.push('프리미엄 트랙(초고가 밴드)'); }
 
+    // 통합: 세그먼트 축(업장·업태·지역) = 그 세그먼트가 사는 '타입' 순위 + '국가' 순위로 가산.
+    const persScore = score; // 개인화 소계(산지+취향+견적) — 라벨 판정용
+    if (unified && segScorers) {
+      const wt = bucketLabel(bucket) || ''; // 와인 타입(스파클링/화이트/레드…)
+      const wc = invCountry || '';           // 국가
+      const addSeg = (sc: SegRank | null | undefined, typeTbl: number[], ctryTbl: number[], label: string) => {
+        if (!sc) return;
+        const tp = rankPts(sc.typeRank.get(wt), typeTbl);
+        const cp = rankPts(sc.countryRank.get(wc), ctryTbl);
+        if (tp + cp > 0) { score += tp + cp; breakdown.push(`${label} 타입 +${tp}·국가 +${cp}`); }
+      };
+      addSeg(segScorers.venue, SEG_PTS.venueType, SEG_PTS.venueCtry, '업장');
+      addSeg(segScorers.bt, SEG_PTS.segType, SEG_PTS.segCtry, '업태');
+      addSeg(segScorers.region, SEG_PTS.segType, SEG_PTS.segCtry, '지역');
+    }
+    if (unified) {
+      if (score <= 0) continue; // 아무 축도 안 맞음 → 후보 아님
+      // 거래처 본인 이력(산지·취향·견적)이 조금이라도 기여 → 거래처이력, 순수 세그먼트만 → 동종업장.
+      tags.push(persScore > 0 ? '거래처이력' : '동종업장');
+    }
     breakdown.push(`= ${(Math.round(score * 10) / 10).toFixed(1)}`);
 
     const vv = String(itemNo).slice(2, 4);

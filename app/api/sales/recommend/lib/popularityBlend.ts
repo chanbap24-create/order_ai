@@ -3,8 +3,7 @@
 // 개인화 raw(≈0~100 절대값)와 발굴(α×0~1×100)이 같은 스케일 → 단골은 개인화가 상위 지배.
 import type { ScoredItem } from './types';
 import { normalizeType, bucketLabel } from './wineType';
-import { getItemPopularity, getSegmentPopularity, scoreDiscovery } from './discovery';
-import type { VenueWinePref } from './venueScoring';
+import { getItemPopularity } from './discovery';
 
 /** 값 배열 → 각 원소의 백분위(0~1). 동점은 평균 순위. (discovery.percentileRanks와 동일 규약) */
 export function percentileRanks(values: number[]): number[] {
@@ -39,7 +38,7 @@ function stubItem(inv: any, wine: any): ScoredItem {
     item_no: inv.item_no, item_name: inv.item_name,
     country: wine?.country || wine?.country_en || inv.country || '', region: wine?.region || '',
     grape: wine?.grape_varieties || '', wine_type: bucketLabel(bucket) || wine?.wine_type || '',
-    price: inv.supply_price || 0, stock, score: 0, tags: [], reason: '인기 추천',
+    price: inv.supply_price || 0, stock, score: 0, tags: [], reason: '동종업장·일반 데이터',
     image_url: (wine?.image_url as string) || '', brand: (wine?.supplier as string) || (wine?.brand as string) || '',
     vintage: vintageOf(inv.item_no), breakdown: [],
   };
@@ -78,20 +77,19 @@ export function blendPopularity(
     if (discScore <= 0) continue; // 발굴 값도 없으면 노출 안 함
     const item = stubItem(inv, wineMap.get(code));
     item.score = discScore;
-    if (bp >= 0.7) item.tags = [...item.tags, '인기'];
-    item.breakdown = [`발굴 ${bp.toFixed(2)} × α ${a.toFixed(2)} = ${discScore.toFixed(1)}`];
+    if (bp >= 0.5) item.tags = [...item.tags, '동종업장'];
+    item.breakdown = [`세그먼트·일반 ${Math.round(bp * 100)}% × 반영 ${Math.round(a * 100)}% = ${discScore.toFixed(1)}`];
     out.push(item);
   }
   out.sort((x, y) => y.score - x.score);
   return out;
 }
 
-const ADAPTIVE_K = 6; // α = K/(K+구매품목수). 25품목≈0.2(8:2), 6품목=0.5, 1품목≈0.86. 작을수록 빨리 개인화로.
 
 /**
- * 적응형 발굴 블렌드: 개인화 + α·발굴(인기+업장적합). α = K/(K+이력깊이) — 이력 얇을수록 발굴↑.
- * 신규 거래처(이력 0) → α≈1(순수 발굴), 단골 → α↓(취향 위주). manualWeight>0이면 α 고정(UI override).
- * 발굴 성분은 scoreDiscovery(무캡·유니버스) → 새 지역/타입도 진입.
+ * 개인화(scored, 이미 이력신뢰 c 적용) + 세그먼트 항목 병합.
+ * 개인화 못 뚫은 와인은 '동종업장' 점수 = 업장유형 재구매 ×15 + 업태 재구매 ×15 로 상세 매김(α·정규화 없음).
+ * 세그먼트 자체가 없는 거래처만 전사인기(구매폭)로 약하게 폴백. → 라벨은 개인화 vs 동종업장으로 자동 구분.
  */
 export async function applyAdaptiveBlend(
   scored: ScoredItem[],
@@ -99,26 +97,51 @@ export async function applyAdaptiveBlend(
   inventory: any[],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wineMap: Map<string, any>,
-  segment: string,
-  venuePref: VenueWinePref | null,
-  historyDepth: number,
-  manualWeight: number,
-  exclude?: Set<string>, // 이미 산 와인 제외(신규제안)
-  priceCeiling = 0,      // 거래처 가격 상한(0=무제한). 발굴/인기가 저가 업장에 고가 베스트셀러 꽂는 것 방지.
-  segItems?: Map<string, number>, // 업장유형 실구매 프로파일(신규 거래처 추천 핵심)
+  exclude: Set<string> | undefined, // 이미 산 와인 제외(신규제안)
+  priceCeiling: number,             // 거래처 가격 상한(0=무제한)
+  segVenue: Map<string, number>,    // 업장유형 재구매 순위(0~1)
+  segBt: Map<string, number>,       // 업태 재구매 순위(0~1)
 ): Promise<ScoredItem[]> {
-  const [popMap, segmentPop] = await Promise.all([
-    getItemPopularity(),
-    segment ? getSegmentPopularity(segment) : Promise.resolve(new Map<string, number>()),
-  ]);
-  const disc = scoreDiscovery(inventory, wineMap, { segment }, popMap, segmentPop, venuePref, false, segItems);
-  const discNorm = new Map<string, number>();
-  for (const d of disc) {
-    if (priceCeiling > 0 && (d.price || 0) > priceCeiling) continue; // 거래처 가격대 초과 발굴 제외
-    discNorm.set(d.item_no, (d.score || 0) / 100);
+  const scoredCodes = new Set(scored.map((s) => String(s.item_no)));
+  const hasSeg = segVenue.size > 0 || segBt.size > 0;
+  let breadthPct: Map<string, number> | null = null;
+  if (!hasSeg) { // 세그먼트 없는 거래처(태그·업태 프로파일 둘 다 없음)만 전사인기 폴백
+    const popMap = await getItemPopularity();
+    const codes = inventory.map((i) => String(i.item_no));
+    const pct = percentileRanks(codes.map((c) => popMap.get(c)?.buyers || 0));
+    breadthPct = new Map(); codes.forEach((c, i) => breadthPct!.set(c, pct[i]));
   }
-  const alpha = manualWeight > 0 ? Math.min(1, manualWeight) : ADAPTIVE_K / (ADAPTIVE_K + Math.max(0, historyDepth));
-  return blendPopularity(scored, inventory, wineMap, discNorm, alpha, exclude);
+
+  const out: ScoredItem[] = [...scored]; // 개인화(이미 c 적용됨)
+  for (const inv of inventory) {
+    const code = String(inv.item_no);
+    if (exclude?.has(code) || scoredCodes.has(code)) continue;
+    if (priceCeiling > 0 && (inv.supply_price || 0) > priceCeiling) continue;
+    const sv = segVenue.get(code) || 0;
+    const sb = segBt.get(code) || 0;
+    let score: number; const breakdown: string[] = [];
+    if (sv > 0 || sb > 0) {
+      const svPts = 15 * sv, sbPts = 15 * sb;
+      score = svPts + sbPts;
+      if (sv > 0) breakdown.push(`업장유형 재구매 ${sv.toFixed(2)}×15 = +${svPts.toFixed(1)}`);
+      if (sb > 0) breakdown.push(`업태 재구매 ${sb.toFixed(2)}×15 = +${sbPts.toFixed(1)}`);
+    } else if (breadthPct) {
+      const g = breadthPct.get(code) || 0;
+      score = 15 * g;
+      if (score <= 0) continue;
+      breakdown.push(`전사인기 ${Math.round(g * 100)}% × 15 = +${score.toFixed(1)} (폴백)`);
+    } else {
+      continue;
+    }
+    const item = stubItem(inv, wineMap.get(code));
+    item.score = Math.round(score * 10) / 10;
+    if (sv >= 0.5 || sb >= 0.5) item.tags = [...item.tags, '동종업장'];
+    breakdown.push(`= ${item.score.toFixed(1)}`);
+    item.breakdown = breakdown;
+    out.push(item);
+  }
+  out.sort((a, b) => b.score - a.score);
+  return out;
 }
 
 /** 프로덕션 래퍼: getItemPopularity(구매처 수)로 breadth 백분위를 만들어 blendPopularity 적용. */

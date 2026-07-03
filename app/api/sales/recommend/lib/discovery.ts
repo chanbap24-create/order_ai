@@ -5,7 +5,7 @@
 import { supabase } from '@/app/lib/db';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 import { normalizeType, bucketLabel } from './wineType';
-import { scoreVenue, type VenueWinePref } from './venueScoring';
+import { type VenueWinePref } from './venueScoring';
 
 const TYPE_CAP = 10; // 다양성: 한 타입이 상위를 독식하지 않게(여러 타입 선택 시)
 
@@ -83,7 +83,6 @@ export function scoreDiscovery(
 ): ScoredItem[] {
   const types = opts.types && opts.types.length ? new Set(opts.types) : null;
   const singleType = !!types && types.size <= 1;
-  const hasSeg = segmentPop.size > 0;
 
   // 1) 후보 필터(타입·가격)
   const cand = (inventory || [])
@@ -102,42 +101,26 @@ export function scoreDiscovery(
       return true;
     });
 
-  // 2) 인기 백분위(후보 집합 내) — 구매처(breadth) 주축 + 최근(트렌드). 매출은 가격편향이라 제외.
+  // 2) 전사 인기 백분위(폴백용) — 구매처(breadth) 0.7 + 최근(트렌드) 0.3.
   const pctB = percentileRanks(cand.map((c) => c.pop.buyers));
   const pctT = percentileRanks(cand.map((c) => c.pop.recentBuyers));
-  const pctS = hasSeg && !venuePref ? percentileRanks(cand.map((c) => c.seg)) : null;
 
-  // 3) 합성 → 0~100.  인기 = 구매처 0.7 + 최근 0.3.
-  //   업장 태그 있으면 업장적합(scoreVenue, 절대 0~1)로 개인화 / 없으면 업태 세그먼트 폴백 / 둘 다 없으면 순수 인기.
+  // 3) 합성 → 0~100. 세그먼트(업장유형+업태 '재구매')가 주력. 전사인기는 세그먼트 밖·세그먼트 없는 거래처 폴백.
   const hasSegItems = !!segItems && segItems.size > 0;
   const scored: ScoredItem[] = cand.map((c, i) => {
-    const pop = 0.7 * pctB[i] + 0.3 * pctT[i];
-    let vf = 0;
-    if (venuePref) {
-      const h = c.wine?._hierarchy;
-      const regionText = `${h?.sub_region || ''} ${h?.major_region || ''} ${h?.super_region || ''} ${c.wine?.region || ''}`;
-      vf = scoreVenue(venuePref, { bucket: c.bucket, country: `${c.wine?.country || ''} ${c.wine?.country_en || ''}`, regionText }, 1).total;
-    }
-    const seg = hasSegItems ? (segItems!.get(String(c.itemNo)) || 0) : 0; // 이 업장유형 실구매 침투율
+    const pop = 0.7 * pctB[i] + 0.3 * pctT[i]; // 전사 인기(폴백)
+    const seg = hasSegItems ? (segItems!.get(String(c.itemNo)) || 0) : 0; // 업장유형+업태 재구매 침투(0~1)
     let composite: number;
-    if (hasSegItems) {
-      composite = 0.4 * pop + 0.4 * seg + 0.2 * vf; // 데이터기반: 인기 + 업장유형 실구매(top_items) + 업장적합
-    } else if (venuePref) {
-      composite = 0.6 * pop + 0.4 * vf;
-    } else if (pctS) {
-      composite = 0.7 * pop + 0.3 * pctS[i];
-    } else {
-      composite = pop;
-    }
+    if (seg > 0) composite = seg;                 // 세그먼트 재구매 = 주력
+    else if (hasSegItems) composite = 0.2 * pop;  // 세그먼트 밖 품목 = 전사인기 20%만(약한 tail)
+    else composite = pop;                         // 세그먼트 자체 없는 거래처 = 전사인기 폴백
     const score = Math.round(composite * 1000) / 10;
     const tags: string[] = [];
     const reasons: string[] = [`${c.pop.buyers}곳 구매`];
-    if (score >= 70) tags.push('베스트셀러');
-    if (seg >= 0.3) { tags.push('업장주력'); reasons.push(`동종업장 ${Math.round(seg * 100)}% 취급`); }
-    else if (venuePref && vf >= 0.7) { tags.push('업장적합'); reasons.push('업장 어울림'); }
-    else if (pctS && pctS[i] >= 0.7) { tags.push('업태인기'); reasons.push(`${opts.segment} 인기`); }
+    if (seg >= 0.5) { tags.push('업장주력'); reasons.push('동종업장 재구매 상위'); }
+    else if (seg > 0) { tags.push('업장취급'); reasons.push('동종업장 취급'); }
     const breakdown = [
-      `구매처 ${Math.round(pctB[i] * 100)}%·최근 ${Math.round(pctT[i] * 100)}%${hasSegItems ? `·동종업장 ${Math.round(seg * 100)}%` : ''}${venuePref ? `·업장 ${Math.round(vf * 100)}%` : pctS ? `·업태 ${Math.round(pctS[i] * 100)}%` : ''}`,
+      seg > 0 ? `세그먼트(업장·업태 재구매) ${Math.round(seg * 100)}%` : `전사인기 ${Math.round(pop * 100)}%(폴백)`,
       `= ${score.toFixed(1)}`,
     ];
     return {

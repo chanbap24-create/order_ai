@@ -61,13 +61,14 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const capped: ScoredItem[] = settings.lockCount > 0
     ? diversify(byScore, { ...diversifyOpts, targetCount: settings.lockCount })
     : diversify(byScore.filter((i) => i.score >= settings.minScore), diversifyOpts);
-  // 개인화 우선: 개인화 추천이 있으면 인기(발굴)는 1개만 노출(새 제안 seasoning).
-  // 신규 거래처(개인화 0)는 인기로 전부 채움.
-  const isDiscovery = (it: ScoredItem) => (it.breakdown || []).some((b) => b.startsWith('발굴'));
+  // 개인화 우선 + 발굴로 목표 개수까지 채움. 이력 많으면 발굴 소수(1), 이력 얇으면 발굴로 넓게(일반 데이터).
+  // 예) 개인화 5개 → 발굴 1개 / 개인화 2개(얇은 거래처) → 발굴 4개 / 신규(개인화 0) → 발굴로 전부.
+  const MIN_TOTAL = 6;
+  const isDiscovery = (it: ScoredItem) => !!it.tags?.includes('동종업장');
   const persItems = capped.filter((it) => !isDiscovery(it));
-  const finalItems = persItems.length > 0
-    ? [...persItems, ...capped.filter(isDiscovery).slice(0, 1)]
-    : capped;
+  const discItems = capped.filter(isDiscovery);
+  const nDisc = persItems.length > 0 ? Math.max(1, MIN_TOTAL - persItems.length) : discItems.length;
+  const finalItems = [...persItems, ...discItems.slice(0, nDisc)];
   // 표시용 정렬: 타입(스파클링→화이트→레드) → 타입 내 가격 내림차순
   const TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4 };
   const visible: ScoredItem[] = [...finalItems].sort((a, b) => {

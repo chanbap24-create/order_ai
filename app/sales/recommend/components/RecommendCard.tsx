@@ -13,7 +13,9 @@ type Props = {
 
 export function RecommendCard({ item, isSelected, onToggle }: Props) {
   const sc = scoreColor(item.score);
-  const [showBreak, setShowBreak] = useState(false);
+  const [showBreak, setShowBreak] = useState(true); // 점수 세부정보 기본 표시
+  // 거래처 이력 기반(개인화) vs 동종업장·일반 기반(세그먼트) — 통합 스코어러가 큰 축으로 라벨 태그를 붙임
+  const isClientBased = !item.tags?.includes('동종업장');
   // 견적서 화면과 동일한 메타: 국가 · 브랜드 · 빈티지 · 산지 · 품종
   const meta = [item.country, item.brand, item.vintage, item.region, item.grape]
     .map((v) => (v || '').trim())
@@ -75,8 +77,19 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
             {meta}
           </div>
         )}
+        {/* 거래처 기반인지 아닌지 — 명확·눈에 띄게 */}
+        <div style={{ marginBottom: 5 }}>
+          <span style={{
+            fontSize: 11.5, fontWeight: 800, padding: '3px 9px', borderRadius: 6, letterSpacing: '-0.2px',
+            background: isClientBased ? 'rgba(21,101,52,0.13)' : 'rgba(180,110,20,0.16)',
+            color: isClientBased ? '#166534' : '#9a5b00',
+            border: `1px solid ${isClientBased ? 'rgba(21,101,52,0.3)' : 'rgba(180,110,20,0.35)'}`,
+          }}>
+            {isClientBased ? '🎯 거래처 이력 기반' : '🏢 동종업장·일반 기반'}
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
-          {item.tags.map((tag) => (
+          {item.tags.filter((t) => t !== '거래처이력' && t !== '동종업장').map((tag) => (
             <span key={tag} style={{
               fontSize: 10, padding: '1px 6px', borderRadius: 8,
               background: `${TAG_COLORS[tag] || 'var(--neutral-100)'}18`,

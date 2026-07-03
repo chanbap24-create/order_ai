@@ -32,6 +32,7 @@ export default function SegmentsTab() {
   };
 
   const venues = profiles.filter((p) => p.segment_type === 'venue');
+  const bizTypes = profiles.filter((p) => p.segment_type === 'business_type');
   const regions = profiles.filter((p) => p.segment_type === 'region');
   const updatedAt = (profiles[0] as SegmentProfile & { updated_at?: string })?.updated_at;
 
@@ -48,6 +49,9 @@ export default function SegmentsTab() {
 
       <h3 style={h3}>업장유형별 (스시·프렌치·이탈리안 등)</h3>
       {loading ? <div style={mut}>불러오는 중…</div> : <SegmentProfileTable profiles={venues} />}
+
+      <h3 style={h3}>업태별 (on/업소·on/샵·도매장 등 · 데이터 많음)</h3>
+      {loading ? <div style={mut}>불러오는 중…</div> : <SegmentProfileTable profiles={bizTypes} />}
 
       <h3 style={h3}>지역별 (시/구)</h3>
       {loading ? <div style={mut}>불러오는 중…</div> : <SegmentProfileTable profiles={regions} />}

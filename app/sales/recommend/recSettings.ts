@@ -16,10 +16,11 @@ export interface ScoreParams {
   venueWeight: number;    // 업장 유형(스시·프렌치 등) 적합 가산
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  tierBase: [36, 29, 23, 16],
-  softWeight: 8, velocityWeight: 2, recentPenalty: 0.45, convBoost: 8, noconvPenalty: 0.6,
-  quoteFeedbackWeight: 34, // 지역36+학습34+업장20+취향8+회전2 = 100점 만점
-  venueWeight: 20,
+  // 통합 100점 = 산지20+취향10+견적15(이력) + 업장15+업태20+지역20(타입·국가 분포). 회전·업장가산 제외.
+  tierBase: [20, 16, 12, 8],
+  softWeight: 10, velocityWeight: 0, recentPenalty: 0.45, convBoost: 0, noconvPenalty: 0.6,
+  quoteFeedbackWeight: 15,
+  venueWeight: 0,
 };
 
 export interface RecSettings {
@@ -59,8 +60,8 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
 
 // 가중치 스킴이 바뀌면 키를 올린다(옛 저장값을 통째로 버려 새 기본값을 강제 적용).
 // v3: 업장 가산(venueWeight 20) 도입 — 지역·견적학습에서 10씩 차출.
-const KEY = 'recQuote.settings.v3';
-const SETTINGS_VERSION = 3;
+const KEY = 'recQuote.settings.v6';
+const SETTINGS_VERSION = 6;
 
 export function loadRecSettings(): RecSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_REC_SETTINGS };
