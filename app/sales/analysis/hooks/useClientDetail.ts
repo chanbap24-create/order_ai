@@ -22,8 +22,12 @@ export function useClientDetail(client: SelectedRankClient, filters?: AnalysisFi
     if (filters?.startDate) statsParams.set("start", filters.startDate);
     if (filters?.endDate) statsParams.set("end", filters.endDate);
     if (filters?.manager) statsParams.set("manager", filters.manager);
+    // 거래처 조회에도 type 전달 — 글라스 거래처는 glass_clients 경로로 조회해야 정보(주소·업종 등)가 나옴.
+    const clientParams = new URLSearchParams({ search: client.client_code, limit: "1" });
+    const clientTypeHint = filters?.type || client.client_type;
+    if (clientTypeHint) clientParams.set("type", clientTypeHint);
     Promise.all([
-      fetch(`/api/sales/clients?search=${encodeURIComponent(client.client_code)}&limit=1`).then(
+      fetch(`/api/sales/clients?${clientParams}`).then(
         (r) => r.json(),
       ),
       fetch(`/api/sales/clients/stats?${statsParams}`).then((r) => r.json()),

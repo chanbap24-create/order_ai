@@ -17,7 +17,7 @@ export function percentileRanks(values: number[]): number[] {
   while (i < n) {
     let j = i;
     while (j + 1 < n && idx[j + 1][0] === idx[i][0]) j++;
-    const p = ((i + j) / 2) / (n - 1);
+    const p = i / (n - 1); // 자기보다 작은 값의 비율(동점=최소순위). 구매폭 0=0점(백테스트 breadth와 동일 규약)
     for (let k = i; k <= j; k++) pct[idx[k][1]] = p;
     i = j + 1;
   }

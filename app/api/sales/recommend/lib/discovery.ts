@@ -5,6 +5,7 @@
 import { supabase } from '@/app/lib/db';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 import { normalizeType, bucketLabel } from './wineType';
+import { scoreVenue, type VenueWinePref } from './venueScoring';
 
 const TYPE_CAP = 10; // 다양성: 한 타입이 상위를 독식하지 않게(여러 타입 선택 시)
 
@@ -43,7 +44,8 @@ export async function getSegmentPopularity(segment: string): Promise<Map<string,
   return out;
 }
 
-/** 값 배열 → 각 원소의 백분위 순위(0~1). 동점은 평균 순위. */
+/** 값 배열 → 각 원소의 백분위(0~1). '자기보다 작은 값의 비율'(strictly-less).
+ * 동점은 그 그룹의 최소 순위를 공유 → 인기 0(안 팔림)은 0점. (평균순위는 0을 ~중간으로 부풀려 부적절) */
 function percentileRanks(values: number[]): number[] {
   const n = values.length;
   if (n === 0) return [];
@@ -54,7 +56,7 @@ function percentileRanks(values: number[]): number[] {
   while (i < n) {
     let j = i;
     while (j + 1 < n && idx[j + 1][0] === idx[i][0]) j++;
-    const p = ((i + j) / 2) / (n - 1);
+    const p = i / (n - 1); // 자기보다 작은 값의 비율(동점 그룹 시작 순위). 0=최하(안 팔림)
     for (let k = i; k <= j; k++) pct[idx[k][1]] = p;
     i = j + 1;
   }
@@ -75,6 +77,7 @@ export function scoreDiscovery(
   opts: DiscoveryOpts,
   popMap: Map<string, ItemPop>,
   segmentPop: Map<string, number>,
+  venuePref: VenueWinePref | null,
 ): ScoredItem[] {
   const types = opts.types && opts.types.length ? new Set(opts.types) : null;
   const singleType = !!types && types.size <= 1;
@@ -97,24 +100,35 @@ export function scoreDiscovery(
       return true;
     });
 
-  // 2) 축별 백분위(후보 집합 내)
+  // 2) 인기 백분위(후보 집합 내) — 구매처(breadth) 주축 + 최근(트렌드). 매출은 가격편향이라 제외.
   const pctB = percentileRanks(cand.map((c) => c.pop.buyers));
-  const pctR = percentileRanks(cand.map((c) => c.pop.revenue));
   const pctT = percentileRanks(cand.map((c) => c.pop.recentBuyers));
-  const pctS = hasSeg ? percentileRanks(cand.map((c) => c.seg)) : null;
+  const pctS = hasSeg && !venuePref ? percentileRanks(cand.map((c) => c.seg)) : null;
 
-  // 3) 가중 합 → 0~100 (업태 없으면 3축으로 재분배 — 업태 빈 거래처도 100까지 평가)
-  const W = hasSeg ? { b: 0.30, r: 0.22, t: 0.18, s: 0.30 } : { b: 0.45, r: 0.30, t: 0.25, s: 0 };
-
+  // 3) 합성 → 0~100.  인기 = 구매처 0.7 + 최근 0.3.
+  //   업장 태그 있으면 업장적합(scoreVenue, 절대 0~1)로 개인화 / 없으면 업태 세그먼트 폴백 / 둘 다 없으면 순수 인기.
   const scored: ScoredItem[] = cand.map((c, i) => {
-    const composite = W.b * pctB[i] + W.r * pctR[i] + W.t * pctT[i] + (pctS ? W.s * pctS[i] : 0);
+    const pop = 0.7 * pctB[i] + 0.3 * pctT[i];
+    let vf = 0;
+    let composite: number;
+    if (venuePref) {
+      const h = c.wine?._hierarchy;
+      const regionText = `${h?.sub_region || ''} ${h?.major_region || ''} ${h?.super_region || ''} ${c.wine?.region || ''}`;
+      vf = scoreVenue(venuePref, { bucket: c.bucket, country: `${c.wine?.country || ''} ${c.wine?.country_en || ''}`, regionText }, 1).total;
+      composite = 0.6 * pop + 0.4 * vf;
+    } else if (pctS) {
+      composite = 0.7 * pop + 0.3 * pctS[i];
+    } else {
+      composite = pop;
+    }
     const score = Math.round(composite * 1000) / 10;
     const tags: string[] = [];
     const reasons: string[] = [`${c.pop.buyers}곳 구매`];
     if (score >= 70) tags.push('베스트셀러');
-    if (pctS && pctS[i] >= 0.7) { tags.push('업태인기'); reasons.push(`${opts.segment} 인기`); }
+    if (venuePref && vf >= 0.7) { tags.push('업장적합'); reasons.push('업장 어울림'); }
+    else if (pctS && pctS[i] >= 0.7) { tags.push('업태인기'); reasons.push(`${opts.segment} 인기`); }
     const breakdown = [
-      `구매처 ${Math.round(pctB[i] * 100)}%·매출 ${Math.round(pctR[i] * 100)}%·최근 ${Math.round(pctT[i] * 100)}%${pctS ? `·업태 ${Math.round(pctS[i] * 100)}%` : ''}`,
+      `구매처 ${Math.round(pctB[i] * 100)}%·최근 ${Math.round(pctT[i] * 100)}%${venuePref ? `·업장 ${Math.round(vf * 100)}%` : pctS ? `·업태 ${Math.round(pctS[i] * 100)}%` : ''}`,
       `= ${score.toFixed(1)}`,
     ];
     return {

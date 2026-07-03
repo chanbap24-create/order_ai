@@ -66,7 +66,8 @@ export async function GET(req: NextRequest) {
     if (clientType === 'glass') {
       let glassQuery = supabase
         .from('glass_clients')
-        .select('client_code, client_name, created_at', { count: 'exact' })
+        // 거래처정보(글라스) 업로드로 채운 담당·업종·연락처·주소 포함 → 상세 패널에 표시
+        .select('client_code, client_name, created_at, manager, business_type, contact_name, address', { count: 'exact' })
         // 비활성화된 옛 코드 ((X) prefix) 는 검색 결과에서 제외
         .not('client_name', 'ilike', '(X)%');
 

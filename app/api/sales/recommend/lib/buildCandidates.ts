@@ -204,7 +204,7 @@ export async function buildCandidates(
       minPrice: o.discoveryMinPrice,
       maxPrice: o.discoveryMaxPrice,
       segment: seg,
-    }, popMap, segmentPop);
+    }, popMap, segmentPop, venuePref);
   } else {
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
