@@ -88,7 +88,7 @@ export async function getClientQuoteFeatures(
   for (let i = 0; i < codeArr.length; i += 200) {
     const slice = codeArr.slice(i, i + 200);
     const [shipRes, wineRes, noteRes] = await Promise.all([
-      supabase.from('shipments').select('item_no, quantity, ship_date').eq('client_code', clientCode).in('item_no', slice).gte('ship_date', earliest),
+      supabase.from('shipments').select('item_no, quantity, ship_date').eq('client_code', clientCode).in('item_no', slice).gte('ship_date', earliest).gt('selling_price', 0), // 무상 시음주(selling_price=0) 제외 — 실제 유상 입고만 전환으로 인정
       supabase.from('wines').select('item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en').in('item_code', slice),
       supabase.from('tasting_notes').select('wine_id, nose_note, palate_note').in('wine_id', slice),
     ]);
