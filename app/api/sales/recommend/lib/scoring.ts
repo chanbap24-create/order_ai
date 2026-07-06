@@ -3,7 +3,7 @@ import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
 import { priceRef, priceFloor, priceCeil } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
-import { flavorMatchScore, flavorLabel, wineFlavorKeys } from './flavor';
+import { flavorLabel, wineFlavorKeys } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
 import { compareForDisplay } from '@/app/sales/recommend/displayOrder';
 
@@ -162,32 +162,36 @@ export function scoreRecommendations(params: {
     if (matchedRegion) reasons.push(mode === 'substitute' ? `${extractEnglish(matchedRegion)} (대체)` : extractEnglish(matchedRegion));
     else if (invCountry) reasons.push(extractEnglish(invCountry));
 
-    // 향미·품종 정렬(0~1)
-    //  품종: 이진(0.6) → 선호강도 가중(주력 품종 매칭=full, 마이너=적게). topGrapes는 가중 내림차순.
+    // 취향 = 향미(배점 80%) + 품종(배점 20%).
+    //  품종: 매칭 품종의 선호강도(주력=1). topGrapes는 가중 내림차순.
     const gl = invGrapes.toLowerCase();
     let grapeScore = 0;
     for (const [g, gw] of prefs.topGrapes) {
       if (g.length >= 3 && gl.includes(g.toLowerCase())) { grapeScore = gw / prefs.maxGrapeBuy; break; }
     }
     const grapeHit = grapeScore > 0;
-    //  향미: 단순 겹침(넓은 향미셋이면 포화) → 후보 향의 '거래처 선호강도' 평균으로 변별.
+    //  향미: 매칭된 향마다 '거래처 선호강도(0~1)' 합. 주력향 1개=0.5점 유닛, 가끔향은 비례 축소.
     const candFlavor = wineFlavorKeys(wine);
-    const fOverlap = flavorMatchScore(candFlavor, prefs.flavorWeights);
-    const soft = 0.6 * grapeScore + 0.4 * fOverlap;
+    let flavorSum = 0; const shared: string[] = [];
+    for (const f of candFlavor) {
+      const fw = prefs.flavorWeights.get(f) || 0;
+      if (fw > 0) { flavorSum += fw; shared.push(flavorLabel(f)); }
+    }
 
     if (grapeHit) { tags.push('선호품종'); reasons.push(matchedGrapeLabel(invGrapes, prefs)); }
-    if (fOverlap > 0) {
-      const shared = [...candFlavor].filter((k) => prefs.flavorKeys.has(k)).map(flavorLabel);
-      if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
-    }
+    if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
     if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
 
     const tierScore = t >= 0 ? TIER_BASE[t] : 0; // 산지 계단 점수(빈도 가중 제거 — 자주 산 산지는 다른 지표가 이미 반영)
-    // 취향 곡선: soft²로 가파르게 — 강한 매칭만 고득점, 어중간(품종만·향 조금)은 급락(변별력↑). 최대는 그대로 softWeight.
-    const softAdd = soft * soft * sp.softWeight;
+    // 향미 배점 80% + 품종 20% (softWeight=10 → 향미 8·품종 2). 향미는 주력향 1개당 (배점/16)≈0.5.
+    const flavorCap = sp.softWeight * 0.8;
+    const flavorPts = Math.min(flavorCap, (flavorCap / 16) * flavorSum);
+    const grapePts = sp.softWeight * 0.2 * grapeScore;
+    const softAdd = flavorPts + grapePts;
     score = tierScore + softAdd;
     if (t >= 0) breakdown.push(`${TIER_LABEL[t]} +${tierScore.toFixed(0)}`);
-    if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}²×${sp.softWeight} = +${softAdd.toFixed(1)}`);
+    if (flavorPts > 0) breakdown.push(`향미 +${flavorPts.toFixed(1)}(${shared.length}개 매칭)`);
+    if (grapePts > 0) breakdown.push(`품종 +${grapePts.toFixed(1)}`);
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 
