@@ -16,7 +16,7 @@ const TYPE_RX: Array<[RegExp, TypeBucket]> = [
 export function normalizeType(rawType: string, name = ''): TypeBucket {
   const s = `${rawType || ''} ${name || ''}`.toLowerCase();
   // 무알콜/논알콜/스피릿(무알콜 발포음료 등)은 와인 아님 → 제외
-  if (/무알콜|논알콜|무알코올|non.?alcohol|알코?올\s?프리|de.?alcohol|\b스피릿\b|\bspirit|리제로/i.test(s)) return '';
+  if (/무알콜|논알콜|무알코올|non.?alcohol|알코?올\s?프리|de.?alcohol|\b스피릿\b|\bspirit|스프리츠|스프릿츠|spritz|리제로/i.test(s)) return '';
   for (const [re, bucket] of TYPE_RX) if (re.test(s)) return bucket;
   return '';
 }
