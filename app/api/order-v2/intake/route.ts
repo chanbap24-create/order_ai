@@ -21,13 +21,24 @@ export async function POST(req: NextRequest) {
     if (!tk?.manager) return NextResponse.json({ error: "유효하지 않은 토큰입니다." }, { status: 401 });
     const manager = tk.manager;
 
-    const form = await req.formData();
-    const file = form.get("image");
-    const tab = String(form.get("tab") || "CDV") === "DL" ? "DL" : "CDV";
-    if (!(file instanceof File)) return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
-    const buf = Buffer.from(await file.arrayBuffer());
+    // 이미지 입력: (a) multipart 폼(image 필드) 또는 (b) 본문에 이미지 파일 그대로(단축어 '본문=파일').
+    const ct = (req.headers.get("content-type") || "").toLowerCase();
+    let buf: Buffer;
+    let media_type = "image/png";
+    let tab = req.nextUrl.searchParams.get("tab") === "DL" ? "DL" : "CDV";
+    if (ct.includes("multipart/form-data")) {
+      const form = await req.formData();
+      const file = form.get("image");
+      if (!(file instanceof File)) return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
+      buf = Buffer.from(await file.arrayBuffer());
+      media_type = ALLOWED.has(file.type) ? file.type : "image/png";
+      if (String(form.get("tab") || "") === "DL") tab = "DL";
+    } else {
+      buf = Buffer.from(await req.arrayBuffer());
+      if (buf.length === 0) return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
+      if (ALLOWED.has(ct)) media_type = ct;
+    }
     if (buf.length > MAX_BYTES) return NextResponse.json({ error: "이미지가 너무 큽니다.(최대 8MB)" }, { status: 400 });
-    const media_type = ALLOWED.has(file.type) ? file.type : "image/png";
 
     const clients = await getManagerClients(manager, tab);
     const result = await extractOrderFromImage(buf.toString("base64"), media_type, clients);
