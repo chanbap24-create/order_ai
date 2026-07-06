@@ -20,27 +20,41 @@ interface InventoryItem {
 
 async function getInventoryItems(): Promise<InventoryItem[]> {
   try {
-    const { data, error } = await supabase
-      .from('inventory_cdv')
-      .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country');
-    if (error) throw error;
-    return (data || []).map((r: any) => ({ ...r, alcohol: r.alcohol_content })) as InventoryItem[];
+    // 페이지네이션 필수: 재고가 1000행을 넘으면 기본 상한에 잘려 일부 신규가 감지 누락됨.
+    const PAGE = 1000;
+    const out: InventoryItem[] = [];
+    for (let off = 0; ; off += PAGE) {
+      const { data, error } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country')
+        .range(off, off + PAGE - 1);
+      if (error) throw error;
+      const rows = data || [];
+      out.push(...rows.map((r: any) => ({ ...r, alcohol: r.alcohol_content })) as InventoryItem[]);
+      if (rows.length < PAGE) break;
+    }
+    return out;
   } catch (e) {
     logger.error(`[WineDetection] Failed to load inventory_cdv`, e instanceof Error ? e : undefined);
     return [];
   }
 }
 
-/** wines 테이블 전체를 한번에 로드하여 Map으로 반환 */
+/** wines 테이블 전체를 로드하여 Map으로 반환.
+ *  ⚠️ 페이지네이션 필수: select('*')만 하면 Supabase 기본 상한(1000행)에 잘려
+ *  기존 와인이 맵에서 누락 → 신규로 오분류 → insert 중복키로 배치 전체 실패(신규 감지 먹통). */
 async function loadAllWinesMap(): Promise<Map<string, any>> {
   const map = new Map<string, any>();
-  const { data, error } = await supabase.from('wines').select('*');
-  if (error) {
-    logger.error('[WineDetection] Failed to load wines', { error });
-    return map;
-  }
-  for (const w of data || []) {
-    map.set(w.item_code, w);
+  const PAGE = 1000;
+  for (let off = 0; ; off += PAGE) {
+    const { data, error } = await supabase.from('wines').select('*').range(off, off + PAGE - 1);
+    if (error) {
+      logger.error('[WineDetection] Failed to load wines', { error });
+      break;
+    }
+    const rows = data || [];
+    for (const w of rows) map.set(w.item_code, w);
+    if (rows.length < PAGE) break;
   }
   return map;
 }
