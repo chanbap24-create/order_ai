@@ -4,6 +4,20 @@ import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 import { getSession } from '@/app/lib/auth';
 import { getManagerClientCodes } from '@/app/lib/orderClients';
 
+// 폐업/휴업/사용안함 거래처 제외 — 거래처정보 상태(client_details/glass_clients). 정상/미지정만 노출.
+async function filterActive<T extends { client_code: string }>(list: T[], tab: string): Promise<T[]> {
+  const codes = [...new Set(list.map((c) => c.client_code).filter(Boolean))];
+  if (codes.length === 0) return list;
+  const statusTable = tab === 'DL' ? 'glass_clients' : 'client_details';
+  let sq = supabase.from(statusTable).select('client_code, status').in('client_code', codes);
+  if (tab !== 'DL') sq = sq.eq('client_type', 'wine');
+  const { data } = await sq;
+  const inactive = new Set(
+    (data || []).filter((r: { status?: string }) => r.status && r.status !== '정상').map((r: { client_code: string }) => r.client_code),
+  );
+  return inactive.size ? list.filter((c) => !inactive.has(c.client_code)) : list;
+}
+
 // 거래처 검색 API (자동완성용) - tab에 따라 CDV/DL 테이블 분리
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') || '';
@@ -30,7 +44,7 @@ export async function GET(req: NextRequest) {
         .order('client_name', { ascending: true })
         .limit(50);
       if (error) throw error;
-      return NextResponse.json({ clients: scope(data || []) });
+      return NextResponse.json({ clients: scope(await filterActive(data || [], tab)) });
     }
 
     const words = splitSearchWords(q);
@@ -64,7 +78,7 @@ export async function GET(req: NextRequest) {
       if (!aliasMap.has(a.client_code)) aliasMap.set(a.client_code, a.alias);
     }
     const aliasCodes = [...aliasMap.keys()].filter(c => !direct?.some(d => d.client_code === c));
-    let aliasClients: any[] = [];
+    let aliasClients: Array<{ client_code: string; client_name: string; matched_alias: string | null }> = [];
     if (aliasCodes.length > 0) {
       const { data } = await supabase
         .from(clientTable)
@@ -105,8 +119,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ clients: scope([...map.values()]) });
-  } catch (error: any) {
-    return NextResponse.json({ clients: [], error: error.message }, { status: 500 });
+    return NextResponse.json({ clients: scope(await filterActive([...map.values()], tab)) });
+  } catch (error) {
+    return NextResponse.json({ clients: [], error: error instanceof Error ? error.message : 'error' }, { status: 500 });
   }
 }

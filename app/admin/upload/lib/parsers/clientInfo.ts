@@ -10,6 +10,7 @@ export interface ClientInfoRow {
   manager: string;       // 영업담당자
   contact_name: string;  // 업체담당자
   address: string;       // 납품주소 || 사업장소재지
+  status: string;        // 상태 (정상/폐업/휴업/사용안함) — order 검색 노출 필터용
 }
 
 // "  -  " 같은 대시/공백만인 값은 빈값 취급.
@@ -33,6 +34,7 @@ export async function parseClientInfoFile(file: File): Promise<ClientInfoRow[]> 
   const iContact = col("업체담당자");
   const iDeliv = col("납품주소");
   const iLoc = col("사업장소재지");
+  const iStatus = col("상태");
   if (iCode < 0 || iName < 0) {
     throw new Error("거래처정보 파일이 아닙니다 — '거래처번호'/'거래처명' 열을 찾을 수 없습니다.");
   }
@@ -49,6 +51,7 @@ export async function parseClientInfoFile(file: File): Promise<ClientInfoRow[]> 
       manager: iMgr >= 0 ? clean(row[iMgr]) : "",
       contact_name: iContact >= 0 ? clean(row[iContact]) : "",
       address: (iDeliv >= 0 ? clean(row[iDeliv]) : "") || (iLoc >= 0 ? clean(row[iLoc]) : ""),
+      status: iStatus >= 0 ? clean(row[iStatus]) : "",
     });
   }
   return out;

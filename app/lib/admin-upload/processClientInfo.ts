@@ -43,6 +43,7 @@ export async function processClientInfoFromData(
         manager: nz(r.manager),
         contact_name: nz(r.contact_name),
         address: nz(r.address),
+        status: nz(r.status),
         updated_at: now,
       };
       if (!isGlass) base.client_type = "wine";
