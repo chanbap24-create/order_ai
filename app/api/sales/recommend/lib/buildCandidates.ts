@@ -99,7 +99,7 @@ export async function buildCandidates(
       'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier, supply_price',
     ),
     // 테이스팅노트는 작은 테이블 — 전체를 받아 맵으로(.in 500 한도 회피)
-    fetchAll<{ wine_id: string; nose_note?: string; palate_note?: string }>('tasting_notes', 'wine_id, nose_note, palate_note'),
+    fetchAll<{ wine_id: string; nose_note?: string; palate_note?: string; flavor_tags?: string[] }>('tasting_notes', 'wine_id, nose_note, palate_note, flavor_tags'),
     // 과거 견적→실제 출고 전환(거래처별) — 추천 가점/감점 참고자료
     getClientConversion(clientCode),
     // 견적학습: 과거 견적을 속성 단위 전환 프로필로(거래처 단위). 신규 후보 ±조정.
@@ -126,8 +126,10 @@ export async function buildCandidates(
   const segScorers = { venue: toSegRank(venueProfile), bt: toSegRank(btProfile), region: toSegRank(regionProfile) };
   const regionPriceMedian = regionProfile?.price_median || 0; // 지역 추천가(무이력 거래처 폴백)
   const notesMap = new Map<string, string>();
+  const flavorTagsMap = new Map<string, string[]>();
   for (const n of allNotes) {
     notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
+    if (n.flavor_tags && n.flavor_tags.length) flavorTagsMap.set(n.wine_id, n.flavor_tags);
   }
   const conversionMap = new Map<string, { quoted: number; converted: number }>();
   for (const w of conv.wines) {
@@ -179,6 +181,7 @@ export async function buildCandidates(
     const fullName = `${w.item_name_kr || ''} ${w.item_name_en || ''}`;
     w._hierarchy = findHierarchy(w.region || '', fullName, allRegionRows, w.country_en || w.country || '');
     w._notes = notesMap.get(w.item_code) || '';
+    w._flavorTags = flavorTagsMap.get(w.item_code) || null;
     wineMap.set(w.item_code, w);
   }
 

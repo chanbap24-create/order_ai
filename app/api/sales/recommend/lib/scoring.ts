@@ -3,7 +3,7 @@ import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
 import { priceRef, priceFloor, priceCeil } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
-import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
+import { flavorOverlap, flavorLabel, wineFlavorKeys } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
 import { compareForDisplay } from '@/app/sales/recommend/displayOrder';
 
@@ -166,7 +166,7 @@ export function scoreRecommendations(params: {
     let grapeHit = false;
     const gl = invGrapes.toLowerCase();
     for (const g of prefs.grapeKeys) { if (g.length >= 3 && gl.includes(g)) { grapeHit = true; break; } }
-    const candFlavor = extractFlavorKeys(wine?._notes || '');
+    const candFlavor = wineFlavorKeys(wine);
     const fOverlap = flavorOverlap(candFlavor, prefs.flavorKeys);
     const soft = (grapeHit ? 0.6 : 0) + 0.4 * fOverlap;
 
@@ -217,7 +217,7 @@ export function scoreRecommendations(params: {
         priceBand: priceBandKey(invPrice),
         type: bucket,
         grapes: grapeKeysOf(invGrapes),
-        flavors: [...extractFlavorKeys(wine?._notes || '')],
+        flavors: [...wineFlavorKeys(wine)],
       }, sp.quoteFeedbackWeight);
       if (fb > 0) {
         score += fb;

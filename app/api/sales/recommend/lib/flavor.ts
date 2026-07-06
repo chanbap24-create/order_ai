@@ -93,6 +93,13 @@ export function extractFlavorKeys(text: string): Set<string> {
   return keys;
 }
 
+/** 와인의 향미 키 집합 — 저장된 flavor_tags(상세 조사) 우선, 없으면 노트에서 추출. */
+export function wineFlavorKeys(wine: { _flavorTags?: string[] | null; _notes?: string } | null | undefined): Set<string> {
+  const tags = wine?._flavorTags;
+  if (tags && tags.length) return new Set(tags);
+  return extractFlavorKeys(wine?._notes || '');
+}
+
 /** 거래처 향미키 집합 대비 후보의 겹침 비율(0~1). 거래처 향미가 없으면 0. */
 export function flavorOverlap(candidate: Set<string>, client: Set<string>): number {
   if (client.size === 0 || candidate.size === 0) return 0;

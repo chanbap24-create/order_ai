@@ -3,7 +3,7 @@ import type { ClientPreferences, PurchaseAggEntry } from './types';
 import type { RegionHierarchy } from './regions';
 import { normalizeType, type TypeBucket } from './wineType';
 import { geoGroup, type RegionProfile } from './geoTier';
-import { extractFlavorKeys } from './flavor';
+import { wineFlavorKeys } from './flavor';
 
 /** 표시/참고용 대표가 = 타입별 횟수 가중 평균(폴백: 타입+지역→타입→전체→단순평균). */
 export function priceRef(prefs: ClientPreferences, bucket: TypeBucket, group: string): number {
@@ -135,7 +135,7 @@ export function buildClientPreferences(
     regionDist[regionLabel] = (regionDist[regionLabel] || 0) + agg.count;
 
     // 향미 키(테이스팅노트)
-    for (const k of extractFlavorKeys(wine?._notes || '')) flavorKeys.add(k);
+    for (const k of wineFlavorKeys(wine)) flavorKeys.add(k);
 
     // 품종
     let grapeStr = wine?.grape_varieties || '';
