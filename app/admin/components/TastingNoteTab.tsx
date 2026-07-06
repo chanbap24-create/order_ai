@@ -41,25 +41,14 @@ export default function TastingNoteTab({
 
   const [showDetailPanel, setShowDetailPanel] = useState(true);
 
-  // 신규 와인 감지 팝업 — 진입 시 미확인 신규가 있으면 자동 표시. 체크한 것만 일괄 파이프라인.
+  // 신규 와인 일괄 파이프라인 팝업 — 수동 트리거 전용.
+  // (재고 업로드 후 자동 감지 알림은 전역 NewWineAlert 가 담당 → 어느 탭에서도 즉시 표시)
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupWines, setPopupWines] = useState<TastingWineRow[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
-  const [seenLoaded, setSeenLoaded] = useState(false);
   useEffect(() => {
     try { seenRef.current = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); } catch { /* ignore */ }
-    setSeenLoaded(true);
   }, []);
-
-  const newKey = list.newWines.map((w) => w.item_code).sort().join(',');
-  useEffect(() => {
-    if (!seenLoaded || list.newWines.length === 0) return;
-    if (list.newWines.some((w) => !seenRef.current.has(w.item_code))) {
-      setPopupWines(list.newWines);
-      setPopupOpen(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newKey, seenLoaded]);
 
   const pipeline = useNewWinePipeline({
     onDone: () => { list.fetchWines(); list.refreshGhIndex(true); },
