@@ -60,6 +60,48 @@ async function fetchItem(itemNo: string, company: "CDV" | "DL") {
   } | null;
 }
 
+// 같은 거래처·법인·출고일의 '미상신' 시음주 견적이 있으면 새로 만들지 않고 품목만 추가(1건 통합).
+// 출고일이 없으면 당일 등록분끼리 합침. 이미 상신된 건은 건드리지 않음.
+async function appendOrCreateTasting(
+  p: RegisterTastingParams,
+  company: "CDV" | "DL",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  quoteItem: any,
+): Promise<number> {
+  const shipDate = p.shipDate ? String(p.shipDate).slice(0, 10) : null;
+  const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("saved_quotes")
+    .select("id, items, doc_settings, created_at")
+    .eq("is_tasting", true).eq("company", company)
+    .eq("client_code", p.clientCode).eq("manager", p.manager)
+    .is("tasting_submitted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const target = ((data || []) as any[]).find((r) => {
+    const ds = r.doc_settings && typeof r.doc_settings === "object" ? r.doc_settings : {};
+    const rShip = ds.ship_date ? String(ds.ship_date).slice(0, 10) : null;
+    return shipDate ? rShip === shipDate : (!rShip && String(r.created_at).slice(0, 10) === today);
+  });
+  if (target) {
+    const items = [...(Array.isArray(target.items) ? target.items : []), quoteItem];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total_supply = items.reduce((s: number, it: any) => s + (Number(it.supply_price) || 0) * (Number(it.quantity) || 0), 0);
+    const { error } = await supabase.from("saved_quotes")
+      .update({ items, item_count: items.length, total_supply })
+      .eq("id", target.id);
+    if (error) throw new Error(error.message);
+    return Number(target.id);
+  }
+  const saved = await saveQuote({
+    manager: p.manager, client_code: p.clientCode, client_name: p.clientName,
+    company, items: [quoteItem], is_tasting: true,
+    doc_settings: p.shipDate ? { ship_date: p.shipDate } : undefined,
+  });
+  return saved.id;
+}
+
 export async function registerTasting(p: RegisterTastingParams): Promise<RegisterTastingResult> {
   const company: "CDV" | "DL" = p.clientType === "glass" ? "DL" : "CDV";
   const policy = await getTastingPolicy(p.clientCode, p.clientType);
@@ -144,15 +186,7 @@ export async function registerTasting(p: RegisterTastingParams): Promise<Registe
     quantity: 1,
     note: "시음주",
   };
-  const { id } = await saveQuote({
-    manager: p.manager,
-    client_code: p.clientCode,
-    client_name: p.clientName,
-    company,
-    items: [quoteItem],
-    is_tasting: true,
-    doc_settings: p.shipDate ? { ship_date: p.shipDate } : undefined, // 출고일 기록(결재 지급일자)
-  });
+  const id = await appendOrCreateTasting(p, company, quoteItem);
 
   return {
     ok: true,

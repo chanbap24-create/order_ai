@@ -80,18 +80,22 @@ export async function getTastingLedger(opts: LedgerQuery): Promise<TastingLedger
   if (managers && managers.length) sq = sq.in("manager", managers);
   const { data: sqData } = await sq;
   for (const r of (sqData || []) as Row[]) {
-    const it = Array.isArray(r.items) ? r.items[0] : null;
-    if (!it) continue;
+    const its = Array.isArray(r.items) ? r.items : [];
+    if (!its.length) continue;
     const ds = r.doc_settings && typeof r.doc_settings === "object" ? r.doc_settings : {};
     const shipD = /^\d{4}-\d{2}-\d{2}/.test(String(ds.ship_date || "")) ? String(ds.ship_date).slice(0, 10) : ymd(r.created_at);
     const createdD = ymd(r.created_at);
     if (!((shipD >= start && shipD <= end) || (createdD >= start && createdD <= end))) continue;
-    cands.push({
-      ship_date: shipD, client_code: r.client_code || "", client_name: r.client_name || "",
-      item_no: String(it.item_code || ""), item_name: String(it.product_name || ""), supply: Number(it.supply_price) || 0,
-      manager: r.manager || "", quoteSubmitted: !!r.tasting_submitted_at,
-      quoteIds: r.id != null ? [Number(r.id)] : [],
-    });
+    // 한 견적에 여러 시음주 품목(1건 통합) → 품목마다 원장 행 생성. 삭제 id(quoteIds)는 공유.
+    for (const it of its) {
+      if (!it) continue;
+      cands.push({
+        ship_date: shipD, client_code: r.client_code || "", client_name: r.client_name || "",
+        item_no: String(it.item_code || ""), item_name: String(it.product_name || ""), supply: Number(it.supply_price) || 0,
+        manager: r.manager || "", quoteSubmitted: !!r.tasting_submitted_at,
+        quoteIds: r.id != null ? [Number(r.id)] : [],
+      });
+    }
   }
   if (!cands.length) return [];
 
