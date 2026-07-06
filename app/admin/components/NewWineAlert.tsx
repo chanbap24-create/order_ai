@@ -30,7 +30,9 @@ export default function NewWineAlert({
     setSeenLoaded(true);
   }, []);
 
-  const fetchNew = useCallback(async () => {
+  // forceOpen=true(업로드 직후): seen 무관하게 신규가 있으면 무조건 팝업.
+  // forceOpen=false(페이지 진입): 미확인(seen 아님)만 팝업.
+  const fetchNew = useCallback(async (forceOpen: boolean) => {
     try {
       const [wRes, iRes] = await Promise.all([
         fetch('/api/admin/tasting-notes'),
@@ -50,18 +52,24 @@ export default function NewWineAlert({
       );
       setWines(news);
       onCountChange?.(news.length);
+      if (news.length > 0 && (forceOpen || news.some((w) => !seenRef.current.has(w.item_code)))) {
+        setOpen(true);
+      }
     } catch { /* ignore */ }
   }, [onCountChange]);
 
-  useEffect(() => { if (seenLoaded) fetchNew(); }, [refreshKey, seenLoaded, fetchNew]);
+  // 진입(마운트): 미확인 신규만 팝업
+  useEffect(() => { if (seenLoaded) fetchNew(false); }, [seenLoaded, fetchNew]);
 
-  // 미확인 신규가 하나라도 있으면 팝업 자동 오픈
-  const key = wines.map((w) => w.item_code).sort().join(',');
+  // 업로드 완료(refreshKey 증가): seen 무관하게 무조건 팝업. 최초 값(마운트)은 변화로 보지 않음.
+  const lastRefreshRef = useRef(refreshKey);
   useEffect(() => {
-    if (!seenLoaded || wines.length === 0) return;
-    if (wines.some((w) => !seenRef.current.has(w.item_code))) setOpen(true);
+    if (!seenLoaded) return;
+    if (lastRefreshRef.current === refreshKey) return;
+    lastRefreshRef.current = refreshKey;
+    fetchNew(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, seenLoaded]);
+  }, [refreshKey, seenLoaded]);
 
   const pipeline = useNewWinePipeline({ onDone: () => fetchNew() });
 
