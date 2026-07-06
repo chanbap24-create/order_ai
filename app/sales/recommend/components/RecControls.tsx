@@ -73,6 +73,22 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         }}>⚙ 설정 {showSettings ? '닫기' : '열기'}</button>
       </div>
       {showSettings && (<>
+      {/* 병 용량 */}
+      <div style={rowS}>
+        <span style={lbl}>병 용량</span>
+        {btnGroup([{ v: false, t: '750ml만' }, { v: true, t: '375ml·매그넘 포함' }], s.includeNonStandard, (v) => set({ includeNonStandard: v }))}
+        <span style={hint}>하프·1.5L↑는 기본 제외 · 변경 후 생성</span>
+      </div>
+      {/* 권장 할인율 — 적용 ON/OFF + 산출 범위 */}
+      <div style={rowS}>
+        <span style={lbl}>권장할인</span>
+        {btnGroup([{ v: true, t: '적용' }, { v: false, t: '끄기' }], s.discountApply, (v) => set({ discountApply: v }))}
+        {s.discountApply && (<>
+          <span style={hint}>기준</span>
+          {btnGroup([{ v: 'team1' as const, t: '영업1부' }, { v: 'rest' as const, t: '나머지' }], s.discountScope, (v) => set({ discountScope: v }))}
+        </>)}
+        <span style={hint}>최근 6개월 최빈가 · 변경 후 생성</span>
+      </div>
       {/* 분석 기간 */}
       <div style={rowS}>
         <span style={lbl}>분석 기간</span>

@@ -24,11 +24,6 @@ type Props = {
   onAnchorChange: (a: AnchorItem | null) => void;
   discovery: DiscoveryState;
   onDiscoveryChange: (patch: DiscoveryPatch) => void;
-  includeNonStandard: boolean;
-  onToggleNonStandard: (v: boolean) => void;
-  discountApply: boolean;
-  discountScope: 'team1' | 'rest';
-  onDiscountChange: (patch: { discountApply?: boolean; discountScope?: 'team1' | 'rest' }) => void;
   onGenerate: () => void;
   loading: boolean;
 };
@@ -54,13 +49,7 @@ const TYPE_CHIPS: [string, string][] = [
   ['sparkling', '스파클링'], ['white', '화이트'], ['red', '레드'], ['rose', '로제'], ['fortified', '주정강화'], ['sweet', '스위트'],
 ];
 
-const sizeChip = (on: boolean): React.CSSProperties => ({
-  padding: '4px 12px', fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: 'pointer',
-  border: '1px solid ' + (on ? 'var(--action)' : 'var(--gray-300)'),
-  background: on ? 'var(--action)' : '#fff', color: on ? '#fff' : 'var(--text-tertiary)',
-});
-
-export function RecModeSelector({ clientCode, mode, onModeChange, anchor, onAnchorChange, discovery, onDiscoveryChange, includeNonStandard, onToggleNonStandard, discountApply, discountScope, onDiscountChange, onGenerate, loading }: Props) {
+export function RecModeSelector({ clientCode, mode, onModeChange, anchor, onAnchorChange, discovery, onDiscoveryChange, onGenerate, loading }: Props) {
   const [purchases, setPurchases] = useState<AnchorItem[]>([]);
   const [pLoading, setPLoading] = useState(false);
   const [q, setQ] = useState('');
@@ -126,29 +115,6 @@ export function RecModeSelector({ clientCode, mode, onModeChange, anchor, onAnch
             </button>
           );
         })}
-      </div>
-
-      {/* 병 용량 — 기본 750ml만, 버튼으로 375ml·1.5L↑ 포함 (모든 모드 공통) */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ ...hint, minWidth: 44 }}>병 용량</span>
-        <button onClick={() => onToggleNonStandard(false)} style={sizeChip(!includeNonStandard)}>750ml만</button>
-        <button onClick={() => onToggleNonStandard(true)} style={sizeChip(includeNonStandard)}>375ml·매그넘 포함</button>
-        <span style={hint}>하프·1.5L↑는 기본 제외 · 변경 후 생성</span>
-      </div>
-
-      {/* 권장 할인율 — 적용 ON/OFF + 산출 범위(영업1부/나머지) */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ ...hint, minWidth: 44 }}>권장할인</span>
-        <button onClick={() => onDiscountChange({ discountApply: true })} style={sizeChip(discountApply)}>적용</button>
-        <button onClick={() => onDiscountChange({ discountApply: false })} style={sizeChip(!discountApply)}>끄기</button>
-        {discountApply && (
-          <>
-            <span style={{ ...hint, marginLeft: 8 }}>기준</span>
-            <button onClick={() => onDiscountChange({ discountScope: 'team1' })} style={sizeChip(discountScope === 'team1')}>영업1부</button>
-            <button onClick={() => onDiscountChange({ discountScope: 'rest' })} style={sizeChip(discountScope === 'rest')}>나머지</button>
-          </>
-        )}
-        <span style={hint}>최근 6개월 최빈가 · 변경 후 생성</span>
       </div>
 
       {/* 대체상품: 쇼트난 기준 상품을 구매이력에서 선택 */}
