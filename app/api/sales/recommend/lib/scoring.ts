@@ -178,10 +178,11 @@ export function scoreRecommendations(params: {
     if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
 
     const tierScore = t >= 0 ? TIER_BASE[t] : 0; // 산지 계단 점수(빈도 가중 제거 — 자주 산 산지는 다른 지표가 이미 반영)
-    const softAdd = soft * sp.softWeight;
+    // 취향 곡선: soft²로 가파르게 — 강한 매칭만 고득점, 어중간(품종만·향 조금)은 급락(변별력↑). 최대는 그대로 softWeight.
+    const softAdd = soft * soft * sp.softWeight;
     score = tierScore + softAdd;
     if (t >= 0) breakdown.push(`${TIER_LABEL[t]} +${tierScore.toFixed(0)}`);
-    if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
+    if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}²×${sp.softWeight} = +${softAdd.toFixed(1)}`);
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 
