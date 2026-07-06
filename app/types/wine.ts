@@ -38,6 +38,8 @@ export interface TastingNote {
   winery_description: string | null;
   vintage_note: string | null;
   aging_potential: string | null;
+  flavor_tags: string[] | null; // 상세 향미 조사 태그(세분화). 표시 노트와 별개, 추천 매칭용.
+  flavor_research_at: string | null;
   // 추천 시스템용 와인 속성 스냅샷
   supply_price: number | null;
   wine_type: string | null;

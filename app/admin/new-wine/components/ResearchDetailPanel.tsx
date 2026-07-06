@@ -2,6 +2,7 @@
 
 import type { TastingNote } from "@/app/types/wine";
 import { DetailField, DetailSection } from "./FormInputs";
+import { flavorLabel } from "@/app/api/sales/recommend/lib/flavor";
 
 type Props = {
   tastingNote: TastingNote | null;
@@ -110,6 +111,16 @@ export function ResearchDetailPanel(p: Props) {
             <DetailField label="노즈" value={p.tastingNote.nose_note} />
             <DetailField label="팔렛" value={p.tastingNote.palate_note} />
           </DetailSection>
+
+          {p.tastingNote.flavor_tags && p.tastingNote.flavor_tags.length > 0 && (
+            <DetailSection icon="👃" title={`향미 태그 · 추천 매칭용 (${p.tastingNote.flavor_tags.length})`} content={null}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                {p.tastingNote.flavor_tags.map((t, i) => (
+                  <span key={i} style={{ fontSize: 12, padding: "3px 10px", borderRadius: 999, background: "#f6eeee", color: "var(--action)", border: "1px solid var(--action-muted)" }}>{flavorLabel(t)}</span>
+                ))}
+              </div>
+            </DetailSection>
+          )}
 
           <DetailSection icon="🍽️" title="페어링 상세" content={null}>
             <DetailField label="푸드 페어링" value={p.tastingNote.food_pairing} />
