@@ -46,6 +46,7 @@ export interface ClientPreferences {
   regionProfile: RegionProfile;        // 구매 지역 셋(sub/major/super)
   priceStats: Record<string, { mean: number; lo: number; hi: number; n: number }>; // mean=횟수가중평균, lo/hi=가중 p10/p90 범위. "bucket|group"/"bucket"/"__all__"
   flavorKeys: Set<string>;             // 거래처 향미 키
+  flavorWeights: Map<string, number>;  // 향미별 선호강도(0~1, 빈도 정규화)
   grapeKeys: Set<string>;              // 거래처 품종(소문자)
   regionDist: Record<string, number>;  // 지역(광역/대지역/국가)별 매입 횟수 분포
 }

@@ -107,3 +107,14 @@ export function flavorOverlap(candidate: Set<string>, client: Set<string>): numb
   for (const k of candidate) if (client.has(k)) hit++;
   return hit / candidate.size; // 후보 향미 중 거래처 취향과 겹치는 비율
 }
+
+/**
+ * 후보 향미의 '거래처 선호강도' 평균(0~1). 자주 마시는 향일수록 높게.
+ * 단순 겹침(hit/size)은 거래처 향미셋이 넓으면 100%로 포화 → 빈도가중으로 변별.
+ */
+export function flavorMatchScore(candidate: Set<string>, clientWeights: Map<string, number>): number {
+  if (candidate.size === 0 || clientWeights.size === 0) return 0;
+  let sum = 0;
+  for (const f of candidate) sum += clientWeights.get(f) || 0;
+  return sum / candidate.size;
+}

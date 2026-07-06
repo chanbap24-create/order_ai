@@ -93,6 +93,7 @@ export function buildClientPreferences(
   const regionProfile: RegionProfile = { subs: new Set(), majors: new Set(), supers: new Set() };
   const priceSamples: Record<string, Array<{ p: number; w: number }>> = {}; // 키별 (평균단가, 구매횟수) 표본 → 후처리에서 가중 중앙값
   const flavorKeys = new Set<string>();
+  const flavorCount: Record<string, number> = {}; // 향미별 등장 가중합(자주 마시는 향일수록↑)
   const grapeKeys = new Set<string>();
   const regionDist: Record<string, number> = {};
   const addPrice = (key: string, price: number, w: number) => {
@@ -134,8 +135,8 @@ export function buildClientPreferences(
     const regionLabel = h?.super_region || h?.major_region || country || '기타';
     regionDist[regionLabel] = (regionDist[regionLabel] || 0) + agg.count;
 
-    // 향미 키(테이스팅노트)
-    for (const k of wineFlavorKeys(wine)) flavorKeys.add(k);
+    // 향미 키(flavor_tags 우선) + 등장 가중(구매횟수 w) 누적 → 선호강도 산출용
+    for (const k of wineFlavorKeys(wine)) { flavorKeys.add(k); flavorCount[k] = (flavorCount[k] || 0) + w; }
 
     // 품종
     let grapeStr = wine?.grape_varieties || '';
@@ -172,6 +173,10 @@ export function buildClientPreferences(
     priceStats[key] = { mean, lo: weightedQuantile(arr, 0.1), hi: weightedQuantile(arr, 0.9), n: arr.length };
   }
 
+  // 향미 선호강도(0~1) — 등장 가중을 최댓값으로 정규화. 자주 마시는 향=1, 드문 향=낮음.
+  const maxFlavor = Math.max(1, ...Object.values(flavorCount));
+  const flavorWeights = new Map<string, number>(Object.entries(flavorCount).map(([k, v]) => [k, v / maxFlavor]));
+
   const topCountries = Object.entries(countryBuyCount).sort((a, b) => b[1] - a[1]);
   const topGrapes = Object.entries(grapeBuyCount).sort((a, b) => b[1] - a[1]);
   const topTypes = Object.entries(typeBuyCount).sort((a, b) => b[1] - a[1]);
@@ -194,6 +199,7 @@ export function buildClientPreferences(
     regionProfile,
     priceStats,
     flavorKeys,
+    flavorWeights,
     grapeKeys,
     regionDist,
   };

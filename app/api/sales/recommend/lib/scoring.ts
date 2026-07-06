@@ -3,7 +3,7 @@ import type { ClientPreferences, PurchaseAggEntry, ScoredItem } from './types';
 import { priceRef, priceFloor, priceCeil } from './preferences';
 import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
-import { flavorOverlap, flavorLabel, wineFlavorKeys } from './flavor';
+import { flavorMatchScore, flavorLabel, wineFlavorKeys } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
 import { compareForDisplay } from '@/app/sales/recommend/displayOrder';
 
@@ -163,12 +163,17 @@ export function scoreRecommendations(params: {
     else if (invCountry) reasons.push(extractEnglish(invCountry));
 
     // 향미·품종 정렬(0~1)
-    let grapeHit = false;
+    //  품종: 이진(0.6) → 선호강도 가중(주력 품종 매칭=full, 마이너=적게). topGrapes는 가중 내림차순.
     const gl = invGrapes.toLowerCase();
-    for (const g of prefs.grapeKeys) { if (g.length >= 3 && gl.includes(g)) { grapeHit = true; break; } }
+    let grapeScore = 0;
+    for (const [g, gw] of prefs.topGrapes) {
+      if (g.length >= 3 && gl.includes(g.toLowerCase())) { grapeScore = gw / prefs.maxGrapeBuy; break; }
+    }
+    const grapeHit = grapeScore > 0;
+    //  향미: 단순 겹침(넓은 향미셋이면 포화) → 후보 향의 '거래처 선호강도' 평균으로 변별.
     const candFlavor = wineFlavorKeys(wine);
-    const fOverlap = flavorOverlap(candFlavor, prefs.flavorKeys);
-    const soft = (grapeHit ? 0.6 : 0) + 0.4 * fOverlap;
+    const fOverlap = flavorMatchScore(candFlavor, prefs.flavorWeights);
+    const soft = 0.6 * grapeScore + 0.4 * fOverlap;
 
     if (grapeHit) { tags.push('선호품종'); reasons.push(matchedGrapeLabel(invGrapes, prefs)); }
     if (fOverlap > 0) {
