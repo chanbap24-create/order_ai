@@ -118,8 +118,8 @@ export async function researchWine(itemCode: string, itemNameKr: string, itemNam
     if (wsData.reviews && wsData.reviews.length > 0) {
       wsContext += `리뷰:\n${wsData.reviews.map(r => `- ${r}`).join('\n')}\n`;
     }
-    imageUrl = wsData.imageUrl || null;
-    logger.info(`[WineSearcher] Got data for ${itemCode}`, { name: wsData.name, varietal: wsData.varietal, hasImage: !!imageUrl });
+    // wsData.imageUrl(wine-searcher 라벨)은 부정확 → 시드로 안 씀. DDG(4-1)가 채운다.
+    logger.info(`[WineSearcher] Got data for ${itemCode}`, { name: wsData.name, varietal: wsData.varietal, hasImage: !!wsData.imageUrl });
   } else {
     logger.info(`[WineSearcher] No data found for: ${searchName}`);
   }

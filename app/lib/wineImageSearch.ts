@@ -59,20 +59,14 @@ async function ddgImageResults(query: string): Promise<DdgImage[]> {
   }
 }
 
-/**
- * DuckDuckGo 이미지에서 와인 보틀샷 검색 (Vivino/Wine-Searcher 스크래핑 대체 주 소스).
- * 이름 일치 후보 중 '세로형(병 모양)' + 적정 해상도를 우선 선택. 잘못된 병보다 없는 게 나음.
- */
-export async function searchWineImageDuckDuckGo(wineNameEn: string, brandNameEn?: string): Promise<string | null> {
-  if (!wineNameEn) return null;
-  const query = `${brandNameEn ? brandNameEn + " " : ""}${wineNameEn} wine bottle`;
+/** 한 쿼리로 DDG 검색 → 이름일치·병모양 스코어 최상위 보틀샷 URL 반환. */
+async function pickBottleFromDdg(query: string, matchName: string): Promise<string | null> {
   const results = await ddgImageResults(query);
   if (!results.length) return null;
-
-  // 이름 일치 후보만(오인 방지). 하나도 없으면 폴백 안 함(엉뚱한 병 방지).
-  const matched = results.filter((r) => r.title && nameMatches(wineNameEn, r.title));
+  // 이름 일치 후보만(오인 방지). matchName에 빈티지 포함 시 nameMatches가 연도까지 강제.
+  const matched = results.filter((r) => r.title && nameMatches(matchName, r.title));
   if (!matched.length) {
-    logger.info(`[DDG] ${results.length} images but no name match: "${wineNameEn}"`);
+    logger.info(`[DDG] ${results.length} images but no name match: "${matchName}"`);
     return null;
   }
   // 병샷 스코어: 세로형(높이/너비) 우선 + 적정 해상도 + 누끼 png 가점
@@ -88,12 +82,37 @@ export async function searchWineImageDuckDuckGo(wineNameEn: string, brandNameEn?
       return { r, s };
     })
     .sort((a, b) => b.s - a.s);
-
   for (const { r } of scored) {
     if (isSafeFetchUrl(r.image) && (await headOkImage(r.image))) {
       logger.info(`[DDG] Matched "${r.title}" (${r.width}x${r.height}): ${r.image}`);
       return r.image;
     }
+  }
+  return null;
+}
+
+/**
+ * DuckDuckGo 이미지에서 와인 보틀샷 검색 (Vivino/Wine-Searcher 스크래핑 대체 주 소스).
+ * 빈티지(4자리)가 있으면 빈티지 포함으로 먼저 시도(무통처럼 빈티지별 라벨 대응) → 없으면 빈티지 무시 폴백.
+ * 이름 일치 후보 중 '세로형(병 모양)' + 적정 해상도를 우선 선택. 잘못된 병보다 없는 게 나음.
+ */
+export async function searchWineImageDuckDuckGo(
+  wineNameEn: string,
+  brandNameEn?: string,
+  vintage?: string,
+): Promise<string | null> {
+  if (!wineNameEn) return null;
+  const brand = brandNameEn ? `${brandNameEn} ` : "";
+  const v = vintage && /^\d{4}$/.test(vintage.trim()) ? vintage.trim() : "";
+  const attempts = v
+    ? [
+        { q: `${brand}${wineNameEn} ${v} wine bottle`, m: `${wineNameEn} ${v}` }, // 빈티지 일치 우선
+        { q: `${brand}${wineNameEn} wine bottle`, m: wineNameEn },                 // 폴백: 빈티지 무시
+      ]
+    : [{ q: `${brand}${wineNameEn} wine bottle`, m: wineNameEn }];
+  for (const a of attempts) {
+    const url = await pickBottleFromDdg(a.q, a.m);
+    if (url) return url;
   }
   return null;
 }

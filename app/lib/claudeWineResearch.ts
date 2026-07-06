@@ -109,9 +109,9 @@ export async function researchWineWithClaude(
   logger.info(`[Claude] Researching wine: ${itemCode} - ${itemNameKr} (en: ${itemNameEn})`);
 
   // Step 1: DB 브랜드 데이터 + Wine-Searcher + Vivino 병렬 실행 (무료)
-  const [wsData, vivinoImageUrl, dbBrandContext] = await Promise.all([
+  const [wsData, ddgImageUrl, dbBrandContext] = await Promise.all([
     scrapeWineSearcher(itemNameEn),
-    searchVivinoBottleImage(itemNameEn).catch(() => null),
+    searchWineImageDuckDuckGo(itemNameEn, undefined, parseVintage(vintage)).catch(() => null),
     getBrandContextForWine(itemCode).catch(() => null),
   ]);
 
@@ -120,7 +120,7 @@ export async function researchWineWithClaude(
   }
 
   let wsContext = "";
-  let imageUrl: string | null = vivinoImageUrl;
+  let imageUrl: string | null = ddgImageUrl; // DDG 보틀샷 우선(빈티지 반영)
 
   if (wsData) {
     wsContext = `\n\n=== Wine-Searcher 실제 데이터 ===\n`;
@@ -132,9 +132,7 @@ export async function researchWineWithClaude(
     if (wsData.reviews && wsData.reviews.length > 0) {
       wsContext += `리뷰:\n${wsData.reviews.map(r => `- ${r}`).join('\n')}\n`;
     }
-    if (!imageUrl) {
-      imageUrl = wsData.imageUrl || null;
-    }
+    // wsData.imageUrl(wine-searcher 라벨)은 부정확 → imageUrl 시드로 쓰지 않음. DDG/공식사이트가 채운다.
     logger.info(`[Claude][WineSearcher] Got data for ${itemCode}`, {
       name: wsData.name,
       varietal: wsData.varietal,
@@ -228,7 +226,7 @@ export async function researchWineWithClaude(
     for (const lowerName of uniqueNames) {
       if (imageUrl) break;
       const name = nameMap.get(lowerName) || lowerName;
-      imageUrl = await searchWineImageDuckDuckGo(name, dbBrandContext?.brandNameEn || undefined).catch(() => null);
+      imageUrl = await searchWineImageDuckDuckGo(name, dbBrandContext?.brandNameEn || undefined, parseVintage(vintage)).catch(() => null);
       if (imageUrl) logger.info(`[Claude][WineImage] DDG: "${name}"`);
     }
 
