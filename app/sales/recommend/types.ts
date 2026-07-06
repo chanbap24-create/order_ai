@@ -37,6 +37,7 @@ export interface RecommendResult {
     manager: string;
   };
   recommendations: ScoredItem[];
+  typeShares?: Record<string, number>; // 타입 분포(본인+업장+업태 블렌드) — 비례배분 selection용
   summary: {
     total_items: number;
     avg_price: number;

@@ -41,6 +41,7 @@ export interface CandidateContext {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wineMap: Map<string, any>;
   recentCodes: string[]; // 최근 6개월 구매 품번 (취향 프로파일용)
+  typeShares: Record<string, number>; // 타입 분포(본인+업장+업태 블렌드) — 비례배분 selection용
 }
 
 export async function buildCandidates(
@@ -183,6 +184,32 @@ export async function buildCandidates(
 
   const prefs = buildClientPreferences(purchaseAgg, wineMap, inventoryMap);
 
+  // 타입 분포(비주력 강등 + 비례배분 selection): 본인 이력(설정기간) + 업장·업태 세그먼트 블렌드.
+  //  이력신뢰 conf — 얇으면 세그먼트 우세(프레르가 스파클링1건에 안 묶임), 단골이면 본인 우세. 지역은 제외(타입 mix엔 노이즈).
+  const typeShares: Record<string, number> = (() => {
+    const ownCnt: Record<string, number> = {}; let ownTot = 0;
+    for (const [no, a] of Object.entries(purchaseAgg)) {
+      const w = wineMap.get(String(no));
+      const bl = bucketLabel(normalizeType(w?.wine_type || '', w?.item_name_kr || a.name || ''));
+      if (!bl || bl === '기타') continue;
+      ownCnt[bl] = (ownCnt[bl] || 0) + a.count; ownTot += a.count;
+    }
+    const segDist: Record<string, number> = {}; // 업장 + 업태 타입분포 결합
+    for (const p of [venueProfile, btProfile]) {
+      if (!p?.type_dist) continue;
+      for (const [t, s] of Object.entries(p.type_dist)) if (t !== '기타') segDist[t] = (segDist[t] || 0) + (s as number);
+    }
+    const segTot = Object.values(segDist).reduce((a, b) => a + b, 0) || 1;
+    const TYPE_CONF_K = 10; // 출고 이만큼 쌓이면 본인 타입성향 100% 신뢰
+    const conf = Math.min(1, ownTot / TYPE_CONF_K);
+    const out: Record<string, number> = {};
+    for (const t of new Set([...Object.keys(ownCnt), ...Object.keys(segDist)])) {
+      const own = ownTot > 0 ? (ownCnt[t] || 0) / ownTot : 0;
+      out[t] = conf * own + (1 - conf) * (segDist[t] / segTot);
+    }
+    return out;
+  })();
+
   let maxSales90d = 1;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const inv of inventory as any[]) {
@@ -227,23 +254,6 @@ export async function buildCandidates(
     // 가격 기준: 이력 있으면 거래처 본인 대표가(횟수가중평균), 없으면 지역 추천가(무이력 폴백).
     const ownMean = prefs.priceStats['__all__']?.mean || prefs.clientAvgPrice || 0;
     const regionPriceRef = ownMean > 0 ? ownMean : regionPriceMedian;
-    // 타입 비중(비주력 타입 강등용): 본인 이력(설정기간) + 업장(없으면 업태) 세그먼트 블렌드.
-    //  이력 얇으면 세그먼트 우세 → 프레르(스파클링 3건)가 그 하나에 안 묶이고 프렌치 성향(화이트·레드도) 반영.
-    const ownTypeCnt: Record<string, number> = {}; let ownTot = 0;
-    for (const [no, a] of Object.entries(purchaseAgg)) {
-      const w = wineMap.get(String(no));
-      const bl = bucketLabel(normalizeType(w?.wine_type || '', w?.item_name_kr || a.name || ''));
-      if (!bl || bl === '기타') continue;
-      ownTypeCnt[bl] = (ownTypeCnt[bl] || 0) + a.count; ownTot += a.count;
-    }
-    const TYPE_CONF_K = 10; // 이력 이만큼(출고건) 쌓이면 본인 타입성향 100% 신뢰, 얇으면 세그먼트 쪽
-    const ownConf = Math.min(1, ownTot / TYPE_CONF_K);
-    const segDist = venueProfile?.type_dist || btProfile?.type_dist || {};
-    const typeShares: Record<string, number> = {};
-    for (const t of new Set([...Object.keys(ownTypeCnt), ...Object.keys(segDist)])) {
-      const own = ownTot > 0 ? (ownTypeCnt[t] || 0) / ownTot : 0;
-      typeShares[t] = ownConf * own + (1 - ownConf) * ((segDist as Record<string, number>)[t] || 0);
-    }
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
       priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
@@ -289,5 +299,6 @@ export async function buildCandidates(
     summary: buildSummary(purchaseAgg, prefs, wineMap, o.profileMonths, o.priceBandPct, lastOrderDate),
     wineMap,
     recentCodes,
+    typeShares,
   };
 }

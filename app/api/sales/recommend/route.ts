@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     const discoveryMaxPrice = Number.isFinite(dMax) && dMax > 0 ? Math.round(dMax) : undefined;
     const discoverySegment = typeof discovery_segment === 'string' && discovery_segment.trim() ? discovery_segment.trim().slice(0, 40) : undefined;
 
-    const { client, scored, summary } = await buildCandidates(client_code, {
+    const { client, scored, summary, typeShares } = await buildCandidates(client_code, {
       mode,
       ...(anchorItemCode ? { anchorItemCode } : {}),
       ...(anchorPrice ? { anchorPrice } : {}),
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({ client, recommendations, summary });
+    return NextResponse.json({ client, recommendations, summary, typeShares });
   } catch (error) {
     console.error('Recommend API error:', error);
     return NextResponse.json({ error: '추천 생성 중 오류가 발생했습니다.' }, { status: 500 });

@@ -12,7 +12,6 @@ import { SummaryCard } from '../recommend/components/SummaryCard';
 import { RecommendAnalysisCard } from '../recommend/components/RecommendAnalysisCard';
 import { RecommendationList } from '../recommend/components/RecommendationList';
 import { BottomActionBar } from '../recommend/components/BottomActionBar';
-import { diversify } from '../recommend/lib/diversify';
 import { RecControls } from '../recommend/components/RecControls';
 import { RecModeSelector, type AnchorItem } from '../recommend/components/RecModeSelector';
 import { type RecSettings, type RecMode, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
@@ -25,6 +24,44 @@ type Props = {
   isAdmin: boolean;
   preselectedClient?: ClientOption | null;
 };
+
+// 타입 분포(shares)에 비례해 N칸을 타입별로 배분(최대 잔여법), 타입 안에선 점수순 top.
+//  cap>0=타입당 상한. <5% 타입·재고없는 타입은 0칸(비주력 자연 제외). 재고부족 미달이면 나머지 점수순 채움.
+function allocateByTypeShares(byScore: ScoredItem[], shares: Record<string, number>, N: number, cap: number): ScoredItem[] {
+  const poolByType = new Map<string, ScoredItem[]>();
+  for (const it of byScore) {
+    const t = it.wine_type || '(기타)';
+    if (!poolByType.has(t)) poolByType.set(t, []);
+    poolByType.get(t)!.push(it);
+  }
+  const distTypes = [...poolByType.keys()].filter((t) => (shares[t] || 0) >= 0.05);
+  if (distTypes.length === 0) return byScore.slice(0, N); // 분포 데이터 없으면 점수순
+  const ceil = cap > 0 ? cap : N;
+  const tot = distTypes.reduce((s, t) => s + (shares[t] || 0), 0) || 1;
+  const alloc = distTypes.map((t) => {
+    const exact = (N * (shares[t] || 0)) / tot;
+    const lim = Math.min(ceil, poolByType.get(t)!.length);
+    return { t, n: Math.min(Math.floor(exact), lim), rem: exact - Math.floor(exact), lim };
+  });
+  let used = alloc.reduce((s, x) => s + x.n, 0);
+  let guard = 0;
+  while (used < N && guard++ < 200) {
+    const grow = alloc.filter((x) => x.n < x.lim).sort((p, q) => q.rem - p.rem)[0];
+    if (!grow) break;
+    grow.n++; used++; grow.rem -= 1;
+  }
+  const out: ScoredItem[] = [];
+  for (const x of alloc) out.push(...poolByType.get(x.t)!.slice(0, x.n));
+  if (out.length < N) { // 재고/캡으로 미달 → 나머지 점수순(비주력 제외)
+    const usedSet = new Set(out);
+    for (const it of byScore) {
+      if (out.length >= N) break;
+      if (usedSet.has(it) || it.tags?.includes('비주력타입')) continue;
+      out.push(it);
+    }
+  }
+  return out;
+}
 
 export default function RecommendQuoteTab({ currentManager, isAdmin, preselectedClient }: Props) {
   const [filterManager, setFilterManager] = useState(isAdmin ? '' : currentManager);
@@ -56,18 +93,14 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const items = rec.result?.recommendations || [];
   // API가 표시용(타입·가격순, orderForDisplay)으로 주므로 캡은 반드시 '점수순'으로 걸어야 한다.
   // 안 그러면 타입당 상위가 '고득점'이 아니라 '고가'로 뽑혀, 저가 주력(고득점)이 밀려남.
-  // 비주력 타입(거래처가 거의 안 사는 타입, 예: 스시야 레드)은 후보에서 제외. 뺄 게 없으면 원본.
-  const byScore = [...items].sort((a, b) => b.score - a.score);
-  const eligible = byScore.filter((i) => !i.tags?.includes('비주력타입'));
-  const pool = (eligible.length > 0 ? eligible : byScore).filter((i) => !settings.minScore || i.score >= settings.minScore);
+  // 선정 = '타입 분포 비례배분'. 업장·업태(+본인이력) 실제 타입비율(typeShares)로 N칸을 나눔.
+  //   임의 캡 대신 데이터 비율이 mix를 정함. <5% 타입은 0칸(비주력 자연 제외). 표기는 아래에서 타입순(선정≠표기).
   const MIN_TOTAL = 6;
-  // 선정: 락(개수) 안에서 라운드로빈 — 타입 골고루 1개씩 돌며 채움(타입당 최대 maxPerType).
-  //   → 6칸/4타입이면 2+2+1+1(포트 포함), 타입 적으면 캡 올려 백필(3+3). 표기는 아래에서 타입순(선정≠표기).
-  const finalItems = diversify(pool, {
-    maxPerType: settings.maxPerType,
-    maxPerRegion: settings.maxPerRegion,
-    targetCount: settings.lockCount > 0 ? settings.lockCount : MIN_TOTAL,
-  });
+  const shares = rec.result?.typeShares || {};
+  const byScore = [...items]
+    .filter((i) => !settings.minScore || i.score >= settings.minScore)
+    .sort((a, b) => b.score - a.score);
+  const finalItems = allocateByTypeShares(byScore, shares, settings.lockCount > 0 ? settings.lockCount : MIN_TOTAL, settings.maxPerType);
   // 표시용 정렬: 타입(스파클링→화이트→레드→로제→포트) → 타입 내 가격 내림차순
   const TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4 };
   const visible: ScoredItem[] = [...finalItems].sort((a, b) => {

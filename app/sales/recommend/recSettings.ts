@@ -51,7 +51,7 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
   discoveryTypes: [], discoveryMinPrice: 0, discoveryMaxPrice: 0, discoverySegment: '',
   includeNonStandard: false,
   discountApply: true, discountScope: 'team1',
-  periodMonths: 6, priceBand: 20, minScore: 0, lockCount: 0, maxPerType: 2, maxPerRegion: 0,
+  periodMonths: 6, priceBand: 20, minScore: 0, lockCount: 6, maxPerType: 0, maxPerRegion: 0,
   geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,
@@ -60,8 +60,8 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
 
 // 가중치 스킴이 바뀌면 키를 올린다(옛 저장값을 통째로 버려 새 기본값을 강제 적용).
 // v3: 업장 가산(venueWeight 20) 도입 — 지역·견적학습에서 10씩 차출.
-const KEY = 'recQuote.settings.v6';
-const SETTINGS_VERSION = 6;
+const KEY = 'recQuote.settings.v7';
+const SETTINGS_VERSION = 7;
 
 export function loadRecSettings(): RecSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_REC_SETTINGS };
