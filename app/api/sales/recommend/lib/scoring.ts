@@ -25,7 +25,7 @@ export interface ScoreParams {
   quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) 가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  // 통합 100점 = 산지20 + 취향10 + 견적15(이력) + 업장15 + 업태20 + 지역20(타입·국가 분포). 세그먼트는 profile 기반(scoreParams 밖).
+  // 통합 96점 = 산지20 + 취향10 + 견적15(이력) + 업장15 + 업태20 + 지역16(타입8·국가8). 세그먼트는 profile 기반(scoreParams 밖).
   tierBase: [20, 16, 12, 8],  // 산지: 같은마을20/인근16/광역12/타지역8
   softWeight: 10,             // 취향(품종·향)
   recentPenalty: 0.45,        // 최근 제안 강등
@@ -43,7 +43,7 @@ export type SegPts = {
 export const SEG_PTS: SegPts = {
   venueType: [10, 7, 4], venueCtry: [5, 3, 2],   // 업장 15 = 타입10 + 국가5
   btType: [12, 8, 4], btCtry: [8, 5, 3],         // 업태 20 = 타입12 + 국가8
-  regionType: [12, 8, 4], regionCtry: [8, 5, 3], // 지역 20 = 타입12 + 국가8
+  regionType: [8, 5, 3], regionCtry: [8, 5, 3],  // 지역 16 = 타입8 + 국가8 (지역 타입분포는 generic → 축소, 백테스트상 무손실)
 };
 // rank 0/1/2 = 1등/2등/3등, 그 외(≥3, 분포엔 있음) = 1점, 없음(undefined) = 0.
 function rankPts(rank: number | undefined, tbl: number[]): number {
