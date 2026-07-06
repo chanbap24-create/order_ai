@@ -2,7 +2,7 @@ import { i, C, PAGE_W, PAGE_H, type SlideData } from "./theme";
 import { drawLine, drawRect, drawRoundedRect, drawLabelBadge } from "./drawPrimitives";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
-import { capSentences, extractWineryNameEn, stripCodePrefix, softWrapWineName, cleanField, capChars, cleanAwards } from "@/app/lib/wineNoteText";
+import { capSentences, extractWineryNameEn, stripCodePrefix, cleanField, capChars, cleanAwards } from "@/app/lib/wineNoteText";
 
 /**
  * 적응형 단일 페이지 레이아웃.
@@ -47,13 +47,16 @@ export function renderPage(
 
   // 와인명: 배경 쉐이드 없이 텍스트만
   const nameKrClean = stripCodePrefix(data.nameKr);
-  // 영문 풀네임은 상단 타이틀에 있으므로 카드엔 한글명만(중복 제거)
-  drawText(nameKrClean, 2.20, 1.20, 4.90, 15, fontBold, C.BURGUNDY_DARK);
+  drawText(nameKrClean, 2.20, 1.04, 4.90, 14, fontBold, C.BURGUNDY_DARK);
+  const nameEnClean = stripCodePrefix(data.nameEn);
+  if (nameEnClean) drawText(nameEnClean, 2.20, 1.42, 4.90, 10, fontEn, C.TEXT_SECONDARY);
 
   // ── 헤더: 와이너리 로고(병과 중앙정렬) + 이름/원산지(우측 콘텐츠 시작점 정렬) ──
   {
-    // 상단 타이틀 = 와인 영문명 전체(잘리지 않게). 지역 부제는 생략해 이름 공간 확보.
-    const wName = stripCodePrefix(data.nameEn) || extractWineryNameEn(data.wineryDescription, data.nameEn);
+    // 상단 타이틀 = 와이너리명 + 지역명(부제). 와인 풀네임은 아래 카드에 있음.
+    const hCountry = data.countryEn || data.country || "";
+    const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
+    const wName = (data.wineryNameEn || "").trim() || extractWineryNameEn(data.wineryDescription, data.nameEn);
     const hasLogo = !!(data.brandLogoBase64 && data.brandLogoW && data.brandLogoH);
     const BOTTLE_CENTER = 1.05; // 좌측 병 영역 중심 (병 박스 boxX 0.25 + boxW 1.6 / 2)
     const CONTENT_X = 2.05;     // 우측 콘텐츠(와인명 카드) 시작 x
@@ -68,15 +71,10 @@ export function renderPage(
     }
     const textX = CONTENT_X;
     if (wName) {
-      // 한 줄 우선: 18 → 11pt로 줄여 한 줄에 맞춰본다. 그래도 안 맞으면 품종을 묶어 자연스럽게 2줄.
-      const availWpt = i(7.1 - textX);
-      doc.save().font(fontEn);
-      let ts = 18;
-      while (ts > 11 && doc.fontSize(ts).widthOfString(wName) > availWpt) ts -= 0.5;
-      const oneLine = doc.fontSize(ts).widthOfString(wName) <= availWpt;
-      doc.restore();
-      const titleText = oneLine ? wName : softWrapWineName(wName, data.grapeVarieties);
-      drawText(titleText, textX, oneLine ? 0.3 : 0.14, 7.1 - textX, ts, fontEn, C.BURGUNDY, 2);
+      drawText(wName, textX, 0.2, 7.1 - textX, 18, fontEn, C.BURGUNDY, 2);
+      if (hSub) drawText(hSub, textX, 0.55, 7.1 - textX, 8.5, fontRegular, C.TEXT_MUTED, 2);
+    } else if (hSub) {
+      drawText(hSub, textX, 0.34, 7.1 - textX, 12, fontEn, C.BURGUNDY, 2);
     }
   }
 
