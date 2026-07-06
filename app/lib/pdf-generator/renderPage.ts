@@ -127,12 +127,13 @@ export function renderPage(
     // 빈티지
     if (draw) {
       drawLabelBadge(doc, "빈티지", CX, y, LABEL_W, 0.22, fontBold);
-      drawText(data.vintage || "-", TX + LABEL_W + 0.12, y - 0.02, 0.65, fs(13), fontBold, C.BURGUNDY);
+      // 연도는 절대 줄바꿈 금지 + 값 칸 넓힘(2016 등이 갈리던 문제)
+      drawText(data.vintage || "-", TX + LABEL_W + 0.12, y - 0.02, 1.0, fs(13), fontBold, C.BURGUNDY, 2, { lineBreak: false });
     }
     if (vintageNote) {
-      const vnW = TW - 1.55;
+      const vnW = TW - 1.95;
       const h = measure(vintageNote, vnW, fs(8), fontRegular);
-      if (draw) drawText(vintageNote, 3.70, y + 0.01, vnW, fs(8), fontRegular, C.TEXT_SECONDARY);
+      if (draw) drawText(vintageNote, 4.10, y + 0.01, vnW, fs(8), fontRegular, C.TEXT_SECONDARY);
       y += Math.max(0.26, h) + gap(0.08);
     } else {
       y += 0.26 + gap(0.08);

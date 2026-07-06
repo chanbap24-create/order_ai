@@ -77,17 +77,17 @@ export function renderInfo(slide: Slide, data: SlideData) {
     if (draw) {
       addLabelBadge(slide, "빈티지", BX, y, LABEL_W, 0.22);
       slide.addText(data.vintage || "-", {
-        x: BX + LABEL_W + 0.12, y: y - 0.04, w: 0.7, h: 0.3,
-        fontSize: fs(14), fontFace: FONT_EN, color: C.BURGUNDY, bold: true, valign: "middle",
+        x: BX + LABEL_W + 0.12, y: y - 0.04, w: 1.0, h: 0.3,
+        fontSize: fs(14), fontFace: FONT_EN, color: C.BURGUNDY, bold: true, valign: "middle", wrap: false,
       });
     }
     const vn = capSentences(cleanField(data.vintageNote), 1, 95);
     if (vn) {
-      const vnW = TW - 1.6;
+      const vnW = TW - 2.0;
       const h = estH(vn, vnW, fs(8), 1.2);
       if (draw) {
         slide.addText(vn, {
-          x: 3.75, y, w: vnW, h: Math.max(0.24, h),
+          x: 4.15, y, w: vnW, h: Math.max(0.24, h),
           fontSize: fs(8), fontFace: FONT_MAIN, color: C.TEXT_SECONDARY, valign: "middle", wrap: true,
         });
       }
