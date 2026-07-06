@@ -1,6 +1,6 @@
 import { C, FONT_EN, FONT_MAIN, type Slide, type SlideData } from "../theme";
 import { addLine } from "../addPrimitives";
-import { extractWineryNameEn, stripCodePrefix } from "@/app/lib/wineNoteText";
+import { extractWineryNameEn, stripCodePrefix, softWrapWineName } from "@/app/lib/wineNoteText";
 
 /**
  * 슬라이드 상단: 좌측 병 영역 배경 + 로고 + 태그라인 + 헤더 구분선 + 와인명 카드.
@@ -38,12 +38,20 @@ export function renderHeader(slide: Slide, data: SlideData) {
 
   const textX = CONTENT_X; // 이름은 항상 우측 콘텐츠 시작점에 맞춤
   if (wName) {
-    // 지역 부제 제거 → 밴드 전체 높이를 이름에 사용(길면 2줄/축소)
-    slide.addText(wName, {
-      x: textX, y: 0.06, w: 7.2 - textX, h: 0.72,
-      fontSize: 20, fontFace: FONT_EN, color: C.BURGUNDY, italic: true, align: "left", valign: "middle",
-      fit: "shrink",
-    });
+    // 한 줄 우선: 글자수로 한 줄 폰트 추정. 12pt 이상이면 한 줄, 아니면 품종을 묶어 2줄.
+    const avail = 7.2 - textX; // ≈ 5.0in
+    const oneLineSize = Math.min(20, Math.floor((avail * 150) / Math.max(1, wName.length)));
+    if (oneLineSize >= 12) {
+      slide.addText(wName, {
+        x: textX, y: 0.2, w: avail, h: 0.44,
+        fontSize: oneLineSize, fontFace: FONT_EN, color: C.BURGUNDY, italic: true, align: "left", valign: "middle", fit: "shrink",
+      });
+    } else {
+      slide.addText(softWrapWineName(wName, data.grapeVarieties), {
+        x: textX, y: 0.06, w: avail, h: 0.72,
+        fontSize: 14, fontFace: FONT_EN, color: C.BURGUNDY, italic: true, align: "left", valign: "middle", wrap: true, fit: "shrink",
+      });
+    }
   }
 
   // 4-5. 헤더 구분선 (골드 단선)

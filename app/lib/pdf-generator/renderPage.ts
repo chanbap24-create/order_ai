@@ -2,7 +2,7 @@ import { i, C, PAGE_W, PAGE_H, type SlideData } from "./theme";
 import { drawLine, drawRect, drawRoundedRect, drawLabelBadge } from "./drawPrimitives";
 import { LOGO_CAVEDEVIN_BASE64, ICON_AWARD_BASE64 } from "@/app/lib/pptAssets";
 import { logger } from "@/app/lib/logger";
-import { capSentences, extractWineryNameEn, stripCodePrefix, cleanField, capChars, cleanAwards } from "@/app/lib/wineNoteText";
+import { capSentences, extractWineryNameEn, stripCodePrefix, softWrapWineName, cleanField, capChars, cleanAwards } from "@/app/lib/wineNoteText";
 
 /**
  * 적응형 단일 페이지 레이아웃.
@@ -68,7 +68,15 @@ export function renderPage(
     }
     const textX = CONTENT_X;
     if (wName) {
-      drawText(wName, textX, 0.24, 7.1 - textX, 18, fontEn, C.BURGUNDY, 2);
+      // 한 줄 우선: 18 → 11pt로 줄여 한 줄에 맞춰본다. 그래도 안 맞으면 품종을 묶어 자연스럽게 2줄.
+      const availWpt = i(7.1 - textX);
+      doc.save().font(fontEn);
+      let ts = 18;
+      while (ts > 11 && doc.fontSize(ts).widthOfString(wName) > availWpt) ts -= 0.5;
+      const oneLine = doc.fontSize(ts).widthOfString(wName) <= availWpt;
+      doc.restore();
+      const titleText = oneLine ? wName : softWrapWineName(wName, data.grapeVarieties);
+      drawText(titleText, textX, oneLine ? 0.3 : 0.14, 7.1 - textX, ts, fontEn, C.BURGUNDY, 2);
     }
   }
 

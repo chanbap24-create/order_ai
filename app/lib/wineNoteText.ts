@@ -40,6 +40,31 @@ export function stripCodePrefix(name: string | undefined): string {
   return (name || "").replace(/^[A-Za-z]{2}\s+/, "").trim();
 }
 
+// 줄바꿈이 어색하게 갈리면 안 되는 다어절 와인 용어(품종·등급 등) — 공백을 non-breaking space로 묶어 통째로 유지.
+const NOWRAP_TERMS = [
+  "Cabernet Sauvignon", "Sauvignon Blanc", "Cabernet Franc", "Pinot Noir", "Pinot Gris", "Pinot Grigio",
+  "Pinot Blanc", "Chenin Blanc", "Petit Verdot", "Petite Sirah", "Grüner Veltliner", "Gruner Veltliner",
+  "Blanc de Blancs", "Blanc de Noirs", "Grand Cru", "Premier Cru", "1er Cru",
+];
+
+/**
+ * 상단 타이틀 줄바꿈을 자연스럽게: 품종명(데이터 + 알려진 다어절 용어) 내부 공백을 NBSP로 묶어
+ * 통째로 유지 → 그 덩어리 앞에서 줄이 갈린다. (예: "…The Pennant Cabernet Sauvignon" →
+ * "The Pennant" 다음 줄에 "Cabernet Sauvignon")
+ */
+export function softWrapWineName(name: string, grapeVarieties?: string): string {
+  let out = name;
+  const terms = new Set(NOWRAP_TERMS);
+  for (const g of (grapeVarieties || "").split(/[,/&]/).map((s) => s.trim())) {
+    if (g.includes(" ")) terms.add(g);
+  }
+  // 긴 용어부터 치환(부분 겹침 방지)
+  for (const t of [...terms].sort((a, b) => b.length - a.length)) {
+    if (out.includes(t)) out = out.split(t).join(t.replace(/ /g, String.fromCharCode(160)));
+  }
+  return out;
+}
+
 /**
  * 헤더용 '영문' 와이너리명 추출.
  * 1) 설명 시작부 "명(English)" → 괄호 영문 (예: 블랜디스(Blandy's) → Blandy's)
