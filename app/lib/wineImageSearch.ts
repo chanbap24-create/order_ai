@@ -324,40 +324,36 @@ export function dataUrlToImage(url: string): { base64: string; mimeType: string 
 export async function downloadImageAsBase64(imageUrl: string): Promise<{ base64: string; mimeType: string } | null> {
   // data: URL은 직접 디코드(SSRF 가드가 http/https만 허용)
   if (imageUrl.startsWith("data:")) return dataUrlToImage(imageUrl);
-  try {
-    // SSRF 방어: DB wine.image_url 등 외부 제어 가능 경로
-    if (!isSafeFetchUrl(imageUrl)) {
-      logger.warn(`[WineImage] Blocked unsafe URL: ${imageUrl}`);
-      return null;
-    }
-    // 핫링크 차단 회피: 브라우저 헤더 + 이미지 출처를 Referer로 (대부분의 리테일러/CDN 통과)
-    let referer = "";
-    try { referer = new URL(imageUrl).origin + "/"; } catch { /* invalid url */ }
-    const res = await fetch(imageUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        ...(referer ? { Referer: referer } : {}),
-      },
-    });
-
-    if (!res.ok) {
-      logger.warn(`[WineImage] Download ${res.status} for ${imageUrl}`);
-      return null;
-    }
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    // 403/에러 페이지가 HTML로 오는 경우 방어 — 이미지가 아니면 버림
-    if (!contentType.includes("image")) {
-      logger.warn(`[WineImage] Not an image (${contentType}) for ${imageUrl}`);
-      return null;
-    }
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const base64 = buffer.toString("base64");
-
-    return { base64, mimeType: contentType.split(";")[0] };
-  } catch (e) {
-    logger.warn(`[WineImage] Failed to download image: ${imageUrl}`, { error: e });
+  // SSRF 방어: DB wine.image_url 등 외부 제어 가능 경로
+  if (!isSafeFetchUrl(imageUrl)) {
+    logger.warn(`[WineImage] Blocked unsafe URL: ${imageUrl}`);
     return null;
   }
+  let referer = "";
+  try { referer = new URL(imageUrl).origin + "/"; } catch { /* invalid url */ }
+  // 두 전략을 순서대로 시도:
+  //  1) 단순 UA(Referer 없음) — robertoatley 등 Referer에 403 내는 사이트 대응
+  //  2) 풀 브라우저 헤더 + 출처 Referer — 핫링크 차단(대부분 리테일러/CDN) 대응
+  const strategies: Array<Record<string, string>> = [
+    { "User-Agent": USER_AGENT },
+    {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+      Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      ...(referer ? { Referer: referer } : {}),
+    },
+  ];
+  let lastStatus = 0;
+  for (const headers of strategies) {
+    try {
+      const res = await fetch(imageUrl, { headers });
+      if (!res.ok) { lastStatus = res.status; continue; }
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      if (!contentType.includes("image")) { lastStatus = -1; continue; } // 403 HTML 등 방어
+      const buffer = Buffer.from(await res.arrayBuffer());
+      return { base64: buffer.toString("base64"), mimeType: contentType.split(";")[0] };
+    } catch { /* 다음 전략 */ }
+  }
+  logger.warn(`[WineImage] Download failed (${lastStatus || "err"}) for ${imageUrl}`);
+  return null;
 }
