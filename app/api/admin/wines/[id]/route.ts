@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getWineByCode, upsertWine, deleteWine, getTastingNote, upsertTastingNote } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { handleApiError } from "@/app/lib/errors";
+import { supabase } from "@/app/lib/db";
+import { rehostImageUrl } from "@/app/lib/wineBottleImage";
 
 export async function GET(
   _request: NextRequest,
@@ -33,6 +35,10 @@ export async function PATCH(
 
     // 와인 정보 업데이트
     if (body.wine) {
+      // 이미지 URL을 주면 저장 시점에 Supabase로 재호스팅(핫링크 소스 대비, 서버가 못 가져오면 원본 유지)
+      if (typeof body.wine.image_url === "string" && body.wine.image_url) {
+        body.wine.image_url = await rehostImageUrl(supabase, id, body.wine.image_url).catch(() => body.wine.image_url);
+      }
       try {
         await upsertWine({ ...body.wine, item_code: id });
       } catch (e) {
