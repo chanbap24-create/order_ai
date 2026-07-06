@@ -117,6 +117,7 @@ export async function getClientConversion(
   clientCode: string,
   windowDays = DEFAULT_WINDOW_DAYS,
   type?: 'wine' | 'glass',
+  asOf?: string, // as-of 컷오프(백테스트 전용): 이 날짜 이전 견적·출고만 사용(leakage 방지). 미지정=전체.
 ) {
   const isPromo = isPromoClient(clientCode);
   const effType = isPromo ? PROMO_CLIENT_CODES[clientCode] : type;
@@ -126,6 +127,7 @@ export async function getClientConversion(
     .select('items, created_at')
     .eq('client_code', clientCode);
   if (type) qq = qq.eq('company', type === 'glass' ? 'DL' : 'CDV');
+  if (asOf) qq = qq.lt('created_at', asOf);
   const { data: quotes } = await qq.order('created_at', { ascending: true });
 
   const qList = (quotes || []) as AnyRow[];
@@ -173,7 +175,7 @@ export async function getClientConversion(
       };
       w.quoted_count++;
       w.quoted_qty += Number(it.quantity) || 0;
-      const ships = (shipByCode.get(it.item_code) || []).filter((s) => s.date >= start && s.date <= end);
+      const ships = (shipByCode.get(it.item_code) || []).filter((s) => s.date >= start && s.date <= end && (!asOf || s.date < asOf));
       const qty = ships.reduce((a, b) => a + b.qty, 0);
       if (qty > 0) {
         w.converted_count++;

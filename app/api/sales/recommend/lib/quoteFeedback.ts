@@ -60,12 +60,14 @@ function addFB(map: Map<string, FB>, key: string, converted: boolean) {
 export async function getClientQuoteFeatures(
   clientCode: string,
   regionRows: WineRegionRow[],
+  asOf?: string, // as-of 컷오프(백테스트 전용): 이 날짜 이전 견적·출고만 사용(leakage 방지). 미지정=전체.
 ): Promise<QuoteFeedbackProfile | null> {
-  const { data: quotes } = await supabase
+  let qq = supabase
     .from('saved_quotes')
     .select('items, created_at')
-    .eq('client_code', clientCode)
-    .order('created_at', { ascending: true });
+    .eq('client_code', clientCode);
+  if (asOf) qq = qq.lt('created_at', asOf);
+  const { data: quotes } = await qq.order('created_at', { ascending: true });
   const qList = (quotes || []) as Array<{ items?: AnyRow[]; created_at: string }>;
   if (qList.length === 0) return null;
 
@@ -123,7 +125,7 @@ export async function getClientQuoteFeatures(
     const end = addDays(start, WINDOW_DAYS);
     for (const it of q.items || []) {
       if (!it.item_code) continue;
-      const ships = (shipByCode.get(String(it.item_code)) || []).filter((s) => s.date >= start && s.date <= end);
+      const ships = (shipByCode.get(String(it.item_code)) || []).filter((s) => s.date >= start && s.date <= end && (!asOf || s.date < asOf));
       const converted = ships.reduce((a, b) => a + b.qty, 0) > 0;
       const f = featOf(String(it.item_code), Number(it.supply_price) || 0, Number(it.discount_rate) || 0);
       addFB(profile.region, f.region, converted);
