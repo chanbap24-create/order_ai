@@ -114,12 +114,13 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       } catch { /* ignore */ }
     }
 
-    // 2순위: 검색 폴백 — image_url이 아예 비었을 때만(사용자 지정 URL은 실패해도 대체 안 함)
-    if (!bottleImageBase64 && !wine.image_url) {
+    // 2순위: 검색 폴백 — 지정 URL이 실패했으면 빈티지 반영해 올바른 병샷 보완
+    if (!bottleImageBase64) {
       const engName = wine.item_name_en;
       if (engName) {
         try {
-          const vivinoUrl = await searchWineImageDuckDuckGo(engName).catch(() => null) || await searchVivinoBottleImage(engName);
+          const vin = formatVintage4(wine.vintage || "");
+          const vivinoUrl = await searchWineImageDuckDuckGo(engName, undefined, vin).catch(() => null) || await searchVivinoBottleImage(engName);
           if (vivinoUrl) {
             const imgData = await downloadImageAsBase64(vivinoUrl);
             if (imgData) {

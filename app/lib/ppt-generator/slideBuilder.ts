@@ -82,13 +82,14 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       }
     }
 
-    // image_url이 지정됐는데 다운로드 실패한 경우엔 검색으로 대체하지 않음(사용자 지정 URL 존중).
-    // 검색 폴백은 image_url이 아예 비었을 때만.
-    if (!bottleImageBase64 && !wine.image_url) {
+    // 지정 image_url이 있으면 위에서 우선 사용됨. 다운로드 실패(핫링크 차단 등)했으면 검색으로 보완
+    // — 단 빈티지를 넘겨 '올바른 빈티지' 병샷을 찾게 한다(무통처럼 빈티지별 라벨 대응).
+    if (!bottleImageBase64) {
       const engName = wine.item_name_en;
       if (engName) {
         try {
-          const vivinoUrl = await searchWineImageDuckDuckGo(engName).catch(() => null) || await searchVivinoBottleImage(engName);
+          const vin = formatVintage4(wine.vintage || "");
+          const vivinoUrl = await searchWineImageDuckDuckGo(engName, undefined, vin).catch(() => null) || await searchVivinoBottleImage(engName);
           if (vivinoUrl) {
             const imgData = await downloadImageAsBase64(vivinoUrl);
             if (imgData) {
