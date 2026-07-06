@@ -9,7 +9,7 @@ export interface SegmentProfile {
   top_items: { item_no: string; name: string; breadth: number; qty: number }[];
 }
 
-const TC: Record<string, string> = { '스파클링': '#d97706', '화이트': '#ca8a04', '레드': '#991b1b', '로제': '#db2777', '주정강화': '#7c3aed', '기타': '#9ca3af' };
+const TC: Record<string, string> = { '스파클링': '#d97706', '화이트': '#ca8a04', '레드': '#991b1b', '로제': '#db2777', '주정강화': '#7c3aed', '스위트': '#e11d48', '기타': '#9ca3af' };
 const won = (n: number) => (n ? n.toLocaleString() + '원' : '-');
 
 function TypeBar({ dist }: { dist: Record<string, number> }) {

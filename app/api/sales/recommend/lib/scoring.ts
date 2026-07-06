@@ -313,7 +313,7 @@ export function scoreRecommendations(params: {
 }
 
 // 견적 표시 순서: 타입(스파클링→화이트→레드→로제→주정강화) 그룹 + 각 타입 내 공급가 내림차순
-const QUOTE_TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4 };
+const QUOTE_TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4, '스위트': 5 };
 export function orderForDisplay(items: ScoredItem[]): ScoredItem[] {
   return [...items].sort((a, b) => {
     const ra = QUOTE_TYPE_RANK[a.wine_type] ?? 9;

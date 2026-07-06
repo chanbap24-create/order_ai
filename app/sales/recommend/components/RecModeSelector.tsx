@@ -51,7 +51,7 @@ const MODE_OPTS: { v: RecMode; t: string; d: string }[] = [
   { v: 'discovery', t: '발굴 / 신규', d: '이력 무관 · 베스트셀러+업태' },
 ];
 const TYPE_CHIPS: [string, string][] = [
-  ['sparkling', '스파클링'], ['white', '화이트'], ['red', '레드'], ['rose', '로제'], ['fortified', '주정강화'],
+  ['sparkling', '스파클링'], ['white', '화이트'], ['red', '레드'], ['rose', '로제'], ['fortified', '주정강화'], ['sweet', '스위트'],
 ];
 
 const sizeChip = (on: boolean): React.CSSProperties => ({
