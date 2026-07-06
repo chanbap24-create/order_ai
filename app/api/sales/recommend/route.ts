@@ -18,12 +18,8 @@ function parseScoreParams(raw: unknown): ScoreParams | undefined {
   return {
     tierBase: [0, 1, 2, 3].map((i) => num(tb[i], d.tierBase[i], 0, 300)) as [number, number, number, number],
     softWeight: num(r.softWeight, d.softWeight, 0, 100),
-    velocityWeight: num(r.velocityWeight, d.velocityWeight, 0, 100),
     recentPenalty: num(r.recentPenalty, d.recentPenalty, 0, 1),
-    convBoost: num(r.convBoost, d.convBoost, 0, 100),
-    noconvPenalty: num(r.noconvPenalty, d.noconvPenalty, 0, 1),
     quoteFeedbackWeight: num(r.quoteFeedbackWeight, d.quoteFeedbackWeight, 0, 100),
-    venueWeight: num(r.venueWeight, d.venueWeight, 0, 100),
   };
 }
 

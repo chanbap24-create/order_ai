@@ -6,21 +6,15 @@ export type RecMode = 'new' | 'substitute' | 'discovery';
 
 /** 점수 가중치(화면 조절). 서버 scoring.ts ScoreParams 와 동일 형태. */
 export interface ScoreParams {
-  tierBase: [number, number, number, number]; // 같은마을/인근마을/같은광역/타지역
-  softWeight: number;     // 품종·향미 가산 배수
-  velocityWeight: number; // 회전 가산 배수
+  tierBase: [number, number, number, number]; // 산지: 같은마을/인근마을/같은광역/타지역
+  softWeight: number;     // 취향(품종·향미) 가산 배수
   recentPenalty: number;  // 최근제안 강등 배율
-  convBoost: number;      // 전환 1회당 가점
-  noconvPenalty: number;  // 미전환 감점 배율
-  quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) ±가중치
-  venueWeight: number;    // 업장 유형(스시·프렌치 등) 적합 가산
+  quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) 가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  // 통합 100점 = 산지20+취향10+견적15(이력) + 업장15+업태20+지역20(타입·국가 분포). 회전·업장가산 제외.
+  // 통합 100점 = 산지20+취향10+견적15(이력) + 업장15+업태20+지역20(타입·국가 분포, profile 기반).
   tierBase: [20, 16, 12, 8],
-  softWeight: 10, velocityWeight: 0, recentPenalty: 0.45, convBoost: 0, noconvPenalty: 0.6,
-  quoteFeedbackWeight: 15,
-  venueWeight: 0,
+  softWeight: 10, recentPenalty: 0.45, quoteFeedbackWeight: 15,
 };
 
 export interface RecSettings {
@@ -57,8 +51,8 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
 
 // 가중치 스킴이 바뀌면 키를 올린다(옛 저장값을 통째로 버려 새 기본값을 강제 적용).
 // v3: 업장 가산(venueWeight 20) 도입 — 지역·견적학습에서 10씩 차출.
-const KEY = 'recQuote.settings.v7';
-const SETTINGS_VERSION = 7;
+const KEY = 'recQuote.settings.v8';
+const SETTINGS_VERSION = 8;
 
 export function loadRecSettings(): RecSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_REC_SETTINGS };

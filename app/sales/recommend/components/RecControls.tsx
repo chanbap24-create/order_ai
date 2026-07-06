@@ -182,12 +182,8 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {([
                 ['품종·향미', 'softWeight', 1, 100],
-                ['회전', 'velocityWeight', 1, 100],
-                ['업장적합', 'venueWeight', 1, 100],
-                ['전환가점/회', 'convBoost', 1, 100],
                 ['견적학습±', 'quoteFeedbackWeight', 1, 100],
                 ['최근제안×', 'recentPenalty', 0.05, 1],
-                ['미전환×', 'noconvPenalty', 0.05, 1],
               ] as const).map(([label, key, step, max]) => (
                 <label key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>

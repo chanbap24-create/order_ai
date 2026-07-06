@@ -261,7 +261,6 @@ export async function buildCandidates(
       scoreParams: o.scoreParams,
       mode: o.mode, anchor,
       ...(quoteFeedback ? { quoteFeedback } : {}),
-      ...(venuePref ? { venuePref } : {}),
       ...(o.mode === 'new' ? { segScorers, regionPriceRef, typeShares } : {}),
     }) as ScoredItem[];
   }

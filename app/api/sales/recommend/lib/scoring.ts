@@ -5,7 +5,6 @@ import { normalizeType, bucketLabel } from './wineType';
 import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
-import { scoreVenue, type VenueWinePref } from './venueScoring';
 
 const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
 export type GeoCeiling = 'super' | 'country' | 'any';
@@ -22,25 +21,17 @@ export interface SubstituteAnchor {
 
 /** 화면에서 조절하는 점수 가중치(전부 숫자라 슬라이더/입력으로 노출 가능). */
 export interface ScoreParams {
-  tierBase: [number, number, number, number]; // 같은마을/인근마을/같은광역/타지역
-  softWeight: number;     // 품종·향미 가산 배수(soft 0~1 × 이 값)
-  velocityWeight: number; // 회전 가산 배수(velocity 0~1 × 이 값)
+  tierBase: [number, number, number, number]; // 산지: 같은마을/인근마을/같은광역/타지역
+  softWeight: number;     // 취향(품종·향미) 가산 배수(soft 0~1 × 이 값)
   recentPenalty: number;  // 최근 30일 제안 품목 점수 배율
-  convBoost: number;      // 과거 견적→출고 전환 1회당 가점(최대 3회)
-  noconvPenalty: number;  // 2회+ 견적·미출고 품목 점수 배율
-  quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) ±가중치
-  venueWeight: number;    // 업장 유형(스시·프렌치 등) 적합 가산 — 지역·견적학습에서 10씩 차출
+  quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) 가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  // 통합 100점 = 산지20 + 취향10 + 견적15(이력) + 업장15 + 업태20 + 지역20(타입·국가 분포). 업장/업태/지역은 profile 기반(scoreParams 밖).
+  // 통합 100점 = 산지20 + 취향10 + 견적15(이력) + 업장15 + 업태20 + 지역20(타입·국가 분포). 세그먼트는 profile 기반(scoreParams 밖).
   tierBase: [20, 16, 12, 8],  // 산지: 같은마을20/인근16/광역12/타지역8
   softWeight: 10,             // 취향(품종·향)
-  velocityWeight: 0,          // 회전 제외(거래처 무관 + leakage)
-  recentPenalty: 0.45,
-  convBoost: 0,               // 과거전환 '+' 제거(신규제안은 산 걸 이미 제외)
-  noconvPenalty: 0.6,         // (미사용 — 아래 flat 감점으로 대체)
+  recentPenalty: 0.45,        // 최근 제안 강등
   quoteFeedbackWeight: 15,    // 견적학습
-  venueWeight: 0,             // 업장은 타입·국가 분포(세그먼트)로 이관
 };
 
 // 세그먼트(업장·업태·지역) = 그 세그먼트가 사는 '와인 타입' 순위 + '국가' 순위로 배점.
@@ -78,16 +69,14 @@ export function scoreRecommendations(params: {
   mode?: RecMode;            // 추천 타입(신규제안/대체상품)
   anchor?: SubstituteAnchor; // 대체상품 모드: 쇼트상품 기준점
   quoteFeedback?: QuoteFeedbackProfile; // 거래처 견적학습 프로필(속성 단위 전환)
-  venuePref?: VenueWinePref | null; // 거래처 업장 유형 선호(스시·프렌치 등) — 있으면 적합 가산
   segScorers?: SegScorers;          // 업장·업태·지역 세그먼트의 타입/국가 분포 순위
   regionPriceRef?: number;          // 지역별 추천가(중앙값). >0이면 ±band로 가격 게이트.
   typeShares?: Record<string, number>; // 타입별 비중(본인 이력 우선). 비주력 타입(<5%) 강등용. bucketLabel 키.
 }): ScoredItem[] {
-  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, maxSales90d, recentlyRecommended, conversionMap } = params;
+  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
   const anchor = params.anchor;
   const quoteFeedback = params.quoteFeedback;
-  const venuePref = params.venuePref;
   const segScorers = params.segScorers;
   const regionPriceRef = params.regionPriceRef ?? 0;
   const typeShares = params.typeShares;
@@ -183,17 +172,14 @@ export function scoreRecommendations(params: {
     }
     if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
 
-    const velocity = maxSales90d > 0 ? (inv.avg_sales_90d || 0) / maxSales90d : 0;
     // 빈도 가중: 대체상품은 거래처 빈도 개념이 없으니 순수 지역점수(배수 1).
     const effStrength = mode === 'substitute' ? 0 : strength;
     const freqMult = (1 - effStrength) + effStrength * freqW;
     const tierScore = t >= 0 ? TIER_BASE[t] * freqMult : 0; // 통합: 산지 매칭 없음(t=-1)이면 0
     const softAdd = soft * sp.softWeight;
-    const velAdd = velocity * sp.velocityWeight;
-    score = tierScore + softAdd + velAdd;
+    score = tierScore + softAdd;
     if (t >= 0) breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
     if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
-    if (velAdd > 0) breakdown.push(`회전 ${velocity.toFixed(2)}×${sp.velocityWeight} = +${velAdd.toFixed(1)}`);
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
 
@@ -228,17 +214,6 @@ export function scoreRecommendations(params: {
         score += fb;
         tags.push('견적선호');
         breakdown.push(`견적학습 +${fb.toFixed(1)}`);
-      }
-    }
-
-    // 업장 유형 적합: 거래처 업장(스시·프렌치 등) 선호와 맞으면 가산 — 타입·나라·지역 3축 독립.
-    if (venuePref && sp.venueWeight > 0) {
-      const regionText = `${h?.sub_region || ''} ${h?.major_region || ''} ${h?.super_region || ''} ${wine?.region || ''}`;
-      const vb = scoreVenue(venuePref, { bucket, country: `${wine?.country || ''} ${invCountry}`, regionText }, sp.venueWeight);
-      if (vb.total > 0) {
-        score += vb.total;
-        tags.push('업장적합');
-        breakdown.push(`업장적합 +${vb.total.toFixed(1)} (타입 ${vb.type}+나라 ${vb.country}+지역 ${vb.region})`);
       }
     }
 
