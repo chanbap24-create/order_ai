@@ -79,6 +79,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
             imageUrlExpanded={detail.imageUrlExpanded}
             setImageUrlExpanded={detail.setImageUrlExpanded}
             savingImageUrl={detail.savingImageUrl}
+            regeneratingNote={detail.regeneratingNote}
             onSave={detail.saveImageUrl}
           />
 

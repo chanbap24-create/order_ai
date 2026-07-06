@@ -20,6 +20,7 @@ export function useWineDetail(
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [imageUrlExpanded, setImageUrlExpanded] = useState(false);
   const [savingImageUrl, setSavingImageUrl] = useState(false);
+  const [regeneratingNote, setRegeneratingNote] = useState(false);
 
   const initEditForm = (wine: Wine, tn: TastingNote | null) => {
     setEditForm({
@@ -135,6 +136,23 @@ export function useWineDetail(
       /* ignore */
     }
     setSavingImageUrl(false);
+
+    // 이미지가 바뀌면 테이스팅 노트 PPTX/PDF를 새 이미지로 재생성·재업로드(노트 있는 와인만).
+    setRegeneratingNote(true);
+    try {
+      const r = await fetch("/api/admin/tasting-notes/regenerate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wineId: code }),
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || (j && j.success === false)) {
+        console.warn(`[Regenerate] ${j?.error || r.status}`);
+      }
+    } catch {
+      /* 재생성 실패는 이미지 저장 자체를 막지 않음 */
+    }
+    setRegeneratingNote(false);
   };
 
   const doResearch = async () => {
@@ -250,7 +268,7 @@ export function useWineDetail(
     engNameInput, setEngNameInput,
     imageUrlInput, setImageUrlInput,
     imageUrlExpanded, setImageUrlExpanded,
-    savingImageUrl,
+    savingImageUrl, regeneratingNote,
     researching, saving, approving,
     loadWineDetail, selectWineFromList,
     saveEngName, saveImageUrl, doResearch, handleSave, handleApprove,

@@ -9,6 +9,7 @@ type Props = {
   imageUrlExpanded: boolean;
   setImageUrlExpanded: (b: boolean) => void;
   savingImageUrl: boolean;
+  regeneratingNote?: boolean;
   onSave: (url: string | null) => Promise<void>;
 };
 
@@ -90,6 +91,11 @@ export function ImageSection(p: Props) {
               삭제
             </button>
           )}
+        </div>
+      )}
+      {p.regeneratingNote && (
+        <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-tertiary)" }}>
+          ⏳ 새 이미지로 테이스팅 노트(PPTX·PDF) 재생성·업로드 중…
         </div>
       )}
     </div>
