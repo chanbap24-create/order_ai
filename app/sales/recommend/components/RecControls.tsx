@@ -19,9 +19,9 @@ const card: React.CSSProperties = {
 };
 const rowS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' };
 const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', width: 92, flexShrink: 0 };
-const sld: React.CSSProperties = { width: 'clamp(200px, 46vw, 720px)', flexShrink: 0, accentColor: 'var(--action)' };
+const sld: React.CSSProperties = { width: 'clamp(180px, 30vw, 420px)', flexGrow: 0, flexShrink: 0, accentColor: 'var(--action)' };
 const numIn: React.CSSProperties = { width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' };
-const hint: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)' };
+const hint: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' };
 
 const GEO_OPTS: { v: GeoCeiling; t: string }[] = [
   { v: 'super', t: '광역까지' }, { v: 'country', t: '같은 국가까지' }, { v: 'any', t: '제한없음' },
@@ -81,7 +81,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           onChange={(e) => set({ periodMonths: Number(e.target.value) })} style={sld} />
         <input type="number" min={1} max={24} value={s.periodMonths} style={numIn}
           onChange={(e) => set({ periodMonths: Math.min(24, Math.max(1, parseInt(e.target.value, 10) || 6)) })} />
-        <span style={hint}>개월 · 최근 {s.periodMonths}개월 구매 기준</span>
+        <span style={hint}>{s.periodMonths}개월 구매 기준</span>
       </div>
       <div style={rowS}>
         <span style={lbl}>가격 밴드 ±</span>
@@ -89,7 +89,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           onChange={(e) => set({ priceBand: Number(e.target.value) })} style={sld} />
         <input type="number" min={5} max={100} value={s.priceBand} style={numIn}
           onChange={(e) => set({ priceBand: Math.min(100, Math.max(5, parseInt(e.target.value, 10) || 20)) })} />
-        <span style={hint}>% · 가격 범위 ±{s.priceBand}% 여유 · {itemsCount}개</span>
+        <span style={hint}>가격범위 ±{s.priceBand}%</span>
       </div>
       <div style={rowS}>
         <span style={lbl}>추천 점수 ≥</span>
@@ -122,7 +122,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         <span style={sld} aria-hidden="true" />
         <input type="number" min={0} max={30} value={s.maxPerType} style={numIn}
           onChange={(e) => set({ maxPerType: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={hint}>0=비율 자동(분포대로) · 값 지정 시 타입당 최대</span>
+        <span style={hint}>0=비율 자동 · 값=타입당 상한</span>
       </div>
       {/* ── 버튼 ── */}
       <div style={rowS}>
