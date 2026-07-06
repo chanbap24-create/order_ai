@@ -41,14 +41,12 @@ export interface RecOpts {
   stockMonths: number;             // 재고 여유분(개월) — 수요충당
   minStock: { price_300k: number; price_200k: number; price_100k: number; price_50k: number; price_20k: number; price_under_20k: number }; // 가격대별 최소재고
   scoreParams: ScoreParams;        // 점수 가중치(화면 조절)
-  popularityWeight?: number;       // 인기(구매폭) prior 블렌드 α(0~1, 0=미적용). 신규제안 모드만.
 }
 export const DEFAULT_REC_OPTS: RecOpts = {
   mode: 'new',
   priceBandPct: 0.2, profileMonths: 6, geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,
-  popularityWeight: 0,
 };
 
 export async function loadSettings(): Promise<{ W: Weights; SR: StockRules }> {

@@ -30,7 +30,7 @@ function parseScoreParams(raw: unknown): ScoreParams | undefined {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock, score_params, popularity_weight, mode: modeRaw, anchor_item_code, anchor_price, discovery_types, discovery_min_price, discovery_max_price, discovery_segment, include_nonstandard, discount_apply, discount_scope } = body;
+    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock, score_params, mode: modeRaw, anchor_item_code, anchor_price, discovery_types, discovery_min_price, discovery_max_price, discovery_segment, include_nonstandard, discount_apply, discount_scope } = body;
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
@@ -59,8 +59,6 @@ export async function POST(req: Request) {
     }
     // score_params: 화면에서 조절한 점수 가중치 — 숫자만 클램프해 전달(없으면 기본값)
     const scoreParams = parseScoreParams(score_params);
-    // popularity_weight: 인기 prior 블렌드 α(0~1, 0=미적용)
-    const popularityWeight = Math.min(1, Math.max(0, Number(popularity_weight) || 0));
 
     // 추천 타입: new(신규제안) | substitute(대체상품) | discovery(발굴/신규).
     const mode = modeRaw === 'substitute' ? 'substitute' : modeRaw === 'discovery' ? 'discovery' : 'new';
@@ -97,7 +95,6 @@ export async function POST(req: Request) {
       stockMonths,
       ...(minStock && Object.keys(minStock).length ? { minStock: minStock as never } : {}),
       ...(scoreParams ? { scoreParams } : {}),
-      ...(popularityWeight > 0 ? { popularityWeight } : {}),
     });
     // 관련도 점수로 상위 선별 후, 견적 표시 순서(스파클링→화이트→레드 · 타입내 공급가 내림차순)로 정렬
     const recommendations = orderForDisplay(scored.slice(0, 30));

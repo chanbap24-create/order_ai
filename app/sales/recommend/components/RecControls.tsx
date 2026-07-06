@@ -114,16 +114,12 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           onChange={(e) => set({ lockCount: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
         <span style={hint}>{s.lockCount > 0 ? `${s.lockCount}개로 고정 · 현재 ${visibleCount}개` : '0=끔'}</span>
       </div>
-      {/* 다양성: 타입/지역당 최대 개수 — 한 타입(샴페인 등)·한 지역 쏠림 방지 */}
+      {/* 타입당 상한 — 기본 0(타입 분포 비율대로 자동 배분). 값 지정 시 한 타입 최대 개수 제한 */}
       <div style={rowS}>
-        <span style={lbl}>다양성 캡</span>
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>타입당</span>
+        <span style={lbl}>타입당 상한</span>
         <input type="number" min={0} max={30} value={s.maxPerType} style={numIn}
           onChange={(e) => set({ maxPerType: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>지역당</span>
-        <input type="number" min={0} max={30} value={s.maxPerRegion} style={numIn}
-          onChange={(e) => set({ maxPerRegion: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={hint}>최대 개수 · 0=끔 (예: 타입당 2면 샴페인 최대 2개)</span>
+        <span style={hint}>0=비율 자동(분포대로) · 값 지정 시 타입당 최대 개수</span>
       </div>
       {/* 지역 확장 범위 */}
       <div style={rowS}>
@@ -131,18 +127,6 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         {btnGroup(GEO_OPTS, s.geoCeiling, (v) => setReapply({ geoCeiling: v }))}
         <span style={hint}>광역 밖을 어디까지 추천할지</span>
       </div>
-      {/* 인기 블렌드 — 개인화 점수에 전사 베스트셀러(구매폭)를 섞음. 신규제안 모드만. */}
-      {s.mode === 'new' && (
-        <div style={rowS}>
-          <span style={lbl}>인기 블렌드</span>
-          <input type="range" min={0} max={100} step={5} value={s.popularityWeight}
-            onChange={(e) => setReapply({ popularityWeight: Number(e.target.value) })}
-            style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
-          <input type="number" min={0} max={100} value={s.popularityWeight} style={numIn}
-            onChange={(e) => setReapply({ popularityWeight: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-          <span style={hint}>% · 베스트셀러(구매폭) 혼합 · 0=끔 · 권장 30~50%(지역확장 ‘제한없음’과 함께)</span>
-        </div>
-      )}
       {/* 입고빈도 반영 강도 */}
       <div style={rowS}>
         <span style={lbl}>입고빈도</span>

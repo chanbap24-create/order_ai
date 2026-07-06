@@ -33,7 +33,6 @@ export function useRecommendQuote() {
           stock_months: s.stockMonths,
           min_stock: s.minStock,
           score_params: s.scoreParams,
-          popularity_weight: (s.popularityWeight || 0) / 100,
           mode: s.mode,
           include_nonstandard: s.includeNonStandard,
           discount_apply: s.discountApply,
