@@ -18,7 +18,7 @@ export function renderHeader(slide: Slide, data: SlideData) {
 
   // 2-3. 헤더: 와이너리 로고(병과 중앙정렬) + 이름/원산지(우측 콘텐츠 시작점 정렬). 까브드뱅 로고는 푸터에만.
   const hasLogo = !!(data.brandLogoBase64 && data.brandLogoMimeType && data.brandLogoW && data.brandLogoH);
-  const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
+  const wName = (data.wineryNameEn || "").trim() || extractWineryNameEn(data.wineryDescription, data.nameEn);
   const hCountry = data.countryEn || data.country || "";
   const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
 

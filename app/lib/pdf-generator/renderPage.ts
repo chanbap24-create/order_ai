@@ -55,7 +55,7 @@ export function renderPage(
   {
     const hCountry = data.countryEn || data.country || "";
     const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
-    const wName = extractWineryNameEn(data.wineryDescription, data.nameEn);
+    const wName = (data.wineryNameEn || "").trim() || extractWineryNameEn(data.wineryDescription, data.nameEn);
     const hasLogo = !!(data.brandLogoBase64 && data.brandLogoW && data.brandLogoH);
     const BOTTLE_CENTER = 1.05; // 좌측 병 영역 중심 (병 박스 boxX 0.25 + boxW 1.6 / 2)
     const CONTENT_X = 2.05;     // 우측 콘텐츠(와인명 카드) 시작 x

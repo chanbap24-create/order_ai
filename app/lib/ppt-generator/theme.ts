@@ -46,6 +46,7 @@ export function formatVintage4(v: string): string {
 export interface SlideData {
   nameKr: string;
   nameEn: string;
+  wineryNameEn?: string; // 상단 와이너리 타이틀(브랜드명). 없으면 설명/영문명에서 추출.
   country: string;
   countryEn: string;
   region: string;

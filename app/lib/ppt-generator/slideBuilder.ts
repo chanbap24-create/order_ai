@@ -55,6 +55,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
 
     const note = await getTastingNote(wineId);
     const logo = await fetchBrandLogo(wineId);
+    const brandCtx = await getBrandContextForWine(wineId).catch(() => null); // 상단 와이너리명에 브랜드명 사용
 
     let bottleImageBase64: string | undefined;
     let bottleImageMimeType: string | undefined;
@@ -115,6 +116,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
     slides.push({
       nameKr: wine.item_name_kr,
       nameEn: wine.item_name_en || "",
+      wineryNameEn: brandCtx?.brandNameEn || "",
       country: wine.country || "",
       countryEn: wine.country_en || "",
       region: wine.region || "",
