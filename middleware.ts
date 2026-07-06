@@ -150,6 +150,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // ── /api/order-v2/intake (POST) → iOS 단축어: 세션 대신 x-shortcut-token 으로 라우트가 자체 검증 ──
+  if (pathname === '/api/order-v2/intake' && request.method === 'POST') {
+    return NextResponse.next();
+  }
+
   // ── /api/forecast/* + /api/marketing/* → 인증 비강제. 단, 토큰 있으면 사용량 추적 ──
   if (pathname.startsWith('/api/forecast') || pathname.startsWith('/api/marketing')) {
     if (request.headers.get('x-track-skip') !== '1') {
