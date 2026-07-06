@@ -18,7 +18,8 @@ const card: React.CSSProperties = {
   padding: '10px 14px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8,
 };
 const rowS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' };
-const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 78 };
+const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', width: 92, flexShrink: 0 };
+const sld: React.CSSProperties = { width: 'clamp(200px, 46vw, 720px)', flexShrink: 0, accentColor: 'var(--action)' };
 const numIn: React.CSSProperties = { width: 56, padding: '3px 6px', fontSize: 13, textAlign: 'center', border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' };
 const hint: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)' };
 
@@ -73,13 +74,72 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         }}>⚙ 설정 {showSettings ? '닫기' : '열기'}</button>
       </div>
       {showSettings && (<>
-      {/* 병 용량 */}
+      {/* ── 레버(슬라이더): 숫자칸 정렬 ── */}
+      <div style={rowS}>
+        <span style={lbl}>분석 기간</span>
+        <input type="range" min={1} max={24} step={1} value={s.periodMonths}
+          onChange={(e) => set({ periodMonths: Number(e.target.value) })} style={sld} />
+        <input type="number" min={1} max={24} value={s.periodMonths} style={numIn}
+          onChange={(e) => set({ periodMonths: Math.min(24, Math.max(1, parseInt(e.target.value, 10) || 6)) })} />
+        <span style={hint}>개월 · 최근 {s.periodMonths}개월 구매 기준</span>
+      </div>
+      <div style={rowS}>
+        <span style={lbl}>가격 밴드 ±</span>
+        <input type="range" min={5} max={100} step={5} value={s.priceBand}
+          onChange={(e) => set({ priceBand: Number(e.target.value) })} style={sld} />
+        <input type="number" min={5} max={100} value={s.priceBand} style={numIn}
+          onChange={(e) => set({ priceBand: Math.min(100, Math.max(5, parseInt(e.target.value, 10) || 20)) })} />
+        <span style={hint}>% · 가격 범위 ±{s.priceBand}% 여유 · {itemsCount}개</span>
+      </div>
+      <div style={rowS}>
+        <span style={lbl}>추천 점수 ≥</span>
+        <input type="range" min={0} max={100} step={5} value={s.minScore}
+          onChange={(e) => set({ minScore: Number(e.target.value) })} style={sld} />
+        <input type="number" min={0} max={100} value={s.minScore} style={numIn}
+          onChange={(e) => set({ minScore: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })}
+          disabled={s.lockCount > 0} />
+        <span style={hint}>{s.lockCount > 0 ? '락 사용 중 — 허들 무시' : `점 이상 · ${visibleCount}/${itemsCount}개`}</span>
+      </div>
+      <div style={rowS}>
+        <span style={lbl}>개수 고정(락)</span>
+        <input type="range" min={0} max={30} step={1} value={s.lockCount}
+          onChange={(e) => set({ lockCount: Number(e.target.value) })} style={sld} />
+        <input type="number" min={0} max={30} value={s.lockCount} style={numIn}
+          onChange={(e) => set({ lockCount: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+        <span style={hint}>{s.lockCount > 0 ? `${s.lockCount}개로 고정 · 현재 ${visibleCount}개` : '0=끔'}</span>
+      </div>
+      <div style={rowS}>
+        <span style={lbl}>재고 여유분</span>
+        <input type="range" min={0} max={6} step={1} value={s.stockMonths}
+          onChange={(e) => set({ stockMonths: Number(e.target.value) })} style={sld} />
+        <input type="number" min={0} max={12} value={s.stockMonths} style={numIn}
+          onChange={(e) => set({ stockMonths: Math.min(12, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+        <span style={hint}>개월치 이상 재고만 추천</span>
+      </div>
+      {/* 타입당 상한 (숫자 — 위 레버 숫자칸과 정렬) */}
+      <div style={rowS}>
+        <span style={lbl}>타입당 상한</span>
+        <span style={sld} aria-hidden="true" />
+        <input type="number" min={0} max={30} value={s.maxPerType} style={numIn}
+          onChange={(e) => set({ maxPerType: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
+        <span style={hint}>0=비율 자동(분포대로) · 값 지정 시 타입당 최대</span>
+      </div>
+      {/* ── 버튼 ── */}
+      <div style={rowS}>
+        <span style={lbl}>지역 확장</span>
+        {btnGroup(GEO_OPTS, s.geoCeiling, (v) => setReapply({ geoCeiling: v }))}
+        <span style={hint}>광역 밖을 어디까지 추천할지</span>
+      </div>
+      <div style={rowS}>
+        <span style={lbl}>입고빈도</span>
+        {btnGroup(FREQ_OPTS, s.freqStrength, (v) => setReapply({ freqStrength: v }))}
+        <span style={hint}>자주 산 지역 우대 강도</span>
+      </div>
       <div style={rowS}>
         <span style={lbl}>병 용량</span>
         {btnGroup([{ v: false, t: '750ml만' }, { v: true, t: '375ml·매그넘 포함' }], s.includeNonStandard, (v) => set({ includeNonStandard: v }))}
-        <span style={hint}>하프·1.5L↑는 기본 제외 · 변경 후 생성</span>
+        <span style={hint}>하프·1.5L↑ 기본 제외</span>
       </div>
-      {/* 권장 할인율 — 적용 ON/OFF + 산출 범위 */}
       <div style={rowS}>
         <span style={lbl}>권장할인</span>
         {btnGroup([{ v: true, t: '적용' }, { v: false, t: '끄기' }], s.discountApply, (v) => set({ discountApply: v }))}
@@ -87,77 +147,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           <span style={hint}>기준</span>
           {btnGroup([{ v: 'team1' as const, t: '영업1부' }, { v: 'rest' as const, t: '나머지' }], s.discountScope, (v) => set({ discountScope: v }))}
         </>)}
-        <span style={hint}>최근 6개월 최빈가 · 변경 후 생성</span>
-      </div>
-      {/* 분석 기간 */}
-      <div style={rowS}>
-        <span style={lbl}>분석 기간</span>
-        <input type="range" min={1} max={24} step={1} value={s.periodMonths}
-          onChange={(e) => set({ periodMonths: Number(e.target.value) })}
-          style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
-        <input type="number" min={1} max={24} value={s.periodMonths} style={numIn}
-          onChange={(e) => set({ periodMonths: Math.min(24, Math.max(1, parseInt(e.target.value, 10) || 6)) })} />
-        <span style={hint}>개월 · 최근 {s.periodMonths}개월 구매 기준</span>
-      </div>
-      {/* 가격 밴드 */}
-      <div style={rowS}>
-        <span style={lbl}>가격 밴드 ±</span>
-        <input type="range" min={5} max={100} step={5} value={s.priceBand}
-          onChange={(e) => set({ priceBand: Number(e.target.value) })}
-          style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
-        <input type="number" min={5} max={100} value={s.priceBand} style={numIn}
-          onChange={(e) => set({ priceBand: Math.min(100, Math.max(5, parseInt(e.target.value, 10) || 20)) })} />
-        <span style={hint}>% · 평균가 ±{s.priceBand}% 이내 · {itemsCount}개</span>
-      </div>
-      {/* 추천 점수 허들(즉시 필터) */}
-      <div style={rowS}>
-        <span style={lbl}>추천 점수 ≥</span>
-        <input type="range" min={0} max={100} step={5} value={s.minScore}
-          onChange={(e) => set({ minScore: Number(e.target.value) })}
-          style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
-        <input type="number" min={0} max={100} value={s.minScore} style={numIn}
-          onChange={(e) => set({ minScore: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)) })}
-          disabled={s.lockCount > 0} />
-        <span style={hint}>{s.lockCount > 0 ? '락 사용 중 — 허들 무시' : `점 이상 · ${visibleCount}/${itemsCount}개`}</span>
-      </div>
-      {/* 추천 개수 고정(락): N개로 항상 맞춤 — 초과는 점수 상위만, 부족은 다음 점수로 채움 */}
-      <div style={rowS}>
-        <span style={lbl}>개수 고정(락)</span>
-        <input type="range" min={0} max={30} step={1} value={s.lockCount}
-          onChange={(e) => set({ lockCount: Number(e.target.value) })}
-          style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
-        <input type="number" min={0} max={30} value={s.lockCount} style={numIn}
-          onChange={(e) => set({ lockCount: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={hint}>{s.lockCount > 0 ? `${s.lockCount}개로 고정 · 현재 ${visibleCount}개` : '0=끔'}</span>
-      </div>
-      {/* 타입당 상한 — 기본 0(타입 분포 비율대로 자동 배분). 값 지정 시 한 타입 최대 개수 제한 */}
-      <div style={rowS}>
-        <span style={lbl}>타입당 상한</span>
-        <input type="number" min={0} max={30} value={s.maxPerType} style={numIn}
-          onChange={(e) => set({ maxPerType: Math.min(30, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={hint}>0=비율 자동(분포대로) · 값 지정 시 타입당 최대 개수</span>
-      </div>
-      {/* 지역 확장 범위 */}
-      <div style={rowS}>
-        <span style={lbl}>지역 확장</span>
-        {btnGroup(GEO_OPTS, s.geoCeiling, (v) => setReapply({ geoCeiling: v }))}
-        <span style={hint}>광역 밖을 어디까지 추천할지</span>
-      </div>
-      {/* 입고빈도 반영 강도 */}
-      <div style={rowS}>
-        <span style={lbl}>입고빈도</span>
-        {btnGroup(FREQ_OPTS, s.freqStrength, (v) => setReapply({ freqStrength: v }))}
-        <span style={hint}>자주 산 지역 우대 강도</span>
-      </div>
-      {/* 재고 여유분 */}
-      <div style={rowS}>
-        <span style={lbl}>재고 여유분</span>
-        <input type="range" min={0} max={6} step={1} value={s.stockMonths}
-          onChange={(e) => set({ stockMonths: Number(e.target.value) })}
-          style={{ flex: 1, minWidth: 110, accentColor: 'var(--action)' }} />
-        <input type="number" min={0} max={12} value={s.stockMonths} style={numIn}
-          onChange={(e) => set({ stockMonths: Math.min(12, Math.max(0, parseInt(e.target.value, 10) || 0)) })} />
-        <span style={hint}>개월치 이상 재고만 추천</span>
+        <span style={hint}>최근 6개월 최빈가</span>
       </div>
       {/* 가격대별 최소재고(고급) */}
       <div>
