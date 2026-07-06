@@ -37,14 +37,13 @@ export interface RecOpts {
   priceBandPct: number;            // 0.2 = ±20%
   profileMonths: number;           // 분석 기간(개월)
   geoCeiling: 'super' | 'country' | 'any'; // 지역 확장 천장
-  freqStrength: 'strong' | 'soft' | 'off'; // 입고빈도 반영 강도
   stockMonths: number;             // 재고 여유분(개월) — 수요충당
   minStock: { price_300k: number; price_200k: number; price_100k: number; price_50k: number; price_20k: number; price_under_20k: number }; // 가격대별 최소재고
   scoreParams: ScoreParams;        // 점수 가중치(화면 조절)
 }
 export const DEFAULT_REC_OPTS: RecOpts = {
   mode: 'new',
-  priceBandPct: 0.2, profileMonths: 6, geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
+  priceBandPct: 0.2, profileMonths: 6, geoCeiling: 'super', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,
 };

@@ -6,9 +6,7 @@ import { geoGroup, geoTier, TIER_LABEL, type RegionProfile } from './geoTier';
 import { extractFlavorKeys, flavorOverlap, flavorLabel } from './flavor';
 import { scoreQuoteFeedback, priceBandKey, grapeKeysOf, type QuoteFeedbackProfile } from './quoteFeedback';
 
-const FREQ_STRENGTH: Record<string, number> = { strong: 0.65, soft: 0.3, off: 0 };
 export type GeoCeiling = 'super' | 'country' | 'any';
-export type FreqStrength = 'strong' | 'soft' | 'off';
 export type RecMode = 'new' | 'substitute';
 
 /** 대체상품 모드 기준점: 쇼트난 상품의 지역·가격·타입을 닻으로 삼아 근접 상품을 찾는다. */
@@ -61,7 +59,6 @@ export function scoreRecommendations(params: {
   prefs: ClientPreferences;
   priceBandPct: number; // 0.2 = ±20%
   geoCeiling: GeoCeiling;   // 지역 확장 천장(광역/국가/제한없음)
-  freqStrength: FreqStrength; // 입고빈도 반영 강도
   maxSales90d: number;
   recentlyRecommended?: Set<string>; // 최근 제안 품번(중복 강등)
   conversionMap?: Map<string, { quoted: number; converted: number }>; // 과거 견적→출고 전환
@@ -73,7 +70,7 @@ export function scoreRecommendations(params: {
   regionPriceRef?: number;          // 지역별 추천가(중앙값). >0이면 ±band로 가격 게이트.
   typeShares?: Record<string, number>; // 타입별 비중(본인 이력 우선). 비주력 타입(<5%) 강등용. bucketLabel 키.
 }): ScoredItem[] {
-  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, freqStrength, recentlyRecommended, conversionMap } = params;
+  const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
   const anchor = params.anchor;
   const quoteFeedback = params.quoteFeedback;
@@ -84,7 +81,6 @@ export function scoreRecommendations(params: {
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
-  const strength = FREQ_STRENGTH[freqStrength] ?? 0.65;
   const clientCountries = new Set(Object.keys(prefs.countryBuyCount).map(countryKey));
   const scored: ScoredItem[] = [];
 
@@ -144,18 +140,8 @@ export function scoreRecommendations(params: {
     }
     if (t >= 0) tags.push(TIER_LABEL[t]);
     const matchedRegion = (t === 0 ? h?.sub_region : t === 1 ? h?.major_region : t === 2 ? h?.super_region : '') || '';
-    const matchedCount = t === 0 ? (prefs.subRegionBuyCount[matchedRegion] || 0)
-      : t === 1 ? (prefs.majorRegionBuyCount[matchedRegion] || 0)
-      : t === 2 ? (prefs.superRegionBuyCount[matchedRegion] || 0) : 0;
-    const levelMax = t === 0 ? prefs.maxSubRegionBuy : t === 1 ? prefs.maxMajorRegionBuy : t === 2 ? prefs.maxSuperRegionBuy : 1;
-    const freqW = levelMax > 0 ? matchedCount / levelMax : 0;
-    if (mode === 'substitute') {
-      if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} (대체)`);
-      else if (invCountry) reasons.push(extractEnglish(invCountry));
-    } else {
-      if (matchedRegion) reasons.push(`${extractEnglish(matchedRegion)} 선호 ${Math.round(freqW * 100)}%`);
-      else if (invCountry) reasons.push(extractEnglish(invCountry));
-    }
+    if (matchedRegion) reasons.push(mode === 'substitute' ? `${extractEnglish(matchedRegion)} (대체)` : extractEnglish(matchedRegion));
+    else if (invCountry) reasons.push(extractEnglish(invCountry));
 
     // 향미·품종 정렬(0~1)
     let grapeHit = false;
@@ -172,13 +158,10 @@ export function scoreRecommendations(params: {
     }
     if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
 
-    // 빈도 가중: 대체상품은 거래처 빈도 개념이 없으니 순수 지역점수(배수 1).
-    const effStrength = mode === 'substitute' ? 0 : strength;
-    const freqMult = (1 - effStrength) + effStrength * freqW;
-    const tierScore = t >= 0 ? TIER_BASE[t] * freqMult : 0; // 통합: 산지 매칭 없음(t=-1)이면 0
+    const tierScore = t >= 0 ? TIER_BASE[t] : 0; // 산지 계단 점수(빈도 가중 제거 — 자주 산 산지는 다른 지표가 이미 반영)
     const softAdd = soft * sp.softWeight;
     score = tierScore + softAdd;
-    if (t >= 0) breakdown.push(`${TIER_LABEL[t]} ${TIER_BASE[t]} × 빈도 ${freqMult.toFixed(2)} = ${tierScore.toFixed(1)}`);
+    if (t >= 0) breakdown.push(`${TIER_LABEL[t]} +${tierScore.toFixed(0)}`);
     if (softAdd > 0) breakdown.push(`품종·향미 ${soft.toFixed(2)}×${sp.softWeight} = +${softAdd.toFixed(1)}`);
 
     if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');

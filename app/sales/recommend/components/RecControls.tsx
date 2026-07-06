@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { RecSettings, GeoCeiling, FreqStrength, ScoreParams } from '../recSettings';
+import type { RecSettings, GeoCeiling, ScoreParams } from '../recSettings';
 import { DEFAULT_SCORE_PARAMS } from '../recSettings';
 
 type Props = {
@@ -25,9 +25,6 @@ const hint: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)',
 
 const GEO_OPTS: { v: GeoCeiling; t: string }[] = [
   { v: 'super', t: '광역까지' }, { v: 'country', t: '같은 국가까지' }, { v: 'any', t: '제한없음' },
-];
-const FREQ_OPTS: { v: FreqStrength; t: string }[] = [
-  { v: 'strong', t: '강하게' }, { v: 'soft', t: '약하게' }, { v: 'off', t: '끔' },
 ];
 const STOCK_TIERS: { k: keyof RecSettings['minStock']; t: string }[] = [
   { k: 'price_300k', t: '30만↑' }, { k: 'price_200k', t: '20만↑' }, { k: 'price_100k', t: '10만↑' },
@@ -129,11 +126,6 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         <span style={lbl}>지역 확장</span>
         {btnGroup(GEO_OPTS, s.geoCeiling, (v) => setReapply({ geoCeiling: v }))}
         <span style={hint}>광역 밖을 어디까지 추천할지</span>
-      </div>
-      <div style={rowS}>
-        <span style={lbl}>입고빈도</span>
-        {btnGroup(FREQ_OPTS, s.freqStrength, (v) => setReapply({ freqStrength: v }))}
-        <span style={hint}>자주 산 지역 우대 강도</span>
       </div>
       <div style={rowS}>
         <span style={lbl}>병 용량</span>

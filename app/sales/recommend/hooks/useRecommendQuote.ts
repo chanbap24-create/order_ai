@@ -29,7 +29,6 @@ export function useRecommendQuote() {
           price_band: s.priceBand / 100,
           profile_months: s.periodMonths,
           geo_ceiling: s.geoCeiling,
-          freq_strength: s.freqStrength,
           stock_months: s.stockMonths,
           min_stock: s.minStock,
           score_params: s.scoreParams,

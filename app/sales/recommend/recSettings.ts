@@ -1,6 +1,5 @@
 // 추천견적 조절 설정 — 영업사원별(브라우저) 저장. 어드민 아님.
 export type GeoCeiling = 'super' | 'country' | 'any';
-export type FreqStrength = 'strong' | 'soft' | 'off';
 // 추천 타입: new=신규제안(취향 기반), substitute=대체상품(쇼트상품 근접), discovery=발굴(이력 무관·베스트셀러+업태)
 export type RecMode = 'new' | 'substitute' | 'discovery';
 
@@ -32,7 +31,6 @@ export interface RecSettings {
   lockCount: number;    // 추천 개수 고정(락). 0=끔. >0이면 점수 상위 N개로 항상 맞춤(초과 컷·부족 백필)
   maxPerType: number;   // 타입당 상한. 0=끔(타입 분포 비율대로 자동 배분). 값 지정 시 한 타입 최대 개수
   geoCeiling: GeoCeiling;     // 지역 확장 범위(대체상품 모드)
-  freqStrength: FreqStrength; // 입고빈도 반영 강도
   stockMonths: number;  // 재고 여유분(개월)
   minStock: { price_300k: number; price_200k: number; price_100k: number; price_50k: number; price_20k: number; price_under_20k: number };
   scoreParams: ScoreParams; // 점수 가중치
@@ -44,7 +42,7 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
   includeNonStandard: false,
   discountApply: true, discountScope: 'team1',
   periodMonths: 6, priceBand: 20, minScore: 0, lockCount: 6, maxPerType: 0,
-  geoCeiling: 'super', freqStrength: 'strong', stockMonths: 1,
+  geoCeiling: 'super', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },
   scoreParams: DEFAULT_SCORE_PARAMS,
 };

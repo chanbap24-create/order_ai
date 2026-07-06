@@ -26,7 +26,7 @@ function parseScoreParams(raw: unknown): ScoreParams | undefined {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { client_code, price_band, profile_months, geo_ceiling, freq_strength, stock_months, min_stock, score_params, mode: modeRaw, anchor_item_code, anchor_price, discovery_types, discovery_min_price, discovery_max_price, discovery_segment, include_nonstandard, discount_apply, discount_scope } = body;
+    const { client_code, price_band, profile_months, geo_ceiling, stock_months, min_stock, score_params, mode: modeRaw, anchor_item_code, anchor_price, discovery_types, discovery_min_price, discovery_max_price, discovery_segment, include_nonstandard, discount_apply, discount_scope } = body;
     if (!client_code) {
       return NextResponse.json({ error: 'client_code가 필요합니다.' }, { status: 400 });
     }
@@ -42,7 +42,6 @@ export async function POST(req: Request) {
     const band = Math.min(1, Math.max(0.05, Number(price_band) || 0.2));
     const months = Math.min(36, Math.max(1, Math.round(Number(profile_months) || 6)));
     const geoCeiling = ['super', 'country', 'any'].includes(geo_ceiling) ? geo_ceiling : 'super';
-    const freqStrength = ['strong', 'soft', 'off'].includes(freq_strength) ? freq_strength : 'strong';
     const stockMonths = Math.min(12, Math.max(0, Number(stock_months ?? 1)));
     // min_stock: 6개 가격대 정수만 추려 전달(없으면 기본값 사용)
     let minStock: Record<string, number> | undefined;
@@ -87,7 +86,6 @@ export async function POST(req: Request) {
       discountScope: discount_scope === 'rest' ? 'rest' : 'team1',
       priceBandPct: band, profileMonths: months,
       geoCeiling: geoCeiling as 'super' | 'country' | 'any',
-      freqStrength: freqStrength as 'strong' | 'soft' | 'off',
       stockMonths,
       ...(minStock && Object.keys(minStock).length ? { minStock: minStock as never } : {}),
       ...(scoreParams ? { scoreParams } : {}),

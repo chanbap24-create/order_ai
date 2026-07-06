@@ -256,7 +256,7 @@ export async function buildCandidates(
     const regionPriceRef = ownMean > 0 ? ownMean : regionPriceMedian;
     scored = scoreRecommendations({
       inventory, wineMap, purchaseAgg, prefs,
-      priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling, freqStrength: o.freqStrength,
+      priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling,
       maxSales90d, recentlyRecommended, conversionMap,
       scoreParams: o.scoreParams,
       mode: o.mode, anchor,
