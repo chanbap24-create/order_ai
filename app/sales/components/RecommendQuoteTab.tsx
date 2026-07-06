@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ClientOption, ScoredItem } from '../recommend/types';
+import { compareForDisplay } from '../recommend/displayOrder';
 import { useManagers } from '../recommend/hooks/useManagers';
 import { useClientSearch } from '../recommend/hooks/useClientSearch';
 import { useRecommendQuote } from '../recommend/hooks/useRecommendQuote';
@@ -101,12 +102,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     .filter((i) => !settings.minScore || i.score >= settings.minScore)
     .sort((a, b) => b.score - a.score);
   const finalItems = allocateByTypeShares(byScore, shares, settings.lockCount > 0 ? settings.lockCount : MIN_TOTAL, settings.maxPerType);
-  // 표시용 정렬: 타입(스파클링→화이트→레드→로제→포트) → 타입 내 가격 내림차순
-  const TYPE_RANK: Record<string, number> = { '스파클링': 0, '화이트': 1, '레드': 2, '로제': 3, '주정강화': 4, '스위트': 5 };
-  const visible: ScoredItem[] = [...finalItems].sort((a, b) => {
-    const ra = TYPE_RANK[a.wine_type] ?? 9, rb = TYPE_RANK[b.wine_type] ?? 9;
-    return ra !== rb ? ra - rb : (b.price || 0) - (a.price || 0);
-  });
+  // 표시용 정렬: 타입 → 국가 우선순위 → 타입 내 가격 내림차순 (displayOrder.ts 공용)
+  const visible: ScoredItem[] = [...finalItems].sort(compareForDisplay);
 
   // 설정 변경 시 저장(영업사원별, localStorage)
   useEffect(() => { saveRecSettings(settings); }, [settings]);
