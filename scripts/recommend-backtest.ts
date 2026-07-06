@@ -41,8 +41,6 @@ async function main() {
   const { extractRegion } = await import('@/app/lib/segmentProfiles');
   const { isNonOrderable } = await import('@/app/lib/catalogFilter');
   const { isNonStandardBottle, isGiftBox } = await import('@/app/api/sales/recommend/lib/bottleSize');
-  const { getClientQuoteFeatures } = await import('@/app/api/sales/recommend/lib/quoteFeedback');
-  const { getClientConversion } = await import('@/app/lib/quoteConversion');
   type WineRegionRow = any;
 
   // ---- CLI ----
@@ -63,19 +61,17 @@ async function main() {
   const trainFrom = addMonths(cutoff, -profileMonths);
   const postTo = addDays(cutoff, horizon);
 
-  // ---- v2 변형: 개인화 신호(견적학습·과거거절)를 as-of-T로 켜서 기여 측정 ----
-  //  QF = 견적학습(+15 속성 가산), CONV = 과거거절 감점(견적했는데 안 산 품목 −7/−14/−21)
-  const VARIANTS: { name: string; useQF: boolean; useConv: boolean }[] = [
-    { name: '코어(세그포함)', useQF: false, useConv: false },
-    { name: '+견적학습', useQF: true, useConv: false },
-    { name: '+과거거절', useQF: false, useConv: true },
-    { name: 'FULL(둘다)', useQF: true, useConv: true },
+  // ---- 변형: 가격 범위 게이트 모드 비교(하드컷 vs 소프트감점 vs 무시 vs 밴드확대) ----
+  const VARIANTS: { name: string; priceGate: 'hard' | 'soft' | 'off'; band?: number }[] = [
+    { name: '하드게이트(현행)', priceGate: 'hard' },
+    { name: '소프트게이트', priceGate: 'soft' },              // 범위 밖 = 제외 대신 거리비례 감점(−35)
+    { name: '게이트off', priceGate: 'off' },                 // 가격 무시(순수 점수)
+    { name: '밴드40%(하드)', priceGate: 'hard', band: 0.4 }, // 범위 자체를 넓혀 하드컷
   ];
 
-  console.log(`\n[백테스트 v2] CDV · 신규제안(세그먼트 + 견적학습·전환 as-of-T)`);
+  console.log(`\n[백테스트] CDV · 신규제안 — 가격 게이트 모드 비교(세그먼트 포함)`);
   console.log(`  컷오프 T=${cutoff} · 학습창=[${trainFrom}, ${cutoff}) · 정답창=[${cutoff}, ${postTo}] · 최소이력=${minHistory}${limit ? ` · 상한=${limit}` : ''}`);
-  console.log(`  게이트: 지역천장=${o.geoCeiling} · 가격밴드=±${Math.round(o.priceBandPct * 100)}%`);
-  console.log(`  견적학습·과거거절은 T 이전 견적·출고만으로 재구성(leakage-free). 최근제안 페널티만 여전히 OFF.\n`);
+  console.log(`  기본밴드=±${Math.round(o.priceBandPct * 100)}% · 견적학습/전환은 데이터부족(2주치)이라 OFF.\n`);
 
   // ---- 1) 재고 유니버스 + wineMap ----
   const [rawInventory, regionRows, allNotes] = await Promise.all([
@@ -182,7 +178,7 @@ async function main() {
   const aggVar = VARIANTS.map(() => mkBuckets());
   const aggBest = mkBuckets();
   const randPrecision = KS.map(() => 0);
-  let evaluated = 0, sumUniverse = 0, sumPositives = 0, segClients = 0, qfClients = 0;
+  let evaluated = 0, sumUniverse = 0, sumPositives = 0, segClients = 0;
 
   const scoreRankMetrics = (rankedCodes: string[], positives: Set<string>, bucket: { hit: number; precision: number; recall: number }[]) => {
     KS.forEach((k, ki) => {
@@ -243,20 +239,12 @@ async function main() {
       scoreParams: DEFAULT_SCORE_PARAMS, mode: 'new' as const,
       regionPriceRef, typeShares, segScorers,
     };
-    // 개인화 신호 as-of-T 재구성(T 이전 견적·출고만)
-    const quoteFeedback = await getClientQuoteFeatures(code, regionRows as any, cutoff).catch(() => null);
-    if (quoteFeedback) qfClients++;
-    let conversionMap: Map<string, { quoted: number; converted: number }> | undefined;
-    try {
-      const conv = await getClientConversion(code, 60, 'wine', cutoff);
-      conversionMap = new Map(conv.wines.map((w: any) => [w.item_code, { quoted: w.quoted_count, converted: w.converted_count }]));
-    } catch { conversionMap = undefined; }
     for (let vi = 0; vi < VARIANTS.length; vi++) {
       const v = VARIANTS[vi];
       const scored = scoreRecommendations({
         ...core,
-        ...(v.useQF && quoteFeedback ? { quoteFeedback } : {}),
-        ...(v.useConv && conversionMap ? { conversionMap } : {}),
+        priceBandPct: v.band ?? o.priceBandPct,
+        priceGate: v.priceGate,
       });
       scoreRankMetrics(scored.map((s) => s.item_no), positives, aggVar[vi]);
     }
@@ -272,15 +260,15 @@ async function main() {
   const row = (label: string, m: { hit: number; precision: number; recall: number }[]) =>
     `  ${label.padEnd(16)} ` + KS.map((k, ki) => `k=${k}: hit ${pct(m[ki].hit).padStart(4)}%  P ${pct(m[ki].precision).padStart(4)}%  R ${pct(m[ki].recall).padStart(4)}%`).join('  | ');
 
-  console.log(`평가 거래처: ${evaluated}곳(세그먼트매칭 ${segClients} · 견적이력 ${qfClients}) · 평균 정답 ${(sumPositives / evaluated).toFixed(1)}개 · 유니버스 ${Math.round(sumUniverse / evaluated)}개`);
+  console.log(`평가 거래처: ${evaluated}곳(세그먼트매칭 ${segClients}) · 평균 정답 ${(sumPositives / evaluated).toFixed(1)}개 · 유니버스 ${Math.round(sumUniverse / evaluated)}개`);
   console.log(`(hit=상위k에 정답 포함 거래처 비율 · P=precision@k · R=recall@k · 거래처 매크로평균)\n`);
   VARIANTS.forEach((v, vi) => console.log(row(v.name, aggVar[vi])));
   console.log(row('인기순(비개인화)', aggBest));
   console.log(`  ${'랜덤(기대)'.padEnd(16)} ` + KS.map((k, ki) => `k=${k}: hit    -   P ${pct(randPrecision[ki]).padStart(4)}%  R    -  `).join('  | '));
 
-  // 코어 대비 신호 기여 델타(hit@10) — 견적이력 있는 거래처에서만 발화하니 전체평균 델타는 희석됨
-  const base = aggVar[0][0].hit; // 코어
-  console.log(`\n  ▶ 코어 hit@10 = ${pct(base)}% · 신호 기여(hit@10, %p):`);
+  // 현행(하드) 대비 게이트 변형 델타(hit@10)
+  const base = aggVar[0][0].hit; // 하드게이트(현행)
+  console.log(`\n  ▶ 현행(하드) hit@10 = ${pct(base)}% · 게이트 변형 델타(hit@10, %p):`);
   VARIANTS.forEach((v, vi) => { if (vi === 0) return; const d = (aggVar[vi][0].hit - base) / evaluated * 100; console.log(`     ${v.name.padEnd(16)} ${d >= 0 ? '+' : ''}${d.toFixed(1)}%p`); });
 }
 

@@ -77,6 +77,7 @@ export function scoreRecommendations(params: {
   segPts?: SegPts;                  // 세그먼트 배점 오버라이드(백테스트용). 기본 SEG_PTS.
   regionPriceRef?: number;          // 지역별 추천가(중앙값). >0이면 ±band로 가격 게이트.
   typeShares?: Record<string, number>; // 타입별 비중(본인 이력 우선). 비주력 타입(<5%) 강등용. bucketLabel 키.
+  priceGate?: 'hard' | 'soft' | 'off'; // 신규제안 가격 범위 게이트. hard=범위밖 제외(기본) · soft=거리비례 감점 · off=무시.
 }): ScoredItem[] {
   const { inventory, wineMap, purchaseAgg, prefs, priceBandPct, geoCeiling, recentlyRecommended, conversionMap } = params;
   const mode: RecMode = params.mode ?? 'new';
@@ -89,6 +90,7 @@ export function scoreRecommendations(params: {
   const sp = params.scoreParams ?? DEFAULT_SCORE_PARAMS;
   const TIER_BASE = sp.tierBase;
   const band = priceBandPct > 0 ? priceBandPct : 0.2;
+  const priceGate = params.priceGate ?? 'soft'; // 신규제안 기본 소프트(범위밖 감점) — 백테스트상 하드컷보다 hit·recall 우위
   const clientCountries = new Set(Object.keys(prefs.countryBuyCount).map(countryKey));
   const scored: ScoredItem[] = [];
 
@@ -122,8 +124,9 @@ export function scoreRecommendations(params: {
       if (!bucket) continue; // 통합: 타입 게이트 없음 — 안 사본 타입도 점수로 자연 구분(세그먼트가 채움)
     }
 
-    // 게이트 ② 가격. 대체=주력밴드(±band). 신규제안(통합)=가격 상한만(밴드 게이트 없음 — 점수로 정렬).
+    // 게이트 ② 가격. 대체=주력밴드(±band). 신규제안(통합)=타입별 실구매가 p10~p90 ±band 범위.
     const isPremium = false;
+    let pricePenalty = 0; // 소프트 게이트: 범위 밖 거리비례 감점(아래에서 score에 반영)
     if (mode === 'substitute') {
       const ref = anchor ? anchor.price : priceRef(prefs, bucket, geoGroup(h));
       if (ref > 0 && invPrice > 0 && Math.abs(invPrice - ref) / ref > band) continue;
@@ -133,7 +136,15 @@ export function scoreRecommendations(params: {
       const ref = priceRef(prefs, bucket, geoGroup(h)) || regionPriceRef; // 데이터 유무 판정용
       const lo = priceFloor(prefs, bucket, geoGroup(h)) || ref;
       const hi = Math.max(lo, priceCeil(prefs, bucket, geoGroup(h)), ref);
-      if (ref > 0 && invPrice > 0 && (invPrice < lo * (1 - band) || invPrice > hi * (1 + band))) continue;
+      const gLo = lo * (1 - band), gHi = hi * (1 + band);
+      if (ref > 0 && invPrice > 0 && (invPrice < gLo || invPrice > gHi)) {
+        if (priceGate === 'hard') continue;          // 기본: 범위 밖 제외
+        else if (priceGate === 'soft') {             // 소프트: 범위 밖 거리비례 감점(최대 −35), 제외 안 함
+          const dist = invPrice < gLo ? (gLo - invPrice) / gLo : (invPrice - gHi) / gHi;
+          pricePenalty = 35 * Math.min(1, dist);
+        }
+        // 'off' → 감점·제외 없음
+      }
     }
 
     // 계단: 대체=쇼트상품 산지 / 그 외=거래처 산지. 광역 천장 밖이면 제외.
@@ -189,6 +200,13 @@ export function scoreRecommendations(params: {
       tags.push('과거거절');
       reasons.push(`과거 견적 ${cv.quoted}회 미구매`);
       breakdown.push(`과거거절 −${penalty}`);
+    }
+
+    // 소프트 가격 게이트: 범위 밖 품목은 제외 대신 감점(신규 가격탐색 허용)
+    if (pricePenalty > 0) {
+      score -= pricePenalty;
+      tags.push('가격범위밖');
+      breakdown.push(`가격범위밖 −${pricePenalty.toFixed(1)}`);
     }
 
     // 견적학습(긍정만): 과거 견적에서 '먹힌 속성(산지·가격대·타입·품종·향)'을 비슷한 새 후보로 넓혀 가산.
