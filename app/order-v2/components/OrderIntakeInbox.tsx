@@ -19,6 +19,7 @@ export function OrderIntakeInbox({ onLoad }: Props) {
   const [token, setToken] = useState<string>("");
   const [showSetup, setShowSetup] = useState(false);
   const [copied, setCopied] = useState(false);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +42,35 @@ export function OrderIntakeInbox({ onLoad }: Props) {
     const t = setInterval(() => void run(), 30000); // 30초마다 새 수신 확인
     return () => { alive = false; clearInterval(t); };
   }, []);
+
+  // 단축어로 열린 경우(?shortcut=1): 방금 인식한 최신 발주를 바로 편집기에 로드.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("shortcut") !== "1") return;
+    let alive = true;
+    const auto = async () => {
+      // 단축어 POST 직후라 저장이 반영될 시간을 살짝 대기
+      for (let i = 0; i < 6 && alive; i++) {
+        const r = await fetch("/api/order-v2/intake", { credentials: "include" });
+        const j = await r.json();
+        const latest = (j.items || [])[0] as IntakeItem | undefined;
+        if (latest?.result) {
+          onLoad(latest.result);
+          await fetch("/api/order-v2/intake", {
+            method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: latest.id, status: "done" }),
+          });
+          setItems((prev) => prev.filter((x) => x.id !== latest.id));
+          break;
+        }
+        await new Promise((res) => setTimeout(res, 1000)); // 1초 후 재시도(최대 6초)
+      }
+      if (alive) window.history.replaceState({}, "", window.location.pathname);
+    };
+    void auto();
+    return () => { alive = false; };
+  }, [onLoad]);
 
   const pick = async (it: IntakeItem) => {
     if (it.result) onLoad(it.result);
@@ -103,10 +133,14 @@ export function OrderIntakeInbox({ onLoad }: Props) {
               <button onClick={() => { if (token) { void navigator.clipboard.writeText(token); setCopied(true); setTimeout(() => setCopied(false), 1500); } }} style={chip}>{copied ? "✓" : "복사"}</button>
             </div>
             <div style={{ marginTop: 8 }}>
-              단축어 동작: <b>최근 스크린샷 1장 → &quot;URL 콘텐츠 가져오기&quot;(POST)</b><br />
-              · URL: <code style={codeInline}>{typeof window !== "undefined" ? window.location.origin : ""}/api/order-v2/intake</code><br />
-              · 헤더: <code style={codeInline}>x-shortcut-token: (위 토큰)</code><br />
-              · 본문: <b>양식(Form)</b> → <code style={codeInline}>image</code>=스크린샷(파일), <code style={codeInline}>tab</code>=CDV
+              단축어 동작 <b>3단계</b>:<br />
+              <b>①</b> 최근 사진 가져오기(개수 1)<br />
+              <b>②</b> URL의 콘텐츠 가져오기 — <b>POST</b><br />
+              &nbsp;&nbsp;· URL: <code style={codeInline}>{origin}/api/order-v2/intake</code><br />
+              &nbsp;&nbsp;· 헤더: <code style={codeInline}>x-shortcut-token: (위 토큰)</code><br />
+              &nbsp;&nbsp;· 본문 <b>양식(Form)</b>: <code style={codeInline}>image</code>=사진(파일), <code style={codeInline}>tab</code>=CDV<br />
+              <b>③</b> URL 열기(Open URLs) — <code style={codeInline}>{origin}/order-v2?shortcut=1</code>
+              <div style={{ marginTop: 4, color: "var(--text-tertiary)" }}>③이 있어야 발주 화면이 열리고 결과가 자동으로 뜹니다.</div>
             </div>
           </div>
         </div>
