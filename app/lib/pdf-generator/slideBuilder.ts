@@ -114,8 +114,8 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       } catch { /* ignore */ }
     }
 
-    // 2순위: Vivino 누끼 보틀샷 검색
-    if (!bottleImageBase64) {
+    // 2순위: 검색 폴백 — image_url이 아예 비었을 때만(사용자 지정 URL은 실패해도 대체 안 함)
+    if (!bottleImageBase64 && !wine.image_url) {
       const engName = wine.item_name_en;
       if (engName) {
         try {

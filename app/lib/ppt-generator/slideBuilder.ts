@@ -82,7 +82,9 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       }
     }
 
-    if (!bottleImageBase64) {
+    // image_url이 지정됐는데 다운로드 실패한 경우엔 검색으로 대체하지 않음(사용자 지정 URL 존중).
+    // 검색 폴백은 image_url이 아예 비었을 때만.
+    if (!bottleImageBase64 && !wine.image_url) {
       const engName = wine.item_name_en;
       if (engName) {
         try {

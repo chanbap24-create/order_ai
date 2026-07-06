@@ -322,19 +322,36 @@ export function dataUrlToImage(url: string): { base64: string; mimeType: string 
 }
 
 export async function downloadImageAsBase64(imageUrl: string): Promise<{ base64: string; mimeType: string } | null> {
+  // data: URL은 직접 디코드(SSRF 가드가 http/https만 허용)
+  if (imageUrl.startsWith("data:")) return dataUrlToImage(imageUrl);
   try {
     // SSRF 방어: DB wine.image_url 등 외부 제어 가능 경로
     if (!isSafeFetchUrl(imageUrl)) {
       logger.warn(`[WineImage] Blocked unsafe URL: ${imageUrl}`);
       return null;
     }
+    // 핫링크 차단 회피: 브라우저 헤더 + 이미지 출처를 Referer로 (대부분의 리테일러/CDN 통과)
+    let referer = "";
+    try { referer = new URL(imageUrl).origin + "/"; } catch { /* invalid url */ }
     const res = await fetch(imageUrl, {
-      headers: { "User-Agent": USER_AGENT },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        ...(referer ? { Referer: referer } : {}),
+      },
     });
 
-    if (!res.ok) return null;
-
+    if (!res.ok) {
+      logger.warn(`[WineImage] Download ${res.status} for ${imageUrl}`);
+      return null;
+    }
     const contentType = res.headers.get("content-type") || "image/jpeg";
+    // 403/에러 페이지가 HTML로 오는 경우 방어 — 이미지가 아니면 버림
+    if (!contentType.includes("image")) {
+      logger.warn(`[WineImage] Not an image (${contentType}) for ${imageUrl}`);
+      return null;
+    }
     const buffer = Buffer.from(await res.arrayBuffer());
     const base64 = buffer.toString("base64");
 
