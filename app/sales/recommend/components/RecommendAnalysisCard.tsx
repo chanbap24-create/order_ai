@@ -56,14 +56,16 @@ export function RecommendAnalysisCard({ summary }: { summary: RecommendResult['s
       )}
       {a.type_prices && a.type_prices.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>타입별 평균가 (±{a.band_pct}% 허용)</span>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>타입별 추천 가격대 (실구매 p10~p90 ±{a.band_pct}%)</span>
           {a.type_prices.map((t, i) => {
-            const tlo = Math.round((t.avg * (100 - a.band_pct)) / 100);
-            const thi = Math.round((t.avg * (100 + a.band_pct)) / 100);
+            // 실제 게이트 범위 = 타입별 p10~p90 을 ±band 로 확장 (lo/hi 없으면 평균가 폴백)
+            const baseLo = t.lo || t.avg;
+            const baseHi = t.hi || t.avg;
+            const tlo = Math.round((baseLo * (100 - a.band_pct)) / 100);
+            const thi = Math.round((baseHi * (100 + a.band_pct)) / 100);
             return (
               <div key={i} style={{ fontSize: 12, color: 'var(--text-primary)' }}>
-                <b>{t.type}</b> {won(t.avg)}
-                <span style={{ color: 'var(--text-tertiary)' }}> ({won(tlo)}~{won(thi)})</span>
+                <b>{t.type}</b> <span style={{ color: 'var(--text-tertiary)' }}>대표 {won(t.avg)}</span> · {won(tlo)}~{won(thi)}
               </div>
             );
           })}

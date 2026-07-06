@@ -52,7 +52,7 @@ export interface RecommendResult {
       flavors: string[];
       avg_price: number;
       band_pct: number;
-      type_prices?: { type: string; avg: number }[];
+      type_prices?: { type: string; avg: number; lo?: number; hi?: number }[];
       region_dist?: { label: string; count: number; pct: number }[];
       period_months?: number;
       purchased?: { name: string; region: string; count: number; last: string | null }[];

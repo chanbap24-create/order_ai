@@ -33,7 +33,8 @@ export function buildSummary(
       band_pct: Math.round(bandPct * 100),
       type_prices: Array.from(prefs.typeBuckets).map((b) => {
         const s = prefs.priceStats[b];
-        return { type: bucketLabel(b), avg: s && s.n ? Math.round(s.mean) : 0 }; // 횟수 가중 평균
+        // avg=가중평균, lo/hi=가중 p10/p90(실제 가격 게이트 범위의 근거)
+        return { type: bucketLabel(b), avg: s && s.n ? Math.round(s.mean) : 0, lo: s && s.n ? Math.round(s.lo) : 0, hi: s && s.n ? Math.round(s.hi) : 0 };
       }).filter((t) => t.type && t.avg > 0).sort((a, b) => b.avg - a.avg),
       region_dist: (() => {
         const total = Object.values(prefs.regionDist).reduce((a, b) => a + b, 0) || 1;
