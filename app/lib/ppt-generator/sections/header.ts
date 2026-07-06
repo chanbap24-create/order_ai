@@ -1,4 +1,3 @@
-import type PptxGenJS from "pptxgenjs";
 import { C, FONT_EN, FONT_MAIN, type Slide, type SlideData } from "../theme";
 import { addLine } from "../addPrimitives";
 import { extractWineryNameEn, stripCodePrefix } from "@/app/lib/wineNoteText";
@@ -18,9 +17,8 @@ export function renderHeader(slide: Slide, data: SlideData) {
 
   // 2-3. 헤더: 와이너리 로고(병과 중앙정렬) + 이름/원산지(우측 콘텐츠 시작점 정렬). 까브드뱅 로고는 푸터에만.
   const hasLogo = !!(data.brandLogoBase64 && data.brandLogoMimeType && data.brandLogoW && data.brandLogoH);
-  const wName = (data.wineryNameEn || "").trim() || extractWineryNameEn(data.wineryDescription, data.nameEn);
-  const hCountry = data.countryEn || data.country || "";
-  const hSub = data.region ? `${data.region}, ${hCountry}` : hCountry;
+  // 상단 타이틀 = 와인 영문명 전체(잘리지 않게). 없으면 와이너리명 추출로 폴백.
+  const wName = stripCodePrefix(data.nameEn) || extractWineryNameEn(data.wineryDescription, data.nameEn);
 
   const BOTTLE_CENTER = 1.1; // 좌측 병 영역 중심 (footer.ts AREA_X 0.15 + AREA_W 1.9 / 2)
   const CONTENT_X = 2.2;     // 우측 콘텐츠(와인명 카드/배지) 시작 x
@@ -40,20 +38,11 @@ export function renderHeader(slide: Slide, data: SlideData) {
 
   const textX = CONTENT_X; // 이름은 항상 우측 콘텐츠 시작점에 맞춤
   if (wName) {
+    // 지역 부제 제거 → 밴드 전체 높이를 이름에 사용(길면 2줄/축소)
     slide.addText(wName, {
-      x: textX, y: 0.13, w: 7.2 - textX, h: 0.36,
+      x: textX, y: 0.06, w: 7.2 - textX, h: 0.72,
       fontSize: 20, fontFace: FONT_EN, color: C.BURGUNDY, italic: true, align: "left", valign: "middle",
-    });
-    if (hSub) {
-      slide.addText(hSub, {
-        x: textX, y: 0.5, w: 7.2 - textX, h: 0.2,
-        fontSize: 9, fontFace: FONT_EN, color: C.TEXT_MUTED, align: "left", valign: "middle",
-      });
-    }
-  } else if (hSub) {
-    slide.addText(hSub, {
-      x: textX, y: 0.28, w: 7.2 - textX, h: 0.35,
-      fontSize: 14, fontFace: FONT_EN, color: C.BURGUNDY, align: "left", valign: "middle",
+      fit: "shrink",
     });
   }
 
@@ -68,33 +57,11 @@ export function renderHeader(slide: Slide, data: SlideData) {
     line: { width: 0 },
   });
 
-  // 7. 와인명 텍스트 (한글 + 영문) — 전산 검색용 2글자 코드 제거 후, 길이에 따라 폰트 자동 조절
+  // 7. 와인명 텍스트 — 한글명(영문 풀네임은 상단 타이틀에 있으므로 카드엔 중복 제거)
   const nameKrClean = stripCodePrefix(data.nameKr);
-  const nameEnClean = stripCodePrefix(data.nameEn);
-  const totalLen = nameKrClean.length + nameEnClean.length;
-  const krFontSize = totalLen > 40 ? 13 : totalLen > 28 ? 14 : 17;
-  const enFontSize = totalLen > 40 ? 8.5 : totalLen > 28 ? 9.5 : 11;
+  const krFontSize = nameKrClean.length > 26 ? 15 : nameKrClean.length > 18 ? 17 : 19;
 
-  const nameRuns: PptxGenJS.TextProps[] = [
-    {
-      text: nameEnClean ? nameKrClean + "\n" : nameKrClean,
-      options: {
-        fontSize: krFontSize, fontFace: FONT_MAIN,
-        color: C.BURGUNDY_DARK, bold: true,
-      },
-    },
-  ];
-  if (nameEnClean) {
-    nameRuns.push({
-      text: nameEnClean,
-      options: {
-        fontSize: enFontSize, fontFace: FONT_EN,
-        color: C.TEXT_SECONDARY, italic: true,
-      },
-    });
-  }
-
-  slide.addText(nameRuns, {
+  slide.addText([{ text: nameKrClean, options: { fontSize: krFontSize, fontFace: FONT_MAIN, color: C.BURGUNDY_DARK, bold: true } }], {
     x: 2.4, y: 0.98, w: 4.7, h: 0.8,
     valign: "middle", wrap: true, autoFit: true,
   });
