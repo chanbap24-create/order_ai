@@ -28,7 +28,8 @@ export function buildSummary(
         ? Object.entries(prefs.superRegionBuyCount)
         : Object.entries(prefs.majorRegionBuyCount)
       ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
-      flavors: Array.from(prefs.flavorKeys).map(flavorLabel).slice(0, 6),
+      // 선호강도(빈도) 상위 순으로 자세히(최대 14개)
+      flavors: [...prefs.flavorWeights.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([k]) => flavorLabel(k)),
       avg_price: Math.round(prefs.clientAvgPrice),
       band_pct: Math.round(bandPct * 100),
       type_prices: Array.from(prefs.typeBuckets).map((b) => {
