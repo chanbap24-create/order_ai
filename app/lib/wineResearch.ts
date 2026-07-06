@@ -2,7 +2,7 @@
 
 import OpenAI from "openai";
 import { logger } from "@/app/lib/logger";
-import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
+import { scrapeWineSearcher, searchVivinoBottleImage, searchWineryWebsiteImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import type { WineResearchResult } from "@/app/types/wine";
 
@@ -164,8 +164,16 @@ export async function researchWine(itemCode: string, itemNameKr: string, itemNam
     const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
     const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
 
-    // 4-1. 와이너리 공식 웹사이트에서 보틀 이미지
-    if (brandCtx?.website) {
+    // 4-1. DuckDuckGo 이미지 (주 소스 — Vivino/WS 스크래핑 사망, DDG는 키 없이 정확)
+    for (const lowerName of uniqueNames) {
+      if (imageUrl) break;
+      const name = nameMap.get(lowerName) || lowerName;
+      imageUrl = await searchWineImageDuckDuckGo(name, brandCtx?.brandNameEn || undefined).catch(() => null);
+      if (imageUrl) logger.info(`[WineImage] DDG: "${name}"`);
+    }
+
+    // 4-2. 와이너리 공식 웹사이트에서 보틀 이미지 (DDG 실패 시)
+    if (!imageUrl && brandCtx?.website) {
       imageUrl = await searchWineryWebsiteImage(
         englishName || result.item_name_en, brandCtx.website, brandCtx.brandNameEn || undefined
       );

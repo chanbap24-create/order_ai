@@ -32,7 +32,7 @@ function tokenEq(a: string, b: string): boolean {
  * 2) 숫자 토큰(숙성 연수 등)은 전부 일치해야 함
  * 3) 전체 토큰의 60% 이상 일치
  */
-function nameMatches(queryName: string, candidateName: string): boolean {
+export function nameMatches(queryName: string, candidateName: string): boolean {
   const q = tokenize(queryName.replace(/^[A-Za-z]{2}\s+(?=[A-Z])/, "")); // 전산 코드 접두어 제거
   const c = tokenize(candidateName);
   if (q.length === 0 || c.length === 0) return false;

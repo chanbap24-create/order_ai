@@ -20,7 +20,83 @@ export interface WineSearcherData {
 
 // Vivino 보틀샷 검색은 이름 일치 검증 포함 버전으로 분리 (기존 import 경로 호환용 재export)
 export { searchVivinoBottleImage } from "@/app/lib/vivinoImageSearch";
-import { searchVivinoBottleImage } from "@/app/lib/vivinoImageSearch";
+import { searchVivinoBottleImage, nameMatches } from "@/app/lib/vivinoImageSearch";
+
+/** HEAD로 이미지 URL 유효성 확인(콘텐츠타입 image 또는 이미지 확장자). 실패해도 확장자 맞으면 통과. */
+async function headOkImage(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: "HEAD", headers: { "User-Agent": USER_AGENT } });
+    const ct = res.headers.get("content-type") || "";
+    if (res.ok && (ct.includes("image") || /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(url))) return true;
+  } catch { /* HEAD 실패 시 확장자로 판단 */ }
+  return /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(url);
+}
+
+interface DdgImage { image: string; title: string; width: number; height: number; }
+
+/** DuckDuckGo 이미지 검색(JSON). vqd 토큰 획득 후 i.js 호출. 키 불필요. */
+async function ddgImageResults(query: string): Promise<DdgImage[]> {
+  try {
+    const tok = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(query)}&iax=images&ia=images`, {
+      headers: { "User-Agent": USER_AGENT },
+    });
+    const html = await tok.text();
+    const vqd = (html.match(/vqd="?([\d-]+)"?/) || [])[1];
+    if (!vqd) return [];
+    const res = await fetch(`https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query)}&vqd=${vqd}&f=,,,&p=1`, {
+      headers: { "User-Agent": USER_AGENT, Referer: "https://duckduckgo.com/", Accept: "application/json" },
+    });
+    if (!res.ok) return [];
+    const j = await res.json().catch(() => null);
+    return ((j?.results || []) as Array<Record<string, unknown>>).map((x) => ({
+      image: String(x.image || ""),
+      title: String(x.title || ""),
+      width: Number(x.width) || 0,
+      height: Number(x.height) || 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * DuckDuckGo 이미지에서 와인 보틀샷 검색 (Vivino/Wine-Searcher 스크래핑 대체 주 소스).
+ * 이름 일치 후보 중 '세로형(병 모양)' + 적정 해상도를 우선 선택. 잘못된 병보다 없는 게 나음.
+ */
+export async function searchWineImageDuckDuckGo(wineNameEn: string, brandNameEn?: string): Promise<string | null> {
+  if (!wineNameEn) return null;
+  const query = `${brandNameEn ? brandNameEn + " " : ""}${wineNameEn} wine bottle`;
+  const results = await ddgImageResults(query);
+  if (!results.length) return null;
+
+  // 이름 일치 후보만(오인 방지). 하나도 없으면 폴백 안 함(엉뚱한 병 방지).
+  const matched = results.filter((r) => r.title && nameMatches(wineNameEn, r.title));
+  if (!matched.length) {
+    logger.info(`[DDG] ${results.length} images but no name match: "${wineNameEn}"`);
+    return null;
+  }
+  // 병샷 스코어: 세로형(높이/너비) 우선 + 적정 해상도 + 누끼 png 가점
+  const scored = matched
+    .filter((r) => r.image && r.width >= 200 && r.height >= 200)
+    .map((r) => {
+      const portrait = r.height / Math.max(1, r.width);
+      let s = 0;
+      if (portrait >= 1.5) s += 4;        // 병은 확실히 세로로 김
+      else if (portrait >= 1.15) s += 2;
+      else if (portrait < 0.9) s -= 3;    // 가로형 = 라벨크롭/배너 감점
+      if (/\.png(\?|$)/i.test(r.image)) s += 1;
+      return { r, s };
+    })
+    .sort((a, b) => b.s - a.s);
+
+  for (const { r } of scored) {
+    if (isSafeFetchUrl(r.image) && (await headOkImage(r.image))) {
+      logger.info(`[DDG] Matched "${r.title}" (${r.width}x${r.height}): ${r.image}`);
+      return r.image;
+    }
+  }
+  return null;
+}
 
 /**
  * Wine-Searcher에서 와인 정보 + 이미지 스크래핑

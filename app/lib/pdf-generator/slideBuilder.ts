@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { dataUrlToImage, downloadImageAsBase64, searchVivinoBottleImage } from "@/app/lib/wineImageSearch";
+import { dataUrlToImage, downloadImageAsBase64, searchVivinoBottleImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { trimWhitespace } from "@/app/lib/logoTrim";
 import { formatVintage4, type SlideData } from "./theme";
@@ -119,7 +119,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       const engName = wine.item_name_en;
       if (engName) {
         try {
-          const vivinoUrl = await searchVivinoBottleImage(engName);
+          const vivinoUrl = await searchWineImageDuckDuckGo(engName).catch(() => null) || await searchVivinoBottleImage(engName);
           if (vivinoUrl) {
             const imgData = await downloadImageAsBase64(vivinoUrl);
             if (imgData) {

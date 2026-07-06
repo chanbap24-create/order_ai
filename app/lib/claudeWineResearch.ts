@@ -2,7 +2,7 @@
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
-import { scrapeWineSearcher, searchWineImage, searchVivinoBottleImage, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
+import { scrapeWineSearcher, searchVivinoBottleImage, searchWineryWebsiteImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { parseJsonLoose } from "@/app/lib/jsonExtract";
 import { RESEARCH_PROMPT } from "@/app/lib/wineResearchPrompt";
@@ -224,8 +224,16 @@ export async function researchWineWithClaude(
     const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
     const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
 
-    // 3-1. 와이너리 공식 웹사이트에서 보틀 이미지 (가장 정확)
-    if (dbBrandContext?.website) {
+    // 3-1. DuckDuckGo 이미지 (주 소스 — Vivino/Wine-Searcher 스크래핑이 JS렌더/봇차단으로 사망, DDG는 키 없이 정확)
+    for (const lowerName of uniqueNames) {
+      if (imageUrl) break;
+      const name = nameMap.get(lowerName) || lowerName;
+      imageUrl = await searchWineImageDuckDuckGo(name, dbBrandContext?.brandNameEn || undefined).catch(() => null);
+      if (imageUrl) logger.info(`[Claude][WineImage] DDG: "${name}"`);
+    }
+
+    // 3-2. 와이너리 공식 웹사이트에서 보틀 이미지 (DDG 실패 시)
+    if (!imageUrl && dbBrandContext?.website) {
       imageUrl = await searchWineryWebsiteImage(
         itemNameEn, dbBrandContext.website, dbBrandContext.brandNameEn || undefined
       ).catch(() => null);
