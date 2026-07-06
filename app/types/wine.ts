@@ -111,6 +111,8 @@ export interface WineResearchResult {
   glass_pairing: string;
   serving_temp: string;
   awards: string;
+  flavor_en?: string;        // 향미 매칭용 영문 상세 descriptor(사용자 비표시)
+  flavor_tags?: string[];    // flavor_en/노트에서 추출한 세분화 향미 태그
   image_url?: string;
 }
 

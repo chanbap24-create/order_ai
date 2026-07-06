@@ -72,6 +72,7 @@ ${FEW_SHOT}
   "color_note": "외관/색상 (한글, 전문 테이스팅 노트)",
   "nose_note": "향 (한글, 전문 테이스팅 노트)",
   "palate_note": "맛/입안 느낌 (한글, 전문 테이스팅 노트)",
+  "flavor_en": "detailed English aroma/flavor descriptors for internal matching (NOT shown to users). Be SPECIFIC and comma-separated: lemon zest, wet stone, flint, chalk, vanilla, toast, blackcurrant, violet, leather, brioche, etc. Include 10+ distinct descriptors covering fruit/floral/herb/spice/oak/earth/mineral/dairy.",
   "food_pairing": "음식 페어링 (한글, 구체적 요리명)",
   "glass_pairing": "추천 글라스 (한글, 예: 보르도 글라스)",
   "serving_temp": "서빙 온도 (예: 16-18°C)",

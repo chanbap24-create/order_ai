@@ -6,6 +6,7 @@ import { scrapeWineSearcher, searchVivinoBottleImage, searchWineryWebsiteImage, 
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { parseJsonLoose } from "@/app/lib/jsonExtract";
 import { RESEARCH_PROMPT } from "@/app/lib/wineResearchPrompt";
+import { extractFlavorKeys } from "@/app/api/sales/recommend/lib/flavor";
 import type { WineResearchResult, WineValidation } from "@/app/types/wine";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
@@ -212,6 +213,9 @@ export async function researchWineWithClaude(
       throw new Error(`응답이 잘려 파싱에 실패했습니다. 재시도해주세요.`);
     }
   }
+
+  // 향미 매칭용 세분화 태그 추출(flavor_en 우선 + 한글 노트 보강). 추천 매칭용, 표시엔 안 쓰임.
+  result.flavor_tags = [...extractFlavorKeys(`${result.flavor_en || ''} ${result.nose_note || ''} ${result.palate_note || ''}`)];
 
   // Step 3: 이미지 검색 (우선순위: 와이너리 공식사이트 → Vivino → Wine-Searcher)
   if (!imageUrl) {

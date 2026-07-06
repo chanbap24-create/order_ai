@@ -304,6 +304,8 @@ export async function upsertTastingNote(wineId: string, note: Partial<TastingNot
       winery_description: note.winery_description || null,
       vintage_note: note.vintage_note || null,
       aging_potential: note.aging_potential || null,
+      flavor_tags: note.flavor_tags || null,
+      flavor_research_at: note.flavor_research_at || null,
       ...snapshot,
       ai_generated: note.ai_generated || 0,
       manually_edited: note.manually_edited || 0,

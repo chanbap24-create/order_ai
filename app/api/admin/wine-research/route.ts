@@ -88,6 +88,8 @@ export async function POST(request: NextRequest) {
       glass_pairing: result.glass_pairing,
       serving_temp: result.serving_temp,
       awards: result.awards,
+      flavor_tags: result.flavor_tags && result.flavor_tags.length ? result.flavor_tags : null,
+      flavor_research_at: result.flavor_tags && result.flavor_tags.length ? new Date().toISOString() : null,
       ai_generated: 1,
       verification_status,
     } as Record<string, unknown>);
