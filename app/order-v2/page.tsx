@@ -10,6 +10,7 @@ import { AutoModeToggle } from "./components/AutoModeToggle";
 import { BatchQueue } from "./components/BatchQueue";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { ImageIntakeButton } from "./components/ImageIntakeButton";
+import { OrderIntakeInbox } from "./components/OrderIntakeInbox";
 import { ItemListSection } from "./components/ItemListSection";
 import {
   OrderLineCard,
@@ -96,6 +97,8 @@ export default function OrderV2Page() {
             onFiles={g.handleFiles}
             onClearError={g.imageIntake.clearError}
           />
+
+          <OrderIntakeInbox onLoad={g.applyExtraction} />
 
           <ClientSearchField
             query={client.query}

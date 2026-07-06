@@ -306,6 +306,7 @@ export function useOrderV2Page() {
     editor,
     wineSearch,
     imageIntake,
+    applyExtraction,
     batch,
     handleFiles,
     autoMode,
