@@ -35,9 +35,15 @@ export const DEFAULT_SCORE_PARAMS: ScoreParams = {
 // 세그먼트(업장·업태·지역) = 그 세그먼트가 사는 '와인 타입' 순위 + '국가' 순위로 배점.
 export interface SegRank { typeRank: Map<string, number>; countryRank: Map<string, number>; }
 export interface SegScorers { venue?: SegRank | null; bt?: SegRank | null; region?: SegRank | null; }
-const SEG_PTS = {
-  venueType: [10, 7, 4], venueCtry: [5, 3, 2], // 업장 15 = 타입10 + 국가5
-  segType: [12, 8, 4], segCtry: [8, 5, 3],     // 업태·지역 20 = 타입12 + 국가8
+export type SegPts = {
+  venueType: number[]; venueCtry: number[];
+  btType: number[]; btCtry: number[];
+  regionType: number[]; regionCtry: number[];
+};
+export const SEG_PTS: SegPts = {
+  venueType: [10, 7, 4], venueCtry: [5, 3, 2],   // 업장 15 = 타입10 + 국가5
+  btType: [12, 8, 4], btCtry: [8, 5, 3],         // 업태 20 = 타입12 + 국가8
+  regionType: [12, 8, 4], regionCtry: [8, 5, 3], // 지역 20 = 타입12 + 국가8
 };
 // rank 0/1/2 = 1등/2등/3등, 그 외(≥3, 분포엔 있음) = 1점, 없음(undefined) = 0.
 function rankPts(rank: number | undefined, tbl: number[]): number {
@@ -67,6 +73,7 @@ export function scoreRecommendations(params: {
   anchor?: SubstituteAnchor; // 대체상품 모드: 쇼트상품 기준점
   quoteFeedback?: QuoteFeedbackProfile; // 거래처 견적학습 프로필(속성 단위 전환)
   segScorers?: SegScorers;          // 업장·업태·지역 세그먼트의 타입/국가 분포 순위
+  segPts?: SegPts;                  // 세그먼트 배점 오버라이드(백테스트용). 기본 SEG_PTS.
   regionPriceRef?: number;          // 지역별 추천가(중앙값). >0이면 ±band로 가격 게이트.
   typeShares?: Record<string, number>; // 타입별 비중(본인 이력 우선). 비주력 타입(<5%) 강등용. bucketLabel 키.
 }): ScoredItem[] {
@@ -213,9 +220,10 @@ export function scoreRecommendations(params: {
         const cp = rankPts(sc.countryRank.get(wc), ctryTbl);
         if (tp + cp > 0) { score += tp + cp; breakdown.push(`${label} 타입 +${tp}·국가 +${cp}`); }
       };
-      addSeg(segScorers.venue, SEG_PTS.venueType, SEG_PTS.venueCtry, '업장');
-      addSeg(segScorers.bt, SEG_PTS.segType, SEG_PTS.segCtry, '업태');
-      addSeg(segScorers.region, SEG_PTS.segType, SEG_PTS.segCtry, '지역');
+      const SEG = params.segPts ?? SEG_PTS;
+      addSeg(segScorers.venue, SEG.venueType, SEG.venueCtry, '업장');
+      addSeg(segScorers.bt, SEG.btType, SEG.btCtry, '업태');
+      addSeg(segScorers.region, SEG.regionType, SEG.regionCtry, '지역');
     }
     // 비주력 타입 강등: 본인(무이력이면 업장) 타입 비중 < 5%면 감점(0%에 가까울수록 세게). 스시야 레드 등.
     if (unified && typeShares && Object.keys(typeShares).length) {
