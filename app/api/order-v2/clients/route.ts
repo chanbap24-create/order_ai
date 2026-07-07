@@ -30,11 +30,13 @@ export async function GET(req: NextRequest) {
     // 로그인 담당자 거래처로 스코프 — 내 거래처에 매칭이 있으면 그쪽만, 없으면 전체(폴백).
     const session = await getSession();
     const mine = session?.manager ? await getManagerClientCodes(session.manager, tab) : new Set<string>();
+    // 검색 결과는 소유와 무관하게 전부 노출하되, 내 거래처를 상단으로 정렬.
+    // (과거: 내 거래처가 있으면 그것만 남겨 → 다른 담당 소유의 정확 매칭이 숨겨지던 버그)
     const scope = <T extends { client_code: string }>(list: T[]): (T & { mine?: boolean })[] => {
       if (mine.size === 0) return list as (T & { mine?: boolean })[];
-      const own = list.filter((c) => mine.has(c.client_code));
-      const pool = own.length > 0 ? own : list; // 내 거래처 매칭 없으면 전체로 폴백
-      return pool.map((c) => ({ ...c, mine: mine.has(c.client_code) }));
+      return list
+        .map((c) => ({ ...c, mine: mine.has(c.client_code) }))
+        .sort((a, b) => Number(b.mine) - Number(a.mine));
     };
 
     if (!q.trim()) {
