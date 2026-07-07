@@ -141,7 +141,17 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // ── /api/cron/* → 라우트가 CRON_SECRET/admin 자체 검증 ──
-  if (pathname.startsWith('/api/cron/')) {
+  if (pathname.startsWith('/api/cron/') || pathname === '/api/sync-daily') {
+    return NextResponse.next();
+  }
+
+  // ── /api/sync-inventory, /api/sync-item-english → 어드민 전용(재고/품목 데이터 덮어쓰기) ──
+  if (pathname === '/api/sync-inventory' || pathname === '/api/sync-item-english') {
+    const token = request.cookies.get(ADMIN_COOKIE)?.value;
+    const payload = token ? await verifyToken(token) : null;
+    if (!payload || payload.role !== 'admin' || (payload.ts && Date.now() - payload.ts > ADMIN_MAX_AGE)) {
+      return NextResponse.json({ error: '관리자 인증이 필요합니다.' }, { status: 401 });
+    }
     return NextResponse.next();
   }
 
@@ -155,17 +165,8 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // ── /api/forecast/* + /api/marketing/* → 인증 비강제. 단, 토큰 있으면 사용량 추적 ──
-  if (pathname.startsWith('/api/forecast') || pathname.startsWith('/api/marketing')) {
-    if (request.headers.get('x-track-skip') !== '1') {
-      const { valid: v2, payload: p2 } = await verifySalesToken(request);
-      if (v2 && p2?.manager) {
-        const f = classifyFeature(request.method, pathname);
-        if (f) event.waitUntil(trackFeatureUsage(p2.manager, f));
-      }
-    }
-    return NextResponse.next();
-  }
+  // (forecast/marketing 무인증 예외 제거 — 아래 /api/* catch-all 이 sales_auth 강제 + 사용량 추적.
+  //  회사 매출·거래처·가격 데이터가 무인증 노출되던 취약점 패치.)
 
   // ── /api/admin/remote-sync → 로컬 에이전트 전용: Bearer 토큰 or admin_auth ──
   // REMOTE_SYNC_TOKEN 미설정 시 외부 공개를 차단 (admin_auth 쿠키만 허용).

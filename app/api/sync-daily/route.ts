@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { supabase } from "@/app/lib/db";
+import { getEnv } from "@/app/lib/env";
+import { verifyToken } from "@/app/lib/auth";
+
+// Vercel Cron(Bearer CRON_SECRET) 또는 어드민(admin_auth)만 트리거 허용.
+async function authorize(req: Request): Promise<boolean> {
+  const secret = getEnv("CRON_SECRET");
+  const auth = req.headers.get("authorization") || "";
+  if (secret && auth === `Bearer ${secret}`) return true;
+  const token = (await cookies()).get("admin_auth")?.value;
+  return !!(token && (await verifyToken(token)));
+}
 
 /**
  * 매일 오전 9시 자동 실행되는 데이터 동기화 API
@@ -140,6 +152,9 @@ function logSync(status: "success" | "failed", details: any): void {
 }
 
 export async function GET(req: Request) {
+  if (!(await authorize(req))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const startTime = Date.now();
 
   console.log("[SYNC] 일일 데이터 동기화 시작");
