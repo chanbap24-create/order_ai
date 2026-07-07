@@ -16,15 +16,35 @@ function isUnusedClient(name: string): boolean {
   return name.replace(/\s/g, "").includes("사업자변경");
 }
 
+/**
+ * manager_clients RPC 전체 행을 페이지네이션으로 조회.
+ * PostgREST는 SETOF 반환을 기본 1000행으로 잘라서, 거래처 1000곳 초과 담당자는
+ * 일부 거래처(예: 31990)가 누락됐다. range()로 끝까지 긁는다.
+ */
+async function fetchAllManagerRows(manager: string, isGlass: boolean): Promise<Row[]> {
+  const PAGE = 1000;
+  const rows: Row[] = [];
+  for (let from = 0; from < 20000; from += PAGE) {
+    const { data, error } = await supabase
+      .rpc("manager_clients", { p_manager: manager, p_glass: isGlass })
+      .range(from, from + PAGE - 1);
+    if (error) break;
+    const batch = (data || []) as Row[];
+    rows.push(...batch);
+    if (batch.length < PAGE) break;
+  }
+  return rows;
+}
+
 /** 담당자의 거래처 목록(별칭 최대 3개 포함). manager 없으면 빈 배열. */
 export async function getManagerClients(manager: string, tab: string): Promise<MgrClient[]> {
   if (!manager?.trim()) return [];
   const isGlass = tab === "DL";
 
-  // 1) 거래처 코드·이름 — DISTINCT RPC로 담당자 전체 거래처를 정확히 조회(원행 limit 누락 방지)
+  // 1) 거래처 코드·이름 — DISTINCT RPC 전체 페이지 조회(1000행 캡 회피)
   const byCode = new Map<string, string>(); // code → name
-  const { data } = await supabase.rpc("manager_clients", { p_manager: manager, p_glass: isGlass });
-  for (const r of (data || []) as Row[]) {
+  const data = await fetchAllManagerRows(manager, isGlass);
+  for (const r of data as Row[]) {
     const code = String(r.client_code || "").trim();
     const name = String(r.client_name || code).trim();
     if (code && name && !isUnusedClient(name) && !byCode.has(code)) byCode.set(code, name);
@@ -61,8 +81,8 @@ export async function getManagerClients(manager: string, tab: string): Promise<M
 export async function getManagerClientCodes(manager: string, tab: string): Promise<Set<string>> {
   const set = new Set<string>();
   if (!manager?.trim()) return set;
-  // DISTINCT RPC로 담당자 전체 거래처 코드를 정확히 조회(원행 limit 누락 방지)
-  const { data } = await supabase.rpc("manager_clients", { p_manager: manager, p_glass: tab === "DL" });
-  for (const r of (data || []) as Row[]) if (r.client_code) set.add(String(r.client_code));
+  // DISTINCT RPC 전체 페이지 조회(1000행 캡 회피 — 1000곳 초과 담당자 누락 방지)
+  const data = await fetchAllManagerRows(manager, tab === "DL");
+  for (const r of data as Row[]) if (r.client_code) set.add(String(r.client_code));
   return set;
 }
