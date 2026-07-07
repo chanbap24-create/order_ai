@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/db";
+import { sanitizeFilterValue } from "@/app/lib/validation";
 import { normTight, stripQtyAndUnit } from "./normalize";
 
 /* ================= 약어 학습 시스템 ================= */
@@ -33,7 +34,7 @@ export async function getLearnedMatch(
       const { data } = await supabase
         .from('item_alias')
         .select('alias, canonical')
-        .or(`client_code.eq.${clientCode},client_code.eq.*`);
+        .or(`client_code.eq.${sanitizeFilterValue(clientCode)},client_code.eq.*`);
       rows = (data || []) as AliasRow[];
     }
     if (!rows?.length) {

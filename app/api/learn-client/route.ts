@@ -1,6 +1,7 @@
 import { supabase } from "@/app/lib/db";
 import { NextRequest } from "next/server";
 import { jsonResponse } from "@/app/lib/api-response";
+import { requireClientAccess } from "@/app/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 담당자 스코프 검증 — 남의 거래처 alias 오염(IDOR) 차단
+    const guard = await requireClientAccess(client_code, type === "wine" ? "wine" : "glass");
+    if (guard) return guard;
 
     const table = type === "wine" ? "client_alias" : "glass_client_alias";
 
@@ -71,7 +76,7 @@ export async function GET(req: NextRequest) {
       ...new Set((aliases || []).map((a: any) => a.client_code)),
     ];
 
-    let clientMap: Record<string, string> = {};
+    const clientMap: Record<string, string> = {};
     if (clientCodes.length > 0) {
       const { data: clients } = await supabase
         .from(clientTable)
