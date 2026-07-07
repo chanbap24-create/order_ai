@@ -11,9 +11,9 @@ export interface ScoreParams {
   quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) 가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  // 통합 100점 = 산지20+취향10+견적15(이력) + 업장15+업태20+지역20(타입·국가 분포, profile 기반).
-  tierBase: [20, 16, 12, 8],
-  softWeight: 10, recentPenalty: 0.45, quoteFeedbackWeight: 15,
+  // 통합 91점 = 산지15+취향15(향미13·품종2)+견적15 + 업장15+업태20+지역16(profile 기반).
+  tierBase: [15, 12, 9, 6],
+  softWeight: 15, recentPenalty: 0.45, quoteFeedbackWeight: 15,
 };
 
 export interface RecSettings {
@@ -49,8 +49,8 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
 
 // 가중치 스킴이 바뀌면 키를 올린다(옛 저장값을 통째로 버려 새 기본값을 강제 적용).
 // v3: 업장 가산(venueWeight 20) 도입 — 지역·견적학습에서 10씩 차출.
-const KEY = 'recQuote.settings.v8';
-const SETTINGS_VERSION = 8;
+const KEY = 'recQuote.settings.v9';
+const SETTINGS_VERSION = 9;
 
 export function loadRecSettings(): RecSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_REC_SETTINGS };

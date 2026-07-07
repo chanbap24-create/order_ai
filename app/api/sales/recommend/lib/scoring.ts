@@ -26,9 +26,9 @@ export interface ScoreParams {
   quoteFeedbackWeight: number; // 견적학습(속성 단위 전환) 가중치
 }
 export const DEFAULT_SCORE_PARAMS: ScoreParams = {
-  // 통합 96점 = 산지20 + 취향10 + 견적15(이력) + 업장15 + 업태20 + 지역16(타입8·국가8). 세그먼트는 profile 기반(scoreParams 밖).
-  tierBase: [20, 16, 12, 8],  // 산지: 같은마을20/인근16/광역12/타지역8
-  softWeight: 10,             // 취향(품종·향)
+  // 통합 91점 = 산지15 + 취향15(향미13·품종2) + 견적15(이력) + 업장15 + 업태20 + 지역16(타입8·국가8). 세그먼트는 profile 기반.
+  tierBase: [15, 12, 9, 6],   // 산지: 같은마을15/인근12/광역9/타지역6
+  softWeight: 15,             // 취향(향미13+품종2) — 향미 데이터 풍부해 배점↑
   recentPenalty: 0.45,        // 최근 제안 강등
   quoteFeedbackWeight: 15,    // 견적학습
 };
@@ -183,10 +183,11 @@ export function scoreRecommendations(params: {
     if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
 
     const tierScore = t >= 0 ? TIER_BASE[t] : 0; // 산지 계단 점수(빈도 가중 제거 — 자주 산 산지는 다른 지표가 이미 반영)
-    // 향미 배점 80% + 품종 20% (softWeight=10 → 향미 8·품종 2). 향미는 주력향 1개당 (배점/16)≈0.5.
-    const flavorCap = sp.softWeight * 0.8;
+    // 취향 = 향미(취향−2) + 품종(2). softWeight=15 → 향미 13·품종 2. 향미는 주력향 1개당 (향미배점/16).
+    const grapeCap = 2;
+    const flavorCap = sp.softWeight - grapeCap;
     const flavorPts = Math.min(flavorCap, (flavorCap / 16) * flavorSum);
-    const grapePts = sp.softWeight * 0.2 * grapeScore;
+    const grapePts = grapeCap * grapeScore;
     const softAdd = flavorPts + grapePts;
     score = tierScore + softAdd;
     if (t >= 0) breakdown.push(`${TIER_LABEL[t]} +${tierScore.toFixed(0)}`);
