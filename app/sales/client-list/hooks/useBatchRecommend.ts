@@ -4,6 +4,8 @@ import { useState } from 'react';
 import JSZip from 'jszip';
 import { loadRecSettings } from '@/app/sales/recommend/recSettings';
 import { DEFAULT_REC_COLS } from '@/app/sales/recommend/constants';
+import { allocateByTypeShares } from '@/app/sales/recommend/allocateByTypeShares';
+import type { ScoredItem } from '@/app/sales/recommend/types';
 
 export type BatchTarget = { client_code: string; client_name: string };
 
@@ -89,8 +91,14 @@ export function useBatchRecommend(manager: string) {
           }),
         });
         const recJson = await recRes.json();
-        const recs = Array.isArray(recJson?.recommendations) ? recJson.recommendations : [];
-        const items = recs.slice(0, N);
+        const recs: ScoredItem[] = Array.isArray(recJson?.recommendations) ? recJson.recommendations : [];
+        // 단일 추천 탭과 동일한 선정: 점수순 정렬 → 타입 분포 비례배분(타입당 상한 maxPerType).
+        // (과거: recs.slice(0,N) — 점수 최상위만 집어 한 타입 쏠림. 예: 정대 샴페인 6개)
+        const shares: Record<string, number> = recJson?.typeShares || {};
+        const byScore = recs
+          .filter((i) => !s.minScore || i.score >= s.minScore)
+          .sort((a, b) => b.score - a.score);
+        const items = allocateByTypeShares(byScore, shares, N, s.maxPerType);
         if (items.length === 0) { failed.push(`${t.client_name}(추천없음)`); continue; }
 
         // 2) 보강 적재 (배치 스코프, 기존 비우고 새로)
