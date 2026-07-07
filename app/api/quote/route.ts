@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { ensureQuoteTable } from '@/app/lib/quoteDb';
+import { getSession } from '@/app/lib/auth';
+import { canViewAllManagers } from '@/app/lib/authz';
 import { fetchBarcodes } from './lib/enrichment';
 import { addQuoteItem } from './lib/addItem';
 import { reorderQuoteItems, updateQuoteItem } from './lib/updateItem';
@@ -8,7 +10,17 @@ import { reorderQuoteItems, updateQuoteItem } from './lib/updateItem';
 export async function GET(req: NextRequest) {
   try {
     ensureQuoteTable();
-    const mgr = req.nextUrl.searchParams.get('manager') || '';
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    let mgr = req.nextUrl.searchParams.get('manager') || '';
+    // 견적 초안은 담당자별 스코프 — 남의 초안 열람(IDOR) 차단. 자기 스코프(+ ::batch 등 하위)만 허용.
+    if (!canViewAllManagers(session)) {
+      const own = session.manager || '';
+      if (!mgr) mgr = own;
+      else if (mgr !== own && !mgr.startsWith(`${own}::`)) {
+        return NextResponse.json({ error: '해당 견적에 접근할 권한이 없습니다.' }, { status: 403 });
+      }
+    }
 
     let query = supabase
       .from('quote_items')

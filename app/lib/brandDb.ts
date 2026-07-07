@@ -2,6 +2,7 @@
 
 import { supabase } from "@/app/lib/db";
 import { logger } from "@/app/lib/logger";
+import { sanitizeFilterValue } from "@/app/lib/validation";
 import type { Brand, BrandWithWineCount } from "@/app/types/wine";
 
 /* ─── Brands 목록 조회 ─── */
@@ -13,7 +14,7 @@ export async function getBrands(filters?: {
   let query = supabase.from('brands').select('*');
 
   if (filters?.search) {
-    const s = filters.search.replace(/[%_]/g, '');
+    const s = sanitizeFilterValue(filters.search); // ,().% 등 필터 특수문자 제거(.or() 인젝션 차단)
     query = query.or(
       `brand_name_kr.ilike.%${s}%,brand_name_en.ilike.%${s}%,brand_code.ilike.%${s}%,country.ilike.%${s}%,region.ilike.%${s}%`
     );

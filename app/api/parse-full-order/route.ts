@@ -73,6 +73,10 @@ export async function POST(req: Request): Promise<NextResponse<ParseFullOrderRes
 
   try {
     const body = await req.json().catch(() => ({}));
+    // LLM 비용/지연 증폭 방지 — 발주 메시지 길이 상한(order-v2/parse 와 동일 기준)
+    if (typeof body?.message === "string" && body.message.length > 5000) {
+      return jsonResponse({ success: false, status: "error", error: "메시지가 너무 깁니다. (최대 5000자)" } as never);
+    }
     const forceResolve = Boolean(body?.force_resolve);
     const pageType = body?.type || "wine";
 

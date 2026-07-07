@@ -1,5 +1,6 @@
 import { supabase } from "@/app/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { requireClientAccess } from "@/app/lib/authz";
 
 // 거래처별 품목 조회 API (와인/와인잔 공통)
 export async function POST(req: NextRequest) {
@@ -13,6 +14,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 담당자 스코프 검증 — 남의 거래처 품목·단가 조회(IDOR) 차단
+    const guard = await requireClientAccess(client_code, type === "wine" ? "wine" : "glass");
+    if (guard) return guard;
 
     // 와인/와인잔에 따라 다른 테이블 사용
     const table = type === "wine" ? "client_item_stats" : "glass_client_item_stats";
