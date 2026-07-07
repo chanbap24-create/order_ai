@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ClientOption, ScoredItem } from '../recommend/types';
-import { compareForDisplay } from '../recommend/displayOrder';
-import { allocateByTypeShares } from '../recommend/allocateByTypeShares';
+import { selectQuoteItems } from '../recommend/allocateByTypeShares';
 import { useManagers } from '../recommend/hooks/useManagers';
 import { useClientSearch } from '../recommend/hooks/useClientSearch';
 import { useRecommendQuote } from '../recommend/hooks/useRecommendQuote';
@@ -55,18 +54,11 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const [settings, setSettings] = useState<RecSettings>(loadRecSettings);
   const [anchor, setAnchor] = useState<AnchorItem | null>(null); // 대체상품 모드 기준 상품(쇼트난 품목)
   const items = rec.result?.recommendations || [];
-  // API가 표시용(타입·가격순, orderForDisplay)으로 주므로 캡은 반드시 '점수순'으로 걸어야 한다.
-  // 안 그러면 타입당 상위가 '고득점'이 아니라 '고가'로 뽑혀, 저가 주력(고득점)이 밀려남.
-  // 선정 = '타입 분포 비례배분'. 업장·업태(+본인이력) 실제 타입비율(typeShares)로 N칸을 나눔.
-  //   임의 캡 대신 데이터 비율이 mix를 정함. <5% 타입은 0칸(비주력 자연 제외). 표기는 아래에서 타입순(선정≠표기).
-  const MIN_TOTAL = 6;
+  // 선정·정렬은 공용 파이프라인(selectQuoteItems)에 위임 — 거래처 일괄 추천과 동일 결과 보장.
   const shares = rec.result?.typeShares || {};
-  const byScore = [...items]
-    .filter((i) => !settings.minScore || i.score >= settings.minScore)
-    .sort((a, b) => b.score - a.score);
-  const finalItems = allocateByTypeShares(byScore, shares, settings.lockCount > 0 ? settings.lockCount : MIN_TOTAL, settings.maxPerType);
-  // 표시용 정렬: 타입 → 국가 우선순위 → 타입 내 가격 내림차순 (displayOrder.ts 공용)
-  const visible: ScoredItem[] = [...finalItems].sort(compareForDisplay);
+  const visible: ScoredItem[] = selectQuoteItems(items, shares, {
+    lockCount: settings.lockCount, maxPerType: settings.maxPerType, minScore: settings.minScore,
+  });
 
   // 설정 변경 시 저장(영업사원별, localStorage)
   useEffect(() => { saveRecSettings(settings); }, [settings]);

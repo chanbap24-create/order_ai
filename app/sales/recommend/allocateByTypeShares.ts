@@ -1,4 +1,5 @@
 import type { ScoredItem } from './types';
+import { compareForDisplay } from './displayOrder';
 
 /**
  * 타입 분포(shares)에 비례해 N칸을 타입별로 배분(최대 잔여법), 타입 안에선 점수순 top.
@@ -40,4 +41,23 @@ export function allocateByTypeShares(byScore: ScoredItem[], shares: Record<strin
     }
   }
   return out;
+}
+
+/**
+ * 추천 응답 → 최종 견적 품목 선정·정렬(단독 추천 탭·거래처 일괄 추천 공용).
+ * API가 표시순(orderForDisplay)으로 주므로 반드시 점수순으로 재정렬 후 배분해야 한다.
+ *   1) minScore 필터 → 2) 점수 내림차순 → 3) 타입 분포 비례배분(N칸·타입당 상한)
+ *   → 4) 표시 정렬(compareForDisplay: 타입→국가→가격).
+ * 단독·배치가 이 함수 하나만 쓰게 해서 선정/정렬 불일치를 원천 차단한다.
+ */
+export function selectQuoteItems(
+  recs: ScoredItem[],
+  typeShares: Record<string, number>,
+  opts: { lockCount: number; maxPerType: number; minScore: number },
+): ScoredItem[] {
+  const N = opts.lockCount > 0 ? opts.lockCount : 6;
+  const byScore = recs
+    .filter((i) => !opts.minScore || i.score >= opts.minScore)
+    .sort((a, b) => b.score - a.score);
+  return allocateByTypeShares(byScore, typeShares, N, opts.maxPerType).sort(compareForDisplay);
 }
