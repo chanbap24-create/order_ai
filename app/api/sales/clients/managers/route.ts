@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
     const { data: users } = await supabase
       .from('sales_users')
       .select('manager, role')
-      .neq('role', 'admin');
+      .neq('role', 'admin')
+      .neq('is_active', false); // 숨김(비활성) 계정 제외
     const executives: string[] = [];
     for (const u of (users || [])) {
       if (u.manager) {

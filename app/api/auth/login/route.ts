@@ -17,12 +17,17 @@ export async function POST(req: Request) {
     // 사용자 조회
     const { data: user } = await supabase
       .from('sales_users')
-      .select('manager, password_hash, role, department, failed_attempts, locked_until')
+      .select('manager, password_hash, role, department, failed_attempts, locked_until, is_active')
       .eq('manager', manager)
       .maybeSingle();
 
     if (!user) {
       return NextResponse.json({ error: '등록되지 않은 담당자입니다.' }, { status: 401 });
+    }
+
+    // 숨김(비활성) 계정 로그인 차단 — 비번 검증 전에 거부(존재 여부/비번 노출 방지)
+    if (user.is_active === false) {
+      return NextResponse.json({ error: '비활성화된 계정입니다. 관리자에게 문의하세요.' }, { status: 403 });
     }
 
     // 잠금 확인 (5회 실패 → 5분 잠금)
