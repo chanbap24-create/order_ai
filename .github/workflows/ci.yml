@@ -22,6 +22,9 @@ jobs:
       # 빌드 시 page-data 수집 중 키를 요구한다(실호출 X). 가드 통과용 더미.
       OPENAI_API_KEY: sk-dummy-ci-build-only
       ANTHROPIC_API_KEY: sk-ant-dummy-ci-build-only
+      # sessionSecret 가 프로덕션(NODE_ENV=production) 빌드에서 AUTH_SECRET 미설정 시 throw(fail-closed).
+      # 빌드 통과용 더미(실서명 X — 런타임 Vercel엔 실제 값 설정됨).
+      AUTH_SECRET: dummy-auth-secret-for-ci-build-only
     steps:
       - uses: actions/checkout@v4
 
