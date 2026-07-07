@@ -47,6 +47,7 @@
 
 - **경로 별칭**: tsconfig에 따라 상대경로 또는 별칭 사용. 새 별칭은 도입 전 사용자에게 확인.
 - **DB 접근**: Supabase 클라이언트는 `app/lib/db.ts` 등 기존 모듈을 통해서만 사용. 라우트에서 직접 커넥션 생성 금지.
+- **⚠️ Supabase 1000행 캡 (반복 발생 함정)**: PostgREST는 `select`·`rpc`(SETOF) 결과를 **기본 1000행에서 잘라낸다**. 1000건을 넘길 수 있는 조회(담당자 거래처, 전체 거래처/품목/출고, tasting_notes 등)는 **반드시 페이지네이션**(`.range(from, to)` 반복)하거나 배치 조회할 것. 단발 호출은 조용히 일부만 반환돼 "일부 데이터 누락"으로 나타난다(예: `manager_clients` RPC가 1000곳에서 잘려 담당 거래처 일부가 검색/발주 후보에서 누락된 버그, 커밋 `e25fd3e3`). **정확히 1000·정확히 999건이 반환되면 캡을 의심**하라. 참고 유틸: `app/lib/orderClients.ts`의 `fetchAllManagerRows`, `app/api/sales/recommend/lib/fetchers.ts`의 `fetchAll`(범위 반복 조회 패턴).
 - **환경 변수**: `app/lib/env.ts`에서 중앙 관리. `process.env.XXX`를 라우트/컴포넌트에서 직접 읽지 말 것.
 - **에러 처리**: `app/lib/errors.ts`, `app/lib/api-response.ts`의 기존 유틸 사용.
 - **로깅**: `app/lib/logger.ts` 사용.
