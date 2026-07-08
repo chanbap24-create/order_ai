@@ -1,7 +1,20 @@
 import type { DashboardStats } from '@/app/types/wine';
 import type { InvPeriod } from '../types';
 
-export function computeInvChanges(history: DashboardStats['inventoryHistory']) {
+// 0/누락(그날 한쪽 법인 파일 미업로드 등)은 직전 유효값으로 이어받아
+// 추이 그래프가 급락/급등으로 깨지는 것을 방지. (예: 2026-03-13 DL=0)
+function carryForward(history: DashboardStats['inventoryHistory']): DashboardStats['inventoryHistory'] {
+  let lastCdv = 0, lastDl = 0;
+  return history.map((h) => {
+    const cdv = Number(h.cdv_value) > 0 ? Number(h.cdv_value) : lastCdv;
+    const dl = Number(h.dl_value) > 0 ? Number(h.dl_value) : lastDl;
+    lastCdv = cdv; lastDl = dl;
+    return { ...h, cdv_value: cdv, dl_value: dl };
+  });
+}
+
+export function computeInvChanges(historyRaw: DashboardStats['inventoryHistory']) {
+  const history = carryForward(historyRaw);
   const out: Array<{ date: string; cdv: number; dl: number }> = [];
   if (history.length < 2) return out;
   for (let i = 1; i < history.length; i++) {
@@ -16,7 +29,8 @@ export function computeInvChanges(history: DashboardStats['inventoryHistory']) {
   return out;
 }
 
-export function computeInvLineSeries(history: DashboardStats['inventoryHistory'], period: InvPeriod) {
+export function computeInvLineSeries(historyRaw: DashboardStats['inventoryHistory'], period: InvPeriod) {
+  const history = carryForward(historyRaw);
   const out: Array<{ date: string; cdv: number; dl: number }> = [];
   if (history.length === 0) return out;
 
