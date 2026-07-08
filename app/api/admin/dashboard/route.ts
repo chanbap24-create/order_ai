@@ -81,28 +81,29 @@ export async function GET() {
       dlInventoryValue = cur.dl;
     }
 
-    if (history.length === 0) {
-      // 첫 이력 기록
-      if (cdvInventoryValue > 0) await recordInventoryValuePartial('cdv', cdvInventoryValue);
-      if (dlInventoryValue > 0) await recordInventoryValuePartial('dl', dlInventoryValue);
-      if (cdvInventoryValue > 0 || dlInventoryValue > 0) {
-        history.push({
-          recorded_date: new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          cdv_value: cdvInventoryValue,
-          dl_value: dlInventoryValue,
-        });
+    const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // 변동 = 현재 live 값 vs '오늘 이전' 마지막 스냅샷
+    const prev = [...history].reverse().find((h) => h.recorded_date < today);
+    if (prev) {
+      if (prev.cdv_value > 0) {
+        const d = cdvInventoryValue - prev.cdv_value;
+        cdvChange = { amount: d, rate: (d / prev.cdv_value) * 100, previousDate: prev.recorded_date };
       }
-    } else {
-      // 변동 = 현재 live 값 vs 직전 이력 스냅샷
-      const latest = history[history.length - 1];
-      if (latest.cdv_value > 0) {
-        const d = cdvInventoryValue - latest.cdv_value;
-        cdvChange = { amount: d, rate: (d / latest.cdv_value) * 100, previousDate: latest.recorded_date };
+      if (prev.dl_value > 0) {
+        const d = dlInventoryValue - prev.dl_value;
+        dlChange = { amount: d, rate: (d / prev.dl_value) * 100, previousDate: prev.recorded_date };
       }
-      if (latest.dl_value > 0) {
-        const d = dlInventoryValue - latest.dl_value;
-        dlChange = { amount: d, rate: (d / latest.dl_value) * 100, previousDate: latest.recorded_date };
-      }
+    }
+    // 오늘자 스냅샷 항상 기록(추이 멈춤 방지) — recordInventoryValuePartial은 오늘 날짜로 upsert.
+    if (cdvInventoryValue > 0) await recordInventoryValuePartial('cdv', cdvInventoryValue);
+    if (dlInventoryValue > 0) await recordInventoryValuePartial('dl', dlInventoryValue);
+    // 응답 history에도 오늘 반영(차트 즉시 표시)
+    const todayRow = history.find((h) => h.recorded_date === today);
+    if (todayRow) {
+      if (cdvInventoryValue > 0) todayRow.cdv_value = cdvInventoryValue;
+      if (dlInventoryValue > 0) todayRow.dl_value = dlInventoryValue;
+    } else if (cdvInventoryValue > 0 || dlInventoryValue > 0) {
+      history.push({ recorded_date: today, cdv_value: cdvInventoryValue, dl_value: dlInventoryValue });
     }
 
     return NextResponse.json({
