@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
     // 비영업·퇴사 담당자 제외(드롭다운에서 숨김 — 거래처 데이터는 보존)
     const EXCLUDE = ['정진경', '편지은', '경영지원부', 'ADMIN', 'Admin',
       // 퇴사자(계정 없음, client_details 담당자명으로만 잔존)
-      '강여울', '고성원', '공민규', '공태욱', '김기덕', '하홍집'];
+      '강여울', '고성원', '공민규', '공태욱', '김기덕', '하홍집',
+      // 숨김 처리한 휴면계정 중 거래처 잔존으로 드롭다운에 뜨던 것
+      '이진희'];
     const regular = [...allManagers]
       .filter(m => !EXCLUDE.includes(m) && !executives.includes(m))
       .sort();
