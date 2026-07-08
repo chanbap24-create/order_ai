@@ -4,6 +4,7 @@ import { supabase } from '@/app/lib/db';
 import { loadBrandSupplierMap, supplierFromMap } from '@/app/lib/brandMapping';
 import { sanitizeFilterValue } from '@/app/lib/validation';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
+import { getItemCategory } from '@/app/inventory/constants/categories';
 import ExcelJS from 'exceljs';
 
 export const DEFAULT_WINE_MIN_STOCK = { u20k: 120, u50k: 60, u100k: 24, u200k: 12, over: 1 };
@@ -173,7 +174,7 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
     left: { style: 'thin', color: { argb: C.border } }, right: { style: 'thin', color: { argb: C.border } },
   };
 
-  ws.mergeCells('A1:H1');
+  ws.mergeCells('A1:I1');
   const today = new Date().toISOString().slice(0, 10);
   const titleCell = ws.getCell('A1');
   titleCell.value = `CavedeVin Wine List  —  ${today}`;
@@ -186,7 +187,8 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
     { header: '품번', key: 'item_code', width: 10 }, { header: '국가', key: 'country', width: 14 },
     { header: '지역', key: 'region', width: 20 }, { header: '공급자명', key: 'supplier', width: 24 },
     { header: '영문명', key: 'name_en', width: 42 }, { header: '한글명', key: 'name_kr', width: 36 },
-    { header: '빈티지', key: 'vintage', width: 9 }, { header: '공급가', key: 'price', width: 13 },
+    { header: '빈티지', key: 'vintage', width: 9 }, { header: '타입', key: 'wine_type', width: 10 },
+    { header: '공급가', key: 'price', width: 13 },
   ];
   ws.columns = columns.map(c => ({ key: c.key, width: c.width }));
 
@@ -214,6 +216,7 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
       item_code: w.item_code, country: countryName, region: w.region || '',
       supplier: w.supplier || w.supplier_kr || supplierFromMap(w.brand || null, brandMap)?.en || '',
       name_en: w.item_name_en || '', name_kr: w.item_name_kr || '', vintage: w.vintage || '',
+      wine_type: getItemCategory(w.item_code),
       price: w.supply_price || null,
     });
     const bgColor = i % 2 === 0 ? C.white : C.grayLight;
@@ -224,7 +227,8 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
       cell.border = borderThin;
       cell.alignment = { vertical: 'middle' };
       if (colNum === 1) { cell.font = { ...fontBase, size: 9, color: { argb: C.gray } }; cell.alignment = { vertical: 'middle', horizontal: 'center' }; cell.numFmt = '@'; }
-      if (colNum === 8) { cell.alignment = { vertical: 'middle', horizontal: 'right' }; cell.numFmt = '#,##0'; }
+      if (colNum === 9) { cell.alignment = { vertical: 'middle', horizontal: 'right' }; cell.numFmt = '#,##0'; }
+      if (colNum === 8) { cell.alignment = { vertical: 'middle', horizontal: 'center' }; cell.font = { ...fontBase, size: 10, color: { argb: C.gray } }; cell.numFmt = '@'; }
       if (colNum === 7) { cell.alignment = { vertical: 'middle', horizontal: 'center' }; cell.font = { ...fontBase, size: 10, color: { argb: C.gray } }; cell.numFmt = '@'; }
       if (colNum === 2) { cell.font = { ...fontBase, size: 10, bold: isNewCountry, color: { argb: isNewCountry ? C.burgundy : C.gray } }; }
     });
@@ -234,7 +238,7 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
   }
 
   ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } };
-  ws.autoFilter = { from: 'A2', to: `H${allWines.length + 2}` };
+  ws.autoFilter = { from: 'A2', to: `I${allWines.length + 2}` };
   ws.getColumn(1).hidden = true;
 
   const buffer = await wb.xlsx.writeBuffer();
