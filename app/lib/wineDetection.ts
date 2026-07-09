@@ -6,7 +6,15 @@ import { logChange } from "@/app/lib/changeLogDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
 import { loadBrandSupplierMap, supplierFromMap } from "@/app/lib/brandMapping";
 import { translateWineName } from "@/app/lib/koreanToEnglish";
+import { extractVintage } from "@/app/api/quote/lib/enrichment";
 import { logger } from "@/app/lib/logger";
+
+/** 빈티지는 품번 3~4자리(공식) 우선 — ERP 엑셀 빈티지 컬럼 오입력 방지. 코드가 연도를 못 주면 엑셀값 폴백. */
+function codeVintage(itemNo: string, excelVintage: string | null): string | null {
+  const c = extractVintage(itemNo);
+  if (/^(19|20)\d{2}$/.test(c) || c === "NV" || c === "MV") return c;
+  return excelVintage ?? null;
+}
 
 interface InventoryItem {
   item_no: string;
@@ -104,7 +112,7 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         supplier_kr: supplierInfo?.kr || null,
         country: kr || item.country,
         country_en: en,
-        vintage: item.vintage,
+        vintage: codeVintage(item.item_no, item.vintage),
         alcohol: item.alcohol,
         supply_price: item.supply_price,
         available_stock: item.available_stock,
@@ -116,7 +124,7 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
         item_name_kr: existing.item_name_kr || cleanName,
         supply_price: item.supply_price,
         available_stock: item.available_stock,
-        vintage: item.vintage,
+        vintage: codeVintage(item.item_no, item.vintage),
         alcohol: item.alcohol,
         country: existing.country || kr || item.country,
         country_en: existing.country_en || en,

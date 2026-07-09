@@ -5,6 +5,7 @@ import { loadBrandSupplierMap, supplierFromMap } from '@/app/lib/brandMapping';
 import { sanitizeFilterValue } from '@/app/lib/validation';
 import { isNonOrderable } from '@/app/lib/catalogFilter';
 import { getItemCategory } from '@/app/inventory/constants/categories';
+import { extractVintage } from '@/app/api/quote/lib/enrichment';
 import ExcelJS from 'exceljs';
 
 export const DEFAULT_WINE_MIN_STOCK = { u20k: 120, u50k: 60, u100k: 24, u200k: 12, over: 1 };
@@ -103,8 +104,12 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
   // 브랜드 약어 → 공급자명 맵 (하드코딩 + 브랜드 자료실)
   const brandMap = await loadBrandSupplierMap();
 
-  // 빈티지 변환
+  // 빈티지 = 품번 3~4자리 공식 우선 (ERP 엑셀 빈티지 컬럼 오입력 방지).
+  // 코드가 연도를 못 주면 저장 빈티지로 폴백.
   for (const w of allWines) {
+    const fromCode = extractVintage(w.item_code); // '20YY'|'19YY'|'NV'|'MV'|'XX'|2자|''
+    if (/^(19|20)\d{2}$/.test(fromCode)) { w.vintage = fromCode; continue; }
+    if (fromCode === 'NV' || fromCode === 'MV') { w.vintage = 'NV'; continue; }
     const v = (w.vintage || '').toString().trim().toLowerCase();
     if (!v || v === 'xx' || v === 'nv') w.vintage = 'NV';
     else if (/^\d{2}$/.test(v)) w.vintage = (parseInt(v, 10) < 50 ? '20' : '19') + v;
