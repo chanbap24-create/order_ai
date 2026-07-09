@@ -92,8 +92,10 @@ async function getAllItemsListFromDb(): Promise<Array<{ item_no: string; name_en
       .not('name_en', 'is', null)
       .neq('name_en', '');
 
+    // 현재 카탈로그(inventory_cdv, 795행)에서 로드. 과거엔 client_item_stats(10,100행)를 썼으나
+    // 페이지네이션이 없어 1000행 캡에 걸려 임의 1000개만 잡히는 버그가 있었다.
     const { data: itemsKr } = await supabase
-      .from('client_item_stats')
+      .from('inventory_cdv')
       .select('item_no, item_name')
       .not('item_name', 'is', null)
       .neq('item_name', '');

@@ -29,11 +29,18 @@ export async function resolveGlassItemsByClient(
     .eq('client_code', clientCode);
   const clientRows = (clientRowsData || []) as Array<{ item_no: string; item_name: string; supply_price?: number }>;
 
-  // ✅ Glass 전체 품목 마스터 (코드 매칭용, supply_price 포함)
-  const { data: allItemsData } = await supabase
-    .from('glass_items')
-    .select('item_no, item_name, supply_price');
-  const allItems = (allItemsData || []) as Array<{ item_no: string; item_name: string; supply_price?: number }>;
+  // ✅ Glass 전체 품목 마스터 (코드 매칭용). 페이지네이션 — glass_items 1000+ 품목이라
+  //   단발 조회는 1000행 캡에 걸려 초과 품목이 RD코드 매칭에서 통째로 누락된다.
+  const allItems: Array<{ item_no: string; item_name: string; supply_price?: number }> = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data } = await supabase
+      .from('glass_items')
+      .select('item_no, item_name, supply_price')
+      .range(from, from + 999);
+    if (!data || data.length === 0) break;
+    allItems.push(...(data as Array<{ item_no: string; item_name: string; supply_price?: number }>));
+    if (data.length < 1000) break;
+  }
 
   // ✅ RD코드 인덱스 맵 (O(N) 스캔 → O(1) 룩업으로 성능 최적화)
   // key = 정규화된 RD코드 (대문자), value = 매칭되는 품목들

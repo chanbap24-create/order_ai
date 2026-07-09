@@ -67,18 +67,31 @@ export async function POST(req: NextRequest) {
     // 1. 와인 리스트 + 입고예정을 병렬 prefetch (client-독립적 쿼리)
     const table = tab === 'DL' ? 'inventory_dl' : 'inventory_cdv';
     const todayStr = new Date().toISOString().slice(0, 10);
-    const [winesRes, importScheduleRes] = await Promise.all([
-      supabase
-        .from(table)
-        .select('item_no, item_name, supply_price, available_stock, units_per_box')
-        .order('item_no', { ascending: true }),
+    // 카탈로그 전량 페이지네이션 — inventory_dl 1000+ 품목이라 단발 조회는 1000행 캡에 걸려
+    //   초과 품목이 매칭 후보(wineMap)에서 통째로 빠진다.
+    const fetchAllInventory = async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows: any[] = [];
+      for (let from = 0; from < 50000; from += 1000) {
+        const { data, error } = await supabase
+          .from(table)
+          .select('item_no, item_name, supply_price, available_stock, units_per_box')
+          .order('item_no', { ascending: true })
+          .range(from, from + 999);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      return rows;
+    };
+    const [wines, importScheduleRes] = await Promise.all([
+      fetchAllInventory(),
       supabase
         .from('import_schedule')
         .select('item_code, arrival_date, total_btls')
         .gte('arrival_date', todayStr),
     ]);
-    if (winesRes.error) throw winesRes.error;
-    const wines = winesRes.data;
     const importSchedule = importScheduleRes.data;
 
     // 2. 거래처 입고내역 (shipments에서 직접 조회 — 전체 이력 포함)
