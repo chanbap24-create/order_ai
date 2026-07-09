@@ -45,7 +45,8 @@ export const VENUE_GROUPS: VenueGroup[] = [
     category: 'etc', label: '기타 업태', items: [
       { key: 'fusion', label: '퓨전·모던다이닝', wine: '다양(전 타입 균형)·주정강화 제외' },
       { key: 'winebar', label: '와인바·내추럴와인바', wine: '다양·트렌디·내추럴' },
-      { key: 'hotel', label: '호텔·뷔페', wine: '전방위·프리미엄' },
+      { key: 'hotel', label: '호텔', wine: '전방위·프리미엄(샴페인·부르고뉴·보르도)' },
+      { key: 'buffet', label: '뷔페', wine: '다양·대중(화이트·레드·스파클링 두루)' },
       { key: 'bar', label: '바·펍·라운지', wine: '스파클링·캐주얼' },
       { key: 'cafe', label: '카페·디저트·베이커리', wine: '스파클링·스위트·데일리' },
       { key: 'retail', label: '리테일(샵·편의점·백화점)', wine: '대중 인기·가성비' },
