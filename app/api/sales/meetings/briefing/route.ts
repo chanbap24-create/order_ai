@@ -35,18 +35,30 @@ export async function POST(req: NextRequest) {
     const accessCheck = await requireClientAccess(clientCode);
     if (accessCheck) return accessCheck;
 
-    // 1. 거래처 + shipments 병렬 조회
-    const [clientDetailRes, clientBasicRes, shipmentsRes] = await Promise.all([
+    // 1. 거래처 + shipments 병렬 조회. 출고는 페이지네이션 — 거래처 lifetime 출고가 1000행 넘으면
+    //   단발 조회는 최근 1000줄만 보여 연매출·추세가 truncate된다.
+    const fetchClientShipments = async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows: any[] = [];
+      for (let from = 0; from < 50000; from += 1000) {
+        const { data } = await supabase.from('shipments')
+          .select('item_no, item_name, unit_price, ship_date, quantity, total_amount')
+          .eq('client_code', clientCode)
+          .order('ship_date', { ascending: false })
+          .range(from, from + 999);
+        if (!data || data.length === 0) break;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      return rows;
+    };
+    const [clientDetailRes, clientBasicRes, shipments] = await Promise.all([
       supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
       supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
-      supabase.from('shipments')
-        .select('item_no, item_name, unit_price, ship_date, quantity, total_amount')
-        .eq('client_code', clientCode)
-        .order('ship_date', { ascending: false }),
+      fetchClientShipments(),
     ]);
     const clientDetail = clientDetailRes.data;
     const clientBasic = clientBasicRes.data;
-    const shipments = shipmentsRes.data || [];
     const clientName = clientDetail?.client_name || clientBasic?.client_name || clientCode;
 
     // wines 메타 (구매 이력 item_code만)

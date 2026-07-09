@@ -65,7 +65,9 @@ export async function GET(req: NextRequest) {
           .eq('client_code', code)
           .gte('ship_date', aggStart);
         if (aggEnd) q = q.lte('ship_date', aggEnd);
-        if (managerParam) q = q.eq('manager', managerParam);
+        // 와인: 거래처의 '총' 매출로 집계(담당 무관) — 재배정된 거래처의 예전 담당 출고도 현재 담당 화면에
+        //   포함돼 매출이 누락/축소되지 않게. 글라스는 담당(glass_shipments.manager) 기준 유지.
+        if (managerParam && clientType === 'glass') q = q.eq('manager', managerParam);
         const { data, error } = await q
           .order('ship_date', { ascending: true })
           .range(shipFrom, shipFrom + shipBatch - 1);
@@ -150,6 +152,8 @@ export async function GET(req: NextRequest) {
     while (true) {
       let q = supabase.from(detailTable).select('client_code');
       if (!isGlass && clientType) q = q.eq('client_type', clientType);
+      // 와인: 현재 담당(client_details.manager)의 거래처만 — 목록/스코프와 일치.
+      if (!isGlass && managerParam) q = q.eq('manager', managerParam);
       const { data: batch } = await q.range(detailFrom, detailFrom + 999);
       if (!batch || batch.length === 0) break;
       for (const c of batch) codes.push(c.client_code);
@@ -185,7 +189,8 @@ export async function GET(req: NextRequest) {
           .in('client_code', batch)
           .gte('ship_date', rangeStart);
         if (rangeEnd) q = q.lte('ship_date', rangeEnd);
-        if (managerParam) q = q.eq('manager', managerParam);
+        // 와인: client_code별 총 매출(담당 무관). 코드셋이 이미 현재 담당으로 스코프됨. 글라스는 담당 기준 유지.
+        if (managerParam && isGlass) q = q.eq('manager', managerParam);
         q = q.order('ship_date', { ascending: true })
           .range(from, from + rowBatchSize - 1);
 

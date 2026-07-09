@@ -15,12 +15,17 @@ export async function GET(request: NextRequest) {
 
     const wines = await getTastingNotes({ search, country, hasNote });
 
-    // 재고 정보 병합
+    // 재고 정보 병합 — ≤500 코드씩 배치(단발 .in은 1000행 캡에 걸려 초과 품목 재고가 0으로 표기됨)
     const codes = wines.map(w => w.item_code);
-    const { data: inv } = codes.length > 0
-      ? await supabase.from('inventory_cdv').select('item_no, available_stock, bonded_warehouse').in('item_no', codes)
-      : { data: [] };
-    const invMap = new Map((inv || []).map(i => [i.item_no, i]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invMap = new Map<string, any>();
+    for (let i = 0; i < codes.length; i += 500) {
+      const { data: inv } = await supabase
+        .from('inventory_cdv')
+        .select('item_no, available_stock, bonded_warehouse')
+        .in('item_no', codes.slice(i, i + 500));
+      for (const x of (inv || [])) invMap.set(x.item_no, x);
+    }
 
     const enriched = wines.map(w => {
       const stock = invMap.get(w.item_code);

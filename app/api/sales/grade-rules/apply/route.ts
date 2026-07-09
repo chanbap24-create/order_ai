@@ -80,18 +80,22 @@ export async function POST(req: NextRequest) {
       business_type: '_all',
     };
 
-    // 2. 해당 담당의 거래처 코드 목록 (shipments에서)
+    // 2. 해당 담당의 '현재' 거래처 코드 목록.
+    //   와인: client_details.manager(현재 담당) — 재배정 반영(옛 출고 담당으로 뽑던 버그 수정).
+    //   글라스: glass_shipments.manager(글라스는 현재담당 컬럼이 없음).
     const clientCodes = new Set<string>();
     let from = 0;
     const batchSize = 1000;
+    const codeTable = type === 'glass' ? shipmentsTable : 'client_details';
 
     while (true) {
-      const { data, error } = await supabase
-        .from(shipmentsTable)
+      let cq = supabase
+        .from(codeTable)
         .select('client_code')
         .eq('manager', manager)
-        .not('client_code', 'is', null)
-        .range(from, from + batchSize - 1);
+        .not('client_code', 'is', null);
+      if (type !== 'glass') cq = cq.eq('client_type', 'wine');
+      const { data, error } = await cq.range(from, from + batchSize - 1);
 
       if (error) throw error;
       if (!data || data.length === 0) break;
