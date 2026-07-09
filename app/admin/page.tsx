@@ -25,6 +25,7 @@ const ImportForecastTab = dynamic(() => import('./components/ImportForecastTab')
 const FeatureUsageTab = dynamic(() => import('./components/FeatureUsageTab'), { ssr: false, loading: tabLoader });
 const GlassImagesTab = dynamic(() => import('./components/GlassImagesTab'), { ssr: false, loading: tabLoader });
 const ParseStatsTab = dynamic(() => import('./components/ParseStatsTab').then(m => m.ParseStatsTab), { ssr: false, loading: tabLoader });
+const FlavorTagsTab = dynamic(() => import('./components/FlavorTagsTab'), { ssr: false, loading: tabLoader });
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
@@ -228,6 +229,7 @@ export default function AdminPage() {
         {activeTab === 'new-wine' && <TastingNoteTab initialFilter="new" onNewCountChange={setNewWineCount} />}
         {activeTab === 'all-wines' && <AllWinesTab />}
         {activeTab === 'tasting-note' && <TastingNoteTab onNewCountChange={setNewWineCount} />}
+        {activeTab === 'flavor-tags' && <FlavorTagsTab />}
         {activeTab === 'client-analysis' && <ClientAnalysisTab />}
         {activeTab === 'segments' && <SegmentsTab />}
         {activeTab === 'wine-regions' && <WineRegionsTab />}
