@@ -63,6 +63,9 @@ export async function GET(req: NextRequest) {
     if (missingCodes.length > 0) {
       const extras = await fetchMissingClientDetails(missingCodes);
       for (const d of extras) {
+        // 현재 담당(client_details.manager)이 다른 매니저면 재배정된 거래처 → 옛 출고로 잔존한 것.
+        // 이 담당의 분석(매출·이탈위험)에서 제외해 매출이 부풀지 않게 한다.
+        if (d.manager && d.manager !== manager) { clientMap.delete(d.client_code); continue; }
         importanceMap.set(d.client_code, d.importance);
         visitCycleMap.set(d.client_code, d.visit_cycle_days);
         lastVisitDateMap.set(d.client_code, d.last_visit_date);

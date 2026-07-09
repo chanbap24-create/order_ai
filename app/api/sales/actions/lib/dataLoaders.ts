@@ -28,29 +28,39 @@ export async function fetchShipmentsForManager(manager: string, fromDate: string
  * 매니저의 전체 거래처 상세 (visit_schedule/churn에 재사용).
  */
 export async function fetchAllClientDetails(manager: string): Promise<ClientDetail[]> {
-  const { data } = await supabase
-    .from('client_details')
-    .select('client_code, client_name, importance, visit_cycle_days, last_visit_date')
-    .eq('manager', manager);
-  return (data || []).map((d) => ({
-    client_code: d.client_code,
-    client_name: d.client_name || d.client_code,
-    importance: d.importance,
-    visit_cycle_days: d.visit_cycle_days || 30,
-    last_visit_date: d.last_visit_date || null,
-  }));
+  // 페이지네이션 — PostgREST 1000행 캡 회피(담당 거래처 1000곳 초과 매니저 누락 방지)
+  const out: ClientDetail[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data } = await supabase
+      .from('client_details')
+      .select('client_code, client_name, importance, visit_cycle_days, last_visit_date')
+      .eq('manager', manager)
+      .range(from, from + 999);
+    if (!data || data.length === 0) break;
+    for (const d of data) {
+      out.push({
+        client_code: d.client_code,
+        client_name: d.client_name || d.client_code,
+        importance: d.importance,
+        visit_cycle_days: d.visit_cycle_days || 30,
+        last_visit_date: d.last_visit_date || null,
+      });
+    }
+    if (data.length < 1000) break;
+  }
+  return out;
 }
 
 /**
  * shipments에는 있지만 client_details에 없는 거래처의 상세 추가 로드.
  */
 export async function fetchMissingClientDetails(missingCodes: string[]) {
-  const out: Array<{ client_code: string; importance: number | null; visit_cycle_days: number; last_visit_date: string | null }> = [];
+  const out: Array<{ client_code: string; importance: number | null; visit_cycle_days: number; last_visit_date: string | null; manager: string | null }> = [];
   for (let i = 0; i < missingCodes.length; i += 500) {
     const batch = missingCodes.slice(i, i + 500);
     const { data } = await supabase
       .from('client_details')
-      .select('client_code, importance, visit_cycle_days, last_visit_date')
+      .select('client_code, importance, visit_cycle_days, last_visit_date, manager')
       .in('client_code', batch);
     for (const d of data || []) {
       out.push({
@@ -58,6 +68,7 @@ export async function fetchMissingClientDetails(missingCodes: string[]) {
         importance: d.importance,
         visit_cycle_days: d.visit_cycle_days || 30,
         last_visit_date: d.last_visit_date || null,
+        manager: d.manager || null,
       });
     }
   }
