@@ -11,31 +11,8 @@
 import { supabase } from '@/app/lib/db';
 import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext } from '@/app/lib/pricing/discountRate';
 import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
+import { prevQuarterRange, prevHalfRange } from '@/app/lib/pricing/quarters';
 import { extractRDCode } from '@/app/lib/resolve-glass-items/rdCode';
-
-function ymd(y: number, month0: number, day: number): string {
-  return `${y}-${String(month0 + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-}
-
-/** 직전 완료 분기 [start, end) — end는 현재 분기 시작일(경계 제외). */
-function prevQuarterRange(now = new Date()): { start: string; end: string } {
-  const y = now.getFullYear();
-  const q = Math.floor(now.getMonth() / 3); // 0..3 (현재 분기)
-  const end = ymd(y, q * 3, 1);             // 현재 분기 시작 = 직전 분기 종료(제외)
-  const py = q === 0 ? y - 1 : y;
-  const pStartMonth = q === 0 ? 9 : (q - 1) * 3;
-  return { start: ymd(py, pStartMonth, 1), end };
-}
-
-/** 직전 완료 반기 [start, end) — end는 현재 반기 시작일(경계 제외). */
-function prevHalfRange(now = new Date()): { start: string; end: string } {
-  const y = now.getFullYear();
-  const h = now.getMonth() < 6 ? 0 : 1; // 0=H1(1~6월), 1=H2(7~12월)
-  const end = ymd(y, h * 6, 1);          // 현재 반기 시작 = 직전 반기 종료(제외)
-  const py = h === 0 ? y - 1 : y;
-  const pStartMonth = h === 0 ? 6 : 0;
-  return { start: ymd(py, pStartMonth, 1), end };
-}
 
 /** 직전 반기 리델 거래 여부 — 업소/호텔 +5% 판정. glass_shipments의 RD코드 품목 기준. */
 async function hadRiedelInPrevHalf(clientCode: string): Promise<boolean> {

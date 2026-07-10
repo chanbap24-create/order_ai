@@ -16,13 +16,16 @@ import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './disco
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
 import { applyFormulaDiscounts } from './formulaDiscount';
+import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
+import { computeQuarterMetrics, computeGrade } from '@/app/lib/pricing/clientGrade';
+import { scaleForGrade } from './gradeScaling';
 import { buildSummary } from './buildSummary';
 import { getClientVenue } from '@/app/lib/clientVenue';
 import { VENUE_WINE_MAP } from './venueScoring';
 import { getSegmentProfile, extractRegion, type SegmentProfile } from '@/app/lib/segmentProfiles';
 
 export interface CandidateContext {
-  client: { code: string; name: string; importance: number; business_type: string; manager: string };
+  client: { code: string; name: string; importance: number; business_type: string; manager: string; grade?: number };
   scored: ScoredItem[];
   summary: {
     total_items: number; avg_price: number; last_order_date: string | null;
@@ -240,6 +243,20 @@ export async function buildCandidates(
     }
   }
 
+  // 거래처 등급(직전 분기 품목수·거래횟수·매출) → 추천점수 가중치 가변화.
+  //   거래 많을수록 거래처축(산지+취향+견적학습)↑ / 베이스축(업장+업태+지역)↓. 등급0=기본(스케일1.0).
+  const gradePriceOf = (no: string): number =>
+    (inventoryMap.get(no)?.supply_price as number | undefined) ||
+    (wineMap.get(no)?.supply_price as number | undefined) || 0;
+  const clientGrade = computeGrade(
+    venueKeyToCategory(venueKey),
+    computeQuarterMetrics(
+      (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
+      gradePriceOf,
+    ),
+  );
+  const graded = scaleForGrade(clientGrade, o.scoreParams);
+
   let scored: ScoredItem[];
   if (o.mode === 'discovery') {
     // 발굴/신규: 거래처 이력 무관. 인기(구매처수·매출·최근성 백분위) + 업태(있을 때). 업태는 지정값 우선, 없으면 거래처 업태.
@@ -262,10 +279,10 @@ export async function buildCandidates(
       inventory, wineMap, purchaseAgg, prefs,
       priceBandPct: o.priceBandPct, geoCeiling: o.geoCeiling,
       maxSales90d, recentlyRecommended, conversionMap,
-      scoreParams: o.scoreParams,
+      scoreParams: o.mode === 'new' ? graded.scoreParams : o.scoreParams,
       mode: o.mode, anchor,
       ...(quoteFeedback ? { quoteFeedback } : {}),
-      ...(o.mode === 'new' ? { segScorers, regionPriceRef, typeShares } : {}),
+      ...(o.mode === 'new' ? { segScorers, regionPriceRef, typeShares, segPts: graded.segPts } : {}),
     }) as ScoredItem[];
   }
 
@@ -310,6 +327,7 @@ export async function buildCandidates(
       importance: clientDetail?.importance || 3,
       business_type: clientDetail?.business_type || '',
       manager: clientDetail?.manager || '',
+      grade: clientGrade,
     },
     scored,
     summary: buildSummary(purchaseAgg, prefs, wineMap, o.profileMonths, o.priceBandPct, lastOrderDate),
