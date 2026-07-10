@@ -29,3 +29,10 @@ export function prevHalfRange(now = new Date()): DateRange {
   const pStartMonth = h === 0 ? 6 : 0;
   return { start: ymd(py, pStartMonth, 1), end };
 }
+
+/** 직전 완료 1년 [start, end) — 현재 반기 시작 기준 12개월 전 ~ 현재 반기 시작(경계 제외). */
+export function prevYearRange(now = new Date()): DateRange {
+  const { end } = prevHalfRange(now);           // end = 현재 반기 시작(YYYY-MM-01)
+  const [ey, em] = end.split('-').map(Number);  // 월 시작이므로 일자는 그대로 01
+  return { start: `${ey - 1}-${String(em).padStart(2, '0')}-01`, end };
+}

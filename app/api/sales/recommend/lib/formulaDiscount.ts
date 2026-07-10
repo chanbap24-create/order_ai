@@ -7,13 +7,13 @@
 // (1) 후보 '할인가' 산출(가격 게이트용) (2) 최종 rec_discount 부여에 재사용한다.
 import { supabase } from '@/app/lib/db';
 import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext, type VenueCategory } from '@/app/lib/pricing/discountRate';
-import { prevHalfRange } from '@/app/lib/pricing/quarters';
+import { prevYearRange } from '@/app/lib/pricing/quarters';
 import type { QuarterMetrics } from '@/app/lib/pricing/clientGrade';
 import { extractRDCode } from '@/app/lib/resolve-glass-items/rdCode';
 
-/** 직전 반기 리델 거래 여부 — 업소/호텔 +5% 판정. glass_shipments의 RD코드 품목 기준. */
-async function hadRiedelInPrevHalf(clientCode: string): Promise<boolean> {
-  const { start, end } = prevHalfRange();
+/** 직전 1년 리델 거래 여부 — 업소/호텔 +5% 판정. glass_shipments의 RD코드 품목 기준. */
+async function hadRiedelInPrevYear(clientCode: string): Promise<boolean> {
+  const { start, end } = prevYearRange();
   const { data } = await supabase
     .from('glass_shipments')
     .select('item_name')
@@ -32,7 +32,7 @@ export async function buildPricingContext(
   category: VenueCategory,
   metrics: QuarterMetrics,
 ): Promise<ClientPricingContext> {
-  const hadRiedelLastQuarter = category === 'venue' ? await hadRiedelInPrevHalf(clientCode) : false;
+  const hadRiedelLastQuarter = category === 'venue' ? await hadRiedelInPrevYear(clientCode) : false;
   return {
     category,
     quarterlySalesSupply: metrics.salesSupply,

@@ -39,7 +39,7 @@ export function SummaryCard({ result }: { result: RecommendResult }) {
           )}
           {riedel !== undefined && (
             <span
-              title={riedel ? '직전 반기 리델 거래 있음 — 추천견적 +5% 추가할인 적용' : '직전 반기 리델 거래 없음 — 추가할인 미적용'}
+              title={riedel ? '직전 1년 리델 거래 있음 — 추천견적 +5% 추가할인 적용' : '직전 1년 리델 거래 없음 — 추가할인 미적용'}
               style={{
                 padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
                 background: riedel ? 'rgba(255,205,70,0.35)' : 'rgba(255,255,255,0.12)',
