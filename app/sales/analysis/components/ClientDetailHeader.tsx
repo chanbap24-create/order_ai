@@ -2,6 +2,7 @@
 
 import type { SelectedRankClient } from "../types";
 import { IMPORTANCE_LABELS } from "../constants";
+import { ClientGradeInfo } from "./ClientGradeInfo";
 
 type Props = {
   client: SelectedRankClient;
@@ -10,7 +11,7 @@ type Props = {
   onBack: () => void;
 };
 
-export function ClientDetailHeader({ client, importance, quickSetImportance, onBack }: Props) {
+export function ClientDetailHeader({ client, importance, onBack }: Props) {
   const imp = IMPORTANCE_LABELS[importance] || IMPORTANCE_LABELS[3];
 
   return (
@@ -65,30 +66,7 @@ export function ClientDetailHeader({ client, importance, quickSetImportance, onB
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-        {[1, 2, 3, 4, 5].map((n) => {
-          const info = IMPORTANCE_LABELS[n];
-          const isActive = importance === n;
-          return (
-            <button
-              key={n}
-              onClick={() => quickSetImportance(n)}
-              style={{
-                padding: "4px 12px",
-                borderRadius: 4,
-                border: `1px solid ${isActive ? info.color : "var(--gray-200)"}`,
-                background: isActive ? info.color + "15" : "white",
-                color: isActive ? info.color : "var(--neutral-100)",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {info.label}
-            </button>
-          );
-        })}
-      </div>
+      <ClientGradeInfo clientCode={client.client_code} />
     </>
   );
 }

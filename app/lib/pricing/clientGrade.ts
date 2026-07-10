@@ -53,6 +53,32 @@ function gradeFrom(value: number, thr: [number, number, number, number]): number
   return g;
 }
 
+export interface MetricProgress {
+  key: 'items' | 'orders' | 'sales';
+  label: string;
+  unit: string;
+  cur: number;
+  next: number | null; // 다음 등급 문턱(현 등급이 이 지표를 끌어올려야 할 값). 최고등급이면 null.
+}
+
+/** 현재 등급 + 다음 등급까지 지표별(품목수·거래횟수·[샵 매출]) 현재값/문턱. */
+export function gradeProgress(category: VenueCategory, m: QuarterMetrics): { grade: number; metrics: MetricProgress[] } {
+  const grade = computeGrade(category, m);
+  const nextThr = (thr: [number, number, number, number]): number | null => (grade < 4 ? thr[grade] : null);
+  if (category === 'wholesale') return { grade: 0, metrics: [] };
+  if (category === 'shop') {
+    return { grade, metrics: [
+      { key: 'items', label: '품목수', unit: '종', cur: m.itemCount, next: nextThr([2, 4, 6, 8]) },
+      { key: 'orders', label: '거래횟수', unit: '일', cur: m.orderCount, next: nextThr([2, 3, 4, 6]) },
+      { key: 'sales', label: '매출', unit: '원', cur: m.salesSupply, next: nextThr([2_000_000, 4_000_000, 7_000_000, 7_000_000]) },
+    ] };
+  }
+  return { grade, metrics: [
+    { key: 'items', label: '품목수', unit: '종', cur: m.itemCount, next: nextThr([3, 5, 7, 10]) },
+    { key: 'orders', label: '거래횟수', unit: '일', cur: m.orderCount, next: nextThr([3, 6, 9, 12]) },
+  ] };
+}
+
 /**
  * 거래처 등급(0~4). 카테고리별 등급 중 최솟값(하위등급) 적용.
  *   · 업소/호텔: 품목수[3/5/7/10], 거래횟수[3/6/9/12]
