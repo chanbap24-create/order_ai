@@ -59,11 +59,16 @@ export function selectQuoteItems(
   const byScore = recs
     .filter((i) => !opts.minScore || i.score >= opts.minScore)
     .sort((a, b) => b.score - a.score);
-  // 무조건 추천(활성)+거래처 사용 타입 프로모션(promoPin)은 타입 배분 무관하게 항상 포함.
-  //   promo(가격만 적용)이나 비활성 프로모션은 일반 후보처럼 타입 배분을 따른다.
+  // 타입 비례배분(프로모션도 풀에 포함 — 점수 10만이라 자기 타입에서 1순위로 뽑혀 비율을 지킴).
+  let out = allocateByTypeShares(byScore, typeShares, N, opts.maxPerType);
+  // 무조건 추천(promoPin)이 배분에서 빠진 경우(그 타입이 0칸)에만 최저점 비-핀 품목과 교체(총 N 유지).
   const pinned = byScore.filter((i) => i.promoPin);
-  const rest = byScore.filter((i) => !i.promoPin);
-  const remain = Math.max(0, N - pinned.length);
-  const allocated = allocateByTypeShares(rest, typeShares, remain, opts.maxPerType);
-  return [...pinned, ...allocated].sort(compareForDisplay);
+  const missing = pinned.filter((p) => !out.includes(p));
+  if (missing.length) {
+    const drop = new Set(
+      out.filter((i) => !i.promoPin).sort((a, b) => a.score - b.score).slice(0, missing.length),
+    );
+    out = [...out.filter((i) => !drop.has(i)), ...missing];
+  }
+  return out.sort(compareForDisplay);
 }
