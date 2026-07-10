@@ -105,3 +105,19 @@ export const DEFAULT_QUOTE_VISIBLE: QuoteColumnKey[] = [
   "discount_total",
   "note",
 ];
+
+/** 수량 개런티 견적서 프리셋 (샵·도매 최대수량 매입건) — 최대수량(수량)·정상/할인합계·카탈로그 정보 노출 */
+export const QUANTITY_GUARANTEE_QUOTE_COLS: QuoteColumnKey[] = [
+  "country",
+  "brand",
+  "region",
+  "image_url",
+  "vintage",
+  "product_name",
+  "supply_price",
+  "quantity",
+  "normal_total",
+  "discount_total",
+  "tasting_note",
+  "note",
+];

@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-import { QUOTE_COLUMNS } from "../constants/columns";
+import { QUOTE_COLUMNS, DEFAULT_QUOTE_VISIBLE, QUANTITY_GUARANTEE_QUOTE_COLS } from "../constants/columns";
 import type { QuoteColumnKey } from "../types";
 
 type Props = {
@@ -55,6 +55,29 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
     >
       <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 8, color: "var(--neutral-700)" }}>
         견적 컬럼 (체크 + 드래그로 순서 변경)
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: "0.7rem", color: "var(--neutral-100)", alignSelf: "center" }}>프리셋</span>
+        <button
+          type="button"
+          onClick={() => setVisibleColumns(() => [...QUANTITY_GUARANTEE_QUOTE_COLS])}
+          style={{
+            padding: "4px 10px", borderRadius: 6, border: "1px solid var(--action-muted)",
+            background: "var(--action-muted)", color: "var(--action)", fontSize: 11, fontWeight: 700, cursor: "pointer",
+          }}
+        >
+          수량 개런티
+        </button>
+        <button
+          type="button"
+          onClick={() => setVisibleColumns(() => [...DEFAULT_QUOTE_VISIBLE])}
+          style={{
+            padding: "4px 10px", borderRadius: 6, border: "1px solid var(--gray-300)",
+            background: "#fff", color: "var(--neutral-400)", fontSize: 11, cursor: "pointer",
+          }}
+        >
+          기본
+        </button>
       </div>
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: "0.7rem", color: "var(--neutral-100)", marginBottom: 4 }}>
