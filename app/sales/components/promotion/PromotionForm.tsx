@@ -100,10 +100,13 @@ export function PromotionForm({ onSave }: { onSave: (d: PromotionDraft) => Promi
                 border: 'none', borderBottom: '1px solid var(--gray-100)', background: 'transparent',
                 cursor: 'pointer', fontSize: 12.5, color: 'var(--text-primary)',
               }}>
-                <b>{r.item_no}</b> · {r.item_name}
-                <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>
-                  공급가 {(r.supply_price || 0).toLocaleString()}
-                </span>
+                <div><b>{r.item_no}</b> · {r.item_name}</div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 3, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  <span>공급가 {(r.supply_price || 0).toLocaleString()}</span>
+                  <span>재고 {(r.total_stock ?? 0).toLocaleString()}</span>
+                  <span>가용 {(r.available_stock ?? 0).toLocaleString()}</span>
+                  <span>보세 {((r.bonded_warehouse || 0) + (r.bonded_kctc || 0)).toLocaleString()}</span>
+                </div>
               </button>
             ))}
           </div>
