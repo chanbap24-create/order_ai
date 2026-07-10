@@ -59,5 +59,10 @@ export function selectQuoteItems(
   const byScore = recs
     .filter((i) => !opts.minScore || i.score >= opts.minScore)
     .sort((a, b) => b.score - a.score);
-  return allocateByTypeShares(byScore, typeShares, N, opts.maxPerType).sort(compareForDisplay);
+  // 프로모션 품목은 타입 비례배분과 무관하게 항상 포함(최상위 규칙). 비주력 타입이어도 절대 탈락 안 함.
+  const promo = byScore.filter((i) => i.promo);
+  const rest = byScore.filter((i) => !i.promo);
+  const remain = Math.max(0, N - promo.length);
+  const allocated = allocateByTypeShares(rest, typeShares, remain, opts.maxPerType);
+  return [...promo, ...allocated].sort(compareForDisplay);
 }
