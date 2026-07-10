@@ -49,6 +49,8 @@ export async function applyPromotions(
   for (const [itemNo, p] of promos) {
     let s = scored.find((x) => x.item_no === itemNo);
     if (!s) {
+      // always_recommend=false면 자연 후보일 때만 적용(강제 주입 안 함).
+      if (p.always_recommend === false) continue;
       const inv = rawInvMap.get(itemNo);
       if (!inv) continue; // 재고 없음 → 견적 불가, 스킵
       s = buildScored(itemNo, inv, wineMap.get(itemNo));

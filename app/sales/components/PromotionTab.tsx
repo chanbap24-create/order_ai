@@ -11,7 +11,11 @@ interface Promotion {
   discount_rate: number | null;
   discount_price: number | null;
   active: boolean;
+  always_recommend: boolean;
   memo: string | null;
+  total_stock?: number;
+  available_stock?: number;
+  bonded_warehouse?: number;
 }
 
 export default function PromotionTab() {
@@ -40,13 +44,15 @@ export default function PromotionTab() {
     await load();
   };
 
-  const toggle = async (p: Promotion) => {
+  const patch = async (p: Promotion, body: Record<string, unknown>) => {
     await fetch('/api/sales/promotions', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: p.id, active: !p.active }),
+      body: JSON.stringify({ id: p.id, ...body }),
     });
     await load();
   };
+  const toggle = (p: Promotion) => patch(p, { active: !p.active });
+  const toggleAlways = (p: Promotion) => patch(p, { always_recommend: !p.always_recommend });
 
   const remove = async (p: Promotion) => {
     if (!confirm(`'${p.item_name || p.item_no}' 프로모션을 삭제할까요?`)) return;
@@ -83,12 +89,22 @@ export default function PromotionTab() {
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
                   {p.item_no}
-                  {p.quantity ? ` · ${p.quantity}병` : ''}
+                  {p.quantity ? ` · 수량 ${p.quantity}병` : ''}
                   {p.discount_rate != null ? ` · ${Math.round(p.discount_rate * 100)}%` : ''}
                   {p.discount_price ? ` · ${p.discount_price.toLocaleString()}원` : ''}
                   {p.memo ? ` · ${p.memo}` : ''}
                 </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <span>재고 <b style={{ color: 'var(--text-secondary)' }}>{(p.total_stock ?? 0).toLocaleString()}</b></span>
+                  <span>가용 <b style={{ color: (p.available_stock ?? 0) > 0 ? '#166534' : '#c0392b' }}>{(p.available_stock ?? 0).toLocaleString()}</b></span>
+                  <span>보세 <b style={{ color: 'var(--text-secondary)' }}>{(p.bonded_warehouse ?? 0).toLocaleString()}</b></span>
+                </div>
               </div>
+              <button onClick={() => toggleAlways(p)} title="견적 발행 시 후보에 없어도 무조건 추천(최상위 노출)" style={{
+                padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-default)',
+                background: p.always_recommend ? 'rgba(21,101,52,0.12)' : 'transparent', cursor: 'pointer',
+                fontSize: 12, color: p.always_recommend ? '#166534' : 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap',
+              }}>{p.always_recommend ? '무조건 추천 ✓' : '무조건 추천 ✕'}</button>
               <button onClick={() => toggle(p)} style={{
                 padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-default)',
                 background: p.active ? 'rgba(224,144,15,0.12)' : 'transparent', cursor: 'pointer',

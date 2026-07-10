@@ -11,9 +11,14 @@ export interface Promotion {
   discount_rate: number | null;  // 0~1
   discount_price: number | null; // 할인가(표시/참고)
   active: boolean;
+  always_recommend: boolean;     // 견적발행 시 무조건 추천(후보에 없어도 주입)
   memo: string | null;
   created_at?: string;
   updated_at?: string;
+  // 재고(표시용, enrichWithStock에서 부착)
+  total_stock?: number;
+  available_stock?: number;
+  bonded_warehouse?: number;
 }
 
 export interface PromotionInput {
@@ -23,6 +28,7 @@ export interface PromotionInput {
   quantity?: number | null;
   discount_rate?: number | null;
   discount_price?: number | null;
+  always_recommend?: boolean;
   memo?: string | null;
 }
 
@@ -68,6 +74,7 @@ export async function createPromotion(input: PromotionInput): Promise<Promotion>
     quantity: input.quantity ?? null,
     discount_rate: rate,
     discount_price: input.discount_price ?? null,
+    always_recommend: input.always_recommend ?? true,
     memo: input.memo ?? null,
     active: true,
   }).select('*').single();
@@ -82,6 +89,7 @@ export async function updatePromotion(id: string, patch: Partial<PromotionInput>
   if (patch.quantity !== undefined) upd.quantity = patch.quantity;
   if (patch.discount_rate !== undefined) upd.discount_rate = clampRate(patch.discount_rate);
   if (patch.discount_price !== undefined) upd.discount_price = patch.discount_price;
+  if (patch.always_recommend !== undefined) upd.always_recommend = patch.always_recommend;
   if (patch.memo !== undefined) upd.memo = patch.memo;
   if (patch.active !== undefined) upd.active = patch.active;
   const { data, error } = await supabase.from('promotions').update(upd).eq('id', id).select('*').single();
@@ -93,6 +101,30 @@ export async function deletePromotion(id: string): Promise<void> {
   if (!id) throw new Error('id가 필요합니다.');
   const { error } = await supabase.from('promotions').delete().eq('id', id);
   if (error) throw error;
+}
+
+/** 재고(총재고·가용재고·보세) 부착 — 관리 화면 표시용(inventory_cdv 기준). */
+export async function enrichWithStock(promos: Promotion[]): Promise<Promotion[]> {
+  const codes = [...new Set(promos.map((p) => p.item_no))];
+  if (codes.length === 0) return promos;
+  const stockMap = new Map<string, { total_stock?: number; available_stock?: number; bonded_warehouse?: number }>();
+  for (let i = 0; i < codes.length; i += 500) {
+    const { data } = await supabase
+      .from('inventory_cdv')
+      .select('item_no, total_stock, available_stock, bonded_warehouse')
+      .in('item_no', codes.slice(i, i + 500));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (data || []) as any[]) stockMap.set(String(r.item_no), r);
+  }
+  return promos.map((p) => {
+    const s = stockMap.get(p.item_no);
+    return {
+      ...p,
+      total_stock: s?.total_stock ?? 0,
+      available_stock: s?.available_stock ?? 0,
+      bonded_warehouse: s?.bonded_warehouse ?? 0,
+    };
+  });
 }
 
 function clampRate(r: number | null | undefined): number | null {
