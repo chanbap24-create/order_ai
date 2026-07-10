@@ -106,6 +106,9 @@ export function scoreRecommendations(params: {
     const name = wine?.item_name_kr || inv.item_name || '';
     const bucket = normalizeType(wine?.wine_type || '', name);
     const invPrice = inv.supply_price || 0;
+    // 가격 게이트/매칭은 '할인가'(공급가×(1−할인율))로 판정 — 거래처 실구매가(할인 반영)와 같은 기준.
+    // 표시 가격(ScoredItem.price)은 공급가 유지.
+    const gatePrice = (inv._discountedPrice as number | undefined) ?? invPrice;
     const h: RegionHierarchy | null = wine?._hierarchy || null;
     const purchase = purchaseAgg[itemNo];
 
@@ -137,10 +140,10 @@ export function scoreRecommendations(params: {
       const lo = priceFloor(prefs, bucket, geoGroup(h)) || ref;
       const hi = Math.max(lo, priceCeil(prefs, bucket, geoGroup(h)), ref);
       const gLo = lo * (1 - band), gHi = hi * (1 + band);
-      if (ref > 0 && invPrice > 0 && (invPrice < gLo || invPrice > gHi)) {
+      if (ref > 0 && gatePrice > 0 && (gatePrice < gLo || gatePrice > gHi)) {
         if (priceGate === 'hard') continue;          // 기본: 범위 밖 제외
         else if (priceGate === 'soft') {             // 소프트: 범위 밖 거리비례 감점(최대 −35), 제외 안 함
-          const dist = invPrice < gLo ? (gLo - invPrice) / gLo : (invPrice - gHi) / gHi;
+          const dist = gatePrice < gLo ? (gLo - gatePrice) / gLo : (gatePrice - gHi) / gHi;
           pricePenalty = 35 * Math.min(1, dist);
         }
         // 'off' → 감점·제외 없음
@@ -180,7 +183,7 @@ export function scoreRecommendations(params: {
 
     if (grapeHit) { tags.push('선호품종'); reasons.push(matchedGrapeLabel(invGrapes, prefs)); }
     if (shared.length) reasons.push(`${shared.slice(0, 3).join('·')} 향`);
-    if (invPrice > 0 && !isPremium) { tags.push('적정가격'); }
+    if (gatePrice > 0 && !isPremium) { tags.push('적정가격'); }
 
     const tierScore = t >= 0 ? TIER_BASE[t] : 0; // 산지 계단 점수(빈도 가중 제거 — 자주 산 산지는 다른 지표가 이미 반영)
     // 취향 = 향미(취향−2) + 품종(2). softWeight=15 → 향미 13·품종 2. 향미는 주력향 1개당 (향미배점/16).
@@ -225,7 +228,7 @@ export function scoreRecommendations(params: {
     if (quoteFeedback && sp.quoteFeedbackWeight > 0) {
       const fb = scoreQuoteFeedback(quoteFeedback, {
         region: geoGroup(h),
-        priceBand: priceBandKey(invPrice),
+        priceBand: priceBandKey(gatePrice),
         type: bucket,
         grapes: grapeKeysOf(invGrapes),
         flavors: [...wineFlavorKeys(wine)],

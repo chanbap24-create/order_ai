@@ -3,15 +3,12 @@
 // 품목별 할인율(rec_discount)을 확정. 샵·도매는 최대 수량티어를 추천수량으로,
 // 하위 티어는 비고(rec_note)에 표기.
 //
-// 기준(사용자 확정):
-//   · 분기 = 캘린더 분기(1~3/4~6/7~9/10~12월). '직전 완료 분기'의 Σ(공급가 × 수량) = 매출등급.
-//   · 리스팅 품목수 = 같은 직전 분기의 고유 품번 수.
-//   · 리델 = '직전 반기(H1 1~6월 / H2 7~12월)'에 RD코드 글라스 거래가 있으면 true(업소/호텔만).
-//   · 수량등급 = 최대 티어 적용(추천수량=최대티어 병수), 하위 티어는 비고.
+// 컨텍스트(업태·분기지표·리델)는 스코어링 전에 buildPricingContext로 1회 계산해
+// (1) 후보 '할인가' 산출(가격 게이트용) (2) 최종 rec_discount 부여에 재사용한다.
 import { supabase } from '@/app/lib/db';
-import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext } from '@/app/lib/pricing/discountRate';
-import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
-import { prevQuarterRange, prevHalfRange } from '@/app/lib/pricing/quarters';
+import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext, type VenueCategory } from '@/app/lib/pricing/discountRate';
+import { prevHalfRange } from '@/app/lib/pricing/quarters';
+import type { QuarterMetrics } from '@/app/lib/pricing/clientGrade';
 import { extractRDCode } from '@/app/lib/resolve-glass-items/rdCode';
 
 /** 직전 반기 리델 거래 여부 — 업소/호텔 +5% 판정. glass_shipments의 RD코드 품목 기준. */
@@ -29,72 +26,60 @@ async function hadRiedelInPrevHalf(clientCode: string): Promise<boolean> {
   return false;
 }
 
-export interface FormulaDiscountInput {
-  clientCode: string;
-  venueKey: string | null | undefined;
-  // 최근 프로파일 기간(profileMonths, 기본 6개월) 출고 — 직전 분기 창으로 필터해 매출/리스팅 집계.
-  shipments: Array<{ item_no?: string; quantity?: number; ship_date?: string }>;
-  priceOf: (itemNo: string) => number; // 품목 공급가
-  floorOf?: (itemNo: string) => number; // 할인가(할인공급가) 하한 — 할인가는 이 값 아래로 못 내려감(0=제한없음)
+/** 스코어링 전 1회 계산: 업태 + 직전분기 매출/리스팅 + 직전반기 리델. */
+export async function buildPricingContext(
+  clientCode: string,
+  category: VenueCategory,
+  metrics: QuarterMetrics,
+): Promise<ClientPricingContext> {
+  const hadRiedelLastQuarter = category === 'venue' ? await hadRiedelInPrevHalf(clientCode) : false;
+  return {
+    category,
+    quarterlySalesSupply: metrics.salesSupply,
+    listingCount: metrics.itemCount,
+    hadRiedelLastQuarter,
+  };
+}
+
+/** 할인율을 할인공급가 하한(floor)으로 클램프(할인가가 그 아래로 안 내려감). */
+function clampRate(rate: number, supply: number, floor: number): number {
+  if (floor > 0 && supply > 0) {
+    const maxRate = Math.floor(((supply - floor) / supply) * 100) / 100; // 내림 → 하한 안 넘음
+    if (rate > maxRate) return Math.max(0, maxRate);
+  }
+  return rate;
+}
+
+/** 할인가 = 공급가 × (1 − 할인율), 할인공급가 하한 반영. 가격 게이트/표시용. */
+export function discountedPriceFor(
+  ctx: ClientPricingContext,
+  supply: number,
+  qty: number,
+  floor = 0,
+): number {
+  const rate = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty }).rate, supply, floor);
+  return Math.round(supply * (1 - rate));
 }
 
 /**
- * 추천 결과에 공식 기반 할인율 부여.
- *   · 할인율(rec_discount) = 공식으로 확정(업태 기본 + 매출등급 + 수량등급 + 리델).
- *   · 샵·도매: 추천수량(rec_quantity)=최대 티어 병수, 비고(rec_note)=하위 티어.
- *   · 업소/호텔: 수량등급 없음 → rec_quantity(모달 묶음) 유지, 비고 없음.
- * 반환값은 계산에 쓴 거래처 컨텍스트(디버그/표시용).
+ * 추천 결과에 공식 기반 할인율 부여(스코어링 후). ctx는 buildPricingContext 결과 재사용.
+ *   · 샵·도매: 추천수량(rec_quantity)=최대 티어, 비고(rec_note)=하위 티어.
+ *   · 할인가 하한(floorOf) 반영.
  */
-export async function applyFormulaDiscounts(
+export function applyFormulaDiscounts(
   scored: Array<{ item_no: string; price?: number; rec_discount?: number; rec_quantity?: number; rec_note?: string }>,
-  input: FormulaDiscountInput,
-): Promise<ClientPricingContext> {
-  const category = venueKeyToCategory(input.venueKey);
-  const { start: qStart, end: qEnd } = prevQuarterRange();
-
-  // 직전 분기 공급가 매출 + 리스팅 품목수
-  let quarterlySalesSupply = 0;
-  const listed = new Set<string>();
-  for (const s of input.shipments) {
-    const d = s.ship_date || '';
-    if (d < qStart || d >= qEnd) continue;
-    const no = s.item_no ? String(s.item_no) : '';
-    if (!no) continue;
-    listed.add(no);
-    quarterlySalesSupply += input.priceOf(no) * (Number(s.quantity) || 0);
-  }
-
-  const hadRiedelLastQuarter = category === 'venue'
-    ? await hadRiedelInPrevHalf(input.clientCode)
-    : false;
-
-  const ctx: ClientPricingContext = {
-    category,
-    quarterlySalesSupply,
-    listingCount: listed.size,
-    hadRiedelLastQuarter,
-  };
-
-  // 샵·도매 최대 티어(추천수량 + 하위티어 비고) — 거래처 단위로 1회 계산.
-  const qtyRec = maxQtyTierFor(category);
-
+  ctx: ClientPricingContext,
+  floorOf?: (itemNo: string) => number,
+): void {
+  const qtyRec = maxQtyTierFor(ctx.category);
   for (const s of scored) {
-    const supply = Number(s.price) || input.priceOf(s.item_no) || 0;
-    // 샵·도매는 최대 티어 병수로 할인 계산, 업소/호텔은 수량 무관(리스팅 기준).
+    const supply = Number(s.price) || 0;
     const qty = qtyRec ? qtyRec.quantity : 1;
-    const r = computeItemDiscount(ctx, { supplyPrice: supply, qty });
-    let rate = r.rate;
-    // 할인가(할인공급가) 하한: 할인가는 이 값 아래로 못 내려감 = 최대 할인 상한.
-    const floor = input.floorOf ? input.floorOf(s.item_no) : 0;
-    if (floor > 0 && supply > 0) {
-      const maxRate = Math.floor(((supply - floor) / supply) * 100) / 100; // 내림 → 할인가 아래로 안 감
-      if (rate > maxRate) rate = Math.max(0, maxRate);
-    }
-    s.rec_discount = rate;
+    const floor = floorOf ? floorOf(s.item_no) : 0;
+    s.rec_discount = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty }).rate, supply, floor);
     if (qtyRec) {
       s.rec_quantity = qtyRec.quantity;
       if (qtyRec.remarks) s.rec_note = qtyRec.remarks;
     }
   }
-  return ctx;
 }

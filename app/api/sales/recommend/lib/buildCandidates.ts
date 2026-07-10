@@ -15,8 +15,9 @@ import { getClientQuoteFeatures } from './quoteFeedback';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
-import { applyFormulaDiscounts } from './formulaDiscount';
+import { applyFormulaDiscounts, buildPricingContext, discountedPriceFor } from './formulaDiscount';
 import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
+import { maxQtyTierFor } from '@/app/lib/pricing/discountRate';
 import { computeQuarterMetrics, computeGrade } from '@/app/lib/pricing/clientGrade';
 import { scaleForGrade } from './gradeScaling';
 import { applyPromotions } from './applyPromotions';
@@ -250,14 +251,24 @@ export async function buildCandidates(
     (inventoryMap.get(no)?.supply_price as number | undefined) ||
     (wineMap.get(no)?.supply_price as number | undefined) || 0;
   const clientCategory = venueKeyToCategory(venueKey);
-  const clientGrade = computeGrade(
-    clientCategory,
-    computeQuarterMetrics(
-      (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
-      gradePriceOf,
-    ),
+  const quarterMetrics = computeQuarterMetrics(
+    (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
+    gradePriceOf,
   );
+  const clientGrade = computeGrade(clientCategory, quarterMetrics);
   const graded = scaleForGrade(clientGrade, o.scoreParams);
+
+  // 할인 컨텍스트를 스코어링 전에 1회 계산 → 후보 '할인가' 산출(가격 게이트 기준)에 사용.
+  const pricingCtx = await buildPricingContext(clientCode, clientCategory, quarterMetrics);
+  const floorOf = (no: string): number => (inventoryMap.get(no)?.discount_price as number | undefined) || 0;
+  const qtyTier = maxQtyTierFor(clientCategory);
+  // 각 후보에 할인가 부착(가격 게이트는 할인가로 판정, 공급가는 표시용 유지).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const inv of inventory as any[]) {
+    inv._discountedPrice = discountedPriceFor(
+      pricingCtx, inv.supply_price || 0, qtyTier ? qtyTier.quantity : 1, inv.discount_price || 0,
+    );
+  }
 
   let scored: ScoredItem[];
   if (o.mode === 'discovery') {
@@ -291,17 +302,10 @@ export async function buildCandidates(
   // 권장 할인율: 가격공식(업태 기본 + 분기 공급가매출 등급 + 수량/품목 등급 + 리델) 기반.
   //   · 수량(rec_quantity)은 영업범위 6개월 최빈 묶음(모달)에서 가져오고,
   //   · 할인율(rec_discount)은 공식으로 확정(모달 경험치 대신). 샵·도매는 비고에 수량 사다리.
-  let hadRiedel: boolean | undefined;
+  const hadRiedel: boolean | undefined = clientCategory === 'venue' ? pricingCtx.hadRiedelLastQuarter : undefined;
   if (o.discountApply !== false) {
     await applyRecommendedDiscounts(scored, o.discountScope === 'rest' ? 'rest' : 'team1');
-    const ctx = await applyFormulaDiscounts(scored, {
-      clientCode,
-      venueKey,
-      shipments: (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
-      priceOf: gradePriceOf,
-      floorOf: (no) => (inventoryMap.get(no)?.discount_price as number | undefined) || 0,
-    });
-    hadRiedel = ctx.hadRiedelLastQuarter;
+    applyFormulaDiscounts(scored, pricingCtx, floorOf);
   }
 
   // 프로모션(최상위 규칙): 지정 품목의 할인률·수량 강제 + 최상위 노출. 후보에 없으면 재고에서 주입.
