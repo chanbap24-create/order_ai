@@ -24,8 +24,9 @@ export interface ScoredItem {
   brand?: string;
   vintage?: string;
   breakdown?: string[]; // 점수 분해(표시용)
-  rec_discount?: number; // 권장 할인율(0~1, 출고 기반). 견적 자동입력용
+  rec_discount?: number; // 권장 할인율(0~1, 가격공식 기반). 견적 자동입력용
   rec_quantity?: number; // 권장 수량(최빈가에 가장 많이 딸린 수량). 견적 자동입력용
+  rec_note?: string;     // 비고: 수량 사다리("12병 +5% / 36병 +10%") 등. 견적 note로
 }
 
 export interface RecommendResult {

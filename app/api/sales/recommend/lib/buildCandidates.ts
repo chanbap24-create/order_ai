@@ -15,6 +15,7 @@ import { getClientQuoteFeatures } from './quoteFeedback';
 import { scoreDiscovery, getSegmentPopularity, getItemPopularity } from './discovery';
 import { isNonStandardBottle, isGiftBox } from './bottleSize';
 import { applyRecommendedDiscounts } from './recommendDiscount';
+import { applyFormulaDiscounts } from './formulaDiscount';
 import { buildSummary } from './buildSummary';
 import { getClientVenue } from '@/app/lib/clientVenue';
 import { VENUE_WINE_MAP } from './venueScoring';
@@ -268,8 +269,21 @@ export async function buildCandidates(
     }) as ScoredItem[];
   }
 
-  // 권장 할인율: 영업범위 최근 6개월 '최빈가' 기반(적용 토글 시).
-  if (o.discountApply !== false) await applyRecommendedDiscounts(scored, o.discountScope === 'rest' ? 'rest' : 'team1');
+  // 권장 할인율: 가격공식(업태 기본 + 분기 공급가매출 등급 + 수량/품목 등급 + 리델) 기반.
+  //   · 수량(rec_quantity)은 영업범위 6개월 최빈 묶음(모달)에서 가져오고,
+  //   · 할인율(rec_discount)은 공식으로 확정(모달 경험치 대신). 샵·도매는 비고에 수량 사다리.
+  if (o.discountApply !== false) {
+    await applyRecommendedDiscounts(scored, o.discountScope === 'rest' ? 'rest' : 'team1');
+    const priceOf = (no: string): number =>
+      (inventoryMap.get(no)?.supply_price as number | undefined) ||
+      (wineMap.get(no)?.supply_price as number | undefined) || 0;
+    await applyFormulaDiscounts(scored, {
+      clientCode,
+      venueKey,
+      shipments: (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
+      priceOf,
+    });
+  }
 
   let lastOrderDate: string | null = null;
   for (const agg of Object.values(purchaseAgg)) {
