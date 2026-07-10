@@ -4,7 +4,17 @@ import type { RecommendResult } from '../types';
 import { IMPORTANCE_LABELS } from '../constants';
 import { fmt } from '../lib/format';
 
+// 거래처 등급(0~4) 뱃지 배경 — 높을수록 강조(취향·산지 반영↑).
+const GRADE_BG = [
+  'rgba(255,255,255,0.16)', // 0
+  'rgba(255,255,255,0.24)', // 1
+  'rgba(80,200,160,0.38)',  // 2
+  'rgba(80,200,160,0.55)',  // 3
+  'rgba(255,205,70,0.6)',   // 4
+];
+
 export function SummaryCard({ result }: { result: RecommendResult }) {
+  const { grade, riedel } = result.client;
   return (
     <div style={{
       background: 'linear-gradient(135deg, var(--action), #8B2252)',
@@ -18,8 +28,30 @@ export function SummaryCard({ result }: { result: RecommendResult }) {
             {result.client.manager && ` · ${result.client.manager}`}
           </div>
         </div>
-        <div style={{ padding: '4px 10px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
-          {IMPORTANCE_LABELS[result.client.importance]?.label || '일반'}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {typeof grade === 'number' && (
+            <span
+              title="거래처 등급(직전 분기 거래량 기반) — 높을수록 추천에 산지·취향·견적학습 반영↑"
+              style={{ padding: '4px 10px', borderRadius: 12, background: GRADE_BG[grade] ?? GRADE_BG[0], fontSize: 12, fontWeight: 700 }}
+            >
+              {grade}등급
+            </span>
+          )}
+          {riedel !== undefined && (
+            <span
+              title={riedel ? '직전 반기 리델 거래 있음 — 추천견적 +5% 추가할인 적용' : '직전 반기 리델 거래 없음 — 추가할인 미적용'}
+              style={{
+                padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+                background: riedel ? 'rgba(255,205,70,0.35)' : 'rgba(255,255,255,0.12)',
+                opacity: riedel ? 1 : 0.7,
+              }}
+            >
+              {riedel ? '🥂 리델 사용' : '리델 미사용'}
+            </span>
+          )}
+          <span style={{ padding: '4px 10px', borderRadius: 12, background: 'rgba(255,255,255,0.2)', fontSize: 12 }}>
+            {IMPORTANCE_LABELS[result.client.importance]?.label || '일반'}
+          </span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>

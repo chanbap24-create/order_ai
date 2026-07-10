@@ -25,7 +25,7 @@ import { VENUE_WINE_MAP } from './venueScoring';
 import { getSegmentProfile, extractRegion, type SegmentProfile } from '@/app/lib/segmentProfiles';
 
 export interface CandidateContext {
-  client: { code: string; name: string; importance: number; business_type: string; manager: string; grade?: number };
+  client: { code: string; name: string; importance: number; business_type: string; manager: string; grade?: number; category?: 'venue' | 'shop' | 'wholesale'; riedel?: boolean };
   scored: ScoredItem[];
   summary: {
     total_items: number; avg_price: number; last_order_date: string | null;
@@ -248,8 +248,9 @@ export async function buildCandidates(
   const gradePriceOf = (no: string): number =>
     (inventoryMap.get(no)?.supply_price as number | undefined) ||
     (wineMap.get(no)?.supply_price as number | undefined) || 0;
+  const clientCategory = venueKeyToCategory(venueKey);
   const clientGrade = computeGrade(
-    venueKeyToCategory(venueKey),
+    clientCategory,
     computeQuarterMetrics(
       (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
       gradePriceOf,
@@ -289,17 +290,16 @@ export async function buildCandidates(
   // 권장 할인율: 가격공식(업태 기본 + 분기 공급가매출 등급 + 수량/품목 등급 + 리델) 기반.
   //   · 수량(rec_quantity)은 영업범위 6개월 최빈 묶음(모달)에서 가져오고,
   //   · 할인율(rec_discount)은 공식으로 확정(모달 경험치 대신). 샵·도매는 비고에 수량 사다리.
+  let hadRiedel: boolean | undefined;
   if (o.discountApply !== false) {
     await applyRecommendedDiscounts(scored, o.discountScope === 'rest' ? 'rest' : 'team1');
-    const priceOf = (no: string): number =>
-      (inventoryMap.get(no)?.supply_price as number | undefined) ||
-      (wineMap.get(no)?.supply_price as number | undefined) || 0;
-    await applyFormulaDiscounts(scored, {
+    const ctx = await applyFormulaDiscounts(scored, {
       clientCode,
       venueKey,
       shipments: (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
-      priceOf,
+      priceOf: gradePriceOf,
     });
+    hadRiedel = ctx.hadRiedelLastQuarter;
   }
 
   let lastOrderDate: string | null = null;
@@ -328,6 +328,9 @@ export async function buildCandidates(
       business_type: clientDetail?.business_type || '',
       manager: clientDetail?.manager || '',
       grade: clientGrade,
+      category: clientCategory,
+      // 리델 사용 업장 여부: 업소/호텔만 의미(직전 반기 리델 거래). 그 외 업태는 undefined(N/A).
+      riedel: clientCategory === 'venue' ? (hadRiedel ?? false) : undefined,
     },
     scored,
     summary: buildSummary(purchaseAgg, prefs, wineMap, o.profileMonths, o.priceBandPct, lastOrderDate),

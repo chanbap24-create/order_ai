@@ -36,6 +36,9 @@ export interface RecommendResult {
     importance: number;
     business_type: string;
     manager: string;
+    grade?: number; // 거래처 등급 0~4 (추천점수 가중치 기준)
+    category?: 'venue' | 'shop' | 'wholesale'; // 업태(업소·호텔/샵/도매)
+    riedel?: boolean; // 리델 사용 업장 여부(업소/호텔만 의미, 그 외 undefined)
   };
   recommendations: ScoredItem[];
   typeShares?: Record<string, number>; // 타입 분포(본인+업장+업태 블렌드) — 비례배분 selection용
