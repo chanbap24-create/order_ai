@@ -19,6 +19,7 @@ import { applyFormulaDiscounts } from './formulaDiscount';
 import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
 import { computeQuarterMetrics, computeGrade } from '@/app/lib/pricing/clientGrade';
 import { scaleForGrade } from './gradeScaling';
+import { applyPromotions } from './applyPromotions';
 import { buildSummary } from './buildSummary';
 import { getClientVenue } from '@/app/lib/clientVenue';
 import { VENUE_WINE_MAP } from './venueScoring';
@@ -77,7 +78,7 @@ export async function buildCandidates(
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('shipments').select('item_no, item_name, unit_price, quantity, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
-    fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
+    fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, discount_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
     supabase.from('recommendations').select('item_codes').eq('client_code', clientCode).eq('status', 'sent').gte('created_at', recoSinceMidnight).lt('created_at', todayKstMidnight),
   ]);
@@ -298,9 +299,18 @@ export async function buildCandidates(
       venueKey,
       shipments: (shipments || []) as Array<{ item_no?: string; quantity?: number; ship_date?: string }>,
       priceOf: gradePriceOf,
+      floorOf: (no) => (inventoryMap.get(no)?.discount_price as number | undefined) || 0,
     });
     hadRiedel = ctx.hadRiedelLastQuarter;
   }
+
+  // 프로모션(최상위 규칙): 지정 품목의 할인률·수량 강제 + 최상위 노출. 후보에 없으면 재고에서 주입.
+  const rawInvMap = new Map<string, unknown>();
+  for (const inv of rawInventory) {
+    const c = (inv as { item_no?: string }).item_no;
+    if (c) rawInvMap.set(c, inv);
+  }
+  await applyPromotions(scored, rawInvMap, wineMap);
 
   let lastOrderDate: string | null = null;
   for (const agg of Object.values(purchaseAgg)) {

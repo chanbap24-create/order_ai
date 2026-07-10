@@ -35,6 +35,7 @@ export interface FormulaDiscountInput {
   // 최근 프로파일 기간(profileMonths, 기본 6개월) 출고 — 직전 분기 창으로 필터해 매출/리스팅 집계.
   shipments: Array<{ item_no?: string; quantity?: number; ship_date?: string }>;
   priceOf: (itemNo: string) => number; // 품목 공급가
+  floorOf?: (itemNo: string) => number; // 할인가(할인공급가) 하한 — 할인가는 이 값 아래로 못 내려감(0=제한없음)
 }
 
 /**
@@ -82,7 +83,14 @@ export async function applyFormulaDiscounts(
     // 샵·도매는 최대 티어 병수로 할인 계산, 업소/호텔은 수량 무관(리스팅 기준).
     const qty = qtyRec ? qtyRec.quantity : 1;
     const r = computeItemDiscount(ctx, { supplyPrice: supply, qty });
-    s.rec_discount = r.rate;
+    let rate = r.rate;
+    // 할인가(할인공급가) 하한: 할인가는 이 값 아래로 못 내려감 = 최대 할인 상한.
+    const floor = input.floorOf ? input.floorOf(s.item_no) : 0;
+    if (floor > 0 && supply > 0) {
+      const maxRate = Math.floor(((supply - floor) / supply) * 100) / 100; // 내림 → 할인가 아래로 안 감
+      if (rate > maxRate) rate = Math.max(0, maxRate);
+    }
+    s.rec_discount = rate;
     if (qtyRec) {
       s.rec_quantity = qtyRec.quantity;
       if (qtyRec.remarks) s.rec_note = qtyRec.remarks;

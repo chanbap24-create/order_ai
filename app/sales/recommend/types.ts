@@ -27,6 +27,7 @@ export interface ScoredItem {
   rec_discount?: number; // 권장 할인율(0~1, 가격공식 기반). 견적 자동입력용
   rec_quantity?: number; // 권장 수량(최빈가에 가장 많이 딸린 수량). 견적 자동입력용
   rec_note?: string;     // 비고: 수량 사다리("12병 +5% / 36병 +10%") 등. 견적 note로
+  promo?: boolean;       // 프로모션 지정 품목(최상위 규칙)
 }
 
 export interface RecommendResult {

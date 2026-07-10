@@ -19,6 +19,7 @@ const ClientListTab = dynamic(() => import('../../components/ClientListTab'), { 
 const ExpenseTab = dynamic(() => import('../../components/ExpenseTab'), { ssr: false });
 const RecommendQuoteTab = dynamic(() => import('../../components/RecommendQuoteTab'), { ssr: false });
 const TastingApprovalTab = dynamic(() => import('../../components/TastingApprovalTab'), { ssr: false });
+const PromotionTab = dynamic(() => import('../../components/PromotionTab'), { ssr: false });
 
 type Props = {
   activeTab: SalesTabId;
@@ -61,6 +62,8 @@ export function TabContent(p: Props) {
       return <RecommendQuoteTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'tasting-approval':
       return <TastingApprovalTab currentManager={p.currentManager} isAdmin={p.isAdmin} department={p.userDepartment} />;
+    case 'promotion':
+      return <PromotionTab />;
     default:
       return null;
   }

@@ -44,8 +44,9 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
     <div
       onClick={onToggle}
       style={{
-        background: '#fff', borderRadius: 10, padding: '12px 14px',
-        border: isSelected ? '2px solid var(--action)' : '1px solid var(--action-muted)',
+        background: item.promo ? 'linear-gradient(0deg, rgba(224,144,15,0.07), rgba(224,144,15,0.07)), #fff' : '#fff',
+        borderRadius: 10, padding: '12px 14px',
+        border: item.promo ? '2px solid #e0900f' : isSelected ? '2px solid var(--action)' : '1px solid var(--action-muted)',
         boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(90,21,21,0.03)',
         cursor: 'pointer', transition: 'all 0.15s',
         display: 'flex', gap: 12, alignItems: 'flex-start',
@@ -80,11 +81,11 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
         <span style={{
           fontSize: 9.5, fontWeight: 700, padding: '2px 3px', borderRadius: 5, width: '100%',
           textAlign: 'center', lineHeight: 1.15, wordBreak: 'keep-all',
-          background: isClientBased ? 'rgba(21,101,52,0.13)' : 'rgba(180,110,20,0.16)',
-          color: isClientBased ? '#166534' : '#9a5b00',
-          border: `1px solid ${isClientBased ? 'rgba(21,101,52,0.3)' : 'rgba(180,110,20,0.35)'}`,
+          background: item.promo ? 'rgba(224,144,15,0.2)' : isClientBased ? 'rgba(21,101,52,0.13)' : 'rgba(180,110,20,0.16)',
+          color: item.promo ? '#b45309' : isClientBased ? '#166534' : '#9a5b00',
+          border: `1px solid ${item.promo ? 'rgba(224,144,15,0.55)' : isClientBased ? 'rgba(21,101,52,0.3)' : 'rgba(180,110,20,0.35)'}`,
         }}>
-          {isClientBased ? '🎯 거래처이력' : '🏢 동종업장'}
+          {item.promo ? '🔥 프로모션' : isClientBased ? '🎯 거래처이력' : '🏢 동종업장'}
         </span>
       </div>
 

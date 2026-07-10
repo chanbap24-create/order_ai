@@ -90,8 +90,13 @@ export async function POST(req: Request) {
       ...(minStock && Object.keys(minStock).length ? { minStock: minStock as never } : {}),
       ...(scoreParams ? { scoreParams } : {}),
     });
-    // 관련도 점수로 상위 선별 후, 견적 표시 순서(스파클링→화이트→레드 · 타입내 공급가 내림차순)로 정렬
-    const recommendations = orderForDisplay(scored.slice(0, 30));
+    // 프로모션 품목은 최상위, 나머지는 관련도 상위 30개. 각각 견적 표시순서(스파클링→화이트→레드)로 정렬.
+    const promoItems = scored.filter((i) => i.promo);
+    const normalItems = scored.filter((i) => !i.promo);
+    const recommendations = [
+      ...orderForDisplay(promoItems),
+      ...orderForDisplay(normalItems.slice(0, 30)),
+    ];
 
     // 이력 저장
     if (recommendations.length > 0) {
