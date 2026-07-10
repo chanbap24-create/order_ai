@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { PromotionForm, type PromotionDraft } from './promotion/PromotionForm';
+import { DiscountConfigEditor } from './promotion/DiscountConfigEditor';
 
 interface Promotion {
   id: string;
@@ -66,6 +67,8 @@ export default function PromotionTab() {
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
         여기 지정한 품목은 AI 추천 시 <b>최상위 규칙</b>으로 적용돼요(할인률·수량 고정, 최상단 노출).
       </div>
+
+      <DiscountConfigEditor />
 
       <PromotionForm onSave={add} />
 

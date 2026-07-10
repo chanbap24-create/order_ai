@@ -6,7 +6,7 @@
 // 컨텍스트(업태·분기지표·리델)는 스코어링 전에 buildPricingContext로 1회 계산해
 // (1) 후보 '할인가' 산출(가격 게이트용) (2) 최종 rec_discount 부여에 재사용한다.
 import { supabase } from '@/app/lib/db';
-import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext, type VenueCategory } from '@/app/lib/pricing/discountRate';
+import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext, type VenueCategory, type DiscountConfig } from '@/app/lib/pricing/discountRate';
 import { prevYearRange } from '@/app/lib/pricing/quarters';
 import type { QuarterMetrics } from '@/app/lib/pricing/clientGrade';
 import { extractRDCode } from '@/app/lib/resolve-glass-items/rdCode';
@@ -31,6 +31,7 @@ export async function buildPricingContext(
   clientCode: string,
   category: VenueCategory,
   metrics: QuarterMetrics,
+  config?: DiscountConfig,
 ): Promise<ClientPricingContext> {
   const hadRiedelLastQuarter = category === 'venue' ? await hadRiedelInPrevYear(clientCode) : false;
   return {
@@ -38,6 +39,7 @@ export async function buildPricingContext(
     quarterlySalesSupply: metrics.salesSupply,
     listingCount: metrics.itemCount,
     hadRiedelLastQuarter,
+    config,
   };
 }
 
@@ -71,7 +73,7 @@ export function applyFormulaDiscounts(
   ctx: ClientPricingContext,
   floorOf?: (itemNo: string) => number,
 ): void {
-  const qtyRec = maxQtyTierFor(ctx.category);
+  const qtyRec = maxQtyTierFor(ctx.category, ctx.config);
   for (const s of scored) {
     const supply = Number(s.price) || 0;
     const qty = qtyRec ? qtyRec.quantity : 1;

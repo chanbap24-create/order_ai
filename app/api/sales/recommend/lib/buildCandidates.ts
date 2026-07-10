@@ -18,6 +18,7 @@ import { applyRecommendedDiscounts } from './recommendDiscount';
 import { applyFormulaDiscounts, buildPricingContext, discountedPriceFor } from './formulaDiscount';
 import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
 import { maxQtyTierFor } from '@/app/lib/pricing/discountRate';
+import { getDiscountConfig } from '@/app/lib/pricing/discountConfig';
 import { computeQuarterMetrics, computeGrade } from '@/app/lib/pricing/clientGrade';
 import { scaleForGrade } from './gradeScaling';
 import { applyPromotions } from './applyPromotions';
@@ -259,9 +260,11 @@ export async function buildCandidates(
   const graded = scaleForGrade(clientGrade, o.scoreParams);
 
   // 할인 컨텍스트를 스코어링 전에 1회 계산 → 후보 '할인가' 산출(가격 게이트 기준)에 사용.
-  const pricingCtx = await buildPricingContext(clientCode, clientCategory, quarterMetrics);
+  //   업태별 등급조건(가격공식)은 DB에서 로드(없으면 기본값).
+  const discountConfig = await getDiscountConfig('CDV');
+  const pricingCtx = await buildPricingContext(clientCode, clientCategory, quarterMetrics, discountConfig);
   const floorOf = (no: string): number => (inventoryMap.get(no)?.discount_price as number | undefined) || 0;
-  const qtyTier = maxQtyTierFor(clientCategory);
+  const qtyTier = maxQtyTierFor(clientCategory, discountConfig);
   // 각 후보에 할인가 부착(가격 게이트는 할인가로 판정, 공급가는 표시용 유지).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const inv of inventory as any[]) {
