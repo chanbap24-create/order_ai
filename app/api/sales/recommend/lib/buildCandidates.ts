@@ -308,13 +308,20 @@ export async function buildCandidates(
     applyFormulaDiscounts(scored, pricingCtx, floorOf);
   }
 
-  // 프로모션(최상위 규칙): 지정 품목의 할인률·수량 강제 + 최상위 노출. 후보에 없으면 재고에서 주입.
+  // 프로모션: 노출되면 프로모션가 적용. 활성(무조건추천)+거래처 사용 타입이면 타입배분 무관 강제 포함.
   const rawInvMap = new Map<string, unknown>();
   for (const inv of rawInventory) {
     const c = (inv as { item_no?: string }).item_no;
     if (c) rawInvMap.set(c, inv);
   }
-  await applyPromotions(scored, rawInvMap, wineMap);
+  // 거래처가 실제로 매입한 와인 타입 집합(프로모션 강제 포함의 타입 게이트).
+  const clientOwnTypes = new Set<string>();
+  for (const [no, a] of Object.entries(purchaseAgg)) {
+    const w = wineMap.get(String(no));
+    const bl = bucketLabel(normalizeType(w?.wine_type || '', w?.item_name_kr || a.name || ''));
+    if (bl) clientOwnTypes.add(bl);
+  }
+  await applyPromotions(scored, rawInvMap, wineMap, clientOwnTypes);
 
   let lastOrderDate: string | null = null;
   for (const agg of Object.values(purchaseAgg)) {
