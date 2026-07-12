@@ -115,20 +115,20 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
       {collData && <CollectionBriefingSection data={collData} onSave={saveColl} />}
 
       {selectedManager && unsetClients.length > 0 && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 14px' }}>
+        <div style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', borderRadius: 12, padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>
-              🔔 결제조건 미설정 거래처 <span style={{ color: '#b45309' }}>{unsetClients.length}건</span>
-              <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: '#a16207' }}>(신규 포함)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-warning)' }}>
+              🔔 결제조건 미설정 거래처 <span style={{ color: 'var(--status-warning)' }}>{unsetClients.length}건</span>
+              <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: 'var(--status-warning)' }}>(신규 포함)</span>
             </span>
             {onTabChange && (
               <button
                 onClick={() => onTabChange('payment-terms')}
-                style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid var(--status-warning)', background: '#fff', color: '#b45309', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: 6, border: '1px solid var(--status-warning)', background: '#fff', color: 'var(--status-warning)', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >수금일 설정 →</button>
             )}
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: '#92400e', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--status-warning)', lineHeight: 1.6 }}>
             {unsetClients.slice(0, 15).map(c => c.client_name).join(', ')}
             {unsetClients.length > 15 ? ` 외 ${unsetClients.length - 15}곳` : ''}
           </div>

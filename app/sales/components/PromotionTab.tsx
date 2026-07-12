@@ -82,12 +82,12 @@ export default function PromotionTab() {
           {list.map((p) => (
             <div key={p.id} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12,
-              background: '#fff', border: `1px solid ${p.active ? '#e0900f' : 'var(--border-default)'}`,
+              background: '#fff', border: `1px solid ${p.active ? 'var(--promo-strong)' : 'var(--border-default)'}`,
               opacity: p.active ? 1 : 0.6,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {p.active && <span style={{ color: '#e0900f', marginRight: 4 }}>🔥</span>}
+                  {p.active && <span style={{ color: 'var(--promo-strong)', marginRight: 4 }}>🔥</span>}
                   {p.item_name || p.item_no}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
@@ -110,8 +110,8 @@ export default function PromotionTab() {
               }}>{p.always_recommend ? '무조건 추천 ✓' : '무조건 추천 ✕'}</button>
               <button onClick={() => toggle(p)} style={{
                 padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-default)',
-                background: p.active ? 'rgba(224,144,15,0.12)' : 'transparent', cursor: 'pointer',
-                fontSize: 12, color: p.active ? '#b45309' : 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap',
+                background: p.active ? 'var(--promo-bg)' : 'transparent', cursor: 'pointer',
+                fontSize: 12, color: p.active ? 'var(--promo)' : 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap',
               }}>{p.active ? '활성' : '비활성'}</button>
               <button onClick={() => remove(p)} style={{
                 padding: '5px 10px', borderRadius: 8, border: 'none', background: 'transparent',

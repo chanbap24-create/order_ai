@@ -128,7 +128,7 @@ export function OrderLineCompact({ line, tab, isExpanded, onToggle }: Props) {
 function ReviewBadge({ note }: { note: string }) {
   // ⚠로 시작하면 의심 표시(주황), 그 외는 검수 변경(보라)
   const isWarn = note.startsWith("⚠");
-  const color = isWarn ? "#b45309" : "#5b21b6";
+  const color = isWarn ? "var(--promo)" : "#5b21b6";
   const bg = isWarn ? "#fef3c7" : "#ede9fe";
   return (
     <span

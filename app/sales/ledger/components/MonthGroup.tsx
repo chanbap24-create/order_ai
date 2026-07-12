@@ -34,7 +34,7 @@ export const MonthGroup = memo(function MonthGroup({ month, collapsed, collapsed
           );
         });
       })()}
-      <tr style={{ background: '#FFF8E1', cursor: 'pointer' }} onClick={onToggleMonth}>
+      <tr style={{ background: 'var(--surface-muted)', cursor: 'pointer' }} onClick={onToggleMonth}>
         <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--action)' }} colSpan={2}>
           <span style={{ marginRight: 6 }}>{collapsed ? '▶' : '▼'}</span>
           {month.month} 월계

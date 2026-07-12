@@ -108,6 +108,10 @@
   --status-success-bg: #e8f5e9;
   --status-warning: #e65100;
   --status-warning-bg: #fff3e0;
+  /* 프로모션 골드 (추천·프로모션 탭 공용 — 하드코딩 금지, 이 토큰만 사용) */
+  --promo: #b45309;
+  --promo-strong: #e0900f;
+  --promo-bg: rgba(224, 144, 15, 0.12);
 
   /* Neutral gray scale (쿨 그레이 램프) */
   --gray-50: #fafafa;

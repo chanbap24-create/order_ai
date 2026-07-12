@@ -35,7 +35,7 @@ export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBa
         </tr>
       ))}
       {!collapsed && day.paymentRows.map((p, i) => (
-        <tr key={`p${i}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(21,101,192,0.03)' }}>
+        <tr key={`p${i}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
           <td style={{ ...tdStyle, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
             {day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}
           </td>

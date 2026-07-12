@@ -112,7 +112,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
         {/* 상태 줄 — 칩 다운그레이드: 색 텍스트·도트만 */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 3 }}>
           {item.promo ? (
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#b45309' }}>🔥 프로모션</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--promo)' }}>🔥 프로모션</span>
           ) : (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,

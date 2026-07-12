@@ -169,9 +169,9 @@ export function LedgerResultCard(p: Props) {
                 />
               );
             })}
-            <tr style={{ background: 'var(--action)' }}>
+            <tr style={{ background: 'var(--surface-muted)', borderTop: '2px solid var(--border-strong)' }}>
               <td
-                style={{ ...tdStyle, fontWeight: 700, color: '#fff' }}
+                style={{ ...tdStyle, fontWeight: 700, color: 'var(--text-primary)' }}
                 colSpan={2}
               >
                 [{p.client.client_name} 합계]
@@ -181,19 +181,19 @@ export function LedgerResultCard(p: Props) {
                   ...tdStyle,
                   textAlign: 'right',
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
                 {fmt(p.grandTotal.qty)}
               </td>
-              <td style={{ ...tdStyle, color: '#fff' }}></td>
+              <td style={{ ...tdStyle, color: 'var(--text-primary)' }}></td>
               <td
                 style={{
                   ...tdStyle,
                   textAlign: 'right',
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -204,7 +204,7 @@ export function LedgerResultCard(p: Props) {
                   ...tdStyle,
                   textAlign: 'right',
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -215,7 +215,7 @@ export function LedgerResultCard(p: Props) {
                   ...tdStyle,
                   textAlign: 'right',
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -226,7 +226,7 @@ export function LedgerResultCard(p: Props) {
                   ...tdStyle,
                   textAlign: 'right',
                   fontWeight: 700,
-                  color: '#90CAF9',
+                  color: 'var(--status-info)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -237,7 +237,7 @@ export function LedgerResultCard(p: Props) {
                   ...tdStyle,
                   textAlign: 'right',
                   fontWeight: 700,
-                  color: '#FFCDD2',
+                  color: 'var(--status-danger)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
