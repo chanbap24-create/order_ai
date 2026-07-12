@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { getSellingTotal } from '@/app/lib/priceUtils';
 import { resolveManagerScope } from '@/app/lib/authz';
 
 // GET: 거래처 코드 목록에 대한 매출 통계 조회
@@ -43,7 +42,9 @@ export async function GET(req: NextRequest) {
 
       // 집계 기간: 사용자 지정 기간이 있으면 그 기간, 없으면 최근 12개월
       // (랭킹 테이블의 totalSales 와 동일한 기준이어야 두 화면 매출이 일치)
-      const aggStart = useCustomRange ? rangeStart : twelveStr;
+      const aggStartRaw = useCustomRange ? rangeStart : twelveStr;
+      // 글라스(DL)는 2025-08-01 전산이관 전 출고 제외(매출분석과 동일 기준).
+      const aggStart = clientType === 'glass' && aggStartRaw < '2025-08-01' ? '2025-08-01' : aggStartRaw;
       const aggEnd = useCustomRange ? rangeEnd : '';
 
       // 최근 20건 조회 + 집계 기간 전체 페이지네이션 병렬 시작
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
         .limit(20);
 
       // 집계 기간 전체 출고 조회 (매출 통계 + 품목별 통계 동시 계산)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allShipments: any[] = [];
       let shipFrom = 0;
       const shipBatch = 1000;
@@ -91,13 +93,10 @@ export async function GET(req: NextRequest) {
       }>();
 
       for (const s of allShipments) {
-        // 2025-08 이전 supply_amount 왜곡 보정
-        const amt = getSellingTotal(
-          s.unit_price || 0,
-          s.selling_price || 0,
-          s.supply_amount || 0,
-          s.quantity || 0,
-        );
+        // 매출식을 어드민 매출분석(rev_n)과 통일: 2025-08 이후=supply_amount · 이전=selling_price.
+        const amt = (s.ship_date || '') >= '2025-08-01'
+          ? (Number(s.supply_amount) || 0)
+          : (Number(s.selling_price) || Number(s.supply_amount) || 0);
         totalSales += amt;
         const d = s.ship_date?.toString().slice(0, 10) || '';
         if (d >= threeStr) recentQtr += amt;
