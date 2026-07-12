@@ -197,9 +197,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 데이터 UI 마감 — 숫자 컬럼 정렬(tabular), 헤딩 고아단어 방지 */
+/* 한국어 줄바꿈 — 단어 중간에서 끊기지 않게(keep-all). 모바일 깨짐의 최다 원인.
+   overflow-wrap은 품번·URL 같은 긴 연속 토큰이 컨테이너를 밀어내는 것 방지. */
+body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 데이터 UI 마감 — 숫자 컬럼 정렬(tabular), 셀 내 한국어 유지, 헤딩 고아단어 방지 */
 table { font-variant-numeric: tabular-nums; }
+th, td { word-break: keep-all; }
 h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
 /* 부드러운 앵커 스크롤 + 모션 최소화 존중 */
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
