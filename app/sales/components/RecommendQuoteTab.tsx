@@ -81,6 +81,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const handleGenerate = () => {
     if (!cs.selectedClient) return;
     if (settings.mode === 'substitute' && !anchor) return; // 기준 상품 선택 전엔 생성 안 함
+    // 새 추천 생성 = 새 견적 시작 — 이전에 담긴 견적 항목은 비운다(옛 할인조건·비고 잔존 방지)
+    quote.clearAllQuoteSilent();
     rec.generate(cs.selectedClient, settings, anchorArg(anchor));
   };
   const reapplyWith = (st: RecSettings) => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, st, anchorArg(anchor)); };
