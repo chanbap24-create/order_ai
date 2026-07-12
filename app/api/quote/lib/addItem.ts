@@ -159,13 +159,23 @@ export async function addQuoteItem(body: Body) {
 
     vintage = extractVintage(item_code);
 
-    // Phase 3a: 중복이면 합산 후 return
+    // Phase 3a: 중복이면 합산 후 return.
+    //   추천 재담기처럼 할인율/비고가 함께 오면 최신 조건으로 갱신(옛 비고·할인율이 굳는 버그 방지).
+    //   수동 검색 담기(할인율·비고 미전달)는 기존 값 유지.
     const existing = dupRes.data;
     if (existing) {
       const newQty = (Number(existing.quantity) || 0) + (Number(quantity) || 1);
+      const upd: Record<string, unknown> = { quantity: newQty, updated_at: new Date().toISOString() };
+      if (body.discount_rate !== undefined && body.discount_rate !== null && body.discount_rate !== '') {
+        const rate = Number(discount_rate) || 0;
+        upd.discount_rate = rate;
+        const price = Number(supply_price) || 0;
+        if (price > 0) upd.discounted_price = Math.round(price * (1 - rate));
+      }
+      if (typeof body.note === 'string' && body.note) upd.note = body.note;
       const { data: updated } = await supabase
         .from('quote_items')
-        .update({ quantity: newQty, updated_at: new Date().toISOString() })
+        .update(upd)
         .eq('id', existing.id)
         .select()
         .maybeSingle();
