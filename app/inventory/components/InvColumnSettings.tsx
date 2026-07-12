@@ -14,11 +14,9 @@ export function InvColumnSettings({ availableColumns, visibleColumns, onToggle }
     <div
       style={{
         marginBottom: 12,
-        padding: "14px 16px",
-        background: "white",
-        borderRadius: 12,
-        border: "1px solid var(--border-default)",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+        padding: "12px 0",
+        borderTop: "1px solid var(--border-default)",
+        borderBottom: "1px solid var(--border-default)",
       }}
     >
       <div

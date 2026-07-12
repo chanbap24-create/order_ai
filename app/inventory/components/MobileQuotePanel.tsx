@@ -290,8 +290,8 @@ function Totals({ itemCount, totalQty, totalNormal, totalDiscount }: {
   return (
     <div
       style={{
-        marginTop: 16, padding: 12, background: "#FFF2CC",
-        borderRadius: 8, fontSize: 13,
+        marginTop: 16, paddingTop: 12,
+        borderTop: "2px solid var(--border-strong)", fontSize: 13,
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>

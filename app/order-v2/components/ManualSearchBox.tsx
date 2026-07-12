@@ -131,10 +131,7 @@ export function ManualSearchBox({
                           style={{
                             fontSize: 9,
                             fontWeight: 700,
-                            color: "var(--action)",
-                            background: "var(--border-default)",
-                            padding: "2px 6px",
-                            borderRadius: 4,
+                            color: "var(--status-success)",
                             whiteSpace: "nowrap",
                             flexShrink: 0,
                           }}

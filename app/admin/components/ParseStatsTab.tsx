@@ -81,12 +81,17 @@ export function ParseStatsTab() {
         </div>
       </div>
 
-      {/* 요약 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
-        <SummaryCard label="발주 건수" value={(stats?.total ?? 0).toLocaleString()} />
-        <SummaryCard label="정밀보정 비율" value={`${rate.toFixed(0)}%`} sub={`${(stats?.escalated ?? 0).toLocaleString()}건`} />
-        <SummaryCard label="추정 총비용" value={usd(stats?.totalCost ?? 0)} />
-        <SummaryCard label="추가 비용(에스컬레이션)" value={usd(stats?.escalationCost ?? 0)} accent />
+      {/* 요약 스탯 스트립 */}
+      <div style={{
+        display: 'flex', alignItems: 'stretch', overflowX: 'auto',
+        borderTop: '1px solid var(--border-default)',
+        borderBottom: '1px solid var(--border-default)',
+        marginBottom: 20,
+      }}>
+        <SummaryCell label="발주 건수" value={(stats?.total ?? 0).toLocaleString()} />
+        <SummaryCell label="정밀보정 비율" value={`${rate.toFixed(0)}%`} sub={`${(stats?.escalated ?? 0).toLocaleString()}건`} divider />
+        <SummaryCell label="추정 총비용" value={usd(stats?.totalCost ?? 0)} divider />
+        <SummaryCell label="추가 비용(에스컬레이션)" value={usd(stats?.escalationCost ?? 0)} accent divider />
       </div>
 
       <Card style={{ marginBottom: 16 }}>
@@ -142,12 +147,19 @@ export function ParseStatsTab() {
   );
 }
 
-function SummaryCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+function SummaryCell({ label, value, sub, accent, divider }: { label: string; value: string; sub?: string; accent?: boolean; divider?: boolean }) {
   return (
-    <Card style={{ padding: 16 }}>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: accent ? '#4f46e5' : 'var(--text-primary)' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>}
-    </Card>
+    <div style={{
+      flex: '1 0 auto', minWidth: 130, padding: '12px 16px',
+      borderLeft: divider ? '1px solid var(--border-default)' : 'none',
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</div>
+      <div style={{
+        fontSize: 19, fontWeight: 700, marginTop: 3, letterSpacing: '-0.01em',
+        fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+        color: accent ? 'var(--status-info)' : 'var(--text-primary)',
+      }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap' }}>{sub}</div>}
+    </div>
   );
 }

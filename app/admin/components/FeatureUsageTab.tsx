@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Section, PctBar } from './featureUsage/parts';
+import { StatCell, Section, PctBar } from './featureUsage/parts';
 import {
   labelStyle, dateInput, selectStyle, chipBtn, primaryBtn,
   tableStyle, th, td, trBorder,
@@ -57,10 +57,9 @@ export default function FeatureUsageTab() {
 
   return (
     <div style={{ padding: 4 }}>
-      {/* 필터 카드 */}
+      {/* 필터 — 박스 없이 플랫 */}
       <div style={{
-        background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16,
-        border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        marginBottom: 16,
         display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end',
       }}>
         <div>
@@ -92,13 +91,18 @@ export default function FeatureUsageTab() {
 
       {error && <div style={{ color: 'var(--status-danger)', padding: 8, fontSize: 13 }}>{error}</div>}
 
-      {/* Top summary */}
+      {/* Top summary — 스탯 스트립 */}
       {data && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <Card title="총 사용 횟수" value={data.total_count.toLocaleString()} />
-          <Card title="활동 매니저" value={String(data.totals_by_manager.length)} />
-          <Card title="사용된 기능" value={String(data.totals_by_feature.length)} />
-          <Card title="활동 일수" value={String(data.days.length)} />
+        <div style={{
+          display: 'flex', alignItems: 'stretch', overflowX: 'auto',
+          borderTop: '1px solid var(--border-default)',
+          borderBottom: '1px solid var(--border-default)',
+          marginBottom: 16,
+        }}>
+          <StatCell title="총 사용 횟수" value={data.total_count.toLocaleString()} />
+          <StatCell title="활동 매니저" value={String(data.totals_by_manager.length)} divider />
+          <StatCell title="사용된 기능" value={String(data.totals_by_feature.length)} divider />
+          <StatCell title="활동 일수" value={String(data.days.length)} divider />
         </div>
       )}
 

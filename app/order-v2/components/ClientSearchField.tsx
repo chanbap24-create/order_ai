@@ -75,10 +75,6 @@ export function ClientSearchField({
               color: ORDER_COLORS.confHigh,
               fontWeight: 600,
               whiteSpace: "nowrap",
-              padding: "5px 10px",
-              background: "rgba(22,163,74,0.06)",
-              borderRadius: 7,
-              border: "1px solid rgba(22,163,74,0.1)",
             }}
           >
             {selected.client_code}

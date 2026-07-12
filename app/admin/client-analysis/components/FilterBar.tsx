@@ -1,7 +1,6 @@
 'use client';
 
 import type { Filters, FilterState } from '../types';
-import { Section } from '@/app/components/ui';
 import {
   inputStyle,
   selectStyle,
@@ -32,33 +31,31 @@ export function FilterBar({ filters, filterLoading, state, update, reset }: Prop
   if (filterLoading) {
     return (
       <div style={{ marginBottom: 16 }}>
-        <Section padding="sm">
-          <div
-            style={{
-              textAlign: 'center',
-              padding: 12,
-              color: 'var(--text-tertiary)',
-              fontSize: 12,
-            }}
-          >
-            필터 로딩 중...
-          </div>
-        </Section>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: 12,
+            color: 'var(--text-tertiary)',
+            fontSize: 12,
+          }}
+        >
+          필터 로딩 중...
+        </div>
       </div>
     );
   }
 
+  // 필터 — 박스(Section) 없이 플랫
   return (
     <div style={{ marginBottom: 16 }}>
-      <Section padding="sm">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'end',
-            gap: 8,
-            flexWrap: 'wrap',
-          }}
-        >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'end',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
           <Field label="담당자" minWidth={120}>
             <select
               style={selectStyle}
@@ -143,8 +140,7 @@ export function FilterBar({ filters, filterLoading, state, update, reset }: Prop
           <button onClick={reset} style={btnSecondary}>
             초기화
           </button>
-        </div>
-      </Section>
+      </div>
     </div>
   );
 }

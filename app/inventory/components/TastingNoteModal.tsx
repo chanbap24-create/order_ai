@@ -67,12 +67,12 @@ export function TastingNoteModal({
         <div
           style={{
             padding: "16px 20px",
-            borderBottom: "1px solid rgba(240,236,230,0.1)",
+            borderBottom: "1px solid var(--border-default)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "var(--surface-dark)",
-            color: "var(--surface-muted)",
+            background: "var(--surface)",
+            color: "var(--text-primary)",
           }}
         >
           <div>
@@ -81,7 +81,7 @@ export function TastingNoteModal({
               style={{
                 fontSize: "0.78rem",
                 marginTop: 4,
-                color: "rgba(240,236,230,0.6)",
+                color: "var(--text-tertiary)",
               }}
             >
               {selectedItemNo} - {selectedWineName}
@@ -90,9 +90,9 @@ export function TastingNoteModal({
           <button
             onClick={onClose}
             style={{
-              background: "rgba(240,236,230,0.1)",
+              background: "transparent",
               border: "none",
-              color: "var(--surface-muted)",
+              color: "var(--text-tertiary)",
               fontSize: 20,
               width: 36,
               height: 36,

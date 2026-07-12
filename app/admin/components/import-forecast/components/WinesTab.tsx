@@ -139,15 +139,16 @@ export function WinesTab(p: Props) {
         />
       ))}
 
-      {/* 합계 행 */}
+      {/* 합계 행 — 원색 배경 대신 surface-muted + 굵은 상단 헤어라인 */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: GRID,
           padding: "8px 20px",
-          background: "var(--neutral-900)",
-          fontWeight: 600,
-          color: "#fff",
+          background: "var(--surface-muted)",
+          borderTop: "2px solid var(--border-strong)",
+          fontWeight: 700,
+          color: "var(--text-primary)",
           fontSize: 12,
         }}
       >

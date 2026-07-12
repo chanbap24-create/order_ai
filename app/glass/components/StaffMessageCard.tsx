@@ -38,7 +38,7 @@ export function StaffMessageCard({ staffMessage, status, copied, onCopy }: Props
             직원 메시지
           </div>
           {status === "resolved" && <StatusBadge color={GLASS_COLORS.success} label="전체 확정" />}
-          {status === "needs_review_items" && <StatusBadge color="#e8a820" label="확인 필요" />}
+          {status === "needs_review_items" && <StatusBadge color="var(--status-warning)" label="확인 필요" />}
         </div>
 
         <button
@@ -77,18 +77,28 @@ export function StaffMessageCard({ staffMessage, status, copied, onCopy }: Props
   );
 }
 
+/** 상태 라벨 — 채운 배경 대신 색 도트 + 색 텍스트 */
 function StatusBadge({ color, label }: { color: string; label: string }) {
   return (
     <span
       style={{
         fontSize: 11,
-        padding: "2px 8px",
-        background: color,
-        color: "white",
-        borderRadius: 12,
         fontWeight: 600,
+        color,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
       }}
     >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: color,
+          flexShrink: 0,
+        }}
+      />
       {label}
     </span>
   );

@@ -5,8 +5,8 @@ import type { AnalysisData } from '../types';
 import { formatKrw } from '../lib/format';
 
 /**
- * 7개 stat 카드 — 다른 페이지 stat 카드와 동일 사양.
- * label uppercase 11 / value 20 / sub 11. 강조(총 매출)만 burgundy.
+ * 7개 stat 요약 — KREAM 스탯 스트립(박스 없이 상하 헤어라인 + 세로 구분).
+ * label 11 / value 19 / sub 11. 강조(총 매출)만 action, 상태는 숫자 색으로만.
  */
 export const SummaryCards = memo(function SummaryCards({ data }: { data: AnalysisData }) {
   const s = data.summary;
@@ -50,9 +50,11 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: 10,
+        display: 'flex',
+        alignItems: 'stretch',
+        overflowX: 'auto',
+        borderTop: '1px solid var(--border-default)',
+        borderBottom: '1px solid var(--border-default)',
         marginBottom: 20,
       }}
     >
@@ -60,11 +62,10 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
         <div
           key={i}
           style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 12,
-            padding: '12px 14px',
-            textAlign: 'center',
+            flex: '1 0 auto',
+            minWidth: 110,
+            padding: '12px 16px',
+            borderLeft: i > 0 ? '1px solid var(--border-default)' : 'none',
           }}
         >
           <div
@@ -72,16 +73,14 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
               fontSize: 11,
               color: 'var(--text-tertiary)',
               fontWeight: 600,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              marginBottom: 6,
+              whiteSpace: 'nowrap',
             }}
           >
             {c.label}
           </div>
           <div
             style={{
-              fontSize: 20,
+              fontSize: 19,
               fontWeight: 700,
               color: c.danger
                 ? 'var(--status-danger)'
@@ -89,7 +88,10 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
                   ? 'var(--action)'
                   : 'var(--text-primary)',
               lineHeight: 1.2,
+              marginTop: 3,
+              letterSpacing: '-0.01em',
               fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap',
             }}
           >
             {c.value}
@@ -100,6 +102,7 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
                 fontSize: 11,
                 color: 'var(--text-muted)',
                 marginTop: 3,
+                whiteSpace: 'nowrap',
               }}
             >
               {c.sub}

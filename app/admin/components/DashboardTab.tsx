@@ -10,7 +10,6 @@ import { InventoryCharts } from '../dashboard/components/InventoryCharts';
 import { SourceToggle } from '../dashboard/components/SourceToggle';
 import { PieAnalysisCard } from '../dashboard/components/PieAnalysisCard';
 import { InventoryItemsTable } from '../dashboard/components/InventoryItemsTable';
-import { Section } from '@/app/components/ui';
 import { inputStyle, selectStyle, labelStyle } from '@/app/styles/controls';
 import { PRESETS, matchPreset, thisYear } from '@/app/lib/dateRangePresets';
 
@@ -80,44 +79,43 @@ export default function DashboardTab() {
 
   return (
     <div>
+      {/* 기간 필터 — 박스(Section) 없이 플랫 */}
       <div style={{ marginBottom: 16 }}>
-        <Section padding="sm">
-          <div style={{ display: 'flex', alignItems: 'end', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ flex: '0 1 150px', minWidth: 140 }}>
-              <label style={labelStyle}>시작일</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
-            <div style={{ flex: '0 1 150px', minWidth: 140 }}>
-              <label style={labelStyle}>종료일</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
-            <div style={{ flex: '0 1 180px', minWidth: 160 }}>
-              <label style={labelStyle}>빠른 범위</label>
-              <select
-                value={activePreset ?? ''}
-                onChange={(e) => applyPreset(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="">직접 입력</option>
-                {PRESETS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'end', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ flex: '0 1 150px', minWidth: 140 }}>
+            <label style={labelStyle}>시작일</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={inputStyle}
+            />
           </div>
-        </Section>
+          <div style={{ flex: '0 1 150px', minWidth: 140 }}>
+            <label style={labelStyle}>종료일</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ flex: '0 1 180px', minWidth: 160 }}>
+            <label style={labelStyle}>빠른 범위</label>
+            <select
+              value={activePreset ?? ''}
+              onChange={(e) => applyPreset(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">직접 입력</option>
+              {PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <KpiCards

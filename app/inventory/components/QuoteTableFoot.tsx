@@ -24,13 +24,13 @@ export function QuoteTableFoot({
 }: Props) {
   return (
     <tfoot>
-      <tr style={{ background: "#FFF2CC", fontWeight: 700 }}>
+      <tr style={{ background: "var(--surface-muted)", borderTop: "2px solid var(--border-strong)", fontWeight: 700 }}>
         <td style={{
           ...qTdStyle,
           textAlign: "center",
           position: "sticky",
           left: 0,
-          background: "#FFF2CC",
+          background: "var(--surface-muted)",
           zIndex: 2,
           boxShadow: "2px 0 4px -2px rgba(0,0,0,0.08)",
         }}></td>

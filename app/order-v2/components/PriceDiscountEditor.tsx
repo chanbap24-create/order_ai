@@ -143,12 +143,20 @@ export function PriceDiscountEditor({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#fff",
-            background: ORDER_COLORS.primary,
-            padding: "2px 8px",
-            borderRadius: 12,
+            color: ORDER_COLORS.primary,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
           }}
         >
+          <span
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: "50%",
+              background: ORDER_COLORS.primary,
+            }}
+          />
           시음주
         </span>
       )}
@@ -173,13 +181,10 @@ export function PriceDiscountEditor({
         {selected.incoming && (
           <span
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 700,
-              color: "#0369a1",
-              background: "#e0f2fe",
-              padding: "1px 6px",
-              borderRadius: 4,
-              border: "1px solid #bae6fd",
+              color: "var(--status-info)",
+              whiteSpace: "nowrap",
             }}
           >
             입고 {selected.incoming.arrival_date.slice(5)} · {selected.incoming.total_btls}병

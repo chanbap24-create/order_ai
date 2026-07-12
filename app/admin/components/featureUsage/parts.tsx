@@ -2,17 +2,20 @@
 
 import type { ReactNode } from 'react';
 
-export function Card({ title, value }: { title: string; value: string }) {
+/** 스탯 스트립 셀 — 박스 없이 세로 구분(divider)만. 부모가 상하 헤어라인을 그린다. */
+export function StatCell({ title, value, divider }: { title: string; value: string; divider?: boolean }) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 12, padding: '14px 18px',
-      border: '1px solid var(--action-muted)',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      flex: '1 0 auto', minWidth: 120, padding: '12px 16px',
+      borderLeft: divider ? '1px solid var(--border-default)' : 'none',
     }}>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
         {title}
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--action)', marginTop: 4 }}>{value}</div>
+      <div style={{
+        fontSize: 19, fontWeight: 700, color: 'var(--text-primary)', marginTop: 3,
+        letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+      }}>{value}</div>
     </div>
   );
 }

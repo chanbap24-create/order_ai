@@ -76,12 +76,10 @@ export function OrderLineCompact({ line, tab, isExpanded, onToggle }: Props) {
           {sel?.incoming && (
             <span
               style={{
-                fontSize: 8,
+                fontSize: 9,
                 fontWeight: 700,
-                color: "#0369a1",
-                background: "#e0f2fe",
-                padding: "0px 4px",
-                borderRadius: 3,
+                color: "var(--status-info)",
+                whiteSpace: "nowrap",
               }}
             >
               입고
@@ -126,20 +124,16 @@ export function OrderLineCompact({ line, tab, isExpanded, onToggle }: Props) {
 }
 
 function ReviewBadge({ note }: { note: string }) {
-  // ⚠로 시작하면 의심 표시(주황), 그 외는 검수 변경(보라)
+  // ⚠로 시작하면 의심 표시(주황), 그 외는 검수 변경(파랑) — 색 텍스트로만 구분
   const isWarn = note.startsWith("⚠");
-  const color = isWarn ? "var(--promo)" : "#5b21b6";
-  const bg = isWarn ? "#fef3c7" : "#ede9fe";
+  const color = isWarn ? "var(--status-warning)" : "var(--status-info)";
   return (
     <span
       title={note}
       style={{
-        fontSize: 8,
-        fontWeight: 700,
+        fontSize: 9,
+        fontWeight: 600,
         color,
-        background: bg,
-        padding: "0px 5px",
-        borderRadius: 3,
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -159,10 +153,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
         fontSize: 9,
         fontWeight: 700,
         color,
-        padding: "2px 6px",
-        borderRadius: 4,
-        background: `${color}0a`,
-        border: `1px solid ${color}20`,
+        fontVariantNumeric: "tabular-nums",
         flexShrink: 0,
       }}
     >

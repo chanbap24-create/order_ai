@@ -43,6 +43,18 @@ export const InventoryItemsTable = memo(function InventoryItemsTable({
   return (
     <Section
       title={`${label} 품목별 재고 Top ${items.length}`}
+      meta={
+        // 법인 구분은 색 밴드 대신 색 도트로
+        <span
+          style={{
+            display: 'inline-block',
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            background: color,
+          }}
+        />
+      }
       padding="none"
     >
       <div style={{ overflowX: 'auto' }}>

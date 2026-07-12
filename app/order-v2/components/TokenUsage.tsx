@@ -26,10 +26,7 @@ export function TokenUsage({ usage, model }: Props) {
           title="후보가 불확실해 상위 모델(Sonnet)로 정밀 재매칭한 발주입니다."
           style={{
             marginLeft: 8,
-            padding: "1px 6px",
-            borderRadius: 8,
-            background: "#eef2ff",
-            color: "#4f46e5",
+            color: "var(--status-info)",
             fontWeight: 600,
           }}
         >

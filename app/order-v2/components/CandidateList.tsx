@@ -88,13 +88,10 @@ export function CandidateList({ candidates, selectedIdx, historySet, onSelect }:
                 {cand.incoming && (
                   <span
                     style={{
-                      fontSize: 8,
+                      fontSize: 9,
                       fontWeight: 700,
-                      color: "#0369a1",
-                      background: "#e0f2fe",
-                      padding: "0px 4px",
-                      borderRadius: 3,
-                      border: "1px solid #bae6fd",
+                      color: "var(--status-info)",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     입고 {cand.incoming.arrival_date.slice(5)}
@@ -143,10 +140,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
         fontSize: 9,
         fontWeight: 700,
         color,
-        padding: "2px 6px",
-        borderRadius: 4,
-        background: `${color}0a`,
-        border: `1px solid ${color}20`,
+        fontVariantNumeric: "tabular-nums",
         flexShrink: 0,
       }}
     >
