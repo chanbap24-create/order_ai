@@ -1,4 +1,5 @@
 'use client';
+import { TableSkeleton } from '@/app/components/ui';
 
 import { useState } from 'react';
 import type { OutstandingType } from '../outstanding/types';
@@ -150,7 +151,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
       {view === 'aging' && (
         <>
           {aging.error && <ErrorBox msg={aging.error} />}
-          {aging.loading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>불러오는 중…</div>}
+          {aging.loading && <TableSkeleton rows={7} />}
           {!aging.loading && agingRows.length > 0 && (
             <>
               <AgingSummary rows={agingRows} recentPaymentTotal={aging.recentPaymentTotal} />

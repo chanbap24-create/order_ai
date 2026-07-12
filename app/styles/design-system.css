@@ -296,3 +296,13 @@ html { scroll-behavior: smooth; }
 }
 .input:focus { outline: none; border-color: var(--text-primary); box-shadow: 0 0 0 3px rgba(34, 34, 34, 0.08); }
 .input::placeholder { color: var(--text-muted); }
+
+/* 스켈레톤 펄스 (components/ui/Skeleton.tsx) — 조용한 회색 펄스 */
+.sk {
+  background: var(--gray-100);
+  animation: skPulse 1.4s ease-in-out infinite;
+}
+@keyframes skPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

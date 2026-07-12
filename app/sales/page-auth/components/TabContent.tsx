@@ -2,10 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import type { SalesTabId } from '../../components/SalesTabs';
+import { ListSkeleton } from '@/app/components/ui';
 
 const MeetingTab = dynamic(() => import('../../components/MeetingTab'), {
   ssr: false,
-  loading: () => <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>로딩 중...</div>,
+  loading: () => <ListSkeleton rows={6} />,
 });
 const BriefingTab = dynamic(() => import('../../components/BriefingTab'), { ssr: false });
 const ShipmentTab = dynamic(() => import('../../components/ShipmentTab'), { ssr: false });

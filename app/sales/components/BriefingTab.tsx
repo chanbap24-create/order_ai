@@ -1,4 +1,5 @@
 'use client';
+import { ListSkeleton } from '@/app/components/ui';
 
 import { useState } from 'react';
 import { getKstToday } from '../briefing/lib/format';
@@ -37,7 +38,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
   const completedCount = meetings.filter(m => !!m.ai_briefing).length;
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>로딩 중...</div>;
+    return <ListSkeleton rows={5} />;
   }
 
   const hasCollections = !!collections &&

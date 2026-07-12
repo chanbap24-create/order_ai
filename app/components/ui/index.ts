@@ -5,3 +5,4 @@
 export { PageHeader } from './PageHeader';
 export { Stack } from './Stack';
 export { Section } from './Section';
+export { SkeletonBlock, ListSkeleton, StatStripSkeleton, TableSkeleton } from './Skeleton';

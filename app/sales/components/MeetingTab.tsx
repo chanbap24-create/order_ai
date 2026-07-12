@@ -1,4 +1,5 @@
 'use client';
+import { ListSkeleton } from '@/app/components/ui';
 
 import { useEffect, useState } from 'react';
 import type { ImportScheduleItem } from '@/app/types/wine';
@@ -141,7 +142,7 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
       />
 
       {data.loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>로딩 중...</div>
+        <ListSkeleton rows={6} />
       ) : data.viewMode === 'month' ? (
         <div style={{ display: 'flex', gap: 12 }}>
           <MonthCalendar

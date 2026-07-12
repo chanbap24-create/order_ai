@@ -1,4 +1,5 @@
 'use client';
+import { ListSkeleton } from '@/app/components/ui';
 
 import { useCallback, useEffect, useState } from 'react';
 import { PromotionForm, type PromotionDraft } from './promotion/PromotionForm';
@@ -74,7 +75,7 @@ export default function PromotionTab() {
 
       {err && <div style={{ color: 'var(--danger, var(--status-danger))', fontSize: 12, marginBottom: 10 }}>{err}</div>}
       {loading ? (
-        <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: 20, textAlign: 'center' }}>불러오는 중…</div>
+        <ListSkeleton rows={4} />
       ) : list.length === 0 ? (
         <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: 24, textAlign: 'center' }}>등록된 프로모션이 없어요.</div>
       ) : (
