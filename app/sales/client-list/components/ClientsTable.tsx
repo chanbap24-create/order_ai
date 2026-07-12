@@ -122,31 +122,21 @@ export function ClientsTable({
                   </td>
                 )}
                 <td style={{ ...tdStyle, fontWeight: 600 }}>{c.client_name}</td>
+                {/* 뱃지 다운그레이드: 배경 필 제거 — 텍스트로만, 예외 상태(미지정)만 색 텍스트 */}
                 <td style={tdStyle}>
                   {c.business_type ? (
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        background: 'var(--surface-muted)',
-                        fontSize: 11,
-                        color: 'var(--text-tertiary)',
-                      }}
-                    >
-                      {c.business_type}
-                    </span>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{c.business_type}</span>
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>-</span>
                   )}
                 </td>
                 <td style={tdStyle}>
                   {c.venue && VENUE_MAP[c.venue] ? (
-                    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, background: 'var(--surface-muted)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
                       {VENUE_MAP[c.venue].label}
                     </span>
                   ) : (
-                    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, background: '#FEF3C7', fontSize: 11, fontWeight: 600, color: '#92400E' }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--status-warning)' }}>
                       미지정
                     </span>
                   )}
