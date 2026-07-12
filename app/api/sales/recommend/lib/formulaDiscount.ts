@@ -6,7 +6,7 @@
 // 컨텍스트(업태·분기지표·리델)는 스코어링 전에 buildPricingContext로 1회 계산해
 // (1) 후보 '할인가' 산출(가격 게이트용) (2) 최종 rec_discount 부여에 재사용한다.
 import { supabase } from '@/app/lib/db';
-import { computeItemDiscount, maxQtyTierFor, type ClientPricingContext, type VenueCategory, type DiscountConfig } from '@/app/lib/pricing/discountRate';
+import { computeItemDiscount, qtyTiersFor, type ClientPricingContext, type VenueCategory, type DiscountConfig } from '@/app/lib/pricing/discountRate';
 import { prevYearRange } from '@/app/lib/pricing/quarters';
 import type { QuarterMetrics } from '@/app/lib/pricing/clientGrade';
 import { extractRDCode } from '@/app/lib/resolve-glass-items/rdCode';
@@ -65,7 +65,8 @@ export function discountedPriceFor(
 
 /**
  * 추천 결과에 공식 기반 할인율 부여(스코어링 후). ctx는 buildPricingContext 결과 재사용.
- *   · 샵·도매: 추천수량(rec_quantity)=최대 티어, 비고(rec_note)=하위 티어.
+ *   · 샵·도매: 추천수량(rec_quantity)=최대 티어, 비고(rec_note)=하위 티어별 '실제 할인가(원)'.
+ *     (가산율 "+5%" 표기 대신 그 수량으로 살 때의 병당 가격 — 영업이 바로 안내 가능)
  *   · 할인가 하한(floorOf) 반영.
  */
 export function applyFormulaDiscounts(
@@ -73,15 +74,26 @@ export function applyFormulaDiscounts(
   ctx: ClientPricingContext,
   floorOf?: (itemNo: string) => number,
 ): void {
-  const qtyRec = maxQtyTierFor(ctx.category, ctx.config);
+  const tiers = qtyTiersFor(ctx.category, ctx.config); // 오름차순, venue면 []
+  const top = tiers.length ? tiers[tiers.length - 1] : null;
+  const lower = tiers.slice(0, -1);
+
   for (const s of scored) {
     const supply = Number(s.price) || 0;
-    const qty = qtyRec ? qtyRec.quantity : 1;
+    const qty = top ? top.min : 1;
     const floor = floorOf ? floorOf(s.item_no) : 0;
     s.rec_discount = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty }).rate, supply, floor);
-    if (qtyRec) {
-      s.rec_quantity = qtyRec.quantity;
-      if (qtyRec.remarks) s.rec_note = qtyRec.remarks;
+    if (top) {
+      s.rec_quantity = top.min;
+      // 비고: 하위 티어별 최종 할인가(공급가×(1−총할인율), 하한 반영) — 품목별 계산
+      if (lower.length && supply > 0) {
+        s.rec_note = lower
+          .map((t) => {
+            const r = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty: t.min }).rate, supply, floor);
+            return `${t.min}병 ${Math.round(supply * (1 - r)).toLocaleString()}원`;
+          })
+          .join(' / ');
+      }
     }
   }
 }

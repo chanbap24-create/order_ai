@@ -92,6 +92,16 @@ export interface QtyRecommendation {
   remarks: string;  // 비고: 하위 티어들
 }
 
+/** 샵·도매 수량등급 티어(오름차순). 업소/호텔은 빈 배열. 비고의 티어별 할인가 계산용. */
+export function qtyTiersFor(
+  category: VenueCategory,
+  config: DiscountConfig = DEFAULT_DISCOUNT_CONFIG,
+): Tier[] {
+  if (category === 'venue') return [];
+  const tiers = category === 'shop' ? config.shop.qty : config.wholesale.qty;
+  return [...tiers].sort((a, b) => a.min - b.min);
+}
+
 /** 샵·도매 추천 수량 = 수량등급의 최대 티어 병수. 하위 티어는 비고. 업소/호텔은 null. */
 export function maxQtyTierFor(
   category: VenueCategory,
