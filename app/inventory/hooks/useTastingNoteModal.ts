@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { shareOrDownloadFile } from "@/app/lib/shareFile";
 
 type Source = "pdf" | "db" | "";
 
@@ -86,20 +87,13 @@ export function useTastingNoteModal() {
     setTastingNotesAvailable((prev) => ({ ...prev, [itemNo]: true }));
   }, []);
 
-  /** 외부 PDF URL을 프록시 경유로 브라우저 다운로드 */
+  /** 외부 PDF URL을 프록시 경유로 받기 — 모바일은 파일만 공유 시트(카톡에 URL 안 딸려감), 데스크탑은 다운로드 */
   const download = useCallback(async (url: string, filename: string) => {
     try {
       const downloadUrl = `/api/proxy/pdf?url=${encodeURIComponent(url)}&download=true`;
       const response = await fetch(downloadUrl);
       const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
+      await shareOrDownloadFile(blob, filename, "application/pdf");
     } catch {
       alert("다운로드 중 오류가 발생했습니다.");
     }

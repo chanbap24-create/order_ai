@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { shareOrDownloadFile } from "@/app/lib/shareFile";
 import type { DocSettings, QuoteColumnKey, QuoteItem, WarehouseTab } from "../types";
 
 type Params = {
@@ -21,16 +22,13 @@ function todayStamp(): string {
   return new Date().toISOString().slice(0, 10).replace(/-/g, "");
 }
 
-/** Blob을 파일 다운로드 트리거 */
+/** 모바일=파일만 공유 시트(카톡에 URL 안 딸려감) / 데스크탑=다운로드 */
 function triggerDownload(blob: Blob, filename: string) {
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
+  const mime = filename.endsWith(".pdf") ? "application/pdf"
+    : filename.endsWith(".pptx") ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    : filename.endsWith(".xlsx") ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    : "application/octet-stream";
+  void shareOrDownloadFile(blob, filename, mime);
 }
 
 /**
