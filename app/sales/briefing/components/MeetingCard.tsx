@@ -121,7 +121,7 @@ function MeetingCardHeader({
           {m.client_importance && IMPORTANCE_LABELS[m.client_importance] && (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6,
-              background: `${IMPORTANCE_LABELS[m.client_importance].color}18`,
+              background: `color-mix(in srgb, ${IMPORTANCE_LABELS[m.client_importance].color} 10%, transparent)`,
               color: IMPORTANCE_LABELS[m.client_importance].color,
             }}>
               {IMPORTANCE_LABELS[m.client_importance].label}
@@ -131,7 +131,7 @@ function MeetingCardHeader({
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{
             fontSize: 10, padding: '1px 6px', borderRadius: 8,
-            background: `${mt.color}18`, color: mt.color, fontWeight: 600,
+            background: `color-mix(in srgb, ${mt.color} 10%, transparent)`, color: mt.color, fontWeight: 600,
           }}>
             {mt.label}
           </span>

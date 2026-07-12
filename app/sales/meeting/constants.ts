@@ -1,28 +1,28 @@
 export const MEETING_TYPES: Record<string, { label: string; color: string }> = {
-  visit: { label: "방문", color: "#2196F3" },
-  call: { label: "전화", color: "#4CAF50" },
-  tasting: { label: "시음", color: "#9C27B0" },
-  delivery: { label: "납품", color: "#FF9800" },
-  meeting: { label: "회의", color: "#607D8B" },
-  other: { label: "기타", color: "#795548" },
-  company: { label: "회사일정", color: "#D4A017" },
+  visit: { label: "방문", color: "var(--meeting-visit)" },
+  call: { label: "전화", color: "var(--meeting-call)" },
+  tasting: { label: "시음", color: "var(--meeting-tasting)" },
+  delivery: { label: "납품", color: "var(--meeting-delivery)" },
+  meeting: { label: "회의", color: "var(--meeting-internal)" },
+  other: { label: "기타", color: "var(--meeting-other)" },
+  company: { label: "회사일정", color: "var(--meeting-company)" },
 };
 
 export const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  planned: { label: "예정", color: "#1976D2", bg: "var(--status-info-bg)" },
+  planned: { label: "예정", color: "var(--status-info)", bg: "var(--status-info-bg)" },
   confirmed: { label: "확정", color: "var(--status-warning)", bg: "var(--status-warning-bg)" },
   completed: { label: "완료", color: "var(--status-success)", bg: "var(--status-success-bg)" },
-  cancelled: { label: "취소", color: "#757575", bg: "#F5F5F5" },
+  cancelled: { label: "취소", color: "var(--neutral-300)", bg: "var(--gray-100)" },
 };
 
 export const STATUS_FLOW = ["planned", "confirmed", "completed"];
 
 export const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: "VIP", color: "var(--status-danger)" },
-  2: { label: "중요", color: "#fd7e14" },
-  3: { label: "일반", color: "#6c757d" },
-  4: { label: "간헐", color: "#adb5bd" },
-  5: { label: "비활성", color: "#dee2e6" },
+  2: { label: "중요", color: "var(--importance-high)" },
+  3: { label: "일반", color: "var(--importance-normal)" },
+  4: { label: "간헐", color: "var(--importance-low)" },
+  5: { label: "비활성", color: "var(--importance-inactive)" },
 };
 
 export const TAG_COLORS: Record<string, string> = {

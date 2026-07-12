@@ -113,6 +113,21 @@
   --promo-strong: #e0900f;
   --promo-bg: rgba(224, 144, 15, 0.12);
 
+  /* 미팅 유형 팔레트 (카테고리 색 — 미팅·캘린더·브리핑 공용) */
+  --meeting-visit: #2196F3;    /* 방문 */
+  --meeting-call: #4CAF50;     /* 전화 */
+  --meeting-tasting: #9C27B0;  /* 시음 */
+  --meeting-delivery: #FF9800; /* 납품 */
+  --meeting-internal: #607D8B; /* 회의 */
+  --meeting-other: #795548;    /* 기타 */
+  --meeting-company: #D4A017;  /* 회사일정 */
+
+  /* 거래처 중요도 (VIP는 --status-danger 사용) */
+  --importance-high: #fd7e14;     /* 중요 */
+  --importance-normal: #6c757d;   /* 일반 */
+  --importance-low: #adb5bd;      /* 간헐 */
+  --importance-inactive: #dee2e6; /* 비활성 */
+
   /* Neutral gray scale (쿨 그레이 램프) */
   --gray-50: #fafafa;
   --gray-100: #f3f4f6;

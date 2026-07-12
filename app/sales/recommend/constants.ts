@@ -12,10 +12,10 @@ export const TAG_COLORS: Record<string, string> = {
 
 export const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: 'VIP', color: 'var(--status-danger)' },
-  2: { label: '중요', color: '#fd7e14' },
-  3: { label: '일반', color: '#6c757d' },
-  4: { label: '간헐', color: '#adb5bd' },
-  5: { label: '비활성', color: '#dee2e6' },
+  2: { label: '중요', color: 'var(--importance-high)' },
+  3: { label: '일반', color: 'var(--importance-normal)' },
+  4: { label: '간헐', color: 'var(--importance-low)' },
+  5: { label: '비활성', color: 'var(--importance-inactive)' },
 };
 
 export const QUOTE_COL_OPTIONS: { key: string; label: string }[] = [

@@ -72,7 +72,7 @@ export function CalendarDayCell({
           <div
             key={m.id}
             onClick={(e) => { e.stopPropagation(); onOpenMeeting(m); }}
-            style={{ fontSize: 10, padding: "2px 4px", marginBottom: 2, borderRadius: 3, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: `${mt.color}18`, color: mt.color, fontWeight: 600, cursor: "pointer", maxWidth: "100%" }}
+            style={{ fontSize: 10, padding: "2px 4px", marginBottom: 2, borderRadius: 3, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", background: `color-mix(in srgb, ${mt.color} 10%, transparent)`, color: mt.color, fontWeight: 600, cursor: "pointer", maxWidth: "100%" }}
           >
             {hasReminder && <span style={{ fontSize: 8, marginRight: 1 }}>🔔</span>}
             {m.meeting_time?.slice(0, 5) || ""} {m.client_name}

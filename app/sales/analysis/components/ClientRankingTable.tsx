@@ -81,7 +81,7 @@ export function ClientRankingTable({ clients, stats, loading, onSelectClient }: 
                           borderRadius: 4,
                           color: imp.color,
                           background: imp.color + "14",
-                          border: `1px solid ${imp.color}25`,
+                          border: `1px solid color-mix(in srgb, ${imp.color} 15%, transparent)`,
                           whiteSpace: "nowrap",
                           letterSpacing: "0.04em",
                         }}

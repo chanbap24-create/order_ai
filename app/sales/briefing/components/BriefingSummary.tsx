@@ -11,7 +11,7 @@ export function BriefingSummary({ briefing }: { briefing: BriefingData }) {
         {briefing.client_summary.importance && IMPORTANCE_LABELS[briefing.client_summary.importance] && (
           <span style={{
             fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-            background: `${IMPORTANCE_LABELS[briefing.client_summary.importance].color}18`,
+            background: `color-mix(in srgb, ${IMPORTANCE_LABELS[briefing.client_summary.importance].color} 10%, transparent)`,
             color: IMPORTANCE_LABELS[briefing.client_summary.importance].color,
           }}>
             {IMPORTANCE_LABELS[briefing.client_summary.importance].label}
