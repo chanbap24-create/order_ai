@@ -19,7 +19,18 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const batch = useBatchRecommend(currentManager);
 
-  const selectableClients = s.clients.filter((c) => c.client_code);
+  // 거래처명·코드 검색 (클라이언트 필터)
+  const [search, setSearch] = useState('');
+  const q = search.trim().toLowerCase();
+  const shownClients = q
+    ? s.clients.filter(
+        (c) =>
+          (c.client_name || '').toLowerCase().includes(q) ||
+          (c.client_code || '').toLowerCase().includes(q),
+      )
+    : s.clients;
+
+  const selectableClients = shownClients.filter((c) => c.client_code);
   const allSelected = selectableClients.length > 0 && selectableClients.every((c) => picked.has(c.client_code));
   const togglePick = (code: string) =>
     setPicked((prev) => { const n = new Set(prev); if (n.has(code)) n.delete(code); else n.add(code); return n; });
@@ -71,6 +82,21 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         totalAmount={s.totalAmount}
       />
 
+      {/* 거래처 검색 */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="거래처명 또는 코드 검색"
+        style={{
+          width: '100%', padding: '10px 14px', borderRadius: 8,
+          border: '1px solid var(--border-default)', fontSize: 14,
+          background: '#fff', color: 'var(--text-primary)', outline: 'none',
+        }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--text-primary)'; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
+      />
+
       {batchable && (
         <BatchRecommendBar
           count={picked.size}
@@ -83,7 +109,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
       )}
 
       <ClientsTable
-        clients={s.clients}
+        clients={shownClients}
         loading={s.loading}
         sortKey={s.sortKey}
         onSort={s.handleSort}
