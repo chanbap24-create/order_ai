@@ -17,6 +17,21 @@
 
 까브드뱅(**CDV**)과 대유라이프(**DL**)는 **항상 분리**해서 개발·데이터 관리. 공용 로직이어도 스키마/엔티티/쿼리는 법인 단위로 구분할 것.
 
+## 디자인 시스템 (KREAM 스타일 — 2026-07 확정)
+
+순백·쿨블랙·중립 헤어라인. **색은 하드코딩 금지 — `app/styles/design-system.css` 토큰만** (`--action`(블랙 CTA)·`--border-*`·`--surface-*`·`--text-*`·`--status-*`·`--promo`·`--meeting-*`·`--importance-*`·`--neutral-*` 램프). hex에 알파를 붙이지 말고 `color-mix(in srgb, var(--x) 10%, transparent)` 사용.
+
+새 화면/컴포넌트는 확립된 문법을 따를 것:
+- **스탯 요약** = 스트립: 박스 없이 상하 헤어라인 + 세로 구분(borderLeft), 라벨 11px tertiary / 값 18~20px 700 `tabular-nums` `nowrap`, 상태는 숫자 색으로만 (예: `TodayStrip`, `AgingSummary`)
+- **목록** = 헤어라인 연속 행(박스 카드 금지): `borderBottom: 1px solid var(--border-subtle)`, 섹션헤더는 볼드 텍스트+헤어라인 (예: `WeekList`, `AlertCard`)
+- **칩 다운그레이드**: 채운 색 배경 칩 금지 → 색 텍스트 또는 도트(5~7px)+텍스트. 기본값 상태('일반' 등)는 표기 생략. 원색 풀폭 밴드 금지
+- **테이블**: 숫자 우측정렬 tabular, 합계행은 원색 배경 대신 `surface-muted`+굵은 상단 헤어라인
+- **컨트롤**: 필터/토글은 박스(Section) 없이 플랫, 서브탭은 필터카드 안에 세로 구분선으로
+- **로딩** = 스켈레톤(`app/components/ui/Skeleton.tsx`: List/StatStrip/Table), "로딩 중..." 텍스트 금지
+- **모바일**: 팝오버/드롭다운은 768px 이하 바텀시트로, 입력 16px(iOS 줌 방지), 한국어 `keep-all` 전역 적용됨
+- **사용자 취향**: 굵은 강조(800) 금지(타이틀 1.5rem/500, 탭 활성 700), sticky 탭바 금지, radius 카드 12 상한
+- **파일 전송**: 모바일 다운로드는 `shareOrDownloadFile`(app/lib/shareFile.ts) — 파일만 공유(URL 미포함)
+
 ## 핵심 코딩 규칙
 
 ### 1. 모듈화 필수

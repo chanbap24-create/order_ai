@@ -60,8 +60,8 @@ export function F({ label, v, set }: { label: string; v: string; set: (s: string
 export const chip: React.CSSProperties = { padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid var(--gray-300)", background: "#fff", color: "var(--text-secondary)" };
 export const chipPrimary: React.CSSProperties = { ...chip, border: "1px solid var(--action)", background: "var(--action)", color: "#fff" };
 export const chipOn: React.CSSProperties = { ...chip, border: "1px solid var(--action)", background: "var(--action)", color: "#fff" };
-export const badgeDone: React.CSSProperties = { fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "var(--color-success, var(--status-success))", color: "#fff" };
-export const badgePending: React.CSSProperties = { fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "var(--border-default, #e7e3df)", color: "var(--text-secondary)" };
+export const badgeDone: React.CSSProperties = { fontSize: 11, fontWeight: 700, padding: "2px 4px", color: "var(--status-success)", background: "transparent" }; // 칩 다운그레이드: 색 텍스트만
+export const badgePending: React.CSSProperties = { fontSize: 11, fontWeight: 600, padding: "2px 4px", color: "var(--text-muted)", background: "transparent" };
 export const dateInput: React.CSSProperties = { fontSize: 13, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border-default)", outline: "none" };
 export const fw: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 2 };
 export const inp: React.CSSProperties = { fontSize: 13, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border-default)", outline: "none" };
