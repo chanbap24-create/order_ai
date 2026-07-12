@@ -75,34 +75,57 @@ export function WineListExportMenu() {
         옵션
       </button>
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 1000,
-          background: '#fff', border: '1px solid var(--border-default)', borderRadius: 12,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 14, minWidth: 230,
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-            가격대별 최소재고 (미만 제외)
+        <>
+          {/* 데스크탑: 버튼 아래 드롭다운 / 모바일: 바텀시트(앵커 드롭다운은 화면 밖으로 잘림) */}
+          <style>{`
+            .wl-backdrop { display: none; }
+            .wl-panel {
+              position: absolute; top: calc(100% + 6px); right: 0; z-index: 1000;
+              background: #fff; border: 1px solid var(--border-default); border-radius: 12px;
+              box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 14px; min-width: 230px;
+            }
+            @media (max-width: 768px) {
+              .wl-backdrop {
+                display: block; position: fixed; inset: 0;
+                background: rgba(0,0,0,0.35); z-index: 999;
+              }
+              .wl-panel {
+                position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+                border-radius: 16px 16px 0 0; border: none;
+                padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+                box-shadow: 0 -8px 24px rgba(0,0,0,0.15);
+              }
+              /* iOS 자동 확대 방지(16px 미만 입력 포커스 시 줌) */
+              .wl-panel input { font-size: 16px !important; width: 88px !important; padding: 8px 6px !important; }
+              .wl-panel label { font-size: 14px !important; padding: 2px 0; }
+            }
+          `}</style>
+          <div className="wl-backdrop" onClick={() => setOpen(false)} />
+          <div className="wl-panel">
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+              가격대별 최소재고 (미만 제외)
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {TIERS.map(([k, label]) => (
+                <label key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                  {label}
+                  <input
+                    type="number" min={0} value={minStock[k] || 0}
+                    onChange={e => setMinStock(s => ({ ...s, [k]: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
+                    style={{ width: 70, padding: '4px 6px', border: '1px solid var(--gray-300)', borderRadius: 6, fontSize: 13, textAlign: 'center' }}
+                  />
+                </label>
+              ))}
+            </div>
+            <button onClick={save} disabled={saving} style={{
+              marginTop: 10, width: '100%', padding: '9px', borderRadius: 6, border: 'none',
+              background: saved ? 'var(--status-success)' : 'var(--action)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}>
+              {saving ? '저장 중...' : saved ? '✓ 저장됨' : '저장'}
+            </button>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>저장하면 다른 기기에서도 유지돼요</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {TIERS.map(([k, label]) => (
-              <label key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)' }}>
-                {label}
-                <input
-                  type="number" min={0} value={minStock[k] || 0}
-                  onChange={e => setMinStock(s => ({ ...s, [k]: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
-                  style={{ width: 70, padding: '4px 6px', border: '1px solid var(--gray-300)', borderRadius: 6, fontSize: 13, textAlign: 'center' }}
-                />
-              </label>
-            ))}
-          </div>
-          <button onClick={save} disabled={saving} style={{
-            marginTop: 10, width: '100%', padding: '7px', borderRadius: 6, border: 'none',
-            background: saved ? 'var(--status-success)' : 'var(--action)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-          }}>
-            {saving ? '저장 중...' : saved ? '✓ 저장됨' : '저장'}
-          </button>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>저장하면 다른 기기에서도 유지돼요</div>
-        </div>
+        </>
       )}
     </div>
   );
