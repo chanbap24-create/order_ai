@@ -50,7 +50,7 @@ export function TastingNoteDbCard({
             PDF
           </DownloadBtn>
           <DownloadBtn
-            bg="#1a1a2e"
+            bg="var(--surface-dark)"
             onClick={() =>
               onDownload(originalPdfUrl.replace(".pdf", ".pptx"), `${selectedItemNo}.pptx`)
             }
@@ -65,10 +65,10 @@ export function TastingNoteDbCard({
           maxWidth: 600,
           margin: "0 auto",
           background: "#fff",
-          borderRadius: 10,
+          borderRadius: 12,
           overflow: "hidden",
           border: "1px solid #E0D5C8",
-          boxShadow: "0 2px 12px rgba(90,21,21,0.08)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
         }}
       >
         {wineryTag && (

@@ -20,7 +20,7 @@ export function ResultCard(p: Props) {
     <div
       style={{
         background: 'var(--surface)',
-        borderRadius: 10,
+        borderRadius: 12,
         border: '1px solid var(--border-default)',
         overflow: 'hidden',
       }}
@@ -168,7 +168,6 @@ function Stat({
           fontWeight: 700,
           color: accent ? 'var(--action)' : 'var(--text-primary)',
           fontVariantNumeric: 'tabular-nums',
-          fontFamily: "'DM Sans', sans-serif",
           lineHeight: 1.1,
         }}
       >

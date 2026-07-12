@@ -60,7 +60,7 @@ export function ConditionPanel(p: Props) {
       style={{
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
         marginBottom: 24,
       }}
     >
@@ -131,7 +131,7 @@ export function ConditionPanel(p: Props) {
         <div
           style={{
             padding: "10px 24px",
-            borderTop: "1px solid var(--gray-200)",
+            borderTop: "1px solid var(--border-default)",
             display: "flex",
             gap: 8,
             flexWrap: "wrap",

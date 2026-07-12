@@ -201,26 +201,26 @@ function Label({ children, style }: { children: React.ReactNode; style?: React.C
 
 const pageStyle: React.CSSProperties = {
   minHeight: 'calc(100vh - 56px)',
-  background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
+  background: 'var(--surface-muted)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  padding: 20, fontFamily: "'DM Sans', -apple-system, sans-serif",
+  padding: 20,
 };
 
 const cardStyle: React.CSSProperties = {
-  background: '#fff', borderRadius: 14,
-  boxShadow: '0 2px 8px rgba(90,21,21,0.05)',
+  background: '#fff', borderRadius: 12,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
   border: '1px solid var(--action-muted)',
   padding: '32px 28px', width: '100%', maxWidth: 420,
 };
 
 const titleStyle: React.CSSProperties = {
   fontSize: 18, fontWeight: 700, color: 'var(--text-primary)',
-  marginTop: 0, marginBottom: 8, fontFamily: "'Cormorant Garamond', serif",
+  marginTop: 0, marginBottom: 8,
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 40, fontSize: 14,
-  border: '1.5px solid rgba(90,21,21,0.15)', borderRadius: 6,
+  border: '1.5px solid var(--border-strong)', borderRadius: 6,
   outline: 'none', padding: '0 12px', boxSizing: 'border-box',
 };
 

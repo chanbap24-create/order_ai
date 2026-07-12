@@ -128,7 +128,7 @@ export function ClientSavedQuotes({ clientCode, manager }: Props) {
 
 const muted: React.CSSProperties = { fontSize: 13, color: "var(--text-tertiary)", padding: "20px 4px", textAlign: "center" };
 const card: React.CSSProperties = {
-  background: "white", border: "1px solid var(--gray-200)", borderRadius: 10, marginBottom: 10, overflow: "hidden",
+  background: "white", border: "1px solid var(--border-default)", borderRadius: 12, marginBottom: 10, overflow: "hidden",
 };
 const headerRow: React.CSSProperties = {
   display: "flex", alignItems: "stretch", gap: 0,

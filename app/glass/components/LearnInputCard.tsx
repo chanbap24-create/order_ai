@@ -115,7 +115,7 @@ const headerButtonStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   flex: 1,
   padding: 10,
-  borderRadius: 10,
+  borderRadius: 12,
   border: `1px solid ${GLASS_COLORS.dividerCardLight}`,
 };
 

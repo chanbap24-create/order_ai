@@ -34,17 +34,17 @@ export function MobileDrawer({ open, drawerRef, onClose, pathname, isActive }: P
         <div className="nav-drawer-header">
           <div style={{
             width: 32, height: 1,
-            background: 'linear-gradient(90deg, var(--action), rgba(90,21,21,0.3))',
+            background: 'rgba(255,255,255,0.35)',
             marginBottom: 24,
           }} />
           <Link
             href="/"
             onClick={onClose}
             style={{
-              fontFamily: "'Cormorant Garamond', serif",
+
               fontSize: '2.2rem',
               fontWeight: 300,
-              color: '#f0ece6',
+              color: 'var(--surface-muted)',
               letterSpacing: '0.12em',
               lineHeight: 1.1,
               textDecoration: 'none',
@@ -56,7 +56,7 @@ export function MobileDrawer({ open, drawerRef, onClose, pathname, isActive }: P
           </Link>
           <div style={{
             width: 48, height: 1,
-            background: 'linear-gradient(90deg, rgba(90,21,21,0.6), transparent)',
+            background: 'rgba(255,255,255,0.2)',
             marginBottom: 16,
           }} />
           <p style={{

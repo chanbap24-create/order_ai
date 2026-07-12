@@ -20,7 +20,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
         overflowY: "auto",
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
       }}
     >
       {!detail.selectedWine ? (
@@ -83,7 +83,7 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
             onSave={detail.saveImageUrl}
           />
 
-          <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 16, marginBottom: 16 }}>
+          <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: 16, marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
               <label
                 style={{

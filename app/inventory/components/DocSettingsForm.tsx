@@ -32,7 +32,7 @@ export function DocSettingsForm({ docSettings, setDocSettings, onResetDefaults }
         padding: 14,
         background: "var(--gray-50)",
         borderRadius: 8,
-        border: "1px solid var(--gray-100)",
+        border: "1px solid var(--border-default)",
       }}
     >
       <div
@@ -63,7 +63,7 @@ export function DocSettingsForm({ docSettings, setDocSettings, onResetDefaults }
                 fontSize: 16,
                 padding: "5px 8px",
                 borderRadius: 6,
-                border: "1px solid var(--gray-200)",
+                border: "1px solid var(--border-default)",
                 minWidth: 0,
                 outline: "none",
               }}
@@ -77,7 +77,7 @@ export function DocSettingsForm({ docSettings, setDocSettings, onResetDefaults }
           marginTop: 8,
           padding: "4px 10px",
           borderRadius: 6,
-          border: "1px solid var(--gray-200)",
+          border: "1px solid var(--border-default)",
           background: "white",
           fontSize: "0.72rem",
           cursor: "pointer",

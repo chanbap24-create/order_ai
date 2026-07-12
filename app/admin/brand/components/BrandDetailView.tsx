@@ -63,7 +63,7 @@ export function BrandDetailView(p: Props) {
                   href={/^https?:\/\//i.test(f.website) ? f.website : `https://${f.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: 11, color: "var(--burgundy, #5a1515)", display: "inline-block", marginTop: 4 }}
+                  style={{ fontSize: 11, color: "var(--action)", display: "inline-block", marginTop: 4 }}
                 >
                   사이트 열기 ↗
                 </a>
@@ -100,7 +100,7 @@ export function BrandDetailView(p: Props) {
               style={{
                 fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6,
                 border: "1px solid var(--action-muted)", cursor: f.website ? "pointer" : "not-allowed",
-                background: f.website ? "var(--burgundy, #5a1515)" : "var(--border-subtle)",
+                background: f.website ? "var(--action)" : "var(--border-subtle)",
                 color: f.website ? "#fff" : "var(--text-muted)",
                 opacity: p.extractingLogo ? 0.6 : 1,
               }}

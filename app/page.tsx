@@ -16,28 +16,22 @@ export default function Home() {
         className="home-page-root"
         style={{
           minHeight: 'calc(100vh - 56px)',
-          fontFamily: "'DM Sans', -apple-system, sans-serif",
+          // 배경은 풀블리드(루트) — 콘텐츠 컬럼에만 깔면 body(#fff)와 이음새가 보임
+          background: 'var(--surface-muted)',
           wordBreak: 'keep-all',
         }}
       >
         <div
           className="home-content"
           style={{
-            background: 'var(--surface-muted)',
             overflowY: 'auto',
             position: 'relative',
             minHeight: 'inherit',
           }}
         >
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-            background: 'linear-gradient(180deg, rgba(90, 21, 21, 0.02) 0%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-
-          <div style={{ maxWidth: 640, position: 'relative', zIndex: 1 }}>
+          <div style={{ maxWidth: 720, position: 'relative', zIndex: 1 }}>
             <div style={{
-              marginBottom: 48,
+              marginBottom: 36,
               opacity: mounted ? 1 : 0,
               transform: mounted ? 'translateY(0)' : 'translateY(16px)',
               transition: 'all 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s',
@@ -50,9 +44,8 @@ export default function Home() {
                 Dashboard
               </p>
               <h2 className="home-heading" style={{
-                fontFamily: "'Cormorant Garamond', serif",
                 fontSize: '1.8rem', fontWeight: 400,
-                color: '#1a1a2e', letterSpacing: '-0.01em',
+                color: 'var(--text-primary)', letterSpacing: '-0.01em',
                 lineHeight: 1.3, marginBottom: 8,
               }}>
                 무엇을 도와드릴까요?

@@ -38,7 +38,7 @@ export function DesktopSidebarHeader({
     <div
       style={{
         padding: "10px 16px",
-        borderBottom: "1px solid var(--gray-100)",
+        borderBottom: "1px solid var(--border-default)",
         display: "flex",
         alignItems: "center",
         gap: 8,
@@ -53,8 +53,8 @@ export function DesktopSidebarHeader({
         style={{
           fontSize: "0.92rem",
           fontWeight: 700,
-          color: "#1a1a2e",
-          fontFamily: "'Cormorant Garamond', serif",
+          color: "var(--text-primary)",
+
         }}
       >
         Quote
@@ -64,7 +64,7 @@ export function DesktopSidebarHeader({
           style={{
             background: "var(--action)",
             color: "white",
-            borderRadius: 10,
+            borderRadius: 12,
             padding: "2px 8px",
             fontSize: 11,
             fontWeight: 700,
@@ -146,7 +146,7 @@ function IconBtn({
         width: 28,
         height: 28,
         borderRadius: 8,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
         background: active ? "var(--border-default)" : "white",
         cursor: "pointer",
         fontSize: 13,

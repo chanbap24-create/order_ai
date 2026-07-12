@@ -41,7 +41,7 @@ export function EventFormModal(p: Props) {
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: '#fff', borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 420 }}
+        style={{ background: '#fff', borderRadius: 12, padding: '24px 20px', width: '100%', maxWidth: 420 }}
       >
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 20 }}>
           {p.editingId ? '회사 일정 수정' : '회사 일정 등록'}
@@ -93,7 +93,7 @@ export function EventFormModal(p: Props) {
             disabled={disabled}
             style={{
               flex: 1, padding: '12px', borderRadius: 8, border: 'none',
-              background: disabled ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
+              background: disabled ? 'var(--gray-300)' : 'var(--action)',
               color: '#fff', fontSize: 14, fontWeight: 600,
               cursor: disabled ? 'default' : 'pointer',
             }}

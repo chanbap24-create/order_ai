@@ -27,7 +27,7 @@ export function RegionTableView({ regions, onEdit, onDelete }: Props) {
         </thead>
         <tbody>
           {regions.map(r => (
-            <tr key={r.id} style={{ borderBottom: '1px solid var(--gray-100)' }}>
+            <tr key={r.id} style={{ borderBottom: '1px solid var(--border-default)' }}>
               <td style={{ padding: '6px', whiteSpace: 'nowrap' }}>
                 <span style={{ marginRight: 4 }}>{getCountryFlag(r.country)}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{r.country?.split(' ')[0]}</span>

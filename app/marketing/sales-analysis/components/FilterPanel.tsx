@@ -22,7 +22,7 @@ type Props = {
 };
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', borderRadius: 10,
+  width: '100%', padding: '9px 12px', borderRadius: 12,
   border: '1.5px solid var(--border-default)',
   fontSize: 14, outline: 'none', boxSizing: 'border-box',
   background: 'var(--surface-muted)', color: 'var(--text-primary)',
@@ -36,9 +36,9 @@ const labelStyle: React.CSSProperties = {
 export function FilterPanel(p: Props) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 14,
+      background: '#fff', borderRadius: 12,
       border: '1px solid var(--action-muted)',
-      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
       padding: 18, marginBottom: 16,
     }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>판매 분석</div>
@@ -60,7 +60,7 @@ export function FilterPanel(p: Props) {
             key={r.label}
             onClick={() => { p.onStartDate(r.start); p.onEndDate(r.end); }}
             style={{
-              padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
+              padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-default)',
               background: p.startDate === r.start && p.endDate === r.end ? 'var(--action-muted)' : 'transparent',
               fontSize: 11, color: 'var(--action)', cursor: 'pointer', fontWeight: 500,
             }}
@@ -124,7 +124,7 @@ export function FilterPanel(p: Props) {
         onClick={p.onSearch}
         disabled={p.loading}
         style={{
-          padding: '10px 28px', borderRadius: 10, border: 'none',
+          padding: '10px 28px', borderRadius: 12, border: 'none',
           background: p.loading ? '#c4a0a0' : 'var(--action)', color: '#fff',
           fontSize: 14, fontWeight: 600,
           cursor: p.loading ? 'default' : 'pointer',

@@ -40,7 +40,7 @@ export function ItemListCard({ items, onRemove }: Props) {
               gap: 10,
               padding: "10px 12px",
               background: "var(--surface-muted)",
-              borderRadius: 10,
+              borderRadius: 12,
               fontSize: 13,
             }}
           >

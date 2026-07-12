@@ -37,7 +37,7 @@ export function SimulationScenarios(p: Props) {
         return (
           <div
             key={s.label}
-            style={{ padding: 14, borderRadius: 6, border: "1px solid var(--gray-200)" }}
+            style={{ padding: 14, borderRadius: 6, border: "1px solid var(--border-default)" }}
           >
             <div
               style={{

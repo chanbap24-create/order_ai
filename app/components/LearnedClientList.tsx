@@ -103,7 +103,7 @@ export default function LearnedClientList({
             key={key}
             style={{
               padding: "10px 12px",
-              borderBottom: idx < items.length - 1 ? "1px solid var(--gray-100)" : "none",
+              borderBottom: idx < items.length - 1 ? "1px solid var(--border-default)" : "none",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",

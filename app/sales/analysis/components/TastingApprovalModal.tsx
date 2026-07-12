@@ -80,10 +80,10 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
 }
 
 const overlay: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
-const modal: React.CSSProperties = { background: "#fff", borderRadius: 14, width: "min(560px, 96vw)", maxHeight: "90vh", overflowY: "auto", padding: "18px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" };
+const modal: React.CSSProperties = { background: "#fff", borderRadius: 12, width: "min(560px, 96vw)", maxHeight: "90vh", overflowY: "auto", padding: "18px 20px", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" };
 const fieldWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 2 };
 const lbl: React.CSSProperties = { fontSize: 11, color: "var(--text-muted)" };
-const input: React.CSSProperties = { fontSize: 13, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--gray-200)", outline: "none" };
-const preBox: React.CSSProperties = { fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-all", background: "var(--surface-bg, #f6f4f2)", border: "1px solid var(--gray-100)", borderRadius: 10, padding: "12px 14px", margin: 0, fontFamily: "inherit" };
-const btnGhost: React.CSSProperties = { padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-secondary)" };
+const input: React.CSSProperties = { fontSize: 13, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border-default)", outline: "none" };
+const preBox: React.CSSProperties = { fontSize: 12, lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-all", background: "var(--surface-bg, #f6f4f2)", border: "1px solid var(--border-default)", borderRadius: 12, padding: "12px 14px", margin: 0, fontFamily: "inherit" };
+const btnGhost: React.CSSProperties = { padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid var(--border-default)", background: "#fff", color: "var(--text-secondary)" };
 const btnPrimary: React.CSSProperties = { padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid var(--action)", background: "var(--action)", color: "#fff" };

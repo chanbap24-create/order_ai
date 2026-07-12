@@ -62,7 +62,7 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
           style={{
             background: 'var(--surface)',
             border: '1px solid var(--border-default)',
-            borderRadius: 10,
+            borderRadius: 12,
             padding: '12px 14px',
             textAlign: 'center',
           }}
@@ -90,7 +90,6 @@ export const SummaryCards = memo(function SummaryCards({ data }: { data: Analysi
                   : 'var(--text-primary)',
               lineHeight: 1.2,
               fontVariantNumeric: 'tabular-nums',
-              fontFamily: "'DM Sans', sans-serif",
             }}
           >
             {c.value}

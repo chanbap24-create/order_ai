@@ -72,7 +72,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
     s?.col !== col ? { col, dir: 'asc' } : s.dir === 'asc' ? { col, dir: 'desc' } : null);
 
   return (
-    <div style={{ marginBottom: 12, background: '#fff', border: '1px solid rgba(90,21,21,0.06)', boxShadow: '0 1px 3px rgba(90,21,21,0.03)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ marginBottom: 12, background: '#fff', border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span>💰 오늘의 수금</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
@@ -130,8 +130,14 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
 
         return (
           <div key={g.type}>
-            <div style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, color: '#fff', background: g.color }}>
-              {g.label} <span style={{ fontWeight: 600, opacity: 0.85 }}>({rows.length})</span>
+            {/* 법인 섹션 헤더 — 원색 밴드 대신 텍스트 위계 + 헤어라인 (법인 구분은 도트 색) */}
+            <div style={{
+              display: 'flex', alignItems: 'baseline', gap: 7,
+              padding: '12px 14px 7px', borderBottom: '1px solid var(--border-default)',
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: g.color, alignSelf: 'center' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{g.label}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{rows.length}</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>

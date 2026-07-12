@@ -43,7 +43,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: 14,
+          background: '#fff', borderRadius: 12,
           width: '100%', maxWidth: 920, maxHeight: '90vh',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
@@ -88,7 +88,7 @@ export function ItemLedgerPopup({ popup, warehouse }: Props) {
                 onClick={() => popup.selectRange(i)}
                 style={{
                   padding: '5px 10px', borderRadius: 6,
-                  border: '1px solid ' + (i === popup.rangeIdx ? 'var(--action)' : 'rgba(90,21,21,0.15)'),
+                  border: '1px solid ' + (i === popup.rangeIdx ? 'var(--action)' : 'var(--border-strong)'),
                   background: i === popup.rangeIdx ? 'var(--action)' : '#fff',
                   color: i === popup.rangeIdx ? '#fff' : 'var(--action)',
                   fontSize: 11, fontWeight: 600, cursor: 'pointer',

@@ -150,7 +150,6 @@ export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
         maxWidth: 960,
         margin: "0 auto",
         padding: "0 16px 32px",
-        fontFamily: "'DM Sans', -apple-system, sans-serif",
       }}
     >
       {activeTab === "order" && (

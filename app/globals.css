@@ -12,17 +12,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* 다크모드 미지원(디자인 시스템이 라이트 전용) — OS 다크에서 배경이 뒤집혀
+   일부 화면이 깨지던 prefers-color-scheme 분기 제거. */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
 }
 
 /* ========================================

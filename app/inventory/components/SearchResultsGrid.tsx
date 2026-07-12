@@ -45,7 +45,7 @@ export function SearchResultsGrid({
           textAlign: "center",
           background: "white",
           borderRadius: 12,
-          border: "1px solid var(--gray-100)",
+          border: "1px solid var(--border-default)",
         }}
       >
         <svg

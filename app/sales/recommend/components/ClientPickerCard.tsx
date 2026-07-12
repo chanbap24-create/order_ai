@@ -27,7 +27,7 @@ export function ClientPickerCard(p: Props) {
   return (
     <div style={{
       background: '#fff', borderRadius: 12, padding: '20px 16px',
-      marginBottom: 16, boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+      marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
       border: '1px solid var(--action-muted)',
     }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
@@ -70,7 +70,7 @@ export function ClientPickerCard(p: Props) {
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <span style={{
-              fontSize: 11, padding: '2px 8px', borderRadius: 10,
+              fontSize: 11, padding: '2px 8px', borderRadius: 12,
               background: IMPORTANCE_LABELS[p.selectedClient.importance || 3]?.color || 'var(--gray-500)',
               color: '#fff',
             }}>
@@ -89,7 +89,7 @@ export function ClientPickerCard(p: Props) {
             position: 'absolute', top: '100%', left: 0, right: 0,
             background: '#fff', border: '1.5px solid var(--border-default)',
             borderRadius: '0 0 8px 8px', maxHeight: 240, overflowY: 'auto',
-            zIndex: 100, boxShadow: '0 4px 12px rgba(90,21,21,0.08)',
+            zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
           }}>
             {p.clientOptions.map(c => (
               <div
@@ -139,7 +139,7 @@ export function ClientPickerCard(p: Props) {
           disabled={p.loading}
           style={{
             width: '100%', marginTop: 12, padding: '12px', borderRadius: 8, border: 'none',
-            background: p.loading ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
+            background: p.loading ? 'var(--gray-300)' : 'var(--action)',
             color: '#fff', fontSize: 14, fontWeight: 600,
             cursor: p.loading ? 'default' : 'pointer',
           }}

@@ -76,9 +76,9 @@ export function NewBusinessForm({
               marginTop: 14,
               fontSize: 12,
               color: WINE_COLORS.textHelper,
-              background: "rgba(90,21,21,0.03)",
+              background: "var(--surface-hover)",
               padding: "10px 12px",
-              borderRadius: 10,
+              borderRadius: 12,
               lineHeight: 1.5,
             }}
           >
@@ -129,7 +129,7 @@ function Field({
         style={{
           width: "100%",
           padding: "10px 14px",
-          borderRadius: 10,
+          borderRadius: 12,
           border: `1.5px solid ${WINE_COLORS.primaryBorder}`,
           fontSize: 16,
           background: WINE_COLORS.surface,

@@ -3,20 +3,20 @@
 export const ORDER_COLORS = {
   primary: "var(--action)",
   text: "var(--text-primary)",
-  textTitle: "#1a1a2e",
+  textTitle: "var(--text-primary)",
   textMuted: "var(--text-muted)",
   surface: "#fff",
   surfaceBg: "var(--surface-muted)",
 
-  confHigh: "#16a34a",    // 확실 >= 0.9
-  confMid: "#2563eb",     // 높음 >= 0.7
-  confLow: "#d97706",     // 중간 >= 0.5
-  confNone: "#dc2626",    // 불확실 < 0.5
+  confHigh: "var(--status-success)",    // 확실 >= 0.9
+  confMid: "var(--status-info)",     // 높음 >= 0.7
+  confLow: "var(--status-warning)",     // 중간 >= 0.5
+  confNone: "var(--status-danger)",    // 불확실 < 0.5
 } as const;
 
 export const ORDER_FONT = {
-  base: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-  display: "'Cormorant Garamond', Georgia, serif",
+  base: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif",
+  display: "'Pretendard Variable', Pretendard, -apple-system, sans-serif",
 } as const;
 
 /** 배송일 컷오프 (KST 분 단위) — CDV 16:31, DL 16:01 */

@@ -8,7 +8,7 @@ export function Section({ title, children }: { title: string; children: React.Re
       style={{
         background: "#fff",
         border: "1px solid var(--action-muted)",
-        borderRadius: 10,
+        borderRadius: 12,
         padding: 16,
       }}
     >
@@ -45,7 +45,7 @@ export function Field({
           width: "100%",
           height: 32,
           padding: "0 10px",
-          border: "1px solid rgba(90,21,21,0.1)",
+          border: "1px solid var(--border-default)",
           borderRadius: 6,
           fontSize: 13,
           outline: "none",
@@ -77,7 +77,7 @@ export function TextArea({
         style={{
           width: "100%",
           padding: "8px 10px",
-          border: "1px solid rgba(90,21,21,0.1)",
+          border: "1px solid var(--border-default)",
           borderRadius: 6,
           fontSize: 13,
           outline: "none",

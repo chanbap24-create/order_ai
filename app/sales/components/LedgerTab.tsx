@@ -140,7 +140,7 @@ function EmptyState({
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--border-default)',
-        borderRadius: 10,
+        borderRadius: 12,
         padding: '60px 20px',
         textAlign: 'center',
         color: 'var(--text-tertiary)',

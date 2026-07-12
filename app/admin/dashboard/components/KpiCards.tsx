@@ -17,7 +17,7 @@ type Props = {
 const cardStyle: React.CSSProperties = {
   background: 'var(--surface)',
   border: '1px solid var(--border-default)',
-  borderRadius: 10,
+  borderRadius: 12,
   padding: '12px 14px',
   textAlign: 'center',
 };
@@ -51,7 +51,6 @@ export const KpiCards = memo(function KpiCards(p: Props) {
               color: 'var(--action)',
               lineHeight: 1.2,
               fontVariantNumeric: 'tabular-nums',
-              fontFamily: "'DM Sans', sans-serif",
             }}
           >
             {p.hasAnalysis ? formatKrw(p.totalRevenue) : '-'}
@@ -71,7 +70,6 @@ export const KpiCards = memo(function KpiCards(p: Props) {
               color: 'var(--text-primary)',
               lineHeight: 1.2,
               fontVariantNumeric: 'tabular-nums',
-              fontFamily: "'DM Sans', sans-serif",
             }}
           >
             {formatKrw(p.totalInventory)}
@@ -98,7 +96,6 @@ export const KpiCards = memo(function KpiCards(p: Props) {
               fontWeight: 700,
               color: 'var(--action)',
               fontVariantNumeric: 'tabular-nums',
-              fontFamily: "'DM Sans', sans-serif",
               lineHeight: 1.2,
             }}
           >
@@ -114,7 +111,6 @@ export const KpiCards = memo(function KpiCards(p: Props) {
               fontWeight: 700,
               color: 'var(--status-info)',
               fontVariantNumeric: 'tabular-nums',
-              fontFamily: "'DM Sans', sans-serif",
               lineHeight: 1.2,
             }}
           >

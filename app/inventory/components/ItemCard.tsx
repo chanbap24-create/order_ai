@@ -45,8 +45,8 @@ export function ItemCard({
       style={{
         padding: "12px 14px 12px 16px",
         background: "white",
-        borderRadius: 10,
-        border: "1px solid var(--gray-100)",
+        borderRadius: 12,
+        border: "1px solid var(--border-default)",
         boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
         cursor: "default",
         // 텍스트 복사 가능. long-press 는 longPress.ts 가 5px 이상 이동 시 자동 취소하므로
@@ -81,7 +81,7 @@ export function ItemCard({
           )}
           <span
             style={{
-              fontSize: "0.84rem", fontWeight: 700, color: "#1a1a2e",
+              fontSize: "0.84rem", fontWeight: 700, color: "var(--text-primary)",
               lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis",
             }}
           >

@@ -20,9 +20,9 @@ export function CountryChips({ selectedCountry, countryCounts, totalRegions, onS
             key={c.value}
             onClick={() => onSelect(c.value)}
             style={{
-              padding: '5px 12px', borderRadius: 20, border: 'none', fontSize: 12, fontWeight: 600,
+              padding: '5px 12px', borderRadius: 12, border: 'none', fontSize: 12, fontWeight: 600,
               cursor: 'pointer', transition: 'all 0.15s',
-              background: isActive ? 'var(--action)' : 'rgba(90,21,21,0.05)',
+              background: isActive ? 'var(--action)' : 'var(--surface-active)',
               color: isActive ? '#fff' : 'var(--text-tertiary)',
             }}
           >

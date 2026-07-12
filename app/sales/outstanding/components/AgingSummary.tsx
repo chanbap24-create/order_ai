@@ -32,15 +32,20 @@ export function AgingSummary({ rows, recentPaymentTotal }: { rows: AgingRow[]; r
     { label: '최근3개월 수금', value: paidTotal, good: true },
   ];
 
+  // 스탯 스트립 — 박스 없이 상하 헤어라인 + 세로 구분. 상태는 숫자 색으로만.
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-      {cards.map(c => (
-        <div key={c.label} style={cardStyle(c.danger, c.warn, c.good)}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 700, letterSpacing: '0.03em' }}>
+    <div style={{
+      display: 'flex', alignItems: 'stretch', overflowX: 'auto',
+      borderTop: '1px solid var(--border-default)',
+      borderBottom: '1px solid var(--border-default)',
+    }}>
+      {cards.map((c, i) => (
+        <div key={c.label} style={cellStyle(i > 0)}>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
             {c.label}
           </div>
           <div style={{
-            fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginTop: 4,
+            fontSize: 17, fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginTop: 3, letterSpacing: '-0.01em',
             color: c.danger ? 'var(--status-danger)' : c.warn ? 'var(--status-warning)' : c.good ? 'var(--status-success)' : 'var(--text-primary)',
           }}>
             {fmt(c.value)}
@@ -51,12 +56,11 @@ export function AgingSummary({ rows, recentPaymentTotal }: { rows: AgingRow[]; r
   );
 }
 
-function cardStyle(danger?: boolean, warn?: boolean, good?: boolean): CSSProperties {
-  const tint = danger ? '220,38,38' : warn ? '217,119,6' : good ? '22,163,74' : null;
+function cellStyle(divider: boolean): CSSProperties {
   return {
-    padding: '12px 14px',
-    borderRadius: 10,
-    background: tint ? `rgba(${tint},0.05)` : 'var(--surface)',
-    border: `1px solid ${tint ? `rgba(${tint},0.22)` : 'var(--border-default)'}`,
+    flex: '1 0 auto',
+    minWidth: 110,
+    padding: '12px 16px',
+    borderLeft: divider ? '1px solid var(--border-default)' : 'none',
   };
 }

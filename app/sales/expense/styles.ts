@@ -7,7 +7,7 @@ import type React from "react";
 
 export const cardStyle: React.CSSProperties = {
   background: "var(--surface)",
-  borderRadius: 10,
+  borderRadius: 12,
   border: "1px solid var(--border-default)",
   padding: 20,
   marginBottom: 16,

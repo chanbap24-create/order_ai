@@ -108,7 +108,7 @@ export function ParseStatsTab() {
                     name === 'total' ? [`${value}건`, '발주'] : [`${value}%`, '정밀보정']}
                 />
                 <Legend formatter={(v: string) => (v === 'total' ? '발주 건수' : '정밀보정 비율')} />
-                <Line yAxisId="left" type="monotone" dataKey="total" stroke="#5A1515" strokeWidth={2} dot={chartData.length < 40} name="total" animationDuration={400} />
+                <Line yAxisId="left" type="monotone" dataKey="total" stroke="var(--action)" strokeWidth={2} dot={chartData.length < 40} name="total" animationDuration={400} />
                 <Line yAxisId="right" type="monotone" dataKey="rate" stroke="#4f46e5" strokeWidth={2} dot={chartData.length < 40} name="rate" animationDuration={400} />
               </LineChart>
             </ResponsiveContainer>

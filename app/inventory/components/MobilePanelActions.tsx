@@ -32,7 +32,7 @@ export function MobilePanelActions({
           height: 44,
           borderRadius: 8,
           border: "none",
-          background: hasItems ? "#1a1a2e" : "var(--gray-200)",
+          background: hasItems ? "var(--surface-dark)" : "var(--gray-200)",
           color: hasItems ? "white" : "var(--neutral-100)",
           fontSize: 14,
           fontWeight: 600,
@@ -73,7 +73,7 @@ export function MobilePanelActions({
               background: "white",
               borderRadius: 8,
               boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-              border: "1px solid var(--gray-200)",
+              border: "1px solid var(--border-default)",
               zIndex: 100,
               overflow: "hidden",
             }}
@@ -131,7 +131,7 @@ function FormatBtn({
         fontSize: 14,
         cursor: "pointer",
         textAlign: "center",
-        borderTop: topBorder ? "1px solid var(--gray-100)" : undefined,
+        borderTop: topBorder ? "1px solid var(--border-default)" : undefined,
       }}
     >
       {children}

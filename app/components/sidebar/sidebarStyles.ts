@@ -29,13 +29,11 @@ export const SIDEBAR_STYLES = `
   border-radius: 6px;
   background: var(--action);
   color: var(--text-on-primary);
-  font-family: 'Cormorant Garamond', serif;
   font-size: 18px;
   font-weight: 600;
   flex-shrink: 0;
 }
 .sb-logo-text {
-  font-family: 'Cormorant Garamond', serif;
   font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
@@ -141,15 +139,15 @@ export const SIDEBAR_STYLES = `
     background-color: var(--surface-dark);
     /* HomeSidebar 와 동일 질감:
      *   1. SVG fractalNoise 3% — 빈티지 페인트 입자감
-     *   2. radial-gradient burgundy 15% (좌상단) — 따뜻한 글로우
+     *   2. radial-gradient 뉴트럴 글로우 (좌상단)
      */
     background-image:
-      radial-gradient(ellipse at 20% 20%, rgba(90, 21, 21, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
       url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     background-repeat: no-repeat, repeat;
     background-size: 100% 100%, 256px 256px;
-    /* 단단한 1px border 대신 soft burgundy shadow 로 사이드바→메인 자연스러운 연결 */
-    box-shadow: 6px 0 28px -12px rgba(90, 21, 21, 0.18), 1px 0 0 0 rgba(0, 0, 0, 0.04);
+    /* 단단한 1px border 대신 soft shadow 로 사이드바→메인 자연스러운 연결 */
+    box-shadow: 6px 0 28px -12px rgba(0, 0, 0, 0.18), 1px 0 0 0 rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     z-index: 50;

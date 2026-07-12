@@ -17,7 +17,7 @@ export function InvColumnSettings({ availableColumns, visibleColumns, onToggle }
         padding: "14px 16px",
         background: "white",
         borderRadius: 12,
-        border: "1px solid var(--gray-100)",
+        border: "1px solid var(--border-default)",
         boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
       }}
     >

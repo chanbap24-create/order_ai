@@ -45,7 +45,7 @@ export default function SegmentsTab() {
         </div>
         <button onClick={refresh} disabled={refreshing} style={btn}>{refreshing ? '갱신 중…' : '데이터 갱신'}</button>
       </div>
-      {msg && <div style={{ fontSize: 12.5, color: '#5a1515', margin: '8px 0' }}>{msg}</div>}
+      {msg && <div style={{ fontSize: 12.5, color: 'var(--action)', margin: '8px 0' }}>{msg}</div>}
 
       <h3 style={h3}>업장유형별 (스시·프렌치·이탈리안 등)</h3>
       {loading ? <div style={mut}>불러오는 중…</div> : <SegmentProfileTable profiles={venues} />}
@@ -59,6 +59,6 @@ export default function SegmentsTab() {
   );
 }
 
-const h3: React.CSSProperties = { fontSize: 14, margin: '22px 0 8px', paddingLeft: 8, borderLeft: '4px solid #5a1515' };
+const h3: React.CSSProperties = { fontSize: 14, margin: '22px 0 8px', paddingLeft: 8, borderLeft: '4px solid var(--action)' };
 const mut: React.CSSProperties = { color: '#9ca3af', fontSize: 13, padding: 8 };
-const btn: React.CSSProperties = { background: '#5a1515', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+const btn: React.CSSProperties = { background: 'var(--action)', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' };

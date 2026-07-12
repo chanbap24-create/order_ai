@@ -83,7 +83,7 @@ export const YoYChart = memo(function YoYChart({ thisYearTrend, lastYearTrend, s
             <Tooltip formatter={(value: number, name: string) => [`${value.toLocaleString()}만원`, `${name}년`]} />
             <Legend formatter={(value: string) => `${value}년`} />
             <Bar dataKey={lastYear} fill="#D1D5DB" radius={[4, 4, 0, 0]} animationDuration={500} />
-            <Bar dataKey={thisYear} fill="#5A1515" radius={[4, 4, 0, 0]} animationDuration={500} />
+            <Bar dataKey={thisYear} fill="var(--action)" radius={[4, 4, 0, 0]} animationDuration={500} />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -49,11 +49,11 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                   );
                 else if (diff < 0)
                   changeEl = (
-                    <span style={{ color: "#DC2626", fontWeight: 600 }}>▼{Math.abs(diff)}</span>
+                    <span style={{ color: "var(--status-danger)", fontWeight: 600 }}>▼{Math.abs(diff)}</span>
                   );
               } else if (prevRanking && !prevRank) {
                 changeEl = (
-                  <span style={{ color: "#2563eb", fontWeight: 600, fontSize: "0.7rem" }}>NEW</span>
+                  <span style={{ color: "var(--status-info)", fontWeight: 600, fontSize: "0.7rem" }}>NEW</span>
                 );
               }
               return (
@@ -83,7 +83,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                   <td
                     style={{
                       textAlign: "right",
-                      color: item.discount > 0 ? "#DC2626" : "var(--neutral-700)",
+                      color: item.discount > 0 ? "var(--status-danger)" : "var(--neutral-700)",
                     }}
                   >
                     {item.discount ? `${item.discount}%` : "-"}
@@ -92,7 +92,7 @@ export function ItemRankingTable({ items, prevRanking }: Props) {
                   <td
                     style={{
                       textAlign: "right",
-                      color: item.stock <= 0 ? "#DC2626" : "var(--neutral-700)",
+                      color: item.stock <= 0 ? "var(--status-danger)" : "var(--neutral-700)",
                     }}
                   >
                     {item.stock}

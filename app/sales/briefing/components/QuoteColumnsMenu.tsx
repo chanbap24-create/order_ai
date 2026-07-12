@@ -13,7 +13,7 @@ export function QuoteColumnsMenu({ quoteCols, toggle, reset, onClose }: Props) {
   return (
     <div style={{
       position: 'absolute', bottom: 40, left: 0, background: '#fff',
-      border: '1px solid var(--gray-200)', borderRadius: 10, padding: 12,
+      border: '1px solid var(--border-default)', borderRadius: 12, padding: 12,
       boxShadow: '0 4px 16px rgba(0,0,0,0.12)', zIndex: 300,
       width: 220, maxHeight: 280, overflowY: 'auto',
     }}>

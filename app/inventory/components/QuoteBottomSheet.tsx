@@ -174,7 +174,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
               flex: 1,
               height: 44,
               borderRadius: 8,
-              border: "1px solid var(--gray-200)",
+              border: "1px solid var(--border-default)",
               background: "white",
               color: "var(--neutral-400)",
               fontSize: 14,

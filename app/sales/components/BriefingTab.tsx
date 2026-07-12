@@ -13,6 +13,7 @@ import { ShipmentSection } from '../briefing/components/ShipmentSection';
 import { BriefingHeader } from '../briefing/components/BriefingHeader';
 import { BriefingToast, EmptyState } from '../briefing/components/EmptyState';
 import { MeetingCard } from '../briefing/components/MeetingCard';
+import { TodayStrip } from '../briefing/components/TodayStrip';
 
 export default function BriefingTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const { todayStr, todayLabel } = getKstToday();
@@ -48,6 +49,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
   return (
     <div style={{ paddingBottom: 40 }}>
+      <TodayStrip />
       {collections && <CollectionBriefingSection data={collections} onSave={saveCollection} />}
 
       {meetings.length > 0 && (

@@ -9,7 +9,7 @@ export function ClientTagsCard({ client }: { client: ClientDetail }) {
         background: "white",
         borderRadius: 8,
         padding: 20,
-        boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }}>태그</div>
@@ -20,7 +20,7 @@ export function ClientTagsCard({ client }: { client: ClientDetail }) {
             style={{
               padding: "4px 10px",
               borderRadius: 12,
-              background: "#f0ece6",
+              background: "var(--surface-muted)",
               color: "var(--action)",
               fontSize: 12,
               fontWeight: 500,

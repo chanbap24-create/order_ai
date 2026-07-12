@@ -25,7 +25,7 @@ export function WineRow(p: Props) {
   return (
     <div
       style={{
-        borderBottom: p.isLast ? "none" : "1px solid var(--gray-100)",
+        borderBottom: p.isLast ? "none" : "1px solid var(--border-default)",
         opacity: p.isChecked ? 0.4 : 1,
         transition: "opacity 0.15s",
       }}

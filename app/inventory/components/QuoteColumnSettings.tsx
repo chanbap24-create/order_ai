@@ -50,7 +50,7 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
         padding: 14,
         background: "var(--gray-50)",
         borderRadius: 8,
-        border: "1px solid var(--gray-100)",
+        border: "1px solid var(--border-default)",
       }}
     >
       <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 8, color: "var(--neutral-700)" }}>
@@ -110,7 +110,7 @@ export function QuoteColumnSettings({ visibleColumns, setVisibleColumns }: Props
                 padding: "4px 8px",
                 borderRadius: 6,
                 background: active ? "var(--action-muted)" : "#fff",
-                border: `1px solid ${active ? "rgba(90,21,21,0.2)" : "var(--gray-200)"}`,
+                border: `1px solid ${active ? "var(--border-strong)" : "var(--gray-200)"}`,
               }}
             >
               <input
@@ -146,7 +146,7 @@ function SortableChip({ id, label }: { id: string; label: string }) {
     padding: "4px 10px",
     borderRadius: 6,
     background: isDragging ? "#fff8e1" : "#fff",
-    border: "1px solid rgba(90,21,21,0.2)",
+    border: "1px solid var(--border-strong)",
     fontSize: 11,
     fontWeight: 600,
     color: "var(--neutral-700)",

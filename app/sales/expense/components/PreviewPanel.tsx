@@ -96,7 +96,7 @@ export function PreviewPanel(p: Props) {
                     style={{
                       padding: "8px 6px",
                       textAlign: i === 3 ? "right" : "left",
-                      borderBottom: "2px solid rgba(90,21,21,0.1)",
+                      borderBottom: "2px solid var(--border-default)",
                       color: "var(--text-tertiary)",
                       fontWeight: 600,
                       fontSize: 10,
@@ -179,7 +179,7 @@ export function PreviewPanel(p: Props) {
               style={{
                 marginTop: 20,
                 padding: "14px 16px",
-                borderRadius: 10,
+                borderRadius: 12,
                 background: "var(--surface-muted)",
                 border: "1px solid var(--action-muted)",
               }}

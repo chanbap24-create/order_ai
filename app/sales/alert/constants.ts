@@ -3,9 +3,9 @@
 export const LEVEL_COLORS: Record<number, string> = {
   0: '#6A1B9A',
   1: '#1B5E20',
-  2: '#2e7d32',
-  3: '#1565c0',
+  2: 'var(--status-success)',
+  3: 'var(--status-info)',
   4: '#5C6BC0',
-  5: '#e65100',
+  5: 'var(--status-warning)',
   6: '#bf360c',
 };

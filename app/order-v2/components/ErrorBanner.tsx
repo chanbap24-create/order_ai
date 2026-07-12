@@ -11,7 +11,7 @@ export function ErrorBanner({ error }: Props) {
     <div
       style={{
         padding: "12px 16px",
-        borderRadius: 10,
+        borderRadius: 12,
         marginBottom: 16,
         background: "rgba(220,38,38,0.04)",
         border: "1px solid rgba(220,38,38,0.1)",

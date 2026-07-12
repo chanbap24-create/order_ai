@@ -84,7 +84,7 @@ export default function FlavorTagsTab() {
         {rows.map((w) => (
           <div key={w.code} style={{ background: 'var(--surface,#fff)', border: '1px solid var(--neutral-200,#eee)', borderRadius: 11, padding: '12px 15px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap', marginBottom: 9 }}>
-              {w.type && <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1.5px 7px', borderRadius: 5, color: '#fff', background: TYPE_COLOR[w.type] || '#999' }}>{w.type}</span>}
+              {w.type && <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1.5px 7px', borderRadius: 5, color: '#fff', background: TYPE_COLOR[w.type] || 'var(--neutral-100)' }}>{w.type}</span>}
               <span style={{ fontWeight: 600, fontSize: 14.5 }}>{w.name}</span>
               <span style={{ fontSize: 11, color: 'var(--neutral-500)', fontFamily: 'monospace' }}>{w.code}</span>
               <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--neutral-500)', fontVariantNumeric: 'tabular-nums' }}>{money(w.price)} · 향 {w.tags.length}</span>

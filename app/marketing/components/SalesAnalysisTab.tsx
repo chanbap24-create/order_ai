@@ -92,7 +92,7 @@ export default function SalesAnalysisTab() {
 
       {s.searched && !s.loading && s.data && s.data.total_qty === 0 && (
         <div style={{
-          background: '#fff', borderRadius: 14, padding: 40,
+          background: '#fff', borderRadius: 12, padding: 40,
           textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14,
           border: '1px solid var(--action-muted)',
         }}>
@@ -102,7 +102,7 @@ export default function SalesAnalysisTab() {
 
       {!s.searched && (
         <div style={{
-          background: '#fff', borderRadius: 14, padding: 40,
+          background: '#fff', borderRadius: 12, padding: 40,
           textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13,
           border: '1px solid var(--action-muted)', lineHeight: 1.8,
         }}>

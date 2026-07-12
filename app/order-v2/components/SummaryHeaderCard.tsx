@@ -34,8 +34,8 @@ export function SummaryHeaderCard(p: Props) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #1a1a2e 0%, #2d1a2e 40%, #3a1520 100%)",
-        borderRadius: 14,
+        background: "var(--surface-dark)",
+        borderRadius: 12,
         padding: "18px 20px",
         color: "#fff",
         marginBottom: 16,
@@ -136,7 +136,7 @@ function RadialGlow() {
         width: "60%",
         height: "100%",
         background:
-          "radial-gradient(ellipse at 80% 30%, rgba(90,21,21,0.3) 0%, transparent 70%)",
+          "radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.06) 0%, transparent 70%)",
         pointerEvents: "none",
       }}
     />

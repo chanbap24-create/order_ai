@@ -67,7 +67,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
             style={{
               ...COLS_STYLE,
               padding: '12px 16px',
-              borderBottom: '1px solid #f5f3ed',
+              borderBottom: '1px solid var(--border-subtle)',
               opacity: isPast ? 0.5 : 1,
             }}
           >
@@ -90,7 +90,7 @@ export function EventsTable({ events, loading, onEdit, onDelete }: Props) {
               <button
                 onClick={() => onEdit(ev)}
                 style={{
-                  padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(90,21,21,0.1)',
+                  padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-default)',
                   background: '#fff', color: 'var(--action)', fontSize: 11, cursor: 'pointer', fontWeight: 600,
                 }}
               >

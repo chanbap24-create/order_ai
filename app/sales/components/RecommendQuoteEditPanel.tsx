@@ -99,7 +99,7 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
         <QuoteItemSearchAdd onAdd={quote.addToQuote} />
         <div style={{
           textAlign: 'center', padding: '28px 20px', color: 'var(--text-muted)', fontSize: 13,
-          border: '1px dashed var(--action-muted)', borderRadius: 10,
+          border: '1px dashed var(--action-muted)', borderRadius: 12,
         }}>
           추천에서 와인을 선택해 <b>“견적에 담기”</b>를 누르거나, 위에서 <b>직접 검색해 담을</b> 수 있습니다.
         </div>

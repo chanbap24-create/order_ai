@@ -16,7 +16,7 @@ export function ShipmentSection({ title, color, shipments, expandedShipClient, s
   return (
     <div style={{
       background: '#fff', borderRadius: 12, border: '1px solid var(--action-muted)',
-      boxShadow: '0 1px 3px rgba(90,21,21,0.03)', marginBottom: 12, overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)', marginBottom: 12, overflow: 'hidden',
     }}>
       <div style={{
         padding: '10px 14px', borderBottom: '1px solid var(--action-muted)',
@@ -63,7 +63,7 @@ export function ShipmentSection({ title, color, shipments, expandedShipClient, s
                       <td style={{ padding: '4px 10px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textAlign: 'right' }}>금액</td>
                     </tr>
                     {c.items.map((it, idx) => (
-                      <tr key={idx} style={{ background: 'var(--gray-50)', borderBottom: idx === c.items.length - 1 ? 'none' : '1px solid rgba(90,21,21,0.03)' }}>
+                      <tr key={idx} style={{ background: 'var(--gray-50)', borderBottom: idx === c.items.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
                         <td style={{ padding: '4px 10px 4px 28px', fontSize: 11, color: 'var(--neutral-400)' }}>{it.item_no}</td>
                         <td style={{ padding: '4px 6px', fontSize: 11, color: 'var(--neutral-700)', whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.item_name}</td>
                         <td style={{ padding: '4px 6px', fontSize: 11, color: 'var(--neutral-700)', textAlign: 'right' }}>{it.quantity}</td>
@@ -81,7 +81,7 @@ export function ShipmentSection({ title, color, shipments, expandedShipClient, s
             );
           })}
           <tfoot>
-            <tr style={{ borderTop: '2px solid rgba(90,21,21,0.1)' }}>
+            <tr style={{ borderTop: '2px solid var(--border-default)' }}>
               <td colSpan={2} style={{ padding: '10px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>합계</td>
               <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--neutral-700)' }}>{fmtFull(shipments.totals.supply)}</td>
               <td style={{ padding: '10px 6px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: 'var(--neutral-100)' }}>{fmtFull(shipments.totals.tax)}</td>

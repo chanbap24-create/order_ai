@@ -77,7 +77,7 @@ export function PriceDiscountEditor({
             border:
               selected.supply_price === 0
                 ? "1.5px solid var(--status-warning)"
-                : "1px solid rgba(90,21,21,0.1)",
+                : "1px solid var(--border-default)",
             borderRadius: 6,
             padding: "3px 6px",
             color: ORDER_COLORS.text,
@@ -97,7 +97,7 @@ export function PriceDiscountEditor({
             fontWeight: 600,
             padding: "3px 4px",
             borderRadius: 6,
-            border: "1px solid rgba(90,21,21,0.1)",
+            border: "1px solid var(--border-default)",
             background: "#fff",
             color: discount > 0 ? ORDER_COLORS.primary : ORDER_COLORS.textMuted,
             cursor: "pointer",
@@ -146,7 +146,7 @@ export function PriceDiscountEditor({
             color: "#fff",
             background: ORDER_COLORS.primary,
             padding: "2px 8px",
-            borderRadius: 10,
+            borderRadius: 12,
           }}
         >
           시음주

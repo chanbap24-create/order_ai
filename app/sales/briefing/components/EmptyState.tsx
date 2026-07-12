@@ -23,7 +23,7 @@ export function BriefingToast({ message }: { message: string }) {
       position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
       background: '#38a169', color: '#fff', padding: '12px 24px', borderRadius: 8,
       fontSize: 14, fontWeight: 500, zIndex: 2000,
-      boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     }}>
       {message}
     </div>

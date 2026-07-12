@@ -14,7 +14,7 @@ export default function StockPage() {
         품번·와인명·모델번호·브랜드 약어로 검색 (예: &quot;0884/0 재고&quot;, &quot;로쉬벨렌 샤도&quot;)
       </p>
 
-      <div style={{ background: ORDER_COLORS.surface, borderRadius: 14, padding: 18, border: "1px solid var(--action-muted)", marginBottom: 20 }}>
+      <div style={{ background: ORDER_COLORS.surface, borderRadius: 12, padding: 18, border: "1px solid var(--action-muted)", marginBottom: 20 }}>
         {/* 탭 */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           {(["CDV", "DL"] as const).map((t) => (
@@ -41,13 +41,13 @@ export default function StockPage() {
             onKeyDown={(e) => { if (e.key === "Enter") run(); }}
             placeholder="품목 검색…"
             autoFocus
-            style={{ flex: 1, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border-default)", fontSize: 15, background: "var(--surface)", color: ORDER_COLORS.text }}
+            style={{ flex: 1, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--border-default)", fontSize: 15, background: "var(--surface)", color: ORDER_COLORS.text }}
           />
           <button
             onClick={run}
             disabled={loading || !query.trim()}
             style={{
-              padding: "12px 22px", borderRadius: 10, border: "none", fontSize: 15, fontWeight: 800, cursor: loading ? "default" : "pointer",
+              padding: "12px 22px", borderRadius: 12, border: "none", fontSize: 15, fontWeight: 800, cursor: loading ? "default" : "pointer",
               background: "var(--action)", color: "#fff", opacity: loading || !query.trim() ? 0.6 : 1, whiteSpace: "nowrap",
             }}
           >

@@ -3,9 +3,9 @@
 import type { ManagerStat } from "../types";
 
 const CHANNEL_COLORS: Record<string, string> = {
-  "on/업소": "#e74c3c",
-  "on/호텔": "#c0392b",
-  "on/샵": "#e67e22",
+  "on/업소": "var(--status-danger)",
+  "on/호텔": "var(--status-danger)",
+  "on/샵": "var(--status-warning)",
   "on/도매장": "#f39c12",
   "off/백화점": "#3498db",
   "off/편의점": "#2980b9",
@@ -102,7 +102,7 @@ export function ChannelsTab({ activeData }: Props) {
                   padding: "3px 10px",
                   borderRadius: 4,
                   background: "var(--gray-50)",
-                  border: "1px solid var(--gray-200)",
+                  border: "1px solid var(--border-default)",
                   fontSize: 11,
                   color: "var(--neutral-700)",
                 }}

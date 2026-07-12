@@ -76,7 +76,7 @@ export default function PaymentTermsTab({ currentManager, isAdmin, initialManage
       {loading && <div style={emptyBox}>불러오는 중…</div>}
 
       {!loading && !error && (
-        <div style={{ border: '1px solid var(--border-default)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ border: '1px solid var(--border-default)', borderRadius: 12, overflow: 'hidden' }}>
           {shown.map(r => (
             <PaymentTermRow
               key={r.client_code}
@@ -109,7 +109,7 @@ function chip(active: boolean): CSSProperties {
   return {
     padding: '6px 12px', fontSize: 13, fontWeight: active ? 700 : 500, borderRadius: 7, cursor: 'pointer',
     border: `1px solid ${active ? 'var(--action)' : 'var(--border-default)'}`,
-    background: active ? 'rgba(139,21,56,0.06)' : 'var(--surface)',
+    background: active ? 'var(--surface-active)' : 'var(--surface)',
     color: active ? 'var(--action)' : 'var(--text-secondary)',
   };
 }

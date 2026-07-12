@@ -221,7 +221,7 @@ function EmptyBox({ msg }: { msg: string }) {
   return (
     <div style={{
       textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 13,
-      background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 10,
+      background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 12,
     }}>
       {msg}
     </div>

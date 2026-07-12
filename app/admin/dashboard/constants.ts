@@ -10,5 +10,5 @@ export const SOURCE_LABELS: Record<SourceMode, string> = {
 };
 
 export const SOURCE_COLORS: Record<SourceMode, string> = {
-  all: 'var(--color-primary-light)', cdv: 'var(--action)', dl: '#2563eb',
+  all: 'var(--color-primary-light)', cdv: 'var(--action)', dl: 'var(--status-info)',
 };

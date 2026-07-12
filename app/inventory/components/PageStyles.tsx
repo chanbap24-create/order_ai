@@ -21,7 +21,7 @@ export function PageStyles() {
         transition: background 0.15s ease;
       }
       .inv-card:hover {
-        box-shadow: 0 4px 12px -4px rgba(90,21,21,0.08);
+        box-shadow: 0 4px 12px -4px rgba(0,0,0,0.08);
       }
       .inv-card:hover::before {
         background: var(--action);

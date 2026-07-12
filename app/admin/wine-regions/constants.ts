@@ -40,5 +40,5 @@ export function classColor(cls: string | null) {
   if (c.includes('village') || c.includes('doc') || c === 'doc') return '#2E7D32';
   if (c.includes('mga') || c.includes('cru')) return '#6B4E2F';
   if (c.includes('bourgeois')) return '#795548';
-  return '#555';
+  return 'var(--neutral-500)';
 }

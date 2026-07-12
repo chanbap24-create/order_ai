@@ -75,7 +75,7 @@ export function WinesTab(p: Props) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "8px 20px",
-          borderBottom: "1px solid var(--gray-200)",
+          borderBottom: "1px solid var(--border-default)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -103,7 +103,7 @@ export function WinesTab(p: Props) {
           fontSize: 10,
           color: "#bbb",
           fontWeight: 500,
-          borderBottom: "1px solid var(--gray-200)",
+          borderBottom: "1px solid var(--border-default)",
           textTransform: "uppercase" as const,
           letterSpacing: "0.03em",
         }}

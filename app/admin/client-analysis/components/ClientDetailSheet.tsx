@@ -18,7 +18,7 @@ export function ClientDetailSheet({ selectedClient, items, loading, onClose }: P
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(90,21,21,0.4)',
+        background: 'rgba(0,0,0,0.4)',
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       }}
     >

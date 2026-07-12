@@ -109,7 +109,7 @@ const headerButton: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   flex: 1,
   padding: 10,
-  borderRadius: 10,
+  borderRadius: 12,
   border: `1px solid ${WINE_COLORS.dividerCardLight}`,
 };
 

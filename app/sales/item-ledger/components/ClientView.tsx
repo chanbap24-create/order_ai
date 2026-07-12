@@ -58,7 +58,7 @@ export function ClientView({ summary }: { summary: ClientSummary[] }) {
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600, fontSize: 12 }}>
       <thead>
-        <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid rgba(90,21,21,0.1)' }}>
+        <tr style={{ background: 'var(--gray-50)', borderBottom: '1px solid var(--border-default)' }}>
           {COLUMNS.map((col) => (
             <SortableHeader
               key={col.key}

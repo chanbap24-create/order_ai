@@ -50,7 +50,7 @@ export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBa
         </tr>
       ))}
       {showDaySummary && (
-        <tr style={{ background: 'rgba(90,21,21,0.02)', cursor: 'pointer' }} onClick={onToggle}>
+        <tr style={{ background: 'var(--surface-hover)', cursor: 'pointer' }} onClick={onToggle}>
           <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--text-tertiary)', fontSize: 11 }} colSpan={2}>
             <span style={{ marginRight: 4 }}>{collapsed ? '▶' : '▼'}</span>
             {day.date.slice(5)} 일계

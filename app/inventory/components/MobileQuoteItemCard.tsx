@@ -76,8 +76,8 @@ export function MobileQuoteItemCard({
       style={{
         padding: 14,
         background: "var(--gray-50)",
-        borderRadius: 10,
-        border: "1px solid var(--gray-100)",
+        borderRadius: 12,
+        border: "1px solid var(--border-default)",
         cursor: "pointer",
         position: "relative",
       }}
@@ -170,7 +170,7 @@ export function MobileQuoteItemCard({
       {totalFields.length > 0 && (
         <div
           style={{
-            marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--gray-200)",
+            marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border-default)",
             display: "flex", flexWrap: "wrap", gap: 10, fontSize: 12,
           }}
         >

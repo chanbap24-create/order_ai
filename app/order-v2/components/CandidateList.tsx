@@ -31,7 +31,7 @@ export function CandidateList({ candidates, selectedIdx, historySet, onSelect }:
               padding: "7px 14px",
               border: "none",
               background: isSelected
-                ? "rgba(90,21,21,0.03)"
+                ? "var(--surface-hover)"
                 : hasHistory
                   ? "rgba(22,163,74,0.04)"
                   : "transparent",

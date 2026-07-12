@@ -31,7 +31,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
   }, [version]);
 
   return (
-    <div style={{ border: "1px solid var(--gray-200)", borderRadius: 12, padding: 12, marginTop: 12 }}>
+    <div style={{ border: "1px solid var(--border-default)", borderRadius: 12, padding: 12, marginTop: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
           신규 품목 학습 내역
@@ -74,7 +74,7 @@ export default function LearnedNewItemsList({ version }: { version: number }) {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid var(--gray-100)" }}>
+                <tr key={i} style={{ borderBottom: "1px solid var(--border-default)" }}>
                   <td style={{ padding: 8 }}>
                     {row.client_name || row.client_code}
                   </td>

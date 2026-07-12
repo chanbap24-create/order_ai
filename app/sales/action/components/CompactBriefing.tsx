@@ -217,7 +217,7 @@ export function CompactBriefing(p: Props) {
           onClick={p.onExpandDetails}
           style={{
             padding: "6px 16px",
-            borderRadius: 20,
+            borderRadius: 12,
             border: "1px solid var(--border-default)",
             background: "white",
             fontSize: 12,

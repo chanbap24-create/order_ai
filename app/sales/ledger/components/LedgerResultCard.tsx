@@ -43,7 +43,7 @@ export function LedgerResultCard(p: Props) {
     <div
       style={{
         background: 'var(--surface)',
-        borderRadius: 10,
+        borderRadius: 12,
         border: '1px solid var(--border-default)',
         overflow: 'hidden',
       }}

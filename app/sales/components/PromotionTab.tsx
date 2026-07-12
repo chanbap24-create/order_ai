@@ -72,7 +72,7 @@ export default function PromotionTab() {
 
       <PromotionForm onSave={add} />
 
-      {err && <div style={{ color: 'var(--danger, #c0392b)', fontSize: 12, marginBottom: 10 }}>{err}</div>}
+      {err && <div style={{ color: 'var(--danger, var(--status-danger))', fontSize: 12, marginBottom: 10 }}>{err}</div>}
       {loading ? (
         <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: 20, textAlign: 'center' }}>불러오는 중…</div>
       ) : list.length === 0 ? (
@@ -81,7 +81,7 @@ export default function PromotionTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {list.map((p) => (
             <div key={p.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 10,
+              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12,
               background: '#fff', border: `1px solid ${p.active ? '#e0900f' : 'var(--border-default)'}`,
               opacity: p.active ? 1 : 0.6,
             }}>
@@ -99,7 +99,7 @@ export default function PromotionTab() {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <span>재고 <b style={{ color: 'var(--text-secondary)' }}>{(p.total_stock ?? 0).toLocaleString()}</b></span>
-                  <span>가용 <b style={{ color: (p.available_stock ?? 0) > 0 ? '#166534' : '#c0392b' }}>{(p.available_stock ?? 0).toLocaleString()}</b></span>
+                  <span>가용 <b style={{ color: (p.available_stock ?? 0) > 0 ? '#166534' : 'var(--status-danger)' }}>{(p.available_stock ?? 0).toLocaleString()}</b></span>
                   <span>보세 <b style={{ color: 'var(--text-secondary)' }}>{(p.bonded_warehouse ?? 0).toLocaleString()}</b></span>
                 </div>
               </div>

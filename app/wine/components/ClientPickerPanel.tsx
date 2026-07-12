@@ -24,7 +24,7 @@ export function ClientPickerPanel({
       <div
         style={{
           background: WINE_COLORS.surface,
-          borderRadius: 16,
+          borderRadius: 12,
           border: `1px solid ${WINE_COLORS.dividerCard}`,
           boxShadow: WINE_COLORS.primaryShadowSubtle,
           overflow: "hidden",

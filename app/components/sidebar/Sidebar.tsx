@@ -43,7 +43,8 @@ export function Sidebar() {
         aria-label="주 메뉴"
       >
         <Link href="/" className="sb-logo" title="홈">
-          <span className="sb-logo-mark">C</span>
+          {/* C 마크는 접힘 상태에서만(로고 대용) — 펼침 땐 워드마크만('C CAVE DE VIN' 중복 방지) */}
+          {collapsed && <span className="sb-logo-mark">C</span>}
           <span className="sb-logo-text">CAVE DE VIN</span>
         </Link>
 

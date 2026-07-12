@@ -14,7 +14,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
   return (
     <>
       {/* 거래처 매출 요약 */}
-      <div style={{ background: "#f8f6f0", borderRadius: 10, padding: 14, marginBottom: 12 }}>
+      <div style={{ background: "var(--surface-muted)", borderRadius: 12, padding: 14, marginBottom: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
           거래처 매출 요약
         </div>
@@ -61,7 +61,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
         <div
           style={{
             background: "#fff",
-            borderRadius: 10,
+            borderRadius: 12,
             padding: 14,
             marginBottom: 12,
             border: "1px solid var(--action-muted)",
@@ -79,7 +79,7 @@ export function BriefingView({ briefing, selectedRecs, toggleRec }: Props) {
                 alignItems: "center",
                 padding: "6px 0",
                 borderBottom:
-                  i < briefing.recent_orders.length - 1 ? "1px solid #f5f3ed" : "none",
+                  i < briefing.recent_orders.length - 1 ? "1px solid var(--border-subtle)" : "none",
                 fontSize: 12,
               }}
             >

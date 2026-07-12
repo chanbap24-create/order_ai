@@ -16,10 +16,10 @@ export function OriginalTextCard({ orderText }: Props) {
       className="order-card"
       style={{
         background: "#fff",
-        borderRadius: 14,
+        borderRadius: 12,
         padding: "16px 18px",
         border: "1px solid var(--action-muted)",
-        boxShadow: "0 2px 12px rgba(90,21,21,0.03)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
         marginBottom: 16,
         transition: "box-shadow 0.3s ease",
         display: "flex",
@@ -39,7 +39,7 @@ export function OriginalTextCard({ orderText }: Props) {
             width: 3,
             height: 14,
             borderRadius: 2,
-            background: "linear-gradient(180deg, var(--text-tertiary), rgba(138,133,128,0.3))",
+            background: "var(--text-tertiary)",
           }}
         />
         <span style={{ fontSize: 13, fontWeight: 700, color: ORDER_COLORS.text }}>
@@ -56,7 +56,7 @@ export function OriginalTextCard({ orderText }: Props) {
           margin: 0,
           fontFamily: ORDER_FONT.base,
           background: ORDER_COLORS.surfaceBg,
-          borderRadius: 10,
+          borderRadius: 12,
           padding: "14px 16px",
           border: "1px solid var(--border-subtle)",
           flex: 1,

@@ -70,7 +70,7 @@ export function ClientItemsPanel({
               overflowY: "auto",
               background: GLASS_COLORS.surface,
               borderRadius: 8,
-              border: "1px solid var(--gray-200)",
+              border: "1px solid var(--border-default)",
             }}
           >
             {items.map((item, idx) => (
@@ -119,7 +119,7 @@ function ClientItemRow({
     <div
       style={{
         padding: "12px 16px",
-        borderBottom: isLast ? "none" : "1px solid var(--gray-100)",
+        borderBottom: isLast ? "none" : "1px solid var(--border-default)",
         background: isAdding ? "#f0fdf4" : GLASS_COLORS.surface,
       }}
     >

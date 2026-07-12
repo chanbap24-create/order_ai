@@ -63,7 +63,7 @@ export function DetailPanel(p: Props) {
 
       {selectedWine.image_url && (
         <div style={{ marginBottom: 16, textAlign: 'center' }}>
-          <img src={selectedWine.image_url} alt="" style={{ maxHeight: 180, borderRadius: 8, border: '1px solid var(--gray-200)' }} />
+          <img src={selectedWine.image_url} alt="" style={{ maxHeight: 180, borderRadius: 8, border: '1px solid var(--border-default)' }} />
         </div>
       )}
 
@@ -120,7 +120,7 @@ export function DetailPanel(p: Props) {
         <DetailRow label="수정일" value={selectedWine.updated_at?.split('T')[0] || '-'} />
       </div>
 
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gray-200)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-default)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
           onClick={handleResearch}
           disabled={researching}

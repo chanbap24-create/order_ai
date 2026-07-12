@@ -44,7 +44,7 @@ export function ReorderSection(p: Props) {
                   onClick={() => p.setReorderFilter(f.id)}
                   style={{
                     padding: "4px 12px",
-                    borderRadius: 20,
+                    borderRadius: 12,
                     border: p.reorderFilter === f.id ? `1.5px solid ${f.activeColor}` : "1px solid var(--border-default)",
                     background: p.reorderFilter === f.id ? f.activeBg : "white",
                     fontSize: 11,
@@ -80,7 +80,7 @@ export function ReorderSection(p: Props) {
                     background: isOos ? "var(--gray-50)" : "white",
                     borderRadius: 12,
                     borderLeft: `4px solid ${isOos ? "var(--gray-200)" : nudge.urgency === "high" ? "var(--status-info)" : "#64B5F6"}`,
-                    boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                     padding: "14px 16px",
                     opacity: isOos ? 0.65 : 1,
                     position: "relative",

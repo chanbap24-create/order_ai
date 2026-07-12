@@ -102,7 +102,7 @@ function DeliveryDatePicker({
         style={{
           width: "100%",
           padding: "10px 14px",
-          borderRadius: 10,
+          borderRadius: 12,
           border: `1.5px solid ${GLASS_COLORS.primaryBorder}`,
           fontSize: 16,
           background: GLASS_COLORS.surfaceBg,

@@ -1,7 +1,6 @@
 "use client";
 
 import type { ViewMode } from "../types";
-import { Section } from "@/app/components/ui";
 import { selectStyle, labelStyle } from "@/app/styles/controls";
 
 type Props = {
@@ -20,7 +19,8 @@ type Props = {
 
 export function MeetingHeader(p: Props) {
   return (
-    <Section padding="sm">
+    // KREAM: 컨트롤은 박스 없이 페이지에 플랫하게 — 리스트와 같은 결
+    <div>
       <div
         style={{
           display: "flex",
@@ -62,7 +62,6 @@ export function MeetingHeader(p: Props) {
                 letterSpacing: "0.01em",
                 whiteSpace: "nowrap",
                 fontVariantNumeric: "tabular-nums",
-                fontFamily: "'DM Sans', sans-serif",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -99,7 +98,7 @@ export function MeetingHeader(p: Props) {
           </div>
         )}
       </div>
-    </Section>
+    </div>
   );
 }
 

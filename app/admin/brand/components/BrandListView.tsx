@@ -35,7 +35,7 @@ export function BrandListView(p: Props) {
             minWidth: 160,
             height: 36,
             padding: "0 12px",
-            border: "1px solid rgba(90,21,21,0.1)",
+            border: "1px solid var(--border-default)",
             borderRadius: 8,
             fontSize: 13,
             outline: "none",
@@ -48,7 +48,7 @@ export function BrandListView(p: Props) {
           style={{
             height: 36,
             padding: "0 10px",
-            border: "1px solid rgba(90,21,21,0.1)",
+            border: "1px solid var(--border-default)",
             borderRadius: 8,
             fontSize: 13,
             background: "#fff",
@@ -145,14 +145,14 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
       style={{
         background: "#fff",
         border: "1px solid var(--action-muted)",
-        borderRadius: 10,
+        borderRadius: 12,
         padding: 16,
         cursor: "pointer",
         transition: "box-shadow 0.2s, border-color 0.2s",
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px rgba(90,21,21,0.08)";
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(90,21,21,0.12)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = "none";
@@ -169,7 +169,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
               height: 40,
               borderRadius: 8,
               objectFit: "cover",
-              background: "#f5f3f0",
+              background: "var(--surface-muted)",
             }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
@@ -181,7 +181,7 @@ function BrandCard({ brand, onClick }: { brand: BrandWithWineCount; onClick: () 
               width: 40,
               height: 40,
               borderRadius: 8,
-              background: "linear-gradient(135deg, #f5f3f0, #ebe8e4)",
+              background: "var(--surface-muted)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

@@ -13,7 +13,7 @@ function CardRow({ cards, minWidth }: { cards: CardDef[]; minWidth: number }) {
           style={{
             flex: `1 1 ${minWidth}px`,
             background: s.bg,
-            borderRadius: 10,
+            borderRadius: 12,
             padding: "10px 8px",
             textAlign: "center",
             minWidth,
@@ -63,7 +63,7 @@ export function SummaryCards({ summary }: { summary: ActionSummary }) {
             style={{
               flex: "1 1 70px",
               background: s.bg,
-              borderRadius: 10,
+              borderRadius: 12,
               padding: "10px 8px",
               textAlign: "center",
               minWidth: 70,
@@ -82,7 +82,7 @@ export function SummaryCards({ summary }: { summary: ActionSummary }) {
           style={{
             flex: "1 1 120px",
             background: "var(--action-muted)",
-            borderRadius: 10,
+            borderRadius: 12,
             padding: "10px 8px",
             textAlign: "center",
             minWidth: 120,

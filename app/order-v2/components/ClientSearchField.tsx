@@ -59,8 +59,8 @@ export function ClientSearchField({
             flex: 1,
             fontSize: 16,
             padding: "11px 14px",
-            borderRadius: 10,
-            border: "1px solid rgba(90,21,21,0.1)",
+            borderRadius: 12,
+            border: "1px solid var(--border-default)",
             background: ORDER_COLORS.surfaceBg,
             color: ORDER_COLORS.text,
             outline: "none",
@@ -94,10 +94,10 @@ export function ClientSearchField({
             right: 0,
             zIndex: 100,
             background: "#fff",
-            borderRadius: 10,
+            borderRadius: 12,
             marginTop: 4,
             border: "1px solid var(--border-default)",
-            boxShadow: "0 8px 32px rgba(90,21,21,0.1)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
             maxHeight: CLIENT_DROPDOWN_MAX_HEIGHT,
             overflowY: "auto",
           }}
@@ -142,7 +142,7 @@ export function ClientSearchField({
                 style={{
                   fontSize: 11,
                   color: ORDER_COLORS.textMuted,
-                  fontFamily: "'DM Sans', monospace",
+                  fontFamily: "monospace",
                 }}
               >
                 {c.client_code}

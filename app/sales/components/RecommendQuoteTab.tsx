@@ -163,7 +163,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           <RecommendAnalysisCard summary={rec.result.summary} />
           {rec.result.comment && (
             <div style={{
-              background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 10,
+              background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12,
               padding: '12px 16px', marginBottom: 16, fontSize: 13, lineHeight: 1.6, color: '#3730a3',
             }}>
               <b style={{ fontWeight: 700 }}>🍷 추천 코멘트</b><br />
@@ -213,7 +213,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
           background: exp.quoteResult.startsWith('오류') ? '#c53030' : '#38a169',
           color: '#fff', padding: '12px 24px', borderRadius: 8,
-          fontSize: 14, fontWeight: 500, zIndex: 300, boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
+          fontSize: 14, fontWeight: 500, zIndex: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         }}>
           {exp.quoteResult}
         </div>

@@ -46,9 +46,13 @@ export default function TastingApprovalTab({ currentManager, isAdmin, department
         </div>
       </div>
 
-      {/* 필터 카드 */}
+      {/* 필터 카드 — 현황/결재 서브탭 포함(맨 앞, 세로 구분선으로 분리) */}
       <div style={panel}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 6, paddingRight: 12, marginRight: 4, borderRight: "1px solid var(--border-default)" }}>
+            <button onClick={() => setSub("status")} style={sub === "status" ? chipOn : chip}>현황</button>
+            <button onClick={() => setSub("approval")} style={sub === "approval" ? chipOn : chip}>결재</button>
+          </div>
           <button onClick={() => setRange(preset("week"))} style={chip}>이번주</button>
           <button onClick={() => setRange(preset("month"))} style={chip}>이번달</button>
           <button onClick={() => setRange(preset("lastMonth"))} style={chip}>지난달</button>
@@ -63,12 +67,6 @@ export default function TastingApprovalTab({ currentManager, isAdmin, department
           )}
           <button onClick={load} style={chipPrimary}>조회</button>
         </div>
-      </div>
-
-      {/* 서브탭 */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setSub("status")} style={sub === "status" ? chipOn : chip}>현황</button>
-        <button onClick={() => setSub("approval")} style={sub === "approval" ? chipOn : chip}>결재</button>
       </div>
 
       {sub === "status"

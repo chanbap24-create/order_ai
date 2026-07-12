@@ -118,13 +118,13 @@ export function OrderInputCard({
           disabled={loading}
           style={{
             padding: "9px 22px",
-            borderRadius: 10,
+            borderRadius: 12,
             border: "none",
             fontSize: "0.82rem",
             fontWeight: 700,
             cursor: loading ? "not-allowed" : "pointer",
             transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            background: loading ? "rgba(90,21,21,0.6)" : WINE_COLORS.primary,
+            background: loading ? "rgba(34,34,34,0.6)" : WINE_COLORS.primary,
             color: WINE_COLORS.surface,
             boxShadow: loading ? "none" : WINE_COLORS.primaryShadow,
             whiteSpace: "nowrap",
@@ -138,7 +138,7 @@ export function OrderInputCard({
           disabled={!canClear}
           style={{
             padding: "9px 18px",
-            borderRadius: 10,
+            borderRadius: 12,
             border: `1.5px solid ${WINE_COLORS.primaryBorder}`,
             fontSize: "0.82rem",
             fontWeight: 600,
@@ -162,7 +162,7 @@ export function OrderInputCard({
           }}
           style={{
             padding: "9px 18px",
-            borderRadius: 10,
+            borderRadius: 12,
             border: `1.5px solid ${
               hasClipboard ? WINE_COLORS.primaryBorderStrong : WINE_COLORS.primaryBorder
             }`,
@@ -216,7 +216,7 @@ function AutoPasteToggle({
         style={{
           width: 34,
           height: 20,
-          borderRadius: 10,
+          borderRadius: 12,
           background: value ? WINE_COLORS.primary : WINE_COLORS.toggleOff,
           position: "relative",
           transition: "background 0.25s cubic-bezier(0.4,0,0.2,1)",

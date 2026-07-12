@@ -56,7 +56,7 @@ export function Section({
 const SECTION_STYLES = `
   .sec-root {
     background: transparent;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
   }
   .sec-root.overflow-visible { overflow: visible; }

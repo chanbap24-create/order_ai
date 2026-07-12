@@ -5,12 +5,11 @@ export const NAV_STYLES = `
   top: 0; left: 0; right: 0;
   height: 56px;
   background: #fff;
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--border-default);
   z-index: 1000;
   display: flex;
   align-items: center;
   padding: 0 24px;
-  font-family: 'DM Sans', -apple-system, sans-serif;
 }
 
 .nav-inner {
@@ -24,10 +23,9 @@ export const NAV_STYLES = `
 
 /* ─── Logo ─── */
 .nav-logo {
-  font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 1.05rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--text-primary);
   letter-spacing: 0.12em;
   text-decoration: none;
   white-space: nowrap;
@@ -85,10 +83,9 @@ export const NAV_STYLES = `
 /* ─── Mobile logo (center) ─── */
 .nav-mobile-logo {
   display: none;
-  font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--text-primary);
   letter-spacing: 0.12em;
   text-decoration: none;
   position: absolute;
@@ -117,13 +114,12 @@ export const NAV_STYLES = `
   top: 0; left: 0; bottom: 0;
   width: 300px;
   max-width: 82vw;
-  background: #1a1a2e;
+  background: var(--surface-dark);
   z-index: 1002;
   transform: translateX(-100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  font-family: 'DM Sans', -apple-system, sans-serif;
   overflow: hidden;
 }
 .nav-drawer.open {
@@ -141,7 +137,7 @@ export const NAV_STYLES = `
 /* Gradient accent */
 .nav-drawer-gradient {
   position: absolute; top: 0; left: 0; right: 0; height: 100%;
-  background: radial-gradient(ellipse at 20% 20%, rgba(90, 21, 21, 0.15) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -197,10 +193,10 @@ export const NAV_STYLES = `
   background: rgba(240, 236, 230, 0.04);
 }
 .nav-drawer-link.active {
-  color: #f0ece6;
+  color: var(--surface-muted);
   font-weight: 600;
-  background: rgba(90, 21, 21, 0.25);
-  border-left: 3px solid var(--action);
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #fff;
 }
 
 .nav-drawer-footer {

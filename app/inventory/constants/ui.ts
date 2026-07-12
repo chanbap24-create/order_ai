@@ -3,7 +3,7 @@
 export const INV_COLORS = {
   primary: "var(--action)",
   primaryDark: "#722F37",
-  textTitle: "#1a1a2e",
+  textTitle: "var(--text-primary)",
   text: "var(--text-primary)",
   textMuted: "var(--neutral-400)",
   textFaint: "var(--neutral-100)",

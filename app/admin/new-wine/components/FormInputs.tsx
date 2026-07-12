@@ -121,7 +121,7 @@ export function DetailSection({
           fontWeight: 700,
           color: "#374151",
           marginBottom: 6,
-          borderBottom: "1px solid var(--gray-200)",
+          borderBottom: "1px solid var(--border-default)",
           paddingBottom: 4,
         }}
       >

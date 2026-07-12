@@ -17,32 +17,34 @@ export function SummaryCards({ totalClients, totalSupply, totalAmount }: Props) 
     { label: '공급가 합계', value: fmt(totalSupply), unit: '원', accent: false },
     { label: '총액 합계', value: fmt(totalAmount), unit: '원', accent: true },
   ];
+  // 스탯 스트립 — 박스 없이 상하 헤어라인 + 세로 구분 (브리핑·미수와 동일 문법)
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 12,
+        display: 'flex',
+        alignItems: 'stretch',
+        overflowX: 'auto',
+        borderTop: '1px solid var(--border-default)',
+        borderBottom: '1px solid var(--border-default)',
       }}
     >
-      {cards.map((card) => (
+      {cards.map((card, i) => (
         <div
           key={card.label}
           style={{
-            background: 'var(--surface)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 10,
-            padding: '16px 20px',
+            flex: 1,
+            minWidth: 130,
+            padding: '14px 18px',
+            borderLeft: i > 0 ? '1px solid var(--border-default)' : 'none',
           }}
         >
           <div
             style={{
               fontSize: 11,
               color: 'var(--text-tertiary)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
               fontWeight: 600,
-              marginBottom: 6,
+              marginBottom: 4,
+              whiteSpace: 'nowrap',
             }}
           >
             {card.label}
@@ -52,11 +54,11 @@ export function SummaryCards({ totalClients, totalSupply, totalAmount }: Props) 
               display: 'flex',
               alignItems: 'baseline',
               gap: 4,
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: 700,
-              color: card.accent ? 'var(--action)' : 'var(--text-primary)',
+              letterSpacing: '-0.01em',
+              color: 'var(--text-primary)',
               fontVariantNumeric: 'tabular-nums',
-              fontFamily: "'DM Sans', sans-serif",
             }}
           >
             {card.value}

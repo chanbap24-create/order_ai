@@ -10,7 +10,7 @@ export function AnalysisStyles() {
       .analysis-card {
         background: var(--surface);
         border: 1px solid var(--border-default);
-        border-radius: 10px;
+        border-radius: 12px;
         padding: 16px 20px;
         margin-bottom: 12px;
       }

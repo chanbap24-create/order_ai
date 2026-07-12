@@ -14,7 +14,7 @@ export const HOME_STYLES = `
 .home-card {
   position: relative;
   padding: 32px 28px;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid var(--border-default);
   background: #ffffff;
   transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -30,8 +30,8 @@ export const HOME_STYLES = `
   transition: opacity 0.35s ease;
 }
 .home-card:hover {
-  border-color: rgba(90, 21, 21, 0.18);
-  box-shadow: 0 8px 32px -8px rgba(90, 21, 21, 0.12), 0 2px 8px -2px rgba(0,0,0,0.04);
+  border-color: var(--border-strong);
+  box-shadow: 0 8px 24px -8px rgba(0,0,0,0.08);
   transform: translateY(-3px);
 }
 .home-card:hover::before { opacity: 1; }

@@ -92,7 +92,7 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
                   <XAxis type="number" tickFormatter={(v: number) => (v >= 1e8 ? `${Math.round(v / 1e8)}억` : `${Math.round(v / 1e4)}만`)} fontSize={11} stroke="var(--text-tertiary)" />
                   <YAxis type="category" dataKey="name" width={44} fontSize={11} stroke="var(--text-tertiary)" />
                   <Tooltip formatter={(v: number) => [formatKrw(Number(v)), '매출']} />
-                  <Bar dataKey="sales" fill="#8B1538" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="sales" fill="var(--action)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -126,7 +126,7 @@ export function RegionSalesCard({ type, startDate, endDate }: Props) {
                     {g.sido} {g.gu}
                   </span>
                   <div style={{ flex: 1, height: 14, background: 'var(--surface-muted, #f3f0ee)', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.max(2, (g.sales / guMax) * 100)}%`, height: '100%', background: '#8B1538', borderRadius: 4 }} />
+                    <div style={{ width: `${Math.max(2, (g.sales / guMax) * 100)}%`, height: '100%', background: 'var(--action)', borderRadius: 4 }} />
                   </div>
                   <span style={{ width: 58, flexShrink: 0, textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{formatKrw(g.sales)}</span>
                   <span style={{ width: 40, flexShrink: 0, textAlign: 'right', color: 'var(--text-tertiary)' }}>{g.clients}곳</span>

@@ -69,8 +69,8 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
     );
 
   const patternColor: Record<string, string> = {
-    초반집중: "#e74c3c",
-    꾸준: "#27ae60",
+    초반집중: "var(--status-danger)",
+    꾸준: "var(--status-success)",
     후반가속: "#3498db",
   };
 
@@ -85,7 +85,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           padding: "12px 20px",
           background: "#fff",
           borderRadius: 6,
-          border: "1px solid var(--gray-200)",
+          border: "1px solid var(--border-default)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -105,7 +105,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           style={{
             background: "#fff",
             borderRadius: "0 0 6px 6px",
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
             borderTop: "none",
             padding: "12px 0",
           }}
@@ -128,7 +128,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   padding: "2px 8px",
                   fontSize: 10,
                   borderRadius: 3,
-                  border: filterPrice === p ? "1px solid var(--neutral-900)" : "1px solid var(--gray-200)",
+                  border: filterPrice === p ? "1px solid var(--neutral-900)" : "1px solid var(--border-default)",
                   cursor: "pointer",
                   fontWeight: filterPrice === p ? 600 : 400,
                   background: filterPrice === p ? "var(--neutral-900)" : "#fff",
@@ -154,7 +154,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
                   padding: "2px 8px",
                   fontSize: 10,
                   borderRadius: 3,
-                  border: sortKey === k ? "1px solid var(--neutral-900)" : "1px solid var(--gray-200)",
+                  border: sortKey === k ? "1px solid var(--neutral-900)" : "1px solid var(--border-default)",
                   cursor: "pointer",
                   fontWeight: sortKey === k ? 600 : 400,
                   background: sortKey === k ? "var(--neutral-900)" : "#fff",
@@ -175,7 +175,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
               fontSize: 10,
               color: "#bbb",
               fontWeight: 500,
-              borderBottom: "1px solid var(--gray-200)",
+              borderBottom: "1px solid var(--border-default)",
             }}
           >
             <div>브랜드</div>
@@ -190,7 +190,7 @@ export function BrandVelocitySection({ startYear, endYear }: Props) {
           </div>
 
           {filtered.map((b) => (
-            <div key={b.brand} style={{ borderBottom: "1px solid var(--gray-100)" }}>
+            <div key={b.brand} style={{ borderBottom: "1px solid var(--border-default)" }}>
               <div
                 style={{
                   display: "grid",

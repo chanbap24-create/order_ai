@@ -84,7 +84,7 @@ export function CorrectionInfoBar(p: Props) {
             padding: "12px 16px",
             background: "var(--gray-50)",
             borderRadius: 6,
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
           }}
         >
           <div
@@ -116,7 +116,7 @@ export function CorrectionInfoBar(p: Props) {
                   color: "var(--neutral-700)",
                   padding: "3px 0",
                   borderBottom:
-                    i < p.bulkInfo!.details.length - 1 ? "1px solid var(--gray-100)" : "none",
+                    i < p.bulkInfo!.details.length - 1 ? "1px solid var(--border-default)" : "none",
                 }}
               >
                 <div style={{ color: "var(--neutral-100)" }}>{d.date}</div>
@@ -137,7 +137,7 @@ const pill: React.CSSProperties = {
   padding: "4px 10px",
   background: "var(--gray-50)",
   borderRadius: 4,
-  border: "1px solid var(--gray-200)",
+  border: "1px solid var(--border-default)",
 };
 
 const ellipsis: React.CSSProperties = {

@@ -43,8 +43,7 @@ export default function SalesPage() {
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
-      fontFamily: "'DM Sans', -apple-system, sans-serif",
+      background: '#fff', // KREAM: 순백 페이지 — 카드가 아니라 헤어라인이 구획한다
     }}>
       <div
         className="sales-container"

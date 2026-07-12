@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_DISCOUNT_CONFIG, type DiscountConfig, type Tier } from '@/app/lib/pricing/discountRate';
 
 const box: React.CSSProperties = {
-  background: '#fff', border: '1px solid var(--border-default)', borderRadius: 10, padding: 14, marginBottom: 10,
+  background: '#fff', border: '1px solid var(--border-default)', borderRadius: 12, padding: 14, marginBottom: 10,
 };
 const inp: React.CSSProperties = {
   width: 68, padding: '5px 7px', borderRadius: 6, border: '1px solid var(--border-default)',
@@ -81,7 +81,7 @@ export function DiscountConfigEditor() {
   return (
     <div style={{ marginBottom: 18 }}>
       <button onClick={() => setOpen((v) => !v)} style={{
-        width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 10,
+        width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 12,
         border: '1px solid var(--border-default)', background: 'var(--surface-muted)', cursor: 'pointer',
         fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
       }}>

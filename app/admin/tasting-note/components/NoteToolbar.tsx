@@ -58,7 +58,7 @@ export function NoteToolbar(p: Props) {
         <div
           style={{
             display: "inline-flex",
-            background: "rgba(90,21,21,0.05)",
+            background: "var(--surface-active)",
             borderRadius: 8,
             padding: 2,
           }}
@@ -73,7 +73,7 @@ export function NoteToolbar(p: Props) {
                   ...btn,
                   background: isActive ? "white" : "transparent",
                   color: isActive ? "var(--action)" : "var(--text-muted)",
-                  boxShadow: isActive ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+                  boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 }}
               >
                 {NOTE_FILTER_LABELS[f]} ({p.counts[f]})
@@ -93,7 +93,7 @@ export function NoteToolbar(p: Props) {
           value={p.search}
           onChange={(e) => p.setSearch(e.target.value)}
         />
-        <div style={{ display: "inline-flex", background: "rgba(90,21,21,0.05)", borderRadius: 8, padding: 2 }}>
+        <div style={{ display: "inline-flex", background: "var(--surface-active)", borderRadius: 8, padding: 2 }}>
           <button
             onClick={() => p.setHideZero(!p.hideZero)}
             title="재고 0 인 품목 숨기기"
@@ -101,7 +101,7 @@ export function NoteToolbar(p: Props) {
               ...btn,
               background: p.hideZero ? "white" : "transparent",
               color: p.hideZero ? "var(--action)" : "var(--text-muted)",
-              boxShadow: p.hideZero ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+              boxShadow: p.hideZero ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             }}
           >
             재고만
@@ -113,7 +113,7 @@ export function NoteToolbar(p: Props) {
               ...btn,
               background: p.wineOnly ? "white" : "transparent",
               color: p.wineOnly ? "var(--action)" : "var(--text-muted)",
-              boxShadow: p.wineOnly ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+              boxShadow: p.wineOnly ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             }}
           >
             와인만
@@ -125,7 +125,7 @@ export function NoteToolbar(p: Props) {
               ...btn,
               background: p.showExcluded ? "white" : "transparent",
               color: p.showExcluded ? "var(--action)" : "var(--text-muted)",
-              boxShadow: p.showExcluded ? "0 1px 3px rgba(90,21,21,0.08)" : "none",
+              boxShadow: p.showExcluded ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             }}
           >
             제외됨
@@ -176,7 +176,7 @@ export function NoteToolbar(p: Props) {
           title="체크한 와인을 리서치 → PPTX·PDF 발행 → 인덱스까지 한 번에 (신규 감지 팝업과 동일 파이프라인)"
           style={{
             ...btn,
-            background: p.checkedSize > 0 ? "linear-gradient(135deg,var(--action),#8B2252)" : "rgba(90,21,21,0.05)",
+            background: p.checkedSize > 0 ? "var(--action)" : "var(--surface-active)",
             color: p.checkedSize > 0 ? "#fff" : "var(--text-muted)",
             fontWeight: 700,
             opacity: p.checkedSize === 0 ? 0.5 : 1,
@@ -190,7 +190,7 @@ export function NoteToolbar(p: Props) {
           disabled={p.ops.batchRunning || p.checkedSize === 0}
           style={{
             ...btn,
-            background: p.ops.batchRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            background: p.ops.batchRunning ? "var(--action)" : "var(--surface-active)",
             color: p.ops.batchRunning ? "#fff" : "var(--text-muted)",
             opacity: p.checkedSize === 0 && !p.ops.batchRunning ? 0.5 : 1,
           }}
@@ -203,7 +203,7 @@ export function NoteToolbar(p: Props) {
           <button
             onClick={p.ops.cancelBatchResearch}
             title="진행 중인 1건까지만 끝내고 멈춥니다"
-            style={{ ...btn, background: "#dc2626", color: "#fff" }}
+            style={{ ...btn, background: "var(--status-danger)", color: "#fff" }}
           >
             중지
           </button>
@@ -214,7 +214,7 @@ export function NoteToolbar(p: Props) {
           title="선택 와인의 발행 PPTX에서 기본정보+테이스팅노트 본문을 빈 칸만 채웁니다 (LLM 아님·무료). 전체선택 후 한 번에 가능."
           style={{
             ...btn,
-            background: p.ops.backfillRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            background: p.ops.backfillRunning ? "var(--action)" : "var(--surface-active)",
             color: p.ops.backfillRunning ? "#fff" : "var(--text-muted)",
             opacity: p.checkedSize === 0 && !p.ops.backfillRunning ? 0.5 : 1,
           }}
@@ -228,7 +228,7 @@ export function NoteToolbar(p: Props) {
           disabled={p.ops.batchPptRunning || p.checkedSize === 0}
           style={{
             ...btn,
-            background: p.ops.batchPptRunning ? "var(--action)" : "rgba(90,21,21,0.05)",
+            background: p.ops.batchPptRunning ? "var(--action)" : "var(--surface-active)",
             color: p.ops.batchPptRunning ? "#fff" : "var(--text-muted)",
             opacity: p.checkedSize === 0 && !p.ops.batchPptRunning ? 0.5 : 1,
           }}
@@ -246,7 +246,7 @@ export function NoteToolbar(p: Props) {
             title={`선택한 와인의 ${fmt.toUpperCase()}를 생성해 릴리스에 업로드(발행)${fmt === "pdf" ? " + 인덱스 갱신" : ""}`}
             style={{
               ...btn,
-              background: fmt === "pdf" ? "rgba(90,21,21,0.12)" : "rgba(90,21,21,0.05)",
+              background: fmt === "pdf" ? "var(--action-muted)" : "var(--surface-active)",
               color: fmt === "pdf" ? "var(--action)" : "var(--text-muted)",
               fontWeight: fmt === "pdf" ? 700 : 600,
               opacity: p.checkedSize === 0 ? 0.5 : 1,
@@ -259,7 +259,7 @@ export function NoteToolbar(p: Props) {
           onClick={p.ops.dispatchIndex}
           disabled={p.ops.dispatchingIndex}
           title="릴리스에 이미 업로드된 PDF 목록으로 인덱스만 다시 만듦 (PDF는 생성하지 않음). 발행은 'PDF 발행' 버튼 사용."
-          style={{ ...btn, background: "rgba(90,21,21,0.05)", color: "var(--text-muted)" }}
+          style={{ ...btn, background: "var(--surface-active)", color: "var(--text-muted)" }}
         >
           {p.ops.dispatchingIndex ? "실행 중..." : "인덱스 새로고침"}
         </button>

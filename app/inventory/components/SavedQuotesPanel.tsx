@@ -208,7 +208,7 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
 
           {/* 2단계: 선택한 거래처의 견적 목록 */}
           {!sq.loading && current && current.quotes.map((it) => (
-            <div key={it.id} style={{ borderBottom: "1px solid var(--gray-100)" }}>
+            <div key={it.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
               <div style={rowMain}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>
@@ -288,13 +288,13 @@ const overlay: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
 };
 const modal: React.CSSProperties = {
-  background: "white", borderRadius: 14, width: "min(560px, 96vw)",
+  background: "white", borderRadius: 12, width: "min(560px, 96vw)",
   maxHeight: "82vh", display: "flex", flexDirection: "column", overflow: "hidden",
   boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
 };
 const headerRow: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "space-between",
-  padding: "12px 16px", borderBottom: "1px solid var(--gray-100)", gap: 8,
+  padding: "12px 16px", borderBottom: "1px solid var(--border-default)", gap: 8,
 };
 const backBtn: React.CSSProperties = {
   border: "none", background: "transparent", fontSize: 18, cursor: "pointer",
@@ -305,20 +305,20 @@ const closeBtn: React.CSSProperties = {
 };
 const empty: React.CSSProperties = { padding: 28, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 };
 const convBanner: React.CSSProperties = {
-  margin: "10px 16px", padding: "10px 12px", borderRadius: 10,
-  background: "var(--border-subtle, #f6f4f2)", border: "1px solid var(--gray-100)",
+  margin: "10px 16px", padding: "10px 12px", borderRadius: 12,
+  background: "var(--border-subtle, #f6f4f2)", border: "1px solid var(--border-default)",
 };
 const convChip: React.CSSProperties = {
   fontSize: 10.5, padding: "2px 7px", borderRadius: 8,
-  background: "white", border: "1px solid var(--gray-200)", color: "var(--text-secondary)",
+  background: "white", border: "1px solid var(--border-default)", color: "var(--text-secondary)",
 };
 const folderRow: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 10, width: "100%",
-  padding: "12px 16px", border: "none", borderBottom: "1px solid var(--gray-100)",
+  padding: "12px 16px", border: "none", borderBottom: "1px solid var(--border-default)",
   background: "white", cursor: "pointer",
 };
 const countPill: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
+  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12,
   background: "var(--border-default)", color: "var(--text-secondary)",
 };
 const rowMain: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px" };

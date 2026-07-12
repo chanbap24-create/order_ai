@@ -93,7 +93,7 @@ export const TrendChart = memo(function TrendChart({ dailyTrend, period, onPerio
               labelFormatter={labelFmt}
             />
             <Legend formatter={(value: string) => value === 'revenue' ? '매출' : '지원률'} />
-            <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#5A1515" strokeWidth={2} dot={chartData.length < 40} name="revenue" animationDuration={500} />
+            <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="var(--action)" strokeWidth={2} dot={chartData.length < 40} name="revenue" animationDuration={500} />
             <Line yAxisId="right" type="monotone" dataKey="discountRate" stroke="#4D96FF" strokeWidth={2} dot={chartData.length < 40} name="discountRate" connectNulls animationDuration={500} />
           </LineChart>
         </ResponsiveContainer>

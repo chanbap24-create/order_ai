@@ -26,7 +26,7 @@ export function ClientPickerPanel({
       <div
         style={{
           background: GLASS_COLORS.surface,
-          borderRadius: 16,
+          borderRadius: 12,
           border: `1px solid ${GLASS_COLORS.dividerCard}`,
           boxShadow: GLASS_COLORS.primaryShadowSubtle,
           overflow: "hidden",

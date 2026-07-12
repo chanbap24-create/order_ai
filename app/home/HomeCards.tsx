@@ -28,10 +28,10 @@ export function HomeCards({ mounted }: { mounted: boolean }) {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
-                background: hoveredCard === card.id ? 'var(--action)' : '#faf5f5',
+                background: hoveredCard === card.id ? 'var(--action)' : 'var(--surface-muted)',
                 border: hoveredCard === card.id ? 'none' : '1px solid var(--action-muted)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: hoveredCard === card.id ? '#f0ece6' : 'var(--action)',
+                color: hoveredCard === card.id ? '#ffffff' : 'var(--action)',
                 transition: 'all 0.35s ease',
                 flexShrink: 0,
               }}>
@@ -41,8 +41,8 @@ export function HomeCards({ mounted }: { mounted: boolean }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <h3 style={{
-                    fontSize: '1.1rem', fontWeight: 700, color: '#1a1a2e',
-                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)',
+
                     letterSpacing: '-0.01em',
                   }}>
                     {card.title}

@@ -21,7 +21,7 @@ export function TastingNoteForm(p: Props) {
   if (!p.tastingNote && !hasAnyValue) return null;
 
   return (
-    <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 16 }}>
+    <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: 16 }}>
       <h4 style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 14 }}>
         조사 결과 {p.tastingNote?.ai_generated ? "(AI 생성)" : ""}
         {p.tastingNote?.verification_status &&
@@ -33,7 +33,7 @@ export function TastingNoteForm(p: Props) {
                   marginLeft: 8,
                   fontSize: 11,
                   padding: "2px 8px",
-                  borderRadius: 10,
+                  borderRadius: 12,
                   background: vs.bg,
                   color: vs.color,
                   fontWeight: 600,
@@ -86,7 +86,7 @@ export function TastingNoteForm(p: Props) {
       <FormTextarea label="수상 내역" value={p.editForm.awards} onChange={(v) => p.updateField("awards", v)} />
       <FormRow label="숙성 잠재력" value={p.editForm.aging_potential} onChange={(v) => p.updateField("aging_potential", v)} placeholder="예: 5-10년 숙성 가능" />
 
-      <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--gray-200)" }}>
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border-default)" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <button
             onClick={p.onSave}

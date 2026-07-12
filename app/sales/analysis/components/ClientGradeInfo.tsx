@@ -11,7 +11,7 @@ type GradeData = {
   nextSalesTier: { min: number; add: number; remain: number } | null;
 };
 
-const GRADE_COLOR = ["#8a8a8a", "#2563eb", "#16a34a", "#d97706", "#dc2626"]; // 0..4
+const GRADE_COLOR = ["#8a8a8a", "var(--status-info)", "var(--status-success)", "var(--status-warning)", "var(--status-danger)"]; // 0..4
 const won = (n: number) => (n >= 1_0000_0000 ? `${(n / 1_0000_0000).toFixed(1)}억` : n >= 1_0000 ? `${Math.round(n / 1_0000).toLocaleString()}만` : n.toLocaleString());
 const pct = (r: number) => `${Math.round(r * 100)}%`;
 
@@ -64,7 +64,7 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
       {/* ② 할인 등급/혜택 (매출 구간 기준) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border-default)" }}>
         <span style={tag}>💰 할인 혜택</span>
-        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--action)", background: "rgba(139,21,56,0.10)", padding: "3px 10px", borderRadius: 6 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--action)", background: "rgba(34,34,34,0.10)", padding: "3px 10px", borderRadius: 6 }}>
           할인 {pct(d.benefit.rate)}
         </span>
         <span style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
@@ -77,7 +77,7 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
 }
 
 const box: React.CSSProperties = {
-  border: "1px solid var(--border-default)", borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+  border: "1px solid var(--border-default)", borderRadius: 12, padding: "10px 14px", marginBottom: 16,
   background: "var(--surface-muted, #faf8f7)",
 };
 const tag: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: "var(--text-tertiary)", whiteSpace: "nowrap" };

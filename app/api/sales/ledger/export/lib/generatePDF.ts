@@ -107,11 +107,11 @@ export async function generatePDF(
       const txt = headers[i];
       const tw = koBoldFont.widthOfTextAtSize(txt, 7);
       const tx = i <= 1 ? x + 2 : x + cols[i] - 4 - tw;
-      page.drawText(txt, { x: tx, y: y - rowH + 4, size: 7, font: koBoldFont, color: hexToRgb('#5A1515') });
+      page.drawText(txt, { x: tx, y: y - rowH + 4, size: 7, font: koBoldFont, color: hexToRgb('#222222') });
       x += cols[i];
     }
     y -= rowH;
-    page.drawLine({ start: { x: M, y }, end: { x: M + tableW, y }, thickness: 1.5, color: hexToRgb('#5A1515') });
+    page.drawLine({ start: { x: M, y }, end: { x: M + tableW, y }, thickness: 1.5, color: hexToRgb('#222222') });
     y -= 2;
   };
 
@@ -196,7 +196,7 @@ export async function generatePDF(
         f(month.totals.supply), f(month.totals.tax), f(month.totals.total),
         month.totals.payment ? f(month.totals.payment) : '',
         f(runBal)],
-      { bg: '#fff8e1', bold: true, color: '#5A1515', payColor: true, balColor: true },
+      { bg: '#fff8e1', bold: true, color: '#222222', payColor: true, balColor: true },
     );
   }
 
@@ -206,7 +206,7 @@ export async function generatePDF(
       f(gTot.qty), '',
       f(gTot.supply), f(gTot.tax), f(gTot.total),
       f(gTot.payment), f(finalBal)],
-    { bg: '#5A1515', bold: true, color: '#ffffff' },
+    { bg: '#222222', bold: true, color: '#ffffff' },
   );
 
   const pdfBytes = await doc.save();

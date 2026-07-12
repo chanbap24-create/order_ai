@@ -72,7 +72,7 @@ export default function LearnedAliasList({
   }
 
   return (
-    <div style={{ border: "1px solid var(--gray-200)", borderRadius: 12, padding: 12 }}>
+    <div style={{ border: "1px solid var(--border-default)", borderRadius: 12, padding: 12 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button
           onClick={fetchRows}
@@ -105,7 +105,7 @@ export default function LearnedAliasList({
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ marginTop: 12, padding: 12, background: "var(--gray-50)", borderRadius: 10 }}>
+        <div style={{ marginTop: 12, padding: 12, background: "var(--gray-50)", borderRadius: 12 }}>
           학습된 항목이 없습니다.
         </div>
       ) : (
@@ -118,8 +118,8 @@ export default function LearnedAliasList({
                 justifyContent: "space-between",
                 gap: 10,
                 padding: 10,
-                border: "1px solid var(--gray-200)",
-                borderRadius: 10,
+                border: "1px solid var(--border-default)",
+                borderRadius: 12,
               }}
             >
               <div>

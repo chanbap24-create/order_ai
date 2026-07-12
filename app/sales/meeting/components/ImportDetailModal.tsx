@@ -34,7 +34,7 @@ export function ImportDetailModal(p: Props) {
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff",
-          borderRadius: 16,
+          borderRadius: 12,
           padding: "20px",
           width: "100%",
           maxWidth: 480,

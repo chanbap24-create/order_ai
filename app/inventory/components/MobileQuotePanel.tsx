@@ -196,7 +196,7 @@ function PanelHeader({
         background: "white",
         zIndex: 1,
         padding: "16px 16px 12px",
-        borderBottom: "1px solid var(--gray-100)",
+        borderBottom: "1px solid var(--border-default)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -214,7 +214,7 @@ function PanelHeader({
         >
           ←
         </button>
-        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1a1a2e" }}>
+        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
           견적 목록
         </span>
         {itemCount > 0 && (
@@ -222,7 +222,7 @@ function PanelHeader({
             style={{
               background: "var(--action)",
               color: "white",
-              borderRadius: 10,
+              borderRadius: 12,
               padding: "2px 8px",
               fontSize: 11,
               fontWeight: 700,
@@ -264,7 +264,7 @@ function IconBtn({ active, onClick, title, children }: {
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       title={title}
       style={{
-        width: 36, height: 36, borderRadius: 8, border: "1px solid var(--gray-200)",
+        width: 36, height: 36, borderRadius: 8, border: "1px solid var(--border-default)",
         background: active ? "var(--border-default)" : "white",
         cursor: "pointer", fontSize: 15, flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",

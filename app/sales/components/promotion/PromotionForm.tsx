@@ -97,7 +97,7 @@ export function PromotionForm({ onSave }: { onSave: (d: PromotionDraft) => Promi
             {results.map((r) => (
               <button key={r.item_no} onClick={() => pick(r)} style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px',
-                border: 'none', borderBottom: '1px solid var(--gray-100)', background: 'transparent',
+                border: 'none', borderBottom: '1px solid var(--border-default)', background: 'transparent',
                 cursor: 'pointer', fontSize: 12.5, color: 'var(--text-primary)',
               }}>
                 <div><b>{r.item_no}</b> · {r.item_name}</div>

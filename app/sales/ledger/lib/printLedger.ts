@@ -22,25 +22,25 @@ export function printLedger(args: PrintArgs) {
   w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
     @page { size: A4 landscape; margin: 10mm; }
     body { font-family: 'Malgun Gothic','맑은 고딕',sans-serif; margin: 0; padding: 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    h2 { font-size: 15px; margin: 0 0 4px; color: #2c1810; }
+    h2 { font-size: 15px; margin: 0 0 4px; color: var(--neutral-800); }
     .sub { font-size: 11px; color: #8a8580; margin-bottom: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { padding: 6px 8px; background: #f5f0f0; border-bottom: 2px solid #5A1515; font-weight: 700; color: #5A1515; text-align: right; white-space: nowrap; }
+    th { padding: 6px 8px; background: #fafafa; border-bottom: 2px solid var(--neutral-800); font-weight: 700; color: var(--neutral-800); text-align: right; white-space: nowrap; }
     th:nth-child(1), th:nth-child(2) { text-align: left; }
-    td { padding: 5px 8px; border-bottom: 1px solid #eee; white-space: nowrap; text-align: right; }
+    td { padding: 5px 8px; border-bottom: 1px solid var(--border-default); white-space: nowrap; text-align: right; }
     td:nth-child(1), td:nth-child(2) { text-align: left; }
-    tr.prev-row { background: rgba(90,21,21,0.03); }
-    tr.prev-row td { font-weight: 700; color: #5A1515; }
+    tr.prev-row { background: #f7f7f7; }
+    tr.prev-row td { font-weight: 700; color: var(--neutral-800); }
     tr.day-summary { background: #fafafa; }
     tr.day-summary td { font-weight: 600; font-size: 9px; }
     tr.month-summary { background: #FFF8E1; }
-    tr.month-summary td { font-weight: 700; color: #5A1515; }
-    tr.grand-total { background: #5A1515; }
+    tr.month-summary td { font-weight: 700; color: var(--neutral-800); }
+    tr.grand-total { background: var(--neutral-800); }
     tr.grand-total td { color: #fff; font-weight: 700; }
-    .pay-row td { color: #1565C0; }
-    .bal-pos { color: #c62828; }
-    .bal-neg { color: #1565C0; }
-    .pay-val { color: #1565C0; }
+    .pay-row td { color: var(--status-info); }
+    .bal-pos { color: var(--status-danger); }
+    .bal-neg { color: var(--status-info); }
+    .pay-val { color: var(--status-info); }
     @media print { body { padding: 0; } }
   </style></head><body>`);
 

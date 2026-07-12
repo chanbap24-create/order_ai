@@ -12,7 +12,7 @@ export function PageHeader() {
     >
       <h1
         style={{
-          fontFamily: "'Cormorant Garamond', serif",
+
           fontSize: '1.5rem',
           fontWeight: 500,
           color: 'var(--text-primary)',
@@ -28,7 +28,7 @@ export function PageHeader() {
           width: 32,
           height: 2,
           marginTop: 10,
-          background: 'linear-gradient(90deg, var(--action) 0%, transparent 100%)',
+          background: 'var(--action)',
           borderRadius: 1,
         }}
       />

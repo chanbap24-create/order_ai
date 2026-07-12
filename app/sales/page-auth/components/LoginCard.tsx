@@ -9,8 +9,8 @@ type Props = {
 
 const focusHandlers = {
   onFocus: (e: React.FocusEvent<HTMLSelectElement | HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(90,21,21,0.25)';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(90,21,21,0.06)';
+    e.currentTarget.style.borderColor = 'var(--border-strong)';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,0,0,0.06)';
   },
   onBlur: (e: React.FocusEvent<HTMLSelectElement | HTMLInputElement>) => {
     e.currentTarget.style.borderColor = 'var(--border-default)';
@@ -51,20 +51,19 @@ export function LoginCard({ managerList, onSuccess }: Props) {
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
+      background: 'var(--surface-muted)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
       <div style={{
         width: '100%', maxWidth: 360, padding: '40px 24px',
-        background: 'white', borderRadius: 16,
-        boxShadow: '0 4px 24px rgba(90,21,21,0.06), 0 1px 4px rgba(90,21,21,0.03)',
+        background: 'white', borderRadius: 12,
+        boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.03)',
         border: '1px solid var(--action-muted)', margin: '0 16px',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1 style={{
             fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0,
-            fontFamily: "'Cormorant Garamond', serif", letterSpacing: '0.05em',
+            letterSpacing: '0.05em',
           }}>
             Sales Support
           </h1>
@@ -104,7 +103,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
             padding: '10px 14px',
             background: 'rgba(220,38,38,0.04)',
             border: '1.5px solid rgba(220,38,38,0.15)',
-            borderRadius: 10, fontSize: 13, color: 'var(--status-danger)', marginBottom: 16,
+            borderRadius: 12, fontSize: 13, color: 'var(--status-danger)', marginBottom: 16,
           }}>
             {loginError}
           </div>
@@ -114,8 +113,8 @@ export function LoginCard({ managerList, onSuccess }: Props) {
           onClick={handleLogin}
           disabled={loginLoading}
           style={{
-            width: '100%', padding: '13px 0', borderRadius: 10, border: 'none',
-            background: loginLoading ? '#c4a0a0' : 'var(--action)',
+            width: '100%', padding: '13px 0', borderRadius: 12, border: 'none',
+            background: loginLoading ? 'var(--gray-300)' : 'var(--action)',
             color: 'white', fontSize: 15, fontWeight: 600,
             cursor: loginLoading ? 'default' : 'pointer',
             transition: 'background 0.2s ease', letterSpacing: '0.02em',
@@ -139,7 +138,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 14px', borderRadius: 10,
+  width: '100%', padding: '12px 14px', borderRadius: 12,
   border: '1.5px solid var(--border-default)',
   fontSize: 16, background: 'var(--surface-muted)', outline: 'none', boxSizing: 'border-box',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',

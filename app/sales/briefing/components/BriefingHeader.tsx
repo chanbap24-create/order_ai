@@ -12,7 +12,7 @@ type Props = {
 export function BriefingHeader({ todayLabel, totalCount, completedCount, pendingCount, generating, onGenerateAll }: Props) {
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #1a237e, #4a148c)',
+      background: 'var(--surface-dark)',
       borderRadius: 12, padding: 16, color: '#fff', marginBottom: 16,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

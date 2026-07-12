@@ -16,7 +16,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
         background: "white",
         borderRadius: 8,
         padding: 20,
-        boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
         marginBottom: 16,
       }}
     >
@@ -60,7 +60,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
                       alignItems: "center",
                       gap: 8,
                       padding: "6px 0",
-                      borderBottom: "1px solid var(--gray-100)",
+                      borderBottom: "1px solid var(--border-default)",
                       fontSize: 13,
                     }}
                   >
@@ -88,7 +88,7 @@ export function SalesStatusCard({ stats, filters }: Props) {
                       alignItems: "center",
                       gap: 8,
                       padding: "6px 0",
-                      borderBottom: "1px solid var(--gray-100)",
+                      borderBottom: "1px solid var(--border-default)",
                       fontSize: 13,
                     }}
                   >

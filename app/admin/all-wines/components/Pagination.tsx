@@ -11,7 +11,7 @@ export function Pagination({ page, totalPages, onChange }: Props) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'center', gap: 8, padding: 12,
-      borderTop: '1px solid var(--gray-200)', position: 'sticky', bottom: 0, background: '#fff',
+      borderTop: '1px solid var(--border-default)', position: 'sticky', bottom: 0, background: '#fff',
     }}>
       <button
         onClick={() => onChange(Math.max(1, page - 1))}

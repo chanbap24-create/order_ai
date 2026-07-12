@@ -42,7 +42,7 @@ const CountryRowView = memo(function CountryRowView({
 }) {
   return (
     <div style={{
-      background: '#fff', borderRadius: 10,
+      background: '#fff', borderRadius: 12,
       border: '1px solid var(--action-muted)', overflow: 'hidden',
     }}>
       <div onClick={onToggle} style={{

@@ -91,7 +91,7 @@ export function ManualSearchBox({
                 border: "1px solid var(--border-default)",
                 borderRadius: 8,
                 background: "#fff",
-                boxShadow: "0 8px 24px rgba(90,21,21,0.08)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
               }}
             >
               {results.map((sr) => {
@@ -111,7 +111,7 @@ export function ManualSearchBox({
                       background: "transparent",
                       cursor: "pointer",
                       textAlign: "left",
-                      borderBottom: "1px solid rgba(90,21,21,0.03)",
+                      borderBottom: "1px solid var(--border-subtle)",
                       transition: "background 0.15s ease",
                     }}
                   >

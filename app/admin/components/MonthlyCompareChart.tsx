@@ -54,26 +54,26 @@ export default function MonthlyCompareChart({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-muted)', borderRadius: 8, padding: '8px 14px' }}>
           <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--action)', display: 'inline-block' }} />
           <span style={{ fontSize: 12, fontWeight: 700 }}>{curYear}</span>
-          <span style={{ fontSize: 12, color: '#666' }}>{fmt(curQtyTotal)}병</span>
-          <span style={{ fontSize: 11, color: '#999' }}>{fmtM(curAmtTotal)}</span>
+          <span style={{ fontSize: 12, color: 'var(--neutral-400)' }}>{fmt(curQtyTotal)}병</span>
+          <span style={{ fontSize: 11, color: 'var(--neutral-100)' }}>{fmtM(curAmtTotal)}</span>
         </div>
         {prevQtyTotal > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f5f3f0', borderRadius: 8, padding: '8px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-muted)', borderRadius: 8, padding: '8px 14px' }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: '#D8CCC0', display: 'inline-block' }} />
             <span style={{ fontSize: 12, fontWeight: 700 }}>{prevYear}</span>
-            <span style={{ fontSize: 12, color: '#666' }}>{fmt(prevQtyTotal)}병</span>
-            <span style={{ fontSize: 11, color: '#999' }}>{fmtM(prevAmtTotal)}</span>
+            <span style={{ fontSize: 12, color: 'var(--neutral-400)' }}>{fmt(prevQtyTotal)}병</span>
+            <span style={{ fontSize: 11, color: 'var(--neutral-100)' }}>{fmtM(prevAmtTotal)}</span>
           </div>
         )}
         {prevQtyTotal > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px' }}>
             <div style={{ fontSize: 11 }}>
-              <span style={{ color: '#888' }}>병수 </span>
-              <span style={{ fontWeight: 700, color: qtyYoY >= 0 ? '#16a34a' : '#dc2626' }}>{qtyYoY >= 0 ? '+' : ''}{qtyYoY}%</span>
+              <span style={{ color: 'var(--neutral-200)' }}>병수 </span>
+              <span style={{ fontWeight: 700, color: qtyYoY >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>{qtyYoY >= 0 ? '+' : ''}{qtyYoY}%</span>
             </div>
             <div style={{ fontSize: 11 }}>
-              <span style={{ color: '#888' }}>매출 </span>
-              <span style={{ fontWeight: 700, color: amtYoY >= 0 ? '#16a34a' : '#dc2626' }}>{amtYoY >= 0 ? '+' : ''}{amtYoY}%</span>
+              <span style={{ color: 'var(--neutral-200)' }}>매출 </span>
+              <span style={{ fontWeight: 700, color: amtYoY >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>{amtYoY >= 0 ? '+' : ''}{amtYoY}%</span>
             </div>
           </div>
         )}
@@ -96,7 +96,7 @@ export default function MonthlyCompareChart({
                 <div title={`${curYear}.${mo}: ${fmt(cur)}병${prev > 0 ? ` (${moGrowth >= 0 ? '+' : ''}${moGrowth}%)` : ''}`}
                   style={{ width: prevQtyTotal > 0 ? '40%' : '70%', height: curH, background: 'var(--action)', borderRadius: '2px 2px 0 0' }} />
               </div>
-              <div style={{ fontSize: 9, color: '#999', marginTop: 4 }}>{i + 1}월</div>
+              <div style={{ fontSize: 9, color: 'var(--neutral-100)', marginTop: 4 }}>{i + 1}월</div>
             </div>
           );
         })}
@@ -123,15 +123,15 @@ export default function MonthlyCompareChart({
                 </div>
                 {/* 병수 행 */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 11, marginBottom: 3, alignItems: 'baseline' }}>
-                  <div style={{ textAlign: 'right', color: '#999' }}>{fmt(prevQ)}</div>
+                  <div style={{ textAlign: 'right', color: 'var(--neutral-100)' }}>{fmt(prevQ)}</div>
                   <div style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{fmt(curQ)}</div>
-                  <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: qG >= 0 ? '#16a34a' : '#dc2626' }}>{prevQ > 0 ? `${qG >= 0 ? '+' : ''}${qG}%` : ''}</div>
+                  <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: qG >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>{prevQ > 0 ? `${qG >= 0 ? '+' : ''}${qG}%` : ''}</div>
                 </div>
                 {/* 매출 행 */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: 4, fontSize: 10, alignItems: 'baseline' }}>
                   <div style={{ textAlign: 'right', color: '#bbb' }}>{fmtM(prevA)}</div>
-                  <div style={{ textAlign: 'right', color: '#666', fontWeight: 600 }}>{fmtM(curA)}</div>
-                  <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: aG >= 0 ? '#16a34a' : '#dc2626' }}>{prevA > 0 ? `${aG >= 0 ? '+' : ''}${aG}%` : ''}</div>
+                  <div style={{ textAlign: 'right', color: 'var(--neutral-400)', fontWeight: 600 }}>{fmtM(curA)}</div>
+                  <div style={{ textAlign: 'right', fontSize: 10, fontWeight: 700, color: aG >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>{prevA > 0 ? `${aG >= 0 ? '+' : ''}${aG}%` : ''}</div>
                 </div>
               </div>
             );

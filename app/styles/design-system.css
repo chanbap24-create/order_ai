@@ -1,31 +1,31 @@
 /* ========================================
-   Design System - Smart Home Style
+   Design System — KREAM-style Neutral
+   화이트 베이스 · 쿨블랙 타이포 · 중립 헤어라인 · 무그라데이션
+   변수명은 기존 그대로(컴포넌트 무수정 리스킨), 값만 교체.
    ======================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 :root {
-  /* Colors - Wine & Burgundy Theme (aligned with main page) */
-  --color-background: #faf9f7;
-  --color-bg: #faf9f7;
-  --color-card: #FFFFFF;
-  --color-primary: #5A1515;
-  --color-primary-dark: #3D0E0E;
-  --color-primary-light: #8B1538;
-  --color-secondary: #2c1810;
-  --color-text: #2c1810;
-  --color-text-light: #8a8580;
-  --color-text-lighter: #a8a098;
-  --color-border: rgba(90, 21, 21, 0.08);
-  --color-border-light: rgba(90, 21, 21, 0.04);
+  /* Colors — Neutral (legacy 호환 별칭) */
+  --color-background: #ffffff;
+  --color-bg: #ffffff;
+  --color-card: #ffffff;
+  --color-primary: #222222;
+  --color-primary-dark: #000000;
+  --color-primary-light: #444444;
+  --color-secondary: #222222;
+  --color-text: #222222;
+  --color-text-light: #909090;
+  --color-text-lighter: #bcbcbc;
+  --color-border: #ebebeb;
+  --color-border-light: #f4f4f4;
   --color-success: #10b981;
   --color-warning: #FF9500;
   --color-error: #ef4444;
-  --color-info: #5A1515;
+  --color-info: #222222;
 
-  /* Typography */
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography — Pretendard (한글 최적) */
+  --font-display: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+  --font-body: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
 
   /* Font Sizes */
   --text-xs: 0.75rem;
@@ -51,20 +51,20 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* Border Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  /* Border Radius — KREAM 스케일(작게, 카드 12 상한) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(90, 21, 21, 0.03);
-  --shadow-sm: 0 1px 3px 0 rgba(90, 21, 21, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(90, 21, 21, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(90, 21, 21, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(90, 21, 21, 0.05);
+  /* Shadows — 헤어라인 우선, 그림자는 극히 절제(중립) */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 16px 24px -8px rgba(0, 0, 0, 0.08);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -77,41 +77,39 @@
      ============================================================ */
   /* Surfaces */
   --surface: #ffffff;
-  --surface-muted: #faf9f7;
-  --surface-hover: rgba(90, 21, 21, 0.04);
-  --surface-active: rgba(90, 21, 21, 0.08);
+  --surface-muted: #fafafa;
+  --surface-hover: rgba(34, 34, 34, 0.03);
+  --surface-active: rgba(34, 34, 34, 0.06);
 
-  /* Text */
-  --text-primary: #2c1810;
-  --text-secondary: #6b6b78;
-  --text-tertiary: #8a8580;
-  --text-muted: #a8a098;
+  /* Text — 쿨블랙 위계 */
+  --text-primary: #222222;
+  --text-secondary: #555555;
+  --text-tertiary: #909090;
+  --text-muted: #bcbcbc;
   --text-on-primary: #ffffff;
 
-  /* Borders */
-  --border-subtle: rgba(90, 21, 21, 0.04);
-  --border-default: rgba(90, 21, 21, 0.08);
-  --border-strong: rgba(90, 21, 21, 0.16);
-  --focus-ring: 0 0 0 3px rgba(90, 21, 21, 0.12);
+  /* Borders — 중립 헤어라인 */
+  --border-subtle: #f4f4f4;
+  --border-default: #ebebeb;
+  --border-strong: #d3d3d3;
+  --focus-ring: 0 0 0 3px rgba(34, 34, 34, 0.12);
 
-  /* Brand action */
-  --action: #5A1515;
-  --action-hover: #3D0E0E;
-  --action-muted: rgba(90, 21, 21, 0.06);
+  /* Brand action — 블랙 CTA */
+  --action: #222222;
+  --action-hover: #000000;
+  --action-muted: rgba(34, 34, 34, 0.05);
 
-  /* Status palette (정규 의미색) — 화면 전반에 혼용되던 shade들을 단일화.
-     정규값은 가장 많이 쓰이던 shade로 채택(수렴 시 시각 변화 최소). 배경(-bg)은 연한 톤. */
-  --status-danger: #c62828;     /* 위험/연체/에러 (기존 #dc2626 #dc3545 #e74c3c #c0392b 등 통합) */
+  /* Status palette (정규 의미색) */
+  --status-danger: #c62828;
   --status-danger-bg: #ffebee;
-  --status-info: #1565c0;       /* 정보/오늘/강조 (기존 #2563eb 등 통합) */
+  --status-info: #1565c0;
   --status-info-bg: #e3f2fd;
-  --status-success: #2e7d32;    /* 성공/정상/입금 (기존 #16a34a #27ae60 #4caf50 등 통합) */
+  --status-success: #2e7d32;
   --status-success-bg: #e8f5e9;
-  --status-warning: #e65100;    /* 경고/지원율/입고 (기존 #e67e22 #d97706 #ff9800 등 통합) */
+  --status-warning: #e65100;
   --status-warning-bg: #fff3e0;
 
-  /* Neutral gray scale (중립 그레이) — 코드 전반의 쿨 그레이 하드코딩 수렴.
-     warm 계열(text, border 토큰)과 별개의 중립 램프. 값은 최다사용 shade 기준. */
+  /* Neutral gray scale (쿨 그레이 램프) */
   --gray-50: #fafafa;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
@@ -123,9 +121,7 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
 
-  /* Pure neutral ramp (순수 중립 — 단축 그레이 #999~#111 무손실 토큰).
-     gray 램프는 쿨 tint, neutral 램프는 순수 무채색. 0x11 간격 균등 스케일.
-     100=가장 밝음(#999) ... 900=가장 어두움(#111). */
+  /* Pure neutral ramp (순수 무채색 #999~#111) */
   --neutral-100: #999999;
   --neutral-200: #888888;
   --neutral-300: #777777;
@@ -161,15 +157,15 @@
   --icon-lg: 20px;
   --icon-xl: 24px;
 
-  /* Dark surfaces (네이비 톤 — 사이드바/footer/강조 영역) */
-  --surface-dark: #1a1a2e;
-  --surface-dark-hover: #20203a;
+  /* Dark surfaces (사이드바/footer/강조 영역 — 중립 블랙) */
+  --surface-dark: #1b1b1b;
+  --surface-dark-hover: #242424;
   --surface-dark-active: rgba(255, 255, 255, 0.06);
-  --text-on-dark: #f0ece6;             /* warm white */
-  --text-on-dark-muted: rgba(240, 236, 230, 0.6);
-  --text-on-dark-subtle: rgba(240, 236, 230, 0.4);
-  --text-on-dark-faint: rgba(240, 236, 230, 0.15);
-  --border-on-dark: rgba(240, 236, 230, 0.08);
+  --text-on-dark: #fafafa;
+  --text-on-dark-muted: rgba(250, 250, 250, 0.6);
+  --text-on-dark-subtle: rgba(250, 250, 250, 0.4);
+  --text-on-dark-faint: rgba(250, 250, 250, 0.15);
+  --border-on-dark: rgba(250, 250, 250, 0.1);
 }
 
 /* Base Styles */
@@ -180,6 +176,16 @@ body {
   font-size: var(--text-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* 데이터 UI 마감 — 숫자 컬럼 정렬(tabular), 헤딩 고아단어 방지 */
+table { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { text-wrap: balance; }
+/* 부드러운 앵커 스크롤 + 모션 최소화 존중 */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
 /* ============================================================
@@ -205,20 +211,20 @@ body {
   .analysis-card { padding: 10px 12px !important; }
 }
 
-/* Card */
+/* Card — 헤어라인 구획, 그림자 없음 */
 .card {
   background: var(--color-card);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: var(--space-6);
-  border: 1px solid rgba(90, 21, 21, 0.08);
+  border: 1px solid var(--border-default);
   box-shadow: none;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: border-color var(--transition-fast);
 }
-.card:hover { border-color: rgba(90, 21, 21, 0.12); box-shadow: 0 2px 8px rgba(90, 21, 21, 0.03); }
+.card:hover { border-color: var(--border-strong); }
 .card-sm { padding: var(--space-4); border-radius: var(--radius-lg); }
-.card-lg { padding: var(--space-8); border-radius: var(--radius-2xl); }
+.card-lg { padding: var(--space-8); border-radius: var(--radius-xl); }
 
-/* Badge */
+/* Badge — 아웃라인 우선 */
 .badge {
   display: inline-flex; align-items: center;
   padding: var(--space-1) var(--space-3);
@@ -226,14 +232,14 @@ body {
   font-size: var(--text-xs); font-weight: 600;
   letter-spacing: 0.5px; text-transform: uppercase;
 }
-.badge-primary { background: var(--color-primary); color: white; }
+.badge-primary { background: var(--action); color: white; }
 .badge-success { background: var(--color-success); color: white; }
 .badge-warning { background: var(--color-warning); color: white; }
 .badge-error { background: var(--color-error); color: white; }
-.badge-info { background: var(--color-info); color: white; }
-.badge-outline { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-light); }
+.badge-info { background: var(--action); color: white; }
+.badge-outline { background: transparent; border: 1px solid var(--border-strong); color: var(--text-secondary); }
 
-/* Button */
+/* Button — 블랙 CTA / 화이트+보더 보조 */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
   padding: var(--space-3) var(--space-6); border: none; border-radius: var(--radius-lg);
@@ -241,14 +247,14 @@ body {
   transition: all var(--transition-fast); outline: none;
 }
 .btn:active { transform: scale(0.98); }
-.btn-primary { background: #5A1515; color: white; }
-.btn-primary:hover { background: #3D0E0E; }
-.btn-secondary { background: var(--color-secondary); color: white; }
-.btn-secondary:hover { background: rgba(44, 24, 16, 0.8); }
-.btn-outline { background: transparent; border: 2px solid var(--color-border); color: var(--color-text); }
-.btn-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.btn-ghost { background: transparent; color: var(--color-text-light); }
-.btn-ghost:hover { background: rgba(90, 21, 21, 0.04); color: var(--color-text); }
+.btn-primary { background: var(--action); color: white; }
+.btn-primary:hover { background: var(--action-hover); }
+.btn-secondary { background: #ffffff; color: var(--text-primary); border: 1px solid var(--border-strong); }
+.btn-secondary:hover { border-color: var(--text-primary); }
+.btn-outline { background: transparent; border: 1px solid var(--border-strong); color: var(--text-primary); }
+.btn-outline:hover { border-color: var(--text-primary); }
+.btn-ghost { background: transparent; color: var(--text-tertiary); }
+.btn-ghost:hover { background: var(--surface-hover); color: var(--text-primary); }
 .btn-sm { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); }
 .btn-lg { padding: var(--space-4) var(--space-8); font-size: var(--text-lg); }
 .btn-icon { width: 40px; height: 40px; padding: 0; border-radius: var(--radius-full); }
@@ -256,9 +262,9 @@ body {
 /* Input */
 .input {
   width: 100%; padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  border: 1px solid var(--border-default); border-radius: var(--radius-md);
   font-size: var(--text-sm); font-family: var(--font-body);
   transition: all var(--transition-fast); background: white; color: var(--color-text);
 }
-.input:focus { outline: none; border-color: #5A1515; box-shadow: 0 0 0 3px rgba(90, 21, 21, 0.08); }
-.input::placeholder { color: var(--color-text-lighter); }
+.input:focus { outline: none; border-color: var(--text-primary); box-shadow: 0 0 0 3px rgba(34, 34, 34, 0.08); }
+.input::placeholder { color: var(--text-muted); }

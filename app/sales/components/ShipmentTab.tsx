@@ -73,7 +73,6 @@ function StatItem({
           fontWeight: 700,
           color: accent ? 'var(--action)' : 'var(--text-primary)',
           fontVariantNumeric: 'tabular-nums',
-          fontFamily: "'DM Sans', sans-serif",
           lineHeight: 1.1,
         }}
       >

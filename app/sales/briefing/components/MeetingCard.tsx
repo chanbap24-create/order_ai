@@ -37,7 +37,7 @@ export function MeetingCard(p: Props) {
     <div style={{
       background: '#fff', borderRadius: 12,
       border: hasBriefing ? '1px solid #c8e6c9' : '1px solid var(--action-muted)',
-      boxShadow: '0 1px 3px rgba(90,21,21,0.03)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
       overflow: 'hidden',
     }}>
       <MeetingCardHeader
@@ -148,7 +148,7 @@ function MeetingCardHeader({
       <div style={{ flexShrink: 0 }}>
         {hasBriefing ? (
           <div style={{
-            width: 28, height: 28, borderRadius: 14, background: 'var(--status-success-bg)',
+            width: 28, height: 28, borderRadius: 12, background: 'var(--status-success-bg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
@@ -197,7 +197,7 @@ function QuoteActions({
           onClick={onToggleColSettings}
           style={{
             width: 32, height: 32, borderRadius: 8, border: '1px solid var(--gray-300)',
-            background: showColSettings ? '#f5f0eb' : '#fff', color: 'var(--action)',
+            background: showColSettings ? 'var(--surface-active)' : '#fff', color: 'var(--action)',
             fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
           title="컬럼 설정"
@@ -218,7 +218,7 @@ function QuoteActions({
         disabled={quoteLoading}
         style={{
           flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
-          background: quoteLoading ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
+          background: quoteLoading ? 'var(--gray-300)' : 'var(--action)',
           color: '#fff', fontSize: 12, fontWeight: 600,
           cursor: quoteLoading ? 'default' : 'pointer',
         }}

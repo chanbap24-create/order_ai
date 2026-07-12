@@ -65,9 +65,9 @@ export function ImageIntakeButton({ loading, error, onFiles, onClearError }: Pro
         }}
         style={{
           padding: "16px 14px",
-          borderRadius: 10,
+          borderRadius: 12,
           border: `1.5px dashed ${dragging ? ORDER_COLORS.primary : ORDER_COLORS.confHigh}`,
-          background: dragging ? "rgba(90,21,21,0.05)" : loading ? "#f3efe9" : "rgba(120,160,90,0.06)",
+          background: dragging ? "var(--surface-active)" : loading ? "#f3efe9" : "rgba(120,160,90,0.06)",
           color: loading ? ORDER_COLORS.textMuted : ORDER_COLORS.text,
           fontSize: 15,
           fontWeight: 600,

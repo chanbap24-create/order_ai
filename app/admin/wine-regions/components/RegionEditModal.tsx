@@ -29,16 +29,16 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
       onClick={onClose}
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(90,21,21,0.4)', zIndex: 9999,
+        background: 'rgba(0,0,0,0.4)', zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: 10, padding: 24,
+          background: '#fff', borderRadius: 12, padding: 24,
           width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto',
-          boxShadow: '0 8px 32px rgba(90,21,21,0.15)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
         }}
       >
         <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -55,7 +55,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
                 onChange={e => onChange({ ...item, [f.key]: e.target.value } as WineRegion)}
                 style={{
                   width: '100%', height: 36, padding: '0 10px', fontSize: 14,
-                  border: '1px solid var(--gray-200)', borderRadius: 6, boxSizing: 'border-box',
+                  border: '1px solid var(--border-default)', borderRadius: 6, boxSizing: 'border-box',
                   outline: 'none', background: '#fff',
                 }}
               >
@@ -69,7 +69,7 @@ export function RegionEditModal({ item, isNew, saving, onChange, onClose, onSave
                 onChange={e => onChange({ ...item, [f.key]: e.target.value || null } as WineRegion)}
                 style={{
                   width: '100%', height: 36, padding: '0 10px', fontSize: 14,
-                  border: '1px solid var(--gray-200)', borderRadius: 6, boxSizing: 'border-box', outline: 'none',
+                  border: '1px solid var(--border-default)', borderRadius: 6, boxSizing: 'border-box', outline: 'none',
                 }}
               />
             )}

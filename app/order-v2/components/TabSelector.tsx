@@ -34,7 +34,7 @@ export function TabSelector({ value, onChange }: Props) {
             background: value === t ? "#fff" : "transparent",
             color: value === t ? ORDER_COLORS.primary : ORDER_COLORS.textMuted,
             cursor: "pointer",
-            boxShadow: value === t ? "0 1px 4px rgba(90,21,21,0.08)" : "none",
+            boxShadow: value === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
             transition: "all 0.2s ease",
             letterSpacing: "0.04em",
           }}

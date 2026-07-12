@@ -29,7 +29,7 @@ export function SummaryFilters(p: Props) {
         padding: '10px 16px',
         background: 'var(--surface)',
         border: '1px solid var(--border-default)',
-        borderRadius: 10,
+        borderRadius: 12,
         flexWrap: 'wrap',
       }}
     >

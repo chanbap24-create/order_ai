@@ -69,7 +69,7 @@ export default function TastingStatusView({ rows, loading, company, currentManag
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 12 }}>
         <div style={statCard}><div style={statLabel}>총 시음</div><div style={statValue}>{total}건</div></div>
         <div style={statCard}><div style={statLabel}>공급가 합계</div><div style={statValue}>{won(amount)}원</div></div>
-        <div style={statCard}><div style={statLabel}>발주전환</div><div style={{ ...statValue, color: "var(--color-success, #2e7d32)" }}>{converted}건 · {rate}%</div></div>
+        <div style={statCard}><div style={statLabel}>발주전환</div><div style={{ ...statValue, color: "var(--color-success, var(--status-success))" }}>{converted}건 · {rate}%</div></div>
         <div style={statCard}><div style={statLabel}>상신</div><div style={statValue}>{submitted} / {total}</div></div>
       </div>
       <div style={{ ...panel, padding: "6px 8px", overflowX: "auto" }}>

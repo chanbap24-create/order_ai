@@ -70,7 +70,7 @@ export const InventoryCharts = memo(function InventoryCharts({
                   ]}
                 />
                 <Legend formatter={legendFmt} />
-                <Bar dataKey="cdv" fill="#5A1515" radius={[4, 4, 0, 0]} animationDuration={500} />
+                <Bar dataKey="cdv" fill="var(--action)" radius={[4, 4, 0, 0]} animationDuration={500} />
                 <Bar dataKey="dl" fill="#1565C0" radius={[4, 4, 0, 0]} animationDuration={500} />
               </BarChart>
             </ResponsiveContainer>
@@ -118,7 +118,7 @@ export const InventoryCharts = memo(function InventoryCharts({
                 <Line
                   type="monotone"
                   dataKey="cdv"
-                  stroke="#5A1515"
+                  stroke="var(--action)"
                   strokeWidth={2}
                   dot={inventoryLineData.length < 20}
                   animationDuration={500}

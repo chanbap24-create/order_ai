@@ -21,7 +21,7 @@ export function ImageSection(p: Props) {
           <img
             src={p.wine.image_url}
             alt={p.wine.item_name_kr}
-            style={{ maxHeight: 200, borderRadius: 8, border: "1px solid var(--gray-200)" }}
+            style={{ maxHeight: 200, borderRadius: 8, border: "1px solid var(--border-default)" }}
           />
         </div>
       )}

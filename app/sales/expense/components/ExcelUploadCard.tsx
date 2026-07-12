@@ -34,7 +34,7 @@ export function ExcelUploadCard(p: Props) {
           onClick={() => excelInputRef.current?.click()}
           style={{
             border: "1.5px dashed var(--border-strong)",
-            borderRadius: 10,
+            borderRadius: 12,
             padding: "32px 16px",
             textAlign: "center",
             cursor: "pointer",

@@ -35,7 +35,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff",
-          borderRadius: 16,
+          borderRadius: 12,
           padding: "24px 20px",
           width: "100%",
           maxWidth: 400,
@@ -80,7 +80,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
                 padding: "8px",
                 borderRadius: 8,
                 border: "none",
-                background: modal.modalType === key ? `${color}20` : "#f5f3ed",
+                background: modal.modalType === key ? `${color}20` : "var(--surface-muted)",
                 color: modal.modalType === key ? color : "var(--neutral-100)",
                 fontWeight: modal.modalType === key ? 700 : 500,
                 fontSize: 13,
@@ -149,7 +149,7 @@ export function MeetingModal({ modal, currentManager }: Props) {
               background:
                 (modal.newClientMode && !modal.newClientName.trim()) || modal.modalSaving
                   ? "var(--gray-300)"
-                  : "linear-gradient(135deg, var(--action), #8B2252)",
+                  : "var(--action)",
               color: "#fff",
               fontSize: 14,
               fontWeight: 600,

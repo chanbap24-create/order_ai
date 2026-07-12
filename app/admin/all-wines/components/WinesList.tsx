@@ -23,7 +23,7 @@ type Props = {
 
 export function WinesList(p: Props) {
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid var(--gray-200)' }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: '#fff', borderRadius: 8, border: '1px solid var(--border-default)' }}>
       <WinesTableHeader
         isMobile={p.isMobile}
         sortBy={p.sortBy}

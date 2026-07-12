@@ -78,7 +78,7 @@ export function MeetingDetailPanel(p: Props) {
             border: "none",
             background: p.detail.briefingLoading
               ? "var(--gray-300)"
-              : "linear-gradient(135deg, #1a237e, #4a148c)",
+              : "#1a237e",
             color: "#fff",
             fontSize: 14,
             fontWeight: 600,
@@ -117,11 +117,11 @@ export function MeetingDetailPanel(p: Props) {
                     style={{
                       flex: 1,
                       padding: "14px",
-                      borderRadius: 10,
+                      borderRadius: 12,
                       border: "none",
                       background: p.detail.quoteLoading
                         ? "var(--gray-300)"
-                        : "linear-gradient(135deg, var(--action), #8B2252)",
+                        : "var(--action)",
                       color: "#fff",
                       fontSize: 14,
                       fontWeight: 700,

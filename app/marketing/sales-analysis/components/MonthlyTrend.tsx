@@ -9,7 +9,7 @@ export const MonthlyTrend = memo(function MonthlyTrend({ data }: { data: Analysi
 
   return (
     <div style={{
-      background: '#fff', borderRadius: 14,
+      background: '#fff', borderRadius: 12,
       border: '1px solid var(--action-muted)', padding: 16,
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

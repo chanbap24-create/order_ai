@@ -115,7 +115,7 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
       {collData && <CollectionBriefingSection data={collData} onSave={saveColl} />}
 
       {selectedManager && unsetClients.length > 0 && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 14px' }}>
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>
               🔔 결제조건 미설정 거래처 <span style={{ color: '#b45309' }}>{unsetClients.length}건</span>
@@ -231,7 +231,7 @@ function EmptyState({ message }: { message: string }) {
         fontSize: 13,
         background: 'var(--surface)',
         border: '1px solid var(--border-default)',
-        borderRadius: 10,
+        borderRadius: 12,
       }}
     >
       {message}

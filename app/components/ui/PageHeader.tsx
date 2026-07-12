@@ -26,7 +26,6 @@ export function PageHeader({ eyebrow, title, subtitle, actions }: PageHeaderProp
         <div className="ph-text">
           {eyebrow && <p className="ph-eyebrow">{eyebrow}</p>}
           <h1 className="ph-title">{title}</h1>
-          <div className="ph-accent" />
           {subtitle && <p className="ph-sub">{subtitle}</p>}
         </div>
         {actions && <div className="ph-actions">{actions}</div>}
@@ -36,40 +35,31 @@ export function PageHeader({ eyebrow, title, subtitle, actions }: PageHeaderProp
 }
 
 const PAGE_HEADER_STYLES = `
+  /* KREAM 스타일 타이틀 블록 — 장식(액센트바) 없이 크고 무거운 타이포가 위계를 만든다 */
   .ph-root {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     gap: 16px;
-    padding-bottom: 16px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 8px 0 20px;
+    margin-bottom: 4px;
     flex-wrap: wrap;
   }
   .ph-text { min-width: 0; }
   .ph-eyebrow {
     font-size: 11px;
-    color: var(--action);
-    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    font-weight: 600;
-    margin: 0 0 6px;
+    font-weight: 700;
+    margin: 0 0 4px;
   }
   .ph-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.5rem;
-    font-weight: 500;
+    font-size: 1.5rem;    font-weight: 500;
     color: var(--text-primary);
     letter-spacing: 0.01em;
-    line-height: 1.3;
+    line-height: 1.2;
     margin: 0;
-  }
-  .ph-accent {
-    width: 32px;
-    height: 2px;
-    margin-top: 10px;
-    background: linear-gradient(90deg, var(--action) 0%, transparent 100%);
-    border-radius: 1px;
   }
   .ph-sub {
     font-size: 13px;
@@ -93,7 +83,6 @@ const PAGE_HEADER_STYLES = `
     .ph-title { font-size: 1.25rem; }
     .ph-sub { font-size: 12px; margin-top: 4px; }
     .ph-eyebrow { font-size: 10px; margin-bottom: 4px; }
-    .ph-accent { width: 24px; margin-top: 8px; }
     .ph-actions { width: 100%; }
   }
 `;

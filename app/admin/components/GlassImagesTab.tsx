@@ -189,7 +189,7 @@ export default function GlassImagesTab() {
           const isCollapsed = collapsed[g.prefix] ?? true;
           return (
             <section key={g.prefix} style={{
-              background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 10,
+              background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 12,
             }}>
               <header
                 onClick={() => setCollapsed((p) => ({ ...p, [g.prefix]: !isCollapsed }))}

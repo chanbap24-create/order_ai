@@ -48,7 +48,7 @@ export function ClientContactCard(p: Props) {
         background: "white",
         borderRadius: 8,
         padding: "12px 20px",
-        boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
         marginBottom: 16,
       }}
     >

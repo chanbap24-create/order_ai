@@ -60,8 +60,8 @@ export function ClientVenueCard({ clientCode, clientType, onSaved }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <span style={title}>업장 유형</span>
         {saving && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>저장 중…</span>}
-        {saved && <span style={{ fontSize: 11, color: '#16a34a' }}>✓ 저장됨</span>}
-        {error && <span style={{ fontSize: 11, color: '#dc2626' }}>⚠ {error}</span>}
+        {saved && <span style={{ fontSize: 11, color: 'var(--status-success)' }}>✓ 저장됨</span>}
+        {error && <span style={{ fontSize: 11, color: 'var(--status-danger)' }}>⚠ {error}</span>}
       </div>
       <select value={venue} onChange={(e) => save(e.target.value)} disabled={loading}
         style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--gray-300)', borderRadius: 8, fontSize: 14, background: '#fff', color: 'var(--text-primary)' }}>

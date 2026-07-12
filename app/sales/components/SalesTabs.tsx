@@ -43,20 +43,23 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
     <div
       className="sales-tabs-bar"
       style={{
+        background: '#fff',
         overflowX: 'auto',
         overflowY: 'hidden',
         WebkitOverflowScrolling: 'touch',
         borderBottom: '1px solid var(--border-default)',
-        marginBottom: 20,
+        marginBottom: 24,
       }}
     >
       <style>{`
-        .sales-tabs-bar { scrollbar-width: thin; }
+        .sales-tabs-bar { scrollbar-width: none; }
+        .sales-tabs-bar::-webkit-scrollbar { display: none; }
         @media (max-width: 768px) {
-          .sales-tab-btn { padding: 8px 10px !important; font-size: 12px !important; }
+          .sales-tab-btn { padding: 12px 2px !important; font-size: 13px !important; }
+          .sales-tabs-bar > div { gap: 16px !important; }
         }
       `}</style>
-      <div style={{ display: 'inline-flex', gap: 4 }}>
+      <div style={{ display: 'inline-flex', gap: 22, padding: '0 2px' }}>
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -66,14 +69,14 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
               onClick={() => onTabChange(tab.id)}
               style={{
                 position: 'relative',
-                padding: '10px 14px',
+                padding: '14px 2px',
                 border: 'none',
                 background: 'transparent',
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? 'var(--action)' : 'var(--text-tertiary)',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
                 cursor: 'pointer',
-                letterSpacing: '0.01em',
+                letterSpacing: '-0.01em',
                 whiteSpace: 'nowrap',
                 display: 'flex',
                 alignItems: 'center',
@@ -112,8 +115,9 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
                     left: 0,
                     right: 0,
                     bottom: -1,
-                    height: 2,
-                    background: 'var(--action)',
+                    height: 2.5,
+                    background: 'var(--text-primary)',
+                    borderRadius: 2,
                   }}
                 />
               )}

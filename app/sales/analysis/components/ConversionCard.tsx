@@ -70,7 +70,7 @@ export function ConversionCard({ clientCode, type }: Props) {
                 {data.wines.slice(0, 40).map((w) => {
                   const converted = w.converted_count > 0;
                   return (
-                    <tr key={w.item_code} style={{ borderTop: "1px solid var(--gray-100)" }}>
+                    <tr key={w.item_code} style={{ borderTop: "1px solid var(--border-default)" }}>
                       <td style={{ ...td, textAlign: "left", fontWeight: 600 }}>{w.name}</td>
                       <td style={td}>{w.quoted_count}회</td>
                       <td style={{ ...td, fontWeight: 700, color: converted ? "var(--color-success)" : "var(--text-muted)" }}>
@@ -105,13 +105,13 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
 }
 
 const card: React.CSSProperties = {
-  background: "white", border: "1px solid var(--gray-200)", borderRadius: 12,
+  background: "white", border: "1px solid var(--border-default)", borderRadius: 12,
   padding: 16, marginBottom: 16,
 };
 const muted: React.CSSProperties = { fontSize: 12.5, color: "var(--text-tertiary)", padding: "8px 0" };
 const summaryRow: React.CSSProperties = {
   display: "flex", gap: 12, padding: "10px 12px", marginBottom: 12,
-  background: "var(--surface-muted, #f6f4f2)", borderRadius: 10,
+  background: "var(--surface-muted, #f6f4f2)", borderRadius: 12,
 };
 const th: React.CSSProperties = { padding: "6px 8px", textAlign: "center", fontWeight: 600, whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "7px 8px", textAlign: "center", whiteSpace: "nowrap" };

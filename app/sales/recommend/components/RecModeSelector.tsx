@@ -29,7 +29,7 @@ type Props = {
 };
 
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
+  background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 12,
   padding: '12px 14px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 10,
 };
 const hint: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)' };
@@ -132,11 +132,11 @@ export function RecModeSelector({ clientCode, mode, onModeChange, anchor, onAnch
             <>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="쇼트난 기준 상품 검색(구매이력)"
                 style={{ padding: '6px 10px', fontSize: 13, border: '1px solid var(--gray-300)', borderRadius: 6, color: 'var(--text-primary)' }} />
-              <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--gray-200)', borderRadius: 8 }}>
+              <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border-default)', borderRadius: 8 }}>
                 {pLoading && <div style={{ ...hint, padding: 12 }}>구매이력 불러오는 중…</div>}
                 {!pLoading && filtered.length === 0 && <div style={{ ...hint, padding: 12 }}>구매이력이 없습니다.</div>}
                 {!pLoading && filtered.map((p) => (
-                  <button key={p.item_code} onClick={() => onAnchorChange(p)} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: '#fff', border: 'none', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer' }}>
+                  <button key={p.item_code} onClick={() => onAnchorChange(p)} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', background: '#fff', border: 'none', borderBottom: '1px solid var(--border-default)', cursor: 'pointer' }}>
                     <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{p.name}</span>
                     <span style={{ ...hint, whiteSpace: 'nowrap' }}>{p.price.toLocaleString()}원 · {p.last?.slice(0, 7) || ''}</span>
                   </button>

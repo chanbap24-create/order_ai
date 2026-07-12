@@ -56,7 +56,7 @@ export function ItemRow({
     <div
       style={{
         padding: "10px 12px",
-        borderBottom: isLast ? "none" : "1px solid var(--gray-100)",
+        borderBottom: isLast ? "none" : "1px solid var(--border-default)",
         display: "flex",
         gap: 10,
         flexDirection: "column",

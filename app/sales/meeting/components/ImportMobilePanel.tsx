@@ -78,7 +78,7 @@ export function ImportMobilePanel(p: Props) {
                 style={{
                   padding: "12px 16px",
                   cursor: "pointer",
-                  borderBottom: "1px solid #f8f6f0",
+                  borderBottom: "1px solid var(--border-subtle)",
                   display: "flex",
                   alignItems: "baseline",
                   gap: 10,

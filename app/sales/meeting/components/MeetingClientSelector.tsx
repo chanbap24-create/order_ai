@@ -85,7 +85,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
               if (modal.clientSearch.options.length > 0)
                 modal.clientSearch.setShowDropdown(true);
             }}
-            style={{ ...INPUT, background: modal.modalClient ? "#f8f6f0" : "#fff" }}
+            style={{ ...INPUT, background: modal.modalClient ? "var(--surface-muted)" : "#fff" }}
           />
           {modal.modalClient && (
             <button
@@ -121,7 +121,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
                 maxHeight: 200,
                 overflowY: "auto",
                 zIndex: 100,
-                boxShadow: "0 4px 12px rgba(90,21,21,0.08)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
             >
               {modal.clientSearch.options.map((c) => (
@@ -135,7 +135,7 @@ export function MeetingClientSelector({ modal, currentManager }: Props) {
                   style={{
                     padding: "10px 12px",
                     cursor: "pointer",
-                    borderBottom: "1px solid #f5f3ed",
+                    borderBottom: "1px solid var(--border-subtle)",
                   }}
                 >
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{c.client_name}</div>

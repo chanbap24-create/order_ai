@@ -95,7 +95,7 @@ export default function WineRegionsTab() {
                 <span
                   onClick={() => setWinesModal({ label: '미분류 와인 (산지 매칭 실패)', wines: wineCounts.unmatchedSamples ?? [] })}
                   title="클릭: 미분류 와인 목록"
-                  style={{ marginLeft: 6, color: '#dc2626', cursor: 'pointer', textDecoration: 'underline' }}
+                  style={{ marginLeft: 6, color: 'var(--status-danger)', cursor: 'pointer', textDecoration: 'underline' }}
                 >
                   · 미분류 {wineCounts.unmatched}종{wineCounts.noRegion > 0 ? ` (산지없음 ${wineCounts.noRegion})` : ''}
                 </span>
@@ -160,7 +160,7 @@ export default function WineRegionsTab() {
         </div>
       )}
 
-      <div style={{ background: '#fff', borderRadius: 8, padding: 16, border: '1px solid var(--gray-200)' }}>
+      <div style={{ background: '#fff', borderRadius: 8, padding: 16, border: '1px solid var(--border-default)' }}>
         {f.filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
             {f.search ? '검색 결과가 없습니다' : '데이터가 없습니다'}
@@ -231,7 +231,7 @@ export default function WineRegionsTab() {
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--text-primary)', color: '#fff', padding: '8px 20px', borderRadius: 8,
           fontSize: 13, fontWeight: 500, zIndex: 10000,
-          boxShadow: '0 4px 12px rgba(90,21,21,0.15)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         }}>
           {toast}
         </div>

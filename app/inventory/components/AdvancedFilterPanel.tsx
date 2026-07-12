@@ -39,7 +39,7 @@ export function AdvancedFilterPanel({
         padding: "14px 16px",
         background: "white",
         borderRadius: 12,
-        border: "1px solid var(--gray-100)",
+        border: "1px solid var(--border-default)",
         boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
       }}
     >
@@ -96,7 +96,7 @@ export function AdvancedFilterPanel({
           style={{
             padding: "6px 16px",
             borderRadius: 6,
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
             background: "white",
             color: "var(--neutral-200)",
             fontSize: "0.75rem",
@@ -206,7 +206,7 @@ function NumberInput({
         width,
         height: 30,
         borderRadius: 6,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
         padding: "0 6px",
         fontSize: 16,
         textAlign: "right",
@@ -258,7 +258,7 @@ function SelectRow({
           width,
           height: 30,
           borderRadius: 6,
-          border: "1px solid var(--gray-200)",
+          border: "1px solid var(--border-default)",
           padding: "0 6px",
           fontSize: 14,
           color: "var(--neutral-700)",

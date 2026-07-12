@@ -26,7 +26,7 @@ export function RecommendAnalysisCard({ summary }: { summary: RecommendResult['s
 
   return (
     <div style={{
-      background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
+      background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 12,
       padding: '14px 16px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>

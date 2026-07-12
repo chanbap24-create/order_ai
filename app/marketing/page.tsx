@@ -82,7 +82,7 @@ export default function MarketingPage() {
           <div style={{ minWidth: 0 }}>
             <h1
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+
                 fontSize: '1.5rem',
                 fontWeight: 500,
                 color: 'var(--text-primary)',
@@ -98,7 +98,7 @@ export default function MarketingPage() {
                 width: 32,
                 height: 2,
                 marginTop: 10,
-                background: 'linear-gradient(90deg, var(--action) 0%, transparent 100%)',
+                background: 'var(--action)',
                 borderRadius: 1,
               }}
             />
@@ -128,19 +128,19 @@ export default function MarketingPage() {
         {showPwChange && (
           <div style={{
             background: 'var(--gray-50)', borderRadius: 8,
-            border: '1px solid var(--gray-200)',
+            border: '1px solid var(--border-default)',
             padding: '16px 20px', marginBottom: 24,
           }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <input type="password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)}
                 placeholder="현재 비밀번호"
-                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--gray-200)', fontSize: 13, outline: 'none', background: '#fff' }} />
+                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-default)', fontSize: 13, outline: 'none', background: '#fff' }} />
               <input type="password" value={pwNew} onChange={e => setPwNew(e.target.value)}
                 placeholder="새 비밀번호"
-                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--gray-200)', fontSize: 13, outline: 'none', background: '#fff' }} />
+                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-default)', fontSize: 13, outline: 'none', background: '#fff' }} />
               <input type="password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)}
                 placeholder="새 비밀번호 확인"
-                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--gray-200)', fontSize: 13, outline: 'none', background: '#fff' }}
+                style={{ flex: '1 1 120px', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border-default)', fontSize: 13, outline: 'none', background: '#fff' }}
                 onKeyDown={e => { if (e.key === 'Enter') handlePwChange(); }} />
               <button onClick={handlePwChange} disabled={pwLoading}
                 style={{

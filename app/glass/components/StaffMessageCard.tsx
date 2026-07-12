@@ -18,7 +18,7 @@ export function StaffMessageCard({ staffMessage, status, copied, onCopy }: Props
     <div
       style={{
         background: GLASS_COLORS.surface,
-        borderRadius: 16,
+        borderRadius: 12,
         border: `1px solid ${GLASS_COLORS.dividerCard}`,
         boxShadow: GLASS_COLORS.primaryShadowSubtle,
         overflow: "hidden",
@@ -85,7 +85,7 @@ function StatusBadge({ color, label }: { color: string; label: string }) {
         padding: "2px 8px",
         background: color,
         color: "white",
-        borderRadius: 10,
+        borderRadius: 12,
         fontWeight: 600,
       }}
     >

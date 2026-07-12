@@ -9,16 +9,16 @@ export const MEETING_TYPES: Record<string, { label: string; color: string }> = {
 };
 
 export const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  planned: { label: "예정", color: "#1976D2", bg: "#E3F2FD" },
-  confirmed: { label: "확정", color: "#E65100", bg: "#FFF3E0" },
-  completed: { label: "완료", color: "#2E7D32", bg: "#E8F5E9" },
+  planned: { label: "예정", color: "#1976D2", bg: "var(--status-info-bg)" },
+  confirmed: { label: "확정", color: "var(--status-warning)", bg: "var(--status-warning-bg)" },
+  completed: { label: "완료", color: "var(--status-success)", bg: "var(--status-success-bg)" },
   cancelled: { label: "취소", color: "#757575", bg: "#F5F5F5" },
 };
 
 export const STATUS_FLOW = ["planned", "confirmed", "completed"];
 
 export const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "VIP", color: "#dc3545" },
+  1: { label: "VIP", color: "var(--status-danger)" },
   2: { label: "중요", color: "#fd7e14" },
   3: { label: "일반", color: "#6c757d" },
   4: { label: "간헐", color: "#adb5bd" },

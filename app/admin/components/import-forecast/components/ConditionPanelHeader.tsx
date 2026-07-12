@@ -16,7 +16,7 @@ export function ConditionPanelHeader(p: Props) {
     <div
       style={{
         padding: "12px 24px",
-        borderBottom: "1px solid var(--gray-200)",
+        borderBottom: "1px solid var(--border-default)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -30,7 +30,7 @@ export function ConditionPanelHeader(p: Props) {
             gap: 0,
             borderRadius: 6,
             overflow: "hidden",
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
           }}
         >
           {([{ v: false, label: "기존" }, { v: true, label: "신규" }] as const).map((opt) => (

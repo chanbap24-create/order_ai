@@ -9,7 +9,7 @@ export function AutoLoading() {
         style={{
           width: 20,
           height: 20,
-          border: "2px solid rgba(90,21,21,0.15)",
+          border: "2px solid var(--border-strong)",
           borderTop: "2px solid var(--action)",
           borderRadius: "50%",
           animation: "spin 0.8s linear infinite",

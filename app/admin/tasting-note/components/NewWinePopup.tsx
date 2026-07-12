@@ -30,15 +30,15 @@ export function NewWinePopup({ wines, running, progress, result, onRun, onClose 
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ background: '#fff', borderRadius: 12, width: 'min(560px, 92vw)', maxHeight: '82vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 20 }}>🍷</span>
           <span style={{ fontWeight: 800, fontSize: 16 }}>신규 와인 {wines.length}종 감지</span>
           {!running && (
-            <button onClick={onClose} style={{ marginLeft: 'auto', border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: '#888' }}>✕</button>
+            <button onClick={onClose} style={{ marginLeft: 'auto', border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: 'var(--neutral-200)' }}>✕</button>
           )}
         </div>
 
-        <div style={{ padding: '8px 20px', fontSize: 13, color: '#555' }}>
+        <div style={{ padding: '8px 20px', fontSize: 13, color: 'var(--neutral-500)' }}>
           체크한 와인을 <b>AI 리서치 → PPTX·PDF 발행 → 인덱스</b>까지 한 번에 처리합니다.
         </div>
 
@@ -55,31 +55,31 @@ export function NewWinePopup({ wines, running, progress, result, onRun, onClose 
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f4f4f4', fontSize: 13, cursor: 'pointer', opacity: w.item_name_en?.trim() ? 1 : 0.55 }}>
               <input type="checkbox" checked={checked.has(w.item_code)} onChange={() => toggle(w.item_code)} disabled={running} />
               <span style={{ fontWeight: 600 }}>{w.item_name_kr || w.item_code}</span>
-              <span style={{ color: '#999', marginLeft: 'auto', fontSize: 11 }}>{w.item_code}</span>
-              {!w.item_name_en?.trim() && <span style={{ color: '#dc2626', fontSize: 11 }}>영문명 없음</span>}
+              <span style={{ color: 'var(--neutral-100)', marginLeft: 'auto', fontSize: 11 }}>{w.item_code}</span>
+              {!w.item_name_en?.trim() && <span style={{ color: 'var(--status-danger)', fontSize: 11 }}>영문명 없음</span>}
             </label>
           ))}
         </div>
 
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #eee' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-default)' }}>
           {running ? (
-            <div style={{ fontSize: 13, color: '#333' }}>
+            <div style={{ fontSize: 13, color: 'var(--neutral-700)' }}>
               ⏳ {progress.phase} {progress.total > 0 ? `${progress.current}/${progress.total}` : ''} {progress.name ? `· ${progress.name}` : ''}
             </div>
           ) : result ? (
-            <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600 }}>{result}</div>
+            <div style={{ fontSize: 13, color: 'var(--status-success)', fontWeight: 600 }}>{result}</div>
           ) : (
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={onClose} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', fontSize: 13, cursor: 'pointer' }}>나중에</button>
+              <button onClick={onClose} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border-default)', background: '#fff', fontSize: 13, cursor: 'pointer' }}>나중에</button>
               <button onClick={() => onRun(selected)} disabled={selected.length === 0}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: selected.length ? 'linear-gradient(135deg,#5a1515,#8B2252)' : '#ccc', color: '#fff', fontSize: 13, fontWeight: 700, cursor: selected.length ? 'pointer' : 'default' }}>
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: selected.length ? 'var(--action)' : '#ccc', color: '#fff', fontSize: 13, fontWeight: 700, cursor: selected.length ? 'pointer' : 'default' }}>
                 {selected.length}종 일괄 생성·발행
               </button>
             </div>
           )}
           {result && !running && (
             <div style={{ textAlign: 'right', marginTop: 8 }}>
-              <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', fontSize: 13, cursor: 'pointer' }}>닫기</button>
+              <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-default)', background: '#fff', fontSize: 13, cursor: 'pointer' }}>닫기</button>
             </div>
           )}
         </div>

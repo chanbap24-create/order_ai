@@ -73,7 +73,7 @@ export function AgingTable({ rows, asOf, clientType, onSaveFollowup }: Props) {
   );
 
   return (
-    <div style={{ overflowX: 'auto', border: '1px solid var(--border-default)', borderRadius: 10 }}>
+    <div style={{ overflowX: 'auto', border: '1px solid var(--border-default)', borderRadius: 12 }}>
       <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 1000 }}>
         <thead>
           <tr>

@@ -15,14 +15,14 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
 
   return (
     <div style={{
-      background: '#fff', borderRadius: 14,
+      background: '#fff', borderRadius: 12,
       border: '1px solid var(--action-muted)',
       overflow: 'hidden',
     }}>
       <div style={{ overflowX: 'auto', maxHeight: 600, overflowY: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-            <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid rgba(90,21,21,0.1)' }}>
+            <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--border-default)' }}>
               <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--action)' }}>품목</th>
               <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--neutral-400)' }}>국가</th>
               <th style={{ padding: '8px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--neutral-400)' }}>지역</th>
@@ -34,7 +34,7 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
           </thead>
           <tbody>
             {displayed.map((item, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--gray-100)', background: i % 2 === 0 ? '#fff' : 'var(--gray-50)' }}>
+              <tr key={i} style={{ borderBottom: '1px solid var(--border-default)', background: i % 2 === 0 ? '#fff' : 'var(--gray-50)' }}>
                 <td style={{ padding: '6px 12px', color: 'var(--text-primary)', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   <span style={{ color: '#bbb', fontSize: 10, marginRight: 4 }}>{item.item_no}</span>
                   {item.item_name}
@@ -59,12 +59,12 @@ export const TopItemsTable = memo(function TopItemsTable({ items, showAll, onTog
         </table>
       </div>
       {items.length > 50 && (
-        <div style={{ padding: '8px 16px', borderTop: '1px solid var(--gray-100)', textAlign: 'center' }}>
+        <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-default)', textAlign: 'center' }}>
           <button
             onClick={onToggleShowAll}
             style={{
               fontSize: 12, fontWeight: 500, color: 'var(--action)',
-              background: 'transparent', border: '1px solid rgba(90,21,21,0.15)',
+              background: 'transparent', border: '1px solid var(--border-strong)',
               borderRadius: 6, padding: '4px 14px', cursor: 'pointer',
             }}
           >

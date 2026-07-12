@@ -29,7 +29,7 @@ export function AlertCard(p: Props) {
     <div
       style={{
         background: 'var(--surface)',
-        borderRadius: 10,
+        borderRadius: 12,
         border: '1px solid var(--border-default)',
         borderLeft: `3px solid ${accentColor}`,
         overflow: 'hidden',

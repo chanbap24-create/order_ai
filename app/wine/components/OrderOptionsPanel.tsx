@@ -66,7 +66,7 @@ export function OrderOptionsPanel({
               style={{
                 width: "100%",
                 padding: "10px 14px",
-                borderRadius: 10,
+                borderRadius: 12,
                 border: `1.5px solid ${WINE_COLORS.primaryBorder}`,
                 fontSize: 16,
                 background: WINE_COLORS.surfaceBg,

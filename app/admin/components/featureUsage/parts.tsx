@@ -21,7 +21,7 @@ export function Section({ title, children }: { title: string; children: ReactNod
   return (
     <div style={{
       background: '#fff', borderRadius: 12, marginBottom: 16,
-      border: '1px solid rgba(90,21,21,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
       overflow: 'hidden',
     }}>
       <div style={{

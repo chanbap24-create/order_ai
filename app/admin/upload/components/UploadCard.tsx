@@ -68,7 +68,7 @@ export function UploadCard({
       style={{
         border: `2px dashed ${borderColor}`,
         background: isOver
-          ? "rgba(139,21,56,0.04)"
+          ? "var(--surface-active)"
           : state.status === "success"
             ? "rgba(52,199,89,0.04)"
             : state.status === "error"
@@ -167,7 +167,7 @@ export function UploadCard({
             width: 56,
             height: 56,
             borderRadius: "var(--radius-xl)",
-            background: "rgba(139,21,56,0.1)",
+            background: "rgba(34,34,34,0.1)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

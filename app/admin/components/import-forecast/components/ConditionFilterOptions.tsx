@@ -56,7 +56,7 @@ export function ConditionFilterOptions(p: Props) {
             fontSize: 11,
             fontWeight: 600,
             textAlign: "center",
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
             borderRadius: 4,
             outline: "none",
             color: p.excludeBulk ? "var(--neutral-700)" : "var(--gray-300)",
@@ -102,7 +102,7 @@ export function ConditionFilterOptions(p: Props) {
             fontWeight: 500,
             color: p.excludedBizTypes.size > 0 ? "var(--status-danger)" : "var(--neutral-500)",
             background: "#fff",
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
             borderRadius: 6,
             cursor: "pointer",
           }}
@@ -119,7 +119,7 @@ export function ConditionFilterOptions(p: Props) {
               zIndex: 20,
               background: "#fff",
               borderRadius: 8,
-              border: "1px solid var(--gray-200)",
+              border: "1px solid var(--border-default)",
               boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
               padding: "6px 4px",
               minWidth: 170,
@@ -161,7 +161,7 @@ export function ConditionFilterOptions(p: Props) {
               );
             })}
             {p.excludedBizTypes.size > 0 && (
-              <div style={{ borderTop: "1px solid var(--gray-200)", marginTop: 4, paddingTop: 4 }}>
+              <div style={{ borderTop: "1px solid var(--border-default)", marginTop: 4, paddingTop: 4 }}>
                 <button
                   onClick={() => {
                     p.setExcludedBizTypes(new Set());

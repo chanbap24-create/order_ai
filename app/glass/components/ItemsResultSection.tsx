@@ -53,7 +53,7 @@ export function ItemsResultSection({
           fontSize: 14,
           fontWeight: 700,
           color: GLASS_COLORS.text,
-          boxShadow: "0 1px 4px rgba(90,21,21,0.02)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
           transition: "border-radius 0.2s ease",
         }}
       >

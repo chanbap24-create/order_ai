@@ -14,7 +14,7 @@ type Props = {
 };
 
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
+  background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 12,
   padding: '10px 14px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8,
 };
 const rowS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' };
@@ -58,7 +58,7 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
   return (
     <div style={card}>
       {/* 옵션 변경 후 명시적으로 재생성. (추천 점수 ≥ 는 이미 받은 목록을 거르는 즉시 필터라 버튼 불필요) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--gray-200)', paddingBottom: 8, marginBottom: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--border-default)', paddingBottom: 8, marginBottom: 2 }}>
         <button onClick={() => onReapply(s)} disabled={loading} style={{
           padding: '6px 16px', fontSize: 13, fontWeight: 700, borderRadius: 8, border: 'none',
           cursor: loading ? 'not-allowed' : 'pointer',

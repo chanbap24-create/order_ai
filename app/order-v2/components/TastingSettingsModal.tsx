@@ -148,7 +148,7 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
               </div>
             </div>
             {/* 즐겨찾기 = 여러 개 등록 + 기본값 1개(선택). 기본값 있으면 우선, 없으면 AI 추천 */}
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--gray-100)" }}>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-default)" }}>
               <div style={{ ...label, marginBottom: 2, fontWeight: 600 }}>즐겨찾기</div>
               <div style={{ fontSize: 11, color: hasDefault ? "var(--action)" : "var(--text-muted)", marginBottom: 8 }}>
                 {hasDefault ? "★ 기본값이 지정됨 — 시음주 추가 시 이 와인을 우선 사용" : "기본값 미지정 → AI 추천으로 자동 선정"}
@@ -197,7 +197,7 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>
                 후보 {candidates.length}종 ({clientCode ? "거래처 AI 추천순" : "재고 많은 순"}) · 클릭해 즐겨찾기 추가
               </div>
-              <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid var(--gray-100)", borderRadius: 8 }}>
+              <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid var(--border-default)", borderRadius: 8 }}>
                 {candLoading ? (
                   <div style={{ padding: 10, fontSize: 12, color: "var(--text-tertiary)" }}>불러오는 중…</div>
                 ) : candidates.length === 0 ? (
@@ -234,25 +234,25 @@ const overlay: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
 };
 const modal: React.CSSProperties = {
-  background: "#fff", borderRadius: 14, width: "min(420px, 96vw)", padding: "18px 20px",
+  background: "#fff", borderRadius: 12, width: "min(420px, 96vw)", padding: "18px 20px",
   boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
 };
 const row: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12 };
 const label: React.CSSProperties = { fontSize: 13, color: "var(--text-secondary)" };
-const input: React.CSSProperties = { fontSize: 13, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--gray-200)", outline: "none", width: 90, textAlign: "right" };
-const btnGhost: React.CSSProperties = { padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-secondary)" };
+const input: React.CSSProperties = { fontSize: 13, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border-default)", outline: "none", width: 90, textAlign: "right" };
+const btnGhost: React.CSSProperties = { padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid var(--border-default)", background: "#fff", color: "var(--text-secondary)" };
 const btnPrimary: React.CSSProperties = { padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid var(--action)", background: "var(--action)", color: "#fff" };
 const dropdown: React.CSSProperties = {
   position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, zIndex: 5,
-  background: "#fff", border: "1px solid var(--gray-200)", borderRadius: 8, maxHeight: 200, overflowY: "auto",
+  background: "#fff", border: "1px solid var(--border-default)", borderRadius: 8, maxHeight: 200, overflowY: "auto",
   boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
 };
 const dropItem: React.CSSProperties = {
   display: "block", width: "100%", textAlign: "left", padding: "7px 10px", fontSize: 12,
-  border: "none", borderBottom: "1px solid var(--gray-100)", background: "#fff", cursor: "pointer",
+  border: "none", borderBottom: "1px solid var(--border-default)", background: "#fff", cursor: "pointer",
 };
 const candRow: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
-  padding: "7px 10px", fontSize: 12, border: "none", borderBottom: "1px solid var(--gray-100)",
+  padding: "7px 10px", fontSize: 12, border: "none", borderBottom: "1px solid var(--border-default)",
   background: "#fff", cursor: "pointer", color: "var(--text-secondary)",
 };

@@ -22,7 +22,7 @@ export function BottomActionBar(p: Props) {
       position: 'fixed', bottom: 0, left: 0, right: 0,
       background: '#fff', borderTop: '1.5px solid var(--border-default)',
       padding: '12px 16px', zIndex: 200,
-      boxShadow: '0 -2px 10px rgba(90,21,21,0.05)',
+      boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
     }}>
       <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1 }}>
@@ -38,7 +38,7 @@ export function BottomActionBar(p: Props) {
             onClick={() => setShowColSettings(v => !v)}
             style={{
               width: 36, height: 36, borderRadius: 8, border: '1px solid var(--gray-300)',
-              background: showColSettings ? '#f5f0eb' : '#fff', color: 'var(--action)',
+              background: showColSettings ? 'var(--surface-active)' : '#fff', color: 'var(--action)',
               fontSize: 16, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -60,7 +60,7 @@ export function BottomActionBar(p: Props) {
           disabled={p.quoteLoading}
           style={{
             padding: '10px 16px', borderRadius: 8, border: 'none',
-            background: p.quoteLoading ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
+            background: p.quoteLoading ? 'var(--gray-300)' : 'var(--action)',
             color: '#fff', fontSize: 13, fontWeight: 600,
             cursor: p.quoteLoading ? 'default' : 'pointer',
           }}

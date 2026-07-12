@@ -17,7 +17,7 @@ export function SummaryCard({ result }: { result: RecommendResult }) {
   const { grade, riedel } = result.client;
   return (
     <div style={{
-      background: 'linear-gradient(135deg, var(--action), #8B2252)',
+      background: 'var(--action)',
       borderRadius: 12, padding: '16px', marginBottom: 16, color: '#fff',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -75,17 +75,17 @@ export function SummaryCard({ result }: { result: RecommendResult }) {
       ) && (
         <div style={{ marginTop: 10, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {(result.summary.top_types || []).map(t => (
-            <span key={t} style={{ padding: '2px 8px', borderRadius: 10, background: 'rgba(0,137,123,0.3)', fontSize: 11 }}>
+            <span key={t} style={{ padding: '2px 8px', borderRadius: 12, background: 'rgba(0,137,123,0.3)', fontSize: 11 }}>
               {t}
             </span>
           ))}
           {result.summary.top_countries.map(c => (
-            <span key={c} style={{ padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', fontSize: 11 }}>
+            <span key={c} style={{ padding: '2px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.15)', fontSize: 11 }}>
               {c}
             </span>
           ))}
           {result.summary.top_grapes.map(g => (
-            <span key={g} style={{ padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.1)', fontSize: 11 }}>
+            <span key={g} style={{ padding: '2px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.1)', fontSize: 11 }}>
               {g}
             </span>
           ))}

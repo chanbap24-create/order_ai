@@ -30,7 +30,7 @@ export function PreferenceCharts({ prefs, loading }: Props) {
         background: "white",
         borderRadius: 8,
         padding: 20,
-        boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
         marginBottom: 16,
       }}
     >
@@ -92,7 +92,7 @@ function PrefBarSection({
   const maxVal = Math.max(...data.map((d) => d[valueKey] || 0), 1);
   return (
     <div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--neutral-500)", marginBottom: 8 }}>{title}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {data.map((item, i) => {
           const val = item[valueKey] || 0;
@@ -106,7 +106,7 @@ function PrefBarSection({
                 style={{
                   width: 80,
                   fontSize: 12,
-                  color: "#555",
+                  color: "var(--neutral-500)",
                   fontWeight: 500,
                   textAlign: "right",
                   flexShrink: 0,
@@ -166,7 +166,7 @@ function TasteProfile({ tastes }: { tastes: { name: string; count: number; qty: 
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {tastes.map((t) => {
         const pct = Math.round((t.qty / maxQty) * 100);
-        const color = TASTE_COLORS[t.name] || "#999";
+        const color = TASTE_COLORS[t.name] || "var(--neutral-100)";
         return (
           <div
             key={t.name}
@@ -182,7 +182,7 @@ function TasteProfile({ tastes }: { tastes: { name: string; count: number; qty: 
                 width: 52,
                 height: 52,
                 borderRadius: "50%",
-                background: `conic-gradient(${color} ${pct * 3.6}deg, #f0ece6 ${pct * 3.6}deg)`,
+                background: `conic-gradient(${color} ${pct * 3.6}deg, #ececec ${pct * 3.6}deg)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -209,7 +209,7 @@ function TasteProfile({ tastes }: { tastes: { name: string; count: number; qty: 
             <div
               style={{
                 fontSize: 11,
-                color: "#555",
+                color: "var(--neutral-500)",
                 fontWeight: 500,
                 textAlign: "center",
                 lineHeight: "1.2",

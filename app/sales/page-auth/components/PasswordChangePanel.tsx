@@ -7,7 +7,7 @@ type Props = {
 };
 
 const inputStyle: React.CSSProperties = {
-  flex: '1 1 120px', padding: '10px 14px', borderRadius: 10,
+  flex: '1 1 120px', padding: '10px 14px', borderRadius: 12,
   border: '1.5px solid var(--border-default)',
   fontSize: 16, outline: 'none', background: 'var(--surface-muted)',
   transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
@@ -15,8 +15,8 @@ const inputStyle: React.CSSProperties = {
 
 const focusHandlers = {
   onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-    e.currentTarget.style.borderColor = 'rgba(90,21,21,0.25)';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(90,21,21,0.06)';
+    e.currentTarget.style.borderColor = 'var(--border-strong)';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,0,0,0.06)';
   },
   onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
     e.currentTarget.style.borderColor = 'var(--border-default)';
@@ -62,9 +62,9 @@ export function PasswordChangePanel({ onClose }: Props) {
 
   return (
     <div style={{
-      background: '#fff', borderRadius: 14,
+      background: '#fff', borderRadius: 12,
       border: '1px solid var(--action-muted)',
-      boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
       padding: '18px', marginBottom: 20,
     }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
@@ -89,8 +89,8 @@ export function PasswordChangePanel({ onClose }: Props) {
           onClick={handlePwChange}
           disabled={pwLoading}
           style={{
-            padding: '10px 20px', borderRadius: 10, border: 'none',
-            background: pwLoading ? '#c4a0a0' : 'var(--action)',
+            padding: '10px 20px', borderRadius: 12, border: 'none',
+            background: pwLoading ? 'var(--gray-300)' : 'var(--action)',
             color: 'white', fontSize: 13, fontWeight: 600,
             cursor: pwLoading ? 'default' : 'pointer',
             whiteSpace: 'nowrap', transition: 'background 0.2s ease',

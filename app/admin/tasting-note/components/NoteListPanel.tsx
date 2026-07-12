@@ -34,7 +34,7 @@ export function NoteListPanel(p: Props) {
         overflowY: "auto",
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
         flexShrink: 0,
       }}
     >
@@ -84,7 +84,7 @@ export function NoteListPanel(p: Props) {
                 alignItems: "center",
                 gap: 10,
                 padding: "10px 12px",
-                borderBottom: "1px solid var(--gray-100)",
+                borderBottom: "1px solid var(--border-default)",
                 cursor: "pointer",
                 background: isSelected ? "#eff6ff" : "#fff",
                 borderLeft: isSelected ? "3px solid var(--status-info)" : "3px solid transparent",
@@ -156,7 +156,7 @@ export function NoteListPanel(p: Props) {
                   style={{
                     fontSize: 11,
                     padding: "2px 8px",
-                    borderRadius: 10,
+                    borderRadius: 12,
                     background: badge.bg,
                     color: badge.color,
                     fontWeight: 600,

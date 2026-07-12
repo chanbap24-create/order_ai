@@ -45,7 +45,7 @@ export function StockSection(p: Props) {
                     background: isOos ? "var(--gray-50)" : "white",
                     borderRadius: 12,
                     borderLeft: `4px solid ${isOos ? "#B71C1C" : "var(--status-warning)"}`,
-                    boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                     padding: "14px 16px",
                     position: "relative",
                   }}

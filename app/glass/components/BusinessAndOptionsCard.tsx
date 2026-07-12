@@ -18,9 +18,9 @@ export function BusinessAndOptionsCard({ newBusiness, orderOptions }: Props) {
       style={{
         marginTop: 12,
         background: GLASS_COLORS.surface,
-        borderRadius: 16,
+        borderRadius: 12,
         border: `1px solid ${GLASS_COLORS.dividerCard}`,
-        boxShadow: "0 1px 4px rgba(90,21,21,0.02)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.02)",
         overflow: "hidden",
       }}
     >

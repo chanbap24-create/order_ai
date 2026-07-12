@@ -21,13 +21,12 @@ export default function AdminLoginCard(p: Props) {
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
+      background: 'var(--surface-muted)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
       <div style={{
-        background: '#fff', borderRadius: 14,
-        boxShadow: '0 2px 8px rgba(90,21,21,0.03)',
+        background: '#fff', borderRadius: 12,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
         border: '1px solid var(--action-muted)',
         padding: '40px 32px', width: 320, textAlign: 'center',
       }}>

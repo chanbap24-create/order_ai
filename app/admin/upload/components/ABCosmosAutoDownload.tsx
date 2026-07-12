@@ -31,7 +31,7 @@ export function ABCosmosAutoDownload({ handleUpload, checkStatus }: Props) {
               width: 40,
               height: 40,
               borderRadius: "var(--radius-md)",
-              background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+              background: "var(--surface-dark)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -102,7 +102,7 @@ export function ABCosmosAutoDownload({ handleUpload, checkStatus }: Props) {
               borderRadius: "var(--radius-md)",
               background: s.isBusy
                 ? "var(--color-border)"
-                : "linear-gradient(135deg, #7c3aed, #a78bfa)",
+                : "var(--surface-dark)",
               color: "white",
               border: "none",
               fontSize: "var(--text-sm)",

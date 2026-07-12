@@ -68,7 +68,7 @@ export default function MfaSetupPage() {
             인증 앱을 분실했을 때 각 1회 사용 가능합니다.
           </p>
           <div style={{
-            background: 'var(--surface-muted)', border: '1px solid rgba(90,21,21,0.1)',
+            background: 'var(--surface-muted)', border: '1px solid var(--border-default)',
             borderRadius: 6, padding: 16, fontFamily: 'monospace',
             fontSize: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
           }}>
@@ -115,7 +115,7 @@ export default function MfaSetupPage() {
               style={{
                 width: '100%', height: 48, fontSize: 24, textAlign: 'center',
                 letterSpacing: '0.4em', fontFamily: 'monospace',
-                border: '1.5px solid rgba(90,21,21,0.2)', borderRadius: 6,
+                border: '1.5px solid var(--border-strong)', borderRadius: 6,
                 outline: 'none', marginTop: 8, boxSizing: 'border-box',
               }}
             />
@@ -145,21 +145,21 @@ export default function MfaSetupPage() {
 
 const pageStyle: React.CSSProperties = {
   minHeight: 'calc(100vh - 56px)',
-  background: 'linear-gradient(180deg, var(--surface-muted) 0%, #f5f3f0 100%)',
+  background: 'var(--surface-muted)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  padding: 20, fontFamily: "'DM Sans', -apple-system, sans-serif",
+  padding: 20,
 };
 
 const cardStyle: React.CSSProperties = {
-  background: '#fff', borderRadius: 14,
-  boxShadow: '0 2px 8px rgba(90,21,21,0.05)',
+  background: '#fff', borderRadius: 12,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
   border: '1px solid var(--action-muted)',
   padding: '32px 28px', width: '100%', maxWidth: 420,
 };
 
 const titleStyle: React.CSSProperties = {
   fontSize: 18, fontWeight: 700, color: 'var(--text-primary)',
-  marginTop: 0, marginBottom: 16, fontFamily: "'Cormorant Garamond', serif",
+  marginTop: 0, marginBottom: 16,
 };
 
 const btnPrimary: React.CSSProperties = {

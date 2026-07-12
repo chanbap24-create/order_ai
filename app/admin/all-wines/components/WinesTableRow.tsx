@@ -18,7 +18,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
         onClick={onSelect}
         style={{
           display: 'grid', gridTemplateColumns: '56px 1fr 56px',
-          padding: '10px 12px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer',
+          padding: '10px 12px', borderBottom: '1px solid var(--border-default)', cursor: 'pointer',
           background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
           borderLeft: isSelected ? '3px solid var(--status-info)' : '3px solid transparent',
         }}
@@ -44,7 +44,7 @@ export function WinesTableRow({ wine: w, isMobile, isSelected, deleting, onSelec
       onClick={onSelect}
       style={{
         display: 'grid', gridTemplateColumns: '58px 52px 60px 36px 1fr 70px 50px 50px 36px',
-        padding: '9px 12px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer',
+        padding: '9px 12px', borderBottom: '1px solid var(--border-default)', cursor: 'pointer',
         background: isSelected ? '#eff6ff' : '#fff', gap: 6, alignItems: 'center',
         borderLeft: isSelected ? '3px solid var(--status-info)' : '3px solid transparent',
       }}

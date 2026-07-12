@@ -45,16 +45,16 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
       onClick={onToggle}
       style={{
         background: item.promo ? 'linear-gradient(0deg, rgba(224,144,15,0.07), rgba(224,144,15,0.07)), #fff' : '#fff',
-        borderRadius: 10, padding: '12px 14px',
+        borderRadius: 12, padding: '12px 14px',
         border: item.promo ? '2px solid #e0900f' : isSelected ? '2px solid var(--action)' : '1px solid var(--action-muted)',
-        boxShadow: isSelected ? '0 0 0 1px rgba(90,21,21,0.1)' : '0 1px 2px rgba(90,21,21,0.03)',
+        boxShadow: isSelected ? '0 0 0 1px rgba(0,0,0,0.1)' : '0 1px 2px rgba(0,0,0,0.03)',
         cursor: 'pointer', transition: 'all 0.15s',
         display: 'flex', gap: 12, alignItems: 'flex-start',
       }}
     >
       <div style={{
         width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-        border: isSelected ? '2px solid var(--action)' : '2px solid rgba(90,21,21,0.12)',
+        border: isSelected ? '2px solid var(--action)' : '2px solid var(--border-default)',
         background: isSelected ? 'var(--action)' : '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2,
       }}>
@@ -143,7 +143,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
             {showBreak && (
               <div style={{
                 marginTop: 4, padding: '6px 10px', borderRadius: 6,
-                background: 'var(--surface-muted)', border: '1px solid var(--gray-100)',
+                background: 'var(--surface-muted)', border: '1px solid var(--border-default)',
                 fontFamily: 'ui-monospace, monospace',
               }}>
                 {item.breakdown.map((line, i) => {
@@ -153,7 +153,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
                       fontSize: 11.5, lineHeight: 1.7,
                       color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
                       fontWeight: isTotal ? 700 : 400,
-                      borderTop: isTotal ? '1px solid var(--gray-200)' : 'none',
+                      borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
                       marginTop: isTotal ? 3 : 0, paddingTop: isTotal ? 3 : 0,
                     }}>
                       {line}

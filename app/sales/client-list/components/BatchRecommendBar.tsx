@@ -17,7 +17,7 @@ export function BatchRecommendBar({ count, running, progress, message, onRun, on
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-      background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 10,
+      background: '#fff', border: '1px solid var(--action-muted)', borderRadius: 12,
       padding: '10px 14px',
     }}>
       <div style={{ flex: 1, minWidth: 160 }}>
@@ -49,7 +49,7 @@ export function BatchRecommendBar({ count, running, progress, message, onRun, on
         disabled={running || count === 0}
         style={{
           padding: '8px 16px', borderRadius: 8, border: 'none',
-          background: running || count === 0 ? 'var(--gray-300)' : 'linear-gradient(135deg, var(--action), #8B2252)',
+          background: running || count === 0 ? 'var(--gray-300)' : 'var(--action)',
           color: '#fff', fontSize: 13, fontWeight: 700,
           cursor: running || count === 0 ? 'default' : 'pointer',
         }}

@@ -50,7 +50,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
   const scenarios = [
     { label: "보수적", value: Math.round(baseQty * 0.6), color: "#95a5a6", icon: "▽" },
     { label: "기본", value: baseQty, color: "var(--action)", icon: "■" },
-    { label: "낙관적", value: Math.round(baseQty * 1.5), color: "#27ae60", icon: "△" },
+    { label: "낙관적", value: Math.round(baseQty * 1.5), color: "var(--status-success)", icon: "△" },
   ];
 
   const importBottles = importCases * bottlesPerCase;
@@ -62,7 +62,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
       style={{
         background: "#fff",
         borderRadius: 8,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
         marginBottom: 16,
         overflow: "hidden",
       }}
@@ -71,7 +71,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
         onClick={() => setSimOpen(!simOpen)}
         style={{
           padding: "12px 24px",
-          borderBottom: simOpen ? "1px solid var(--gray-200)" : "none",
+          borderBottom: simOpen ? "1px solid var(--border-default)" : "none",
           cursor: "pointer",
           display: "flex",
           justifyContent: "space-between",
@@ -91,7 +91,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
               display: "flex",
               gap: 20,
               flexWrap: "wrap",
-              borderBottom: "1px solid var(--gray-200)",
+              borderBottom: "1px solid var(--border-default)",
             }}
           >
             <div style={{ flex: 1, minWidth: 140 }}>
@@ -179,7 +179,7 @@ export function SimulationCard({ mergedData, isNewItem, priceStats }: Props) {
             />
 
             {wines.length > 0 && (
-              <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 10 }}>
+              <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: 10 }}>
                 <div style={{ fontSize: 10, color: "#bbb", marginBottom: 6 }}>
                   기대값 {baseQty}병/년 · {wines.length}개 와인 기반
                 </div>
@@ -222,7 +222,7 @@ const numInput: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
   textAlign: "center",
-  border: "1px solid var(--gray-200)",
+  border: "1px solid var(--border-default)",
   borderRadius: 4,
   color: "var(--neutral-800)",
 };
@@ -231,7 +231,7 @@ const textInput: React.CSSProperties = {
   width: "100%",
   padding: "5px 10px",
   fontSize: 13,
-  border: "1px solid var(--gray-200)",
+  border: "1px solid var(--border-default)",
   borderRadius: 4,
   color: "var(--neutral-800)",
 };

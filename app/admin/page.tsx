@@ -138,7 +138,6 @@ export default function AdminPage() {
     <div style={{
       minHeight: 'calc(100vh - 56px)',
       background: 'var(--surface-muted)',
-      fontFamily: "'DM Sans', -apple-system, sans-serif",
     }}>
       <div
         className="admin-container"
@@ -161,7 +160,7 @@ export default function AdminPage() {
         }}>
           <div style={{ minWidth: 0 }}>
             <h1 style={{
-              fontFamily: "'Cormorant Garamond', serif",
+
               fontSize: '1.5rem',
               fontWeight: 500,
               color: 'var(--text-primary)',
@@ -173,7 +172,7 @@ export default function AdminPage() {
               width: 32,
               height: 2,
               marginTop: 10,
-              background: 'linear-gradient(90deg, var(--action) 0%, transparent 100%)',
+              background: 'var(--action)',
               borderRadius: 1,
             }} />
           </div>

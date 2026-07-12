@@ -22,7 +22,7 @@ export function ImportSidebar(p: Props) {
         width: 200,
         flexShrink: 0,
         background: "var(--surface)",
-        borderRadius: 10,
+        borderRadius: 12,
         border: "1px solid var(--border-default)",
         overflow: "hidden",
         alignSelf: "flex-start",

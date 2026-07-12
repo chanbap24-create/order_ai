@@ -76,7 +76,7 @@ export function WineShipmentsDetail(p: Props) {
           fontWeight: 500,
           color: "#bbb",
           padding: "6px 0 4px",
-          borderBottom: "1px solid var(--gray-200)",
+          borderBottom: "1px solid var(--border-default)",
         }}
       >
         <div>거래처</div>
@@ -116,7 +116,7 @@ export function WineShipmentsDetail(p: Props) {
                   fontSize: 11,
                   padding: "4px 0",
                   borderBottom:
-                    gi < showSlice.length - 1 ? "1px solid var(--gray-100)" : "none",
+                    gi < showSlice.length - 1 ? "1px solid var(--border-default)" : "none",
                   alignItems: "center",
                 }}
               >
@@ -153,7 +153,7 @@ export function WineShipmentsDetail(p: Props) {
             <div
               key={gi}
               style={{
-                borderBottom: gi < showSlice.length - 1 ? "1px solid var(--gray-100)" : "none",
+                borderBottom: gi < showSlice.length - 1 ? "1px solid var(--border-default)" : "none",
               }}
             >
               <div
@@ -218,7 +218,7 @@ export function WineShipmentsDetail(p: Props) {
           padding: "6px 0 0",
           fontSize: 11,
           color: "var(--neutral-100)",
-          borderTop: "1px solid var(--gray-200)",
+          borderTop: "1px solid var(--border-default)",
           marginTop: 4,
           display: "flex",
           justifyContent: "space-between",
@@ -245,7 +245,7 @@ export function WineShipmentsDetail(p: Props) {
               fontWeight: 500,
               color: "var(--neutral-500)",
               background: "#fff",
-              border: "1px solid var(--gray-200)",
+              border: "1px solid var(--border-default)",
               borderRadius: 4,
               padding: "3px 10px",
               cursor: "pointer",

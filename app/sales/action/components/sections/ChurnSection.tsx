@@ -51,7 +51,7 @@ export function ChurnSection(p: Props) {
                   onClick={() => p.setChurnFilter(f.id)}
                   style={{
                     padding: "4px 12px",
-                    borderRadius: 20,
+                    borderRadius: 12,
                     border:
                       p.churnFilter === f.id
                         ? `1.5px solid ${f.id === "all" ? "var(--action)" : RISK_COLORS[f.id] || "var(--action)"}`
@@ -59,8 +59,8 @@ export function ChurnSection(p: Props) {
                     background:
                       p.churnFilter === f.id
                         ? f.id === "all"
-                          ? "#faf5f5"
-                          : RISK_BG[f.id] || "#faf5f5"
+                          ? "var(--surface-muted)"
+                          : RISK_BG[f.id] || "var(--surface-muted)"
                         : "white",
                     fontSize: 11,
                     fontWeight: p.churnFilter === f.id ? 600 : 400,
@@ -97,7 +97,7 @@ export function ChurnSection(p: Props) {
                     background: "white",
                     borderRadius: 12,
                     borderLeft: `4px solid ${RISK_COLORS[item.risk_level]}`,
-                    boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                     padding: "14px 16px",
                     cursor: "pointer",
                     transition: "box-shadow 0.15s",

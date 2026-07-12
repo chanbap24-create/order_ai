@@ -91,7 +91,7 @@ export function YearsTab(p: Props) {
           padding: "16px 18px",
           background: "var(--gray-50)",
           borderRadius: 6,
-          border: "1px solid var(--gray-200)",
+          border: "1px solid var(--border-default)",
         }}
       >
         <div style={{ fontSize: 12, fontWeight: 600, color: "var(--neutral-800)", marginBottom: 10 }}>

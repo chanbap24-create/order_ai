@@ -141,14 +141,14 @@ export function ClientTastingCard({ clientCode, clientName, clientType, manager 
 
 const card: React.CSSProperties = {
   background: "white", borderRadius: 8, padding: "12px 20px",
-  boxShadow: "0 2px 8px rgba(90,21,21,0.03)", marginBottom: 16,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.03)", marginBottom: 16,
 };
 const title: React.CSSProperties = { fontSize: 14, fontWeight: 600, color: "var(--text-primary)" };
 const muted: React.CSSProperties = { fontSize: 12, color: "var(--text-tertiary)" };
 const rowLabel: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-secondary)" };
 const field: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 2 };
 const fieldLabel: React.CSSProperties = { fontSize: 11, color: "var(--text-muted)" };
-const input: React.CSSProperties = { fontSize: 13, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--gray-200)", outline: "none" };
+const input: React.CSSProperties = { fontSize: 13, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border-default)", outline: "none" };
 const btnPrimary: React.CSSProperties = {
   padding: "5px 12px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer",
   border: "1px solid var(--action)", background: "var(--action)", color: "white",
@@ -159,7 +159,7 @@ const histRow: React.CSSProperties = {
 };
 const approvalBtn: React.CSSProperties = {
   padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
-  border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-secondary)",
+  border: "1px solid var(--border-default)", background: "#fff", color: "var(--text-secondary)",
 };
 const deleteBtn: React.CSSProperties = {
   padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",

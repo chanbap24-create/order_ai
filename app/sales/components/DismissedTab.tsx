@@ -140,7 +140,7 @@ export default function DismissedTab() {
           position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--status-success)', color: 'white', padding: '10px 20px',
           borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(90,21,21,0.1)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         }}>
           {d.toast}
         </div>

@@ -107,7 +107,7 @@ export function ClientSearchInput({
           borderRadius: 8,
           border: `1.5px solid ${focused ? "var(--action)" : "var(--gray-200)"}`,
           outline: "none",
-          boxShadow: focused ? "0 0 0 3px rgba(90,21,21,0.06)" : "none",
+          boxShadow: focused ? "0 0 0 3px rgba(0,0,0,0.06)" : "none",
           transition: "border-color 0.15s, box-shadow 0.15s",
         }}
       />
@@ -122,7 +122,7 @@ export function ClientSearchInput({
             maxHeight: 240,
             overflowY: "auto",
             background: "white",
-            border: "1px solid var(--gray-200)",
+            border: "1px solid var(--border-default)",
             borderRadius: 8,
             boxShadow: "0 6px 20px rgba(0,0,0,0.12)",
             zIndex: 1000,
@@ -139,7 +139,7 @@ export function ClientSearchInput({
                 padding: "8px 12px",
                 fontSize: 13,
                 border: "none",
-                borderBottom: "1px solid var(--gray-100)",
+                borderBottom: "1px solid var(--border-default)",
                 background: "white",
                 cursor: "pointer",
               }}

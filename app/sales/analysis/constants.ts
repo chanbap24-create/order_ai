@@ -4,7 +4,7 @@ export const PALETTE = [
 ];
 
 export const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "VIP", color: "#dc3545" },
+  1: { label: "VIP", color: "var(--status-danger)" },
   2: { label: "중요", color: "#fd7e14" },
   3: { label: "일반", color: "#6c757d" },
   4: { label: "간헐", color: "#adb5bd" },

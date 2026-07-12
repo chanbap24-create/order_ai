@@ -6,7 +6,7 @@ export const qThStyle: CSSProperties = {
   fontSize: 12,
   fontWeight: 600,
   whiteSpace: "nowrap",
-  borderBottom: "1px solid var(--gray-200)",
+  borderBottom: "1px solid var(--border-default)",
   textAlign: "center",
   color: "var(--neutral-400)",
   textTransform: "uppercase",
@@ -35,7 +35,7 @@ export const sheetInputStyle: CSSProperties = {
   fontSize: 16,
   padding: "10px 12px",
   borderRadius: 6,
-  border: "1px solid var(--gray-200)",
+  border: "1px solid var(--border-default)",
   boxSizing: "border-box",
   outline: "none",
 };

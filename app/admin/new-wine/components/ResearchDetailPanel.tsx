@@ -45,7 +45,7 @@ export function ResearchDetailPanel(p: Props) {
         overflowY: "auto",
         background: "#fafbfc",
         borderRadius: 8,
-        border: "1px solid var(--gray-200)",
+        border: "1px solid var(--border-default)",
         flexShrink: 0,
         position: "relative",
       }}

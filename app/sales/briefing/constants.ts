@@ -6,9 +6,9 @@ export const MEETING_TYPES: Record<string, { label: string; color: string }> = {
 };
 
 export const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  planned: { label: '예정', color: '#1976D2', bg: '#E3F2FD' },
-  confirmed: { label: '확정', color: '#E65100', bg: '#FFF3E0' },
-  completed: { label: '완료', color: '#2E7D32', bg: '#E8F5E9' },
+  planned: { label: '예정', color: '#1976D2', bg: 'var(--status-info-bg)' },
+  confirmed: { label: '확정', color: 'var(--status-warning)', bg: 'var(--status-warning-bg)' },
+  completed: { label: '완료', color: 'var(--status-success)', bg: 'var(--status-success-bg)' },
   cancelled: { label: '취소', color: '#757575', bg: '#F5F5F5' },
 };
 
@@ -21,8 +21,8 @@ export const TAG_COLORS: Record<string, string> = {
 
 export const IMPORTANCE_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: 'VIP', color: '#b71c1c' },
-  2: { label: '중요', color: '#e65100' },
-  3: { label: '보통', color: '#1565c0' },
+  2: { label: '중요', color: 'var(--status-warning)' },
+  3: { label: '보통', color: 'var(--status-info)' },
   4: { label: '소규모', color: '#616161' },
   5: { label: '일반', color: '#9e9e9e' },
 };

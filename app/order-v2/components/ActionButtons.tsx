@@ -28,8 +28,8 @@ export function ActionButtons({
         onClick={onPaste}
         style={{
           padding: "13px 18px",
-          borderRadius: 10,
-          border: "1px solid rgba(90,21,21,0.15)",
+          borderRadius: 12,
+          border: "1px solid var(--border-strong)",
           background: "#fff",
           fontSize: 13,
           fontWeight: 600,
@@ -48,17 +48,17 @@ export function ActionButtons({
         style={{
           flex: 1,
           padding: "13px 0",
-          borderRadius: 10,
+          borderRadius: 12,
           border: "none",
           background: disabled
             ? "#d8d3ce"
-            : "linear-gradient(135deg, var(--action) 0%, #7a2828 50%, var(--action) 100%)",
+            : "var(--action)",
           color: "#fff",
           fontSize: 14,
           fontWeight: 700,
           cursor: loading ? "wait" : "pointer",
           letterSpacing: "0.04em",
-          boxShadow: disabled ? "none" : "0 4px 16px rgba(90,21,21,0.15)",
+          boxShadow: disabled ? "none" : "0 4px 16px rgba(0,0,0,0.15)",
           position: "relative",
           overflow: "hidden",
         }}
@@ -71,10 +71,10 @@ export function ActionButtons({
           onClick={onReset}
           style={{
             padding: "13px 22px",
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 13,
             fontWeight: 600,
-            border: "1px solid rgba(90,21,21,0.1)",
+            border: "1px solid var(--border-default)",
             background: "#fff",
             color: ORDER_COLORS.textMuted,
             cursor: "pointer",

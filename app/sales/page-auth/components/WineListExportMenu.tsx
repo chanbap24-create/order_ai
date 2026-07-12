@@ -77,7 +77,7 @@ export function WineListExportMenu() {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 1000,
-          background: '#fff', border: '1px solid var(--gray-200)', borderRadius: 10,
+          background: '#fff', border: '1px solid var(--border-default)', borderRadius: 12,
           boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 14, minWidth: 230,
         }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
@@ -97,7 +97,7 @@ export function WineListExportMenu() {
           </div>
           <button onClick={save} disabled={saving} style={{
             marginTop: 10, width: '100%', padding: '7px', borderRadius: 6, border: 'none',
-            background: saved ? '#16a34a' : 'var(--action)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            background: saved ? 'var(--status-success)' : 'var(--action)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
           }}>
             {saving ? '저장 중...' : saved ? '✓ 저장됨' : '저장'}
           </button>

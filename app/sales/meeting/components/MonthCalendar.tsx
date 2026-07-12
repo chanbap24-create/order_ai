@@ -30,7 +30,7 @@ export function MonthCalendar(p: Props) {
         flex: 1,
         minWidth: 0,
         background: "var(--surface)",
-        borderRadius: 10,
+        borderRadius: 12,
         border: "1px solid var(--border-default)",
         overflow: "hidden",
       }}

@@ -23,7 +23,7 @@ export function DetailContainer(p: Props) {
       <div
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000,
-          background: 'rgba(90,21,21,0.4)',
+          background: 'rgba(0,0,0,0.4)',
           display: 'flex', justifyContent: 'flex-end',
         }}
         onClick={p.onClose}
@@ -37,13 +37,13 @@ export function DetailContainer(p: Props) {
         >
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', borderBottom: '1px solid var(--gray-200)', position: 'sticky', top: 0,
+            padding: '14px 16px', borderBottom: '1px solid var(--border-default)', position: 'sticky', top: 0,
             background: '#fff', zIndex: 1,
           }}>
             <button
               onClick={p.onClose}
               style={{
-                border: '1px solid var(--gray-200)', background: '#f9fafb', cursor: 'pointer', fontSize: 14,
+                border: '1px solid var(--border-default)', background: '#f9fafb', cursor: 'pointer', fontSize: 14,
                 color: 'var(--action)', fontWeight: 600, padding: '6px 14px', borderRadius: 6,
                 display: 'flex', alignItems: 'center', gap: 6,
               }}
@@ -71,7 +71,7 @@ export function DetailContainer(p: Props) {
   return (
     <div style={{
       width: 380, minWidth: 320, overflowY: 'auto', background: '#fff',
-      borderRadius: 8, border: '1px solid var(--gray-200)', flexShrink: 0,
+      borderRadius: 8, border: '1px solid var(--border-default)', flexShrink: 0,
     }}>
       {!p.selectedWine ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--gray-400)', fontSize: 14 }}>

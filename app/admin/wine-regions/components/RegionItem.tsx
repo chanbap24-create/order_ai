@@ -13,7 +13,7 @@ export function RegionItem({ region: r, onEdit, onDelete }: Props) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 8,
-      padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: 13,
+      padding: '6px 0', borderBottom: '1px solid var(--border-default)', fontSize: 13,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

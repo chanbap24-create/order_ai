@@ -60,7 +60,7 @@ export default function FeatureUsageTab() {
       {/* 필터 카드 */}
       <div style={{
         background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16,
-        border: '1px solid rgba(90,21,21,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end',
       }}>
         <div>

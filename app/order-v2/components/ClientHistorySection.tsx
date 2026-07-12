@@ -74,7 +74,7 @@ export function ClientHistorySection({
           style={{
             marginTop: 6,
             border: "1px solid var(--action-muted)",
-            borderRadius: 10,
+            borderRadius: 12,
             background: ORDER_COLORS.surfaceBg,
             overflow: "hidden",
             animation: "orderSlideIn 0.2s ease",
@@ -112,7 +112,7 @@ export function ClientHistorySection({
                       gap: 6,
                       width: "100%",
                       padding: "9px 12px",
-                      background: "rgba(90,21,21,0.02)",
+                      background: "var(--surface-hover)",
                       border: "none",
                       cursor: "pointer",
                     }}
@@ -181,14 +181,14 @@ function HistoryTable({
             onClick={onPickItem ? () => onPickItem(h) : undefined}
             title={onPickItem ? "클릭하면 발주 라인에 추가됩니다" : undefined}
             style={{
-              borderBottom: "1px solid rgba(90,21,21,0.03)",
+              borderBottom: "1px solid var(--border-subtle)",
               transition: "background 0.15s ease",
               cursor: onPickItem ? "pointer" : "default",
             }}
           >
             <td style={{ padding: "7px 12px", color: ORDER_COLORS.text }}>
               <div style={{ fontWeight: 500, lineHeight: 1.3, fontSize: 12 }}>{h.item_name}</div>
-              <div style={{ fontSize: 10, color: "#b8b0a8", fontFamily: "'DM Sans', monospace" }}>
+              <div style={{ fontSize: 10, color: "#b8b0a8", fontFamily: "monospace" }}>
                 {h.item_no}
               </div>
             </td>

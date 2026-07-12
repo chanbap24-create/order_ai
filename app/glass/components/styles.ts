@@ -32,7 +32,7 @@ export const sectionLabelStyle: CSSProperties = {
 export const softCardStyle: CSSProperties = {
   marginTop: 16,
   background: GLASS_COLORS.surface,
-  borderRadius: 16,
+  borderRadius: 12,
   border: `1px solid ${GLASS_COLORS.dividerCard}`,
   boxShadow: GLASS_COLORS.primaryShadowSubtle,
   padding: "20px 18px 18px",

@@ -75,10 +75,10 @@ export default function OrderV2Page() {
           className="order-card"
           style={{
             background: ORDER_COLORS.surface,
-            borderRadius: 14,
+            borderRadius: 12,
             padding: "22px 22px 20px",
             border: "1px solid var(--action-muted)",
-            boxShadow: "0 2px 12px rgba(90,21,21,0.03)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
             marginBottom: 20,
             transition: "box-shadow 0.3s ease",
           }}
@@ -203,7 +203,7 @@ export default function OrderV2Page() {
                         title="시음주 선정 설정"
                         style={{
                           padding: "6px 9px", borderRadius: 8, fontSize: 12,
-                          border: "1px solid var(--gray-200)", background: "#fff", color: "var(--text-tertiary)", cursor: "pointer",
+                          border: "1px solid var(--border-default)", background: "#fff", color: "var(--text-tertiary)", cursor: "pointer",
                         }}
                       >
                         ⚙

@@ -228,7 +228,7 @@ function Row({
   dragListeners?: Record<string, unknown>;
 }) {
   return (
-    <tr ref={dragRef as React.Ref<HTMLTableRowElement>} style={{ borderBottom: "1px solid var(--gray-200)", ...dragStyle }} {...dragAttributes}>
+    <tr ref={dragRef as React.Ref<HTMLTableRowElement>} style={{ borderBottom: "1px solid var(--border-default)", ...dragStyle }} {...dragAttributes}>
       <td
         style={{
           ...qTdStyle,

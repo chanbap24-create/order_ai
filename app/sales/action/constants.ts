@@ -1,12 +1,12 @@
 export const RISK_COLORS: Record<string, string> = {
-  critical: '#c62828',
-  high: '#E65100',
+  critical: 'var(--status-danger)',
+  high: 'var(--status-warning)',
   medium: '#F57F17',
 };
 
 export const RISK_BG: Record<string, string> = {
-  critical: '#FFEBEE',
-  high: '#FFF3E0',
+  critical: 'var(--status-danger-bg)',
+  high: 'var(--status-warning-bg)',
   medium: '#FFFDE7',
 };
 

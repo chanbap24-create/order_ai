@@ -5,15 +5,15 @@
 
 export const GLASS_COLORS = {
   primary: "var(--action)",
-  primaryBgSubtle: "rgba(90,21,21,0.02)",
+  primaryBgSubtle: "var(--surface-hover)",
   primaryBgLight: "var(--border-subtle)",
   primaryBgHover: "var(--action-muted)",
   primaryBorder: "var(--border-default)",
-  primaryBorderStrong: "rgba(90,21,21,0.15)",
-  primaryBorderFocus: "rgba(90,21,21,0.25)",
-  primaryShadow: "0 2px 8px rgba(90,21,21,0.2)",
-  primaryShadowSubtle: "0 2px 8px rgba(90,21,21,0.03)",
-  primaryShadowFaint: "0 1px 3px rgba(90,21,21,0.03)",
+  primaryBorderStrong: "var(--border-strong)",
+  primaryBorderFocus: "var(--border-strong)",
+  primaryShadow: "0 2px 8px rgba(0,0,0,0.2)",
+  primaryShadowSubtle: "0 2px 8px rgba(0,0,0,0.03)",
+  primaryShadowFaint: "0 1px 3px rgba(0,0,0,0.03)",
 
   text: "var(--text-primary)",
   textMuted: "var(--text-tertiary)",
@@ -23,14 +23,14 @@ export const GLASS_COLORS = {
   surface: "#fff",
   surfaceBg: "var(--surface-muted)",
   surfaceBgAlt: "#fafaf8",
-  dividerFaint: "rgba(90,21,21,0.05)",
+  dividerFaint: "var(--border-subtle)",
   dividerCard: "var(--action-muted)",
-  dividerCardLight: "rgba(90,21,21,0.1)",
+  dividerCardLight: "var(--border-default)",
 
   toggleOff: "#d4d0cc",
 
-  danger: "#c0392b",
-  dangerStrong: "#dc2626",
+  danger: "var(--status-danger)",
+  dangerStrong: "var(--status-danger)",
   dangerBg: "rgba(220,38,38,0.05)",
   dangerBorder: "rgba(220,38,38,0.15)",
 
@@ -45,7 +45,6 @@ export const GLASS_COLORS = {
 } as const;
 
 export const GLASS_FONT = {
-  base: "'DM Sans', -apple-system, sans-serif",
   mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
 } as const;
 

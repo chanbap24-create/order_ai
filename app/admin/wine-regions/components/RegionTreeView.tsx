@@ -24,7 +24,7 @@ function WineBadge({ n, onClick }: { n?: number; onClick?: () => void }) {
       title={onClick ? '클릭: 이 산지의 우리 와인 목록' : undefined}
       style={{
         fontSize: 11, fontWeight: 700, color: '#fff', background: '#7C3AED',
-        borderRadius: 10, padding: '1px 8px', cursor: onClick ? 'pointer' : 'default',
+        borderRadius: 12, padding: '1px 8px', cursor: onClick ? 'pointer' : 'default',
       }}
     >
       🍷 {n}종

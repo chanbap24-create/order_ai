@@ -42,7 +42,7 @@ export function UpsellSection(p: Props) {
                   background: "white",
                   borderRadius: 12,
                   borderLeft: "4px solid var(--status-success)",
-                  boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                   padding: "14px 16px",
                   position: "relative",
                 }}

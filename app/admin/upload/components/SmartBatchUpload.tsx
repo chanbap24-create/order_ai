@@ -172,7 +172,7 @@ export function SmartBatchUpload({ handleUpload, checkStatus }: Props) {
           padding: "var(--space-6)",
           textAlign: "center",
           cursor: isBatchUploading ? "not-allowed" : "pointer",
-          background: isDragOver ? "rgba(139,21,56,0.04)" : "var(--color-background)",
+          background: isDragOver ? "var(--surface-active)" : "var(--color-background)",
           transition: "all 0.15s",
           marginBottom: files.length > 0 ? "var(--space-4)" : 0,
         }}

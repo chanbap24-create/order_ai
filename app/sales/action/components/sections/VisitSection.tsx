@@ -51,7 +51,7 @@ export function VisitSection(p: Props) {
                   onClick={() => p.setVisitFilter(f.id)}
                   style={{
                     padding: "4px 12px",
-                    borderRadius: 20,
+                    borderRadius: 12,
                     border:
                       p.visitFilter === f.id
                         ? `1.5px solid ${f.id === "all" ? "#795548" : VISIT_URGENCY_COLORS[f.id] || "#795548"}`
@@ -93,7 +93,7 @@ export function VisitSection(p: Props) {
                   background: "white",
                   borderRadius: 12,
                   borderLeft: `4px solid ${VISIT_URGENCY_COLORS[v.visit_urgency] || "#795548"}`,
-                  boxShadow: "0 2px 8px rgba(90,21,21,0.03)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                   padding: "14px 16px",
                   position: "relative",
                 }}

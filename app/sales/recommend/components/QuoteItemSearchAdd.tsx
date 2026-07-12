@@ -67,7 +67,7 @@ export function QuoteItemSearchAdd({ onAdd }: Props) {
             <button key={r.item_no} onClick={() => add(r)} disabled={addingCode === r.item_no}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px',
-                border: 'none', borderBottom: '1px solid var(--gray-100)', background: '#fff',
+                border: 'none', borderBottom: '1px solid var(--border-default)', background: '#fff',
                 textAlign: 'left', cursor: addingCode === r.item_no ? 'default' : 'pointer', fontSize: 13,
               }}>
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

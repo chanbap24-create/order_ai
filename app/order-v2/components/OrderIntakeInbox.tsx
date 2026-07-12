@@ -152,5 +152,5 @@ export function OrderIntakeInbox({ onLoad }: Props) {
 const chip: React.CSSProperties = { padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid var(--gray-300)", background: "#fff", color: "var(--text-secondary)" };
 const row: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6 };
 const pickBtn: React.CSSProperties = { textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--gray-300)", background: "#fff", cursor: "pointer", fontSize: 13, minWidth: 0 };
-const setup: React.CSSProperties = { marginTop: 8, padding: 10, background: "var(--surface-muted, #f7f4f2)", borderRadius: 8, border: "1px solid var(--gray-200)" };
-const codeInline: React.CSSProperties = { fontSize: 11, background: "#fff", padding: "1px 4px", borderRadius: 4, border: "1px solid var(--gray-200)" };
+const setup: React.CSSProperties = { marginTop: 8, padding: 10, background: "var(--surface-muted, #f7f4f2)", borderRadius: 8, border: "1px solid var(--border-default)" };
+const codeInline: React.CSSProperties = { fontSize: 11, background: "#fff", padding: "1px 4px", borderRadius: 4, border: "1px solid var(--border-default)" };

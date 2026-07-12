@@ -65,7 +65,7 @@ export function OrderLineCard(p: Props) {
       className="order-line-card"
       style={{
         background: "#fff",
-        borderRadius: 10,
+        borderRadius: 12,
         border: "1px solid var(--action-muted)",
         overflow: "hidden",
         transition: "border-color 0.2s ease",
@@ -81,7 +81,7 @@ export function OrderLineCard(p: Props) {
       {p.isExpanded && (
         <div
           style={{
-            borderTop: "1px solid rgba(90,21,21,0.05)",
+            borderTop: "1px solid var(--border-subtle)",
             animation: "orderSlideIn 0.15s ease",
           }}
         >

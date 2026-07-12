@@ -33,7 +33,7 @@ export function ManagerSelector(p: Props) {
         style={{
           padding: "8px 16px",
           borderRadius: 6,
-          border: allActive ? "1.5px solid var(--neutral-900)" : "1px solid var(--gray-200)",
+          border: allActive ? "1.5px solid var(--neutral-900)" : "1px solid var(--border-default)",
           background: allActive ? "var(--neutral-900)" : "#fff",
           cursor: "pointer",
           whiteSpace: "nowrap",
@@ -68,7 +68,7 @@ export function ManagerSelector(p: Props) {
             style={{
               padding: "8px 16px",
               borderRadius: 6,
-              border: isActive ? "1.5px solid var(--action)" : "1px solid var(--gray-200)",
+              border: isActive ? "1.5px solid var(--action)" : "1px solid var(--border-default)",
               background: isActive ? "var(--action)" : "#fff",
               cursor: "pointer",
               whiteSpace: "nowrap",

@@ -71,8 +71,8 @@ export function TastingNoteModal({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "#1a1a2e",
-            color: "#f0ece6",
+            background: "var(--surface-dark)",
+            color: "var(--surface-muted)",
           }}
         >
           <div>
@@ -92,7 +92,7 @@ export function TastingNoteModal({
             style={{
               background: "rgba(240,236,230,0.1)",
               border: "none",
-              color: "#f0ece6",
+              color: "var(--surface-muted)",
               fontSize: 20,
               width: 36,
               height: 36,
@@ -191,7 +191,7 @@ function PdfFrame({
             padding: "5px 14px",
             borderRadius: 6,
             border: "none",
-            background: "#1a1a2e",
+            background: "var(--surface-dark)",
             color: "white",
             fontWeight: 600,
             fontSize: "0.75rem",
@@ -207,7 +207,7 @@ function PdfFrame({
           background: "var(--gray-100)",
           borderRadius: 8,
           overflow: "hidden",
-          border: "1px solid var(--gray-200)",
+          border: "1px solid var(--border-default)",
           position: "relative",
         }}
       >

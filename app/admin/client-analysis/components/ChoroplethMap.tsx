@@ -69,7 +69,7 @@ export function ChoroplethMap({ url, values, keyOf, labelOf, width = 460 }: Prop
   const fill = (key: string) => {
     const s = values[key] || 0;
     if (!s) return '#f0ece9';
-    return `rgba(139,21,56,${(0.16 + 0.84 * (s / max)).toFixed(2)})`;
+    return `rgba(34,34,34,${(0.16 + 0.84 * (s / max)).toFixed(2)})`;
   };
 
   if (!geo) return <div style={{ padding: 24, color: 'var(--text-tertiary)', fontSize: 12, textAlign: 'center' }}>지도 불러오는 중…</div>;
