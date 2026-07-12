@@ -41,13 +41,13 @@ export function NoteListPanel(p: Props) {
       <div
         style={{
           padding: "10px 12px",
-          borderBottom: "2px solid var(--gray-200)",
+          borderBottom: "1px solid var(--border-default)",
           display: "flex",
           alignItems: "center",
           gap: 8,
           position: "sticky",
           top: 0,
-          background: "#f9fafb",
+          background: "var(--surface-muted)",
           zIndex: 1,
         }}
       >
@@ -86,8 +86,8 @@ export function NoteListPanel(p: Props) {
                 padding: "10px 12px",
                 borderBottom: "1px solid var(--border-default)",
                 cursor: "pointer",
-                background: isSelected ? "#eff6ff" : "#fff",
-                borderLeft: isSelected ? "3px solid var(--status-info)" : "3px solid transparent",
+                background: isSelected ? "var(--surface-active)" : "#fff",
+                borderLeft: isSelected ? "3px solid var(--text-primary)" : "3px solid transparent",
               }}
             >
               <input
@@ -106,7 +106,7 @@ export function NoteListPanel(p: Props) {
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: "#1e293b",
+                    color: "var(--text-primary)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -114,7 +114,17 @@ export function NoteListPanel(p: Props) {
                 >
                   {w.item_name_kr}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--gray-400)",
+                    marginTop: 2,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                  title={`${w.item_code}${w.item_name_en ? ` · ${w.item_name_en}` : ""}`}
+                >
                   {w.item_code} {w.item_name_en ? `· ${w.item_name_en}` : ""}
                 </div>
                 <div style={{ fontSize: 10, color: "var(--gray-500)", marginTop: 2, display: "flex", gap: 6 }}>
@@ -126,12 +136,12 @@ export function NoteListPanel(p: Props) {
                   </span>
                   <span>
                     보세{" "}
-                    <b style={{ color: (w.inv_bonded || 0) > 0 ? "#0ea5e9" : "var(--gray-300)" }}>
+                    <b style={{ color: (w.inv_bonded || 0) > 0 ? "var(--status-info)" : "var(--gray-300)" }}>
                       {w.inv_bonded ?? 0}
                     </b>
                   </span>
                   <span>
-                    합계 <b style={{ color: totalStock > 0 ? "#1e293b" : "var(--gray-300)" }}>{totalStock}</b>
+                    합계 <b style={{ color: totalStock > 0 ? "var(--text-primary)" : "var(--gray-300)" }}>{totalStock}</b>
                   </span>
                 </div>
               </div>
