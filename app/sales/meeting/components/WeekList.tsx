@@ -115,33 +115,6 @@ export function WeekList(p: Props) {
   );
 }
 
-function Chip({
-  bg,
-  color,
-  children,
-}: {
-  bg: string;
-  color: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      style={{
-        fontSize: 10,
-        padding: "2px 6px",
-        borderRadius: 4,
-        background: bg,
-        color,
-        fontWeight: 700,
-        letterSpacing: "0.02em",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
 function MeetingRow({
   meeting,
   onClick,
@@ -193,9 +166,15 @@ function MeetingRow({
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
           {meeting.client_name}
         </span>
-        <Chip bg={imp.color} color="#fff">{imp.label}</Chip>
-        <Chip bg={`${mt.color}18`} color={mt.color}>{mt.label}</Chip>
-        <Chip bg={st.bg} color={st.color}>{st.label}</Chip>
+        {/* 칩 다운그레이드: 색 배경 대신 색 텍스트/도트만. '일반' 중요도는 노이즈라 생략 */}
+        {meeting.client_importance !== 3 && (
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: imp.color }}>{imp.label}</span>
+        )}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--text-secondary)" }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: mt.color }} />
+          {mt.label}
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: st.color }}>{st.label}</span>
         {meeting.purpose && (
           <span
             style={{

@@ -151,7 +151,8 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
             onDismiss={handleDismiss}
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* KREAM 리스트: 행 사이 gap 없이 헤어라인 연속 + 상단 헤어라인 */}
+          <div style={{ borderTop: '1px solid var(--border-default)' }}>
             {filtered.map((alert) => (
               <AlertCard
                 key={alert.item_no}

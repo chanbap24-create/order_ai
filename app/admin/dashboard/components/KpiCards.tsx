@@ -14,114 +14,95 @@ type Props = {
   dlChange: DashboardStats['dlChange'];
 };
 
-const cardStyle: React.CSSProperties = {
-  background: 'var(--surface)',
-  border: '1px solid var(--border-default)',
-  borderRadius: 12,
-  padding: '12px 14px',
-  textAlign: 'center',
-};
-const labelStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: 'var(--text-tertiary)',
-  fontWeight: 600,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase',
-  marginBottom: 6,
-};
-
+/**
+ * KPI 스탯 스트립 — KREAM 문법(박스 없이 상하 헤어라인 + 세로 구분, 좌측 정렬).
+ * 총매출 · 총재고 · 까브드뱅 · 대유라이프 한 줄. 증감은 색 숫자로.
+ */
 export const KpiCards = memo(function KpiCards(p: Props) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      {/* 상단 2개: 총 매출 / 총 재고금액 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 10,
-          marginBottom: 10,
-        }}
-      >
-        <div style={cardStyle}>
-          <div style={labelStyle}>총 매출</div>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: 'var(--action)',
-              lineHeight: 1.2,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {p.hasAnalysis ? formatKrw(p.totalRevenue) : '-'}
-          </div>
-          {p.hasAnalysis && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-              {new Date().getFullYear()}년 누적
-            </div>
-          )}
-        </div>
-        <div style={cardStyle}>
-          <div style={labelStyle}>총 재고금액</div>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              lineHeight: 1.2,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {formatKrw(p.totalInventory)}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            까브드뱅 + 대유라이프
-          </div>
-        </div>
-      </div>
-
-      {/* 하단 2개: 까브드뱅 / 대유라이프 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 10,
-        }}
-      >
-        <div style={cardStyle}>
-          <div style={labelStyle}>까브드뱅</div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--action)',
-              fontVariantNumeric: 'tabular-nums',
-              lineHeight: 1.2,
-            }}
-          >
-            {formatKrw(p.cdvValue)}원
-          </div>
-          <ChangeIndicator change={p.cdvChange} />
-        </div>
-        <div style={cardStyle}>
-          <div style={labelStyle}>대유라이프</div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--status-info)',
-              fontVariantNumeric: 'tabular-nums',
-              lineHeight: 1.2,
-            }}
-          >
-            {formatKrw(p.dlValue)}원
-          </div>
-          <ChangeIndicator change={p.dlChange} />
-        </div>
-      </div>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'stretch',
+        overflowX: 'auto',
+        borderTop: '1px solid var(--border-default)',
+        borderBottom: '1px solid var(--border-default)',
+        marginBottom: 16,
+      }}
+    >
+      <Cell
+        label="총 매출"
+        value={p.hasAnalysis ? formatKrw(p.totalRevenue) : '-'}
+        sub={p.hasAnalysis ? `${new Date().getFullYear()}년 누적` : undefined}
+      />
+      <Cell
+        label="총 재고금액"
+        value={formatKrw(p.totalInventory)}
+        sub="까브드뱅 + 대유라이프"
+        divider
+      />
+      <Cell
+        label="까브드뱅 재고"
+        value={`${formatKrw(p.cdvValue)}원`}
+        change={p.cdvChange}
+        divider
+      />
+      <Cell
+        label="대유라이프 재고"
+        value={`${formatKrw(p.dlValue)}원`}
+        change={p.dlChange}
+        divider
+      />
     </div>
   );
 });
+
+function Cell({
+  label,
+  value,
+  sub,
+  change,
+  divider,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  change?: InventoryChange | null;
+  divider?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        flex: '1 0 auto',
+        minWidth: 160,
+        padding: '14px 18px',
+        borderLeft: divider ? '1px solid var(--border-default)' : 'none',
+      }}
+    >
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: 4, whiteSpace: 'nowrap' }}>
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 19,
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: 'var(--text-primary)',
+          lineHeight: 1.2,
+          fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {value}
+      </div>
+      {change ? (
+        <ChangeIndicator change={change} />
+      ) : sub ? (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap' }}>{sub}</div>
+      ) : null}
+    </div>
+  );
+}
 
 function ChangeIndicator({ change }: { change: InventoryChange | null }) {
   if (!change || change.amount === 0) return null;
@@ -132,15 +113,15 @@ function ChangeIndicator({ change }: { change: InventoryChange | null }) {
   return (
     <div
       style={{
-        marginTop: 6,
+        marginTop: 3,
         fontSize: 12,
         color,
         fontWeight: 600,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
         gap: 4,
         fontVariantNumeric: 'tabular-nums',
+        whiteSpace: 'nowrap',
       }}
     >
       <span>
