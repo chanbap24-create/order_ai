@@ -66,11 +66,11 @@ export default function TastingStatusView({ rows, loading, company, currentManag
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "stretch", overflowX: "auto", borderTop: "1px solid var(--border-default)", borderBottom: "1px solid var(--border-default)", marginBottom: 12 }}>
         <div style={statCard}><div style={statLabel}>총 시음</div><div style={statValue}>{total}건</div></div>
-        <div style={statCard}><div style={statLabel}>공급가 합계</div><div style={statValue}>{won(amount)}원</div></div>
-        <div style={statCard}><div style={statLabel}>발주전환</div><div style={{ ...statValue, color: "var(--color-success, var(--status-success))" }}>{converted}건 · {rate}%</div></div>
-        <div style={statCard}><div style={statLabel}>상신</div><div style={statValue}>{submitted} / {total}</div></div>
+        <div style={{ ...statCard, borderLeft: "1px solid var(--border-default)" }}><div style={statLabel}>공급가 합계</div><div style={statValue}>{won(amount)}원</div></div>
+        <div style={{ ...statCard, borderLeft: "1px solid var(--border-default)" }}><div style={statLabel}>발주전환</div><div style={{ ...statValue, color: "var(--color-success, var(--status-success))" }}>{converted}건 · {rate}%</div></div>
+        <div style={{ ...statCard, borderLeft: "1px solid var(--border-default)" }}><div style={statLabel}>상신</div><div style={statValue}>{submitted} / {total}</div></div>
       </div>
       <div style={{ ...panel, padding: "6px 8px", overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13, minWidth: 760 }}>
