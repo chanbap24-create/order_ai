@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
     if (!start || !end) {
       return NextResponse.json({ success: false, error: "기간이 필요합니다." }, { status: 400 });
     }
-    const { data, error } = await supabase.rpc("fn_region_sales", { p_type: type, p_start: start, p_end: end });
+    // 글라스(DL)는 2025-08-01 전산이관 — 이관 전 출고 제외(매출분석과 동일 기준).
+    const effStart = type === "glass" && start < "2025-08-01" ? "2025-08-01" : start;
+    const { data, error } = await supabase.rpc("fn_region_sales", { p_type: type, p_start: effStart, p_end: end });
     if (error) throw error;
     return NextResponse.json({ success: true, rows: data || [] });
   } catch (e) {

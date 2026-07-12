@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { getSellingTotal } from '@/app/lib/priceUtils';
 import { resolveManagerScope } from '@/app/lib/authz';
 
 export async function GET(req: NextRequest) {
@@ -13,6 +12,9 @@ export async function GET(req: NextRequest) {
   const endDate = sp.get('end') || '';
   const businessType = sp.get('business_type') || '';
   const type = sp.get('type') || 'wine';
+  // 글라스(DL)는 2025-08-01 전산이관 — 이관 전 출고 제외(어드민 매출분석과 동일 기준).
+  const GLASS_CUTOFF = '2025-08-01';
+  const effStart = type === 'glass' && (!startDate || startDate < GLASS_CUTOFF) ? GLASS_CUTOFF : startDate;
 
   try {
     const table = type === 'glass' ? 'glass_shipments' : 'shipments';
@@ -26,7 +28,7 @@ export async function GET(req: NextRequest) {
         .from(table)
         .select('client_code, client_name, business_type, unit_price, selling_price, supply_amount, total_amount, quantity, ship_date')
         .eq('manager', manager);
-      if (startDate) q = q.gte('ship_date', startDate);
+      if (effStart) q = q.gte('ship_date', effStart);
       if (endDate) q = q.lte('ship_date', endDate);
       if (businessType) q = q.eq('business_type', businessType);
       return q.order('id', { ascending: true });
@@ -66,13 +68,11 @@ export async function GET(req: NextRequest) {
         });
       }
       const c = clientMap.get(key)!;
-      // 2025-08 이전 supply_amount 왜곡 보정: getSellingTotal 로 일관 계산
-      const rev = getSellingTotal(
-        row.unit_price || 0,
-        row.selling_price || 0,
-        row.supply_amount || 0,
-        row.quantity || 0,
-      );
+      // 매출식을 어드민 매출분석(fn_client_analysis rev_n)과 통일:
+      //   2025-08 이후 = supply_amount(총액) · 이전 = selling_price(판매총액, 0이면 supply_amount).
+      const rev = (row.ship_date || '') >= '2025-08-01'
+        ? (Number(row.supply_amount) || 0)
+        : (Number(row.selling_price) || Number(row.supply_amount) || 0);
       c.period_supply += rev;
       c.period_total += (row.total_amount || 0);
       c.period_qty += (row.quantity || 0);
