@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
 
     // 사용자 지정 기간이 있으면 해당 기간으로 필터
     const useCustomRange = !!(startParam && endParam);
-    const rangeStart = startParam || twelveStr;
+    const rangeStartRaw = startParam || twelveStr;
+    // 글라스(DL)는 2025-08-01 전산이관 전 출고 제외(매출분석과 동일 기준).
+    const rangeStart = clientType === 'glass' && rangeStartRaw < '2025-08-01' ? '2025-08-01' : rangeStartRaw;
     const rangeEnd = endParam || '';
 
     // 단일 거래처 상세 통계
@@ -67,9 +69,8 @@ export async function GET(req: NextRequest) {
           .eq('client_code', code)
           .gte('ship_date', aggStart);
         if (aggEnd) q = q.lte('ship_date', aggEnd);
-        // 와인: 거래처의 '총' 매출로 집계(담당 무관) — 재배정된 거래처의 예전 담당 출고도 현재 담당 화면에
-        //   포함돼 매출이 누락/축소되지 않게. 글라스는 담당(glass_shipments.manager) 기준 유지.
-        if (managerParam && clientType === 'glass') q = q.eq('manager', managerParam);
+        // 단일 거래처 상세는 그 거래처의 '총' 매출(담당 무관) — 와인·글라스 공통.
+        //   재배정된 거래처의 예전 담당 출고도 현재 담당 화면에 포함돼 매출이 누락/축소되지 않게.
         const { data, error } = await q
           .order('ship_date', { ascending: true })
           .range(shipFrom, shipFrom + shipBatch - 1);
@@ -151,8 +152,9 @@ export async function GET(req: NextRequest) {
     while (true) {
       let q = supabase.from(detailTable).select('client_code');
       if (!isGlass && clientType) q = q.eq('client_type', clientType);
-      // 와인: 현재 담당(client_details.manager)의 거래처만 — 목록/스코프와 일치.
-      if (!isGlass && managerParam) q = q.eq('manager', managerParam);
+      // 현재 담당의 거래처만 — 와인=client_details.manager · 글라스=glass_clients.manager.
+      //   담당 재배정 시 그 거래처의 과거 매출도 현재 담당에 귀속(어드민 매출분석과 동일 정책).
+      if (managerParam) q = q.eq('manager', managerParam);
       const { data: batch } = await q.range(detailFrom, detailFrom + 999);
       if (!batch || batch.length === 0) break;
       for (const c of batch) codes.push(c.client_code);
@@ -188,8 +190,7 @@ export async function GET(req: NextRequest) {
           .in('client_code', batch)
           .gte('ship_date', rangeStart);
         if (rangeEnd) q = q.lte('ship_date', rangeEnd);
-        // 와인: client_code별 총 매출(담당 무관). 코드셋이 이미 현재 담당으로 스코프됨. 글라스는 담당 기준 유지.
-        if (managerParam && isGlass) q = q.eq('manager', managerParam);
+        // client_code별 총 매출(담당 무관). 코드셋이 이미 현재 담당으로 스코프됨(와인·글라스 공통).
         q = q.order('ship_date', { ascending: true })
           .range(from, from + rowBatchSize - 1);
 
@@ -204,13 +205,10 @@ export async function GET(req: NextRequest) {
             stats[s.client_code] = { totalSales: 0, lastShipDate: null, orderCount: 0, recentHalf: 0, prevHalf: 0, changeRate: 0 };
           }
           const st = stats[s.client_code];
-          // 2025-08 이전 supply_amount 왜곡 보정
-          const amt = getSellingTotal(
-            s.unit_price || 0,
-            s.selling_price || 0,
-            s.supply_amount || 0,
-            s.quantity || 0,
-          );
+          // 매출식을 어드민 매출분석(rev_n)과 통일: 2025-08 이후=supply_amount · 이전=selling_price(0이면 supply_amount).
+          const amt = (s.ship_date || '') >= '2025-08-01'
+            ? (Number(s.supply_amount) || 0)
+            : (Number(s.selling_price) || Number(s.supply_amount) || 0);
           st.totalSales += amt;
           st.orderCount += 1;
 

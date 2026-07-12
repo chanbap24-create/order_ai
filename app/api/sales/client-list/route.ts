@@ -12,35 +12,65 @@ export async function GET(req: NextRequest) {
   const endDate = sp.get('end') || '';
   const businessType = sp.get('business_type') || '';
   const type = sp.get('type') || 'wine';
+  const isGlass = type === 'glass';
   // 글라스(DL)는 2025-08-01 전산이관 — 이관 전 출고 제외(어드민 매출분석과 동일 기준).
   const GLASS_CUTOFF = '2025-08-01';
-  const effStart = type === 'glass' && (!startDate || startDate < GLASS_CUTOFF) ? GLASS_CUTOFF : startDate;
+  const effStart = isGlass && (!startDate || startDate < GLASS_CUTOFF) ? GLASS_CUTOFF : startDate;
 
   try {
-    const table = type === 'glass' ? 'glass_shipments' : 'shipments';
+    const table = isGlass ? 'glass_shipments' : 'shipments';
+    const SEL = 'client_code, client_name, business_type, unit_price, selling_price, supply_amount, total_amount, quantity, ship_date';
 
-    // 1) 기간 내 출고 데이터 조회
-    // 2025-08 이전 데이터는 supply_amount 가 부풀려져 있어 selling_price 기준 재계산 필요.
-    // unit_price/selling_price 도 함께 select 하여 getSellingTotal() 로 통일.
-    // Supabase 쿼리당 1000행 제한 → id 기준 페이지네이션으로 전체 출고 로드(누락 방지).
-    const buildQ = () => {
-      let q = supabase
-        .from(table)
-        .select('client_code, client_name, business_type, unit_price, selling_price, supply_amount, total_amount, quantity, ship_date')
-        .eq('manager', manager);
-      if (effStart) q = q.gte('ship_date', effStart);
-      if (endDate) q = q.lte('ship_date', endDate);
-      if (businessType) q = q.eq('business_type', businessType);
-      return q.order('id', { ascending: true });
-    };
+    // 글라스: 현재 담당(glass_clients.manager)의 거래처 코드로 스코프.
+    //   담당 재배정 시 그 거래처의 과거 매출도 현재 담당에 귀속(어드민 매출분석과 동일 정책).
+    //   와인은 종전대로 shipments.manager 로 뽑고 아래에서 재배정 보정.
+    const glassCodes: string[] = [];
+    if (isGlass) {
+      for (let off = 0; off < 200000; off += 1000) {
+        const { data, error } = await supabase
+          .from('glass_clients').select('client_code')
+          .eq('manager', manager).range(off, off + 999);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const r of data) if (r.client_code) glassCodes.push(r.client_code);
+        if (data.length < 1000) break;
+      }
+    }
+
+    // 1) 기간 내 출고 데이터 조회 (Supabase 1000행 캡 → 페이지네이션으로 전체 로드)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allRows: any[] = [];
-    for (let offset = 0; offset < 500000; offset += 1000) {
-      const { data, error: allErr } = await buildQ().range(offset, offset + 999);
-      if (allErr) throw allErr;
-      if (!data || data.length === 0) break;
-      allRows.push(...data);
-      if (data.length < 1000) break;
+    if (isGlass) {
+      // 현재 담당 거래처 코드 청크별 전체 페이지네이션(코드가 많을 수 있어 URL 길이 회피 목적 청크).
+      for (let i = 0; i < glassCodes.length; i += 150) {
+        const chunk = glassCodes.slice(i, i + 150);
+        for (let off = 0; off < 500000; off += 1000) {
+          let q = supabase.from(table).select(SEL).in('client_code', chunk);
+          if (effStart) q = q.gte('ship_date', effStart);
+          if (endDate) q = q.lte('ship_date', endDate);
+          if (businessType) q = q.eq('business_type', businessType);
+          const { data, error } = await q.order('id', { ascending: true }).range(off, off + 999);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allRows.push(...data);
+          if (data.length < 1000) break;
+        }
+      }
+    } else {
+      const buildQ = () => {
+        let q = supabase.from(table).select(SEL).eq('manager', manager);
+        if (effStart) q = q.gte('ship_date', effStart);
+        if (endDate) q = q.lte('ship_date', endDate);
+        if (businessType) q = q.eq('business_type', businessType);
+        return q.order('id', { ascending: true });
+      };
+      for (let offset = 0; offset < 500000; offset += 1000) {
+        const { data, error: allErr } = await buildQ().range(offset, offset + 999);
+        if (allErr) throw allErr;
+        if (!data || data.length === 0) break;
+        allRows.push(...data);
+        if (data.length < 1000) break;
+      }
     }
 
     // JS에서 거래처별 집계
@@ -81,8 +111,8 @@ export async function GET(req: NextRequest) {
 
     // 1.5) 재배정 반영(와인): 현재 담당(client_details.manager)이 아닌 거래처 제외.
     //   목록을 shipments.manager(옛 출고 담당)로 뽑아서, 거래처정보 업로드로 담당을 바꿔도
-    //   옛 담당 목록에 잔존하던 문제 수정. client_details에 담당이 있고 현재 담당과 다르면 제외(없으면 유지).
-    if (type !== 'glass') {
+    //   옛 담당 목록에 잔존하던 문제 수정. (글라스는 위에서 이미 현재 담당 코드로 스코프해 불필요.)
+    if (!isGlass) {
       const codes = [...clientMap.keys()].filter(k => k);
       if (codes.length > 0) {
         const cdMgr = new Map<string, string>();
@@ -106,29 +136,47 @@ export async function GET(req: NextRequest) {
     const lastOrderMap = new Map<string, string>();
 
     if (clientCodes.length > 0) {
-      // ship_date 내림차순(+id) 페이지네이션. 모든 거래처의 최신 발주일이 채워지면 조기 종료.
-      for (let offset = 0; offset < 500000 && lastOrderMap.size < clientCodes.length; offset += 1000) {
-        const { data: lastRows } = await supabase
-          .from(table)
-          .select('client_code, client_name, ship_date')
-          .eq('manager', manager)
-          .in('client_code', clientCodes)
-          .order('ship_date', { ascending: false })
-          .order('id', { ascending: false })
-          .range(offset, offset + 999);
-        if (!lastRows || lastRows.length === 0) break;
-        for (const r of lastRows) {
-          const key = r.client_code || r.client_name;
-          if (!lastOrderMap.has(key)) lastOrderMap.set(key, r.ship_date);
+      if (isGlass) {
+        // 현재 담당 코드로 스코프 — 코드 청크별 최신 발주일.
+        for (let i = 0; i < clientCodes.length; i += 150) {
+          const chunk = clientCodes.slice(i, i + 150);
+          const { data: lastRows } = await supabase
+            .from(table)
+            .select('client_code, client_name, ship_date')
+            .in('client_code', chunk)
+            .gte('ship_date', GLASS_CUTOFF)
+            .order('ship_date', { ascending: false })
+            .order('id', { ascending: false });
+          for (const r of (lastRows || [])) {
+            const key = r.client_code || r.client_name;
+            if (!lastOrderMap.has(key)) lastOrderMap.set(key, r.ship_date);
+          }
         }
-        if (lastRows.length < 1000) break;
+      } else {
+        // ship_date 내림차순(+id) 페이지네이션. 모든 거래처의 최신 발주일이 채워지면 조기 종료.
+        for (let offset = 0; offset < 500000 && lastOrderMap.size < clientCodes.length; offset += 1000) {
+          const { data: lastRows } = await supabase
+            .from(table)
+            .select('client_code, client_name, ship_date')
+            .eq('manager', manager)
+            .in('client_code', clientCodes)
+            .order('ship_date', { ascending: false })
+            .order('id', { ascending: false })
+            .range(offset, offset + 999);
+          if (!lastRows || lastRows.length === 0) break;
+          for (const r of lastRows) {
+            const key = r.client_code || r.client_name;
+            if (!lastOrderMap.has(key)) lastOrderMap.set(key, r.ship_date);
+          }
+          if (lastRows.length < 1000) break;
+        }
       }
     }
 
     // 2.5) 업장 유형 태그 부착 (미태깅 거래처 식별용)
     const venueMap = new Map<string, string>();
     if (clientCodes.length > 0) {
-      const vType = type === 'glass' ? 'glass' : 'wine';
+      const vType = isGlass ? 'glass' : 'wine';
       for (let i = 0; i < clientCodes.length; i += 500) {
         const { data: vRows } = await supabase
           .from('client_venue')
@@ -154,15 +202,20 @@ export async function GET(req: NextRequest) {
 
     clients.sort((a, b) => b.period_total - a.period_total);
 
-    // 4) 업종 목록 (해당 담당자의 전체 업종)
-    const { data: btRows } = await supabase
-      .from(table)
-      .select('business_type')
-      .eq('manager', manager)
-      .not('business_type', 'is', null)
-      .not('business_type', 'eq', '');
-
-    const businessTypes = [...new Set((btRows || []).map(r => r.business_type))].sort();
+    // 4) 업종 목록
+    let businessTypes: string[] = [];
+    if (isGlass) {
+      // 현재 담당 거래처들의 업종(수집분).
+      businessTypes = [...new Set([...clientMap.values()].map(c => c.business_type).filter(Boolean))].sort();
+    } else {
+      const { data: btRows } = await supabase
+        .from(table)
+        .select('business_type')
+        .eq('manager', manager)
+        .not('business_type', 'is', null)
+        .not('business_type', 'eq', '');
+      businessTypes = [...new Set((btRows || []).map(r => r.business_type))].sort();
+    }
 
     return NextResponse.json({
       clients,

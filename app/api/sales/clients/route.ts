@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
-import { sanitizeFilterValue } from '@/app/lib/validation';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 import { getSession } from '@/app/lib/auth';
 import { canViewAllManagers } from '@/app/lib/authz';
@@ -24,43 +23,12 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    // 담당자 필터
+    // 담당자 필터 — 와인·글라스 모두 '현재 담당' 기준.
     //  - 와인: 권한(requireClientAccess)과 동일하게 client_details.manager 로 필터(아래 wine 쿼리).
     //    인수인계 시 '현재 담당'이 목록·원장 전부 접근 = 일치. 옛 담당은 넘긴 거래처가 목록에서 빠져
     //    "목록엔 보이는데 원장 403" 불일치가 사라짐. (담당은 shipment 동기화로 최신 유지)
-    //  - 글라스: 별도 마스터 담당 컬럼이 없어 glass_shipments 담당 기반(기존 유지).
-    let managerClientCodes: string[] | null = null;
-    if (manager && clientType === 'glass') {
-      const shipmentsTable = 'glass_shipments';
-      const codesSet = new Set<string>();
-      let from = 0;
-      const batchSize = 1000;
-
-      while (true) {
-        const { data: mgrShipments, error: mgrErr } = await supabase
-          .from(shipmentsTable)
-          .select('client_code')
-          .eq('manager', manager)
-          .not('client_code', 'is', null)
-          .range(from, from + batchSize - 1);
-
-        if (mgrErr) throw mgrErr;
-        if (!mgrShipments || mgrShipments.length === 0) break;
-
-        for (const s of mgrShipments) {
-          if (s.client_code) codesSet.add(s.client_code);
-        }
-
-        if (mgrShipments.length < batchSize) break;
-        from += batchSize;
-      }
-
-      managerClientCodes = [...codesSet];
-
-      if (managerClientCodes.length === 0) {
-        return NextResponse.json({ clients: [], total: 0, page, limit });
-      }
-    }
+    //  - 글라스: glass_clients.manager(거래처정보 업로드로 최신 유지) 직접 필터.
+    //    종전 glass_shipments.manager(출고당시 담당) 코드 수집 방식은 재배정 미반영이라 폐기.
 
     // ═══ Glass: glass_clients + glass_shipments에서 검색 (client_details에 없음) ═══
     if (clientType === 'glass') {
@@ -75,8 +43,8 @@ export async function GET(req: NextRequest) {
         const words = splitSearchWords(search);
         glassQuery = applyMultiWordSearch(glassQuery, words, 'client_name', ['client_code']);
       }
-      if (managerClientCodes) {
-        glassQuery = glassQuery.in('client_code', managerClientCodes);
+      if (manager) {
+        glassQuery = glassQuery.eq('manager', manager);
       }
 
       glassQuery = glassQuery.order('client_name', { ascending: true });
@@ -149,9 +117,6 @@ export async function GET(req: NextRequest) {
     // 필터
     if (importance) {
       query = query.eq('importance', parseInt(importance));
-    }
-    if (managerClientCodes) {
-      query = query.in('client_code', managerClientCodes);
     }
     // 와인 담당자 필터 = client_details.manager (권한 소스와 동일 → 인수인계 시 현재 담당이 전부 접근)
     if (manager && clientType !== 'glass') {

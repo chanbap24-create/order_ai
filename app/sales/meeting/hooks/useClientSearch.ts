@@ -23,11 +23,18 @@ export function useClientSearch(manager: string) {
     if (inflightRef.current) return inflightRef.current;
     const promise = (async () => {
       try {
-        const params = new URLSearchParams({ limit: "500", type: "wine" });
-        if (mgr) params.set("manager", mgr);
-        const res = await fetch(`/api/sales/clients?${params}`);
-        const json = await res.json();
-        cache.current = { manager: mgr, clients: json.clients || [] };
+        // 담당 거래처가 500곳을 넘을 수 있어(조성재 1,100+) 전부 로드될 때까지 페이지 반복.
+        const all: ClientOption[] = [];
+        for (let page = 1; page <= 10; page++) {
+          const params = new URLSearchParams({ limit: "500", page: String(page), type: "wine" });
+          if (mgr) params.set("manager", mgr);
+          const res = await fetch(`/api/sales/clients?${params}`);
+          const json = await res.json();
+          const batch: ClientOption[] = json.clients || [];
+          all.push(...batch);
+          if (batch.length < 500) break;
+        }
+        cache.current = { manager: mgr, clients: all };
       } catch {
         /* ignore */
       } finally {

@@ -145,8 +145,9 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // 글라스는 담당자별 매출을 실제 담당(glass_shipments.manager)으로 재계산해 교체.
-    // (매출분석 RPC는 글라스인데도 client_details(와인) 담당을 참조 → 코드 독립이라 오귀속.)
+    // 글라스는 담당자별 매출을 '현재 담당(glass_clients.manager)'으로 재계산해 교체.
+    // (매출분석 RPC는 글라스인데도 client_details(와인) 담당을 참조 → 코드 독립이라 오귀속.
+    //  정책: 거래처 담당이 바뀌면 그 거래처의 과거 매출도 옛 담당에서 빠지고 현재 담당에 귀속.)
     let mgrAnalysisFinal = managerAnalysis;
     if (pType === "glass") {
       const { data: gm } = await supabase.rpc("fn_glass_manager_sales", {
@@ -154,11 +155,11 @@ export async function GET(request: NextRequest) {
         p_end: endDate || "2099-12-31",
       });
       mgrAnalysisFinal = (Array.isArray(gm) ? gm : []).map(
-        (m: { manager: string; clientCount: number; revenue: number }) => ({
+        (m: { manager: string; clientCount: number; revenue: number; discountRate: number | null }) => ({
           manager: m.manager,
           clientCount: Number(m.clientCount) || 0,
           revenue: Number(m.revenue) || 0,
-          discountRate: null,
+          discountRate: m.discountRate != null ? Number(m.discountRate) : null,
           brands: [],
           bizClients: [],
         }),
