@@ -81,7 +81,7 @@ export function NoteListPanel(p: Props) {
               onClick={() => p.onSelect(w)}
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 gap: 10,
                 padding: "10px 12px",
                 borderBottom: "1px solid var(--border-default)",
@@ -98,132 +98,119 @@ export function NoteListPanel(p: Props) {
                   p.toggleCheck(w.item_code);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0 }}
+                style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0, marginTop: 1 }}
               />
-              <span style={{ fontSize: 14 }}>{badge.icon}</span>
-              <div style={{ flex: 1, overflow: "hidden" }}>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {w.item_name_kr}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* 1줄: 상태아이콘 + 이름(풀폭 ellipsis) + 뱃지 — 액션 버튼은 아랫줄로 내려 밸런스 */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 13, flexShrink: 0 }}>{badge.icon}</span>
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "var(--text-primary)",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={w.item_name_kr}
+                  >
+                    {w.item_name_kr}
+                  </div>
+                  {vb && (
+                    <span
+                      title={vb.title}
+                      style={{
+                        fontSize: 10, padding: "1px 5px", borderRadius: 8,
+                        background: vb.bg, color: vb.color, fontWeight: 700, lineHeight: "16px", flexShrink: 0,
+                      }}
+                    >
+                      {vb.label}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      fontSize: 10.5, padding: "2px 7px", borderRadius: 10,
+                      background: badge.bg, color: badge.color, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+                    }}
+                  >
+                    {badge.label}
+                  </span>
                 </div>
+                {/* 2줄: 품번 · 영문명 */}
                 <div
                   style={{
-                    fontSize: 11,
-                    color: "var(--gray-400)",
-                    marginTop: 2,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    fontSize: 11, color: "var(--gray-400)", marginTop: 2,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   }}
                   title={`${w.item_code}${w.item_name_en ? ` · ${w.item_name_en}` : ""}`}
                 >
                   {w.item_code} {w.item_name_en ? `· ${w.item_name_en}` : ""}
                 </div>
-                <div style={{ fontSize: 10, color: "var(--gray-500)", marginTop: 2, display: "flex", gap: 6 }}>
-                  <span>
-                    재고{" "}
-                    <b style={{ color: (w.inv_available || 0) > 0 ? "var(--status-success)" : "var(--gray-300)" }}>
-                      {w.inv_available ?? 0}
-                    </b>
-                  </span>
-                  <span>
-                    보세{" "}
-                    <b style={{ color: (w.inv_bonded || 0) > 0 ? "var(--status-info)" : "var(--gray-300)" }}>
-                      {w.inv_bonded ?? 0}
-                    </b>
-                  </span>
-                  <span>
-                    합계 <b style={{ color: totalStock > 0 ? "var(--text-primary)" : "var(--gray-300)" }}>{totalStock}</b>
-                  </span>
+                {/* 3줄: 재고(좌) + 액션 버튼(우) */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: "var(--gray-500)", display: "flex", gap: 8, whiteSpace: "nowrap" }}>
+                    <span>
+                      재고{" "}
+                      <b style={{ color: (w.inv_available || 0) > 0 ? "var(--status-success)" : "var(--gray-300)" }}>
+                        {w.inv_available ?? 0}
+                      </b>
+                    </span>
+                    <span>
+                      보세{" "}
+                      <b style={{ color: (w.inv_bonded || 0) > 0 ? "var(--status-info)" : "var(--gray-300)" }}>
+                        {w.inv_bonded ?? 0}
+                      </b>
+                    </span>
+                    <span>
+                      합계 <b style={{ color: totalStock > 0 ? "var(--text-primary)" : "var(--gray-300)" }}>{totalStock}</b>
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+                    {(!!w.tasting_note_id || !!p.ghIndex[w.item_code]) && (
+                      <button
+                        type="button"
+                        title="업로드된 PPTX 노트로 wines 빈 칸(영문명/지역/품종/빈티지) 채우기"
+                        disabled={p.backfillingId === w.item_code}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          p.onBackfill(w.item_code);
+                        }}
+                        style={{
+                          fontSize: 11, padding: "2px 6px", borderRadius: 4,
+                          background: p.backfillingId === w.item_code ? "#fef3c7" : "var(--gray-100)",
+                          color: "var(--gray-500)", border: "1px solid var(--gray-300)",
+                          cursor: p.backfillingId === w.item_code ? "wait" : "pointer", lineHeight: 1,
+                        }}
+                      >
+                        {p.backfillingId === w.item_code ? "⏳" : "🔄"}
+                      </button>
+                    )}
+                    <UploadButton
+                      itemCode={w.item_code}
+                      uploading={p.uploadingFileId === w.item_code}
+                      disabled={p.uploadingFileId !== null && p.uploadingFileId !== w.item_code}
+                      onUpload={p.onUploadFile}
+                    />
+                    <button
+                      type="button"
+                      title={w.note_excluded ? "목록으로 복원" : "노트 목록에서 제외 (자재/세트 등 노트 불필요 품목)"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        p.onSetExcluded(w.item_code, !w.note_excluded);
+                      }}
+                      style={{
+                        fontSize: 11, padding: "2px 6px", borderRadius: 4,
+                        background: "var(--gray-100)", color: "var(--gray-500)",
+                        border: "1px solid var(--gray-300)", cursor: "pointer", lineHeight: 1,
+                      }}
+                    >
+                      {w.note_excluded ? "↩" : "🚫"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
-                {vb && (
-                  <span
-                    title={vb.title}
-                    style={{
-                      fontSize: 10,
-                      padding: "1px 5px",
-                      borderRadius: 8,
-                      background: vb.bg,
-                      color: vb.color,
-                      fontWeight: 700,
-                      lineHeight: "16px",
-                    }}
-                  >
-                    {vb.label}
-                  </span>
-                )}
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: "2px 8px",
-                    borderRadius: 12,
-                    background: badge.bg,
-                    color: badge.color,
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {badge.label}
-                </span>
-                {(!!w.tasting_note_id || !!p.ghIndex[w.item_code]) && (
-                  <button
-                    type="button"
-                    title="업로드된 PPTX 노트로 wines 빈 칸(영문명/지역/품종/빈티지) 채우기"
-                    disabled={p.backfillingId === w.item_code}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      p.onBackfill(w.item_code);
-                    }}
-                    style={{
-                      fontSize: 11,
-                      padding: "2px 6px",
-                      borderRadius: 4,
-                      background: p.backfillingId === w.item_code ? "#fef3c7" : "var(--gray-100)",
-                      color: "var(--gray-500)",
-                      border: "1px solid var(--gray-300)",
-                      cursor: p.backfillingId === w.item_code ? "wait" : "pointer",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {p.backfillingId === w.item_code ? "⏳" : "🔄"}
-                  </button>
-                )}
-                <UploadButton
-                  itemCode={w.item_code}
-                  uploading={p.uploadingFileId === w.item_code}
-                  disabled={p.uploadingFileId !== null && p.uploadingFileId !== w.item_code}
-                  onUpload={p.onUploadFile}
-                />
-                <button
-                  type="button"
-                  title={w.note_excluded ? "목록으로 복원" : "노트 목록에서 제외 (자재/세트 등 노트 불필요 품목)"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    p.onSetExcluded(w.item_code, !w.note_excluded);
-                  }}
-                  style={{
-                    fontSize: 11,
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    background: "var(--gray-100)",
-                    color: "var(--gray-500)",
-                    border: "1px solid var(--gray-300)",
-                    cursor: "pointer",
-                    lineHeight: 1,
-                  }}
-                >
-                  {w.note_excluded ? "↩" : "🚫"}
-                </button>
               </div>
             </div>
           );
