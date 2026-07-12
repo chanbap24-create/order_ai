@@ -42,7 +42,7 @@ export function RecommendationList({ items, selected, onToggle, allSelected, onT
           추천할 와인이 없습니다
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ borderTop: '1px solid var(--border-default)' }}>
           {items.map(item => (
             <RecommendCard
               key={item.item_no}
