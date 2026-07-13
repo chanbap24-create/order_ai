@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useClientList } from '../client-list/hooks/useClientList';
 import { useBatchRecommend } from '../client-list/hooks/useBatchRecommend';
 import { FilterPanel } from '../client-list/components/FilterPanel';
@@ -18,6 +18,22 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const batchable = s.type === 'wine';
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const batch = useBatchRecommend(currentManager);
+
+  // 윈백 배지 — 발주 리듬 끊긴 거래처(추천견적에 윈백가 자동 적용) 한눈에 표기. 목록과 별개로 비동기 로드.
+  const [winbackMap, setWinbackMap] = useState<Record<string, 'dormant' | 'risk'>>({});
+  useEffect(() => {
+    if (s.type !== 'wine' || s.clients.length === 0) return;
+    const codes = s.clients.map((c) => c.client_code).filter(Boolean);
+    if (codes.length === 0) return;
+    let alive = true;
+    fetch('/api/sales/clients/winback-status', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codes }),
+    })
+      .then((r) => r.json())
+      .then((j) => { if (alive) setWinbackMap(j.statuses || {}); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [s.type, s.clients]);
 
   // 거래처명·코드 검색 (클라이언트 필터)
   const [search, setSearch] = useState('');
@@ -110,6 +126,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
 
       <ClientsTable
         clients={shownClients}
+        winbackMap={s.type === 'wine' ? winbackMap : undefined}
         loading={s.loading}
         sortKey={s.sortKey}
         onSort={s.handleSort}

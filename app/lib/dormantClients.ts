@@ -52,3 +52,41 @@ export async function getClientWinbackStatus(clientCode: string): Promise<Winbac
   const dates = (data || []).map((r) => String(r.ship_date || '').slice(0, 10)).filter(Boolean);
   return judgeWinbackStatus(dates, today);
 }
+
+/**
+ * 여러 거래처 일괄 판정 — 거래처 목록 배지용.
+ * 최근 24개월 출고일만 보므로(전 이력 조회는 과중) 그보다 오래 죽은 거래처는 배지가 안 붙지만,
+ * 견적 생성 시 단건 판정(전 이력)에는 걸려 윈백가가 적용된다.
+ */
+export async function getWinbackStatusMap(codes: string[]): Promise<Record<string, WinbackStatus>> {
+  const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  const since = new Date(Date.now() - 24 * 30 * 86400000).toISOString().slice(0, 10);
+
+  const datesByClient = new Map<string, Set<string>>();
+  for (let i = 0; i < codes.length; i += 100) {
+    const batch = codes.slice(i, i + 100);
+    for (let from = 0; from < 100000; from += 1000) {
+      const { data } = await supabase
+        .from('shipments')
+        .select('client_code, ship_date')
+        .in('client_code', batch)
+        .gte('ship_date', since)
+        .range(from, from + 999);
+      if (!data || data.length === 0) break;
+      for (const r of data) {
+        const d = String(r.ship_date || '').slice(0, 10);
+        if (!r.client_code || !d) continue;
+        if (!datesByClient.has(r.client_code)) datesByClient.set(r.client_code, new Set());
+        datesByClient.get(r.client_code)!.add(d);
+      }
+      if (data.length < 1000) break;
+    }
+  }
+
+  const map: Record<string, WinbackStatus> = {};
+  for (const [code, dates] of datesByClient) {
+    const status = judgeWinbackStatus([...dates], today);
+    if (status) map[code] = status;
+  }
+  return map;
+}

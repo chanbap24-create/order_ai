@@ -9,6 +9,8 @@ import { thStyle } from '@/app/styles/table';
 
 type Props = {
   clients: ClientRow[];
+  /** 발주 리듬 끊긴 거래처(견적 생성 시 윈백가 자동 적용) — 거래처명 옆 도트+텍스트 표기 */
+  winbackMap?: Record<string, 'dormant' | 'risk'>;
   loading: boolean;
   sortKey: SortKey;
   onSort: (k: SortKey) => void;
@@ -33,8 +35,21 @@ const COLS: Array<{ key: SortKey; label: string; align: 'left' | 'right' }> = [
   { key: 'period_total', label: '총액', align: 'right' },
 ];
 
+function WinbackMark({ status }: { status: 'dormant' | 'risk' }) {
+  const color = status === 'dormant' ? 'var(--status-danger)' : 'var(--status-warning)';
+  return (
+    <span
+      title="발주 리듬이 끊긴 거래처 — 추천견적 생성 시 윈백가가 자동 적용됩니다"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8, fontSize: 10.5, fontWeight: 700, color, whiteSpace: 'nowrap' }}
+    >
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color }} />
+      {status === 'dormant' ? '휴면' : '이탈위험'}
+    </span>
+  );
+}
+
 export function ClientsTable({
-  clients, loading, sortKey, onSort, sortIcon, onRowClick,
+  clients, winbackMap, loading, sortKey, onSort, sortIcon, onRowClick,
   selectable, selectedCodes, onToggleSelect, onToggleAll, allSelected,
 }: Props) {
   if (loading) {
@@ -121,7 +136,12 @@ export function ClientsTable({
                     />
                   </td>
                 )}
-                <td style={{ ...tdStyle, fontWeight: 600 }}>{c.client_name}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                  {c.client_name}
+                  {c.client_code && winbackMap?.[c.client_code] && (
+                    <WinbackMark status={winbackMap[c.client_code]} />
+                  )}
+                </td>
                 {/* 뱃지 다운그레이드: 배경 필 제거 — 텍스트로만, 예외 상태(미지정)만 색 텍스트 */}
                 <td style={tdStyle}>
                   {c.business_type ? (
