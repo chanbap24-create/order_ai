@@ -43,6 +43,18 @@ export function extractEnglish(bilingual: string): string {
   return bilingual;
 }
 
+/** 표시용 산지 라벨: 영문 지명 우선, 영문이 등급어(DOC/AOC/Régionale 등)뿐이면 한글 지명 폴백.
+ *  "도우루 DOC (스틸)" → "도우루" · "몽타뉴 드 랭스 Montagne de Reims" → "Montagne de Reims"
+ *  주의: \b는 악센트 문자(é 등)를 경계로 취급해 "Médoc"의 doc까지 지움 → 공백 기준 토큰 매칭. */
+const DISPLAY_CLASS_RE = /(^|\s)(docg|doca|doc|dop|do|aoc|aop|ava|igt|igp|vdp|aova|r[ée]gionale?)(?=\s|$)/gi;
+export function regionDisplayLabel(bilingual: string): string {
+  const strip = (s: string) => s.replace(/\(.*?\)/g, ' ').replace(DISPLAY_CLASS_RE, ' ').replace(/\s+/g, ' ').trim();
+  const en = strip(extractEnglish(bilingual || ''));
+  if (en) return en;
+  const ko = strip(bilingual || '').replace(/[A-Za-zÀ-ÿ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return ko || bilingual;
+}
+
 // 등급 약어(DO/DOC/AOC 등)·괄호주석 제거 후 영문 지명만 추출. 짧으면 매칭에서 제외.
 // "리마리 밸리 DO" → "" (등급만 있음), "Margaux AOC" → "margaux", "도우루 Douro" → "douro"
 const CLASS_WORDS = /\b(docg|doca|doc|dop|do|aoc|aop|ava|igt|igp|vdp|aova)\b/g;

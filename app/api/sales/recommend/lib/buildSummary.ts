@@ -1,6 +1,6 @@
 // 추천 응답의 summary(거래처 분석) 객체 구성 — buildCandidates 슬림화용.
 import { bucketLabel } from './wineType';
-import { extractEnglish } from './regions';
+import { regionDisplayLabel } from './regions';
 import { flavorLabel } from './flavor';
 import type { ClientPreferences, PurchaseAggEntry } from './types';
 
@@ -21,13 +21,13 @@ export function buildSummary(
     top_grapes: prefs.topGrapes.slice(0, 3).map((e) => e[0]),
     top_types: prefs.topTypes.slice(0, 3).map((e) => e[0]),
     top_regions: Object.entries(prefs.subRegionBuyCount)
-      .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
+      .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => regionDisplayLabel(r)),
     analysis: {
       types: Array.from(prefs.typeBuckets).map(bucketLabel).filter(Boolean),
       broad_regions: (Object.keys(prefs.superRegionBuyCount).length
         ? Object.entries(prefs.superRegionBuyCount)
         : Object.entries(prefs.majorRegionBuyCount)
-      ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => extractEnglish(r)),
+      ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([r]) => regionDisplayLabel(r)),
       // 선호강도(빈도) 상위 순으로 자세히(최대 14개)
       flavors: [...prefs.flavorWeights.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([k]) => flavorLabel(k)),
       avg_price: Math.round(prefs.clientAvgPrice),
@@ -41,15 +41,15 @@ export function buildSummary(
         const total = Object.values(prefs.regionDist).reduce((a, b) => a + b, 0) || 1;
         return Object.entries(prefs.regionDist)
           .sort((a, b) => b[1] - a[1]).slice(0, 7)
-          .map(([r, c]) => ({ label: extractEnglish(r), count: c, pct: Math.round((c / total) * 100) }));
+          .map(([r, c]) => ({ label: regionDisplayLabel(r), count: c, pct: Math.round((c / total) * 100) }));
       })(),
       period_months: profileMonths,
       purchased: Object.entries(purchaseAgg)
         .map(([code, agg]) => {
           const w = wineMap.get(code);
           const h = w?._hierarchy;
-          const region = h?.sub_region ? extractEnglish(h.sub_region)
-            : h?.major_region ? extractEnglish(h.major_region)
+          const region = h?.sub_region ? regionDisplayLabel(h.sub_region)
+            : h?.major_region ? regionDisplayLabel(h.major_region)
             : (w?.region || '');
           return { name: w?.item_name_kr || agg.name || code, region, count: agg.count, last: agg.lastDate || null };
         })

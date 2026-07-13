@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { extractFlavorKeys } from '@/app/api/sales/recommend/lib/flavor';
+import { findHierarchy, regionDisplayLabel, type WineRegionRow } from '@/app/api/sales/recommend/lib/regions';
+import { fetchAll } from '@/app/api/sales/recommend/lib/fetchers';
 
 // GET: 거래처 선호 분석 (가격대, 지역, 브랜드, 품종, 테이스트)
 export async function GET(req: NextRequest) {
@@ -56,7 +58,7 @@ export async function GET(req: NextRequest) {
     // 품번이 어긋나 메타·테이스트가 통째로 누락되던 문제(정확 매칭 76%/34% → 88%/52%).
     const baseKey = (c: string) => (c && c.length >= 5 ? c.slice(0, 2) + c.slice(4) : c);
 
-    type WineRow = { item_code: string; country: string; region: string; grape_varieties: string; wine_type: string; supply_price: number; item_name_kr: string; brand: string; supplier: string; supplier_kr: string };
+    type WineRow = { item_code: string; country: string; country_en: string; region: string; grape_varieties: string; wine_type: string; supply_price: number; item_name_kr: string; item_name_en: string; brand: string; supplier: string; supplier_kr: string };
     type NoteRow = { wine_id: string; nose_note: string; palate_note: string; flavor_tags: string[] | null };
 
     // 카탈로그가 작아(wines ~2천·notes ~수백) 전체 로드 후 JS 매칭이 배치 .in 보다 단순·확실
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
     for (let off = 0; off < 20000; off += 1000) {
       const { data, error } = await supabase
         .from('wines')
-        .select('item_code, country, region, grape_varieties, wine_type, supply_price, item_name_kr, brand, supplier, supplier_kr')
+        .select('item_code, country, country_en, region, grape_varieties, wine_type, supply_price, item_name_kr, item_name_en, brand, supplier, supplier_kr')
         .range(off, off + 999);
       if (error) throw error;
       if (!data || data.length === 0) break;
@@ -154,13 +156,18 @@ export async function GET(req: NextRequest) {
       priceRangeMap.set(range.label, prev);
     }
 
-    // 2. 지역별 분포 (동일 지역 영/불 표기 통일)
-    const REGION_ALIAS: Record<string, string> = { Burgundy: 'Bourgogne' };
+    // 2. 지역별 분포 — 추천 근거(거래처 분석)와 동일한 산지 계층(wine_regions) 라벨로 통일:
+    //    광역(super) → 대지역(major) → 국가 순. 원문(wines.region) 표기 편차(Bourgogne/Burgundy 등) 제거.
+    const regionRows = await fetchAll<WineRegionRow>(
+      'wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification');
     const regionMap = new Map<string, { qty: number; amt: number }>();
     for (const [itemNo, agg] of itemAgg) {
       const wine = wineMap.get(itemNo);
-      const raw = wine?.region?.split(',')[0]?.trim() || wine?.country || '기타';
-      const region = REGION_ALIAS[raw] || raw;
+      const h = wine ? findHierarchy(
+        wine.region || '', `${wine.item_name_kr || ''} ${wine.item_name_en || ''}`,
+        regionRows, wine.country_en || wine.country || '') : null;
+      const raw = h?.super_region || h?.major_region || wine?.country || '기타';
+      const region = regionDisplayLabel(raw) || '기타';
       if (!region) continue;
       const prev = regionMap.get(region) || { qty: 0, amt: 0 };
       prev.qty += agg.qty;
