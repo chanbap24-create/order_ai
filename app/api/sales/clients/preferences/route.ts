@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { extractFlavorKeys } from '@/app/api/sales/recommend/lib/flavor';
 
 // GET: 거래처 선호 분석 (가격대, 지역, 브랜드, 품종, 테이스트)
 export async function GET(req: NextRequest) {
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     const baseKey = (c: string) => (c && c.length >= 5 ? c.slice(0, 2) + c.slice(4) : c);
 
     type WineRow = { item_code: string; country: string; region: string; grape_varieties: string; wine_type: string; supply_price: number; item_name_kr: string; brand: string; supplier: string; supplier_kr: string };
-    type NoteRow = { wine_id: string; nose_note: string; palate_note: string };
+    type NoteRow = { wine_id: string; nose_note: string; palate_note: string; flavor_tags: string[] | null };
 
     // 카탈로그가 작아(wines ~2천·notes ~수백) 전체 로드 후 JS 매칭이 배치 .in 보다 단순·확실
     const wineRows: WineRow[] = [];
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
     for (let off = 0; off < 20000; off += 1000) {
       const { data, error } = await supabase
         .from('tasting_notes')
-        .select('wine_id, nose_note, palate_note')
+        .select('wine_id, nose_note, palate_note, flavor_tags')
         .range(off, off + 999);
       if (error) throw error;
       if (!data || data.length === 0) break;
@@ -97,12 +98,19 @@ export async function GET(req: NextRequest) {
     }
 
     const wineMap = new Map<string, WineRow>();
-    const tasteMap = new Map<string, { nose_note: string; palate_note: string }>();
+    // 품목 → 58키 표준 향미태그. flavor_tags(조사 시 자동 태깅) 우선,
+    // 태그 없는 구노트는 같은 추출기(extractFlavorKeys)로 텍스트에서 도출 — 단일 어휘 경로.
+    const tasteMap = new Map<string, string[]>();
     for (const c of itemCodes) {
       const w = wineExact.get(c) || wineBase.get(baseKey(c));
       if (w) wineMap.set(c, w);
       const n = noteExact.get(c) || noteBase.get(baseKey(c));
-      if (n) tasteMap.set(c, { nose_note: n.nose_note || '', palate_note: n.palate_note || '' });
+      if (n) {
+        const keys = n.flavor_tags && n.flavor_tags.length
+          ? n.flavor_tags
+          : [...extractFlavorKeys(`${n.nose_note || ''} ${n.palate_note || ''}`)];
+        if (keys.length) tasteMap.set(c, keys);
+      }
     }
 
     // 브랜드 = wines.brand 우선(2001/2008건 관리), 없으면 supplier_kr/supplier 폴백(988건뿐)
@@ -186,37 +194,39 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 5. 테이스트 키워드 분석
+    // 5. 테이스트 프로필 — 58키 표준 향미태그를 화면용 대분류로 집계
     const tasteKeywords = new Map<string, { count: number; totalQty: number }>();
-    // 향미 키워드 사전
-    const TASTE_CATEGORIES: Record<string, string[]> = {
-      '과일향': ['사과', '배', '체리', '라즈베리', '딸기', '블랙베리', '자두', '카시스', '복숭아', '살구', '감귤', '레몬', '오렌지', '자몽', '열대과일', '망고', '파인애플', '리치', '블루베리', '과실'],
-      '꽃향': ['장미', '제비꽃', '바이올렛', '아카시아', '자스민', '꽃', '플로럴', '라벤더', '흰꽃'],
-      '오크/바닐라': ['바닐라', '오크', '토스트', '캐러멜', '버터', '삼나무', '시더', '코코넛'],
-      '스파이스': ['후추', '정향', '시나몬', '계피', '향신료', '스파이스', '넛맥', '감초', '생강'],
-      '미네랄': ['미네랄', '석회', '화강암', '부싯돌', '짠맛', '소금'],
-      '견과류': ['아몬드', '헤이즐넛', '견과', '호두', '땅콩'],
-      '허브': ['허브', '타임', '로즈마리', '민트', '유칼립투스', '세이지'],
-      '초콜릿/커피': ['초콜릿', '코코아', '커피', '에스프레소', '모카', '다크 초콜릿'],
-      '흙/가죽': ['흙', '가죽', '버섯', '트러플', '담배', '숲'],
-      '꿀/달콤': ['꿀', '잼', '설탕', '캔디', '달콤'],
+    // 58키 → 대분류 (구조감 키(tannic/full_body/light_body)는 향미가 아니라 제외)
+    const KEY_CATEGORY: Record<string, string> = {
+      lemon: '과일향', lime: '과일향', grapefruit: '과일향', green_apple: '과일향', apple: '과일향',
+      pear: '과일향', quince: '과일향', peach: '과일향', apricot: '과일향', pineapple: '과일향',
+      mango: '과일향', passionfruit: '과일향', lychee: '과일향', melon: '과일향', cherry: '과일향',
+      strawberry: '과일향', raspberry: '과일향', redcurrant: '과일향', blackberry: '과일향',
+      blackcurrant: '과일향', plum: '과일향', blueberry: '과일향', dried_fruit: '과일향',
+      violet: '꽃향', rose: '꽃향', floral_white: '꽃향', elderflower: '꽃향',
+      mint: '허브', eucalyptus: '허브', herb_green: '허브', green_pepper: '허브', grassy: '허브',
+      black_pepper: '스파이스', sweet_spice: '스파이스', licorice: '스파이스',
+      vanilla: '오크/바닐라', toast: '오크/바닐라', cedar: '오크/바닐라', coconut: '오크/바닐라',
+      coffee_choc: '초콜릿/커피',
+      mushroom: '흙/가죽', forest_floor: '흙/가죽', leather_tobacco: '흙/가죽', game_meat: '흙/가죽', tar: '흙/가죽',
+      flint: '미네랄', wet_stone: '미네랄', chalk: '미네랄', saline: '미네랄', petrol: '미네랄',
+      butter: '크림/효모', cream: '크림/효모', brioche_yeast: '크림/효모',
+      nutty: '견과류', honey: '꿀/달콤',
     };
 
     for (const [itemNo, agg] of itemAgg) {
-      const taste = tasteMap.get(itemNo);
-      if (!taste) continue;
-      const text = `${taste.nose_note} ${taste.palate_note}`;
-      for (const [category, keywords] of Object.entries(TASTE_CATEGORIES)) {
-        let found = false;
-        for (const kw of keywords) {
-          if (text.includes(kw)) { found = true; break; }
-        }
-        if (found) {
-          const prev = tasteKeywords.get(category) || { count: 0, totalQty: 0 };
-          prev.count += 1; // 품목 수
-          prev.totalQty += agg.qty;
-          tasteKeywords.set(category, prev);
-        }
+      const keys = tasteMap.get(itemNo);
+      if (!keys) continue;
+      const categories = new Set<string>();
+      for (const k of keys) {
+        const cat = KEY_CATEGORY[k];
+        if (cat) categories.add(cat);
+      }
+      for (const category of categories) {
+        const prev = tasteKeywords.get(category) || { count: 0, totalQty: 0 };
+        prev.count += 1; // 품목 수
+        prev.totalQty += agg.qty;
+        tasteKeywords.set(category, prev);
       }
     }
 
