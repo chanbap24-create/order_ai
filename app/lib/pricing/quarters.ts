@@ -20,6 +20,15 @@ export function prevQuarterRange(now = new Date()): DateRange {
   return { start: ymd(py, pStartMonth, 1), end };
 }
 
+/** 진행 중인 현재 분기 [start, end) — end는 다음 분기 시작일(경계 제외). 등급 도전 트랙용. */
+export function currentQuarterRange(now = new Date()): DateRange {
+  const y = now.getFullYear();
+  const q = Math.floor(now.getMonth() / 3); // 0..3
+  const start = ymd(y, q * 3, 1);
+  const end = q === 3 ? ymd(y + 1, 0, 1) : ymd(y, (q + 1) * 3, 1);
+  return { start, end };
+}
+
 /** 직전 완료 반기 [start, end) — end는 현재 반기 시작일(경계 제외). */
 export function prevHalfRange(now = new Date()): DateRange {
   const y = now.getFullYear();

@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
-import { prevQuarterRange } from '@/app/lib/pricing/quarters';
+import { prevQuarterRange, currentQuarterRange } from '@/app/lib/pricing/quarters';
 import { computeQuarterMetrics, gradeProgress } from '@/app/lib/pricing/clientGrade';
 import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
 import { getDiscountConfig } from '@/app/lib/pricing/discountConfig';
@@ -44,15 +44,39 @@ export async function GET(req: NextRequest) {
     const metrics = computeQuarterMetrics(ships || [], priceOf, range);
     const prog = gradeProgress(category, metrics);
 
+    // ── 이번 분기(진행 중) 실적 — '다음 등급 도전' 트랙용. 목표 문턱 = 현 등급+1. ──
+    const curRange = currentQuarterRange();
+    const { data: curShips } = await supabase.from('shipments')
+      .select('item_no, quantity, ship_date')
+      .eq('client_code', code).gte('ship_date', curRange.start).lt('ship_date', curRange.end)
+      .limit(5000);
+    const curItemNos = [...new Set((curShips || []).map((s) => s.item_no).filter(Boolean))]
+      .filter((no) => !priceMap.has(no));
+    for (let i = 0; i < curItemNos.length; i += 300) {
+      const { data: inv } = await supabase.from('inventory_cdv')
+        .select('item_no, supply_price').in('item_no', curItemNos.slice(i, i + 300));
+      for (const r of (inv || [])) priceMap.set(r.item_no, Number(r.supply_price) || 0);
+    }
+    const curMetrics = computeQuarterMetrics(curShips || [], priceOf, curRange);
+    // 이번 분기 현재값 + 목표(현 등급의 다음 문턱)
+    const challenge = gradeProgress(category, curMetrics).metrics.map((m) => ({
+      ...m,
+      next: prog.grade < 4 ? m.thresholds[prog.grade] : null,
+    }));
+    const todayStr = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    const daysLeft = Math.max(0, Math.ceil(
+      (new Date(curRange.end).getTime() - new Date(todayStr).getTime()) / 86400000,
+    ));
+
     // 현재 혜택(할인율) — 거래처 단위(기본+매출등급+리델). 수량가산은 주문 시 별도.
     const config = await getDiscountConfig('CDV');
     const ctx = await buildPricingContext(code, category, metrics, config);
     const disc = computeItemDiscount(ctx, { supplyPrice: 100000, qty: 1 });
 
-    // 다음 매출 구간(할인 가산) — 업소/샵 sales 티어
+    // 다음 매출 구간(할인 가산) — '이번 분기' 매출 기준(마감까지 채우면 다음 분기 할인↑)
     const salesTiers = category === 'shop' ? config.shop.sales : category === 'venue' ? config.venue.sales : [];
     const nextSalesTier = salesTiers
-      .filter((t) => metrics.salesSupply < t.min)
+      .filter((t) => curMetrics.salesSupply < t.min)
       .sort((a, b) => a.min - b.min)[0] || null;
 
     return NextResponse.json({
@@ -60,8 +84,17 @@ export async function GET(req: NextRequest) {
       grade: prog.grade,
       metrics: prog.metrics,
       quarter: { start: range.start, end: range.end },
+      // 다음 등급 도전(이번 분기): 지표별 현재/목표 + 마감 정보
+      challenge: {
+        metrics: challenge,
+        quarter: { start: curRange.start, end: curRange.end },
+        daysLeft,
+        appliesFrom: curRange.end, // 달성 시 이 날짜부터 새 등급 적용(다음 분기 시작)
+      },
       benefit: { rate: disc.rate, breakdown: disc.breakdown, riedel: ctx.hadRiedelLastQuarter },
-      nextSalesTier: nextSalesTier ? { min: nextSalesTier.min, add: nextSalesTier.add, remain: nextSalesTier.min - metrics.salesSupply } : null,
+      nextSalesTier: nextSalesTier
+        ? { min: nextSalesTier.min, add: nextSalesTier.add, remain: nextSalesTier.min - curMetrics.salesSupply }
+        : null,
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'error' }, { status: 500 });

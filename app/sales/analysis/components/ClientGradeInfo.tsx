@@ -10,6 +10,7 @@ type GradeData = {
   category: "venue" | "shop" | "wholesale";
   grade: number;
   metrics: Metric[];
+  challenge?: { metrics: Metric[]; quarter: { start: string; end: string }; daysLeft: number; appliesFrom: string };
   benefit: { rate: number; breakdown: { base: number; sales: number; quantity: number; riedel: number }; riedel: boolean };
   nextSalesTier: { min: number; add: number; remain: number } | null;
 };
@@ -45,22 +46,52 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   if (!d) return null;
 
   const b = d.benefit.breakdown;
-  const trackMetrics = d.metrics.filter((m) => Array.isArray(m.thresholds) && m.thresholds.length === 4);
+  // 도전 트랙 = 이번 분기(진행 중) 실적 vs 다음 등급 문턱. 없으면(구버전 응답) 직전 분기로 폴백.
+  const ch = d.challenge;
+  const trackMetrics = (ch?.metrics ?? d.metrics).filter((m) => Array.isArray(m.thresholds) && m.thresholds.length === 4);
+  const mmdd = (s: string) => `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}`;
+  // 마감 = 분기 end(다음 분기 1일)의 전날
+  const deadline = ch ? new Date(new Date(ch.quarter.end).getTime() - 86400000).toISOString().slice(0, 10) : null;
 
   return (
     <div style={box}>
       {/* ── ① 등급 여정 스텝퍼 ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
         <span style={sectionLabel}>AI 추천 등급</span>
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>직전 분기 실적 기준</span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>등급은 직전 분기 실적 기준</span>
       </div>
       <Stepper grade={d.grade} />
 
-      {/* ── ② 지표별 눈금 트랙 ── */}
+      {/* ── ② 다음 등급 도전 — 이번 분기 실적 vs 목표 문턱 ── */}
       {d.grade < 4 && trackMetrics.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 18 }}>
-          {trackMetrics.map((m) => <NotchTrack key={m.key} m={m} grade={d.grade} />)}
-        </div>
+        <>
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            marginTop: 18, marginBottom: 10,
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
+              {d.grade + 1}등급 도전 — 이번 분기 실적
+            </span>
+            {ch && deadline && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6,
+                background: ch.daysLeft <= 14 ? "var(--status-danger)" : "var(--text-primary)",
+                color: "#fff", fontVariantNumeric: "tabular-nums",
+              }}>
+                {mmdd(deadline)} 마감 · D-{ch.daysLeft}
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {trackMetrics.map((m) => <NotchTrack key={m.key} m={m} grade={d.grade} />)}
+          </div>
+          {ch && (
+            <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-tertiary)" }}>
+              {mmdd(deadline!)}까지 모든 지표 달성 시 <b style={{ color: "var(--text-primary)" }}>{mmdd(ch.appliesFrom)}부터 {d.grade + 1}등급</b> 적용
+              — 추천에 취향·산지 반영 비중↑
+            </div>
+          )}
+        </>
       )}
       {d.grade >= 4 && (
         <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
@@ -89,7 +120,7 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
         </span>
         {d.nextSalesTier && (
           <span style={{ fontSize: 11.5, color: "var(--text-secondary)", marginLeft: "auto" }}>
-            매출 <b style={{ color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{won(d.nextSalesTier.remain)}원</b> 더 채우면{" "}
+            이번 분기 매출 <b style={{ color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{won(d.nextSalesTier.remain)}원</b> 더 채우면 다음 분기{" "}
             <b style={{ color: "var(--text-primary)" }}>할인 +{pct(d.nextSalesTier.add)}</b>
           </span>
         )}
