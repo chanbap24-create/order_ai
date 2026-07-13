@@ -286,6 +286,8 @@ export async function buildCandidates(
   //   업태별 등급조건(가격공식)은 DB에서 로드(없으면 기본값).
   const discountConfig = await getDiscountConfig('CDV');
   const pricingCtx = await buildPricingContext(clientCode, clientCategory, quarterMetrics, discountConfig);
+  // 하위거래처 보정(프로모션 제안): 매출등급을 한 단계 위로 취급 → 할인가 게이트·최종 할인율 모두 반영
+  if (o.gradeStepUp) pricingCtx.salesGradeStepUp = true;
   const floorOf = (no: string): number => (inventoryMap.get(no)?.discount_price as number | undefined) || 0;
   const qtyTier = maxQtyTierFor(clientCategory, discountConfig);
   // 각 후보에 할인가 부착(가격 게이트는 할인가로 판정, 공급가는 표시용 유지).

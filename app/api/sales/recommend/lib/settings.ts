@@ -34,6 +34,7 @@ export interface RecOpts {
   includeNonStandard?: boolean;    // true면 375ml(하프)·1.5L+(매그넘 이상)도 포함(기본 750ml만)
   discountApply?: boolean;         // 권장 할인율 적용 여부(기본 true)
   discountScope?: 'team1' | 'rest';// 권장 할인 산출 범위(영업1부/나머지, 기본 team1)
+  gradeStepUp?: boolean;           // 하위거래처 보정: 매출등급 1단계업(프로모션 제안용, 기본 false)
   priceBandPct: number;            // 0.2 = ±20%
   profileMonths: number;           // 분석 기간(개월)
   geoCeiling: 'super' | 'country' | 'any'; // 지역 확장 천장

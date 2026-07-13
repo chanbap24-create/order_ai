@@ -36,6 +36,7 @@ export function useRecommendQuote() {
           include_nonstandard: s.includeNonStandard,
           discount_apply: s.discountApply,
           discount_scope: s.discountScope,
+          grade_step_up: s.gradeStepUp,
           ...(s.mode === 'substitute' && anchor
             ? { anchor_item_code: anchor.item_code, anchor_price: anchor.price }
             : {}),

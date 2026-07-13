@@ -47,6 +47,17 @@ function tierAdd(tiers: Tier[], value: number): { add: number; min: number | nul
   return best;
 }
 
+/** tierAdd + 단계업: stepUp이면 도달 티어의 한 단계 위 티어를 적용(최상위면 그대로).
+ *  하위거래처 보정(프로모션 제안용) — 미달(0가산) 거래처는 첫 티어 가산을 받는다. */
+function tierAddStepped(tiers: Tier[], value: number, stepUp?: boolean): { add: number; min: number | null } {
+  if (!stepUp) return tierAdd(tiers, value);
+  const asc = [...tiers].sort((a, b) => a.min - b.min);
+  let idx = -1;
+  for (let i = 0; i < asc.length; i++) if (value >= asc[i].min) idx = i;
+  if (idx < asc.length - 1) idx += 1;
+  return idx >= 0 ? { add: asc[idx].add, min: asc[idx].min } : { add: 0, min: null };
+}
+
 export interface ClientPricingContext {
   category: VenueCategory;
   quarterlySalesSupply: number;  // 분기 공급가 매출
@@ -55,6 +66,8 @@ export interface ClientPricingContext {
   config?: DiscountConfig;       // 업태별 등급조건(없으면 기본값)
   /** 발주 리듬 판정(본인 주기 2배=risk/3배=dormant) — 있으면 윈백 가산 자동 합산 */
   winbackStatus?: 'dormant' | 'risk' | null;
+  /** 하위거래처 보정(프로모션 제안): 매출등급을 한 단계 위 티어로 취급(업소·샵). 도매는 매출등급이 없어 무영향. */
+  salesGradeStepUp?: boolean;
 }
 
 export interface ItemDiscountResult {
@@ -78,12 +91,12 @@ export function computeItemDiscount(
     quantity = hit.add; appliedQtyMin = hit.min;
   } else if (ctx.category === 'shop') {
     base = cfg.shop.base;
-    sales = tierAdd(cfg.shop.sales, ctx.quarterlySalesSupply).add;
+    sales = tierAddStepped(cfg.shop.sales, ctx.quarterlySalesSupply, ctx.salesGradeStepUp).add;
     const hit = tierAdd(cfg.shop.qty, item.qty);
     quantity = hit.add; appliedQtyMin = hit.min;
   } else {
     base = cfg.venue.base;
-    sales = tierAdd(cfg.venue.sales, ctx.quarterlySalesSupply).add;
+    sales = tierAddStepped(cfg.venue.sales, ctx.quarterlySalesSupply, ctx.salesGradeStepUp).add;
     quantity = tierAdd(cfg.venue.listing, ctx.listingCount).add;
     riedel = ctx.hadRiedelLastQuarter ? cfg.venue.riedel : 0;
   }

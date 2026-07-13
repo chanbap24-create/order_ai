@@ -25,6 +25,7 @@ export interface RecSettings {
   includeNonStandard: boolean; // 375ml·1.5L+ 포함(기본 false=750ml만)
   discountApply: boolean;      // 권장 할인율 적용(기본 true)
   discountScope: 'team1' | 'rest'; // 권장 할인 산출 범위(영업1부/나머지)
+  gradeStepUp: boolean;        // 하위거래처 보정: 매출등급 1단계업(프로모션 제안용)
   periodMonths: number; // 분석 기간(개월)
   priceBand: number;    // 가격 밴드 ±%
   minScore: number;     // 추천 점수 허들(클라이언트 즉시 필터)
@@ -40,7 +41,7 @@ export const DEFAULT_REC_SETTINGS: RecSettings = {
   mode: 'new',
   discoveryTypes: [], discoveryMinPrice: 0, discoveryMaxPrice: 0, discoverySegment: '',
   includeNonStandard: false,
-  discountApply: true, discountScope: 'team1',
+  discountApply: true, discountScope: 'team1', gradeStepUp: false,
   periodMonths: 6, priceBand: 20, minScore: 0, lockCount: 6, maxPerType: 0,
   geoCeiling: 'super', stockMonths: 1,
   minStock: { price_300k: 6, price_200k: 12, price_100k: 60, price_50k: 120, price_20k: 180, price_under_20k: 300 },

@@ -80,6 +80,7 @@ export function useBatchRecommend(manager: string) {
             include_nonstandard: s.includeNonStandard,
             discount_apply: s.discountApply,
             discount_scope: s.discountScope,
+            grade_step_up: s.gradeStepUp,
             ...(mode === 'discovery' ? {
               discovery_types: s.discoveryTypes,
               discovery_min_price: s.discoveryMinPrice,
