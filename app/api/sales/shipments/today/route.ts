@@ -86,21 +86,30 @@ export async function GET(req: NextRequest) {
 
   const cols = 'client_code, client_name, business_type, item_no, item_name, quantity, unit_price, selling_price, supply_amount, tax_amount, total_amount, manager';
 
-  let wineQuery = supabase.from('shipments').select(cols).gte('ship_date', from).lte('ship_date', to).limit(10000);
-  let glassQuery = supabase.from('glass_shipments').select(cols).gte('ship_date', from).lte('ship_date', to).limit(10000);
+  // Supabase 1000행 캡 — '올해' 같은 긴 기간은 한 번에 잘리므로 id 기준 페이지네이션으로 전체 로드.
+  const fetchAllRows = async (table: string): Promise<ShipRow[]> => {
+    const rows: ShipRow[] = [];
+    for (let off = 0; off < 200000; off += 1000) {
+      let q = supabase.from(table).select(cols).gte('ship_date', from).lte('ship_date', to);
+      if (manager && manager !== 'admin') q = q.eq('manager', manager);
+      const { data, error } = await q.order('id', { ascending: true }).range(off, off + 999);
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) break;
+      rows.push(...(data as unknown as ShipRow[]));
+      if (data.length < 1000) break;
+    }
+    return rows;
+  };
 
-  if (manager && manager !== 'admin') {
-    wineQuery = wineQuery.eq('manager', manager);
-    glassQuery = glassQuery.eq('manager', manager);
+  try {
+    const [wineRows, glassRows] = await Promise.all([
+      fetchAllRows('shipments'),
+      fetchAllRows('glass_shipments'),
+    ]);
+    const wine = groupByClient(wineRows);
+    const glass = groupByClient(glassRows);
+    return NextResponse.json({ wine, glass });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 });
   }
-
-  const [wineRes, glassRes] = await Promise.all([wineQuery, glassQuery]);
-
-  if (wineRes.error) return NextResponse.json({ error: wineRes.error.message }, { status: 500 });
-  if (glassRes.error) return NextResponse.json({ error: glassRes.error.message }, { status: 500 });
-
-  const wine = groupByClient((wineRes.data || []) as ShipRow[]);
-  const glass = groupByClient((glassRes.data || []) as ShipRow[]);
-
-  return NextResponse.json({ wine, glass });
 }
