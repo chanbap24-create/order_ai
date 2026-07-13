@@ -6,6 +6,7 @@ type Metric = {
   key: string; label: string; unit: string; cur: number; next: number | null;
   thresholds?: [number, number, number, number];
 };
+type Tier = { min: number; add: number };
 type GradeData = {
   category: "venue" | "shop" | "wholesale";
   grade: number;
@@ -14,18 +15,22 @@ type GradeData = {
   benefit: { rate: number; breakdown: { base: number; sales: number; quantity: number; riedel: number }; riedel: boolean };
   nextSalesTier: { min: number; add: number; remain: number } | null;
   discountChallenge?: {
-    sales: { cur: number; tiers: Array<{ min: number; add: number }> } | null;
-    listing: { cur: number; tiers: Array<{ min: number; add: number }> } | null;
+    sales: { cur: number; tiers: Tier[] } | null;
+    listing: { cur: number; tiers: Tier[] } | null;
   };
 };
+
+/** 트랙 눈금: 값 + (있으면) 할인 가산 라벨 */
+type Notch = { v: number; add?: number; isNext?: boolean };
 
 const won = (n: number) => (n >= 1_0000_0000 ? `${(n / 1_0000_0000).toFixed(1)}억` : n >= 1_0000 ? `${Math.round(n / 1_0000).toLocaleString()}만` : n.toLocaleString());
 const pct = (r: number) => `${Math.round(r * 100)}%`;
 
 /**
  * 거래처 등급 카드 — 멤버십 티어 UI.
- * ① 등급 스텝퍼(기본→4등급 여정) ② 지표별 눈금 트랙(전체 문턱 위 현재 위치)
- * ③ 할인 혜택 + 다음 구간. 직전 완료 분기 기준.
+ * ① 등급 스텝퍼 ② 이번 분기 도전 트랙 3개(분기 매출 → 품목수 → 거래횟수).
+ *    품목수 트랙은 추천등급 눈금 + 할인 가산(+%)을 병기(리스팅과 동일 지표라 통합).
+ * ③ 마지막 줄 = 현재 할인률(그래서 결론).
  */
 export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   const [d, setD] = useState<GradeData | null>(null);
@@ -50,12 +55,42 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   if (!d) return null;
 
   const b = d.benefit.breakdown;
-  // 도전 트랙 = 이번 분기(진행 중) 실적 vs 다음 등급 문턱. 없으면(구버전 응답) 직전 분기로 폴백.
   const ch = d.challenge;
-  const trackMetrics = (ch?.metrics ?? d.metrics).filter((m) => Array.isArray(m.thresholds) && m.thresholds.length === 4);
+  const dc = d.discountChallenge;
+  const chMetrics = ch?.metrics ?? d.metrics;
   const mmdd = (s: string) => `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}`;
-  // 마감 = 분기 end(다음 분기 1일)의 전날
   const deadline = ch ? new Date(new Date(ch.quarter.end).getTime() - 86400000).toISOString().slice(0, 10) : null;
+
+  // ── 트랙 데이터 조립 (분기 매출 → 품목수 → 거래횟수) ──
+  const items = chMetrics.find((m) => m.key === "items");
+  const orders = chMetrics.find((m) => m.key === "orders");
+  const recSales = chMetrics.find((m) => m.key === "sales"); // 샵만 존재
+
+  // 매출: 추천등급 눈금(샵) + 할인 티어(+%) 병합
+  const salesNotches: Notch[] = [];
+  if (recSales?.thresholds) for (const t of [...new Set(recSales.thresholds)]) salesNotches.push({ v: t, isNext: recSales.next === t });
+  for (const t of dc?.sales?.tiers || []) {
+    const ex = salesNotches.find((n) => n.v === t.min);
+    if (ex) ex.add = t.add; else salesNotches.push({ v: t.min, add: t.add });
+  }
+  salesNotches.sort((a, b) => a.v - b.v);
+  const salesCur = dc?.sales?.cur ?? recSales?.cur ?? null;
+  const nextDiscTier = dc?.sales?.tiers.find((t) => (salesCur ?? 0) < t.min) || null;
+
+  // 품목수: 추천등급 눈금 + 리스팅 할인 가산 병기 (동일 지표 통합)
+  const itemNotches: Notch[] = [];
+  if (items?.thresholds) for (const t of [...new Set(items.thresholds)]) itemNotches.push({ v: t, isNext: items.next === t });
+  for (const t of dc?.listing?.tiers || []) {
+    const ex = itemNotches.find((n) => n.v === t.min);
+    if (ex) ex.add = t.add; else itemNotches.push({ v: t.min, add: t.add });
+  }
+  itemNotches.sort((a, b) => a.v - b.v);
+
+  const orderNotches: Notch[] = orders?.thresholds
+    ? [...new Set(orders.thresholds)].map((t) => ({ v: t, isNext: orders.next === t }))
+    : [];
+
+  const showChallenge = d.grade < 4 && (salesNotches.length || itemNotches.length || orderNotches.length);
 
   return (
     <div style={box}>
@@ -66,13 +101,10 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
       </div>
       <Stepper grade={d.grade} />
 
-      {/* ── ② 다음 등급 도전 — 이번 분기 실적 vs 목표 문턱 ── */}
-      {d.grade < 4 && trackMetrics.length > 0 && (
+      {/* ── ② 이번 분기 도전: 분기 매출 → 품목수 → 거래횟수 ── */}
+      {showChallenge ? (
         <>
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            marginTop: 18, marginBottom: 10,
-          }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 18, marginBottom: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>
               {d.grade + 1}등급 도전 — 이번 분기 실적
             </span>
@@ -87,28 +119,67 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
             )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {trackMetrics.map((m) => <NotchTrack key={m.key} m={m} grade={d.grade} />)}
+            {salesCur != null && salesNotches.length > 0 && (
+              <Track
+                label="분기 매출" cur={salesCur} notches={salesNotches} money
+                right={
+                  <>
+                    현재 <b style={hl}>{won(salesCur)}원</b>
+                    {recSales?.next != null && salesCur < recSales.next && (
+                      <> · 다음 등급까지 <b style={hl}>{won(recSales.next - salesCur)}원 더</b></>
+                    )}
+                    {nextDiscTier && <> · <b style={hl}>{won(nextDiscTier.min - salesCur)}원 더</b> → 할인 +{pct(nextDiscTier.add)}</>}
+                    {!nextDiscTier && dc?.sales && " · ✓ 최고 할인 구간"}
+                  </>
+                }
+              />
+            )}
+            {items && itemNotches.length > 0 && (
+              <Track
+                label="품목수" cur={items.cur} notches={itemNotches}
+                right={
+                  <>
+                    현재 <b style={hl}>{items.cur}종</b>
+                    {items.next != null && items.cur < items.next
+                      ? <> · 다음 등급까지 <b style={hl}>{items.next - items.cur}종 더</b></>
+                      : items.next != null ? " · ✓ 다음 등급 충족" : null}
+                  </>
+                }
+              />
+            )}
+            {orders && orderNotches.length > 0 && (
+              <Track
+                label="거래횟수" cur={orders.cur} notches={orderNotches}
+                right={
+                  <>
+                    현재 <b style={hl}>{orders.cur}일</b>
+                    {orders.next != null && orders.cur < orders.next
+                      ? <> · 다음 등급까지 <b style={hl}>{orders.next - orders.cur}일 더</b></>
+                      : orders.next != null ? " · ✓ 다음 등급 충족" : null}
+                  </>
+                }
+              />
+            )}
           </div>
           {ch && (
             <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-tertiary)" }}>
-              {mmdd(deadline!)}까지 모든 지표 달성 시 <b style={{ color: "var(--text-primary)" }}>{mmdd(ch.appliesFrom)}부터 {d.grade + 1}등급</b> 적용
-              — 추천에 취향·산지 반영 비중↑
+              {mmdd(deadline!)}까지 달성 시 <b style={{ color: "var(--text-primary)" }}>{mmdd(ch.appliesFrom)}부터 등급·할인율 반영</b>
+              {" "}— 눈금의 <b style={{ color: "var(--text-primary)" }}>+%</b>는 할인 가산 구간
             </div>
           )}
         </>
-      )}
-      {d.grade >= 4 && (
+      ) : d.grade >= 4 && (
         <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
           🏆 최고 등급 — 추천에 이 거래처의 취향·산지가 최대 비중으로 반영돼요
         </div>
       )}
 
-      {/* ── ③ 할인 혜택 ── */}
+      {/* ── ③ 그래서, 현재 할인률 ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
         marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border-default)",
       }}>
-        <span style={sectionLabel}>할인 혜택</span>
+        <span style={sectionLabel}>현재 할인률</span>
         <span style={{
           fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em",
           color: "#fff", background: "var(--action)", padding: "4px 12px", borderRadius: 8,
@@ -119,89 +190,9 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
         <span style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
           기본 {pct(b.base)}
           {b.sales > 0 ? ` + 매출 ${pct(b.sales)}` : ""}
-          {b.quantity > 0 ? ` + ${d.category === "venue" ? "리스팅" : "수량"} ${pct(b.quantity)}` : ""}
+          {b.quantity > 0 ? ` + ${d.category === "venue" ? "품목수" : "수량"} ${pct(b.quantity)}` : ""}
           {d.benefit.riedel && b.riedel > 0 ? ` + 리델 ${pct(b.riedel)}` : ""}
         </span>
-      </div>
-
-      {/* 할인 등급 도전 트랙 — 이번 분기 매출·리스팅 (가격공식 A표) */}
-      {(d.discountChallenge?.sales || d.discountChallenge?.listing) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 12 }}>
-          {d.discountChallenge.sales && (
-            <TierTrack
-              label="분기 매출"
-              cur={d.discountChallenge.sales.cur}
-              tiers={d.discountChallenge.sales.tiers}
-              money
-            />
-          )}
-          {d.discountChallenge.listing && (
-            <TierTrack
-              label="리스팅 품목수"
-              cur={d.discountChallenge.listing.cur}
-              tiers={d.discountChallenge.listing.tiers}
-              unit="종"
-            />
-          )}
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
-            이번 분기 실적 기준 — 분기 마감까지 구간 달성 시 <b style={{ color: "var(--text-primary)" }}>다음 분기 할인율에 반영</b>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** 할인 구간 트랙: 티어 눈금(금액/수량 + 가산율) 위에 이번 분기 현재 위치. */
-function TierTrack({ label, cur, tiers, money, unit = "" }: {
-  label: string; cur: number; tiers: Array<{ min: number; add: number }>; money?: boolean; unit?: string;
-}) {
-  if (!tiers.length) return null;
-  const max = tiers[tiers.length - 1].min;
-  const scale = (v: number) => Math.min(100, (v / (max * 1.06)) * 100);
-  const fmtV = (v: number) => (money ? won(v) : `${v}`);
-  const next = tiers.find((t) => cur < t.min) || null;
-  const topDone = !next;
-  const attained = [...tiers].reverse().find((t) => cur >= t.min) || null;
-
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-secondary)" }}>{label}</span>
-        <span style={{ fontSize: 11.5, fontVariantNumeric: "tabular-nums", color: topDone ? "var(--status-success)" : "var(--text-secondary)" }}>
-          현재 <b style={{ color: "var(--text-primary)", fontSize: 12.5 }}>{fmtV(cur)}{money ? "원" : unit}</b>
-          {attained && <> · 달성 <b style={{ color: "var(--status-success)" }}>+{pct(attained.add)}</b></>}
-          {next && <> · <b style={{ color: "var(--text-primary)" }}>{money ? `${won(next.min - cur)}원` : `${next.min - cur}${unit}`} 더</b> → +{pct(next.add)}</>}
-          {topDone && " · ✓ 최고 구간"}
-        </span>
-      </div>
-      <div style={{ position: "relative", height: 24 }}>
-        <div style={{ position: "absolute", left: 0, right: 0, top: 3, height: 6, borderRadius: 3, background: "var(--gray-100)" }} />
-        <div style={{
-          position: "absolute", left: 0, top: 3, height: 6, borderRadius: 3,
-          width: `${Math.max(1.5, scale(cur))}%`,
-          background: topDone ? "var(--status-success)" : "var(--text-primary)",
-          transition: "width 0.5s ease",
-        }} />
-        {tiers.map((t, i) => {
-          const isNext = next != null && t.min === next.min;
-          const passed = cur >= t.min;
-          return (
-            <div key={i} style={{ position: "absolute", left: `${scale(t.min)}%`, top: 0, transform: "translateX(-50%)" }}>
-              <div style={{
-                width: isNext ? 3 : 2, height: 12, borderRadius: 1, margin: "0 auto",
-                background: isNext ? "var(--text-primary)" : passed ? "rgba(255,255,255,0.9)" : "var(--gray-300)",
-              }} />
-              <div style={{
-                fontSize: 9, marginTop: 2, textAlign: "center", whiteSpace: "nowrap",
-                fontWeight: isNext ? 800 : 500, fontVariantNumeric: "tabular-nums",
-                color: isNext ? "var(--text-primary)" : "var(--text-muted)",
-              }}>
-                {fmtV(t.min)}{money ? "" : unit} +{pct(t.add)}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
@@ -212,7 +203,6 @@ function Stepper({ grade }: { grade: number }) {
   const steps = [0, 1, 2, 3, 4];
   return (
     <div style={{ position: "relative", padding: "0 4px" }}>
-      {/* 트랙 라인 */}
       <div style={{ position: "absolute", left: 14, right: 14, top: 10, height: 2, background: "var(--gray-200)" }} />
       <div style={{
         position: "absolute", left: 14, top: 10, height: 2, background: "var(--text-primary)",
@@ -249,54 +239,45 @@ function Stepper({ grade }: { grade: number }) {
   );
 }
 
-/** 지표 눈금 트랙: 전체 문턱(1~4등급) 눈금 위에 현재 위치. 다음 문턱까지 부족분 강조. */
-function NotchTrack({ m, grade }: { m: Metric; grade: number }) {
-  const thr = m.thresholds as [number, number, number, number];
-  const max = thr[3];
-  const scale = (v: number) => Math.min(100, (v / max) * 100);
-  const isSales = m.key === "sales";
-  const fmtV = (v: number) => (isSales ? won(v) : `${v}`);
-  const next = m.next;
-  const done = next != null && m.cur >= next;
-  const remainTxt = next != null && !done
-    ? (isSales ? `${won(next - m.cur)}원 더` : `${next - m.cur}${m.unit} 더`)
-    : null;
+/** 눈금 트랙: 등급 문턱 + 할인 가산(+%) 병기 눈금 위에 이번 분기 현재 위치. */
+function Track({ label, cur, notches, money, right }: {
+  label: string; cur: number; notches: Notch[]; money?: boolean; right: React.ReactNode;
+}) {
+  const max = notches[notches.length - 1].v;
+  const scale = (v: number) => Math.min(100, (v / (max * 1.05)) * 100);
+  const fmtV = (v: number) => (money ? won(v) : `${v}`);
+  const allDone = cur >= max;
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-secondary)" }}>{m.label}</span>
-        <span style={{ fontSize: 11.5, fontVariantNumeric: "tabular-nums", color: done ? "var(--status-success)" : "var(--text-secondary)" }}>
-          현재 <b style={{ color: "var(--text-primary)", fontSize: 12.5 }}>{fmtV(m.cur)}{isSales ? "원" : m.unit}</b>
-          {done && " · ✓ 다음 등급 충족"}
-          {remainTxt && <> · 다음 등급까지 <b style={{ color: "var(--text-primary)" }}>{remainTxt}</b></>}
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-secondary)" }}>{label}</span>
+        <span style={{ fontSize: 11.5, fontVariantNumeric: "tabular-nums", color: allDone ? "var(--status-success)" : "var(--text-secondary)" }}>
+          {right}
         </span>
       </div>
-      <div style={{ position: "relative", height: 22 }}>
-        {/* 트랙 + 채움 */}
+      <div style={{ position: "relative", height: 24 }}>
         <div style={{ position: "absolute", left: 0, right: 0, top: 3, height: 6, borderRadius: 3, background: "var(--gray-100)" }} />
         <div style={{
           position: "absolute", left: 0, top: 3, height: 6, borderRadius: 3,
-          width: `${Math.max(1.5, scale(m.cur))}%`,
-          background: done ? "var(--status-success)" : "var(--text-primary)",
+          width: `${Math.max(1.5, scale(cur))}%`,
+          background: allDone ? "var(--status-success)" : "var(--text-primary)",
           transition: "width 0.5s ease",
         }} />
-        {/* 등급 문턱 눈금 + 라벨 */}
-        {thr.map((t, i) => {
-          const isNext = next != null && t === next && i === grade; // 현 등급의 다음 문턱
-          const passed = m.cur >= t;
+        {notches.map((n, i) => {
+          const passed = cur >= n.v;
           return (
-            <div key={i} style={{ position: "absolute", left: `${scale(t)}%`, top: 0, transform: "translateX(-50%)" }}>
+            <div key={i} style={{ position: "absolute", left: `${scale(n.v)}%`, top: 0, transform: "translateX(-50%)" }}>
               <div style={{
-                width: isNext ? 3 : 2, height: 12, borderRadius: 1, margin: "0 auto",
-                background: isNext ? "var(--text-primary)" : passed ? "rgba(255,255,255,0.9)" : "var(--gray-300)",
+                width: n.isNext ? 3 : 2, height: 12, borderRadius: 1, margin: "0 auto",
+                background: n.isNext ? "var(--text-primary)" : passed ? "rgba(255,255,255,0.9)" : "var(--gray-300)",
               }} />
               <div style={{
                 fontSize: 9, marginTop: 2, textAlign: "center", whiteSpace: "nowrap",
-                fontWeight: isNext ? 800 : 500, fontVariantNumeric: "tabular-nums",
-                color: isNext ? "var(--text-primary)" : "var(--text-muted)",
+                fontWeight: n.isNext ? 800 : 500, fontVariantNumeric: "tabular-nums",
+                color: n.isNext ? "var(--text-primary)" : "var(--text-muted)",
               }}>
-                {fmtV(t)}
+                {fmtV(n.v)}{n.add != null ? ` +${pct(n.add)}` : ""}
               </div>
             </div>
           );
@@ -313,3 +294,4 @@ const box: React.CSSProperties = {
 const sectionLabel: React.CSSProperties = {
   fontSize: 10.5, fontWeight: 800, letterSpacing: "0.08em", color: "var(--text-tertiary)", whiteSpace: "nowrap",
 };
+const hl: React.CSSProperties = { color: "var(--text-primary)" };
