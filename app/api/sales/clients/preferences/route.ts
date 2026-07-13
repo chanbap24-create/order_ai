@@ -12,14 +12,17 @@ export async function GET(req: NextRequest) {
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const twelveStr = twelveMonthsAgo.toISOString().slice(0, 10);
 
-    // 거래처 타입 확인
-    const { data: detail } = await supabase
-      .from('client_details')
-      .select('client_type')
-      .eq('client_code', code)
-      .single();
-
-    const table = detail?.client_type === 'glass' ? 'glass_shipments' : 'shipments';
+    // 거래처 타입: 쿼리 파라미터 우선(와인·글라스 코드공간이 독립이라 코드만으로는 오인 가능)
+    let clientType = searchParams.get('type') || '';
+    if (clientType !== 'wine' && clientType !== 'glass') {
+      const { data: detail } = await supabase
+        .from('client_details')
+        .select('client_type')
+        .eq('client_code', code)
+        .single();
+      clientType = detail?.client_type === 'glass' ? 'glass' : 'wine';
+    }
+    const table = clientType === 'glass' ? 'glass_shipments' : 'shipments';
 
     // 최근 1년 출고 데이터를 페이지네이션으로 전체 가져오기
     const allShipments: { item_no: string; item_name: string; quantity: number; total_amount: number; selling_price: number }[] = [];
@@ -47,34 +50,65 @@ export async function GET(req: NextRequest) {
     // 고유 품목 코드
     const itemCodes = [...new Set(allShipments.filter(s => s.item_no).map(s => s.item_no))];
 
-    // wines + tasting_notes 를 배치별로 병렬 조회 (기존: 2회 순차 배치 루프 → 배치당 2 병렬)
-    const wineMap = new Map<string, { country: string; region: string; grape_varieties: string; wine_type: string; supply_price: number; item_name_kr: string; supplier: string; supplier_kr: string }>();
-    const tasteMap = new Map<string, { nose_note: string; palate_note: string }>();
+    // ── wines·tasting_notes 매칭: 정확 품번 우선, 없으면 빈티지 무시(품번 3~4자리 제거) 폴백 ──
+    // 품번 3~4자리 = 빈티지(extractVintage)라, 신빈티지로 재등록된 품목은 구빈티지 출고와
+    // 품번이 어긋나 메타·테이스트가 통째로 누락되던 문제(정확 매칭 76%/34% → 88%/52%).
+    const baseKey = (c: string) => (c && c.length >= 5 ? c.slice(0, 2) + c.slice(4) : c);
 
-    for (let i = 0; i < itemCodes.length; i += 100) {
-      const batch = itemCodes.slice(i, i + 100);
-      const [winesRes, notesRes] = await Promise.all([
-        supabase
-          .from('wines')
-          .select('item_code, country, region, grape_varieties, wine_type, supply_price, item_name_kr, supplier, supplier_kr')
-          .in('item_code', batch),
-        supabase
-          .from('tasting_notes')
-          .select('wine_id, nose_note, palate_note')
-          .in('wine_id', batch),
-      ]);
-      for (const w of winesRes.data || []) wineMap.set(w.item_code, w);
-      for (const n of notesRes.data || []) {
-        if (n.nose_note || n.palate_note) {
-          tasteMap.set(n.wine_id, { nose_note: n.nose_note || '', palate_note: n.palate_note || '' });
-        }
-      }
+    type WineRow = { item_code: string; country: string; region: string; grape_varieties: string; wine_type: string; supply_price: number; item_name_kr: string; brand: string; supplier: string; supplier_kr: string };
+    type NoteRow = { wine_id: string; nose_note: string; palate_note: string };
+
+    // 카탈로그가 작아(wines ~2천·notes ~수백) 전체 로드 후 JS 매칭이 배치 .in 보다 단순·확실
+    const wineRows: WineRow[] = [];
+    for (let off = 0; off < 20000; off += 1000) {
+      const { data, error } = await supabase
+        .from('wines')
+        .select('item_code, country, region, grape_varieties, wine_type, supply_price, item_name_kr, brand, supplier, supplier_kr')
+        .range(off, off + 999);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      wineRows.push(...(data as WineRow[]));
+      if (data.length < 1000) break;
+    }
+    const noteRows: NoteRow[] = [];
+    for (let off = 0; off < 20000; off += 1000) {
+      const { data, error } = await supabase
+        .from('tasting_notes')
+        .select('wine_id, nose_note, palate_note')
+        .range(off, off + 999);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      noteRows.push(...(data as NoteRow[]));
+      if (data.length < 1000) break;
     }
 
-    // wines.supplier를 브랜드로 사용 (supplier_kr 우선)
+    const wineExact = new Map<string, WineRow>();
+    const wineBase = new Map<string, WineRow>();
+    for (const w of wineRows) {
+      wineExact.set(w.item_code, w);
+      wineBase.set(baseKey(w.item_code), w); // 동일 베이스는 나중 행(대개 최신 빈티지)으로 덮임
+    }
+    const noteExact = new Map<string, NoteRow>();
+    const noteBase = new Map<string, NoteRow>();
+    for (const n of noteRows) {
+      if (!n.nose_note && !n.palate_note) continue;
+      noteExact.set(n.wine_id, n);
+      noteBase.set(baseKey(n.wine_id), n);
+    }
+
+    const wineMap = new Map<string, WineRow>();
+    const tasteMap = new Map<string, { nose_note: string; palate_note: string }>();
+    for (const c of itemCodes) {
+      const w = wineExact.get(c) || wineBase.get(baseKey(c));
+      if (w) wineMap.set(c, w);
+      const n = noteExact.get(c) || noteBase.get(baseKey(c));
+      if (n) tasteMap.set(c, { nose_note: n.nose_note || '', palate_note: n.palate_note || '' });
+    }
+
+    // 브랜드 = wines.brand 우선(2001/2008건 관리), 없으면 supplier_kr/supplier 폴백(988건뿐)
     const brandMap = new Map<string, string>();
     for (const [code, w] of wineMap) {
-      const brand = w.supplier_kr || w.supplier || '';
+      const brand = w.brand || w.supplier_kr || w.supplier || '';
       if (brand) brandMap.set(code, brand);
     }
 
@@ -112,11 +146,13 @@ export async function GET(req: NextRequest) {
       priceRangeMap.set(range.label, prev);
     }
 
-    // 2. 지역별 분포
+    // 2. 지역별 분포 (동일 지역 영/불 표기 통일)
+    const REGION_ALIAS: Record<string, string> = { Burgundy: 'Bourgogne' };
     const regionMap = new Map<string, { qty: number; amt: number }>();
     for (const [itemNo, agg] of itemAgg) {
       const wine = wineMap.get(itemNo);
-      const region = wine?.region?.split(',')[0]?.trim() || wine?.country || '기타';
+      const raw = wine?.region?.split(',')[0]?.trim() || wine?.country || '기타';
+      const region = REGION_ALIAS[raw] || raw;
       if (!region) continue;
       const prev = regionMap.get(region) || { qty: 0, amt: 0 };
       prev.qty += agg.qty;
