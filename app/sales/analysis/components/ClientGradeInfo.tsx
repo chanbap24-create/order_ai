@@ -12,7 +12,7 @@ type GradeData = {
   grade: number;
   metrics: Metric[];
   challenge?: { metrics: Metric[]; quarter: { start: string; end: string }; daysLeft: number; appliesFrom: string };
-  benefit: { rate: number; breakdown: { base: number; sales: number; quantity: number; riedel: number }; riedel: boolean };
+  benefit: { rate: number; breakdown: { base: number; sales: number; quantity: number; riedel: number; winback?: number }; riedel: boolean };
   nextSalesTier: { min: number; add: number; remain: number } | null;
   discountChallenge?: {
     sales: { cur: number; tiers: Tier[] } | null;
@@ -175,6 +175,14 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
           {b.quantity > 0 ? ` + ${d.category === "venue" ? "품목수" : "수량"} ${pct(b.quantity)}` : ""}
           {d.benefit.riedel && b.riedel > 0 ? ` + 리델 ${pct(b.riedel)}` : ""}
         </span>
+        {(b.winback ?? 0) > 0 && (
+          <span
+            title="발주 리듬이 끊긴 거래처 — 견적에 윈백 가산이 자동 합산됩니다 (재주문 시 원래 공식으로 복귀)"
+            style={{ fontSize: 11.5, fontWeight: 700, color: "var(--status-warning)", whiteSpace: "nowrap" }}
+          >
+            + 윈백 {pct(b.winback!)}
+          </span>
+        )}
       </div>
     </div>
   );

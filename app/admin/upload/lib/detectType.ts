@@ -29,11 +29,29 @@ export async function detectFileType(file: File): Promise<DetectResult> {
       headerText.includes("품명") &&
       (headerText.includes("재고수량") || headerText.includes("가용재고"))
     ) {
-      if (headerText.includes("용마") || headerText.includes("보세(용마)")) {
-        return { type: "downloads", confidence: "high", reason: "재고파일 - 용마 창고 헤더 감지 (CDV)" };
-      }
+      // GIG를 먼저 본다 — 2026 글라스 새 포맷은 KCTC 창고도 포함하므로(KCTC=양사 공용) GIG가 DL의 결정 신호.
       if (headerText.includes("GIG") || headerText.includes("보세(GIG)")) {
         return { type: "dl", confidence: "high", reason: "재고파일 - GIG 창고 헤더 감지 (DL)" };
+      }
+      if (headerText.includes("용마") || headerText.includes("KCTC") || headerText.includes("보세(용마)")) {
+        return { type: "downloads", confidence: "high", reason: "재고파일 - 용마/KCTC 창고 헤더 감지 (CDV)" };
+      }
+      // 창고 컬럼이 없는 새 ERP 포맷: 품번 프리픽스로 구분 — 글라스(DL)는 D로 시작(99%), 와인은 숫자 시작.
+      const codeCol = headers.findIndex((h) => h === "품번");
+      if (codeCol >= 0) {
+        let dCount = 0, total = 0;
+        for (let i = 1; i < Math.min(500, rows.length); i++) {
+          const c = String((rows[i] as unknown[])[codeCol] ?? "").trim();
+          if (!c) continue;
+          total++;
+          if (c[0].toUpperCase() === "D") dCount++;
+        }
+        if (total > 0 && dCount / total >= 0.5) {
+          return { type: "dl", confidence: "high", reason: `재고파일 - 품번 D 프리픽스 ${Math.round((dCount / total) * 100)}% (글라스 DL)` };
+        }
+        if (total > 0) {
+          return { type: "downloads", confidence: "medium", reason: "재고파일 - 품번 숫자 프리픽스 (와인 CDV 추정)" };
+        }
       }
       return { type: "downloads", confidence: "low", reason: "재고파일이나 CDV/DL 구분 불가" };
     }

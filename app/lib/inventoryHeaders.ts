@@ -44,6 +44,7 @@ export const HEADER_MAP: Record<string, string> = {
   'KCTC(리져브)': 'yongma_reserve',
   'KCTC(마케팅부)': 'yongma_marketing',
   'KCTC(영업1부)': 'yongma_sales1',
+  'KCTC영업1부)': 'yongma_sales1', // ERP export 괄호 누락 타이포 대응 (2026-07 글라스 재고)
   'KCTC(영업2부)': 'yongma_sales2',
   '용마(리져브)': 'yongma_reserve',
   '용마(마케팅부)': 'yongma_marketing',

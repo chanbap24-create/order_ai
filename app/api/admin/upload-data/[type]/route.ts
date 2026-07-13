@@ -40,6 +40,15 @@ export async function POST(
       // append=true이면 기존 데이터 유지하고 upsert만
       const table = type === 'downloads' ? 'inventory_cdv' : 'inventory_dl';
       if (!append) {
+        // 삭제 전 1행 dry-run upsert — 컬럼 불일치/스키마 오류면 기존 데이터를 지우지 않고 실패시킨다.
+        //   (과거: 삭제 후 upsert 실패 → 재고 테이블이 빈 채로 남는 사고)
+        const { error: dryErr } = await supabase.from(table).upsert([rows[0]], { onConflict: 'item_no' });
+        if (dryErr) {
+          return NextResponse.json(
+            { success: false, error: `업로드 사전 검증 실패(기존 데이터 유지됨): ${dryErr.message}` },
+            { status: 400 },
+          );
+        }
         // 첫 번째 청크: 기존 데이터 삭제
         await supabase.from(table).delete().not('item_no', 'is', null);
       }
