@@ -20,6 +20,8 @@ export interface HomeSummary {
     count: number;                                // 미수 거래처 수
     top: Array<{ client_name: string; amount: number }>; // 상위 3
   };
+  /** 윈백 성과 — 최근 30일 발송·재주문 전환 (없으면 null) */
+  winback: { sent: number; converted: number } | null;
 }
 
 function todayKST(): string {
@@ -57,5 +59,55 @@ export async function getHomeSummary(manager: string): Promise<HomeSummary> {
     today,
     todayMeetings: (meetingsRes.data || []) as TodayMeeting[],
     outstanding: { total, count: owed.length, top },
+    winback: await getWinbackStats(manager, today),
   };
+}
+
+/** 최근 30일 윈백 발송 거래처 수 + 발송 후 재주문 전환 수 (담당자 스코프) */
+async function getWinbackStats(manager: string, today: string): Promise<{ sent: number; converted: number } | null> {
+  const since = new Date(new Date(today).getTime() - 30 * 86400000).toISOString().slice(0, 10);
+  const { data: recos } = await supabase
+    .from('recommendations')
+    .select('client_code, created_at')
+    .eq('recommendation_type', 'winback')
+    .gte('created_at', since);
+  if (!recos || recos.length === 0) return null;
+
+  // 담당자 스코프: 현재 담당(client_details.manager) 거래처만
+  const codes = [...new Set(recos.map((r) => r.client_code).filter(Boolean))];
+  const mine = new Set<string>();
+  for (let i = 0; i < codes.length; i += 300) {
+    const { data } = await supabase.from('client_details')
+      .select('client_code').eq('manager', manager).eq('client_type', 'wine')
+      .in('client_code', codes.slice(i, i + 300));
+    for (const r of (data || [])) mine.add(r.client_code);
+  }
+  // 거래처별 최초 발송일
+  const firstSent = new Map<string, string>();
+  for (const r of recos) {
+    if (!r.client_code || !mine.has(r.client_code)) continue;
+    const d = String(r.created_at).slice(0, 10);
+    if (!firstSent.has(r.client_code) || d < firstSent.get(r.client_code)!) firstSent.set(r.client_code, d);
+  }
+  if (firstSent.size === 0) return null;
+
+  // 전환 = 발송일 이후 출고 존재
+  let converted = 0;
+  const sentCodes = [...firstSent.keys()];
+  for (let i = 0; i < sentCodes.length; i += 100) {
+    const batch = sentCodes.slice(i, i + 100);
+    const minDate = batch.reduce((m, c) => (firstSent.get(c)! < m ? firstSent.get(c)! : m), today);
+    const { data: ships } = await supabase.from('shipments')
+      .select('client_code, ship_date')
+      .in('client_code', batch).gt('ship_date', minDate)
+      .limit(2000);
+    const shippedAfter = new Set<string>();
+    for (const s of (ships || [])) {
+      if (s.client_code && String(s.ship_date).slice(0, 10) > firstSent.get(s.client_code)!) {
+        shippedAfter.add(s.client_code);
+      }
+    }
+    converted += shippedAfter.size;
+  }
+  return { sent: firstSent.size, converted };
 }

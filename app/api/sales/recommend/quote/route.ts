@@ -7,7 +7,7 @@ import { addQuoteItem } from '@/app/api/quote/lib/addItem';
 // 그대로 재사용한다. (이전엔 masterSheet 만 사용해 image_url='' · 브랜드/산지 누락 버그가 있었음)
 export async function POST(req: Request) {
   try {
-    const { items, client_code, clear_existing, manager } = await req.json();
+    const { items, client_code, clear_existing, manager, recommendation_type } = await req.json();
     const mgr = typeof manager === 'string' ? manager : '';
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -50,8 +50,10 @@ export async function POST(req: Request) {
       await supabase.from('recommendations').insert({
         client_code,
         item_codes: itemCodes,
-        reason: `견적서 생성 (${itemCodes.length}개 와인)`,
-        recommendation_type: 'mixed',
+        reason: recommendation_type === 'winback'
+          ? `윈백 견적 (${itemCodes.length}개 와인)`
+          : `견적서 생성 (${itemCodes.length}개 와인)`,
+        recommendation_type: recommendation_type === 'winback' ? 'winback' : 'mixed',
         status: 'sent',
       });
     }

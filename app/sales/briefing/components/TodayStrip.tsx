@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 interface Summary {
   todayMeetings: Array<{ client_name: string }>;
   outstanding: { total: number; count: number };
+  winback?: { sent: number; converted: number } | null;
 }
 
 /**
@@ -35,6 +36,14 @@ export function TodayStrip() {
       <Stat label="오늘 미팅" value={`${s.todayMeetings.length}건`} />
       <Stat label="미수 거래처" value={`${s.outstanding.count}곳`} divider />
       <Stat label="미수 총액" value={`${s.outstanding.total.toLocaleString()}원`} divider danger={s.outstanding.total > 0} />
+      {s.winback && (
+        <Stat
+          label="윈백 (30일)"
+          value={`${s.winback.sent}곳 → 재주문 ${s.winback.converted}`}
+          divider
+          danger={false}
+        />
+      )}
     </div>
   );
 }
