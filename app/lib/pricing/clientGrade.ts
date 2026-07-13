@@ -59,23 +59,27 @@ export interface MetricProgress {
   unit: string;
   cur: number;
   next: number | null; // 다음 등급 문턱(현 등급이 이 지표를 끌어올려야 할 값). 최고등급이면 null.
+  thresholds: [number, number, number, number]; // 1~4등급 전체 문턱 (눈금 트랙 시각화용)
 }
 
 /** 현재 등급 + 다음 등급까지 지표별(품목수·거래횟수·[샵 매출]) 현재값/문턱. */
 export function gradeProgress(category: VenueCategory, m: QuarterMetrics): { grade: number; metrics: MetricProgress[] } {
   const grade = computeGrade(category, m);
-  const nextThr = (thr: [number, number, number, number]): number | null => (grade < 4 ? thr[grade] : null);
+  const mk = (
+    key: MetricProgress['key'], label: string, unit: string, cur: number,
+    thr: [number, number, number, number],
+  ): MetricProgress => ({ key, label, unit, cur, next: grade < 4 ? thr[grade] : null, thresholds: thr });
   if (category === 'wholesale') return { grade: 0, metrics: [] };
   if (category === 'shop') {
     return { grade, metrics: [
-      { key: 'items', label: '품목수', unit: '종', cur: m.itemCount, next: nextThr([2, 4, 6, 8]) },
-      { key: 'orders', label: '거래횟수', unit: '일', cur: m.orderCount, next: nextThr([2, 3, 4, 6]) },
-      { key: 'sales', label: '매출', unit: '원', cur: m.salesSupply, next: nextThr([2_000_000, 4_000_000, 7_000_000, 7_000_000]) },
+      mk('items', '품목수', '종', m.itemCount, [2, 4, 6, 8]),
+      mk('orders', '거래횟수', '일', m.orderCount, [2, 3, 4, 6]),
+      mk('sales', '매출', '원', m.salesSupply, [2_000_000, 4_000_000, 7_000_000, 7_000_000]),
     ] };
   }
   return { grade, metrics: [
-    { key: 'items', label: '품목수', unit: '종', cur: m.itemCount, next: nextThr([3, 5, 7, 10]) },
-    { key: 'orders', label: '거래횟수', unit: '일', cur: m.orderCount, next: nextThr([3, 6, 9, 12]) },
+    mk('items', '품목수', '종', m.itemCount, [3, 5, 7, 10]),
+    mk('orders', '거래횟수', '일', m.orderCount, [3, 6, 9, 12]),
   ] };
 }
 
