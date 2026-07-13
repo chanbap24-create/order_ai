@@ -45,7 +45,7 @@ export function useBatchRecommend(manager: string) {
   const [progress, setProgress] = useState<{ done: number; total: number; name: string }>({ done: 0, total: 0, name: '' });
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (targets: BatchTarget[], opts?: { winback?: boolean }) => {
+  const run = async (targets: BatchTarget[]) => {
     if (running || targets.length === 0) return;
     setRunning(true);
     setMessage(null);
@@ -102,8 +102,6 @@ export function useBatchRecommend(manager: string) {
           body: JSON.stringify({
             items, client_code: t.client_code, client_name: t.client_name,
             manager: scope, clear_existing: true,
-            // 윈백 발송 추적용 — recommendations.recommendation_type='winback'으로 기록
-            ...(opts?.winback ? { recommendation_type: 'winback' } : {}),
           }),
         });
         const qJson = await qRes.json();

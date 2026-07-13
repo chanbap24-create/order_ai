@@ -7,6 +7,7 @@
 // (1) 후보 '할인가' 산출(가격 게이트용) (2) 최종 rec_discount 부여에 재사용한다.
 import { supabase } from '@/app/lib/db';
 import { computeItemDiscount, qtyTiersFor, type ClientPricingContext, type VenueCategory, type DiscountConfig } from '@/app/lib/pricing/discountRate';
+import { getClientWinbackStatus } from '@/app/lib/dormantClients';
 import { prevYearRange } from '@/app/lib/pricing/quarters';
 import type { QuarterMetrics } from '@/app/lib/pricing/clientGrade';
 import { extractRDCode } from '@/app/lib/resolve-glass-items/rdCode';
@@ -26,20 +27,24 @@ async function hadRiedelInPrevYear(clientCode: string): Promise<boolean> {
   return false;
 }
 
-/** 스코어링 전 1회 계산: 업태 + 직전분기 매출/리스팅 + 직전반기 리델. */
+/** 스코어링 전 1회 계산: 업태 + 직전분기 매출/리스팅 + 직전반기 리델 + 윈백(발주 리듬). */
 export async function buildPricingContext(
   clientCode: string,
   category: VenueCategory,
   metrics: QuarterMetrics,
   config?: DiscountConfig,
 ): Promise<ClientPricingContext> {
-  const hadRiedelLastQuarter = category === 'venue' ? await hadRiedelInPrevYear(clientCode) : false;
+  const [hadRiedelLastQuarter, winbackStatus] = await Promise.all([
+    category === 'venue' ? hadRiedelInPrevYear(clientCode) : Promise.resolve(false),
+    getClientWinbackStatus(clientCode),
+  ]);
   return {
     category,
     quarterlySalesSupply: metrics.salesSupply,
     listingCount: metrics.itemCount,
     hadRiedelLastQuarter,
     config,
+    winbackStatus,
   };
 }
 

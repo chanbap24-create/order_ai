@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { addQuoteItem } from '@/app/api/quote/lib/addItem';
+import { getClientWinbackStatus } from '@/app/lib/dormantClients';
 
 // 추천 와인 목록 → quote_items 적재.
 // 수동 견적 담기(addQuoteItem)와 "동일한" 보강(이미지/브랜드/산지/소매가/테이스팅노트/중복합산)을
 // 그대로 재사용한다. (이전엔 masterSheet 만 사용해 image_url='' · 브랜드/산지 누락 버그가 있었음)
 export async function POST(req: Request) {
   try {
-    const { items, client_code, clear_existing, manager, recommendation_type } = await req.json();
+    const { items, client_code, clear_existing, manager } = await req.json();
     const mgr = typeof manager === 'string' ? manager : '';
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -44,16 +45,19 @@ export async function POST(req: Request) {
     }
 
     // recommendations 테이블에 이력 저장
+    //   윈백 자동 마킹: 발주 리듬(본인 주기 2배=위험/3배=휴면)이 끊긴 거래처면 서버가 판정해 기록
+    //   → 브리핑 '윈백 (30일)' 발송·재주문 전환 집계의 근거. 담기 경로 어디서 와도 동일 적용.
     if (client_code) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const itemCodes = items.map((i: any) => i.item_no || i.item_code).filter(Boolean);
+      const winback = await getClientWinbackStatus(client_code).catch(() => null);
       await supabase.from('recommendations').insert({
         client_code,
         item_codes: itemCodes,
-        reason: recommendation_type === 'winback'
+        reason: winback
           ? `윈백 견적 (${itemCodes.length}개 와인)`
           : `견적서 생성 (${itemCodes.length}개 와인)`,
-        recommendation_type: recommendation_type === 'winback' ? 'winback' : 'mixed',
+        recommendation_type: winback ? 'winback' : 'mixed',
         status: 'sent',
       });
     }

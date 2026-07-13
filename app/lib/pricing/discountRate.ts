@@ -12,6 +12,8 @@ export interface DiscountConfig {
   venue: { base: number; sales: Tier[]; listing: Tier[]; riedel: number };
   shop: { base: number; sales: Tier[]; qty: Tier[] };
   wholesale: { baseLow: number; baseHigh: number; priceThreshold: number; qty: Tier[] };
+  /** 윈백 가산 — 발주 리듬이 끊긴(휴면·이탈위험) 거래처의 추천견적에 자동 합산. 전 업태 공통. */
+  winback: number;
 }
 
 // 기본값(가격공식.xlsx). config 미설정 시 사용.
@@ -33,6 +35,7 @@ export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
     priceThreshold: 100_000,
     qty: [{ min: 12, add: 0.05 }, { min: 36, add: 0.10 }, { min: 60, add: 0.15 }],
   },
+  winback: 0.05,
 };
 
 /** 값이 도달한 tier 중 가장 높은(min이 큰) tier의 가산. 순서 무관. */
@@ -50,11 +53,13 @@ export interface ClientPricingContext {
   listingCount: number;          // 분기 리스팅 품목수 (업소/호텔용)
   hadRiedelLastQuarter: boolean; // 전분기 리델 거래 (업소/호텔용)
   config?: DiscountConfig;       // 업태별 등급조건(없으면 기본값)
+  /** 발주 리듬 판정(본인 주기 2배=risk/3배=dormant) — 있으면 윈백 가산 자동 합산 */
+  winbackStatus?: 'dormant' | 'risk' | null;
 }
 
 export interface ItemDiscountResult {
   rate: number; // 최종 할인율 (0~1)
-  breakdown: { base: number; sales: number; quantity: number; riedel: number };
+  breakdown: { base: number; sales: number; quantity: number; riedel: number; winback: number };
   appliedQtyMin: number | null; // 적용된 수량등급 기준 병수 (샵/도매)
 }
 
@@ -83,8 +88,11 @@ export function computeItemDiscount(
     riedel = ctx.hadRiedelLastQuarter ? cfg.venue.riedel : 0;
   }
 
-  const rate = round2(base + sales + quantity + riedel);
-  return { rate, breakdown: { base, sales, quantity, riedel }, appliedQtyMin };
+  // 윈백: 발주 리듬이 끊긴 거래처(휴면·이탈위험)에 자동 가산 — 이번 견적 한정 특별가
+  const winback = ctx.winbackStatus ? (cfg.winback ?? DEFAULT_DISCOUNT_CONFIG.winback) : 0;
+
+  const rate = round2(base + sales + quantity + riedel + winback);
+  return { rate, breakdown: { base, sales, quantity, riedel, winback }, appliedQtyMin };
 }
 
 export interface QtyRecommendation {

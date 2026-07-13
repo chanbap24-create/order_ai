@@ -120,6 +120,13 @@ export function DiscountConfigEditor() {
             <TierRows tiers={cfg.wholesale.qty} unitLabel="병" onChange={(t) => patch((c) => { c.wholesale.qty = t; })} />
           </div>
 
+          {/* 윈백 (전 업태 공통) */}
+          <div style={box}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>윈백 (전 업태 공통)</div>
+            <div style={row}><span style={lbl}>윈백 가산</span><Pct v={cfg.winback} on={(n) => patch((c) => { c.winback = n; })} /></div>
+            <div style={unit}>발주 리듬이 끊긴 거래처(평소 주기 2배 경과=이탈위험, 3배=휴면)의 추천견적에 자동 합산</div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={save} disabled={saving} style={{
               padding: '9px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',

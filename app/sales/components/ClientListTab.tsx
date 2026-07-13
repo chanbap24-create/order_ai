@@ -6,7 +6,6 @@ import { useBatchRecommend } from '../client-list/hooks/useBatchRecommend';
 import { FilterPanel } from '../client-list/components/FilterPanel';
 import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
-import { DormantView, type DormantClient } from '../client-list/components/DormantView';
 import { BatchRecommendBar } from '../client-list/components/BatchRecommendBar';
 import { ClientDetailPanel } from '../analysis/components/ClientDetailPanel';
 import type { SelectedRankClient, AnalysisFilters } from '../analysis/types';
@@ -31,11 +30,6 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
       )
     : s.clients;
 
-  // 휴면·이탈위험 뷰 (윈백) — 본인 발주주기 기준 자동 발굴
-  const [view, setView] = useState<'all' | 'dormant'>('all');
-  const [dormantList, setDormantList] = useState<DormantClient[]>([]);
-  const dormantManager = s.managerFilter && s.managerFilter !== '전체' ? s.managerFilter : currentManager;
-
   const selectableClients = shownClients.filter((c) => c.client_code);
   const allSelected = selectableClients.length > 0 && selectableClients.every((c) => picked.has(c.client_code));
   const togglePick = (code: string) =>
@@ -43,11 +37,10 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const toggleAll = () =>
     setPicked(() => (allSelected ? new Set() : new Set(selectableClients.map((c) => c.client_code))));
   const runBatch = () => {
-    const source = view === 'dormant' ? dormantList : s.clients;
-    const targets = source
+    const targets = s.clients
       .filter((c) => picked.has(c.client_code))
       .map((c) => ({ client_code: c.client_code, client_name: c.client_name }));
-    void batch.run(targets, { winback: view === 'dormant' });
+    void batch.run(targets);
   };
 
   if (selected) {
@@ -89,37 +82,20 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         totalAmount={s.totalAmount}
       />
 
-      {/* 거래처 검색 + 휴면 뷰 전환 */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="거래처명 또는 코드 검색"
-          style={{
-            flex: 1, padding: '10px 14px', borderRadius: 8,
-            border: '1px solid var(--border-default)', fontSize: 14,
-            background: '#fff', color: 'var(--text-primary)', outline: 'none',
-          }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--text-primary)'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
-        />
-        {batchable && (
-          <button
-            onClick={() => { setView((v) => (v === 'dormant' ? 'all' : 'dormant')); setPicked(new Set()); }}
-            style={{
-              padding: '10px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-              border: `1px solid ${view === 'dormant' ? 'var(--action)' : 'var(--border-default)'}`,
-              background: view === 'dormant' ? 'var(--action)' : '#fff',
-              color: view === 'dormant' ? '#fff' : 'var(--text-secondary)',
-              cursor: 'pointer',
-            }}
-            title="발주주기 기준 휴면·이탈위험 거래처 자동 발굴 — 선택해서 윈백 견적 일괄 생성"
-          >
-            {view === 'dormant' ? '← 전체 거래처' : '휴면·이탈위험'}
-          </button>
-        )}
-      </div>
+      {/* 거래처 검색 */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="거래처명 또는 코드 검색"
+        style={{
+          padding: '10px 14px', borderRadius: 8,
+          border: '1px solid var(--border-default)', fontSize: 14,
+          background: '#fff', color: 'var(--text-primary)', outline: 'none',
+        }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--text-primary)'; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
+      />
 
       {batchable && (
         <BatchRecommendBar
@@ -132,15 +108,6 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         />
       )}
 
-      {view === 'dormant' ? (
-        <DormantView
-          manager={dormantManager}
-          picked={picked}
-          onTogglePick={togglePick}
-          onPickAll={(codes) => setPicked(new Set(codes))}
-          onLoaded={setDormantList}
-        />
-      ) : (
       <ClientsTable
         clients={shownClients}
         loading={s.loading}
@@ -166,9 +133,8 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           })
         }
       />
-      )}
 
-      {view === 'all' && !s.loading && s.clients.length > 0 && (
+      {!s.loading && s.clients.length > 0 && (
         <div
           style={{
             textAlign: 'center',

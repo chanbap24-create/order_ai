@@ -14,7 +14,7 @@ const GRADE_BG = [
 ];
 
 export function SummaryCard({ result }: { result: RecommendResult }) {
-  const { grade, riedel } = result.client;
+  const { grade, riedel, winback } = result.client;
   return (
     <div style={{
       background: 'var(--action)',
@@ -35,6 +35,17 @@ export function SummaryCard({ result }: { result: RecommendResult }) {
               style={{ padding: '4px 10px', borderRadius: 12, background: GRADE_BG[grade] ?? GRADE_BG[0], fontSize: 12, fontWeight: 700 }}
             >
               {grade}등급
+            </span>
+          )}
+          {winback && (
+            <span
+              title={`발주 리듬이 끊긴 거래처(${winback === 'dormant' ? '휴면' : '이탈위험'}) — 윈백 가산이 할인율에 자동 합산됨`}
+              style={{
+                padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700,
+                background: 'rgba(255,120,90,0.45)',
+              }}
+            >
+              윈백가 적용
             </span>
           )}
           {riedel !== undefined && (

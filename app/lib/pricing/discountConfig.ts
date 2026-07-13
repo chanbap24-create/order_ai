@@ -33,6 +33,7 @@ function coerce(raw: unknown): DiscountConfig {
       priceThreshold: num(w.priceThreshold, d.wholesale.priceThreshold),
       qty: isTierArray(w.qty) ? w.qty : d.wholesale.qty,
     },
+    winback: num(r.winback, d.winback),
   };
 }
 

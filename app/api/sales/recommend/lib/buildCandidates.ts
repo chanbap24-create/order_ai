@@ -355,6 +355,8 @@ export async function buildCandidates(
       category: clientCategory,
       // 리델 사용 업장 여부: 업소/호텔만 의미(직전 반기 리델 거래). 그 외 업태는 undefined(N/A).
       riedel: clientCategory === 'venue' ? (hadRiedel ?? false) : undefined,
+      // 발주 리듬 판정 — dormant/risk면 할인율에 윈백 가산이 이미 합산돼 있음(견적 기록 시 winback 마킹용)
+      winback: pricingCtx.winbackStatus ?? null,
     },
     scored,
     summary: buildSummary(purchaseAgg, prefs, wineMap, o.profileMonths, o.priceBandPct, lastOrderDate),
