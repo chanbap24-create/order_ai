@@ -58,6 +58,7 @@ export function useBatchRecommend(manager: string) {
 
     const files: { name: string; blob: Blob }[] = [];
     const failed: string[] = [];
+    const winbackNames: string[] = []; // 윈백가(발주 리듬 끊김 보정)가 적용된 거래처
     setProgress({ done: 0, total: targets.length, name: '' });
 
     for (let i = 0; i < targets.length; i++) {
@@ -95,6 +96,7 @@ export function useBatchRecommend(manager: string) {
           lockCount: s.lockCount, maxPerType: s.maxPerType, minScore: s.minScore,
         });
         if (items.length === 0) { failed.push(`${t.client_name}(추천없음)`); continue; }
+        if (recJson?.client?.winback) winbackNames.push(t.client_name);
 
         // 2) 보강 적재 (배치 스코프, 기존 비우고 새로)
         const qRes = await fetch('/api/sales/recommend/quote', {
@@ -135,10 +137,13 @@ export function useBatchRecommend(manager: string) {
     }
 
     setRunning(false);
+    const wb = winbackNames.length
+      ? ` · 윈백가 적용 ${winbackNames.length}곳(${winbackNames.slice(0, 5).join(', ')}${winbackNames.length > 5 ? ' 외' : ''})`
+      : '';
     setMessage(
       failed.length
-        ? `${files.length}곳 생성 완료 · ${failed.length}곳 건너뜀(${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ' 외' : ''})`
-        : `${files.length}곳 추천견적 생성 완료`,
+        ? `${files.length}곳 생성 완료 · ${failed.length}곳 건너뜀(${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ' 외' : ''})${wb}`
+        : `${files.length}곳 추천견적 생성 완료${wb}`,
     );
   };
 
