@@ -57,13 +57,19 @@ export async function GET(req: NextRequest) {
     const all = [...build(wine.data, 'wine'), ...build(glass.data, 'glass')];
 
     // ── 약속 이행 자동 판정 ──
-    // 약속일(promised_date) 이후 입금 합계가 약속금액(promised_amount) 이상이면 약속 이행 →
+    // 약속일 기준 '14일 전 ~ 이후' 입금 합계가 약속금액 이상이면 약속 이행 →
     // 다른 미수가 남아 있어도(net_balance>0) "오늘의 수금"에서 제외(자연 소멸).
+    // 일찍 갚은 경우(약속일 전 입금)도 이행으로 인정 — 약속일 이후만 세면
+    // 하루 먼저 입금한 거래처가 '약속어김'으로 오표기됨(뚜르몽 사례).
     // wine→payments, glass→glass_payments.
+    const GRACE_DAYS = 14;
+    const minusDays = (d: string, n: number) =>
+      new Date(new Date(d).getTime() - n * 86400000).toISOString().slice(0, 10);
     const fulfilled = new Set<string>();
     const promised = all.filter((it) => it.promised_date && (it.promised_amount || 0) > 0);
     if (promised.length > 0) {
-      const minDate = promised.reduce((m, it) => (it.promised_date! < m ? it.promised_date! : m), promised[0].promised_date!);
+      const minPromise = promised.reduce((m, it) => (it.promised_date! < m ? it.promised_date! : m), promised[0].promised_date!);
+      const minDate = minusDays(minPromise, GRACE_DAYS);
       const wineCodes = promised.filter((p) => p.client_type === 'wine').map((p) => p.client_code);
       const glassCodes = promised.filter((p) => p.client_type === 'glass').map((p) => p.client_code);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,8 +87,9 @@ export async function GET(req: NextRequest) {
           byClient.get(k)!.push({ d: String(r.payment_date || '').slice(0, 10), a: Number(r.amount) || 0 });
         }
         for (const it of promised.filter((p) => p.client_type === type)) {
+          const from = minusDays(it.promised_date!, GRACE_DAYS); // 약속일 14일 전 입금부터 인정(조기 입금 포함)
           const sum = (byClient.get(it.client_code) || [])
-            .filter((x) => x.d >= it.promised_date!)
+            .filter((x) => x.d >= from)
             .reduce((s, x) => s + x.a, 0);
           if (sum >= (it.promised_amount || 0) - 1) fulfilled.add(`${it.client_code}|${it.client_type}`);
         }
