@@ -79,6 +79,13 @@ export async function GET(req: NextRequest) {
       .filter((t) => curMetrics.salesSupply < t.min)
       .sort((a, b) => a.min - b.min)[0] || null;
 
+    // 할인 등급 도전 트랙(엑셀 A표) — 이번 분기 매출 + (업소/호텔) 리스팅 품목수
+    const asc = (ts: Array<{ min: number; add: number }>) => [...ts].sort((a, b) => a.min - b.min);
+    const discountChallenge = {
+      sales: salesTiers.length ? { cur: curMetrics.salesSupply, tiers: asc(salesTiers) } : null,
+      listing: category === 'venue' ? { cur: curMetrics.itemCount, tiers: asc(config.venue.listing) } : null,
+    };
+
     return NextResponse.json({
       category,
       grade: prog.grade,
@@ -95,6 +102,7 @@ export async function GET(req: NextRequest) {
       nextSalesTier: nextSalesTier
         ? { min: nextSalesTier.min, add: nextSalesTier.add, remain: nextSalesTier.min - curMetrics.salesSupply }
         : null,
+      discountChallenge,
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'error' }, { status: 500 });
