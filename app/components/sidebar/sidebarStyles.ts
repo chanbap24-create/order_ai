@@ -12,6 +12,7 @@ export const SIDEBAR_STYLES = `
 .sb-logo {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   /* 메인 PageHeader 구분선 y(약 84px = 24 + title 32 + accent 12 + 16) 와 정렬되도록 padding 조정 */
   padding: 26px 18px 30px;
