@@ -174,7 +174,10 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                           <td style={{ ...tdR, color: 'var(--text-muted)' }}>{dateStr ? dateStr.slice(5) : '-'}</td>
                           <td style={{ ...tdR, color: it.promised_amount != null ? 'var(--status-success)' : 'var(--text-muted)', fontWeight: 700 }}>{it.promised_amount != null ? fmt(it.promised_amount) : '-'}</td>
                           <td style={{ ...tdR, color, fontWeight: 600 }}>{elapsedLabel(it, mode)}</td>
-                          <td style={{ ...tdR, color, fontWeight: 700 }}>{it.overdue > 0 ? fmt(it.overdue) : '-'}</td>
+                          {/* 미수: 연체액 우선(모드색), 연체 없으면 잔액을 회색으로 — 약속어김인데 '-'로 보이던 혼란 방지 */}
+                          <td style={{ ...tdR, color: it.overdue > 0 ? color : 'var(--text-tertiary)', fontWeight: it.overdue > 0 ? 700 : 500 }}>
+                            {it.overdue > 0 ? fmt(it.overdue) : it.net_balance > 0 ? fmt(it.net_balance) : '-'}
+                          </td>
                         </tr>
                         {isEditing && (
                           <tr><td colSpan={5} style={{ padding: 0 }}>
