@@ -41,8 +41,7 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   const color = GRADE_COLOR[Math.max(0, Math.min(4, d.grade))];
   const b = d.benefit.breakdown;
   // 다음 등급까지 부족한 지표
-  const gaps = d.metrics.filter((m) => m.next != null && m.cur < (m.next as number))
-    .map((m) => `${m.label} ${m.key === "sales" ? `${won(m.next as number)}` : `${(m.next as number)}${m.unit}`}`);
+  const showBars = d.grade < 4 && d.metrics.some((m) => m.next != null);
 
   return (
     <div style={box}>
@@ -53,13 +52,45 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
           {d.grade > 0 ? `${d.grade}등급` : "기본"}
         </span>
         <span style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
-          {d.grade >= 4
-            ? "🏆 최고 등급"
-            : gaps.length > 0
-              ? <>다음 등급까지 <b style={{ color: "var(--text-secondary)" }}>{gaps.join(" · ")}</b> 이상</>
-              : "조건 충족 — 다음 분기 반영"}
+          {d.grade >= 4 ? "🏆 최고 등급" : `다음 등급(${d.grade + 1}등급)까지 — 직전 분기 기준`}
         </span>
       </div>
+
+      {/* 다음 등급 진행률 — 지표별 프로그레스 바 (부족분 시각화) */}
+      {showBars && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 8 }}>
+          {d.metrics.filter((m) => m.next != null).map((m) => {
+            const next = m.next as number;
+            const done = m.cur >= next;
+            const ratio = Math.max(0.03, Math.min(1, next > 0 ? m.cur / next : 0));
+            const fmtV = (v: number) => (m.key === "sales" ? won(v) : `${v}${m.unit}`);
+            const remain = m.key === "sales" ? `${won(next - m.cur)}원 더` : `${next - m.cur}${m.unit} 더`;
+            return (
+              <div key={m.key}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>{m.label}</span>
+                  <span style={{ fontSize: 11, color: done ? "var(--status-success)" : "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+                    {fmtV(m.cur)} / {fmtV(next)}
+                    {done
+                      ? " ✓ 충족"
+                      : <> · <b style={{ color: "var(--text-primary)" }}>{remain}</b></>}
+                  </span>
+                </div>
+                <div style={{ height: 5, borderRadius: 3, background: "var(--gray-100)", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", width: `${ratio * 100}%`, borderRadius: 3,
+                    background: done ? "var(--status-success)" : "var(--text-primary)",
+                    transition: "width 0.4s ease",
+                  }} />
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+            모든 지표가 다음 문턱을 넘으면 {d.grade + 1}등급 — 다음 분기부터 추천에 취향·산지 반영 비중↑
+          </div>
+        </div>
+      )}
 
       {/* ② 할인 등급/혜택 (매출 구간 기준) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border-default)" }}>
@@ -69,9 +100,28 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
         </span>
         <span style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
           기본 {pct(b.base)}{b.sales > 0 ? ` · 매출 +${pct(b.sales)}` : ""}{d.benefit.riedel && b.riedel > 0 ? ` · 리델 +${pct(b.riedel)}` : ""}
-          {d.nextSalesTier && <> · 매출 <b style={{ color: "var(--text-secondary)" }}>{won(d.nextSalesTier.remain)}원</b> 더 → <b style={{ color: "var(--action)" }}>+{pct(d.nextSalesTier.add)}</b></>}
         </span>
       </div>
+
+      {/* 다음 할인 구간 진행률 — 분기 매출 바 */}
+      {d.nextSalesTier && (
+        <div style={{ marginTop: 7 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)" }}>다음 할인 구간</span>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+              {won(d.nextSalesTier.min - d.nextSalesTier.remain)} / {won(d.nextSalesTier.min)} ·{" "}
+              <b style={{ color: "var(--text-primary)" }}>{won(d.nextSalesTier.remain)}원 더</b> →{" "}
+              <b style={{ color: "var(--action)" }}>할인 +{pct(d.nextSalesTier.add)}</b>
+            </span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: "var(--gray-100)", overflow: "hidden" }}>
+            <div style={{
+              height: "100%", borderRadius: 3, background: "var(--text-primary)", transition: "width 0.4s ease",
+              width: `${Math.max(3, Math.min(100, ((d.nextSalesTier.min - d.nextSalesTier.remain) / d.nextSalesTier.min) * 100))}%`,
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
