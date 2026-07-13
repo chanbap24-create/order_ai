@@ -2,7 +2,7 @@
 import { supabase } from '@/app/lib/db';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 
-import { fetchAll, fetchInventoryInStock, fetchWinesByCodes } from './fetchers';
+import { fetchAll, fetchInventoryInStock } from './fetchers';
 import { extractGrapesFromName, extractTypeFromName } from './patterns';
 import { findHierarchy, type WineRegionRow } from './regions';
 import { makeMinStockForPrice, DEFAULT_REC_OPTS, type RecOpts } from './settings';
@@ -99,10 +99,11 @@ export async function buildCandidates(
     const code = (inv as { item_no?: string }).item_no;
     if (code) relevantCodes.add(code);
   }
-  const codeList = Array.from(relevantCodes);
   const [wines, allNotes, conv, quoteFeedback, venueKey] = await Promise.all([
-    fetchWinesByCodes<Record<string, unknown>>(
-      codeList,
+    // wines 전체 로드(~2천행) — 구매 품번이 신빈티지 재등록 품번과 어긋나도
+    // 빈티지 무시(base 품번) 폴백으로 타입·지역·향미 프로필이 비지 않게.
+    fetchAll<Record<string, unknown>>(
+      'wines',
       'item_code, country, country_en, grape_varieties, wine_type, region, item_name_kr, item_name_en, image_url, brand, supplier, supply_price',
     ),
     // 테이스팅노트는 작은 테이블 — 전체를 받아 맵으로(.in 500 한도 회피)
@@ -132,11 +133,20 @@ export async function buildCandidates(
   };
   const segScorers = { venue: toSegRank(venueProfile), bt: toSegRank(btProfile), region: toSegRank(regionProfile) };
   const regionPriceMedian = regionProfile?.price_median || 0; // 지역 추천가(무이력 거래처 폴백)
+  // 노트 매핑: 정확 품번 우선, 빈티지 무시(base 품번 = 3~4자리 빈티지 제거) 폴백
+  const baseKey = (c: string) => (c && c.length >= 5 ? c.slice(0, 2) + c.slice(4) : c);
   const notesMap = new Map<string, string>();
   const flavorTagsMap = new Map<string, string[]>();
+  const baseNotesMap = new Map<string, string>();
+  const baseTagsMap = new Map<string, string[]>();
   for (const n of allNotes) {
-    notesMap.set(n.wine_id, `${n.nose_note || ''} ${n.palate_note || ''}`.trim());
-    if (n.flavor_tags && n.flavor_tags.length) flavorTagsMap.set(n.wine_id, n.flavor_tags);
+    const text = `${n.nose_note || ''} ${n.palate_note || ''}`.trim();
+    notesMap.set(n.wine_id, text);
+    if (text) baseNotesMap.set(baseKey(n.wine_id), text);
+    if (n.flavor_tags && n.flavor_tags.length) {
+      flavorTagsMap.set(n.wine_id, n.flavor_tags);
+      baseTagsMap.set(baseKey(n.wine_id), n.flavor_tags);
+    }
   }
   const conversionMap = new Map<string, { quoted: number; converted: number }>();
   for (const w of conv.wines) {
@@ -187,9 +197,22 @@ export async function buildCandidates(
     if (!w.wine_type) w.wine_type = extractTypeFromName(w.item_name_kr || '');
     const fullName = `${w.item_name_kr || ''} ${w.item_name_en || ''}`;
     w._hierarchy = findHierarchy(w.region || '', fullName, allRegionRows, w.country_en || w.country || '');
-    w._notes = notesMap.get(w.item_code) || '';
-    w._flavorTags = flavorTagsMap.get(w.item_code) || null;
+    w._notes = notesMap.get(w.item_code) || baseNotesMap.get(baseKey(w.item_code)) || '';
+    w._flavorTags = flavorTagsMap.get(w.item_code) || baseTagsMap.get(baseKey(w.item_code)) || null;
     wineMap.set(w.item_code, w);
+  }
+  // 구매 이력 품번이 wines에 없으면(빈티지 교체 재등록) base 품번이 같은 와인으로 폴백 —
+  // 그 구매가 타입·지역·품종·향미 프로필에서 통째로 빠지던 문제 보정.
+  {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const baseWineMap = new Map<string, any>();
+    for (const w of wineMap.values()) baseWineMap.set(baseKey(w.item_code), w);
+    for (const code of relevantCodes) {
+      if (!wineMap.has(code)) {
+        const bw = baseWineMap.get(baseKey(code));
+        if (bw) wineMap.set(code, bw);
+      }
+    }
   }
 
   const prefs = buildClientPreferences(purchaseAgg, wineMap, inventoryMap);
