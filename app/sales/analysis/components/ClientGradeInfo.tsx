@@ -63,7 +63,6 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
 
   // ── 트랙 데이터 조립 (분기 매출 → 품목수 → 거래횟수) ──
   const items = chMetrics.find((m) => m.key === "items");
-  const orders = chMetrics.find((m) => m.key === "orders");
   const recSales = chMetrics.find((m) => m.key === "sales"); // 샵만 존재
 
   // 매출: 추천등급 눈금(샵) + 할인 티어(+%) 병합
@@ -86,11 +85,7 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   }
   itemNotches.sort((a, b) => a.v - b.v);
 
-  const orderNotches: Notch[] = orders?.thresholds
-    ? [...new Set(orders.thresholds)].map((t) => ({ v: t, isNext: orders.next === t }))
-    : [];
-
-  const showChallenge = d.grade < 4 && (salesNotches.length || itemNotches.length || orderNotches.length);
+  const showChallenge = d.grade < 4 && (salesNotches.length || itemNotches.length);
 
   return (
     <div style={box}>
@@ -143,19 +138,6 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
                     {items.next != null && items.cur < items.next
                       ? <> · 다음 등급까지 <b style={hl}>{items.next - items.cur}종 더</b></>
                       : items.next != null ? " · ✓ 다음 등급 충족" : null}
-                  </>
-                }
-              />
-            )}
-            {orders && orderNotches.length > 0 && (
-              <Track
-                label="거래횟수" cur={orders.cur} notches={orderNotches}
-                right={
-                  <>
-                    현재 <b style={hl}>{orders.cur}일</b>
-                    {orders.next != null && orders.cur < orders.next
-                      ? <> · 다음 등급까지 <b style={hl}>{orders.next - orders.cur}일 더</b></>
-                      : orders.next != null ? " · ✓ 다음 등급 충족" : null}
                   </>
                 }
               />
