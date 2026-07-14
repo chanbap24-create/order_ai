@@ -27,18 +27,21 @@ export function buildHeader(
     const logoId = wb.addImage({ buffer: logoBuffer, extension: 'png' });
     const imgH = company === 'DL' ? 150 : 100;
     const imgW = company === 'DL' ? Math.round(231 * (150 / 160)) : Math.round(307 * (100 / 100));
-    const rowHeight = imgH + 10;
-    ws.getRow(1).height = rowHeight * 0.75;
 
-    // 가로 중앙 배치 — 맥 Excel 실측 메트릭 기준 (견적서_20260612 실측 검증):
-    //  · 컬럼 렌더 폭 = 문자수 × 6pt (7px+5 윈도우 관례와 다름)
-    //  · 그림 ext(px) 는 px × 0.75 pt 로 렌더
-    //  · 앵커 오프셋 EMU 는 절대 pt (EMU = pt × 12700)
-    // 컬럼이 추가/축소돼도 전체 폭에서 다시 계산하므로 항상 중앙 유지.
+    // 크로스플랫폼 배치 — 윈도우 Excel 표준 메트릭 기준으로 계산한다.
+    //  · 컬럼 렌더 폭(px) = round(문자수 × 7) + 5  → pt = px × 0.75  (OOXML/윈도우 관례)
+    //  · 행 높이는 파일의 pt 값 그대로 렌더 (맥 Excel 은 더 크게 렌더하는 것으로 실측됨 → 여백만 늘어나 안전)
+    //  · 그림 ext(px) 는 96dpi 기준 물리 크기(px × 0.75 pt), 앵커 오프셋 EMU = pt × 12700
+    // 세로 오프셋은 '파일 행높이 - 로고' 절반으로 잡아 윈도우에서 정중앙, 어떤 플랫폼에서도 행을 안 넘친다.
+    // (이전: 맥 실측 6pt/문자·행높이 4/3 렌더 기준 → 윈도우에서 로고가 행을 넘쳐 주소 줄을 덮는 버그)
     const PT_EMU = 12700;
-    const colWidthsPt = activeCols.map((col) => col.width * 6);
-    const totalPtWidth = colWidthsPt.reduce((sum, w) => sum + w, 0);
     const logoWPt = imgW * 0.75;
+    const logoHPt = imgH * 0.75;
+    const rowHeightPt = logoHPt + 12; // 윈도우 렌더 기준 상하 6pt 여백
+    ws.getRow(1).height = rowHeightPt;
+
+    const colWidthsPt = activeCols.map((col) => (Math.round(col.width * 7) + 5) * 0.75);
+    const totalPtWidth = colWidthsPt.reduce((sum, w) => sum + w, 0);
 
     let offsetInColPt = Math.max(0, (totalPtWidth - logoWPt) / 2);
     let colIndex = 0;
@@ -48,9 +51,7 @@ export function buildHeader(
       colIndex = i + 1;
     }
 
-    // 세로 중앙 — 행 높이는 설정값(pt)의 4/3 으로 렌더됨(실측: ht 82.5 → 110pt)
-    const renderedRowPt = rowHeight; // = (rowHeight*0.75) * 4/3
-    const topOffsetPt = Math.max(0, (renderedRowPt - imgH * 0.75) / 2);
+    const topOffsetPt = Math.max(0, (rowHeightPt - logoHPt) / 2);
 
     ws.addImage(logoId, {
       tl: {
