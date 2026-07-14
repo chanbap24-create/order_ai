@@ -84,7 +84,8 @@ export async function POST(req: Request) {
       ...(include_nonstandard ? { includeNonStandard: true } : {}),
       discountApply: discount_apply !== false,
       discountScope: discount_scope === 'rest' ? 'rest' : 'team1',
-      ...(grade_step_up === true ? { gradeStepUp: true } : {}),
+      ...(grade_step_up === true ? { gradeStepUp: true as const }
+        : grade_step_up === 'auto' ? { gradeStepUp: 'auto' as const } : {}),
       priceBandPct: band, profileMonths: months,
       geoCeiling: geoCeiling as 'super' | 'country' | 'any',
       stockMonths,

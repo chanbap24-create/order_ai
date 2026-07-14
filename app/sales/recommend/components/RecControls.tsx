@@ -144,8 +144,11 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
       {s.discountApply && (
         <div style={rowS}>
           <span style={lbl}>하위거래처 보정</span>
-          {btnGroup([{ v: false, t: '끄기' }, { v: true, t: '할인 단계업' }], s.gradeStepUp, (v) => set({ gradeStepUp: v }))}
-          <span style={hint}>매출등급 1단계↑로 계산(업소·샵) — 프로모션 제안용</span>
+          {btnGroup(
+            [{ v: false as const, t: '끄기' }, { v: 'auto' as const, t: '자동(하위만)' }, { v: true as const, t: '전체 단계업' }],
+            s.gradeStepUp, (v) => set({ gradeStepUp: v }),
+          )}
+          <span style={hint}>매출등급 1단계↑(업소·샵) — 자동=미달 거래처만</span>
         </div>
       )}
       {/* 가격대별 최소재고(고급) */}

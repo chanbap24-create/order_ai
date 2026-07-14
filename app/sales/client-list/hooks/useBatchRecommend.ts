@@ -45,7 +45,7 @@ export function useBatchRecommend(manager: string) {
   const [progress, setProgress] = useState<{ done: number; total: number; name: string }>({ done: 0, total: 0, name: '' });
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean }) => {
+  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto' }) => {
     if (running || targets.length === 0) return;
     setRunning(true);
     setMessage(null);

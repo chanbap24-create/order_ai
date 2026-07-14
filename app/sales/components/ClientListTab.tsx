@@ -52,7 +52,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     setPicked((prev) => { const n = new Set(prev); if (n.has(code)) n.delete(code); else n.add(code); return n; });
   const toggleAll = () =>
     setPicked(() => (allSelected ? new Set() : new Set(selectableClients.map((c) => c.client_code))));
-  const runBatch = (opts?: { gradeStepUp?: boolean }) => {
+  const runBatch = (opts?: { gradeStepUp?: boolean | 'auto' }) => {
     const targets = s.clients
       .filter((c) => picked.has(c.client_code))
       .map((c) => ({ client_code: c.client_code, client_name: c.client_name }));

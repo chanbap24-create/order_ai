@@ -3,19 +3,28 @@
 import { useState } from 'react';
 import { loadRecSettings } from '@/app/sales/recommend/recSettings';
 
+type StepUpMode = boolean | 'auto';
+
 type Props = {
   count: number;
   running: boolean;
   progress: { done: number; total: number; name: string };
   message: string | null;
-  onRun: (opts: { gradeStepUp: boolean }) => void;
+  onRun: (opts: { gradeStepUp: StepUpMode }) => void;
   onClear: () => void;
 };
 
+const STEP_UP_OPTS: Array<{ v: StepUpMode; t: string }> = [
+  { v: false, t: '끄기' },
+  { v: 'auto', t: '자동(하위만)' },
+  { v: true, t: '전체' },
+];
+
 /** 거래처 다중 선택 → 추천견적 일괄 생성 액션 바. 1곳=단일 xlsx, 복수=ZIP.
- *  하위거래처 보정(할인 단계업)은 다운로드 전에 여기서 켜고 끌 수 있다(추천견적 탭 설정이 초기값). */
+ *  하위거래처 보정(할인 단계업)은 다운로드 전에 여기서 선택(추천견적 탭 설정이 초기값):
+ *  자동=매출등급 미달 거래처만 1단계업 · 전체=선택 거래처 전부 1단계업. */
 export function BatchRecommendBar({ count, running, progress, message, onRun, onClear }: Props) {
-  const [stepUp, setStepUp] = useState(() => loadRecSettings().gradeStepUp);
+  const [stepUp, setStepUp] = useState<StepUpMode>(() => loadRecSettings().gradeStepUp);
   const idle = count === 0 && !running && !message;
   if (idle) return null;
 
@@ -44,19 +53,25 @@ export function BatchRecommendBar({ count, running, progress, message, onRun, on
       </div>
 
       {count > 0 && !running && (
-        <button
-          onClick={() => setStepUp((v) => !v)}
-          title="매출등급을 한 단계 위 티어로 계산(업소·샵) — 프로모션 제안용"
-          style={{
-            padding: '7px 12px', borderRadius: 8,
-            border: `1px solid ${stepUp ? 'var(--action)' : 'var(--gray-300)'}`,
-            background: stepUp ? 'var(--action)' : '#fff',
-            color: stepUp ? '#fff' : 'var(--text-tertiary)',
-            fontSize: 13, cursor: 'pointer',
-          }}
-        >
-          하위거래처 보정{stepUp ? ' ON' : ''}
-        </button>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          title="매출등급을 한 단계 위 티어로 계산(업소·샵) — 자동=등급 미달 거래처만, 전체=선택 전부">
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>하위거래처 보정</span>
+          {STEP_UP_OPTS.map((o) => (
+            <button
+              key={String(o.v)}
+              onClick={() => setStepUp(o.v)}
+              style={{
+                padding: '6px 10px', borderRadius: 8,
+                border: `1px solid ${stepUp === o.v ? 'var(--action)' : 'var(--gray-300)'}`,
+                background: stepUp === o.v ? 'var(--action)' : '#fff',
+                color: stepUp === o.v ? '#fff' : 'var(--text-tertiary)',
+                fontSize: 12, cursor: 'pointer',
+              }}
+            >
+              {o.t}
+            </button>
+          ))}
+        </span>
       )}
       {count > 0 && !running && (
         <button onClick={onClear} style={{

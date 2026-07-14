@@ -25,7 +25,7 @@ export interface RecSettings {
   includeNonStandard: boolean; // 375ml·1.5L+ 포함(기본 false=750ml만)
   discountApply: boolean;      // 권장 할인율 적용(기본 true)
   discountScope: 'team1' | 'rest'; // 권장 할인 산출 범위(영업1부/나머지)
-  gradeStepUp: boolean;        // 하위거래처 보정: 매출등급 1단계업(프로모션 제안용)
+  gradeStepUp: boolean | 'auto'; // 하위거래처 보정: true=전체 1단계업 · 'auto'=매출등급 미달(하위)만
   periodMonths: number; // 분석 기간(개월)
   priceBand: number;    // 가격 밴드 ±%
   minScore: number;     // 추천 점수 허들(클라이언트 즉시 필터)
