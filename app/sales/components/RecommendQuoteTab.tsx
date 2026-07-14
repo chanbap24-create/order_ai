@@ -87,6 +87,15 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   };
   const reapplyWith = (st: RecSettings) => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, st, anchorArg(anchor)); };
 
+  // 이 거래처 할인 보정(매출등급 1단계↑) — 생성 전에 켜고 끄는 단일 토글.
+  // 이미 결과가 있으면 토글 즉시 재생성. ('auto'는 일괄 생성용 값 — 개별에선 켬으로 취급)
+  const stepUpOn = settings.gradeStepUp === true || settings.gradeStepUp === 'auto';
+  const toggleStepUp = () => {
+    const ns = { ...settings, gradeStepUp: !stepUpOn };
+    setSettings(ns);
+    if (rec.result && cs.selectedClient) rec.generate(cs.selectedClient, ns, anchorArg(anchor));
+  };
+
   const toggleSelect = (itemNo: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -127,6 +136,31 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
         loading={rec.loading}
         onGenerate={handleGenerate}
       />
+
+      {cs.selectedClient && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          background: '#fff', border: '1px solid var(--border-default)', borderRadius: 12,
+          padding: '10px 14px', marginBottom: 12,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>할인 보정</span>
+          <button
+            onClick={toggleStepUp}
+            title="이 거래처를 매출등급 한 단계 위로 취급해 할인율 산출(업소·샵) — 프로모션 제안용"
+            style={{
+              padding: '6px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              border: `1px solid ${stepUpOn ? 'var(--action)' : 'var(--gray-300)'}`,
+              background: stepUpOn ? 'var(--action)' : '#fff',
+              color: stepUpOn ? '#fff' : 'var(--text-tertiary)',
+            }}
+          >
+            {stepUpOn ? '켬 · 매출등급 1단계↑' : '끔'}
+          </button>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            생성 전에 선택 — 이 거래처 견적의 할인율·후보 가격대에 반영
+          </span>
+        </div>
+      )}
 
       {cs.selectedClient && (
         <RecModeSelector
