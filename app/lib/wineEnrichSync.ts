@@ -3,7 +3,7 @@
 //      비어있는 필드(지역·영문명·품종·타입·공급자·이미지)를 승계 — 새 빈티지 재등록이 주 대상.
 //   2) GPT 보강: 형제가 없는 완전 신규 와인의 지역·영문명을 gpt-4o-mini 로 채움(확신 없으면 비워둠).
 // detectNewWines() 마지막에 호출된다.
-import OpenAI from 'openai';
+import { getClaudeClient } from './claudeClient';
 import { supabase } from './db';
 import { logger } from './logger';
 
@@ -136,25 +136,26 @@ export async function backfillFromTastingNotes(limit = 40): Promise<number> {
 const FILL_PROMPT = `You are a wine catalog specialist. For each Korean-imported wine below, provide:
 - "region": the wine's specific region in English (e.g. "Saint Joseph, Northern Rhone", "Rioja", "Napa Valley"). Use the producer/name to determine it.
 - "item_name_en": the proper English wine name (producer + cuvée, no vintage year).
+- "producer": the producer/winery name in English (e.g. "Chateau Les Grands Marechaux", "W. & J. Graham's").
 Rules:
 - Only fill a field if you are confident about THIS specific producer/wine. If unsure, use null.
 - Do NOT invent regions for unfamiliar producers.
-Respond ONLY with a JSON object: {"wines": [{"code": "...", "region": "..." | null, "item_name_en": "..." | null}, ...]}`;
+Respond ONLY with a JSON object: {"wines": [{"code": "...", "region": "..." | null, "item_name_en": "..." | null, "producer": "..." | null}, ...]}`;
 
-/** 형제가 없는 신규 와인의 지역·영문명을 GPT 로 보강. 한 번에 limit 개까지(동기화마다 점진 소진). */
-export async function fillMissingWithGPT(limit = 60): Promise<number> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return 0;
+/** 형제가 없는 신규 와인의 지역·영문명·공급자를 LLM(Claude Haiku)으로 보강.
+ *  빈칸 전체를 순회(limit 캡) — 확신 없어 거절된 와인이 큐를 막지 않게. 거절분은 다음 동기화 때 재시도. */
+export async function fillMissingWithGPT(limit = 300): Promise<number> {
+  if (!process.env.ANTHROPIC_API_KEY) return 0;
 
   const { data } = await supabase.from('wines')
-    .select('item_code, item_name_kr, item_name_en, region, brand, supplier, country_en')
+    .select('item_code, item_name_kr, item_name_en, region, brand, supplier, supplier_kr, country_en')
     .neq('status', 'discontinued')
-    .or('region.is.null,region.eq.,item_name_en.is.null,item_name_en.eq.')
+    .or('region.is.null,region.eq.,item_name_en.is.null,item_name_en.eq.,supplier.is.null,supplier.eq.')
     .limit(limit);
   const targets = (data || []).filter((w) => w.item_name_kr || w.item_name_en);
   if (targets.length === 0) return 0;
 
-  const client = new OpenAI({ apiKey });
+  const client = getClaudeClient();
   let filled = 0;
 
   for (let i = 0; i < targets.length; i += 20) {
@@ -167,17 +168,17 @@ export async function fillMissingWithGPT(limit = 60): Promise<number> {
       country: w.country_en || null,
     }));
     try {
-      const res = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
+      const res = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4000,
         temperature: 0,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: FILL_PROMPT },
-          { role: 'user', content: JSON.stringify(input) },
-        ],
+        system: FILL_PROMPT,
+        messages: [{ role: 'user', content: JSON.stringify(input) }],
       });
-      const parsed = JSON.parse(res.choices[0]?.message?.content || '{}');
-      const rows: Array<{ code?: string; region?: string | null; item_name_en?: string | null }> =
+      const text = res.content[0]?.type === 'text' ? res.content[0].text : '{}';
+      const jsonText = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1) || '{}';
+      const parsed = JSON.parse(jsonText);
+      const rows: Array<{ code?: string; region?: string | null; item_name_en?: string | null; producer?: string | null }> =
         Array.isArray(parsed?.wines) ? parsed.wines : [];
       for (const r of rows) {
         const target = batch.find((w) => w.item_code === r.code);
@@ -185,6 +186,8 @@ export async function fillMissingWithGPT(limit = 60): Promise<number> {
         const update: Record<string, string> = {};
         if (empty(target.region) && r.region && r.region.trim()) update.region = r.region.trim();
         if (empty(target.item_name_en) && r.item_name_en && r.item_name_en.trim()) update.item_name_en = r.item_name_en.trim();
+        // 공급자명(엑셀 와인리스트 공급자 열) — supplier·supplier_kr 둘 다 비었을 때만
+        if (empty(target.supplier) && empty(target.supplier_kr) && r.producer && r.producer.trim()) update.supplier = r.producer.trim();
         if (Object.keys(update).length === 0) continue;
         const { error } = await supabase.from('wines')
           .update({ ...update, updated_at: new Date().toISOString() })
