@@ -1,16 +1,21 @@
 'use client';
 
+import { useState } from 'react';
+import { loadRecSettings } from '@/app/sales/recommend/recSettings';
+
 type Props = {
   count: number;
   running: boolean;
   progress: { done: number; total: number; name: string };
   message: string | null;
-  onRun: () => void;
+  onRun: (opts: { gradeStepUp: boolean }) => void;
   onClear: () => void;
 };
 
-/** 거래처 다중 선택 → 추천견적 일괄 생성 액션 바. 1곳=단일 xlsx, 복수=ZIP. */
+/** 거래처 다중 선택 → 추천견적 일괄 생성 액션 바. 1곳=단일 xlsx, 복수=ZIP.
+ *  하위거래처 보정(할인 단계업)은 다운로드 전에 여기서 켜고 끌 수 있다(추천견적 탭 설정이 초기값). */
 export function BatchRecommendBar({ count, running, progress, message, onRun, onClear }: Props) {
+  const [stepUp, setStepUp] = useState(() => loadRecSettings().gradeStepUp);
   const idle = count === 0 && !running && !message;
   if (idle) return null;
 
@@ -39,13 +44,28 @@ export function BatchRecommendBar({ count, running, progress, message, onRun, on
       </div>
 
       {count > 0 && !running && (
+        <button
+          onClick={() => setStepUp((v) => !v)}
+          title="매출등급을 한 단계 위 티어로 계산(업소·샵) — 프로모션 제안용"
+          style={{
+            padding: '7px 12px', borderRadius: 8,
+            border: `1px solid ${stepUp ? 'var(--action)' : 'var(--gray-300)'}`,
+            background: stepUp ? 'var(--action)' : '#fff',
+            color: stepUp ? '#fff' : 'var(--text-tertiary)',
+            fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          하위거래처 보정{stepUp ? ' ON' : ''}
+        </button>
+      )}
+      {count > 0 && !running && (
         <button onClick={onClear} style={{
           padding: '7px 12px', borderRadius: 8, border: '1px solid var(--gray-300)',
           background: '#fff', color: 'var(--text-tertiary)', fontSize: 13, cursor: 'pointer',
         }}>선택 해제</button>
       )}
       <button
-        onClick={onRun}
+        onClick={() => onRun({ gradeStepUp: stepUp })}
         disabled={running || count === 0}
         style={{
           padding: '8px 16px', borderRadius: 8, border: 'none',

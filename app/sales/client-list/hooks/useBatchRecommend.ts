@@ -45,12 +45,13 @@ export function useBatchRecommend(manager: string) {
   const [progress, setProgress] = useState<{ done: number; total: number; name: string }>({ done: 0, total: 0, name: '' });
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (targets: BatchTarget[]) => {
+  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean }) => {
     if (running || targets.length === 0) return;
     setRunning(true);
     setMessage(null);
 
-    const s = loadRecSettings();
+    // 액션 바에서 하위거래처 보정(할인 단계업)을 배치 한정으로 켜고 끌 수 있게 오버라이드
+    const s = { ...loadRecSettings(), ...(opts?.gradeStepUp != null ? { gradeStepUp: opts.gradeStepUp } : {}) };
     const cols = loadCols();
     const scope = `${manager}::batch`;
     // 대체상품 모드는 기준 상품이 필요해 배치 불가 → 신규제안으로 처리
