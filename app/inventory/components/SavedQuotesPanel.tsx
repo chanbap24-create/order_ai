@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { roundTo100 } from "@/app/lib/priceUtils";
 import { formatWon } from "../lib/format";
 import { useSavedQuotes, type SavedQuoteMeta } from "../hooks/useSavedQuotes";
 
@@ -247,8 +248,8 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
                     const supply = Number(s.supply_price) || 0;
                     const rate = Number(s.discount_rate) || 0;
                     const stored = Number(s.discounted_price) || 0;
-                    const disc = stored > 0 ? stored : Math.round(supply * (1 - rate));
-                    const retailDisc = Math.round((Number(s.retail_price) || 0) * (1 - rate));
+                    const disc = stored > 0 ? stored : roundTo100(supply * (1 - rate));
+                    const retailDisc = roundTo100((Number(s.retail_price) || 0) * (1 - rate));
                     // 견적서에 포함된 컬럼만 노출(컬럼 정보 없으면 할인율·할인공급가 기본 표시)
                     const showCol = (k: string) => (expandedCols ? expandedCols.includes(k) : k !== "retail_discounted_price");
                     const parts: string[] = [];

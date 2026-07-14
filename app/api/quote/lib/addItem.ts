@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/app/lib/db';
+import { roundTo100 } from '@/app/lib/priceUtils';
 import { extractVintage, removePrefix } from './enrichment';
 
 type Body = {
@@ -170,7 +171,7 @@ export async function addQuoteItem(body: Body) {
         const rate = Number(discount_rate) || 0;
         upd.discount_rate = rate;
         const price = Number(supply_price) || 0;
-        if (price > 0) upd.discounted_price = Math.round(price * (1 - rate));
+        if (price > 0) upd.discounted_price = roundTo100(price * (1 - rate));
       }
       if (typeof body.note === 'string' && body.note) upd.note = body.note;
       const { data: updated } = await supabase
@@ -238,7 +239,7 @@ async function insertQuoteRow(p: InsertPayload) {
   const rPrice = Number(p.retail_price) || 0;
   const rate = Number(p.discount_rate) || 0;
   const qty = Number(p.quantity) || 1;
-  const discounted_price = Math.round(price * (1 - rate));
+  const discounted_price = roundTo100(price * (1 - rate));
 
   const { data: inserted, error } = await supabase
     .from('quote_items')

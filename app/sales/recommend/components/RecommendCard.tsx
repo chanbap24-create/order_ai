@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { roundTo100 } from '@/app/lib/priceUtils';
 import type { ScoredItem } from '../types';
 import { TAG_COLORS } from '../constants';
 import { scoreColor } from '../lib/format';
@@ -184,7 +185,7 @@ export function RecommendCard({ item, isSelected, onToggle }: Props) {
         </div>
         {item.rec_discount ? (
           <div style={{ fontSize: 11, color: 'var(--text-primary)', marginTop: 1, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-            권장 {Math.round(item.rec_discount * 100)}% → {Math.round(item.price * (1 - item.rec_discount)).toLocaleString()}원
+            권장 {Math.round(item.rec_discount * 100)}% → {roundTo100(item.price * (1 - item.rec_discount)).toLocaleString()}원
           </div>
         ) : null}
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>재고 {item.stock || 0}</div>

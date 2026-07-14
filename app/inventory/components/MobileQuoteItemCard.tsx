@@ -1,6 +1,7 @@
 "use client";
 
 import { formatPercent, formatWon } from "../lib/format";
+import { roundTo100 } from "@/app/lib/priceUtils";
 import { calcDiscountedPrice } from "../lib/priceCalc";
 import type { QuoteColumnConfig, QuoteItem } from "../types";
 
@@ -34,7 +35,7 @@ export function MobileQuoteItemCard({
     item.discount_rate,
     item.discounted_price,
   );
-  const retailDiscounted = Math.round(item.retail_price * (1 - item.discount_rate));
+  const retailDiscounted = roundTo100(item.retail_price * (1 - item.discount_rate));
   const normalTotal = item.supply_price * item.quantity;
   const discountTotal = discounted * item.quantity;
   const minPriceTotal = item.min_price * item.quantity;

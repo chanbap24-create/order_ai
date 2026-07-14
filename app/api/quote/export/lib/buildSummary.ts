@@ -2,6 +2,8 @@ import type ExcelJS from 'exceljs';
 import type { ColDef, DocSettings } from './types';
 import { THIN, CURR, SUMMARY_FILL, WHITE_FILL, FONT, colLetter, sc, sf } from './excelStyles';
 
+import { roundTo100 } from '@/app/lib/priceUtils';
+
 /**
  * 합계 행 열별 result를 계산 (모바일/카톡 프리뷰어용 캐시값).
  *  - quantity : 수량 합
@@ -20,13 +22,13 @@ function computeSumResults(items: Record<string, unknown>[]): Record<string, num
     const rp = n(item, 'retail_price');
     const dp = n(item, 'discounted_price') > 0
       ? n(item, 'discounted_price')
-      : Math.round(sp * (1 - dr));
+      : roundTo100(sp * (1 - dr));
 
     qty += q;
     normal += sp * q;
     discount += dp * q;
     retailNormal += rp * q;
-    retailDiscount += Math.round(rp * (1 - dr)) * q;
+    retailDiscount += roundTo100(rp * (1 - dr)) * q;
   }
   return {
     quantity: qty,

@@ -32,6 +32,11 @@ export function getSellingUnitPrice(
   return sp || up;
 }
 
+/** 견적 단가 100원 단위 반올림 — 견적서의 할인단가·할인판매가 계산에 공통 적용. */
+export function roundTo100(n: number): number {
+  return Math.round(n / 100) * 100;
+}
+
 /**
  * shipments 행의 총 판매 금액(공급가액) 추출.
  * 반품(quantity < 0) 인 경우 결과도 음수로 반환.

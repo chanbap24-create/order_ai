@@ -1,4 +1,5 @@
 import type { QuoteItem } from "../types";
+import { roundTo100 } from "@/app/lib/priceUtils";
 
 /**
  * 할인가 계산.
@@ -11,7 +12,7 @@ export function calcDiscountedPrice(
   storedPrice?: number,
 ): number {
   if (storedPrice && storedPrice > 0) return storedPrice;
-  return Math.round(price * (1 - rate));
+  return roundTo100(price * (1 - rate));
 }
 
 /** 견적 합계 계산 (정상/할인/최저/판매정상/판매할인) */

@@ -1,5 +1,6 @@
 import type ExcelJS from 'exceljs';
 import type { ColDef } from './types';
+import { roundTo100 } from '@/app/lib/priceUtils';
 import { IMG_ROW_HEIGHT } from './types';
 import { TASTING_NOTE_BASE_URL } from './assets';
 import type { BottleImageMap } from './imagePreload';
@@ -143,7 +144,7 @@ function renderFormulaCell(
     } else if (pos['supply_price'] && pos['discount_rate']) {
       const sp = colLetter(pos['supply_price']);
       const dr = colLetter(pos['discount_rate']);
-      const result = Math.round(n('supply_price') * (1 - n('discount_rate')));
+      const result = roundTo100(n('supply_price') * (1 - n('discount_rate')));
       sf(row, c, `IFERROR(${sp}${r}*(1-${dr}${r}),"")`, { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill, result });
     } else {
       sc(row, c, Math.round(n('supply_price') * (1 - n('discount_rate'))), { border: THIN, fmt: CURR, color: 'FFFF0000', fill: rowFill });

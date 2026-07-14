@@ -1,6 +1,7 @@
 "use client";
 
 import type { QuoteItem } from "../types";
+import { roundTo100 } from "@/app/lib/priceUtils";
 import { formatWon } from "../lib/format";
 import { labelStyle, sheetInputStyle } from "./sharedStyles";
 
@@ -81,7 +82,7 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
               value={values.discount_rate}
               onChange={(e) => {
                 const rate = parseInt(e.target.value) || 0;
-                const dp = Math.round(item.supply_price * (1 - rate / 100));
+                const dp = roundTo100(item.supply_price * (1 - rate / 100));
                 setValues((v) => ({
                   ...v,
                   discount_rate: e.target.value,

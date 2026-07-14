@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
 import type { QuoteItem } from "../types";
+import { roundTo100 } from "@/app/lib/priceUtils";
 
 export type EditCell = { id: number; key: string } | null;
 
 type Params = {
   quoteItems: QuoteItem[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateQuoteItem: (id: number, fields: Record<string, any>) => Promise<void>;
 };
 
@@ -18,6 +20,7 @@ export function useQuoteInlineEdit({ quoteItems, updateQuoteItem }: Params) {
   const [editCell, setEditCell] = useState<EditCell>(null);
   const [editValue, setEditValue] = useState("");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const startEdit = useCallback((id: number, key: string, currentValue: any) => {
     setEditCell({ id, key });
     if (key === "discount_rate") {
@@ -34,6 +37,7 @@ export function useQuoteInlineEdit({ quoteItems, updateQuoteItem }: Params) {
     const { id, key } = editCell;
     const raw = editValue;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const finalize = async (fields: Record<string, any>) => {
       await updateQuoteItem(id, fields);
       setEditCell(null);
@@ -47,7 +51,7 @@ export function useQuoteInlineEdit({ quoteItems, updateQuoteItem }: Params) {
     if (key === "discount_rate") {
       const rateVal = Math.min(100, Math.max(0, parseInt(raw) || 0)) / 100;
       const item = quoteItems.find((i) => i.id === id);
-      const dp = item ? Math.round(item.supply_price * (1 - rateVal)) : 0;
+      const dp = item ? roundTo100(item.supply_price * (1 - rateVal)) : 0;
       await finalize({ discount_rate: rateVal, discounted_price: dp });
       return;
     }

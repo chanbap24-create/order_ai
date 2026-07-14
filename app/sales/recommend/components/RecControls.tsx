@@ -64,7 +64,15 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
           cursor: loading ? 'not-allowed' : 'pointer',
           background: loading ? 'var(--gray-300)' : 'var(--action)', color: '#fff',
         }}>{loading ? '생성 중…' : '↻ 이 설정으로 다시 생성'}</button>
-        <span style={hint}>옵션을 바꾼 뒤 눌러야 반영됩니다</span>
+        {/* 하위거래처 보정 — 누르면 그 모드로 즉시 재생성(개별 견적용 원클릭) */}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={hint}>하위거래처 보정</span>
+          {btnGroup(
+            [{ v: false as const, t: '끄기' }, { v: 'auto' as const, t: '자동(하위만)' }, { v: true as const, t: '전체' }],
+            s.gradeStepUp,
+            (v) => { const ns = { ...s, gradeStepUp: v }; onChange(ns); onReapply(ns); },
+          )}
+        </span>
         <button onClick={() => setShowSettings(!showSettings)} style={{
           marginLeft: 'auto', padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 999, cursor: 'pointer',
           border: '1px solid var(--gray-300)', background: '#fff', color: 'var(--text-secondary)',
@@ -141,16 +149,6 @@ export function RecControls({ settings: s, onChange, onReapply, itemsCount, visi
         </>)}
         <span style={hint}>최근 6개월 최빈가</span>
       </div>
-      {s.discountApply && (
-        <div style={rowS}>
-          <span style={lbl}>하위거래처 보정</span>
-          {btnGroup(
-            [{ v: false as const, t: '끄기' }, { v: 'auto' as const, t: '자동(하위만)' }, { v: true as const, t: '전체 단계업' }],
-            s.gradeStepUp, (v) => set({ gradeStepUp: v }),
-          )}
-          <span style={hint}>매출등급 1단계↑(업소·샵) — 자동=미달 거래처만</span>
-        </div>
-      )}
       {/* 가격대별 최소재고(고급) */}
       <div>
         <button onClick={() => setShowStock(!showStock)} style={{ ...hint, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>

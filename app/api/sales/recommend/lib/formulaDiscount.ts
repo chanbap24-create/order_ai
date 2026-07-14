@@ -6,6 +6,7 @@
 // 컨텍스트(업태·분기지표·리델)는 스코어링 전에 buildPricingContext로 1회 계산해
 // (1) 후보 '할인가' 산출(가격 게이트용) (2) 최종 rec_discount 부여에 재사용한다.
 import { supabase } from '@/app/lib/db';
+import { roundTo100 } from '@/app/lib/priceUtils';
 import { computeItemDiscount, qtyTiersFor, type ClientPricingContext, type VenueCategory, type DiscountConfig } from '@/app/lib/pricing/discountRate';
 import { getClientWinbackStatus } from '@/app/lib/dormantClients';
 import { prevYearRange } from '@/app/lib/pricing/quarters';
@@ -65,7 +66,7 @@ export function discountedPriceFor(
   floor = 0,
 ): number {
   const rate = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty }).rate, supply, floor);
-  return Math.round(supply * (1 - rate));
+  return roundTo100(supply * (1 - rate));
 }
 
 /**
@@ -95,7 +96,7 @@ export function applyFormulaDiscounts(
         s.rec_note = lower
           .map((t) => {
             const r = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty: t.min }).rate, supply, floor);
-            return `${t.min}병 ${Math.round(supply * (1 - r)).toLocaleString()}원`;
+            return `${t.min}병 ${roundTo100(supply * (1 - r)).toLocaleString()}원`;
           })
           .join(' / ');
       }
