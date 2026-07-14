@@ -72,6 +72,9 @@ export async function GET(req: NextRequest) {
     const config = await getDiscountConfig('CDV');
     const ctx = await buildPricingContext(code, category, metrics, config);
     const disc = computeItemDiscount(ctx, { supplyPrice: 100000, qty: 1 });
+    // 할인 보정(매출등급 1단계업) 적용 시 할인율 — 추천견적 토글의 미리보기용
+    const discStepUp = computeItemDiscount(
+      { ...ctx, salesGradeStepUp: true }, { supplyPrice: 100000, qty: 1 });
 
     // 다음 매출 구간(할인 가산) — '이번 분기' 매출 기준(마감까지 채우면 다음 분기 할인↑)
     const salesTiers = category === 'shop' ? config.shop.sales : category === 'venue' ? config.venue.sales : [];
@@ -99,6 +102,7 @@ export async function GET(req: NextRequest) {
         appliesFrom: curRange.end, // 달성 시 이 날짜부터 새 등급 적용(다음 분기 시작)
       },
       benefit: { rate: disc.rate, breakdown: disc.breakdown, riedel: ctx.hadRiedelLastQuarter },
+      benefitStepUp: { rate: discStepUp.rate, breakdown: discStepUp.breakdown },
       nextSalesTier: nextSalesTier
         ? { min: nextSalesTier.min, add: nextSalesTier.add, remain: nextSalesTier.min - curMetrics.salesSupply }
         : null,

@@ -95,6 +95,23 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     setSettings(ns);
     if (rec.result && cs.selectedClient) rec.generate(cs.selectedClient, ns, anchorArg(anchor));
   };
+  // 토글 옆 할인률 미리보기: 현재 등급 할인률 → 보정 시 할인률 (거래처 단위, 수량가산 제외)
+  const [rates, setRates] = useState<{ code: string; cur: number; step: number } | null>(null);
+  useEffect(() => {
+    const code = cs.selectedClient?.client_code;
+    if (!code) return;
+    (async () => {
+      try {
+        const r = await fetch(`/api/sales/clients/grade?client_code=${encodeURIComponent(code)}`, { credentials: 'include' });
+        const d = await r.json();
+        if (d?.benefit?.rate != null && d?.benefitStepUp?.rate != null) {
+          setRates({ code, cur: d.benefit.rate, step: d.benefitStepUp.rate });
+        }
+      } catch { /* 미리보기 실패는 무시 */ }
+    })();
+  }, [cs.selectedClient?.client_code]);
+  // 거래처가 바뀌면 이전 거래처 미리보기는 숨김(코드 일치 시에만 표시)
+  const ratesForClient = rates && rates.code === cs.selectedClient?.client_code ? rates : null;
 
   const toggleSelect = (itemNo: string) => {
     setSelected((prev) => {
@@ -156,6 +173,24 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           >
             {stepUpOn ? '켬 · 매출등급 1단계↑' : '끔'}
           </button>
+          {ratesForClient && (
+            ratesForClient.cur === ratesForClient.step ? (
+              <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)' }}>
+                할인률 <b>{Math.round(ratesForClient.cur * 100)}%</b> — 이미 최상위 매출등급이라 변화 없음
+              </span>
+            ) : (
+              <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                할인률{' '}
+                <b style={{ color: stepUpOn ? 'var(--text-muted)' : 'var(--action)', textDecoration: stepUpOn ? 'line-through' : 'none' }}>
+                  {Math.round(ratesForClient.cur * 100)}%
+                </b>
+                {' → '}
+                <b style={{ color: stepUpOn ? 'var(--action)' : 'var(--text-muted)' }}>
+                  {Math.round(ratesForClient.step * 100)}%
+                </b>
+              </span>
+            )
+          )}
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
             생성 전에 선택 — 이 거래처 견적의 할인율·후보 가격대에 반영
           </span>
