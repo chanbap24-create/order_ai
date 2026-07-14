@@ -47,6 +47,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     selectedClient: cs.selectedClient,
     manager: getRecManager(),
     onAdded: quote.fetchQuoteItems,
+    stepUpApplied: rec.result?.client?.step_up_applied === true,
   });
 
   // lazy 초기화로 처음부터 저장값 사용(remount 시 DEFAULT 로 덮어쓰는 레이스 방지).

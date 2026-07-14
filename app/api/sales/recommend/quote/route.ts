@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { addQuoteItem } from '@/app/api/quote/lib/addItem';
 import { getClientWinbackStatus } from '@/app/lib/dormantClients';
+import { markStepUpUsed } from '@/app/lib/pricing/stepupLock';
 
 // 추천 와인 목록 → quote_items 적재.
 // 수동 견적 담기(addQuoteItem)와 "동일한" 보강(이미지/브랜드/산지/소매가/테이스팅노트/중복합산)을
 // 그대로 재사용한다. (이전엔 masterSheet 만 사용해 image_url='' · 브랜드/산지 누락 버그가 있었음)
 export async function POST(req: Request) {
   try {
-    const { items, client_code, clear_existing, manager } = await req.json();
+    const { items, client_code, clear_existing, manager, step_up_used } = await req.json();
     const mgr = typeof manager === 'string' ? manager : '';
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -50,6 +51,10 @@ export async function POST(req: Request) {
     if (client_code) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const itemCodes = items.map((i: any) => i.item_no || i.item_code).filter(Boolean);
+      // 하위거래처 보정 분기 1회 락 소모 — 보정이 실제 적용된 견적(step_up_used)을 담는 순간 기록
+      if (step_up_used === true) {
+        await markStepUpUsed(client_code, mgr ? mgr.split('::')[0] : null);
+      }
       const winback = await getClientWinbackStatus(client_code).catch(() => null);
       await supabase.from('recommendations').insert({
         client_code,

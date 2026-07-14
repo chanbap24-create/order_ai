@@ -42,6 +42,8 @@ export interface RecommendResult {
     category?: 'venue' | 'shop' | 'wholesale'; // 업태(업소·호텔/샵/도매)
     riedel?: boolean; // 리델 사용 업장 여부(업소/호텔만 의미, 그 외 undefined)
     winback?: 'dormant' | 'risk' | null; // 발주 리듬 판정 — 있으면 윈백 가산이 할인율에 자동 합산됨
+    step_up_applied?: boolean; // 하위거래처 보정이 이번 추천에 실제 적용됨 (담기 시 분기 1회 락 소모)
+    step_up_locked?: boolean;  // 이번 분기 이미 보정 사용 → 보정 요청했지만 미적용
   };
   recommendations: ScoredItem[];
   typeShares?: Record<string, number>; // 타입 분포(본인+업장+업태 블렌드) — 비례배분 selection용

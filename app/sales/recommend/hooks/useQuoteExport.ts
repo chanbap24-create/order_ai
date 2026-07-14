@@ -8,9 +8,10 @@ type Args = {
   selectedClient: ClientOption | null;
   manager?: string;        // 견적 항목 매니저 스코프 (편집 패널과 일치시키기 위함)
   onAdded?: () => void;    // 담기 성공 시 호출 (하단 편집 패널 새로고침)
+  stepUpApplied?: boolean; // 하위거래처 보정이 실제 적용된 추천이면 담기 시 분기 1회 사용 기록(락)
 };
 
-export function useQuoteExport({ quoteCols, selectedClient, manager, onAdded }: Args) {
+export function useQuoteExport({ quoteCols, selectedClient, manager, onAdded, stepUpApplied }: Args) {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteResult, setQuoteResult] = useState<string | null>(null);
 
@@ -35,6 +36,7 @@ export function useQuoteExport({ quoteCols, selectedClient, manager, onAdded }: 
           manager: manager || '',
           // download·fill 은 기존 비우고 새로(편집 패널 갱신), add 는 이어 담기
           clear_existing: mode === 'download' || mode === 'fill',
+          ...(stepUpApplied ? { step_up_used: true } : {}),
         }),
       });
       const json = await res.json();

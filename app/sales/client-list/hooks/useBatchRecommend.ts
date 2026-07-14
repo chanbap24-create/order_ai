@@ -60,6 +60,7 @@ export function useBatchRecommend(manager: string) {
     const files: { name: string; blob: Blob }[] = [];
     const failed: string[] = [];
     const winbackNames: string[] = []; // 윈백가(발주 리듬 끊김 보정)가 적용된 거래처
+    const stepUpLockedNames: string[] = []; // 보정 잠김(이번 분기 이미 사용) 거래처
     setProgress({ done: 0, total: targets.length, name: '' });
 
     for (let i = 0; i < targets.length; i++) {
@@ -99,13 +100,16 @@ export function useBatchRecommend(manager: string) {
         });
         if (items.length === 0) { failed.push(`${t.client_name}(추천없음)`); continue; }
         if (recJson?.client?.winback) winbackNames.push(t.client_name);
+        if (recJson?.client?.step_up_locked) stepUpLockedNames.push(t.client_name);
 
         // 2) 보강 적재 (배치 스코프, 기존 비우고 새로)
+        //    step_up_used: 보정이 실제 적용된 견적이면 서버가 분기 1회 사용을 기록(락)
         const qRes = await fetch('/api/sales/recommend/quote', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             items, client_code: t.client_code, client_name: t.client_name,
             manager: scope, clear_existing: true,
+            ...(recJson?.client?.step_up_applied ? { step_up_used: true } : {}),
           }),
         });
         const qJson = await qRes.json();
@@ -142,10 +146,13 @@ export function useBatchRecommend(manager: string) {
     const wb = winbackNames.length
       ? ` · 윈백가 적용 ${winbackNames.length}곳(${winbackNames.slice(0, 5).join(', ')}${winbackNames.length > 5 ? ' 외' : ''})`
       : '';
+    const su = stepUpLockedNames.length
+      ? ` · 보정 잠김 ${stepUpLockedNames.length}곳(이번 분기 이미 사용: ${stepUpLockedNames.slice(0, 3).join(', ')}${stepUpLockedNames.length > 3 ? ' 외' : ''})`
+      : '';
     setMessage(
       failed.length
-        ? `${files.length}곳 생성 완료 · ${failed.length}곳 건너뜀(${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ' 외' : ''})${wb}`
-        : `${files.length}곳 추천견적 생성 완료${wb}`,
+        ? `${files.length}곳 생성 완료 · ${failed.length}곳 건너뜀(${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ' 외' : ''})${wb}${su}`
+        : `${files.length}곳 추천견적 생성 완료${wb}${su}`,
     );
   };
 

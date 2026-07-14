@@ -14,7 +14,7 @@ const GRADE_BG = [
 ];
 
 export function SummaryCard({ result }: { result: RecommendResult }) {
-  const { grade, riedel, winback } = result.client;
+  const { grade, riedel, winback, step_up_applied, step_up_locked } = result.client;
   return (
     <div style={{
       background: 'var(--action)',
@@ -35,6 +35,22 @@ export function SummaryCard({ result }: { result: RecommendResult }) {
               style={{ padding: '4px 10px', borderRadius: 12, background: GRADE_BG[grade] ?? GRADE_BG[0], fontSize: 12, fontWeight: 700 }}
             >
               {grade}등급
+            </span>
+          )}
+          {step_up_applied && (
+            <span
+              title="하위거래처 보정(매출등급 1단계업) 적용 — 이 견적을 담으면 이번 분기 보정 기회가 소모됩니다 (분기 1회)"
+              style={{ padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700, background: 'rgba(120,180,255,0.4)' }}
+            >
+              보정 적용
+            </span>
+          )}
+          {step_up_locked && (
+            <span
+              title="이번 분기에 이미 보정 견적을 발행한 거래처 — 보정 없이 정상 공식으로 계산됨 (다음 분기에 다시 가능)"
+              style={{ padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: 'rgba(255,255,255,0.15)', opacity: 0.85 }}
+            >
+              🔒 보정 분기 1회 사용됨
             </span>
           )}
           {winback && (

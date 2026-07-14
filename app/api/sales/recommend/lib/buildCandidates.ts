@@ -19,6 +19,7 @@ import { applyFormulaDiscounts, buildPricingContext, discountedPriceFor } from '
 import { venueKeyToCategory } from '@/app/lib/pricing/venueCategory';
 import { maxQtyTierFor } from '@/app/lib/pricing/discountRate';
 import { getDiscountConfig } from '@/app/lib/pricing/discountConfig';
+import { isStepUpUsed } from '@/app/lib/pricing/stepupLock';
 import { computeQuarterMetrics, computeGrade } from '@/app/lib/pricing/clientGrade';
 import { scaleForGrade } from './gradeScaling';
 import { applyPromotions } from './applyPromotions';
@@ -28,7 +29,7 @@ import { VENUE_WINE_MAP } from './venueScoring';
 import { getSegmentProfile, extractRegion, type SegmentProfile } from '@/app/lib/segmentProfiles';
 
 export interface CandidateContext {
-  client: { code: string; name: string; importance: number; business_type: string; manager: string; grade?: number; category?: 'venue' | 'shop' | 'wholesale'; riedel?: boolean };
+  client: { code: string; name: string; importance: number; business_type: string; manager: string; grade?: number; category?: 'venue' | 'shop' | 'wholesale'; riedel?: boolean; winback?: 'dormant' | 'risk' | null; step_up_applied?: boolean; step_up_locked?: boolean };
   scored: ScoredItem[];
   summary: {
     total_items: number; avg_price: number; last_order_date: string | null;
@@ -288,12 +289,19 @@ export async function buildCandidates(
   const pricingCtx = await buildPricingContext(clientCode, clientCategory, quarterMetrics, discountConfig);
   // 하위거래처 보정(프로모션 제안): 매출등급을 한 단계 위로 취급 → 할인가 게이트·최종 할인율 모두 반영.
   //   'auto'는 매출등급 미달(하위) 거래처만 자동 적용 — 등급 도달 거래처는 정상 계산.
-  if (o.gradeStepUp === true) pricingCtx.salesGradeStepUp = true;
-  else if (o.gradeStepUp === 'auto') {
-    const salesTiers = clientCategory === 'shop' ? discountConfig.shop.sales
-      : clientCategory === 'venue' ? discountConfig.venue.sales : [];
-    const reached = salesTiers.some((t) => quarterMetrics.salesSupply >= t.min);
-    if (salesTiers.length && !reached) pricingCtx.salesGradeStepUp = true;
+  //   분기 1회 락: 이번 분기에 이미 보정 견적을 발행한 거래처는 보정 미적용(잠김 표시).
+  let stepUpLocked = false;
+  if (o.gradeStepUp === true || o.gradeStepUp === 'auto') {
+    stepUpLocked = await isStepUpUsed(clientCode);
+  }
+  if (!stepUpLocked) {
+    if (o.gradeStepUp === true) pricingCtx.salesGradeStepUp = true;
+    else if (o.gradeStepUp === 'auto') {
+      const salesTiers = clientCategory === 'shop' ? discountConfig.shop.sales
+        : clientCategory === 'venue' ? discountConfig.venue.sales : [];
+      const reached = salesTiers.some((t) => quarterMetrics.salesSupply >= t.min);
+      if (salesTiers.length && !reached) pricingCtx.salesGradeStepUp = true;
+    }
   }
   const floorOf = (no: string): number => (inventoryMap.get(no)?.discount_price as number | undefined) || 0;
   const qtyTier = maxQtyTierFor(clientCategory, discountConfig);
@@ -389,6 +397,9 @@ export async function buildCandidates(
       riedel: clientCategory === 'venue' ? (hadRiedel ?? false) : undefined,
       // 발주 리듬 판정 — dormant/risk면 할인율에 윈백 가산이 이미 합산돼 있음(견적 기록 시 winback 마킹용)
       winback: pricingCtx.winbackStatus ?? null,
+      // 하위거래처 보정 상태 — applied면 견적 담기 시 분기 사용 기록, locked면 이번 분기 이미 사용
+      step_up_applied: pricingCtx.salesGradeStepUp === true,
+      step_up_locked: stepUpLocked,
     },
     scored,
     summary: buildSummary(purchaseAgg, prefs, wineMap, o.profileMonths, o.priceBandPct, lastOrderDate),
