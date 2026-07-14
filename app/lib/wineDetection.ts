@@ -207,7 +207,7 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
   // 와인리스트 빈칸 방지: 형제(다른 빈티지/재등록) 상속 → 남는 건 GPT 로 지역·영문명 보강
   const enriched = await enrichWinesAfterSync();
 
-  logger.info(`[WineDetection] Result: ${newRows.length} new, ${updateRows.length} updated, ${backfilled} country-backfilled, ${enriched.inherited} inherited, ${enriched.gptFilled} gpt-filled`);
+  logger.info(`[WineDetection] Result: ${newRows.length} new, ${updateRows.length} updated, ${backfilled} country-backfilled, ${enriched.inherited} inherited, ${enriched.noteFilled} note-filled, ${enriched.gptFilled} gpt-filled`);
   return { newCount: newRows.length, updatedCount: updateRows.length };
 }
 

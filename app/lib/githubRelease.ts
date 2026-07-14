@@ -60,6 +60,13 @@ async function getReleaseAssets(releaseId: number): Promise<any[]> {
   return allAssets;
 }
 
+/** 릴리스에 올라간 파일명 목록 — 노트 존재 여부 확인용(와인 정보 자동 보강 등) */
+export async function listReleaseAssetNames(): Promise<Set<string>> {
+  const release = await getRelease();
+  const assets = await getReleaseAssets(release.id);
+  return new Set(assets.map((a: { name: string }) => a.name));
+}
+
 /** 에셋 ID로 삭제 */
 async function deleteAssetById(assetId: number) {
   const token = getToken();

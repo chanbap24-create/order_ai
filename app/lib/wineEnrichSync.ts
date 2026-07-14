@@ -86,6 +86,53 @@ export async function backfillFromSiblings(): Promise<number> {
   return filled;
 }
 
+/**
+ * 업로드된 테이스팅 노트(PPTX, GitHub 릴리스)에서 와인 메타 자동 보강.
+ * AI 조사 없이도 노트만 올려두면 동기화 때 지역·품종·영문명 등 빈 칸이 채워진다.
+ * 노트 본문(양조/색·향·맛/페어링)도 같은 파일에서 빈 칸만 채움.
+ */
+export async function backfillFromTastingNotes(limit = 40): Promise<number> {
+  if (!process.env.GITHUB_TOKEN) return 0;
+
+  const { data } = await supabase.from('wines')
+    .select('item_code')
+    .neq('status', 'discontinued')
+    .or('region.is.null,region.eq.,item_name_en.is.null,item_name_en.eq.,grape_varieties.is.null,grape_varieties.eq.');
+  const targets = (data || []).map((w) => w.item_code);
+  if (targets.length === 0) return 0;
+
+  const { listReleaseAssetNames } = await import('./githubRelease');
+  const { parseWineFieldsFromPptx, parseTastingNotesFromPptx } = await import('./tastingNotePptxParse');
+  const { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } = await import('./wineDb');
+
+  let names: Set<string>;
+  try { names = await listReleaseAssetNames(); }
+  catch (e) { logger.warn(`[WineEnrich] 릴리스 목록 조회 실패: ${e instanceof Error ? e.message : e}`); return 0; }
+
+  const RELEASE_BASE = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
+  let filled = 0;
+  let processed = 0;
+  for (const code of targets) {
+    if (processed >= limit) break;
+    if (!names.has(`${code}.pptx`)) continue;
+    processed++;
+    try {
+      const res = await fetch(`${RELEASE_BASE}/${code}.pptx`, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const fields = await parseWineFieldsFromPptx(buffer);
+      const done = await backfillWineFieldsIfEmpty(code, fields);
+      const noteFields = await parseTastingNotesFromPptx(buffer);
+      await backfillTastingNoteIfEmpty(code, noteFields);
+      if (done.length) filled++;
+    } catch (e) {
+      logger.warn(`[WineEnrich] 노트 백필 실패 ${code}: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  if (filled > 0) logger.info(`[WineEnrich] 테이스팅 노트에서 ${filled}개 와인 보강`);
+  return filled;
+}
+
 const FILL_PROMPT = `You are a wine catalog specialist. For each Korean-imported wine below, provide:
 - "region": the wine's specific region in English (e.g. "Saint Joseph, Northern Rhone", "Rioja", "Napa Valley"). Use the producer/name to determine it.
 - "item_name_en": the proper English wine name (producer + cuvée, no vintage year).
@@ -152,14 +199,15 @@ export async function fillMissingWithGPT(limit = 60): Promise<number> {
   return filled;
 }
 
-/** 동기화 훅 — 상속 먼저(무료·정확), 남은 것 GPT. 실패해도 동기화는 성공 처리. */
-export async function enrichWinesAfterSync(): Promise<{ inherited: number; gptFilled: number }> {
+/** 동기화 훅 — ① 형제 상속(무료·정확) ② 업로드된 테이스팅 노트 ③ 남은 것 GPT. 실패해도 동기화는 성공 처리. */
+export async function enrichWinesAfterSync(): Promise<{ inherited: number; noteFilled: number; gptFilled: number }> {
   try {
     const inherited = await backfillFromSiblings();
+    const noteFilled = await backfillFromTastingNotes();
     const gptFilled = await fillMissingWithGPT();
-    return { inherited, gptFilled };
+    return { inherited, noteFilled, gptFilled };
   } catch (e) {
     logger.warn(`[WineEnrich] 보강 실패(비치명): ${e instanceof Error ? e.message : e}`);
-    return { inherited: 0, gptFilled: 0 };
+    return { inherited: 0, noteFilled: 0, gptFilled: 0 };
   }
 }
