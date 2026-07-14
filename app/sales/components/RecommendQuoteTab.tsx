@@ -93,6 +93,8 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const toggleStepUp = () => {
     const ns = { ...settings, gradeStepUp: !stepUpOn };
     setSettings(ns);
+    // 상단 등급 카드(ClientGradeInfo)의 '현재 할인률'도 즉시 보정치로 전환
+    window.dispatchEvent(new CustomEvent('rec-stepup-change', { detail: { on: !stepUpOn } }));
     if (rec.result && cs.selectedClient) rec.generate(cs.selectedClient, ns, anchorArg(anchor));
   };
   // 토글 옆 할인률 미리보기: 현재 등급 할인률 → 보정 시 할인률 (거래처 단위, 수량가산 제외)

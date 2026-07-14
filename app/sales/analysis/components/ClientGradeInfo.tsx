@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { loadRecSettings } from "@/app/sales/recommend/recSettings";
 
 type Metric = {
   key: string; label: string; unit: string; cur: number; next: number | null;
@@ -13,6 +14,7 @@ type GradeData = {
   metrics: Metric[];
   challenge?: { metrics: Metric[]; quarter: { start: string; end: string }; daysLeft: number; appliesFrom: string };
   benefit: { rate: number; breakdown: { base: number; sales: number; quantity: number; riedel: number; winback?: number }; riedel: boolean };
+  benefitStepUp?: { rate: number; breakdown: { base: number; sales: number; quantity: number; riedel: number; winback?: number } };
   nextSalesTier: { min: number; add: number; remain: number } | null;
   discountChallenge?: {
     sales: { cur: number; tiers: Tier[] } | null;
@@ -35,6 +37,16 @@ const pct = (r: number) => `${Math.round(r * 100)}%`;
 export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   const [d, setD] = useState<GradeData | null>(null);
   const [loading, setLoading] = useState(true);
+  // 추천견적 탭의 '할인 보정' 토글과 동기화 — 켜면 현재 할인률이 보정치로 바뀜
+  const [stepUp, setStepUp] = useState(() => {
+    const v = loadRecSettings().gradeStepUp;
+    return v === true || v === "auto";
+  });
+  useEffect(() => {
+    const handler = (e: Event) => setStepUp(!!(e as CustomEvent).detail?.on);
+    window.addEventListener("rec-stepup-change", handler);
+    return () => window.removeEventListener("rec-stepup-change", handler);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -54,7 +66,10 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
   if (loading) return <div style={box}><span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>등급 불러오는 중…</span></div>;
   if (!d) return null;
 
-  const b = d.benefit.breakdown;
+  // 할인 보정(매출등급 1단계업)이 켜져 있으면 보정치 표시
+  const stepped = stepUp && d.benefitStepUp && d.benefitStepUp.rate !== d.benefit.rate ? d.benefitStepUp : null;
+  const eff = stepped ?? d.benefit;
+  const b = eff.breakdown;
   const ch = d.challenge;
   const dc = d.discountChallenge;
   const chMetrics = ch?.metrics ?? d.metrics;
@@ -167,8 +182,16 @@ export function ClientGradeInfo({ clientCode }: { clientCode: string }) {
           color: "#fff", background: "var(--action)", padding: "4px 12px", borderRadius: 8,
           fontVariantNumeric: "tabular-nums",
         }}>
-          {pct(d.benefit.rate)}
+          {pct(eff.rate)}
         </span>
+        {stepped && (
+          <span
+            title="추천견적의 '할인 보정' 토글이 켜져 있어 매출등급 1단계업으로 계산 중"
+            style={{ fontSize: 11, fontWeight: 700, color: "var(--status-warning)", whiteSpace: "nowrap" }}
+          >
+            보정 적용 중 ({pct(d.benefit.rate)} → {pct(eff.rate)})
+          </span>
+        )}
         <span style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
           기본 {pct(b.base)}
           {b.sales > 0 ? ` + 매출 ${pct(b.sales)}` : ""}
