@@ -10,6 +10,7 @@ type Props = {
   onClearGroup: () => void;                // 전체(그룹 해제)
   onSaveNew: () => void;                   // 현재 선택으로 새 그룹
   onAddToGroup: (id: number) => void;      // 현재 선택을 기존 그룹에 추가(합집합)
+  onRemoveFromActive: () => void;          // 현재 선택을 활성 그룹에서 제거
   onUpdateActive: () => void;              // 활성 그룹을 현재 선택으로 갱신
   onRenameActive: () => void;
   onDeleteActive: () => void;
@@ -29,7 +30,7 @@ const act: React.CSSProperties = {
 /** 거래처 그룹(즐겨찾기) 바 — 그룹 칩 선택 시 구성원 자동 체크, 바로 일괄 견적 가능. */
 export function ClientGroupBar({
   groups, activeId, pickedCount,
-  onPickGroup, onClearGroup, onSaveNew, onAddToGroup, onUpdateActive, onRenameActive, onDeleteActive,
+  onPickGroup, onClearGroup, onSaveNew, onAddToGroup, onRemoveFromActive, onUpdateActive, onRenameActive, onDeleteActive,
 }: Props) {
   const active = groups.find((g) => g.id === activeId) || null;
   return (
@@ -64,6 +65,15 @@ export function ClientGroupBar({
         )}
         {pickedCount > 0 && (
           <button onClick={onSaveNew} style={act}>＋ 새 그룹으로</button>
+        )}
+        {active && pickedCount > 0 && (
+          <button
+            onClick={onRemoveFromActive}
+            style={{ ...act, color: 'var(--status-warning)' }}
+            title="체크된 거래처를 이 그룹에서 제거(그룹·거래처 데이터는 유지)"
+          >
+            선택 {pickedCount}곳 그룹에서 제거
+          </button>
         )}
         {active && pickedCount > 0 && (
           <button onClick={onUpdateActive} style={act} title="이 그룹의 구성원을 현재 체크된 거래처로 교체">

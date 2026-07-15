@@ -67,6 +67,16 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     for (const c of pickedAsGroupClients()) if (!merged.has(c.code)) merged.set(c.code, c);
     await grp.update(id, { clients: [...merged.values()] });
   };
+  const removeFromActiveGroup = async () => {
+    // 체크된 거래처를 활성 그룹에서 제거(그룹 자체·거래처 데이터는 유지)
+    if (!activeGroup || picked.size === 0) return;
+    const remaining = activeGroup.clients.filter((c) => !picked.has(c.code));
+    const removedCount = activeGroup.clients.length - remaining.length;
+    if (removedCount === 0) return;
+    if (!window.confirm(`'${activeGroup.name}'에서 ${removedCount}곳을 제거할까요?`)) return;
+    await grp.update(activeGroup.id, { clients: remaining });
+    setPicked(new Set(remaining.map((c) => c.code)));
+  };
   const updateActiveGroup = async () => {
     if (!activeGroup) return;
     if (!window.confirm(`'${activeGroup.name}' 구성원을 현재 체크된 ${picked.size}곳으로 교체할까요?`)) return;
@@ -171,6 +181,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           onClearGroup={clearGroup}
           onSaveNew={saveNewGroup}
           onAddToGroup={addToGroup}
+          onRemoveFromActive={removeFromActiveGroup}
           onUpdateActive={updateActiveGroup}
           onRenameActive={renameActiveGroup}
           onDeleteActive={deleteActiveGroup}
