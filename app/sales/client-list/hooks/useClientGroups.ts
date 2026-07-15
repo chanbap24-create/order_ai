@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export type GroupClient = { code: string; name: string };
-export type ClientGroup = { id: number; name: string; clients: GroupClient[]; updated_at: string };
+export type ClientGroup = { id: number; name: string; clients: GroupClient[]; columns?: string[] | null; updated_at: string };
 
 /** 거래처 그룹(즐겨찾기) — 영업사원 개인 소유, 법인별. 견적 보낼 거래처 묶음 관리. */
 export function useClientGroups(clientType: string) {
@@ -33,7 +33,7 @@ export function useClientGroups(clientType: string) {
     return null;
   };
 
-  const update = async (id: number, patch: { name?: string; clients?: GroupClient[] }): Promise<boolean> => {
+  const update = async (id: number, patch: { name?: string; clients?: GroupClient[]; columns?: string[] | null }): Promise<boolean> => {
     const r = await fetch('/api/sales/client-groups', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
       body: JSON.stringify({ id, ...patch, client_type: clientType }),

@@ -5,6 +5,12 @@ import { getSession } from '@/app/lib/auth';
 
 type GroupClient = { code: string; name: string };
 
+function sanitizeColumns(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out = raw.map(String).filter((k) => k.length <= 60).slice(0, 50);
+  return out.length ? out : null;
+}
+
 function sanitizeClients(raw: unknown): GroupClient[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
@@ -25,7 +31,7 @@ export async function GET(req: NextRequest) {
   const type = req.nextUrl.searchParams.get('type') === 'glass' ? 'glass' : 'wine';
   const { data, error } = await supabase
     .from('client_groups')
-    .select('id, name, clients, updated_at')
+    .select('id, name, clients, columns, updated_at')
     .eq('manager', session.manager)
     .eq('client_type', type)
     .order('created_at', { ascending: true });
@@ -46,10 +52,11 @@ export async function POST(req: NextRequest) {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name) patch.name = name;
     if (body.clients !== undefined) patch.clients = sanitizeClients(body.clients);
+    if (body.columns !== undefined) patch.columns = sanitizeColumns(body.columns);
     const { data, error } = await supabase
       .from('client_groups').update(patch)
       .eq('id', id).eq('manager', session.manager)
-      .select('id, name, clients, updated_at').single();
+      .select('id, name, clients, columns, updated_at').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ group: data });
   }
@@ -58,7 +65,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase
     .from('client_groups')
     .insert({ manager: session.manager, client_type: type, name, clients: sanitizeClients(body.clients) })
-    .select('id, name, clients, updated_at').single();
+    .select('id, name, clients, columns, updated_at').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ group: data });
 }

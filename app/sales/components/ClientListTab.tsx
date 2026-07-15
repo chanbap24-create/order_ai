@@ -21,7 +21,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const batchable = s.type === 'wine';
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const batch = useBatchRecommend(currentManager);
-  const cols = useQuoteCols(); // 견적서 컬럼(계정별 서버 저장) — 일괄 생성 전 조정 가능
+  const cols = useQuoteCols(); // 견적서 컬럼(계정 기본, 서버 저장)
 
   // 윈백 배지 — 발주 리듬 끊긴 거래처(추천견적에 윈백가 자동 적용) 한눈에 표기. 목록과 별개로 비동기 로드.
   const [winbackMap, setWinbackMap] = useState<Record<string, 'dormant' | 'risk'>>({});
@@ -114,10 +114,27 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     setPicked((prev) => { const n = new Set(prev); if (n.has(code)) n.delete(code); else n.add(code); return n; });
   const toggleAll = () =>
     setPicked(() => (allSelected ? new Set() : new Set(selectableClients.map((c) => c.client_code))));
+  // 견적서 컬럼: 그룹 활성 시 그 그룹 전용(client_groups.columns, 없으면 계정 기본에서 시작),
+  //   비활성 시 계정 기본(useQuoteCols). 편집도 같은 스코프에 저장.
+  const effectiveCols = activeGroup ? (activeGroup.columns?.length ? activeGroup.columns : cols.quoteCols) : cols.quoteCols;
+  const handleToggleCol = (key: string) => {
+    if (activeGroup) {
+      const next = effectiveCols.includes(key) ? effectiveCols.filter((k) => k !== key) : [...effectiveCols, key];
+      void grp.update(activeGroup.id, { columns: next });
+    } else cols.toggle(key);
+  };
+  const handleReorderCols = (next: string[]) => {
+    if (activeGroup) void grp.update(activeGroup.id, { columns: next });
+    else cols.reorder(next);
+  };
+  const handleResetCols = () => {
+    if (activeGroup) void grp.update(activeGroup.id, { columns: null }); // 그룹 전용 해제 → 계정 기본
+    else cols.reset();
+  };
   const runBatch = (opts?: { gradeStepUp?: boolean | 'auto' }) => {
     // 그룹 구성원은 이번 기간 목록에 없어도 견적 대상에 포함(이름은 그룹에 저장된 값 사용)
     const targets = pickedAsGroupClients().map((c) => ({ client_code: c.code, client_name: c.name }));
-    void batch.run(targets, { ...opts, cols: cols.quoteCols });
+    void batch.run(targets, { ...opts, cols: effectiveCols });
   };
 
   if (selected) {
@@ -198,10 +215,11 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           message={batch.message}
           onRun={runBatch}
           onClear={() => setPicked(new Set())}
-          quoteCols={cols.quoteCols}
-          onToggleCol={cols.toggle}
-          onMoveCol={cols.move}
-          onResetCols={cols.reset}
+          quoteCols={effectiveCols}
+          onToggleCol={handleToggleCol}
+          onReorderCols={handleReorderCols}
+          onResetCols={handleResetCols}
+          colsScope={activeGroup && activeGroup.columns?.length ? activeGroup.name : undefined}
         />
       )}
 

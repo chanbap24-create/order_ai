@@ -278,7 +278,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           onDownload={() => exp.createQuote(selectedItems, 'fill')}
           quoteCols={cols.quoteCols}
           toggleCol={cols.toggle}
-          moveCol={cols.move}
+          reorderCols={cols.reorder}
           resetCols={cols.reset}
         />
       )}
