@@ -6,7 +6,6 @@ import { logChange } from "@/app/lib/changeLogDb";
 import { getCountryPair } from "@/app/lib/countryMapping";
 import { loadBrandSupplierMap, supplierFromMap } from "@/app/lib/brandMapping";
 import { translateWineName } from "@/app/lib/koreanToEnglish";
-import { enrichWinesAfterSync } from "@/app/lib/wineEnrichSync";
 import { extractVintage } from "@/app/api/quote/lib/enrichment";
 import { logger } from "@/app/lib/logger";
 
@@ -203,11 +202,10 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
 
   // inventory_cdv → wines country backfill (빈 값 채우기)
   const backfilled = await backfillWineCountry();
+  // 주: 와인리스트 빈칸 보강(형제 상속·노트·LLM)은 여기서 하지 않는다 — 업로드 응답을 수 분 잡아먹어
+  // downloads-detect 라우트가 응답 후(after)에 비동기로 실행한다.
 
-  // 와인리스트 빈칸 방지: 형제(다른 빈티지/재등록) 상속 → 남는 건 GPT 로 지역·영문명 보강
-  const enriched = await enrichWinesAfterSync();
-
-  logger.info(`[WineDetection] Result: ${newRows.length} new, ${updateRows.length} updated, ${backfilled} country-backfilled, ${enriched.inherited} inherited, ${enriched.noteFilled} note-filled, ${enriched.gptFilled} gpt-filled`);
+  logger.info(`[WineDetection] Result: ${newRows.length} new, ${updateRows.length} updated, ${backfilled} country-backfilled`);
   return { newCount: newRows.length, updatedCount: updateRows.length };
 }
 
