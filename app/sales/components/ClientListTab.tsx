@@ -200,6 +200,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           onClear={() => setPicked(new Set())}
           quoteCols={cols.quoteCols}
           onToggleCol={cols.toggle}
+          onMoveCol={cols.move}
           onResetCols={cols.reset}
         />
       )}

@@ -11,6 +11,7 @@ type Props = {
   onDownload: () => void;
   quoteCols: string[];
   toggleCol: (k: string) => void;
+  moveCol?: (k: string, dir: -1 | 1) => void;
   resetCols: () => void;
 };
 
@@ -50,6 +51,7 @@ export function BottomActionBar(p: Props) {
             <QuoteColumnsMenu
               quoteCols={p.quoteCols}
               toggle={p.toggleCol}
+              move={p.moveCol}
               reset={p.resetCols}
               onClose={() => setShowColSettings(false)}
             />

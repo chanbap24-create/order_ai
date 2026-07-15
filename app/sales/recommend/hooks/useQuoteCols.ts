@@ -54,7 +54,19 @@ export function useQuoteCols() {
     setQuoteCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   };
 
+  // 컬럼 순서 이동(▲▼) — 배열 순서가 곧 엑셀 열 순서
+  const move = (key: string, dir: -1 | 1) => {
+    setQuoteCols(prev => {
+      const i = prev.indexOf(key);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  };
+
   const reset = () => setQuoteCols(DEFAULT_REC_COLS);
 
-  return { quoteCols, toggle, reset };
+  return { quoteCols, toggle, move, reset };
 }

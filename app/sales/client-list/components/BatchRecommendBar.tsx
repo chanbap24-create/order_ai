@@ -16,6 +16,7 @@ type Props = {
   // 견적서 컬럼(계정별 저장, useQuoteCols) — 생성 전 이 바에서 바로 조정
   quoteCols: string[];
   onToggleCol: (key: string) => void;
+  onMoveCol?: (key: string, dir: -1 | 1) => void;
   onResetCols: () => void;
 };
 
@@ -29,7 +30,7 @@ const STEP_UP_OPTS: Array<{ v: StepUpMode; t: string }> = [
  *  하위거래처 보정(할인 단계업)은 다운로드 전에 여기서 선택(추천견적 탭 설정이 초기값):
  *  자동=매출등급 미달 거래처만 1단계업 · 전체=선택 거래처 전부 1단계업. */
 export function BatchRecommendBar({
-  count, running, progress, message, onRun, onClear, quoteCols, onToggleCol, onResetCols,
+  count, running, progress, message, onRun, onClear, quoteCols, onToggleCol, onMoveCol, onResetCols,
 }: Props) {
   const [stepUp, setStepUp] = useState<StepUpMode>(() => loadRecSettings().gradeStepUp);
   const [showCols, setShowCols] = useState(false);
@@ -97,6 +98,7 @@ export function BatchRecommendBar({
             <QuoteColumnsMenu
               quoteCols={quoteCols}
               toggle={onToggleCol}
+              move={onMoveCol}
               reset={onResetCols}
               onClose={() => setShowCols(false)}
             />
