@@ -59,6 +59,7 @@ export async function applyPromotions(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wineMap: Map<string, any>,
   clientOwnTypes: Set<string>,
+  clientCategory: 'venue' | 'shop' | 'wholesale' = 'venue',
   corporation = 'CDV',
 ): Promise<void> {
   const promos = await getActivePromotions(corporation);
@@ -68,6 +69,8 @@ export async function applyPromotions(
   const usesType = (t: string): boolean => clientOwnTypes.size === 0 || clientOwnTypes.has(t);
 
   for (const [itemNo, p] of promos) {
+    // 대상 업태가 지정된 프로모션은 해당 업태 거래처에만 적용(노출·프로모션가 모두).
+    if (p.categories && p.categories.length && !p.categories.includes(clientCategory)) continue;
     let s = scored.find((x) => x.item_no === itemNo);
     const wine = wineMap.get(itemNo);
     const type = itemBucket(wine);

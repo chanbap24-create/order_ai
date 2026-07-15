@@ -9,8 +9,15 @@ export interface PromotionDraft {
   quantity: number | null;
   discount_rate: number | null;  // 0~1
   discount_price: number | null;
+  categories: string[] | null;   // 대상 업태(venue/shop/wholesale). null = 전체
   memo: string | null;
 }
+
+export const CATEGORY_OPTS = [
+  { v: 'venue', t: '업소/호텔' },
+  { v: 'shop', t: '샵' },
+  { v: 'wholesale', t: '도매' },
+] as const;
 
 interface Picked { item_no: string; item_name: string; supply_price: number }
 
@@ -29,6 +36,7 @@ export function PromotionForm({ onSave }: { onSave: (d: PromotionDraft) => Promi
   const [ratePct, setRatePct] = useState('');
   const [price, setPrice] = useState('');
   const [memo, setMemo] = useState('');
+  const [cats, setCats] = useState<string[]>([]); // 대상 업태(빈배열=전체)
   const [saving, setSaving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -62,8 +70,10 @@ export function PromotionForm({ onSave }: { onSave: (d: PromotionDraft) => Promi
   };
 
   const reset = () => {
-    setPicked(null); setQ(''); setQty(''); setRatePct(''); setPrice(''); setMemo(''); setResults([]);
+    setPicked(null); setQ(''); setQty(''); setRatePct(''); setPrice(''); setMemo(''); setCats([]); setResults([]);
   };
+  const toggleCat = (v: string) =>
+    setCats((p) => (p.includes(v) ? p.filter((c) => c !== v) : [...p, v]));
 
   const save = async () => {
     if (!picked) return;
@@ -75,6 +85,7 @@ export function PromotionForm({ onSave }: { onSave: (d: PromotionDraft) => Promi
         quantity: qty ? Number(qty) : null,
         discount_rate: ratePct ? Math.min(1, Math.max(0, Number(ratePct) / 100)) : null,
         discount_price: price ? Number(price) : null,
+        categories: cats.length ? cats : null,
         memo: memo.trim() || null,
       });
       reset();
@@ -123,6 +134,31 @@ export function PromotionForm({ onSave }: { onSave: (d: PromotionDraft) => Promi
         <div><div style={labelStyle}>수량(병)</div><input style={inputStyle} type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div>
         <div><div style={labelStyle}>할인률(%)</div><input style={inputStyle} type="number" value={ratePct} onChange={(e) => onRate(e.target.value)} /></div>
         <div><div style={labelStyle}>할인가(원)</div><input style={inputStyle} type="number" value={price} onChange={(e) => onPrice(e.target.value)} /></div>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={labelStyle}>대상 업태 — 선택한 업태 거래처에만 프로모션가 적용 (미선택=전체)</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setCats([])}
+            style={{
+              padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              border: `1px solid ${cats.length === 0 ? 'var(--action)' : 'var(--gray-300)'}`,
+              background: cats.length === 0 ? 'var(--action)' : '#fff',
+              color: cats.length === 0 ? '#fff' : 'var(--text-tertiary)',
+            }}
+          >전체</button>
+          {CATEGORY_OPTS.map((o) => {
+            const on = cats.includes(o.v);
+            return (
+              <button key={o.v} onClick={() => toggleCat(o.v)} style={{
+                padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${on ? 'var(--action)' : 'var(--gray-300)'}`,
+                background: on ? 'var(--action)' : '#fff',
+                color: on ? '#fff' : 'var(--text-tertiary)',
+              }}>{o.t}</button>
+            );
+          })}
+        </div>
       </div>
       <div style={{ marginBottom: 10 }}>
         <div style={labelStyle}>메모(선택)</div>

@@ -2,7 +2,7 @@
 import { ListSkeleton } from '@/app/components/ui';
 
 import { useCallback, useEffect, useState } from 'react';
-import { PromotionForm, type PromotionDraft } from './promotion/PromotionForm';
+import { PromotionForm, CATEGORY_OPTS, type PromotionDraft } from './promotion/PromotionForm';
 import { DiscountConfigEditor } from './promotion/DiscountConfigEditor';
 
 interface Promotion {
@@ -14,6 +14,7 @@ interface Promotion {
   discount_price: number | null;
   active: boolean;
   always_recommend: boolean;
+  categories: string[] | null;
   memo: string | null;
   total_stock?: number;
   available_stock?: number;
@@ -93,6 +94,9 @@ export default function PromotionTab() {
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 2 }}>
                   {p.item_no}
+                  {p.categories?.length
+                    ? ` · ${p.categories.map((c) => CATEGORY_OPTS.find((o) => o.v === c)?.t || c).join('·')} 전용`
+                    : ' · 전체 업태'}
                   {p.quantity ? ` · 수량 ${p.quantity}병` : ''}
                   {p.discount_rate != null ? ` · ${Math.round(p.discount_rate * 100)}%` : ''}
                   {p.discount_price ? ` · ${p.discount_price.toLocaleString()}원` : ''}

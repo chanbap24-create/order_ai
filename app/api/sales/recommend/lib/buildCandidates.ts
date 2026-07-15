@@ -364,7 +364,7 @@ export async function buildCandidates(
     const bl = bucketLabel(normalizeType(w?.wine_type || '', w?.item_name_kr || a.name || ''));
     if (bl) clientOwnTypes.add(bl);
   }
-  await applyPromotions(scored, rawInvMap, wineMap, clientOwnTypes);
+  await applyPromotions(scored, rawInvMap, wineMap, clientOwnTypes, clientCategory);
 
   let lastOrderDate: string | null = null;
   for (const agg of Object.values(purchaseAgg)) {

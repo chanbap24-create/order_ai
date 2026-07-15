@@ -12,6 +12,7 @@ export interface Promotion {
   discount_price: number | null; // 할인가(표시/참고)
   active: boolean;
   always_recommend: boolean;     // 견적발행 시 무조건 추천(후보에 없어도 주입)
+  categories: string[] | null;   // 대상 업태(venue/shop/wholesale). null·빈배열 = 전체
   memo: string | null;
   created_at?: string;
   updated_at?: string;
@@ -29,7 +30,16 @@ export interface PromotionInput {
   discount_rate?: number | null;
   discount_price?: number | null;
   always_recommend?: boolean;
+  categories?: string[] | null;
   memo?: string | null;
+}
+
+const CATEGORY_KEYS = ['venue', 'shop', 'wholesale'];
+/** 업태 배열 정규화 — 화이트리스트 외 제거, 빈배열이면 null(전체). */
+function sanitizeCategories(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out = [...new Set(raw.map(String).filter((c) => CATEGORY_KEYS.includes(c)))];
+  return out.length ? out : null;
 }
 
 /** 법인 프로모션 전체(관리 화면용, 활성/비활성 모두). */
@@ -75,6 +85,7 @@ export async function createPromotion(input: PromotionInput): Promise<Promotion>
     discount_rate: rate,
     discount_price: input.discount_price ?? null,
     always_recommend: input.always_recommend ?? true,
+    categories: sanitizeCategories(input.categories),
     memo: input.memo ?? null,
     active: true,
   }).select('*').single();
@@ -90,6 +101,7 @@ export async function updatePromotion(id: string, patch: Partial<PromotionInput>
   if (patch.discount_rate !== undefined) upd.discount_rate = clampRate(patch.discount_rate);
   if (patch.discount_price !== undefined) upd.discount_price = patch.discount_price;
   if (patch.always_recommend !== undefined) upd.always_recommend = patch.always_recommend;
+  if (patch.categories !== undefined) upd.categories = sanitizeCategories(patch.categories);
   if (patch.memo !== undefined) upd.memo = patch.memo;
   if (patch.active !== undefined) upd.active = patch.active;
   const { data, error } = await supabase.from('promotions').update(upd).eq('id', id).select('*').single();
