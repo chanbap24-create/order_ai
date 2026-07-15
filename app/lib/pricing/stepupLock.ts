@@ -20,6 +20,21 @@ export async function isStepUpUsed(clientCode: string): Promise<boolean> {
   return !!data;
 }
 
+/** 보정 사용 해제 — 보정 견적을 삭제(폐기)했을 때 분기 락을 되살린다. */
+export async function releaseStepUp(clientCode: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('discount_stepup_usage')
+    .delete()
+    .eq('client_code', clientCode)
+    .eq('quarter', currentQuarterKey())
+    .select('client_code');
+  if (error) {
+    logger.warn(`[StepUpLock] 해제 실패 ${clientCode}: ${error.message}`);
+    return false;
+  }
+  return (data || []).length > 0;
+}
+
 /** 보정 사용 기록 (이미 있으면 무시) */
 export async function markStepUpUsed(clientCode: string, manager?: string | null): Promise<void> {
   const { error } = await supabase

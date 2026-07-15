@@ -35,8 +35,11 @@ export function useSavedQuotes(getManagerParam: () => string) {
 
   const remove = useCallback(async (id: number) => {
     try {
-      await fetch(`/api/quote/saved?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/quote/saved?id=${id}`, { method: "DELETE" });
+      const j = await res.json().catch(() => ({}));
       setItems((prev) => prev.filter((i) => i.id !== id));
+      // 이번 분기 견적 삭제로 '하위거래처 보정 분기 1회' 락이 해제된 경우 안내
+      if (j?.stepup_released) alert("이 거래처의 '하위거래처 보정(분기 1회)'이 다시 사용 가능해졌습니다.");
     } catch (e) {
       console.error("저장 견적 삭제 실패:", e);
     }
