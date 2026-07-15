@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useClientList } from '../client-list/hooks/useClientList';
 import { useBatchRecommend } from '../client-list/hooks/useBatchRecommend';
 import { useClientGroups, type ClientGroup } from '../client-list/hooks/useClientGroups';
+import { useQuoteCols } from '../recommend/hooks/useQuoteCols';
 import { FilterPanel } from '../client-list/components/FilterPanel';
 import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
@@ -20,6 +21,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const batchable = s.type === 'wine';
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const batch = useBatchRecommend(currentManager);
+  const cols = useQuoteCols(); // 견적서 컬럼(계정별 서버 저장) — 일괄 생성 전 조정 가능
 
   // 윈백 배지 — 발주 리듬 끊긴 거래처(추천견적에 윈백가 자동 적용) 한눈에 표기. 목록과 별개로 비동기 로드.
   const [winbackMap, setWinbackMap] = useState<Record<string, 'dormant' | 'risk'>>({});
@@ -115,7 +117,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const runBatch = (opts?: { gradeStepUp?: boolean | 'auto' }) => {
     // 그룹 구성원은 이번 기간 목록에 없어도 견적 대상에 포함(이름은 그룹에 저장된 값 사용)
     const targets = pickedAsGroupClients().map((c) => ({ client_code: c.code, client_name: c.name }));
-    void batch.run(targets, opts);
+    void batch.run(targets, { ...opts, cols: cols.quoteCols });
   };
 
   if (selected) {
@@ -196,6 +198,9 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           message={batch.message}
           onRun={runBatch}
           onClear={() => setPicked(new Set())}
+          quoteCols={cols.quoteCols}
+          onToggleCol={cols.toggle}
+          onResetCols={cols.reset}
         />
       )}
 
