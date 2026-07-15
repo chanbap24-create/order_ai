@@ -47,6 +47,25 @@ export function useSavedQuotes(getManagerParam: () => string) {
     }
   }, []);
 
+  /** 선택한 견적 id들 일괄 삭제 — 삭제 건수·보정 락 해제 수 반환 */
+  const removeMany = useCallback(async (ids: number[]): Promise<{ deleted: number; stepup_released: number } | null> => {
+    if (ids.length === 0) return null;
+    try {
+      const mgr = getManagerParam();
+      const res = await fetch(
+        `/api/quote/saved?ids=${ids.join(',')}&manager=${encodeURIComponent(mgr)}`,
+        { method: "DELETE" },
+      );
+      const j = await res.json();
+      if (!j?.success) return null;
+      setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+      return { deleted: j.deleted || 0, stepup_released: j.stepup_released || 0 };
+    } catch (e) {
+      console.error("선택 견적 일괄 삭제 실패:", e);
+      return null;
+    }
+  }, [getManagerParam]);
+
   /** 그 날짜(KST)에 발행된 견적 일괄 삭제 — 삭제 건수·보정 락 해제 수 반환 */
   const removeByDate = useCallback(async (): Promise<{ deleted: number; stepup_released: number } | null> => {
     if (!date) return null;
@@ -110,5 +129,5 @@ export function useSavedQuotes(getManagerParam: () => string) {
     [getManagerParam],
   );
 
-  return { items, loading, search, setSearch, date, setDate, load, remove, removeByDate, getOne, restore, quoteConversion, clientConversion };
+  return { items, loading, search, setSearch, date, setDate, load, remove, removeMany, removeByDate, getOne, restore, quoteConversion, clientConversion };
 }

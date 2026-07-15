@@ -38,6 +38,8 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   const [busy, setBusy] = useState(false);
   const [downloading, setDownloading] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  // 견적 다중 선택(폴더 내) — 전체선택/선택 삭제
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); setSearch(""); sq.setDate(""); void sq.load(); }
@@ -83,6 +85,7 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
     setOpenKey(f.key);
     setExpandedId(null);
     setClientConv(null);
+    setSelected(new Set());
     const code = f.quotes.find((q) => q.client_code)?.client_code;
     if (code) {
       const conv = await sq.clientConversion(code);
@@ -90,7 +93,24 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
     }
   };
 
-  const goBack = () => { setOpenKey(null); setExpandedId(null); setClientConv(null); };
+  const goBack = () => { setOpenKey(null); setExpandedId(null); setClientConv(null); setSelected(new Set()); };
+
+  // 선택 삭제/전체선택 (현재 폴더의 견적 대상)
+  const toggleSel = (id: number) =>
+    setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const allSelected = !!current && current.quotes.length > 0 && current.quotes.every((x) => selected.has(x.id));
+  const toggleAll = () => {
+    if (!current) return;
+    setSelected(allSelected ? new Set() : new Set(current.quotes.map((x) => x.id)));
+  };
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`선택한 견적 ${selected.size}건을 삭제할까요?\n삭제는 복구할 수 없습니다.`)) return;
+    const r = await sq.removeMany([...selected]);
+    setSelected(new Set());
+    if (!r) { alert("삭제에 실패했습니다."); return; }
+    if (r.stepup_released) alert(`${r.deleted}건 삭제됨 · 하위거래처 보정(분기 1회) ${r.stepup_released}곳 다시 사용 가능`);
+  };
 
   const toggleView = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
@@ -213,10 +233,33 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
             </div>
           )}
 
+          {/* 2단계 상단: 전체선택 + 선택 삭제 바 */}
+          {!sq.loading && current && current.quotes.length > 0 && (
+            <div style={selBar}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer" }}>
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} style={{ cursor: "pointer" }} />
+                전체선택
+              </label>
+              <button
+                onClick={deleteSelected}
+                disabled={selected.size === 0}
+                style={{ ...btnDanger, background: selected.size ? "var(--status-danger)" : "white", color: selected.size ? "#fff" : "var(--status-danger)", opacity: selected.size ? 1 : 0.5 }}
+              >
+                선택 삭제{selected.size > 0 ? ` (${selected.size})` : ""}
+              </button>
+            </div>
+          )}
+
           {/* 2단계: 선택한 거래처의 견적 목록 */}
           {!sq.loading && current && current.quotes.map((it) => (
             <div key={it.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
               <div style={rowMain}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(it.id)}
+                  onChange={() => toggleSel(it.id)}
+                  style={{ cursor: "pointer", flexShrink: 0 }}
+                />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>
                     {fmtDate(it.created_at)}
@@ -329,6 +372,10 @@ const countPill: React.CSSProperties = {
   background: "var(--border-default)", color: "var(--text-secondary)",
 };
 const rowMain: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, padding: "10px 16px" };
+const selBar: React.CSSProperties = {
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  padding: "8px 16px", borderBottom: "1px solid var(--border-default)", background: "var(--surface-muted, #fafafa)",
+};
 const badge: React.CSSProperties = {
   marginLeft: 6, fontSize: 10, fontWeight: 700, padding: "1px 6px",
   borderRadius: 6, background: "var(--border-default)", color: "var(--text-secondary)",

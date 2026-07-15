@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  saveQuote, listSavedQuotes, getSavedQuote, deleteSavedQuote, deleteSavedQuotesByDate,
+  saveQuote, listSavedQuotes, getSavedQuote, deleteSavedQuote, deleteSavedQuotesByDate, deleteSavedQuotesByIds,
 } from '@/app/lib/savedQuotes';
 import { releaseStepUp, currentQuarterKey } from '@/app/lib/pricing/stepupLock';
 
@@ -46,18 +46,25 @@ export async function POST(req: Request) {
   }
 }
 
-// DELETE ?id= — 단건 삭제 / DELETE ?date=YYYY-MM-DD&manager= — 그 날짜(KST) 발행 견적 일괄 삭제
+// DELETE ?id= — 단건 / ?ids=1,2,3 — 선택 일괄 / ?date=YYYY-MM-DD&manager= — 그 날짜(KST) 발행 일괄
 // 이번 분기 견적을 삭제하면 그 거래처의 '하위거래처 보정 분기 1회' 락도 해제
 //   (테스트로 보정 견적을 발행해 락이 소모된 경우, 견적 폐기로 되살릴 수 있게)
 export async function DELETE(req: NextRequest) {
   try {
-    const id = req.nextUrl.searchParams.get('id');
-    const date = req.nextUrl.searchParams.get('date');
-    if (!id && date) {
-      const r = await deleteSavedQuotesByDate(req.nextUrl.searchParams.get('manager') || '', date);
+    const sp = req.nextUrl.searchParams;
+    const id = sp.get('id');
+    const ids = sp.get('ids');
+    const date = sp.get('date');
+    if (!id && ids) {
+      const idList = ids.split(',').map((s) => Number(s.trim())).filter((n) => Number.isInteger(n) && n > 0);
+      const r = await deleteSavedQuotesByIds(idList, sp.get('manager') || undefined);
       return NextResponse.json({ success: true, deleted: r.deleted, stepup_released: r.stepupReleased });
     }
-    if (!id) return NextResponse.json({ error: 'id 또는 date가 필요합니다.' }, { status: 400 });
+    if (!id && date) {
+      const r = await deleteSavedQuotesByDate(sp.get('manager') || '', date);
+      return NextResponse.json({ success: true, deleted: r.deleted, stepup_released: r.stepupReleased });
+    }
+    if (!id) return NextResponse.json({ error: 'id, ids 또는 date가 필요합니다.' }, { status: 400 });
     const sq = await getSavedQuote(Number(id));
     await deleteSavedQuote(Number(id));
 

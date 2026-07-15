@@ -82,10 +82,28 @@ export async function listSavedQuotes(
   return data || [];
 }
 
-/**
- * 특정 날짜(KST)에 발행된 저장 견적 일괄 삭제 (담당자 스코프).
- * 이번 분기 견적이 포함되면 해당 거래처들의 '하위거래처 보정 분기 1회' 락도 해제(단건 삭제와 동일 정책).
- */
+type DelRow = { id: number; client_code: string | null; created_at: string };
+
+/** 대상 행 삭제 + 이번 분기 보정 견적 포함 거래처의 '보정 분기 1회' 락 해제(단건 삭제와 동일 정책). */
+async function deleteRowsWithStepupRelease(rows: DelRow[]): Promise<{ deleted: number; stepupReleased: number }> {
+  if (rows.length === 0) return { deleted: 0, stepupReleased: 0 };
+  const ids = rows.map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 500) {
+    const { error } = await supabase.from('saved_quotes').delete().in('id', ids.slice(i, i + 500));
+    if (error) throw new Error(error.message);
+  }
+  let stepupReleased = 0;
+  const codes = new Set(
+    rows.filter((r) => r.client_code && currentQuarterKey(new Date(r.created_at)) === currentQuarterKey())
+      .map((r) => r.client_code as string),
+  );
+  for (const c of codes) {
+    if (await releaseStepUp(c)) stepupReleased++;
+  }
+  return { deleted: rows.length, stepupReleased };
+}
+
+/** 특정 날짜(KST)에 발행된 저장 견적 일괄 삭제 (담당자 스코프). */
 export async function deleteSavedQuotesByDate(
   manager: string,
   date: string,
@@ -100,24 +118,24 @@ export async function deleteSavedQuotesByDate(
   if (manager) q = q.eq('manager', manager);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
-  const rows = (data || []) as Array<{ id: number; client_code: string | null; created_at: string }>;
-  if (rows.length === 0) return { deleted: 0, stepupReleased: 0 };
+  return deleteRowsWithStepupRelease((data || []) as DelRow[]);
+}
 
-  const ids = rows.map((r) => r.id);
-  for (let i = 0; i < ids.length; i += 500) {
-    const { error: delErr } = await supabase.from('saved_quotes').delete().in('id', ids.slice(i, i + 500));
-    if (delErr) throw new Error(delErr.message);
-  }
+/** 선택한 견적 id들 일괄 삭제 (manager가 있으면 그 담당자 것만). */
+export async function deleteSavedQuotesByIds(
+  ids: number[],
+  manager?: string,
+): Promise<{ deleted: number; stepupReleased: number }> {
+  const clean = [...new Set(ids)].filter((n) => Number.isInteger(n) && n > 0).slice(0, 500);
+  if (clean.length === 0) return { deleted: 0, stepupReleased: 0 };
 
-  let stepupReleased = 0;
-  const codes = new Set(
-    rows.filter((r) => r.client_code && currentQuarterKey(new Date(r.created_at)) === currentQuarterKey())
-      .map((r) => r.client_code as string),
-  );
-  for (const c of codes) {
-    if (await releaseStepUp(c)) stepupReleased++;
-  }
-  return { deleted: rows.length, stepupReleased };
+  let q = supabase.from('saved_quotes')
+    .select('id, client_code, created_at')
+    .in('id', clean);
+  if (manager) q = q.eq('manager', manager);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return deleteRowsWithStepupRelease((data || []) as DelRow[]);
 }
 
 /** 단건 조회(스냅샷 items 포함) — 열람/복원용. */
