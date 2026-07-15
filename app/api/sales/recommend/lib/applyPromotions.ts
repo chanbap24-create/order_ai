@@ -48,7 +48,8 @@ function applyPromoPricing(s: ScoredItem, p: Promotion): void {
   if (p.quantity && p.quantity > 0) s.rec_quantity = p.quantity;
   const rate = promoRate(p, Number(s.price) || 0);
   if (rate !== undefined) s.rec_discount = rate;
-  s.rec_note = p.memo ? `프로모션 · ${p.memo}` : '프로모션';
+  // 비고: 메모가 있을 때만 표기(없으면 빈칸). 수량 사다리 등 기존 비고도 프로모션 고정가와 안 맞아 비운다.
+  s.rec_note = p.memo ? `프로모션 · ${p.memo}` : '';
   s.tags = ['프로모션', ...(s.tags || []).filter((t) => t !== '프로모션')];
 }
 
