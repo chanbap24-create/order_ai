@@ -9,6 +9,7 @@ type Props = {
   onPickGroup: (g: ClientGroup) => void;   // 그룹 선택 → 구성원 체크 + 목록 필터
   onClearGroup: () => void;                // 전체(그룹 해제)
   onSaveNew: () => void;                   // 현재 선택으로 새 그룹
+  onAddToGroup: (id: number) => void;      // 현재 선택을 기존 그룹에 추가(합집합)
   onUpdateActive: () => void;              // 활성 그룹을 현재 선택으로 갱신
   onRenameActive: () => void;
   onDeleteActive: () => void;
@@ -28,7 +29,7 @@ const act: React.CSSProperties = {
 /** 거래처 그룹(즐겨찾기) 바 — 그룹 칩 선택 시 구성원 자동 체크, 바로 일괄 견적 가능. */
 export function ClientGroupBar({
   groups, activeId, pickedCount,
-  onPickGroup, onClearGroup, onSaveNew, onUpdateActive, onRenameActive, onDeleteActive,
+  onPickGroup, onClearGroup, onSaveNew, onAddToGroup, onUpdateActive, onRenameActive, onDeleteActive,
 }: Props) {
   const active = groups.find((g) => g.id === activeId) || null;
   return (
@@ -48,8 +49,21 @@ export function ClientGroupBar({
       ))}
 
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+        {pickedCount > 0 && groups.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => { const id = Number(e.target.value); if (id) onAddToGroup(id); e.target.value = ''; }}
+            title="체크된 거래처를 선택한 그룹에 추가(기존 구성원 유지)"
+            style={{ ...act, padding: '4px 8px', appearance: 'auto' as never }}
+          >
+            <option value="">선택 {pickedCount}곳을 그룹에 추가…</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name} ({g.clients.length})</option>
+            ))}
+          </select>
+        )}
         {pickedCount > 0 && (
-          <button onClick={onSaveNew} style={act}>＋ 선택 {pickedCount}곳을 새 그룹으로</button>
+          <button onClick={onSaveNew} style={act}>＋ 새 그룹으로</button>
         )}
         {active && pickedCount > 0 && (
           <button onClick={onUpdateActive} style={act} title="이 그룹의 구성원을 현재 체크된 거래처로 교체">

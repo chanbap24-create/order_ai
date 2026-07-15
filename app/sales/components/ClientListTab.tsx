@@ -58,6 +58,15 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     const g = await grp.create(name.trim(), pickedAsGroupClients());
     if (g) setActiveGroupId(g.id);
   };
+  const addToGroup = async (id: number) => {
+    // 체크된 거래처를 그룹에 합집합으로 추가(기존 구성원 유지, 코드 중복 제거)
+    const g = grp.groups.find((x) => x.id === id);
+    if (!g || picked.size === 0) return;
+    const merged = new Map<string, { code: string; name: string }>();
+    for (const c of g.clients) merged.set(c.code, c);
+    for (const c of pickedAsGroupClients()) if (!merged.has(c.code)) merged.set(c.code, c);
+    await grp.update(id, { clients: [...merged.values()] });
+  };
   const updateActiveGroup = async () => {
     if (!activeGroup) return;
     if (!window.confirm(`'${activeGroup.name}' 구성원을 현재 체크된 ${picked.size}곳으로 교체할까요?`)) return;
@@ -161,6 +170,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           onPickGroup={pickGroup}
           onClearGroup={clearGroup}
           onSaveNew={saveNewGroup}
+          onAddToGroup={addToGroup}
           onUpdateActive={updateActiveGroup}
           onRenameActive={renameActiveGroup}
           onDeleteActive={deleteActiveGroup}
