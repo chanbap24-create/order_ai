@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useClientList } from '../client-list/hooks/useClientList';
 import { useBatchRecommend } from '../client-list/hooks/useBatchRecommend';
+import { useClientGroups, type ClientGroup } from '../client-list/hooks/useClientGroups';
 import { FilterPanel } from '../client-list/components/FilterPanel';
 import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
 import { BatchRecommendBar } from '../client-list/components/BatchRecommendBar';
+import { ClientGroupBar } from '../client-list/components/ClientGroupBar';
 import { ClientDetailPanel } from '../analysis/components/ClientDetailPanel';
 import type { SelectedRankClient, AnalysisFilters } from '../analysis/types';
 import { Stack } from '@/app/components/ui';
@@ -35,16 +37,55 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     return () => { alive = false; };
   }, [s.type, s.clients]);
 
-  // 거래처명·코드 검색 (클라이언트 필터)
+  // 거래처 그룹(즐겨찾기) — 견적 보낼 거래처 묶음. 그룹 선택 시 구성원 자동 체크 + 목록 필터.
+  const grp = useClientGroups(s.type);
+  const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
+  const activeGroup = grp.groups.find((g) => g.id === activeGroupId) || null;
+  const pickGroup = (g: ClientGroup) => {
+    setActiveGroupId(g.id);
+    setPicked(new Set(g.clients.map((c) => c.code)));
+  };
+  const clearGroup = () => { setActiveGroupId(null); setPicked(new Set()); };
+  const pickedAsGroupClients = () => {
+    // 체크된 거래처의 이름: 현재 목록 → 활성 그룹 → 코드 순으로 확보
+    const nameOf = new Map<string, string>();
+    for (const c of s.clients) if (c.client_code) nameOf.set(c.client_code, c.client_name);
+    for (const g of grp.groups) for (const c of g.clients) if (!nameOf.has(c.code)) nameOf.set(c.code, c.name);
+    return [...picked].map((code) => ({ code, name: nameOf.get(code) || code }));
+  };
+  const saveNewGroup = async () => {
+    const name = window.prompt('새 그룹 이름'); if (!name?.trim()) return;
+    const g = await grp.create(name.trim(), pickedAsGroupClients());
+    if (g) setActiveGroupId(g.id);
+  };
+  const updateActiveGroup = async () => {
+    if (!activeGroup) return;
+    if (!window.confirm(`'${activeGroup.name}' 구성원을 현재 체크된 ${picked.size}곳으로 교체할까요?`)) return;
+    await grp.update(activeGroup.id, { clients: pickedAsGroupClients() });
+  };
+  const renameActiveGroup = async () => {
+    if (!activeGroup) return;
+    const name = window.prompt('그룹 이름', activeGroup.name); if (!name?.trim()) return;
+    await grp.update(activeGroup.id, { name: name.trim() });
+  };
+  const deleteActiveGroup = async () => {
+    if (!activeGroup) return;
+    if (!window.confirm(`'${activeGroup.name}' 그룹을 삭제할까요? (거래처 데이터는 그대로)`)) return;
+    await grp.remove(activeGroup.id);
+    clearGroup();
+  };
+
+  // 거래처명·코드 검색 (클라이언트 필터) + 활성 그룹 필터
   const [search, setSearch] = useState('');
   const q = search.trim().toLowerCase();
-  const shownClients = q
-    ? s.clients.filter(
-        (c) =>
-          (c.client_name || '').toLowerCase().includes(q) ||
-          (c.client_code || '').toLowerCase().includes(q),
-      )
-    : s.clients;
+  const groupCodes = activeGroup ? new Set(activeGroup.clients.map((c) => c.code)) : null;
+  const shownClients = s.clients.filter(
+    (c) =>
+      (!groupCodes || groupCodes.has(c.client_code)) &&
+      (!q ||
+        (c.client_name || '').toLowerCase().includes(q) ||
+        (c.client_code || '').toLowerCase().includes(q)),
+  );
 
   const selectableClients = shownClients.filter((c) => c.client_code);
   const allSelected = selectableClients.length > 0 && selectableClients.every((c) => picked.has(c.client_code));
@@ -53,9 +94,8 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
   const toggleAll = () =>
     setPicked(() => (allSelected ? new Set() : new Set(selectableClients.map((c) => c.client_code))));
   const runBatch = (opts?: { gradeStepUp?: boolean | 'auto' }) => {
-    const targets = s.clients
-      .filter((c) => picked.has(c.client_code))
-      .map((c) => ({ client_code: c.client_code, client_name: c.client_name }));
+    // 그룹 구성원은 이번 기간 목록에 없어도 견적 대상에 포함(이름은 그룹에 저장된 값 사용)
+    const targets = pickedAsGroupClients().map((c) => ({ client_code: c.code, client_name: c.name }));
     void batch.run(targets, opts);
   };
 
@@ -112,6 +152,20 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--text-primary)'; }}
         onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
       />
+
+      {batchable && (
+        <ClientGroupBar
+          groups={grp.groups}
+          activeId={activeGroupId}
+          pickedCount={picked.size}
+          onPickGroup={pickGroup}
+          onClearGroup={clearGroup}
+          onSaveNew={saveNewGroup}
+          onUpdateActive={updateActiveGroup}
+          onRenameActive={renameActiveGroup}
+          onDeleteActive={deleteActiveGroup}
+        />
+      )}
 
       {batchable && (
         <BatchRecommendBar
