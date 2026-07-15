@@ -15,6 +15,7 @@ export function useSavedQuotes(getManagerParam: () => string) {
   const [items, setItems] = useState<SavedQuoteMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [date, setDate] = useState(""); // 발행일(KST) 필터 — 'YYYY-MM-DD'
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -22,7 +23,8 @@ export function useSavedQuotes(getManagerParam: () => string) {
       const mgr = getManagerParam();
       const url =
         `/api/quote/saved?manager=${encodeURIComponent(mgr)}` +
-        (search.trim() ? `&search=${encodeURIComponent(search.trim())}` : "");
+        (search.trim() ? `&search=${encodeURIComponent(search.trim())}` : "") +
+        (date ? `&date=${date}` : "");
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) setItems(data.items || []);
@@ -31,7 +33,7 @@ export function useSavedQuotes(getManagerParam: () => string) {
     } finally {
       setLoading(false);
     }
-  }, [getManagerParam, search]);
+  }, [getManagerParam, search, date]);
 
   const remove = useCallback(async (id: number) => {
     try {
@@ -44,6 +46,22 @@ export function useSavedQuotes(getManagerParam: () => string) {
       console.error("저장 견적 삭제 실패:", e);
     }
   }, []);
+
+  /** 그 날짜(KST)에 발행된 견적 일괄 삭제 — 삭제 건수·보정 락 해제 수 반환 */
+  const removeByDate = useCallback(async (): Promise<{ deleted: number; stepup_released: number } | null> => {
+    if (!date) return null;
+    try {
+      const mgr = getManagerParam();
+      const res = await fetch(`/api/quote/saved?date=${date}&manager=${encodeURIComponent(mgr)}`, { method: "DELETE" });
+      const j = await res.json();
+      if (!j?.success) return null;
+      await load();
+      return { deleted: j.deleted || 0, stepup_released: j.stepup_released || 0 };
+    } catch (e) {
+      console.error("날짜별 견적 일괄 삭제 실패:", e);
+      return null;
+    }
+  }, [date, getManagerParam, load]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getOne = useCallback(async (id: number): Promise<any | null> => {
@@ -92,5 +110,5 @@ export function useSavedQuotes(getManagerParam: () => string) {
     [getManagerParam],
   );
 
-  return { items, loading, search, setSearch, load, remove, getOne, restore, quoteConversion, clientConversion };
+  return { items, loading, search, setSearch, date, setDate, load, remove, removeByDate, getOne, restore, quoteConversion, clientConversion };
 }

@@ -1,5 +1,6 @@
 // 저장 견적(견적 이력) 도메인 로직. 라우트는 얇게 유지하고 실제 작업은 여기서.
 import { supabase } from '@/app/lib/db';
+import { releaseStepUp, currentQuarterKey } from '@/app/lib/pricing/stepupLock';
 
 // quote_items 로 복원할 때 쓰는 화이트리스트 컬럼(스냅샷 → 작업 초안)
 const QUOTE_ITEM_COLS = [
@@ -53,10 +54,16 @@ export async function saveQuote(input: SaveQuoteInput): Promise<{ id: number }> 
   return data as { id: number };
 }
 
-/** 담당자별 저장 견적 목록(스냅샷 items 제외, 가벼운 메타만). */
+/** KST 하루 범위 [start, end) — created_at(timestamptz) 필터용 */
+function kstDayRange(date: string): { start: string; end: string } {
+  const next = new Date(new Date(`${date}T00:00:00+09:00`).getTime() + 86400000);
+  return { start: `${date}T00:00:00+09:00`, end: next.toISOString() };
+}
+
+/** 담당자별 저장 견적 목록(스냅샷 items 제외, 가벼운 메타만). date='YYYY-MM-DD'(KST 발행일) 필터 지원. */
 export async function listSavedQuotes(
   manager: string,
-  opts: { clientCode?: string; search?: string } = {},
+  opts: { clientCode?: string; search?: string; date?: string } = {},
 ): Promise<AnyRow[]> {
   let q = supabase
     .from('saved_quotes')
@@ -66,9 +73,51 @@ export async function listSavedQuotes(
   if (manager) q = q.eq('manager', manager);
   if (opts.clientCode) q = q.eq('client_code', opts.clientCode);
   if (opts.search) q = q.ilike('client_name', `%${opts.search}%`);
+  if (opts.date && /^\d{4}-\d{2}-\d{2}$/.test(opts.date)) {
+    const { start, end } = kstDayRange(opts.date);
+    q = q.gte('created_at', start).lt('created_at', end);
+  }
   const { data, error } = await q;
   if (error) throw new Error(error.message);
   return data || [];
+}
+
+/**
+ * 특정 날짜(KST)에 발행된 저장 견적 일괄 삭제 (담당자 스코프).
+ * 이번 분기 견적이 포함되면 해당 거래처들의 '하위거래처 보정 분기 1회' 락도 해제(단건 삭제와 동일 정책).
+ */
+export async function deleteSavedQuotesByDate(
+  manager: string,
+  date: string,
+): Promise<{ deleted: number; stepupReleased: number }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('날짜 형식이 올바르지 않습니다 (YYYY-MM-DD).');
+  const { start, end } = kstDayRange(date);
+
+  let q = supabase.from('saved_quotes')
+    .select('id, client_code, created_at')
+    .gte('created_at', start).lt('created_at', end)
+    .limit(1000);
+  if (manager) q = q.eq('manager', manager);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  const rows = (data || []) as Array<{ id: number; client_code: string | null; created_at: string }>;
+  if (rows.length === 0) return { deleted: 0, stepupReleased: 0 };
+
+  const ids = rows.map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 500) {
+    const { error: delErr } = await supabase.from('saved_quotes').delete().in('id', ids.slice(i, i + 500));
+    if (delErr) throw new Error(delErr.message);
+  }
+
+  let stepupReleased = 0;
+  const codes = new Set(
+    rows.filter((r) => r.client_code && currentQuarterKey(new Date(r.created_at)) === currentQuarterKey())
+      .map((r) => r.client_code as string),
+  );
+  for (const c of codes) {
+    if (await releaseStepUp(c)) stepupReleased++;
+  }
+  return { deleted: rows.length, stepupReleased };
 }
 
 /** 단건 조회(스냅샷 items 포함) — 열람/복원용. */

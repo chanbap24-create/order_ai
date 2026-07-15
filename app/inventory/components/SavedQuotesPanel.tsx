@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { roundTo100 } from "@/app/lib/priceUtils";
 import { formatWon } from "../lib/format";
 import { useSavedQuotes, type SavedQuoteMeta } from "../hooks/useSavedQuotes";
+import { SavedQuotesFilterBar } from "./SavedQuotesFilterBar";
 
 type Props = {
   open: boolean;
@@ -39,9 +40,15 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); setSearch(""); void sq.load(); }
+    if (open) { setOpenKey(null); setExpandedId(null); setClientConv(null); setSearch(""); sq.setDate(""); void sq.load(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // 발행일 필터 변경 시 서버 재조회 (날짜 필터는 서버에서 걸러 목록 자체가 그 날짜만 남음)
+  useEffect(() => {
+    if (open) { setOpenKey(null); setExpandedId(null); void sq.load(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sq.date]);
 
   // 거래처별 그룹핑(폴더). key = 거래처명 우선(옛 저장본은 client_code 없이 저장돼
   // 코드로 묶으면 같은 거래처가 둘로 쪼개짐 → 이름으로 묶어 한 폴더로 합침).
@@ -141,17 +148,16 @@ export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
 
-        {/* 거래처 검색(폴더 목록에서만) */}
-        {!current && !sq.loading && sq.items.length > 0 && (
-          <div style={{ padding: "0 4px 8px" }}>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="거래처명 검색…"
-              autoFocus
-              style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--gray-300)", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
-            />
-          </div>
+        {/* 거래처 검색 + 발행일 필터(폴더 목록에서만) — 날짜 선택 시 그 날짜 발행 견적 일괄 삭제 가능 */}
+        {!current && !sq.loading && (sq.items.length > 0 || !!sq.date) && (
+          <SavedQuotesFilterBar
+            search={search}
+            onSearch={setSearch}
+            date={sq.date}
+            onDate={sq.setDate}
+            count={sq.items.length}
+            onDeleteDate={sq.removeByDate}
+          />
         )}
 
         <div style={{ overflowY: "auto", flex: 1 }}>
