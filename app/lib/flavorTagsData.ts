@@ -1,6 +1,7 @@
 // 향미태그 브라우저용 데이터: 조사된 와인(flavor_tags 있음) + 메타 + 한글 향미 라벨.
 import { supabase } from '@/app/lib/db';
 import { flavorLabel } from '@/app/api/sales/recommend/lib/flavor';
+import { normalizeType, bucketLabel } from '@/app/api/sales/recommend/lib/wineType';
 
 export type FlavorWine = {
   code: string;
@@ -32,10 +33,12 @@ export async function getFlavorTagsData(): Promise<FlavorWine[]> {
   return withTags
     .map((n) => {
       const w = wmap.get(n.wine_id) || {};
+      // 타입 한글 통일: wines.wine_type 이 영/한 혼재(Red·레드 등) → 추천 엔진과 동일한 정규화 사용
+      const label = bucketLabel(normalizeType(w.wine_type || '', w.item_name_kr || ''));
       return {
         code: n.wine_id,
         name: w.item_name_kr || n.wine_id,
-        type: w.wine_type || '',
+        type: label || w.wine_type || '',
         country: w.country || '',
         price: Number(w.supply_price) || 0,
         tags: (n.flavor_tags || []).map((k) => flavorLabel(k)),
