@@ -67,7 +67,7 @@ export function TabContent(p: Props) {
     case 'promotion':
       return <PromotionTab />;
     case 'quote-stats':
-      return <QuoteStatsTab currentManager={currentManager} isAdmin={isAdmin} managerList={managerList} />;
+      return <QuoteStatsTab currentManager={p.currentManager} isAdmin={p.isAdmin} managerList={p.managerList} />;
     default:
       return null;
   }
