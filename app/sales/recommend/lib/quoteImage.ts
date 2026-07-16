@@ -1,11 +1,14 @@
-// 견적서 PNG 렌더러 — 카톡 전송용. 캔버스로 견적서 양식(수신/표/합계)을 그려 이미지로.
-// 엑셀 파일을 못/안 여는 거래처에게 채팅방에서 바로 보이는 이미지를 보낼 수 있게.
+// 견적서 PNG 렌더러 — 카톡 전송용. 엑셀 견적서 양식(로고·공문 문구·컬럼·합계·직인생략)을
+// 캔버스로 최대한 동일하게 재현. 컬럼 구성·순서는 엑셀과 같은 사용자 설정(uiKey 배열)을 따른다.
 import { roundTo100 } from '@/app/lib/priceUtils';
 
 export interface QuoteImageItem {
   name: string;
   country?: string;
-  vintage?: string;   // 표기용('2022'|'NV'…). 없으면 빈칸
+  brand?: string;
+  region?: string;
+  grape?: string;
+  vintage?: string;
   supply: number;     // 공급가
   rate: number;       // 할인율 0~1
   qty: number;
@@ -21,29 +24,61 @@ export function vintageFromCode(code: string | undefined | null): string {
   return Number(v) >= 50 ? `19${v}` : `20${v}`;
 }
 
-const W = 1240;                 // 논리 너비(픽셀×2 렌더로 선명하게)
-const M = 48;                   // 좌우 여백
-const HEAD_BG = '#3b2a26';      // 표 헤더(견적서 엑셀과 유사한 딥브라운)
-const ZEBRA = '#f7f4f1';
-const RED = '#c0392b';
+/** 상품명 앞 브랜드 약어(예: 'SU ', 'LG ') 제거 — 엑셀 견적과 동일 표기 */
+const stripPrefix = (name: string) => (name || '').replace(/^[A-Za-z]{2}\s+/, '').trim();
+
+// ── 엑셀 견적서 기본 문구(quote/export DEFAULT_DOC와 동일) ──
+const DOC = {
+  companyName: '(주) 까 브 드 뱅',
+  address: '서울특별시 영등포구 여의나루로 71, 809호 / TEL: 02-786-3136 / FAX: 02-785-5719',
+  addressEn: 'Donghwa Bldg., SUITE 809, 71 Yeouinaru-RO, Yeongdeungpo-GU, SEOUL, 07327, KOREA',
+  websiteUrl: 'www.cavedevin.com',
+  sender: '(주)까브드뱅',
+  title: '와인 제안의 건',
+  content1: '1. 귀사의 일익 번창하심을 기원합니다.',
+  content2: '2. 아래와 같이 와인 견적을 보내드리오니 검토하여 주시기 바랍니다.',
+  content3: '- 아         래 -',
+  priceLine: '1. 제품 및 가격 :',
+  unit: '단위 : VAT별도, WON, BTL.',
+  representative: '대표이사 유병우',
+  sealText: '-직인생략-',
+  ending: '-끝.-',
+};
+
+const HEAD_BG = '#3b2723';   // 표 헤더 딥브라운(엑셀과 동일 계열)
+const ZEBRA = '#f6f1ec';
+const SUM_BG = '#efe8e1';
+const RED = '#c00000';
 const INK = '#1a1a1a';
-const SUB = '#666';
+const SUB = '#555';
+const LINE = '#d9d2ca';
 
 const F = (px: number, w: 400 | 600 | 700 | 800 = 400) =>
   `${w} ${px}px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
 const won = (n: number) => n.toLocaleString();
 
-// 컬럼: [라벨, 폭, 정렬]
-const COLS: Array<[string, number, 'left' | 'center' | 'right']> = [
-  ['No', 44, 'center'],
-  ['국가', 84, 'center'],
-  ['상품명', 430, 'left'],
-  ['빈티지', 72, 'center'],
-  ['공급가', 108, 'right'],
-  ['할인율', 66, 'center'],
-  ['할인가', 108, 'right'],
-  ['수량', 56, 'right'],
-  ['합계', 130, 'right'],
+// 컬럼 메타(uiKey → 라벨·폭·정렬) — 엑셀 컬럼 정의와 대응. 이미지·테이스팅노트는 PNG 제외.
+type Align = 'left' | 'center' | 'right';
+type ColDef = { label: string; w: number; align: Align };
+const COL_META: Record<string, ColDef> = {
+  country: { label: '국가', w: 88, align: 'center' },
+  brand: { label: '브랜드', w: 150, align: 'center' },
+  region: { label: '지역', w: 170, align: 'center' },
+  grape_varieties: { label: '포도품종', w: 150, align: 'center' },
+  vintage: { label: '빈티지', w: 82, align: 'center' },
+  product_name: { label: '상품명', w: 380, align: 'left' },
+  supply_price: { label: '공급가', w: 112, align: 'right' },
+  discount_rate: { label: '할인율', w: 76, align: 'center' },
+  discounted_price: { label: '할인가', w: 112, align: 'right' },
+  note: { label: '비고', w: 150, align: 'center' },
+  quantity: { label: '수량', w: 66, align: 'right' },
+  normal_total: { label: '정상공급가합계', w: 150, align: 'right' },
+  discount_total: { label: '할인공급가합계', w: 150, align: 'right' },
+};
+const DEFAULT_PNG_COLS = [
+  'country', 'brand', 'region', 'vintage', 'product_name',
+  'supply_price', 'discount_rate', 'discounted_price', 'note',
+  'quantity', 'normal_total', 'discount_total',
 ];
 
 function wrap2(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
@@ -56,27 +91,48 @@ function wrap2(ctx: CanvasRenderingContext2D, text: string, maxW: number): strin
   return [text.slice(0, cut), cut2 < rest.length ? rest.slice(0, cut2) + '…' : rest];
 }
 
-/** 견적서 PNG Blob 생성 */
+function loadLogo(): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = '/logos/cavedevin.png';
+  });
+}
+
+/** 견적서 PNG Blob 생성 — 엑셀 양식 재현 */
 export async function renderQuoteImage(opts: {
   clientName: string;
-  date: string;          // YYYY-MM-DD
+  date: string;              // YYYY-MM-DD
   items: QuoteImageItem[];
-  senderName?: string;   // 기본 (주)까브드뱅
+  cols?: string[];           // 엑셀과 동일한 uiKey 배열(순서 = 열 순서). 없으면 기본 구성
 }): Promise<Blob> {
   const items = opts.items;
+  const colKeys = (opts.cols && opts.cols.length ? opts.cols : DEFAULT_PNG_COLS)
+    .filter((k) => COL_META[k]);
+  const cols: Array<{ key: string } & ColDef> = [
+    { key: 'no', label: 'No.', w: 54, align: 'center' },
+    ...colKeys.map((k) => ({ key: k, ...COL_META[k] })),
+  ];
+  const tableW = cols.reduce((a, c) => a + c.w, 0);
+  const M = 44;
+  const W = tableW + M * 2;
+
+  const logo = await loadLogo();
   const canvas = document.createElement('canvas');
   const probe = canvas.getContext('2d')!;
 
-  // 행 높이 사전 계산(상품명 2줄 래핑)
-  probe.font = F(19);
-  const nameW = COLS[2][1] - 20;
-  const lines = items.map((it) => wrap2(probe, it.name || '', nameW));
-  const rowHs = lines.map((l) => (l.length > 1 ? 62 : 46));
+  // 행 높이(상품명 2줄 래핑 기준)
+  probe.font = F(17, 700);
+  const nameCol = cols.find((c) => c.key === 'product_name');
+  const nameLines = items.map((it) =>
+    nameCol ? wrap2(probe, stripPrefix(it.name), nameCol.w - 18) : [stripPrefix(it.name)]);
+  const rowHs = nameLines.map((l) => (l.length > 1 ? 60 : 44));
 
-  const headerH = 208;             // 브랜드+수신/발신/제목
-  const thH = 48;                  // 표 헤더
-  const sumH = 52;                 // 합계 행
-  const footH = 96;
+  const headerH = 348;   // 로고+주소+수신/발신/제목+인사말+아래+제품및가격
+  const thH = 46;
+  const sumH = 50;
+  const footH = 150;
   const H = headerH + thH + rowHs.reduce((a, b) => a + b, 0) + sumH + footH;
 
   const scale = 2;
@@ -84,46 +140,65 @@ export async function renderQuoteImage(opts: {
   canvas.height = H * scale;
   const ctx = canvas.getContext('2d')!;
   ctx.scale(scale, scale);
-
-  // 배경
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, W, H);
 
-  // ── 상단: 브랜드 + 문서 정보 ──
-  ctx.fillStyle = '#7b1f24';
-  ctx.font = '700 34px Georgia, "Times New Roman", serif';
+  // ── 로고 + 주소 ──
+  let y = 28;
+  if (logo) {
+    const lw = Math.min(300, logo.width);
+    const lh = lw * (logo.height / logo.width);
+    ctx.drawImage(logo, (W - lw) / 2, y, lw, lh);
+    y += lh + 18;
+  } else {
+    ctx.fillStyle = '#7b1f24';
+    ctx.font = '700 36px Georgia, "Times New Roman", serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CAVE DE VIN', W / 2, y + 40);
+    y += 66;
+  }
   ctx.textAlign = 'center';
-  ctx.fillText('CAVE DE VIN', W / 2, 56);
   ctx.fillStyle = SUB;
   ctx.font = F(13);
-  ctx.fillText('서울특별시 영등포구 여의나루로 71, 809호 · TEL 02-786-3136 · www.cavedevin.com', W / 2, 82);
+  ctx.fillText(DOC.address, W / 2, y); y += 20;
+  ctx.font = F(12);
+  ctx.fillText(DOC.addressEn, W / 2, y); y += 18;
+  ctx.fillText(DOC.websiteUrl, W / 2, y); y += 34;
 
+  // ── 수신/발신/제목 + 날짜 ──
   ctx.textAlign = 'left';
   ctx.fillStyle = INK;
-  ctx.font = F(19, 700);
-  ctx.fillText(`수신 : ${opts.clientName}`, M, 128);
   ctx.font = F(17);
-  ctx.fillText(`발신 : ${opts.senderName || '(주)까브드뱅'}`, M, 156);
-  ctx.font = F(19, 700);
-  ctx.fillText('제목 : 와인 견적의 건', M, 186);
+  ctx.fillText(`수      신 : ${opts.clientName}`, M, y);
   ctx.textAlign = 'right';
+  ctx.fillText(opts.date, W - M, y);
+  y += 28;
+  ctx.textAlign = 'left';
+  ctx.fillText(`발      신 : ${DOC.sender}`, M, y); y += 28;
+  ctx.font = F(17, 700);
+  ctx.fillText(`제      목 : ${DOC.title}`, M, y); y += 30;
   ctx.font = F(16);
-  ctx.fillStyle = SUB;
-  ctx.fillText(opts.date, W - M, 128);
-  ctx.fillText('단위: VAT별도, WON, BTL', W - M, 186);
+  ctx.fillText(DOC.content1, M, y); y += 26;
+  ctx.fillText(DOC.content2, M, y); y += 28;
+  ctx.textAlign = 'center';
+  ctx.fillText(DOC.content3, W / 2, y); y += 28;
+  ctx.textAlign = 'left';
+  ctx.fillText(DOC.priceLine, M, y);
+  ctx.textAlign = 'right';
+  ctx.font = F(14);
+  ctx.fillText(DOC.unit, W - M, y);
+  y = headerH;
 
   // ── 표 헤더 ──
-  let y = headerH;
   ctx.fillStyle = HEAD_BG;
-  ctx.fillRect(M, y, W - M * 2, thH);
+  ctx.fillRect(M, y, tableW, thH);
   ctx.fillStyle = '#fff';
-  ctx.font = F(16, 700);
+  ctx.font = F(15, 700);
   let x = M;
-  for (const [label, w, align] of COLS) {
-    ctx.textAlign = align;
-    const tx = align === 'left' ? x + 10 : align === 'right' ? x + w - 10 : x + w / 2;
-    ctx.fillText(label, tx, y + 31);
-    x += w;
+  for (const c of cols) {
+    ctx.textAlign = 'center';
+    ctx.fillText(c.label, x + c.w / 2, y + 30);
+    x += c.w;
   }
   y += thH;
 
@@ -131,70 +206,96 @@ export async function renderQuoteImage(opts: {
   let totQty = 0, totNormal = 0, totDisc = 0;
   items.forEach((it, i) => {
     const rh = rowHs[i];
-    if (i % 2 === 1) {
-      ctx.fillStyle = ZEBRA;
-      ctx.fillRect(M, y, W - M * 2, rh);
-    }
+    if (i % 2 === 1) { ctx.fillStyle = ZEBRA; ctx.fillRect(M, y, tableW, rh); }
     const disc = roundTo100(it.supply * (1 - it.rate));
     const qty = it.qty || 1;
     totQty += qty; totNormal += it.supply * qty; totDisc += disc * qty;
 
+    const valueOf = (key: string): string => {
+      switch (key) {
+        case 'no': return String(i + 1);
+        case 'country': return it.country || '';
+        case 'brand': return it.brand || '';
+        case 'region': return it.region || '';
+        case 'grape_varieties': return it.grape || '';
+        case 'vintage': return it.vintage || '';
+        case 'product_name': return stripPrefix(it.name);
+        case 'supply_price': return won(it.supply);
+        case 'discount_rate': return it.rate > 0 ? `${Math.round(it.rate * 100)}%` : '';
+        case 'discounted_price': return it.rate > 0 ? won(disc) : '';
+        case 'note': return it.note || '';
+        case 'quantity': return String(qty);
+        case 'normal_total': return won(it.supply * qty);
+        case 'discount_total': return won(disc * qty);
+        default: return '';
+      }
+    };
+
     const midY = y + rh / 2 + 6;
     x = M;
-    const cell = (text: string, col: number, opt?: { color?: string; bold?: boolean; lines?: string[] }) => {
-      const [, w, align] = COLS[col];
-      ctx.fillStyle = opt?.color || INK;
-      ctx.font = F(17, opt?.bold ? 700 : 400);
-      ctx.textAlign = align;
-      const tx = align === 'left' ? x + 10 : align === 'right' ? x + w - 10 : x + w / 2;
-      if (opt?.lines && opt.lines.length > 1) {
-        ctx.font = F(16.5, opt?.bold ? 700 : 400);
-        ctx.fillText(opt.lines[0], tx, y + rh / 2 - 4);
-        ctx.fillText(opt.lines[1], tx, y + rh / 2 + 17);
+    for (const c of cols) {
+      const red = c.key === 'discount_rate' || c.key === 'discounted_price';
+      ctx.fillStyle = red ? RED : c.key === 'no' || c.key === 'country' || c.key === 'vintage' ? SUB : INK;
+      const bold = c.key === 'product_name';
+      ctx.textAlign = c.align;
+      const tx = c.align === 'left' ? x + 9 : c.align === 'right' ? x + c.w - 9 : x + c.w / 2;
+      if (c.key === 'product_name' && nameLines[i].length > 1) {
+        ctx.font = F(15.5, 700);
+        ctx.fillText(nameLines[i][0], tx, y + rh / 2 - 4);
+        ctx.fillText(nameLines[i][1], tx, y + rh / 2 + 16);
+      } else if (c.key === 'region' || c.key === 'grape_varieties' || c.key === 'brand' || c.key === 'note') {
+        ctx.font = F(14.5);
+        const t = wrap2(ctx, valueOf(c.key), c.w - 16)[0];
+        ctx.fillText(t, tx, midY);
       } else {
-        ctx.fillText(text, tx, midY);
+        ctx.font = F(bold ? 16 : 15.5, bold ? 700 : 400);
+        ctx.fillText(valueOf(c.key), tx, midY);
       }
-      x += w;
-    };
-    cell(String(i + 1), 0, { color: SUB });
-    cell(it.country || '', 1, { color: SUB });
-    cell(it.name, 2, { bold: true, lines: lines[i] });
-    cell(it.vintage || '', 3, { color: SUB });
-    cell(won(it.supply), 4);
-    cell(`${Math.round(it.rate * 100)}%`, 5, { color: RED, bold: true });
-    cell(won(disc), 6, { color: RED, bold: true });
-    cell(String(qty), 7);
-    cell(won(disc * qty), 8, { bold: true });
-
-    ctx.strokeStyle = '#e5e0da';
-    ctx.beginPath(); ctx.moveTo(M, y + rh); ctx.lineTo(W - M, y + rh); ctx.stroke();
+      x += c.w;
+    }
+    ctx.strokeStyle = LINE;
+    ctx.beginPath(); ctx.moveTo(M, y + rh); ctx.lineTo(M + tableW, y + rh); ctx.stroke();
     y += rh;
   });
 
   // ── 합계 행 ──
-  ctx.fillStyle = '#efe9e3';
-  ctx.fillRect(M, y, W - M * 2, sumH);
+  ctx.fillStyle = SUM_BG;
+  ctx.fillRect(M, y, tableW, sumH);
   ctx.fillStyle = INK;
-  ctx.font = F(18, 800);
-  ctx.textAlign = 'center';
-  ctx.fillText('합계', M + COLS[0][1] + COLS[1][1] + COLS[2][1] / 2, y + 33);
-  ctx.textAlign = 'right';
-  const rightOf = (colIdx: number) => M + COLS.slice(0, colIdx + 1).reduce((a, c) => a + c[1], 0) - 10;
-  ctx.fillText(String(totQty), rightOf(7), y + 33);
-  ctx.fillText(won(totDisc), rightOf(8), y + 33);
-  ctx.font = F(14);
-  ctx.fillStyle = SUB;
-  ctx.fillText(`정상 ${won(totNormal)}원 → 할인 ${won(totDisc)}원`, rightOf(6), y + 33);
+  x = M;
+  for (const c of cols) {
+    ctx.font = F(16, 800);
+    ctx.textAlign = c.align === 'left' ? 'left' : c.align;
+    const tx = c.align === 'left' ? x + 9 : c.align === 'right' ? x + c.w - 9 : x + c.w / 2;
+    const v = c.key === 'product_name' ? '합계'
+      : c.key === 'quantity' ? String(totQty)
+      : c.key === 'normal_total' ? won(totNormal)
+      : c.key === 'discount_total' ? won(totDisc)
+      : '';
+    if (v) ctx.fillText(v, tx, y + 32);
+    x += c.w;
+  }
+  // 합계 열이 없으면 우측에 요약 표기
+  if (!cols.some((c) => c.key === 'discount_total')) {
+    ctx.textAlign = 'right';
+    ctx.font = F(15, 800);
+    ctx.fillText(`합계 ${totQty}병 · ${won(totDisc)}원`, M + tableW - 9, y + 32);
+  }
   y += sumH;
 
-  // ── 푸터 ──
+  // ── 끝 + 서명 ──
   ctx.textAlign = 'right';
-  ctx.fillStyle = INK;
-  ctx.font = F(20, 800);
-  ctx.fillText('(주) 까 브 드 뱅', W - M, y + 46);
-  ctx.font = F(13);
   ctx.fillStyle = SUB;
-  ctx.fillText('본 견적은 발행일로부터 유효하며, 재고 소진 시 조기 마감될 수 있습니다.', W - M, y + 70);
+  ctx.font = F(14);
+  ctx.fillText(DOC.ending, W - M, y + 26);
+  ctx.fillStyle = INK;
+  ctx.font = F(24, 800);
+  ctx.fillText(DOC.companyName, W - M, y + 72);
+  ctx.font = F(17, 700);
+  ctx.fillText(DOC.representative, W - M, y + 100);
+  ctx.fillStyle = SUB;
+  ctx.font = F(13);
+  ctx.fillText(DOC.sealText, W - M, y + 124);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG 생성 실패'))), 'image/png');

@@ -135,13 +135,18 @@ export function useBatchRecommend(manager: string) {
             const pngBlob = await renderQuoteImage({
               clientName: t.client_name,
               date: new Date().toISOString().slice(0, 10),
+              cols, // 엑셀과 동일한 컬럼 구성·순서
               items: items.map((it) => ({
                 name: it.item_name,
                 country: it.country || '',
+                brand: it.brand || '',
+                region: it.region || '',
+                grape: it.grape || '',
                 vintage: vintageFromCode(it.item_no),
                 supply: it.price || 0,
                 rate: it.rec_discount || 0,
                 qty: it.rec_quantity || 1,
+                note: it.rec_note || '',
               })),
             });
             files.push({ name: `견적서_${stamp()}_${safeName(t.client_name)}.png`, blob: pngBlob });
