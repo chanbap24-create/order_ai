@@ -100,7 +100,7 @@ function loadLogo(): Promise<HTMLImageElement | null> {
   });
 }
 
-/** 견적서 PNG Blob 생성 — 엑셀 양식 재현 */
+/** 견적서 PNG Blob 생성 — 엑셀 양식 재현(여백 포함) */
 export async function renderQuoteImage(opts: {
   clientName: string;
   date: string;              // YYYY-MM-DD
@@ -122,17 +122,31 @@ export async function renderQuoteImage(opts: {
   const canvas = document.createElement('canvas');
   const probe = canvas.getContext('2d')!;
 
-  // 행 높이(상품명 2줄 래핑 기준)
+  // 행 높이(상품명 2줄 래핑 기준) — 엑셀처럼 위아래 여유 있게
   probe.font = F(17, 700);
   const nameCol = cols.find((c) => c.key === 'product_name');
   const nameLines = items.map((it) =>
     nameCol ? wrap2(probe, stripPrefix(it.name), nameCol.w - 18) : [stripPrefix(it.name)]);
-  const rowHs = nameLines.map((l) => (l.length > 1 ? 60 : 44));
+  const rowHs = nameLines.map((l) => (l.length > 1 ? 78 : 58));
 
-  const headerH = 348;   // 로고+주소+수신/발신/제목+인사말+아래+제품및가격
-  const thH = 46;
-  const sumH = 50;
-  const footH = 150;
+  // ── 헤더 레이아웃(엑셀의 빈 행 간격 재현) — 동적 계산 ──
+  const TOP = 44;
+  const logoW = logo ? Math.min(300, logo.width) : 0;
+  const logoH = logo ? logoW * (logo.height / logo.width) : 56;
+  const GAP_LOGO = 40;        // 로고 ↔ 주소
+  const ADDR = 22 + 20 + 20;  // 주소 3줄
+  const GAP_ADDR = 56;        // 주소 ↔ 수신 (엑셀 5~8행 공백)
+  const L_RECV = 38, L_SEND = 38, L_TITLE = 44;
+  const L_C1 = 34, L_C2 = 42;
+  const L_BELOW = 42;         // - 아 래 -
+  const L_PRICE = 30;         // 1. 제품 및 가격 :
+  const GAP_TABLE = 16;
+  const headerH = TOP + logoH + GAP_LOGO + ADDR + GAP_ADDR
+    + L_RECV + L_SEND + L_TITLE + L_C1 + L_C2 + L_BELOW + L_PRICE + GAP_TABLE;
+
+  const thH = 52;
+  const sumH = 58;
+  const footH = 210;          // -끝.- + 여백 + 서명 블록(엑셀 29~35행)
   const H = headerH + thH + rowHs.reduce((a, b) => a + b, 0) + sumH + footH;
 
   const scale = 2;
@@ -144,26 +158,24 @@ export async function renderQuoteImage(opts: {
   ctx.fillRect(0, 0, W, H);
 
   // ── 로고 + 주소 ──
-  let y = 28;
+  let y = TOP;
   if (logo) {
-    const lw = Math.min(300, logo.width);
-    const lh = lw * (logo.height / logo.width);
-    ctx.drawImage(logo, (W - lw) / 2, y, lw, lh);
-    y += lh + 18;
+    ctx.drawImage(logo, (W - logoW) / 2, y, logoW, logoH);
   } else {
     ctx.fillStyle = '#7b1f24';
     ctx.font = '700 36px Georgia, "Times New Roman", serif';
     ctx.textAlign = 'center';
     ctx.fillText('CAVE DE VIN', W / 2, y + 40);
-    y += 66;
   }
+  y += logoH + GAP_LOGO;
   ctx.textAlign = 'center';
   ctx.fillStyle = SUB;
   ctx.font = F(13);
-  ctx.fillText(DOC.address, W / 2, y); y += 20;
+  ctx.fillText(DOC.address, W / 2, y); y += 22;
   ctx.font = F(12);
-  ctx.fillText(DOC.addressEn, W / 2, y); y += 18;
-  ctx.fillText(DOC.websiteUrl, W / 2, y); y += 34;
+  ctx.fillText(DOC.addressEn, W / 2, y); y += 20;
+  ctx.fillText(DOC.websiteUrl, W / 2, y); y += 20;
+  y += GAP_ADDR - 20;
 
   // ── 수신/발신/제목 + 날짜 ──
   ctx.textAlign = 'left';
@@ -172,16 +184,16 @@ export async function renderQuoteImage(opts: {
   ctx.fillText(`수      신 : ${opts.clientName}`, M, y);
   ctx.textAlign = 'right';
   ctx.fillText(opts.date, W - M, y);
-  y += 28;
+  y += L_RECV;
   ctx.textAlign = 'left';
-  ctx.fillText(`발      신 : ${DOC.sender}`, M, y); y += 28;
+  ctx.fillText(`발      신 : ${DOC.sender}`, M, y); y += L_SEND;
   ctx.font = F(17, 700);
-  ctx.fillText(`제      목 : ${DOC.title}`, M, y); y += 30;
+  ctx.fillText(`제      목 : ${DOC.title}`, M, y); y += L_TITLE;
   ctx.font = F(16);
-  ctx.fillText(DOC.content1, M, y); y += 26;
-  ctx.fillText(DOC.content2, M, y); y += 28;
+  ctx.fillText(DOC.content1, M, y); y += L_C1;
+  ctx.fillText(DOC.content2, M, y); y += L_C2;
   ctx.textAlign = 'center';
-  ctx.fillText(DOC.content3, W / 2, y); y += 28;
+  ctx.fillText(DOC.content3, W / 2, y); y += L_BELOW;
   ctx.textAlign = 'left';
   ctx.fillText(DOC.priceLine, M, y);
   ctx.textAlign = 'right';
@@ -197,7 +209,7 @@ export async function renderQuoteImage(opts: {
   let x = M;
   for (const c of cols) {
     ctx.textAlign = 'center';
-    ctx.fillText(c.label, x + c.w / 2, y + 30);
+    ctx.fillText(c.label, x + c.w / 2, y + 33);
     x += c.w;
   }
   y += thH;
@@ -241,8 +253,8 @@ export async function renderQuoteImage(opts: {
       const tx = c.align === 'left' ? x + 9 : c.align === 'right' ? x + c.w - 9 : x + c.w / 2;
       if (c.key === 'product_name' && nameLines[i].length > 1) {
         ctx.font = F(15.5, 700);
-        ctx.fillText(nameLines[i][0], tx, y + rh / 2 - 4);
-        ctx.fillText(nameLines[i][1], tx, y + rh / 2 + 16);
+        ctx.fillText(nameLines[i][0], tx, y + rh / 2 - 5);
+        ctx.fillText(nameLines[i][1], tx, y + rh / 2 + 18);
       } else if (c.key === 'region' || c.key === 'grape_varieties' || c.key === 'brand' || c.key === 'note') {
         ctx.font = F(14.5);
         const t = wrap2(ctx, valueOf(c.key), c.w - 16)[0];
@@ -272,30 +284,29 @@ export async function renderQuoteImage(opts: {
       : c.key === 'normal_total' ? won(totNormal)
       : c.key === 'discount_total' ? won(totDisc)
       : '';
-    if (v) ctx.fillText(v, tx, y + 32);
+    if (v) ctx.fillText(v, tx, y + 37);
     x += c.w;
   }
-  // 합계 열이 없으면 우측에 요약 표기
   if (!cols.some((c) => c.key === 'discount_total')) {
     ctx.textAlign = 'right';
     ctx.font = F(15, 800);
-    ctx.fillText(`합계 ${totQty}병 · ${won(totDisc)}원`, M + tableW - 9, y + 32);
+    ctx.fillText(`합계 ${totQty}병 · ${won(totDisc)}원`, M + tableW - 9, y + 37);
   }
   y += sumH;
 
-  // ── 끝 + 서명 ──
+  // ── 끝 + 서명 (엑셀처럼 여유 있게) ──
   ctx.textAlign = 'right';
   ctx.fillStyle = SUB;
   ctx.font = F(14);
-  ctx.fillText(DOC.ending, W - M, y + 26);
+  ctx.fillText(DOC.ending, W - M, y + 34);
   ctx.fillStyle = INK;
   ctx.font = F(24, 800);
-  ctx.fillText(DOC.companyName, W - M, y + 72);
+  ctx.fillText(DOC.companyName, W - M, y + 118);
   ctx.font = F(17, 700);
-  ctx.fillText(DOC.representative, W - M, y + 100);
+  ctx.fillText(DOC.representative, W - M, y + 150);
   ctx.fillStyle = SUB;
   ctx.font = F(13);
-  ctx.fillText(DOC.sealText, W - M, y + 124);
+  ctx.fillText(DOC.sealText, W - M, y + 176);
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG 생성 실패'))), 'image/png');
