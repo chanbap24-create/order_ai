@@ -190,8 +190,15 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // ── /api/admin 중 세일즈도 읽기 가능한 경로 (GET only) ──
-  const ADMIN_READ_ALLOWED = ['/api/admin/upload-data/import-schedule'];
-  if (ADMIN_READ_ALLOWED.includes(pathname) && request.method === 'GET') {
+  const ADMIN_READ_ALLOWED = [
+    '/api/admin/upload-data/import-schedule',
+    '/api/admin/flavor-tags',
+    '/api/admin/flavor-tags/export',        // 향미태그 엑셀 다운로드(읽기 — 로그인자 전체 허용)
+    '/api/admin/brands',                    // 브랜드자료실 목록(마케팅 읽기)
+    '/api/admin/wine-regions/wine-counts',  // 와인산지DB 와인수(마케팅 읽기)
+  ];
+  const ADMIN_READ_ALLOWED_RE = [/^\/api\/admin\/brands\/[^/]+\/wines$/]; // 브랜드별 소속 와인 조회(동적 경로)
+  if (request.method === 'GET' && (ADMIN_READ_ALLOWED.includes(pathname) || ADMIN_READ_ALLOWED_RE.some((re) => re.test(pathname)))) {
     // admin_auth 또는 sales_auth 둘 다 허용
     const adminToken = request.cookies.get(ADMIN_COOKIE)?.value;
     if (adminToken) {
