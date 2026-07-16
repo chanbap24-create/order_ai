@@ -45,7 +45,7 @@ export function useBatchRecommend(manager: string) {
   const [progress, setProgress] = useState<{ done: number; total: number; name: string }>({ done: 0, total: 0, name: '' });
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto'; cols?: string[] }) => {
+  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto'; cols?: string[]; tnote?: boolean }) => {
     if (running || targets.length === 0) return;
     setRunning(true);
     setMessage(null);
@@ -127,6 +127,20 @@ export function useBatchRecommend(manager: string) {
         if (!exRes.ok) { failed.push(t.client_name); continue; }
         const blob = await exRes.blob();
         files.push({ name: `추천견적_${stamp()}_${safeName(t.client_name)}.xlsx`, blob });
+
+        // 4) 테이스팅노트 PDF — 견적 품목의 노트를 한 파일로 병합(거래처당 1개).
+        //    노트 있는 품목이 없으면(404) 조용히 건너뜀 — 견적서는 이미 생성됨.
+        if (opts?.tnote !== false) {
+          try {
+            const pdfRes = await fetch(
+              `/api/quote/tasting-notes-pdf?manager=${encodeURIComponent(scope)}&client_name=${encodeURIComponent(t.client_name)}`,
+            );
+            if (pdfRes.ok) {
+              const pdfBlob = await pdfRes.blob();
+              files.push({ name: `테이스팅노트_${stamp()}_${safeName(t.client_name)}.pdf`, blob: pdfBlob });
+            }
+          } catch { /* PDF 실패는 비치명적 */ }
+        }
       } catch {
         failed.push(t.client_name);
       }

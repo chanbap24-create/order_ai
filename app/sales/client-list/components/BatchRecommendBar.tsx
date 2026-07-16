@@ -11,7 +11,7 @@ type Props = {
   running: boolean;
   progress: { done: number; total: number; name: string };
   message: string | null;
-  onRun: (opts: { gradeStepUp: StepUpMode }) => void;
+  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean }) => void;
   onClear: () => void;
   // 견적서 컬럼(계정별 저장, useQuoteCols) — 생성 전 이 바에서 바로 조정
   quoteCols: string[];
@@ -35,6 +35,7 @@ export function BatchRecommendBar({
 }: Props) {
   const [stepUp, setStepUp] = useState<StepUpMode>(() => loadRecSettings().gradeStepUp);
   const [showCols, setShowCols] = useState(false);
+  const [tnote, setTnote] = useState(true); // 거래처당 테이스팅노트 병합 PDF 1개 동봉
   const idle = count === 0 && !running && !message;
   if (idle) return null;
 
@@ -84,6 +85,19 @@ export function BatchRecommendBar({
         </span>
       )}
       {!running && (
+        <button
+          onClick={() => setTnote((v) => !v)}
+          title="켜면 거래처마다 견적 품목의 테이스팅노트를 한 PDF로 병합해 함께 받습니다"
+          style={{
+            padding: '7px 12px', borderRadius: 8,
+            border: `1px solid ${tnote ? 'var(--action)' : 'var(--gray-300)'}`,
+            background: tnote ? 'var(--action)' : '#fff',
+            color: tnote ? '#fff' : 'var(--text-tertiary)',
+            fontSize: 13, cursor: 'pointer',
+          }}
+        >T-Note PDF{tnote ? ' ✓' : ''}</button>
+      )}
+      {!running && (
         <span style={{ position: 'relative', display: 'inline-flex' }}>
           <button
             onClick={() => setShowCols((v) => !v)}
@@ -113,7 +127,7 @@ export function BatchRecommendBar({
         }}>선택 해제</button>
       )}
       <button
-        onClick={() => onRun({ gradeStepUp: stepUp })}
+        onClick={() => onRun({ gradeStepUp: stepUp, tnote })}
         disabled={running || count === 0}
         style={{
           padding: '8px 16px', borderRadius: 8, border: 'none',
