@@ -16,6 +16,7 @@ import { BottomActionBar } from '../recommend/components/BottomActionBar';
 import { RecControls } from '../recommend/components/RecControls';
 import { RecModeSelector, type AnchorItem } from '../recommend/components/RecModeSelector';
 import { type RecSettings, type RecMode, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
+import { renderQuoteImage, vintageFromCode } from '../recommend/lib/quoteImage';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
 import { useQuoteItems } from '@/app/inventory/hooks/useQuoteItems';
 import { RecommendQuoteEditPanel } from './RecommendQuoteEditPanel';
@@ -135,6 +136,31 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
 
   const selectedItems = visible.filter((i) => selected.has(i.item_no));
   const selectedTotal = selectedItems.reduce((sum, i) => sum + (i.price || 0), 0);
+
+  // 카톡 전송용 PNG 견적서 — 선택 품목을 이미지로 렌더해 즉시 다운로드
+  const downloadPng = async () => {
+    if (!cs.selectedClient || selectedItems.length === 0) return;
+    try {
+      const blob = await renderQuoteImage({
+        clientName: cs.selectedClient.client_name,
+        date: new Date().toISOString().slice(0, 10),
+        items: selectedItems.map((it) => ({
+          name: it.item_name,
+          country: it.country || '',
+          vintage: vintageFromCode(it.item_no),
+          supply: it.price || 0,
+          rate: it.rec_discount || 0,
+          qty: it.rec_quantity || 1,
+        })),
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `견적서_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}_${cs.selectedClient.client_name.replace(/[\\/:*?"<>|]/g, '_')}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { alert('PNG 생성에 실패했습니다.'); }
+  };
 
   return (
     <div style={{ paddingBottom: 100 }}>
@@ -276,6 +302,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           selectedTotal={selectedTotal}
           quoteLoading={exp.quoteLoading}
           onDownload={() => exp.createQuote(selectedItems, 'fill')}
+          onDownloadPng={downloadPng}
           quoteCols={cols.quoteCols}
           toggleCol={cols.toggle}
           reorderCols={cols.reorder}

@@ -131,7 +131,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     if (activeGroup) void grp.update(activeGroup.id, { columns: null }); // 그룹 전용 해제 → 계정 기본
     else cols.reset();
   };
-  const runBatch = (opts?: { gradeStepUp?: boolean | 'auto'; tnote?: boolean }) => {
+  const runBatch = (opts?: { gradeStepUp?: boolean | 'auto'; tnote?: boolean; png?: boolean }) => {
     // 그룹 구성원은 이번 기간 목록에 없어도 견적 대상에 포함(이름은 그룹에 저장된 값 사용)
     const targets = pickedAsGroupClients().map((c) => ({ client_code: c.code, client_name: c.name }));
     void batch.run(targets, { ...opts, cols: effectiveCols });

@@ -9,6 +9,7 @@ type Props = {
   selectedTotal: number;
   quoteLoading: boolean;
   onDownload: () => void;
+  onDownloadPng?: () => void; // 카톡 전송용 PNG 견적서
   quoteCols: string[];
   toggleCol: (k: string) => void;
   reorderCols?: (next: string[]) => void;
@@ -57,6 +58,18 @@ export function BottomActionBar(p: Props) {
             />
           )}
         </div>
+        {p.onDownloadPng && (
+          <button
+            onClick={p.onDownloadPng}
+            disabled={p.selectedCount === 0}
+            title="카톡으로 바로 보낼 수 있는 PNG 견적서 이미지 다운로드"
+            style={{
+              padding: '10px 14px', borderRadius: 8, border: '1px solid var(--gray-300)',
+              background: '#fff', color: p.selectedCount === 0 ? 'var(--text-muted)' : 'var(--text-secondary)',
+              fontSize: 13, fontWeight: 600, cursor: p.selectedCount === 0 ? 'default' : 'pointer',
+            }}
+          >PNG 견적</button>
+        )}
         <button
           onClick={p.onDownload}
           disabled={p.quoteLoading}

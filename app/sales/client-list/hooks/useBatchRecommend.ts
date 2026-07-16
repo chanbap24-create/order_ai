@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 import { loadRecSettings } from '@/app/sales/recommend/recSettings';
 import { DEFAULT_REC_COLS } from '@/app/sales/recommend/constants';
 import { selectQuoteItems } from '@/app/sales/recommend/allocateByTypeShares';
+import { renderQuoteImage, vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 
 export type BatchTarget = { client_code: string; client_name: string };
@@ -45,7 +46,7 @@ export function useBatchRecommend(manager: string) {
   const [progress, setProgress] = useState<{ done: number; total: number; name: string }>({ done: 0, total: 0, name: '' });
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto'; cols?: string[]; tnote?: boolean }) => {
+  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto'; cols?: string[]; tnote?: boolean; png?: boolean }) => {
     if (running || targets.length === 0) return;
     setRunning(true);
     setMessage(null);
@@ -127,6 +128,25 @@ export function useBatchRecommend(manager: string) {
         if (!exRes.ok) { failed.push(t.client_name); continue; }
         const blob = await exRes.blob();
         files.push({ name: `추천견적_${stamp()}_${safeName(t.client_name)}.xlsx`, blob });
+
+        // 3.5) 카톡 전송용 PNG 견적서 — 채팅방에서 바로 보이는 이미지(엑셀 안 열어도 됨)
+        if (opts?.png) {
+          try {
+            const pngBlob = await renderQuoteImage({
+              clientName: t.client_name,
+              date: new Date().toISOString().slice(0, 10),
+              items: items.map((it) => ({
+                name: it.item_name,
+                country: it.country || '',
+                vintage: vintageFromCode(it.item_no),
+                supply: it.price || 0,
+                rate: it.rec_discount || 0,
+                qty: it.rec_quantity || 1,
+              })),
+            });
+            files.push({ name: `견적서_${stamp()}_${safeName(t.client_name)}.png`, blob: pngBlob });
+          } catch { /* PNG 실패는 비치명적 */ }
+        }
 
         // 4) 테이스팅노트 PDF — 견적 품목의 노트를 한 파일로 병합(거래처당 1개).
         //    노트 있는 품목이 없으면(404) 조용히 건너뜀 — 견적서는 이미 생성됨.

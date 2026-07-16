@@ -11,7 +11,7 @@ type Props = {
   running: boolean;
   progress: { done: number; total: number; name: string };
   message: string | null;
-  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean }) => void;
+  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean; png: boolean }) => void;
   onClear: () => void;
   // 견적서 컬럼(계정별 저장, useQuoteCols) — 생성 전 이 바에서 바로 조정
   quoteCols: string[];
@@ -36,6 +36,7 @@ export function BatchRecommendBar({
   const [stepUp, setStepUp] = useState<StepUpMode>(() => loadRecSettings().gradeStepUp);
   const [showCols, setShowCols] = useState(false);
   const [tnote, setTnote] = useState(true); // 거래처당 테이스팅노트 병합 PDF 1개 동봉
+  const [png, setPng] = useState(true);     // 카톡 전송용 PNG 견적서 동봉
   const idle = count === 0 && !running && !message;
   if (idle) return null;
 
@@ -86,6 +87,19 @@ export function BatchRecommendBar({
       )}
       {!running && (
         <button
+          onClick={() => setPng((v) => !v)}
+          title="켜면 거래처마다 카톡으로 바로 보낼 수 있는 PNG 견적서 이미지를 함께 받습니다"
+          style={{
+            padding: '7px 12px', borderRadius: 8,
+            border: `1px solid ${png ? 'var(--action)' : 'var(--gray-300)'}`,
+            background: png ? 'var(--action)' : '#fff',
+            color: png ? '#fff' : 'var(--text-tertiary)',
+            fontSize: 13, cursor: 'pointer',
+          }}
+        >PNG 견적{png ? ' ✓' : ''}</button>
+      )}
+      {!running && (
+        <button
           onClick={() => setTnote((v) => !v)}
           title="켜면 거래처마다 견적 품목의 테이스팅노트를 한 PDF로 병합해 함께 받습니다"
           style={{
@@ -127,7 +141,7 @@ export function BatchRecommendBar({
         }}>선택 해제</button>
       )}
       <button
-        onClick={() => onRun({ gradeStepUp: stepUp, tnote })}
+        onClick={() => onRun({ gradeStepUp: stepUp, tnote, png })}
         disabled={running || count === 0}
         style={{
           padding: '8px 16px', borderRadius: 8, border: 'none',
