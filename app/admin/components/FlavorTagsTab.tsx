@@ -76,6 +76,16 @@ export default function FlavorTagsTab() {
           <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--neutral-500)', fontVariantNumeric: 'tabular-nums' }}>
             {rows.length} / {wines.length}종
           </span>
+          <a
+            href="/api/admin/flavor-tags/export"
+            title="향미태그 전체를 엑셀로 다운로드 (품번·와인명·타입·국가·공급가·향미태그)"
+            style={{
+              fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 7, textDecoration: 'none',
+              border: '1px solid var(--neutral-300, #ccc)', color: 'var(--neutral-600)', background: 'var(--surface, #fff)',
+            }}
+          >
+            Excel
+          </a>
         </div>
       </div>
 

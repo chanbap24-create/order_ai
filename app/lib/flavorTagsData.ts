@@ -43,3 +43,36 @@ export async function getFlavorTagsData(): Promise<FlavorWine[]> {
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 }
+
+/** 향미태그 목록을 엑셀(Buffer)로 — 어드민 향미태그 탭 다운로드용. */
+export async function generateFlavorTagsExcel(): Promise<Buffer> {
+  const { default: ExcelJS } = await import('exceljs');
+  const wines = await getFlavorTagsData();
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'CavedeVin';
+  const ws = wb.addWorksheet('향미태그', { views: [{ state: 'frozen', ySplit: 1 }] });
+  ws.columns = [
+    { header: '품번', key: 'code', width: 11 },
+    { header: '와인명', key: 'name', width: 42 },
+    { header: '타입', key: 'type', width: 10 },
+    { header: '국가', key: 'country', width: 12 },
+    { header: '공급가', key: 'price', width: 12 },
+    { header: '향미 수', key: 'count', width: 8 },
+    { header: '향미태그', key: 'tags', width: 70 },
+  ];
+  const head = ws.getRow(1);
+  head.font = { bold: true, size: 10 };
+  head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+  for (const w of wines) {
+    ws.addRow({
+      code: w.code, name: w.name, type: w.type, country: w.country,
+      price: w.price || null, count: w.tags.length, tags: w.tags.join(', '),
+    });
+  }
+  ws.getColumn('code').numFmt = '@';
+  ws.getColumn('price').numFmt = '#,##0';
+  ws.autoFilter = { from: 'A1', to: `G${wines.length + 1}` };
+
+  return Buffer.from(await wb.xlsx.writeBuffer());
+}
