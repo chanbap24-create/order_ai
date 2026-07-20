@@ -82,12 +82,14 @@ export async function renderQuoteCardImage(opts: {
     ...items.map((it) => (it.imageUrl ? loadImg(proxied(it.imageUrl)) : Promise.resolve(null))),
   ]);
 
-  const scale = 2;
+  const scale = 3;
   const canvas = document.createElement('canvas');
   canvas.width = W * scale;
   canvas.height = H * scale;
   const ctx = canvas.getContext('2d')!;
   ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, W, H);
 
