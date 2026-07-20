@@ -30,14 +30,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'host not allowed' }, { status: 400 });
   }
   try {
-    const res = await fetch(u.toString(), { cache: 'no-store' });
+    const res = await fetch(u.toString(), {
+      cache: 'no-store',
+      // 일부 CDN(klwines 등)은 UA 없으면 content-type을 안 주거나 차단 → 브라우저 UA로 요청
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CaveDeVinBot/1.0)' },
+    });
     if (!res.ok) return NextResponse.json({ error: 'fetch failed' }, { status: 502 });
-    const ct = res.headers.get('content-type') || '';
-    if (!ct.startsWith('image/')) return NextResponse.json({ error: 'not image' }, { status: 415 });
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    // 명백한 에러 페이지(html/json/text)만 거부. 비어있거나 image/* 는 통과.
+    if (ct.startsWith('text/') || ct.startsWith('application/json') || ct.includes('html')) {
+      return NextResponse.json({ error: 'not image' }, { status: 415 });
+    }
     const buf = await res.arrayBuffer();
     if (buf.byteLength > MAX_BYTES) return NextResponse.json({ error: 'too large' }, { status: 413 });
+    // content-type 보정: image/* 이면 그대로, 아니면 확장자로 추정, 그래도 없으면 jpeg
+    let outCt = ct.startsWith('image/') ? ct : '';
+    if (!outCt) {
+      const path = u.pathname.toLowerCase();
+      outCt = path.endsWith('.png') ? 'image/png'
+        : path.endsWith('.webp') ? 'image/webp'
+        : path.endsWith('.gif') ? 'image/gif'
+        : 'image/jpeg';
+    }
     return new NextResponse(buf, {
-      headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400' },
+      headers: { 'Content-Type': outCt, 'Cache-Control': 'public, max-age=86400' },
     });
   } catch {
     return NextResponse.json({ error: 'proxy error' }, { status: 502 });
