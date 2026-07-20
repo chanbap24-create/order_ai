@@ -35,6 +35,16 @@ const shortRegion = (r?: string | null) => {
 };
 const proxied = (u?: string | null) => (u ? `/api/image-proxy?url=${encodeURIComponent(u)}` : '');
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 // 이미지를 fetch→blob URL로 로드 — blob: URL은 same-origin이라 캔버스 오염(toBlob 실패) 없음.
 // 인증 쿠키도 same-origin 프록시에 확실히 실림. 실패 시 null(그림 없이 텍스트만).
 async function loadImg(url: string): Promise<HTMLImageElement | null> {
