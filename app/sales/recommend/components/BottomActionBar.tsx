@@ -10,6 +10,7 @@ type Props = {
   quoteLoading: boolean;
   onDownload: () => void;
   onDownloadPng?: () => void; // 카톡 전송용 PNG 견적서
+  onPromoStyle?: () => void;  // 프로모션 스타일(마케팅) 제안서
   quoteCols: string[];
   toggleCol: (k: string) => void;
   reorderCols?: (next: string[]) => void;
@@ -69,6 +70,18 @@ export function BottomActionBar(p: Props) {
               fontSize: 13, fontWeight: 600, cursor: p.selectedCount === 0 ? 'default' : 'pointer',
             }}
           >PNG 견적</button>
+        )}
+        {p.onPromoStyle && (
+          <button
+            onClick={p.onPromoStyle}
+            disabled={p.selectedCount === 0}
+            title="선택 와인을 프로모션(마케팅) 스타일 제안서로 — 병샷·향미·할인가 카드, 카톡 이미지 전송"
+            style={{
+              padding: '10px 14px', borderRadius: 8, border: '1px solid var(--action)',
+              background: '#fff', color: p.selectedCount === 0 ? 'var(--text-muted)' : 'var(--action)',
+              fontSize: 13, fontWeight: 700, cursor: p.selectedCount === 0 ? 'default' : 'pointer', whiteSpace: 'nowrap',
+            }}
+          >프로모션 스타일</button>
         )}
         <button
           onClick={p.onDownload}

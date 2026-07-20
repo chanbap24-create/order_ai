@@ -17,6 +17,7 @@ import { RecControls } from '../recommend/components/RecControls';
 import { RecModeSelector, type AnchorItem } from '../recommend/components/RecModeSelector';
 import { type RecSettings, type RecMode, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
 import { renderQuoteImage, vintageFromCode } from '../recommend/lib/quoteImage';
+import { PromoQuoteOverlay, type PromoQuoteItem } from '../recommend/components/PromoQuoteOverlay';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
 import { useQuoteItems } from '@/app/inventory/hooks/useQuoteItems';
 import { RecommendQuoteEditPanel } from './RecommendQuoteEditPanel';
@@ -138,6 +139,19 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const selectedTotal = selectedItems.reduce((sum, i) => sum + (i.price || 0), 0);
 
   // 카톡 전송용 PNG 견적서 — 선택 품목을 이미지로 렌더해 즉시 다운로드
+  // 프로모션 스타일(마케팅 상세페이지) 제안서 오버레이
+  const [promoOpen, setPromoOpen] = useState(false);
+  const promoItems: PromoQuoteItem[] = selectedItems.map((it) => ({
+    code: it.item_no,
+    name: it.item_name,
+    country: it.country || '',
+    region: it.region || '',
+    supply: it.price || 0,
+    rate: it.rec_discount || 0,
+    qty: it.rec_quantity || 1,
+    note: it.rec_note || '',
+  }));
+
   const downloadPng = async () => {
     if (!cs.selectedClient || selectedItems.length === 0) return;
     try {
@@ -308,10 +322,19 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
           quoteLoading={exp.quoteLoading}
           onDownload={() => exp.createQuote(selectedItems, 'fill')}
           onDownloadPng={downloadPng}
+          onPromoStyle={() => setPromoOpen(true)}
           quoteCols={cols.quoteCols}
           toggleCol={cols.toggle}
           reorderCols={cols.reorder}
           resetCols={cols.reset}
+        />
+      )}
+
+      {promoOpen && cs.selectedClient && (
+        <PromoQuoteOverlay
+          clientName={cs.selectedClient.client_name}
+          items={promoItems}
+          onClose={() => setPromoOpen(false)}
         />
       )}
 

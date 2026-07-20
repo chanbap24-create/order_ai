@@ -1,0 +1,155 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { shareOrDownloadFile } from '@/app/lib/shareFile';
+import { roundTo100 } from '@/app/lib/priceUtils';
+
+export type PromoQuoteItem = {
+  code: string;
+  name: string;
+  country: string;
+  region: string;
+  supply: number;   // 정상 공급가
+  rate: number;     // 할인율 0~1
+  qty: number;
+  note: string;
+};
+
+const won = (n: number) => n.toLocaleString('ko-KR');
+
+/** 추천 견적을 프로모션 상세페이지 스타일로 렌더 + 이미지 저장. 로그인 세션 안에서만 동작(공개 URL 없음). */
+export function PromoQuoteOverlay({ clientName, items, onClose }: {
+  clientName: string;
+  items: PromoQuoteItem[];
+  onClose: () => void;
+}) {
+  const capRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+  const [meta, setMeta] = useState<Record<string, { name_en: string; flavors: string[] }>>({});
+
+  useEffect(() => {
+    const codes = items.map((i) => i.code).filter(Boolean);
+    if (codes.length === 0) return;
+    fetch('/api/sales/promo-quote', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codes }),
+    }).then((r) => r.json()).then((j) => setMeta(j.map || {})).catch(() => {});
+  }, [items]);
+
+  const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+
+  const saveImage = async () => {
+    if (!capRef.current || saving) return;
+    setSaving(true);
+    try {
+      const { toJpeg } = await import('html-to-image');
+      const dataUrl = await toJpeg(capRef.current, {
+        quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', cacheBust: true, skipFonts: true,
+      });
+      const bin = atob(dataUrl.split(',')[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'image/jpeg' });
+      const safe = clientName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 30);
+      await shareOrDownloadFile(blob, `제안서_${today.replace(/-/g, '')}_${safe}.jpg`, 'image/jpeg');
+    } catch {
+      alert('이미지 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} style={sheet}>
+        <div style={bar}>
+          <button onClick={saveImage} disabled={saving} style={{ ...btn, background: '#222', color: '#fff', border: 'none' }}>
+            {saving ? '이미지 생성 중…' : '이미지로 저장 (카톡 전송용)'}
+          </button>
+          <button onClick={onClose} style={btn}>닫기</button>
+        </div>
+
+        <div style={{ overflowY: 'auto', background: '#f4f4f5', flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div ref={capRef} style={{
+              width: 480, maxWidth: '100%', background: '#fff',
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
+            }}>
+              {/* 히어로 */}
+              <div style={{ padding: '40px 24px 26px', textAlign: 'center', borderBottom: '1px solid #ebebeb' }}>
+                <div style={{ fontSize: 12, letterSpacing: '0.35em', color: '#8a8a8a', fontWeight: 600 }}>CAVE DE VIN</div>
+                <h1 style={{ fontSize: 24, fontWeight: 700, margin: '12px 0 6px', letterSpacing: '-0.02em', color: '#111' }}>
+                  와인 제안서
+                </h1>
+                <div style={{ fontSize: 13.5, color: '#6b7280' }}>{clientName} · {items.length}종 · {today}</div>
+              </div>
+
+              {items.map((it, i) => {
+                const m = meta[it.code];
+                const promo = roundTo100(it.supply * (1 - (it.rate || 0)));
+                const pct = it.supply > 0 ? Math.round((1 - promo / it.supply) * 100) : 0;
+                return (
+                  <div key={it.code || i} style={{ padding: '28px 24px', borderBottom: i === items.length - 1 ? 'none' : '1px solid #ebebeb' }}>
+                    <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                      {it.code ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`/api/sales/wine-img?code=${encodeURIComponent(it.code)}`} alt={it.name}
+                          crossOrigin="anonymous" style={{ maxHeight: '100%', maxWidth: '68%', objectFit: 'contain' }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: '#111', letterSpacing: '-0.01em' }}>{it.name}</div>
+                      {m?.name_en && <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{m.name_en}</div>}
+                      {(it.country || it.region) && (
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
+                      )}
+                      {m?.flavors?.length > 0 && (
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                          {m.flavors.map((f) => (
+                            <span key={f} style={{ fontSize: 11, color: '#6b7280', border: '1px solid #ebebeb', borderRadius: 999, padding: '2px 9px' }}>{f}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+                      {it.supply > promo && (
+                        <span style={{ fontSize: 13, color: '#9ca3af', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{won(it.supply)}원</span>
+                      )}
+                      <span style={{ fontSize: 22, fontWeight: 700, color: '#b23b1c', fontVariantNumeric: 'tabular-nums' }}>{won(promo)}원</span>
+                      {pct > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b23b1c' }}>{pct}%↓</span>}
+                    </div>
+                    {it.note && <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: '#6b7280' }}>{it.note}</div>}
+                  </div>
+                );
+              })}
+
+              <div style={{ padding: '24px 24px 38px', textAlign: 'center', borderTop: '1px solid #ebebeb' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', letterSpacing: '0.06em' }}>(주)까브드뱅</div>
+                <div style={{ fontSize: 11.5, color: '#8a8a8a', marginTop: 4, lineHeight: 1.7 }}>
+                  TEL 02-780-9441 · www.cavedevin.com<br />
+                  가격은 공급가(VAT 별도) 기준입니다.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const overlay: React.CSSProperties = {
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+};
+const sheet: React.CSSProperties = {
+  background: '#fff', borderRadius: 12, width: 'min(520px, 96vw)', maxHeight: '90vh',
+  display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+};
+const bar: React.CSSProperties = {
+  display: 'flex', gap: 8, justifyContent: 'center', padding: '10px 16px', borderBottom: '1px solid #ebebeb',
+};
+const btn: React.CSSProperties = {
+  padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+  border: '1px solid #d4d4d8', background: '#fff', color: '#374151',
+};
