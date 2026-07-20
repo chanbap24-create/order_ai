@@ -19,11 +19,20 @@ export function PromoClient({ data }: { data: PromoPageData }) {
       const { toJpeg } = await import('html-to-image');
       const dataUrl = await toJpeg(captureRef.current, {
         quality: 0.92, pixelRatio: 2, backgroundColor: '#ffffff', cacheBust: true,
+        // 교차 출처 폰트 CSS(cssRules) 접근이 SecurityError를 던져 폰트 임베드는 건너뜀 —
+        // 캡처 루트에 시스템 폰트를 명시해 렌더 결과는 동일하게 유지
+        skipFonts: true,
       });
-      const blob = await (await fetch(dataUrl)).blob();
-      const stamp = data.month.replace(/[^0-9]/g, '');
+      // fetch(data:)는 CSP connect-src에 막힘 → base64 직접 변환
+      const bin = atob(dataUrl.split(',')[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'image/jpeg' });
+      const m = data.month.match(/(\d{4})년 (\d{1,2})월/);
+      const stamp = m ? `${m[1]}${m[2].padStart(2, '0')}` : data.month.replace(/[^0-9]/g, '');
       await shareOrDownloadFile(blob, `프로모션_${stamp}.jpg`, 'image/jpeg');
-    } catch {
+    } catch (e) {
+      console.error('promo capture failed:', e);
       alert('이미지 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setSaving(false);
@@ -53,7 +62,10 @@ export function PromoClient({ data }: { data: PromoPageData }) {
       </div>
 
       {/* ── 캡처 영역 ── */}
-      <div ref={captureRef} style={{ maxWidth: 480, margin: '0 auto', background: '#fff' }}>
+      <div ref={captureRef} style={{
+        maxWidth: 480, margin: '0 auto', background: '#fff',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
+      }}>
         {/* 히어로 */}
         <div style={{ padding: '44px 24px 30px', textAlign: 'center', borderBottom: '1px solid #ebebeb' }}>
           <div style={{ fontSize: 12, letterSpacing: '0.35em', color: '#8a8a8a', fontWeight: 600 }}>CAVE DE VIN</div>
