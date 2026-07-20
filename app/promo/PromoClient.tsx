@@ -61,9 +61,12 @@ export function PromoClient({ data }: { data: PromoPageData }) {
         <button onClick={copyLink} style={btn}>{copied ? '복사됨 ✓' : '링크 복사'}</button>
       </div>
 
+      {/* 중앙 정렬은 바깥 래퍼가 담당 — 캡처 대상엔 auto 마진을 두지 않는다.
+          (auto 마진이 남으면 넓은 화면 캡처 시 콘텐츠가 오른쪽으로 밀려 잘림) */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
       {/* ── 캡처 영역 ── */}
       <div ref={captureRef} style={{
-        maxWidth: 480, margin: '0 auto', background: '#fff',
+        width: 480, maxWidth: '100%', background: '#fff',
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
       }}>
         {/* 히어로 */}
@@ -91,6 +94,7 @@ export function PromoClient({ data }: { data: PromoPageData }) {
             가격은 공급가(VAT 별도) 기준이며, 재고 소진 시 조기 종료될 수 있습니다.
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
