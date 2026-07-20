@@ -152,6 +152,14 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
     inlineEdit.commitEdit();
     setCardBusy(true);
     try {
+      let flavorMap: Record<string, string[]> = {};
+      try {
+        const fr = await fetch('/api/sales/flavor-tags', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codes: items.map((it) => it.item_code) }),
+        });
+        flavorMap = (await fr.json())?.tags || {};
+      } catch { /* 향미 없어도 진행 */ }
       const blob = await renderQuoteCardImage({
         clientName: quote.clientName || '거래처',
         date: new Date().toISOString().slice(0, 10),
@@ -168,6 +176,7 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           qty: it.quantity || 1,
           note: it.note || '',
           imageUrl: it.image_url || '',
+          flavors: flavorMap[it.item_code] || [],
         })),
       });
       const url = URL.createObjectURL(blob);

@@ -14,6 +14,7 @@ export interface CardItem {
   qty?: number | null;
   note?: string | null;
   imageUrl?: string | null;
+  flavors?: string[];   // 향미 키워드(한글 라벨) — 있으면 칩으로 표시
 }
 
 const WINE = '#7b1f24';
@@ -107,37 +108,65 @@ export async function renderQuoteCardImage(opts: {
     const tx = 24 + imgW + 8;
     const rightX = W - 28;
     ctx.textAlign = 'left';
-    let ty = y + 40;
+    let ty = y + 38;
     if (it.brandKr) { ctx.fillStyle = MUTE; ctx.font = F(12.5, 700); ctx.fillText(it.brandKr, tx, ty); ty += 22; }
     else ty += 2;
     ctx.fillStyle = INK; ctx.font = F(18, 700);
     let nm = stripPrefix(it.name);
     const maxW = rightX - tx;
     if (ctx.measureText(nm).width > maxW) { while (nm.length > 4 && ctx.measureText(nm + '…').width > maxW) nm = nm.slice(0, -1); nm += '…'; }
-    ctx.fillText(nm, tx, ty); ty += 24;
+    ctx.fillText(nm, tx, ty); ty += 23;
     ctx.fillStyle = SUB; ctx.font = F(13);
     const meta = [it.country, shortRegion(it.region), it.vintage].filter(Boolean).join(' · ');
-    ctx.fillText(meta, tx, ty); ty += 20;
-    if (it.grape) { ctx.fillStyle = MUTE; ctx.font = F(12); ctx.fillText(shortRegion(it.grape), tx, ty); }
+    ctx.fillText(meta, tx, ty); ty += 22;
 
-    // 가격(우측 하단)
-    ctx.textAlign = 'right';
+    // 향미 칩(있으면). 없으면 품종 텍스트 폴백.
+    const flavors = (it.flavors || []).filter(Boolean).slice(0, 4);
+    if (flavors.length) {
+      let cx = tx;
+      ctx.font = F(11.5, 600);
+      for (const fv of flavors) {
+        const pw = ctx.measureText(fv).width + 16;
+        if (cx + pw > rightX) break;
+        ctx.fillStyle = '#f3eee9';
+        roundRect(ctx, cx, ty - 13, pw, 20, 10); ctx.fill();
+        ctx.fillStyle = WINE;
+        ctx.fillText(fv, cx + 8, ty + 1);
+        cx += pw + 6;
+      }
+    } else if (it.grape) {
+      ctx.fillStyle = MUTE; ctx.font = F(12);
+      let g = it.grape.split(/[,(]/)[0].trim();
+      if (ctx.measureText(g).width > maxW) { while (g.length > 3 && ctx.measureText(g + '…').width > maxW) g = g.slice(0, -1); g += '…'; }
+      ctx.fillText(g, tx, ty + 1);
+    }
+
+    // ── 가격 블록(겹침 방지: 윗줄 = 취소선 정상가 + N%↓ 배지, 아랫줄 = 큰 할인가) ──
     if (rate > 0 && it.supply > 0) {
-      ctx.fillStyle = MUTE; ctx.font = F(13);
-      const t = `${won(it.supply)}원`;
-      ctx.fillText(t, rightX, y + CARD_H - 44);
-      const w = ctx.measureText(t).width;
-      ctx.strokeStyle = MUTE; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(rightX - w, y + CARD_H - 48); ctx.lineTo(rightX, y + CARD_H - 48); ctx.stroke();
-    }
-    ctx.fillStyle = RED; ctx.font = F(25, 800);
-    ctx.fillText(`${won(disc)}원`, rightX, y + CARD_H - 18);
-    if (rate > 0) {
+      ctx.font = F(13);
+      const supTxt = `${won(it.supply)}원`;
+      const supW = ctx.measureText(supTxt).width;
       ctx.font = F(12.5, 700);
-      const rt = `${rate}%↓`;
-      ctx.fillText(rt, rightX, y + CARD_H - 44 + (it.supply > 0 ? 0 : 0));
+      const rtTxt = `${rate}%↓`;
+      const rtW = ctx.measureText(rtTxt).width;
+      const gap = 8;
+      const startX = rightX - (supW + gap + rtW);
+      const lineY = y + CARD_H - 46;
+      // 취소선 정상가
+      ctx.textAlign = 'left';
+      ctx.fillStyle = MUTE; ctx.font = F(13);
+      ctx.fillText(supTxt, startX, lineY);
+      ctx.strokeStyle = MUTE; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(startX, lineY - 4); ctx.lineTo(startX + supW, lineY - 4); ctx.stroke();
+      // N%↓
+      ctx.fillStyle = RED; ctx.font = F(12.5, 700);
+      ctx.fillText(rtTxt, startX + supW + gap, lineY);
     }
-    // 수량/비고
+    ctx.textAlign = 'right';
+    ctx.fillStyle = RED; ctx.font = F(25, 800);
+    ctx.fillText(`${won(disc)}원`, rightX, y + CARD_H - 16);
+
+    // 수량/비고(좌측 하단)
     ctx.textAlign = 'left';
     const tail = [it.qty ? `추천 ${it.qty}병` : '', it.note || ''].filter(Boolean).join(' · ');
     if (tail) { ctx.fillStyle = MUTE; ctx.font = F(11.5); ctx.fillText(tail, tx, y + CARD_H - 18); }
