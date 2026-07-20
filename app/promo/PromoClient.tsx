@@ -17,8 +17,10 @@ export function PromoClient({ data }: { data: PromoPageData }) {
     setSaving(true);
     try {
       const { toJpeg } = await import('html-to-image');
+      // 카톡이 전송 시 재압축하므로 원본을 크고 선명하게 — 480×3 = 1440px 폭, 고품질.
+      // (재압축 후에도 1080p 카톡 기준에서 뭉개짐이 확 줄어든다)
       const dataUrl = await toJpeg(captureRef.current, {
-        quality: 0.92, pixelRatio: 2, backgroundColor: '#ffffff', cacheBust: true,
+        quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', cacheBust: true,
         // 교차 출처 폰트 CSS(cssRules) 접근이 SecurityError를 던져 폰트 임베드는 건너뜀 —
         // 캡처 루트에 시스템 폰트를 명시해 렌더 결과는 동일하게 유지
         skipFonts: true,
