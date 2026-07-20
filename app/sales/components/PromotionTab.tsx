@@ -65,9 +65,22 @@ export default function PromotionTab() {
 
   return (
     <div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>프로모션</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>프로모션</div>
+        <button
+          onClick={() => window.open('/promo', '_blank')}
+          title="활성 프로모션으로 마케팅 상세페이지 자동 생성 — 이미지 저장·링크 공유 가능"
+          style={{
+            padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+            border: 'none', background: 'var(--action)', color: '#fff', whiteSpace: 'nowrap',
+          }}
+        >
+          상세페이지 보기
+        </button>
+      </div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
         여기 지정한 품목은 AI 추천 시 <b>최상위 규칙</b>으로 적용돼요(할인률·수량 고정, 최상단 노출).
+        상세페이지는 활성 프로모션으로 자동 구성돼요.
       </div>
 
       <DiscountConfigEditor />

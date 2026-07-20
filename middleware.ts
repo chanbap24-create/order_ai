@@ -160,6 +160,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // ── /api/promo/img → 프로모션 상세페이지(공개 마케팅) 병샷 프록시. GET만, 품번 키 조회라 SSRF 없음 ──
+  if (pathname === '/api/promo/img' && request.method === 'GET') {
+    return NextResponse.next();
+  }
+
   // ── /api/order-v2/intake (POST) → iOS 단축어: 세션 대신 x-shortcut-token 으로 라우트가 자체 검증 ──
   if (pathname === '/api/order-v2/intake' && request.method === 'POST') {
     return NextResponse.next();
