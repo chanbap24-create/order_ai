@@ -89,6 +89,9 @@ export function applyFormulaDiscounts(
     const qty = top ? top.min : 1;
     const floor = floorOf ? floorOf(s.item_no) : 0;
     s.rec_discount = clampRate(computeItemDiscount(ctx, { supplyPrice: supply, qty }).rate, supply, floor);
+    // 업소/호텔: 수량은 항상 1병 — 경험치(최빈 묶음) 수량이 거래처 사정과 무관하게 커지는 문제로 폐기.
+    //   (샵·도매는 아래에서 최대 수량티어로 설정, 프로모션 품목은 이후 applyPromotions가 덮어씀)
+    if (!top) s.rec_quantity = 1;
     if (top) {
       s.rec_quantity = top.min;
       // 비고: 하위 티어별 최종 할인가(공급가×(1−총할인율), 하한 반영) — 품목별 계산
