@@ -32,6 +32,7 @@ export async function getPromoPageData(): Promise<PromoPageData> {
     .select('item_no, item_name, quantity, discount_rate, discount_price, memo')
     .eq('corporation', 'CDV')
     .eq('active', true)
+    .eq('page_visible', true) // 상세페이지 노출로 선택된 것만
     .order('created_at', { ascending: true });
   const rows = promos || [];
   if (rows.length === 0) return { month, items: [] };

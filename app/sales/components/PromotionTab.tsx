@@ -14,6 +14,7 @@ interface Promotion {
   discount_price: number | null;
   active: boolean;
   always_recommend: boolean;
+  page_visible: boolean;
   categories: string[] | null;
   memo: string | null;
   total_stock?: number;
@@ -56,6 +57,7 @@ export default function PromotionTab() {
   };
   const toggle = (p: Promotion) => patch(p, { active: !p.active });
   const toggleAlways = (p: Promotion) => patch(p, { always_recommend: !p.always_recommend });
+  const togglePage = (p: Promotion) => patch(p, { page_visible: !p.page_visible });
 
   const remove = async (p: Promotion) => {
     if (!confirm(`'${p.item_name || p.item_no}' 프로모션을 삭제할까요?`)) return;
@@ -121,6 +123,11 @@ export default function PromotionTab() {
                   <span>보세 <b style={{ color: 'var(--text-secondary)' }}>{(p.bonded_warehouse ?? 0).toLocaleString()}</b></span>
                 </div>
               </div>
+              <button onClick={() => togglePage(p)} title="프로모션 상세페이지(/promo)에 이 와인 노출 여부" style={{
+                padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-default)',
+                background: p.page_visible ? 'color-mix(in srgb, var(--action) 8%, transparent)' : 'transparent', cursor: 'pointer',
+                fontSize: 12, color: p.page_visible ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap',
+              }}>{p.page_visible ? '상세페이지 ✓' : '상세페이지 ✕'}</button>
               <button onClick={() => toggleAlways(p)} title="견적 발행 시 후보에 없어도 무조건 추천(최상위 노출)" style={{
                 padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border-default)',
                 background: p.always_recommend ? 'rgba(21,101,52,0.12)' : 'transparent', cursor: 'pointer',

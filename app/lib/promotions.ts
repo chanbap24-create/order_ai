@@ -12,6 +12,7 @@ export interface Promotion {
   discount_price: number | null; // 할인가(표시/참고)
   active: boolean;
   always_recommend: boolean;     // 견적발행 시 무조건 추천(후보에 없어도 주입)
+  page_visible: boolean;         // 프로모션 상세페이지(/promo) 노출 여부
   categories: string[] | null;   // 대상 업태(venue/shop/wholesale). null·빈배열 = 전체
   memo: string | null;
   created_at?: string;
@@ -101,6 +102,7 @@ export async function updatePromotion(id: string, patch: Partial<PromotionInput>
   if (patch.discount_rate !== undefined) upd.discount_rate = clampRate(patch.discount_rate);
   if (patch.discount_price !== undefined) upd.discount_price = patch.discount_price;
   if (patch.always_recommend !== undefined) upd.always_recommend = patch.always_recommend;
+  if ((patch as { page_visible?: boolean }).page_visible !== undefined) upd.page_visible = (patch as { page_visible?: boolean }).page_visible;
   if (patch.categories !== undefined) upd.categories = sanitizeCategories(patch.categories);
   if (patch.memo !== undefined) upd.memo = patch.memo;
   if (patch.active !== undefined) upd.active = patch.active;
