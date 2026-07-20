@@ -16,6 +16,18 @@ import { useTastingNoteModal } from '@/app/inventory/hooks/useTastingNoteModal';
 import { DesktopSidebarContainer } from '@/app/inventory/components/DesktopSidebarContainer';
 import { TastingNoteModal } from '@/app/inventory/components/TastingNoteModal';
 import { QuoteItemSearchAdd } from '@/app/sales/recommend/components/QuoteItemSearchAdd';
+import { renderQuoteImage } from '@/app/sales/recommend/lib/quoteImage';
+
+// 견적 편집 컬럼(인벤토리 키) → PNG 컬럼 키 매핑. 순서 유지·중복 제거.
+const PNG_COL_MAP: Record<string, string> = {
+  item_name: 'product_name', product_name: 'product_name',
+  country: 'country', brand: 'brand', region: 'region',
+  grape_varieties: 'grape_varieties', vintage: 'vintage',
+  supply_price: 'supply_price', discount_rate: 'discount_rate',
+  discounted_price: 'discounted_price', discount_price: 'discounted_price',
+  note: 'note', quantity: 'quantity',
+  normal_total: 'normal_total', discount_total: 'discount_total',
+};
 
 type Props = {
   quote: ReturnType<typeof useQuoteItems>;
@@ -93,6 +105,45 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
     background: '#fff', color: 'var(--action)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
   };
 
+  // 카톡 전송용 PNG 견적서 — 편집한 견적(할인·수량·컬럼) 그대로 이미지로.
+  const [pngBusy, setPngBusy] = useState(false);
+  const handleExportPng = async () => {
+    if (items.length === 0) return;
+    inlineEdit.commitEdit(); // 편집 중인 셀 반영
+    setPngBusy(true);
+    try {
+      const pngCols: string[] = [];
+      for (const k of visibleQuoteColumns) {
+        const mapped = PNG_COL_MAP[k];
+        if (mapped && !pngCols.includes(mapped)) pngCols.push(mapped);
+      }
+      const blob = await renderQuoteImage({
+        clientName: quote.clientName || '거래처',
+        date: new Date().toISOString().slice(0, 10),
+        cols: pngCols,
+        items: items.map((it) => ({
+          name: it.product_name || it.item_name || '',
+          country: it.country || '',
+          brand: it.brand || '',
+          region: it.region || '',
+          grape: quote.wineProfiles[it.item_code]?.grape_varieties || '',
+          vintage: it.vintage && it.vintage !== '-' ? it.vintage : '',
+          supply: it.supply_price || 0,
+          rate: it.discount_rate || 0,
+          qty: it.quantity || 1,
+          note: it.note || '',
+        })),
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `견적서_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}_${(quote.clientName || '거래처').replace(/[\\/:*?"<>|]/g, '_')}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { alert('이미지 견적서 생성에 실패했습니다.'); }
+    finally { setPngBusy(false); }
+  };
+
   if (items.length === 0) {
     return (
       <div>
@@ -113,7 +164,11 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <button onClick={exports.handleExport} disabled={exports.exporting}
           style={{ ...btn, background: 'var(--action)', color: '#fff', borderColor: 'var(--action)', opacity: exports.exporting ? 0.6 : 1 }}>
-          {exports.exporting ? '생성 중…' : '엑셀 견적서 생성'}
+          {exports.exporting ? '생성 중…' : '엑셀 견적서'}
+        </button>
+        <button onClick={handleExportPng} disabled={pngBusy} title="카톡으로 바로 보낼 수 있는 이미지 견적서(엑셀 열 필요 없음)"
+          style={{ ...btn, opacity: pngBusy ? 0.6 : 1 }}>
+          {pngBusy ? '생성 중…' : '이미지(PNG) 견적서'}
         </button>
         <div style={{ position: 'relative' }}>
           <button onClick={() => exports.setNoteMenuOpen(!exports.noteMenuOpen)} disabled={exports.exportingNotes} style={btn}>
