@@ -11,7 +11,7 @@ type Props = {
   running: boolean;
   progress: { done: number; total: number; name: string };
   message: string | null;
-  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean; png: boolean }) => void;
+  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean; pngQuote: boolean; pngCard: boolean }) => void;
   onClear: () => void;
   // 견적서 컬럼(계정별 저장, useQuoteCols) — 생성 전 이 바에서 바로 조정
   quoteCols: string[];
@@ -36,7 +36,8 @@ export function BatchRecommendBar({
   const [stepUp, setStepUp] = useState<StepUpMode>(() => loadRecSettings().gradeStepUp);
   const [showCols, setShowCols] = useState(false);
   const [tnote, setTnote] = useState(true); // 거래처당 테이스팅노트 병합 PDF 1개 동봉
-  const [png, setPng] = useState(true);     // 카톡 전송용 PNG 견적서 동봉
+  const [pngQuote, setPngQuote] = useState(false); // 견적표 PNG
+  const [pngCard, setPngCard] = useState(true);    // 상세카드 PNG(카톡 홍보용)
   const idle = count === 0 && !running && !message;
   if (idle) return null;
 
@@ -86,17 +87,29 @@ export function BatchRecommendBar({
         </span>
       )}
       {!running && (
-        <button
-          onClick={() => setPng((v) => !v)}
-          title="켜면 거래처마다 카톡으로 바로 보낼 수 있는 PNG 견적서 이미지를 함께 받습니다"
-          style={{
-            padding: '7px 12px', borderRadius: 8,
-            border: `1px solid ${png ? 'var(--action)' : 'var(--gray-300)'}`,
-            background: png ? 'var(--action)' : '#fff',
-            color: png ? '#fff' : 'var(--text-tertiary)',
-            fontSize: 13, cursor: 'pointer',
-          }}
-        >PNG 견적{png ? ' ✓' : ''}</button>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>이미지</span>
+          <button
+            onClick={() => setPngCard((v) => !v)}
+            title="병 사진·할인가가 보이는 상세카드 이미지(카톡 홍보용)"
+            style={{
+              padding: '6px 11px', borderRadius: 999,
+              border: `1px solid ${pngCard ? 'var(--action)' : 'var(--gray-300)'}`,
+              background: pngCard ? 'var(--action)' : '#fff',
+              color: pngCard ? '#fff' : 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
+            }}
+          >상세카드</button>
+          <button
+            onClick={() => setPngQuote((v) => !v)}
+            title="엑셀 견적서 양식 그대로의 이미지(견적표)"
+            style={{
+              padding: '6px 11px', borderRadius: 999,
+              border: `1px solid ${pngQuote ? 'var(--action)' : 'var(--gray-300)'}`,
+              background: pngQuote ? 'var(--action)' : '#fff',
+              color: pngQuote ? '#fff' : 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
+            }}
+          >견적표</button>
+        </span>
       )}
       {!running && (
         <button
@@ -141,7 +154,7 @@ export function BatchRecommendBar({
         }}>선택 해제</button>
       )}
       <button
-        onClick={() => onRun({ gradeStepUp: stepUp, tnote, png })}
+        onClick={() => onRun({ gradeStepUp: stepUp, tnote, pngQuote, pngCard })}
         disabled={running || count === 0}
         style={{
           padding: '8px 16px', borderRadius: 8, border: 'none',

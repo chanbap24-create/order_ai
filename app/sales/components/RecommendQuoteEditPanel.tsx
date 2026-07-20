@@ -17,6 +17,7 @@ import { DesktopSidebarContainer } from '@/app/inventory/components/DesktopSideb
 import { TastingNoteModal } from '@/app/inventory/components/TastingNoteModal';
 import { QuoteItemSearchAdd } from '@/app/sales/recommend/components/QuoteItemSearchAdd';
 import { renderQuoteImage } from '@/app/sales/recommend/lib/quoteImage';
+import { renderQuoteCardImage } from '@/app/sales/recommend/lib/quoteCardImage';
 
 // 견적 편집 컬럼(인벤토리 키) → PNG 컬럼 키 매핑. 순서 유지·중복 제거.
 const PNG_COL_MAP: Record<string, string> = {
@@ -137,11 +138,46 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `견적서_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}_${(quote.clientName || '거래처').replace(/[\\/:*?"<>|]/g, '_')}.png`;
+      a.download = `견적표_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}_${(quote.clientName || '거래처').replace(/[\\/:*?"<>|]/g, '_')}.png`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch { alert('이미지 견적서 생성에 실패했습니다.'); }
     finally { setPngBusy(false); }
+  };
+
+  // 상세카드 이미지 — 병 사진·큰 할인가(카톡 홍보용)
+  const [cardBusy, setCardBusy] = useState(false);
+  const handleExportCard = async () => {
+    if (items.length === 0) return;
+    inlineEdit.commitEdit();
+    setCardBusy(true);
+    try {
+      const blob = await renderQuoteCardImage({
+        clientName: quote.clientName || '거래처',
+        date: new Date().toISOString().slice(0, 10),
+        logoUrl: '/logos/cavedevin.png',
+        items: items.map((it) => ({
+          name: it.product_name || it.item_name || '',
+          brandKr: it.brand || '',
+          country: it.country || '',
+          region: it.region || '',
+          vintage: it.vintage && it.vintage !== '-' ? it.vintage : '',
+          grape: quote.wineProfiles[it.item_code]?.grape_varieties || '',
+          supply: it.supply_price || 0,
+          rate: it.discount_rate || 0,
+          qty: it.quantity || 1,
+          note: it.note || '',
+          imageUrl: it.image_url || '',
+        })),
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `상세카드_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}_${(quote.clientName || '거래처').replace(/[\\/:*?"<>|]/g, '_')}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { alert('상세카드 이미지 생성에 실패했습니다.'); }
+    finally { setCardBusy(false); }
   };
 
   if (items.length === 0) {
@@ -166,9 +202,13 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           style={{ ...btn, background: 'var(--action)', color: '#fff', borderColor: 'var(--action)', opacity: exports.exporting ? 0.6 : 1 }}>
           {exports.exporting ? '생성 중…' : '엑셀 견적서'}
         </button>
-        <button onClick={handleExportPng} disabled={pngBusy} title="카톡으로 바로 보낼 수 있는 이미지 견적서(엑셀 열 필요 없음)"
+        <button onClick={handleExportCard} disabled={cardBusy} title="병 사진·큰 할인가가 있는 상세카드 이미지(카톡 홍보용)"
+          style={{ ...btn, opacity: cardBusy ? 0.6 : 1 }}>
+          {cardBusy ? '생성 중…' : '🖼 상세카드 이미지'}
+        </button>
+        <button onClick={handleExportPng} disabled={pngBusy} title="엑셀 견적서 양식 그대로의 이미지(견적표)"
           style={{ ...btn, opacity: pngBusy ? 0.6 : 1 }}>
-          {pngBusy ? '생성 중…' : '이미지(PNG) 견적서'}
+          {pngBusy ? '생성 중…' : '견적표 이미지'}
         </button>
         <div style={{ position: 'relative' }}>
           <button onClick={() => exports.setNoteMenuOpen(!exports.noteMenuOpen)} disabled={exports.exportingNotes} style={btn}>

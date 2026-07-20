@@ -6,6 +6,7 @@ import { loadRecSettings } from '@/app/sales/recommend/recSettings';
 import { DEFAULT_REC_COLS } from '@/app/sales/recommend/constants';
 import { selectQuoteItems } from '@/app/sales/recommend/allocateByTypeShares';
 import { renderQuoteImage, vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
+import { renderQuoteCardImage } from '@/app/sales/recommend/lib/quoteCardImage';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 
 export type BatchTarget = { client_code: string; client_name: string };
@@ -46,7 +47,7 @@ export function useBatchRecommend(manager: string) {
   const [progress, setProgress] = useState<{ done: number; total: number; name: string }>({ done: 0, total: 0, name: '' });
   const [message, setMessage] = useState<string | null>(null);
 
-  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto'; cols?: string[]; tnote?: boolean; png?: boolean }) => {
+  const run = async (targets: BatchTarget[], opts?: { gradeStepUp?: boolean | 'auto'; cols?: string[]; tnote?: boolean; pngQuote?: boolean; pngCard?: boolean }) => {
     if (running || targets.length === 0) return;
     setRunning(true);
     setMessage(null);
@@ -129,28 +130,37 @@ export function useBatchRecommend(manager: string) {
         const blob = await exRes.blob();
         files.push({ name: `추천견적_${stamp()}_${safeName(t.client_name)}.xlsx`, blob });
 
-        // 3.5) 카톡 전송용 PNG 견적서 — 채팅방에서 바로 보이는 이미지(엑셀 안 열어도 됨)
-        if (opts?.png) {
+        // 3.5) 카톡 전송용 이미지 — 스타일 선택(견적표 PNG / 상세카드). 엑셀 안 열어도 바로 보임.
+        if (opts?.pngQuote) {
           try {
             const pngBlob = await renderQuoteImage({
               clientName: t.client_name,
               date: new Date().toISOString().slice(0, 10),
-              cols, // 엑셀과 동일한 컬럼 구성·순서
+              cols,
               items: items.map((it) => ({
-                name: it.item_name,
-                country: it.country || '',
-                brand: it.brand || '',
-                region: it.region || '',
-                grape: it.grape || '',
-                vintage: vintageFromCode(it.item_no),
-                supply: it.price || 0,
-                rate: it.rec_discount || 0,
-                qty: it.rec_quantity || 1,
-                note: it.rec_note || '',
+                name: it.item_name, country: it.country || '', brand: it.brand || '',
+                region: it.region || '', grape: it.grape || '', vintage: vintageFromCode(it.item_no),
+                supply: it.price || 0, rate: it.rec_discount || 0, qty: it.rec_quantity || 1, note: it.rec_note || '',
               })),
             });
-            files.push({ name: `견적서_${stamp()}_${safeName(t.client_name)}.png`, blob: pngBlob });
-          } catch { /* PNG 실패는 비치명적 */ }
+            files.push({ name: `견적표_${stamp()}_${safeName(t.client_name)}.png`, blob: pngBlob });
+          } catch { /* 비치명적 */ }
+        }
+        if (opts?.pngCard) {
+          try {
+            const cardBlob = await renderQuoteCardImage({
+              clientName: t.client_name,
+              date: new Date().toISOString().slice(0, 10),
+              logoUrl: '/logos/cavedevin.png',
+              items: items.map((it) => ({
+                name: it.item_name, brandKr: it.brand || '', country: it.country || '',
+                region: it.region || '', vintage: vintageFromCode(it.item_no), grape: it.grape || '',
+                supply: it.price || 0, rate: it.rec_discount || 0, qty: it.rec_quantity || 1, note: it.rec_note || '',
+                imageUrl: it.image_url || '',
+              })),
+            });
+            files.push({ name: `상세카드_${stamp()}_${safeName(t.client_name)}.png`, blob: cardBlob });
+          } catch { /* 비치명적 */ }
         }
 
         // 4) 테이스팅노트 PDF — 견적 품목의 노트를 한 파일로 병합(거래처당 1개).
