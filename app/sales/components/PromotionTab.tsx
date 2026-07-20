@@ -48,12 +48,20 @@ export default function PromotionTab() {
     await load();
   };
 
+  // 토글은 낙관적 업데이트 — 전체 load()는 스켈레톤 깜빡임(새로고침처럼 보임)이라 지양.
+  //   로컬 상태만 즉시 반영하고 PATCH는 백그라운드, 실패 시에만 되돌린다.
   const patch = async (p: Promotion, body: Record<string, unknown>) => {
-    await fetch('/api/sales/promotions', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: p.id, ...body }),
-    });
-    await load();
+    setList((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...body } : x)));
+    try {
+      const res = await fetch('/api/sales/promotions', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, ...body }),
+      });
+      if (!res.ok) throw new Error('update failed');
+    } catch {
+      setList((prev) => prev.map((x) => (x.id === p.id ? p : x))); // 롤백
+      await load();
+    }
   };
   const toggle = (p: Promotion) => patch(p, { active: !p.active });
   const toggleAlways = (p: Promotion) => patch(p, { always_recommend: !p.always_recommend });
