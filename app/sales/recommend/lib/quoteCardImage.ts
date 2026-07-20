@@ -35,14 +35,22 @@ const shortRegion = (r?: string | null) => {
 };
 const proxied = (u?: string | null) => (u ? `/api/image-proxy?url=${encodeURIComponent(u)}` : '');
 
-function loadImg(url: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
+// 이미지를 fetch→blob URL로 로드 — blob: URL은 same-origin이라 캔버스 오염(toBlob 실패) 없음.
+// 인증 쿠키도 same-origin 프록시에 확실히 실림. 실패 시 null(그림 없이 텍스트만).
+async function loadImg(url: string): Promise<HTMLImageElement | null> {
+  try {
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/')) return null;
+    const obj = URL.createObjectURL(blob);
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => { URL.revokeObjectURL(obj); resolve(null); };
+      img.src = obj;
+    });
+  } catch { return null; }
 }
 
 /** 상세카드 견적 PNG 생성 (세로형, 480 논리폭 · 2배 렌더) */

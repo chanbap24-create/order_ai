@@ -63,6 +63,7 @@ export function useBatchRecommend(manager: string) {
     const files: { name: string; blob: Blob }[] = [];
     const failed: string[] = [];
     const winbackNames: string[] = []; // 윈백가(발주 리듬 끊김 보정)가 적용된 거래처
+    let cardFail = 0; // 상세카드 이미지 생성 실패 수(진단용)
     const stepUpLockedNames: string[] = []; // 보정 잠김(이번 분기 이미 사용) 거래처
     setProgress({ done: 0, total: targets.length, name: '' });
 
@@ -169,7 +170,7 @@ export function useBatchRecommend(manager: string) {
               })),
             });
             files.push({ name: `상세카드_${stamp()}_${safeName(t.client_name)}.png`, blob: cardBlob });
-          } catch { /* 비치명적 */ }
+          } catch (e) { cardFail++; console.error('상세카드 생성 실패', t.client_name, e); }
         }
 
         // 4) 테이스팅노트 PDF — 견적 품목의 노트를 한 파일로 병합(거래처당 1개).
@@ -208,10 +209,11 @@ export function useBatchRecommend(manager: string) {
     const su = stepUpLockedNames.length
       ? ` · 보정 잠김 ${stepUpLockedNames.length}곳(이번 분기 이미 사용: ${stepUpLockedNames.slice(0, 3).join(', ')}${stepUpLockedNames.length > 3 ? ' 외' : ''})`
       : '';
+    const cf = cardFail > 0 ? ` · 상세카드 ${cardFail}곳 실패(콘솔 확인)` : '';
     setMessage(
       failed.length
-        ? `${files.length}곳 생성 완료 · ${failed.length}곳 건너뜀(${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ' 외' : ''})${wb}${su}`
-        : `${files.length}곳 추천견적 생성 완료${wb}${su}`,
+        ? `${files.length}개 파일 생성 · ${failed.length}곳 건너뜀(${failed.slice(0, 3).join(', ')}${failed.length > 3 ? ' 외' : ''})${wb}${su}${cf}`
+        : `추천견적 생성 완료${wb}${su}${cf}`,
     );
   };
 
