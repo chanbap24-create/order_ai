@@ -33,7 +33,8 @@ export async function getBrands(filters?: {
 
   return brands.map(b => ({
     ...b,
-    wine_count: (b.brand_code && wineCounts[b.brand_code]) || 0,
+    // 대소문자 무시: brand_code(소문자 저장분 존재) ↔ wines.brand(대문자) 매칭
+    wine_count: (b.brand_code && wineCounts[b.brand_code.toUpperCase()]) || 0,
   }));
 }
 
@@ -54,9 +55,12 @@ export async function getBrandById(id: number): Promise<Brand | null> {
 export async function createBrand(
   brand: Partial<Brand> & { brand_name_kr: string }
 ): Promise<Brand | null> {
+  // 브랜드 코드는 항상 대문자로 저장 (wines.brand 와 일치 — 소문자 저장 시 와인 연결 누락)
+  const payload = { ...brand };
+  if (payload.brand_code) payload.brand_code = payload.brand_code.trim().toUpperCase();
   const { data, error } = await supabase
     .from('brands')
-    .insert(brand)
+    .insert(payload)
     .select()
     .single();
   if (error) { logger.warn('createBrand error', { error }); return null; }
@@ -77,6 +81,8 @@ export async function updateBrand(
   delete payload.id;
   delete payload.created_at;
   delete (payload as { wine_count?: unknown }).wine_count;
+  // 브랜드 코드는 항상 대문자로 저장 (wines.brand 와 일치)
+  if (typeof payload.brand_code === 'string') payload.brand_code = payload.brand_code.trim().toUpperCase();
 
   const { data, error } = await supabase
     .from('brands')
@@ -116,14 +122,15 @@ export async function getWineCountsByBrand(): Promise<Record<string, number>> {
     const counts: Record<string, number> = {};
     for (const row of rows) {
       const b = (row as { brand: string }).brand;
-      if (b) counts[b] = (counts[b] || 0) + 1;
+      if (b) { const k = b.toUpperCase(); counts[k] = (counts[k] || 0) + 1; }
     }
     return counts;
   }
 
+  // 키는 대문자로 정규화(소문자 brand_code 와 대소문자 무시 매칭)
   const counts: Record<string, number> = {};
   for (const row of data as { brand: string; cnt: number }[]) {
-    if (row.brand) counts[row.brand] = row.cnt;
+    if (row.brand) { const k = row.brand.toUpperCase(); counts[k] = (counts[k] || 0) + row.cnt; }
   }
   return counts;
 }
@@ -194,7 +201,7 @@ export async function getWinesByBrandCode(brandCode: string) {
   const { data, error } = await supabase
     .from('wines')
     .select('item_code, item_name_kr, item_name_en, wine_type, vintage, supply_price, available_stock, status')
-    .eq('brand', brandCode)
+    .ilike('brand', brandCode) // 대소문자 무시 (brand_code 소문자 저장분 대응)
     .order('item_name_kr', { ascending: true });
   if (error) { logger.warn('getWinesByBrandCode error', { error }); return []; }
   return data || [];

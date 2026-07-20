@@ -9,10 +9,13 @@ const tabLoader = () => (
 
 const ImportForecastTab = dynamic(() => import('@/app/admin/components/ImportForecastTab'), { ssr: false, loading: tabLoader });
 const SalesAnalysisTab = dynamic(() => import('@/app/marketing/components/SalesAnalysisTab'), { ssr: false, loading: tabLoader });
+const FlavorTagsTab = dynamic(() => import('@/app/admin/components/FlavorTagsTab'), { ssr: false, loading: tabLoader });
+const WineRegionsTab = dynamic(() => import('@/app/admin/components/WineRegionsTab'), { ssr: false, loading: tabLoader });
+const BrandTab = dynamic(() => import('@/app/admin/components/BrandTab'), { ssr: false, loading: tabLoader });
 
 export default function MarketingPage() {
   const [currentManager, setCurrentManager] = useState('');
-  const [activeTab, setActiveTab] = useState<'forecast' | 'analysis'>('forecast');
+  const [activeTab, setActiveTab] = useState<'forecast' | 'analysis' | 'flavor' | 'regions' | 'brands'>('forecast');
   const [showPwChange, setShowPwChange] = useState(false);
   const [pwCurrent, setPwCurrent] = useState('');
   const [pwNew, setPwNew] = useState('');
@@ -158,7 +161,7 @@ export default function MarketingPage() {
 
         {/* 탭 */}
         <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.04)', borderRadius: 8, padding: 2, marginBottom: 20, width: 'fit-content' }}>
-          {([['forecast', '수입량 예측'], ['analysis', '판매 분석']] as const).map(([t, label]) => (
+          {([['forecast', '수입량 예측'], ['analysis', '판매 분석'], ['flavor', '향미 태그'], ['regions', '와인산지 DB'], ['brands', '브랜드자료실']] as const).map(([t, label]) => (
             <button key={t} onClick={() => setActiveTab(t)} style={{
               padding: '8px 20px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: activeTab === t ? 700 : 500,
               background: activeTab === t ? '#fff' : 'transparent', color: activeTab === t ? 'var(--neutral-900)' : 'var(--neutral-200)',
@@ -169,6 +172,9 @@ export default function MarketingPage() {
 
         {activeTab === 'forecast' && <ImportForecastTab />}
         {activeTab === 'analysis' && <SalesAnalysisTab />}
+        {activeTab === 'flavor' && <FlavorTagsTab />}
+        {activeTab === 'regions' && <WineRegionsTab />}
+        {activeTab === 'brands' && <BrandTab />}
       </div>
     </div>
   );
