@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     for (const b of brands || []) {
       bmap.set((b.brand_code || '').toUpperCase(), {
         name: b.brand_name_en || b.brand_name_kr || '',
-        hasLogo: /^https?:\/\//.test(b.logo_url || ''),
+        hasLogo: /^(https?:\/\/|data:image\/)/.test(b.logo_url || ''),
         description: b.description || '',
       });
     }

@@ -17,6 +17,18 @@ function sniffImageType(buf: ArrayBuffer): string | null {
 
 /** 외부 이미지 URL을 받아 same-origin 응답으로 프록시. cacheScope='public'|'private'. */
 export async function proxyImage(url: string, cacheScope: 'public' | 'private'): Promise<NextResponse> {
+  // data: URI(일부 브랜드 로고가 base64로 저장됨)는 바로 디코드해 서빙.
+  const dm = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(url);
+  if (dm) {
+    try {
+      const buf = Buffer.from(dm[2], 'base64');
+      return new NextResponse(buf, {
+        headers: { 'Content-Type': dm[1], 'Cache-Control': `${cacheScope}, max-age=3600` },
+      });
+    } catch {
+      return new NextResponse(null, { status: 404 });
+    }
+  }
   if (!/^https?:\/\//.test(url)) return new NextResponse(null, { status: 404 });
   try {
     const res = await fetch(url, { cache: 'no-store' });
