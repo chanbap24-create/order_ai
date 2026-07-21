@@ -49,6 +49,7 @@ type Props = {
   noteMenuOpen: boolean;
   setNoteMenuOpen: (v: boolean) => void;
   onDownloadNotes: (format: "pdf" | "pptx") => void;
+  onPromoStyle?: () => void;
 };
 
 /** 모바일 슬라이드 패널 — 오버레이 + 본체(헤더/설정/목록/합계/액션) 조립 */
@@ -155,6 +156,7 @@ export function MobileQuotePanel(p: Props) {
             setNoteMenuOpen={p.setNoteMenuOpen}
             onDownloadNotes={p.onDownloadNotes}
             onClearAll={p.onClearAll}
+            onPromoStyle={p.onPromoStyle}
           />
         </div>
       </div>

@@ -9,9 +9,10 @@ type Props = {
   setNoteMenuOpen: (v: boolean) => void;
   onDownloadNotes: (format: "pdf" | "pptx") => void;
   onClearAll: () => void;
+  onPromoStyle?: () => void; // 프로모션(마케팅) 스타일 제안서
 };
 
-/** 모바일 패널 하단 액션 바 — Excel 출력 / T-Note 드롭다운 / 전체 삭제 */
+/** 모바일 패널 하단 액션 바 — Excel 출력 / T-Note 드롭다운 / 프로모션 스타일 / 전체 삭제 */
 export function MobilePanelActions({
   hasItems,
   exporting,
@@ -21,9 +22,10 @@ export function MobilePanelActions({
   setNoteMenuOpen,
   onDownloadNotes,
   onClearAll,
+  onPromoStyle,
 }: Props) {
   return (
-    <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+    <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 8 }}>
       <button
         onClick={onExport}
         disabled={exporting || !hasItems}
@@ -87,6 +89,26 @@ export function MobilePanelActions({
           </div>
         )}
       </div>
+
+      {onPromoStyle && (
+        <button
+          onClick={onPromoStyle}
+          disabled={!hasItems}
+          style={{
+            flexBasis: "100%",
+            height: 44,
+            borderRadius: 8,
+            border: "1px solid var(--action)",
+            background: "var(--surface)",
+            color: hasItems ? "var(--action)" : "var(--text-muted)",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: hasItems ? "pointer" : "not-allowed",
+          }}
+        >
+          프로모션 스타일
+        </button>
+      )}
 
       {hasItems && (
         <button

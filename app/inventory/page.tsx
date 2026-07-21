@@ -289,6 +289,7 @@ export default function InventoryPage() {
           visibleQuoteColumns={visibleQuoteColumns}
           setVisibleQuoteColumns={setVisibleQuoteColumns}
           visibleQuoteCols={visibleQuoteCols}
+          onPromoStyle={() => { layout.setShowQuotePanel(false); setShowPromoStyle(true); }}
         />
       </div>
 
