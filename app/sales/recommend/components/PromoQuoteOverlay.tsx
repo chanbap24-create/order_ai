@@ -15,6 +15,12 @@ export type PromoQuoteItem = {
   note: string;
 };
 
+type WineMeta = {
+  name_en: string; flavors: string[];
+  winemaking?: string; vintage?: string; winery?: string;
+  brand_code?: string; winery_name?: string; has_logo?: boolean;
+};
+
 const won = (n: number) => n.toLocaleString('ko-KR');
 
 /** 추천 견적을 프로모션 상세페이지 스타일로 렌더 + 이미지 저장. 로그인 세션 안에서만 동작(공개 URL 없음).
@@ -28,7 +34,8 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
   const capRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [recorded, setRecorded] = useState(false); // 이중 카운트 방지(1회만 기록)
-  const [meta, setMeta] = useState<Record<string, { name_en: string; flavors: string[] }>>({});
+  const [mode, setMode] = useState<'basic' | 'story'>('basic'); // 기본(향미·가격) / 스토리(양조·빈티지·와이너리)
+  const [meta, setMeta] = useState<Record<string, WineMeta>>({});
 
   useEffect(() => {
     const codes = items.map((i) => i.code).filter(Boolean);
@@ -90,8 +97,17 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
     <div onClick={onClose} style={overlay}>
       <div onClick={(e) => e.stopPropagation()} style={sheet}>
         <div style={bar}>
+          {/* 스타일 선택: 기본(향미·가격) / 스토리(양조·빈티지·와이너리) */}
+          <div style={{ display: 'flex', border: '1px solid #d4d4d8', borderRadius: 8, overflow: 'hidden' }}>
+            {(['basic', 'story'] as const).map((mo) => (
+              <button key={mo} onClick={() => setMode(mo)} style={{
+                padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: 'none',
+                background: mode === mo ? '#222' : '#fff', color: mode === mo ? '#fff' : '#6b7280',
+              }}>{mo === 'basic' ? '기본' : '스토리(노트)'}</button>
+            ))}
+          </div>
           <button onClick={saveImage} disabled={saving} style={{ ...btn, background: '#222', color: '#fff', border: 'none' }}>
-            {saving ? '이미지 생성 중…' : '이미지로 저장 (카톡 전송용)'}
+            {saving ? '이미지 생성 중…' : '이미지로 저장'}
           </button>
           {record && recorded && (
             <span style={{ alignSelf: 'center', fontSize: 12, color: '#166534', fontWeight: 600 }}>견적 기록됨 ✓</span>
@@ -105,63 +121,25 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
               width: 480, maxWidth: '100%', background: '#fff',
               fontFamily: "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
             }}>
-              {/* 히어로 */}
-              <div style={{ padding: '40px 24px 26px', textAlign: 'center', borderBottom: '1px solid #ebebeb' }}>
-                <div style={{ fontSize: 12, letterSpacing: '0.35em', color: '#8a8a8a', fontWeight: 600 }}>CAVE DE VIN</div>
-                <h1 style={{ fontSize: 24, fontWeight: 700, margin: '12px 0 6px', letterSpacing: '-0.02em', color: '#111' }}>
-                  와인 제안서
-                </h1>
-                <div style={{ fontSize: 13.5, color: '#6b7280' }}>{clientName} · {items.length}종 · {today}</div>
-              </div>
+              {mode === 'story' ? (
+                <div style={{ padding: '38px 30px 24px', textAlign: 'center', background: '#3a2a22', color: '#fff' }}>
+                  <div style={{ fontSize: 11, letterSpacing: '0.4em', color: '#c9b79c', fontWeight: 600 }}>CAVE DE VIN</div>
+                  <h1 style={{ fontSize: 23, fontWeight: 700, margin: '10px 0 5px', letterSpacing: '-0.01em' }}>와인 제안서</h1>
+                  <div style={{ fontSize: 12.5, color: '#d8cbbb' }}>{clientName} · {items.length}종 · {today}</div>
+                </div>
+              ) : (
+                <div style={{ padding: '40px 24px 26px', textAlign: 'center', borderBottom: '1px solid #ebebeb' }}>
+                  <div style={{ fontSize: 12, letterSpacing: '0.35em', color: '#8a8a8a', fontWeight: 600 }}>CAVE DE VIN</div>
+                  <h1 style={{ fontSize: 24, fontWeight: 700, margin: '12px 0 6px', letterSpacing: '-0.02em', color: '#111' }}>와인 제안서</h1>
+                  <div style={{ fontSize: 13.5, color: '#6b7280' }}>{clientName} · {items.length}종 · {today}</div>
+                </div>
+              )}
 
-              {items.map((it, i) => {
-                const m = meta[it.code];
-                const promo = roundTo100(it.supply * (1 - (it.rate || 0)));
-                const pct = it.supply > 0 ? Math.round((1 - promo / it.supply) * 100) : 0;
-                return (
-                  <div key={it.code || i} style={{ padding: '28px 24px', borderBottom: i === items.length - 1 ? 'none' : '1px solid #ebebeb' }}>
-                    <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                      {it.code ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={`/api/sales/wine-img?code=${encodeURIComponent(it.code)}`} alt={it.name}
-                          crossOrigin="anonymous"
-                          // 고정 px 높이 — html-to-image 캡처가 %(maxWidth 등) 크기를 제대로 못 그려
-                          // 병마다 크기가 제각각 되던 문제. 높이 고정 + 너비 auto 로 모든 병을 동일 높이로.
-                          style={{ height: 200, width: 'auto', maxWidth: 300, objectFit: 'contain' }}
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                      ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: 17, fontWeight: 700, color: '#111', letterSpacing: '-0.01em' }}>{it.name}</div>
-                      {m?.name_en && <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{m.name_en}</div>}
-                      {(it.country || it.region) && (
-                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
-                      )}
-                      {m?.flavors?.length > 0 && (
-                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 }}>
-                          {m.flavors.map((f) => (
-                            <span key={f} style={{ fontSize: 11, color: '#6b7280', border: '1px solid #ebebeb', borderRadius: 999, padding: '2px 9px' }}>{f}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 10, marginTop: 16 }}>
-                      {it.supply > promo && (
-                        <span style={{ fontSize: 13, color: '#9ca3af', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{won(it.supply)}원</span>
-                      )}
-                      <span style={{ fontSize: 22, fontWeight: 700, color: '#b23b1c', fontVariantNumeric: 'tabular-nums' }}>{won(promo)}원</span>
-                      {pct > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b23b1c' }}>{pct}%↓</span>}
-                    </div>
-                    {/* 샵·도매: 메인 가격이 최상위 수량티어 기준(60병 등) — 그 기준을 명시하고 하위 티어는 note */}
-                    {it.qty > 1 && (
-                      <div style={{ textAlign: 'center', marginTop: 6, fontSize: 12.5, fontWeight: 700, color: '#374151' }}>
-                        {it.qty}병 기준
-                      </div>
-                    )}
-                    {it.note && <div style={{ textAlign: 'center', marginTop: it.qty > 1 ? 3 : 8, fontSize: 12, color: '#6b7280' }}>{it.note}</div>}
-                  </div>
-                );
-              })}
+              {items.map((it, i) => (
+                mode === 'story'
+                  ? <StoryCard key={it.code || i} it={it} m={meta[it.code]} last={i === items.length - 1} />
+                  : <BasicCard key={it.code || i} it={it} m={meta[it.code]} last={i === items.length - 1} />
+              ))}
 
               <div style={{ padding: '24px 24px 38px', textAlign: 'center', borderTop: '1px solid #ebebeb' }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', letterSpacing: '0.06em' }}>(주)까브드뱅</div>
@@ -174,6 +152,121 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const bottleImg = (code: string) => `/api/sales/wine-img?code=${encodeURIComponent(code)}`;
+
+/** 가격 라인(공통) */
+function PriceLine({ it }: { it: PromoQuoteItem }) {
+  const promo = roundTo100(it.supply * (1 - (it.rate || 0)));
+  const pct = it.supply > 0 ? Math.round((1 - promo / it.supply) * 100) : 0;
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+        {it.supply > promo && (
+          <span style={{ fontSize: 13, color: '#9ca3af', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{won(it.supply)}원</span>
+        )}
+        <span style={{ fontSize: 22, fontWeight: 700, color: '#b23b1c', fontVariantNumeric: 'tabular-nums' }}>{won(promo)}원</span>
+        {pct > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b23b1c' }}>{pct}%↓</span>}
+      </div>
+      {it.qty > 1 && (
+        <div style={{ textAlign: 'center', marginTop: 6, fontSize: 12.5, fontWeight: 700, color: '#374151' }}>{it.qty}병 기준</div>
+      )}
+      {it.note && <div style={{ textAlign: 'center', marginTop: it.qty > 1 ? 3 : 8, fontSize: 12, color: '#6b7280' }}>{it.note}</div>}
+    </>
+  );
+}
+
+/** 기본 스타일 — 병샷 · 향미칩 · 가격 */
+function BasicCard({ it, m, last }: { it: PromoQuoteItem; m?: WineMeta; last: boolean }) {
+  return (
+    <div style={{ padding: '28px 24px', borderBottom: last ? 'none' : '1px solid #ebebeb' }}>
+      <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        {it.code ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bottleImg(it.code)} alt={it.name} crossOrigin="anonymous"
+            style={{ height: 200, width: 'auto', maxWidth: 300, objectFit: 'contain' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#111', letterSpacing: '-0.01em' }}>{it.name}</div>
+        {m?.name_en && <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{m.name_en}</div>}
+        {(it.country || it.region) && (
+          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
+        )}
+        {(m?.flavors?.length ?? 0) > 0 && (
+          <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+            {m!.flavors.map((f) => (
+              <span key={f} style={{ fontSize: 11, color: '#6b7280', border: '1px solid #ebebeb', borderRadius: 999, padding: '2px 9px' }}>{f}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      <PriceLine it={it} />
+    </div>
+  );
+}
+
+/** 노트 섹션(라벨 + 본문) — 내용 없으면 렌더 안 함 */
+function Sec({ label, text }: { label: string; text?: string }) {
+  if (!text || !text.trim()) return null;
+  return (
+    <div style={{ padding: '20px 30px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
+        <span style={{ flex: 1, height: 1, background: '#e6ddd0' }} />
+        <span style={{ fontSize: 11, letterSpacing: '0.2em', color: '#9a7a52', fontWeight: 700 }}>{label}</span>
+        <span style={{ flex: 1, height: 1, background: '#e6ddd0' }} />
+      </div>
+      <div style={{ fontSize: 12.5, lineHeight: 1.7, color: '#4a3f34' }}>{text.trim()}</div>
+    </div>
+  );
+}
+
+/** 스토리 스타일 — 와이너리 로고 · 와이너리 · 양조 · 빈티지 */
+function StoryCard({ it, m, last }: { it: PromoQuoteItem; m?: WineMeta; last: boolean }) {
+  const hasStory = !!(m?.winery || m?.winemaking || m?.vintage);
+  return (
+    <div style={{ padding: '10px 0 24px', borderBottom: last ? 'none' : '1px solid #ebebeb' }}>
+      {m?.has_logo && m.brand_code && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 4px' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code)}`} alt={m.winery_name || ''}
+            crossOrigin="anonymous" style={{ height: 52, width: 'auto', maxWidth: 240, objectFit: 'contain' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        </div>
+      )}
+      {m?.winery_name && (
+        <div style={{ textAlign: 'center', fontSize: 12.5, letterSpacing: '0.05em', color: '#8a6a48', fontWeight: 700, marginTop: 4 }}>
+          {m.winery_name}
+        </div>
+      )}
+      <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0 4px' }}>
+        {it.code ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bottleImg(it.code)} alt={it.name} crossOrigin="anonymous"
+            style={{ height: 280, width: 'auto', maxWidth: 320, objectFit: 'contain' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
+      </div>
+      <div style={{ textAlign: 'center', padding: '0 26px' }}>
+        <div style={{ fontSize: 19, fontWeight: 700, color: '#241a14', letterSpacing: '-0.01em' }}>{it.name}</div>
+        {m?.name_en && <div style={{ fontSize: 12, color: '#b0a08f', marginTop: 4 }}>{m.name_en}</div>}
+        {(it.country || it.region) && (
+          <div style={{ fontSize: 12.5, color: '#7a6a5a', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
+        )}
+      </div>
+      <PriceLine it={it} />
+      <Sec label="WINERY · 와이너리" text={m?.winery} />
+      <Sec label="VINIFICATION · 양조" text={m?.winemaking} />
+      <Sec label="VINTAGE · 빈티지" text={m?.vintage} />
+      {!hasStory && (
+        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 11.5, color: '#b0a08f' }}>
+          · 이 와인은 상세 노트(양조·빈티지·와이너리)가 아직 없어요 ·
+        </div>
+      )}
     </div>
   );
 }
