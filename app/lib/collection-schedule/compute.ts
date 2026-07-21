@@ -64,12 +64,17 @@ function scheduleDue(pt: PaymentType, today: Date, hasEff: boolean): Date | null
 export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const today = new Date(`${todayISO}T00:00:00Z`);
   const pt = c.payment_type;
-  const manualDate = c.promised_date ? new Date(`${c.promised_date}T00:00:00Z`) : null;
+  // 지난 약속(약속일이 오늘 이전)은 이전 수금 사이클의 잔재 — 이번 사이클을 덮어쓰지 않게 무시하고
+  // 결제조건으로 자동 재계산한다. (예: 6월 약속 6/30이 이행됐는데 followup이 open으로 남아 7월 일정을 6/30으로 표기)
+  const rawPromisedDate = c.promised_date ? new Date(`${c.promised_date}T00:00:00Z`) : null;
+  const promiseActive = rawPromisedDate != null && rawPromisedDate >= today;
+  const manualDate = promiseActive ? rawPromisedDate : null;
+  const promisedAmount = promiseActive ? c.promised_amount : null;
 
   // 브리핑 탭에서 직접 정한 예정금액이 있으면 자동계산보다 우선 (분할상환 직접입력 포함).
   // 단 입금예정금액은 총미수를 넘을 수 없음(기납입/반품으로 잔액이 줄어든 경우 캡).
-  if (c.promised_amount != null) {
-    const expected = Math.min(c.promised_amount, c.net_now);
+  if (promisedAmount != null) {
+    const expected = Math.min(promisedAmount, c.net_now);
     return { expected, remain: c.net_now - expected, dueDate: manualDate };
   }
 
