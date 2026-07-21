@@ -45,6 +45,7 @@ import { useQuoteInlineEdit } from './hooks/useQuoteInlineEdit';
 import { useInventorySearch } from './hooks/useInventorySearch';
 import { useInventoryLayout } from './hooks/useInventoryLayout';
 import { useQuoteExports } from './hooks/useQuoteExports';
+import { PromoQuoteOverlay, type PromoQuoteItem } from '@/app/sales/recommend/components/PromoQuoteOverlay';
 
 export default function InventoryPage() {
   const prefs = useServerPreferences();
@@ -64,6 +65,7 @@ export default function InventoryPage() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [clientNameFocused, setClientNameFocused] = useState(false);
   const [showSavedQuotes, setShowSavedQuotes] = useState(false);
+  const [showPromoStyle, setShowPromoStyle] = useState(false);
 
   // ── 도메인 훅 ──
   const { quoteManager, getManagerParam } = useQuoteManager();
@@ -208,6 +210,7 @@ export default function InventoryPage() {
             exports.setNoteMenuOpen(false);
             exports.handleTastingNotesDownload(format);
           }}
+          onPromoStyle={() => setShowPromoStyle(true)}
         />
 
         <div
@@ -302,6 +305,23 @@ export default function InventoryPage() {
           else layout.setQuoteOpen(true);
         }}
       />
+
+      {showPromoStyle && (
+        <PromoQuoteOverlay
+          clientName={quote.clientName || '거래처'}
+          items={quote.quoteItems.map((it): PromoQuoteItem => ({
+            code: it.item_code,
+            name: it.korean_name || it.product_name || it.item_code,
+            country: it.country || '',
+            region: it.region || '',
+            supply: it.supply_price || 0,
+            rate: it.discount_rate || 0,
+            qty: it.quantity || 1,
+            note: it.note || '',
+          }))}
+          onClose={() => setShowPromoStyle(false)}
+        />
+      )}
 
       <ItemLedgerPopup popup={itemLedgerPopup} warehouse={activeTab} />
       <TastingNoteModal

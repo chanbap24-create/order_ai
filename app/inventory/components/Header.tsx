@@ -11,6 +11,7 @@ type Props = {
   hasQuoteItems: boolean;
   exporting: boolean;
   onExport: () => void;
+  onPromoStyle?: () => void; // 프로모션 스타일(마케팅) 제안서
   exportingNotes: boolean;
   noteMenuOpen: boolean;
   setNoteMenuOpen: (v: boolean) => void;
@@ -29,6 +30,7 @@ export function Header({
   hasQuoteItems,
   exporting,
   onExport,
+  onPromoStyle,
   exportingNotes,
   noteMenuOpen,
   setNoteMenuOpen,
@@ -49,6 +51,21 @@ export function Header({
             exporting={exporting}
             onClick={onExport}
           />
+          {onPromoStyle && (
+            <button
+              onClick={onPromoStyle}
+              disabled={!hasQuoteItems}
+              title="현재 견적을 프로모션(마케팅) 스타일 제안서로 — 병샷·향미·할인가 카드, 카톡 이미지 전송"
+              style={{
+                height: 28, padding: "0 12px", borderRadius: 6, border: "1px solid var(--action)",
+                fontSize: 12, fontWeight: 700, cursor: hasQuoteItems ? "pointer" : "not-allowed",
+                background: "var(--surface)", color: hasQuoteItems ? "var(--action)" : "var(--text-muted)",
+                letterSpacing: "0.02em", whiteSpace: "nowrap",
+              }}
+            >
+              프로모션 스타일
+            </button>
+          )}
           <TastingNoteMenu
             disabled={!hasQuoteItems || exportingNotes}
             exporting={exportingNotes}
