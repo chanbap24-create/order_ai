@@ -20,16 +20,18 @@ export async function POST(req: Request) {
   ]);
   const nmap = new Map((notes || []).map((n) => [n.wine_id, n]));
 
-  // 브랜드(와이너리) 로고·이름 — wines.brand(=brand_code) 기준
+  // 브랜드(와이너리) 로고·이름·소개 — wines.brand(=brand_code) 기준. 브랜드자료실의 description을
+  // 와이너리 설명 폴백으로 사용(노트에 없어도 브랜드 소개로 채움).
   const brandCodes = [...new Set((wines || []).map((w) => (w.brand || '').toUpperCase()).filter(Boolean))];
-  const bmap = new Map<string, { name: string; hasLogo: boolean }>();
+  const bmap = new Map<string, { name: string; hasLogo: boolean; description: string }>();
   if (brandCodes.length) {
     const { data: brands } = await supabase
-      .from('brands').select('brand_code, brand_name_en, brand_name_kr, logo_url').in('brand_code', brandCodes);
+      .from('brands').select('brand_code, brand_name_en, brand_name_kr, logo_url, description').in('brand_code', brandCodes);
     for (const b of brands || []) {
       bmap.set((b.brand_code || '').toUpperCase(), {
         name: b.brand_name_en || b.brand_name_kr || '',
         hasLogo: /^https?:\/\//.test(b.logo_url || ''),
+        description: b.description || '',
       });
     }
   }
@@ -55,14 +57,16 @@ export async function POST(req: Request) {
     };
   }
 
-  // 와이너리 설명은 생산자(브랜드) 단위 정보라 같은 브랜드끼리 공유 — 비어 있으면 같은 브랜드의
-  // 채워진 와인에서 승계(같은 와이너리가 연속인데 한쪽만 안 나오던 문제). 양조·빈티지는 와인별이라 승계 X.
+  // 와이너리 설명 폴백(생산자 단위 정보): ① 노트의 winery_description →
+  //   ② 같은 브랜드의 채워진 와인에서 승계 → ③ 브랜드자료실(brands.description).
   const wineryByBrand = new Map<string, string>();
   for (const v of Object.values(map)) {
     if (v.brand_code && v.winery && !wineryByBrand.has(v.brand_code)) wineryByBrand.set(v.brand_code, v.winery);
   }
   for (const v of Object.values(map)) {
-    if (!v.winery && v.brand_code && wineryByBrand.has(v.brand_code)) v.winery = wineryByBrand.get(v.brand_code)!;
+    if (v.winery) continue;
+    if (v.brand_code && wineryByBrand.has(v.brand_code)) v.winery = wineryByBrand.get(v.brand_code)!;
+    else if (v.brand_code) v.winery = bmap.get(v.brand_code)?.description || '';
   }
 
   return NextResponse.json({ map });
