@@ -3,7 +3,8 @@
 //       분할상환(manual)=금액은 사장님 직접입력(공란), 예정일만 계산.
 // 입금예정일은 엑셀 원본과 동일하게 '오늘 기준 이번달/익월 중 안 지난 occurrence'(평일보정).
 
-export type PaymentType = 'prepay' | 'eom' | 'nm5' | 'nm10' | 'nm15' | 'nm20' | 'nme';
+export type PaymentType = 'prepay' | 'eom' | 'nm5' | 'nm10' | 'nm15' | 'nm20' | 'nm25' | 'nme'
+  | 'nnm10' | 'nnm15' | 'nnme'; // 익익월(입고 +2개월) — 수금일 주기는 매월 동일, 마감(cl_d)만 RPC에서 2달 전
 
 export interface ScheduleClient {
   client_code: string;
@@ -29,7 +30,10 @@ export interface ScheduleCols {
   dueDate: Date | null;      // 입금예정일
 }
 
-const NM_DAY: Partial<Record<PaymentType, number>> = { nm5: 5, nm10: 10, nm15: 15, nm20: 20 };
+// 수금일(N일) 매핑 — 익익월(nnm)도 매월 같은 N일 주기라 동일 취급(마감시점만 RPC cl_d가 2달 전).
+const NM_DAY: Partial<Record<PaymentType, number>> = { nm5: 5, nm10: 10, nm15: 15, nm20: 20, nm25: 25, nnm10: 10, nnm15: 15 };
+// 말일류(이달 말일에 수금) — eom·nme·nnme 공통 처리
+const MONTH_END_TYPES = new Set<PaymentType>(['eom', 'nme', 'nnme']);
 
 function lastWorkday(y: number, m0: number): Date {
   const d = new Date(Date.UTC(y, m0 + 1, 0)); // 그 달 마지막 날
@@ -50,7 +54,7 @@ function scheduleDue(pt: PaymentType, today: Date, hasEff: boolean): Date | null
   const y = today.getUTCFullYear(), m0 = today.getUTCMonth();
   const ny = m0 === 11 ? y + 1 : y, nm0 = m0 === 11 ? 0 : m0 + 1;
   if (pt === 'eom') return lastWorkday(y, m0);
-  if (pt === 'nme') {
+  if (pt === 'nme' || pt === 'nnme') {
     const thisEnd = lastWorkday(y, m0);
     return (hasEff && thisEnd >= today) ? thisEnd : lastWorkday(ny, nm0);
   }
@@ -93,11 +97,11 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
     return { expected, remain: c.net_now - expected, dueDate: due };
   }
 
-  // 익월(nm5/10/15/20, nme): 이번달 수금일이 아직 안 지났고 이월분이 있으면 → 이월분만 이번 수금일에
+  // 익월/익익월(nm·nnm·nme·nnme): 이번달 수금일이 아직 안 지났고 이월분이 있으면 → 이월분만 이번 수금일에
   //   (당월 신규는 미수잔액). 수금일이 이미 지나 다음달로 넘어갔으면 → 이달 신규 포함 '전액'을 다음 수금일에.
   //   (버그: 이월분이 900만 남고 수금일은 다음달인데 예정금액을 900으로 고정하고 신규매출을 미수잔액으로 빼던 문제)
   const y = today.getUTCFullYear(), m0 = today.getUTCMonth();
-  const thisOcc = pt === 'nme'
+  const thisOcc = MONTH_END_TYPES.has(pt)
     ? lastWorkday(y, m0)
     : (NM_DAY[pt] ? workdayOnOrAfter(y, m0, NM_DAY[pt]!) : null);
   const thisCycle = eff > 0 && thisOcc != null && thisOcc >= today;

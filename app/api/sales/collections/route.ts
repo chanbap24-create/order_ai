@@ -3,6 +3,7 @@ import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
 import { isValidClientCode } from '@/app/lib/validators';
 import { requireClientAccess } from '@/app/lib/authz';
+import { PAYMENT_TYPES } from '@/app/sales/outstanding/lib/dueDate';
 
 // 수금 워크플로우(독촉 단계·약속일·메모) — collection_followups CRUD.
 // 거래처별 1행(client_code+client_type) upsert. 까브드뱅/대유라이프 분리.
@@ -52,7 +53,7 @@ export async function PUT(req: NextRequest) {
     // 매니저: 관리자는 body 지정 가능, 일반 영업자는 본인.
     const manager = isAdmin(session.role) ? (body.manager || session.manager) : session.manager;
 
-    const PAY_TYPES = ['prepay', 'eom', 'nm5', 'nm10', 'nm15', 'nm20', 'nme'];
+    const PAY_TYPES: string[] = PAYMENT_TYPES; // 정본 목록(익월25·익익월 포함)
     // 부분 업데이트: body 에 들어온 필드만 갱신(나머지 컬럼은 기존값 유지).
     // 결제일 설정 화면에서 payment_type 만 바꿔도 독촉/약속/메모가 지워지지 않도록.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -25,10 +25,10 @@ function PaymentTermRowBase({ clientCode, clientName, paymentType, saving, onSel
       padding: '10px 14px', borderBottom: '1px solid var(--border-subtle)',
       opacity: saving ? 0.5 : 1,
     }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0, flex: '0 1 240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0, flex: '0 1 200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {clientName}
       </div>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 3, flexWrap: 'nowrap', justifyContent: 'flex-end', minWidth: 0 }}>
         {opts.map(o => {
           const active = (paymentType ?? null) === o.value;
           return (
@@ -48,11 +48,12 @@ function PaymentTermRowBase({ clientCode, clientName, paymentType, saving, onSel
 
 function btnStyle(active: boolean, isNone: boolean): CSSProperties {
   return {
-    padding: '6px 12px', fontSize: 13, fontWeight: active ? 700 : 500, borderRadius: 7, cursor: 'pointer',
+    // 결제조건 옵션이 11개라 한 줄에 들어가게 패딩·폰트 축소
+    padding: '5px 7px', fontSize: 11.5, fontWeight: active ? 700 : 500, borderRadius: 6, cursor: 'pointer',
     border: `1px solid ${active ? 'var(--action)' : 'var(--border-default)'}`,
     background: active ? 'var(--action)' : 'var(--surface)',
     color: active ? '#fff' : isNone ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'nowrap', flexShrink: 0,
   };
 }
 
