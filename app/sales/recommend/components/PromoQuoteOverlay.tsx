@@ -51,10 +51,22 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
     if (!capRef.current || saving) return;
     setSaving(true);
     try {
+      // 캡처 전 모든 이미지 로드 완료 대기 — 안 하면 화면엔 보여도 캡처엔 병샷/로고가 빠짐(화면≠다운로드)
+      const imgs = Array.from(capRef.current.querySelectorAll('img'));
+      await Promise.all(imgs.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise<void>((res) => {
+          const done = () => res();
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+        });
+      }));
+
       const { toJpeg } = await import('html-to-image');
-      const dataUrl = await toJpeg(capRef.current, {
-        quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', cacheBust: true, skipFonts: true,
-      });
+      const opts = { quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', cacheBust: true, skipFonts: true };
+      // 첫 회는 이미지 캐시 워밍용(버림), 두 번째가 실제 — html-to-image 이미지 누락 방지 관용 패턴
+      await toJpeg(capRef.current, opts);
+      const dataUrl = await toJpeg(capRef.current, opts);
       const bin = atob(dataUrl.split(',')[1]);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);

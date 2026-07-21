@@ -54,5 +54,16 @@ export async function POST(req: Request) {
       has_logo: !!b?.hasLogo,
     };
   }
+
+  // 와이너리 설명은 생산자(브랜드) 단위 정보라 같은 브랜드끼리 공유 — 비어 있으면 같은 브랜드의
+  // 채워진 와인에서 승계(같은 와이너리가 연속인데 한쪽만 안 나오던 문제). 양조·빈티지는 와인별이라 승계 X.
+  const wineryByBrand = new Map<string, string>();
+  for (const v of Object.values(map)) {
+    if (v.brand_code && v.winery && !wineryByBrand.has(v.brand_code)) wineryByBrand.set(v.brand_code, v.winery);
+  }
+  for (const v of Object.values(map)) {
+    if (!v.winery && v.brand_code && wineryByBrand.has(v.brand_code)) v.winery = wineryByBrand.get(v.brand_code)!;
+  }
+
   return NextResponse.json({ map });
 }
