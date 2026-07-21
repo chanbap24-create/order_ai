@@ -51,22 +51,32 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
     if (!capRef.current || saving) return;
     setSaving(true);
     try {
-      // 캡처 전 모든 이미지 로드 완료 대기 — 안 하면 화면엔 보여도 캡처엔 병샷/로고가 빠짐(화면≠다운로드)
+      // 각 이미지를 미리 data URL로 인라인 — html-to-image가 내부적으로 이미지를 가져오는 과정에서
+      // 로고/병샷이 섞이거나 첫 이미지로 통일되던 문제(화면≠다운로드)를 원천 차단.
       const imgs = Array.from(capRef.current.querySelectorAll('img'));
-      await Promise.all(imgs.map((img) => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-        return new Promise<void>((res) => {
-          const done = () => res();
-          img.addEventListener('load', done, { once: true });
-          img.addEventListener('error', done, { once: true });
-        });
+      await Promise.all(imgs.map(async (img) => {
+        try {
+          const src = img.getAttribute('src') || '';
+          if (src.startsWith('data:')) return;
+          const res = await fetch(src);
+          if (!res.ok) return;
+          const blob = await res.blob();
+          const dataUrl: string = await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(fr.result as string);
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+          });
+          img.src = dataUrl;
+          await img.decode().catch(() => {});
+        } catch { /* 실패한 이미지는 onError로 숨겨짐 */ }
       }));
 
       const { toJpeg } = await import('html-to-image');
-      const opts = { quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', cacheBust: true, skipFonts: true };
-      // 첫 회는 이미지 캐시 워밍용(버림), 두 번째가 실제 — html-to-image 이미지 누락 방지 관용 패턴
-      await toJpeg(capRef.current, opts);
-      const dataUrl = await toJpeg(capRef.current, opts);
+      // 이미지를 이미 인라인했으니 cacheBust·중복 렌더 불필요(그게 섞임의 원인이었음)
+      const dataUrl = await toJpeg(capRef.current, {
+        quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true,
+      });
       const bin = atob(dataUrl.split(',')[1]);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
