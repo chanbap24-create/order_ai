@@ -180,8 +180,13 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
 
 const bottleImg = (code: string) => `/api/sales/wine-img?code=${encodeURIComponent(code)}`;
 
-/** 가격 라인(공통) */
+/** 가격 라인(공통) — 공급가가 없으면(견적 컬럼 미기입) 가격/할인 표기 자체를 생략. */
 function PriceLine({ it }: { it: PromoQuoteItem }) {
+  if (!(it.supply > 0)) {
+    return it.note
+      ? <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: '#6b7280' }}>{it.note}</div>
+      : null;
+  }
   const promo = roundTo100(it.supply * (1 - (it.rate || 0)));
   const pct = it.supply > 0 ? Math.round((1 - promo / it.supply) * 100) : 0;
   return (
