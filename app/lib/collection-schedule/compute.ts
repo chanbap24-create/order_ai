@@ -87,9 +87,21 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const eff = Math.max(c.net_close - c.period_payment, 0);
   const due = manualDate ?? scheduleDue(pt, today, eff > 0);
 
-  // 월말: 미수 전액 / 익월: 남은 이월분(있으면) 없으면 현미수(이번달 출고분, 기납입 제외).
-  // 입금예정금액은 총미수를 넘을 수 없음.
-  const raw = pt === 'eom' ? c.net_now : (eff > 0 ? eff : c.net_now);
+  if (pt === 'eom') {
+    // 월말: 미수 전액을 이달 말일에.
+    const expected = c.net_now;
+    return { expected, remain: c.net_now - expected, dueDate: due };
+  }
+
+  // 익월(nm5/10/15/20, nme): 이번달 수금일이 아직 안 지났고 이월분이 있으면 → 이월분만 이번 수금일에
+  //   (당월 신규는 미수잔액). 수금일이 이미 지나 다음달로 넘어갔으면 → 이달 신규 포함 '전액'을 다음 수금일에.
+  //   (버그: 이월분이 900만 남고 수금일은 다음달인데 예정금액을 900으로 고정하고 신규매출을 미수잔액으로 빼던 문제)
+  const y = today.getUTCFullYear(), m0 = today.getUTCMonth();
+  const thisOcc = pt === 'nme'
+    ? lastWorkday(y, m0)
+    : (NM_DAY[pt] ? workdayOnOrAfter(y, m0, NM_DAY[pt]!) : null);
+  const thisCycle = eff > 0 && thisOcc != null && thisOcc >= today;
+  const raw = thisCycle ? eff : c.net_now;
   const expected = Math.min(raw, c.net_now);
   return { expected, remain: c.net_now - expected, dueDate: due };
 }
