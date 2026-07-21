@@ -213,6 +213,14 @@ function PriceLine({ it, showSupply, showRate }: { it: PromoQuoteItem; showSuppl
 function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; m?: WineMeta; last: boolean; showSupply: boolean; showRate: boolean }) {
   return (
     <div style={{ padding: '28px 24px', borderBottom: last ? 'none' : '1px solid #ebebeb' }}>
+      {m?.has_logo && m.brand_code && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code)}`} alt={m.winery_name || ''}
+            crossOrigin="anonymous" style={{ height: 44, width: 'auto', maxWidth: 220, objectFit: 'contain' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        </div>
+      )}
       <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
