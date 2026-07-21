@@ -320,6 +320,8 @@ export default function InventoryPage() {
             note: it.note || '',
           }))}
           record={{ clientCode: quote.clientCode, company: activeTab, manager: getManagerParam() }}
+          showSupply={visibleQuoteColumns.includes('supply_price')}
+          showRate={visibleQuoteColumns.includes('discount_rate')}
           onClose={() => setShowPromoStyle(false)}
         />
       )}

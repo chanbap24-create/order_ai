@@ -25,11 +25,13 @@ const won = (n: number) => n.toLocaleString('ko-KR');
 
 /** 추천 견적을 프로모션 상세페이지 스타일로 렌더 + 이미지 저장. 로그인 세션 안에서만 동작(공개 URL 없음).
  *  record(거래처코드·회사·담당자)가 주어지면 이미지 저장 시 saved_quotes에도 1회 기록 → 견적성과·전환에 카운트. */
-export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
+export function PromoQuoteOverlay({ clientName, items, onClose, record, showSupply = true, showRate = true }: {
   clientName: string;
   items: PromoQuoteItem[];
   onClose: () => void;
   record?: { clientCode: string | null; company: 'CDV' | 'DL'; manager: string };
+  showSupply?: boolean; // 견적 컬럼에 공급가(정가)가 보일 때만 정가 취소선 표기
+  showRate?: boolean;   // 견적 컬럼에 할인율이 보일 때만 할인율(%) 표기
 }) {
   const capRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
@@ -159,8 +161,8 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
 
               {items.map((it, i) => (
                 mode === 'story'
-                  ? <StoryCard key={it.code || i} it={it} m={meta[it.code]} last={i === items.length - 1} />
-                  : <BasicCard key={it.code || i} it={it} m={meta[it.code]} last={i === items.length - 1} />
+                  ? <StoryCard key={it.code || i} it={it} m={meta[it.code]} last={i === items.length - 1} showSupply={showSupply} showRate={showRate} />
+                  : <BasicCard key={it.code || i} it={it} m={meta[it.code]} last={i === items.length - 1} showSupply={showSupply} showRate={showRate} />
               ))}
 
               <div style={{ padding: '24px 24px 38px', textAlign: 'center', borderTop: '1px solid #ebebeb' }}>
@@ -180,8 +182,9 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
 
 const bottleImg = (code: string) => `/api/sales/wine-img?code=${encodeURIComponent(code)}`;
 
-/** 가격 라인(공통) — 공급가가 없으면(견적 컬럼 미기입) 가격/할인 표기 자체를 생략. */
-function PriceLine({ it }: { it: PromoQuoteItem }) {
+/** 가격 라인(공통) — 견적 컬럼에서 숨긴 항목(공급가 취소선·할인율)은 프로모션에서도 생략.
+ *  공급가가 아예 없으면(supply=0) 가격 표기 전체 생략. */
+function PriceLine({ it, showSupply, showRate }: { it: PromoQuoteItem; showSupply: boolean; showRate: boolean }) {
   if (!(it.supply > 0)) {
     return it.note
       ? <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: '#6b7280' }}>{it.note}</div>
@@ -192,11 +195,11 @@ function PriceLine({ it }: { it: PromoQuoteItem }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 10, marginTop: 16 }}>
-        {it.supply > promo && (
+        {showSupply && it.supply > promo && (
           <span style={{ fontSize: 13, color: '#9ca3af', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{won(it.supply)}원</span>
         )}
         <span style={{ fontSize: 22, fontWeight: 700, color: '#b23b1c', fontVariantNumeric: 'tabular-nums' }}>{won(promo)}원</span>
-        {pct > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b23b1c' }}>{pct}%↓</span>}
+        {showRate && pct > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b23b1c' }}>{pct}%↓</span>}
       </div>
       {it.qty > 1 && (
         <div style={{ textAlign: 'center', marginTop: 6, fontSize: 12.5, fontWeight: 700, color: '#374151' }}>{it.qty}병 기준</div>
@@ -207,7 +210,7 @@ function PriceLine({ it }: { it: PromoQuoteItem }) {
 }
 
 /** 기본 스타일 — 병샷 · 향미칩 · 가격 */
-function BasicCard({ it, m, last }: { it: PromoQuoteItem; m?: WineMeta; last: boolean }) {
+function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; m?: WineMeta; last: boolean; showSupply: boolean; showRate: boolean }) {
   return (
     <div style={{ padding: '28px 24px', borderBottom: last ? 'none' : '1px solid #ebebeb' }}>
       <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
@@ -232,7 +235,7 @@ function BasicCard({ it, m, last }: { it: PromoQuoteItem; m?: WineMeta; last: bo
           </div>
         )}
       </div>
-      <PriceLine it={it} />
+      <PriceLine it={it} showSupply={showSupply} showRate={showRate} />
     </div>
   );
 }
@@ -253,7 +256,7 @@ function Sec({ label, text }: { label: string; text?: string }) {
 }
 
 /** 스토리 스타일 — 와이너리 로고 · 와이너리 · 양조 · 빈티지 */
-function StoryCard({ it, m, last }: { it: PromoQuoteItem; m?: WineMeta; last: boolean }) {
+function StoryCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; m?: WineMeta; last: boolean; showSupply: boolean; showRate: boolean }) {
   const hasStory = !!(m?.winery || m?.winemaking || m?.vintage);
   return (
     <div style={{ padding: '10px 0 24px', borderBottom: last ? 'none' : '1px solid #ebebeb' }}>
@@ -285,7 +288,7 @@ function StoryCard({ it, m, last }: { it: PromoQuoteItem; m?: WineMeta; last: bo
           <div style={{ fontSize: 12.5, color: '#7a6a5a', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
         )}
       </div>
-      <PriceLine it={it} />
+      <PriceLine it={it} showSupply={showSupply} showRate={showRate} />
       <Sec label="WINERY · 와이너리" text={m?.winery} />
       <Sec label="VINIFICATION · 양조" text={m?.winemaking} />
       <Sec label="VINTAGE · 빈티지" text={m?.vintage} />
