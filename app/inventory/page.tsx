@@ -319,6 +319,7 @@ export default function InventoryPage() {
             qty: it.quantity || 1,
             note: it.note || '',
           }))}
+          record={{ clientCode: quote.clientCode, company: activeTab, manager: getManagerParam() }}
           onClose={() => setShowPromoStyle(false)}
         />
       )}

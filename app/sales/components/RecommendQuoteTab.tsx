@@ -334,6 +334,7 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
         <PromoQuoteOverlay
           clientName={cs.selectedClient.client_name}
           items={promoItems}
+          record={{ clientCode: cs.selectedClient.client_code || null, company: 'CDV', manager: currentManager }}
           onClose={() => setPromoOpen(false)}
         />
       )}

@@ -17,14 +17,17 @@ export type PromoQuoteItem = {
 
 const won = (n: number) => n.toLocaleString('ko-KR');
 
-/** 추천 견적을 프로모션 상세페이지 스타일로 렌더 + 이미지 저장. 로그인 세션 안에서만 동작(공개 URL 없음). */
-export function PromoQuoteOverlay({ clientName, items, onClose }: {
+/** 추천 견적을 프로모션 상세페이지 스타일로 렌더 + 이미지 저장. 로그인 세션 안에서만 동작(공개 URL 없음).
+ *  record(거래처코드·회사·담당자)가 주어지면 이미지 저장 시 saved_quotes에도 1회 기록 → 견적성과·전환에 카운트. */
+export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
   clientName: string;
   items: PromoQuoteItem[];
   onClose: () => void;
+  record?: { clientCode: string | null; company: 'CDV' | 'DL'; manager: string };
 }) {
   const capRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const [recorded, setRecorded] = useState(false); // 이중 카운트 방지(1회만 기록)
   const [meta, setMeta] = useState<Record<string, { name_en: string; flavors: string[] }>>({});
 
   useEffect(() => {
@@ -51,6 +54,31 @@ export function PromoQuoteOverlay({ clientName, items, onClose }: {
       const blob = new Blob([bytes], { type: 'image/jpeg' });
       const safe = clientName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 30);
       await shareOrDownloadFile(blob, `제안서_${today.replace(/-/g, '')}_${safe}.jpg`, 'image/jpeg');
+
+      // 견적 이력 기록(1회) — 견적성과·전환 카운트에 잡히게. 이미지 저장 실패 시엔 기록 안 함.
+      if (record && !recorded && items.length > 0) {
+        try {
+          const savedItems = items.map((it) => ({
+            item_code: it.code,
+            korean_name: it.name,
+            country: it.country,
+            region: it.region,
+            supply_price: it.supply,
+            discount_rate: it.rate,
+            discounted_price: roundTo100(it.supply * (1 - (it.rate || 0))),
+            quantity: it.qty || 1,
+            note: it.note || '',
+          }));
+          const r = await fetch('/api/quote/saved', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              manager: record.manager, client_code: record.clientCode,
+              client_name: clientName, company: record.company, items: savedItems,
+            }),
+          });
+          if (r.ok) setRecorded(true);
+        } catch { /* 기록 실패는 이미지 저장 자체엔 영향 없음 */ }
+      }
     } catch {
       alert('이미지 저장에 실패했습니다.');
     } finally {
@@ -65,6 +93,9 @@ export function PromoQuoteOverlay({ clientName, items, onClose }: {
           <button onClick={saveImage} disabled={saving} style={{ ...btn, background: '#222', color: '#fff', border: 'none' }}>
             {saving ? '이미지 생성 중…' : '이미지로 저장 (카톡 전송용)'}
           </button>
+          {record && recorded && (
+            <span style={{ alignSelf: 'center', fontSize: 12, color: '#166534', fontWeight: 600 }}>견적 기록됨 ✓</span>
+          )}
           <button onClick={onClose} style={btn}>닫기</button>
         </div>
 
