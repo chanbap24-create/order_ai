@@ -118,7 +118,13 @@ export function PromoQuoteOverlay({ clientName, items, onClose }: {
                       <span style={{ fontSize: 22, fontWeight: 700, color: '#b23b1c', fontVariantNumeric: 'tabular-nums' }}>{won(promo)}원</span>
                       {pct > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b23b1c' }}>{pct}%↓</span>}
                     </div>
-                    {it.note && <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: '#6b7280' }}>{it.note}</div>}
+                    {/* 샵·도매: 메인 가격이 최상위 수량티어 기준(60병 등) — 그 기준을 명시하고 하위 티어는 note */}
+                    {it.qty > 1 && (
+                      <div style={{ textAlign: 'center', marginTop: 6, fontSize: 12.5, fontWeight: 700, color: '#374151' }}>
+                        {it.qty}병 기준
+                      </div>
+                    )}
+                    {it.note && <div style={{ textAlign: 'center', marginTop: it.qty > 1 ? 3 : 8, fontSize: 12, color: '#6b7280' }}>{it.note}</div>}
                   </div>
                 );
               })}
