@@ -114,7 +114,8 @@ function PromoCard({ it, last }: { it: PromoPageItem; last: boolean }) {
             src={`/api/promo/img?item=${encodeURIComponent(it.item_no)}`}
             alt={it.name_kr}
             crossOrigin="anonymous"
-            style={{ maxHeight: '100%', maxWidth: '70%', objectFit: 'contain' }}
+            // 고정 px 높이 — html-to-image 캡처가 %(maxWidth 등) 크기를 제대로 못 그려 병 크기가 제각각 되던 문제
+            style={{ height: 210, width: 'auto', maxWidth: 300, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         ) : (

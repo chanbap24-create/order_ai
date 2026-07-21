@@ -124,7 +124,10 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record }: {
                       {it.code ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={`/api/sales/wine-img?code=${encodeURIComponent(it.code)}`} alt={it.name}
-                          crossOrigin="anonymous" style={{ maxHeight: '100%', maxWidth: '68%', objectFit: 'contain' }}
+                          crossOrigin="anonymous"
+                          // 고정 px 높이 — html-to-image 캡처가 %(maxWidth 등) 크기를 제대로 못 그려
+                          // 병마다 크기가 제각각 되던 문제. 높이 고정 + 너비 auto 로 모든 병을 동일 높이로.
+                          style={{ height: 200, width: 'auto', maxWidth: 300, objectFit: 'contain' }}
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                       ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
                     </div>
