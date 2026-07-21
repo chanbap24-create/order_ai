@@ -217,7 +217,7 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code)}`} alt={m.winery_name || ''}
-            crossOrigin="anonymous" style={{ height: 44, width: 'auto', maxWidth: 220, objectFit: 'contain' }}
+            crossOrigin="anonymous" style={{ height: 52, width: 'auto', maxWidth: 240, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         </div>
       )}
@@ -226,11 +226,11 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
           {m.winery_name}
         </div>
       )}
-      <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+      <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={bottleImg(it.code)} alt={it.name} crossOrigin="anonymous"
-            style={{ height: 200, width: 'auto', maxWidth: 300, objectFit: 'contain' }}
+            style={{ height: 280, width: 'auto', maxWidth: 320, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
       </div>
