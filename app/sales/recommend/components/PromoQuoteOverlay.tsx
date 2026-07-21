@@ -221,6 +221,11 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         </div>
       )}
+      {m?.winery_name && (
+        <div style={{ textAlign: 'center', fontSize: 12, letterSpacing: '0.05em', color: '#8a6a48', fontWeight: 700, marginBottom: 8 }}>
+          {m.winery_name}
+        </div>
+      )}
       <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
