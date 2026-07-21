@@ -115,6 +115,7 @@ function PromoCard({ it, last }: { it: PromoPageItem; last: boolean }) {
             alt={it.name_kr}
             crossOrigin="anonymous"
             style={{ maxHeight: '100%', maxWidth: '70%', objectFit: 'contain' }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         ) : (
           <div style={{ fontSize: 44, opacity: 0.15 }}>🍷</div>
