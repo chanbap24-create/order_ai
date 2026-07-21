@@ -346,7 +346,10 @@ function Cell({
     >
       {isEditing ? (
         <input
-          type={col.type === "number" || col.type === "percent" ? "number" : "text"}
+          // 숫자 컬럼도 type="text"+inputMode 로 — number 타입은 select()(전체선택)가 막힘.
+          // 커밋 시 parseInt/parseFloat 파싱이라 text여도 안전.
+          type="text"
+          inputMode={col.type === "number" || col.type === "percent" ? "decimal" : "text"}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={commitEdit}
@@ -355,6 +358,8 @@ function Cell({
             if (e.key === "Escape") setEditCell(null);
           }}
           autoFocus
+          // 셀 진입 시 기존 값 전체선택 → 숫자를 바로 타이핑하면 덮어쓰임
+          onFocus={(e) => e.currentTarget.select()}
           style={{
             width: "100%",
             fontSize: 13,

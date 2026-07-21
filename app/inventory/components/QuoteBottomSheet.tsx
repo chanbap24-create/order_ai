@@ -68,7 +68,9 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
           <div>
             <label style={labelStyle}>수량</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
+              onFocus={(e) => e.currentTarget.select()}
               value={values.quantity}
               onChange={(e) => setValues((v) => ({ ...v, quantity: e.target.value }))}
               style={sheetInputStyle}
@@ -78,7 +80,9 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
           <div>
             <label style={labelStyle}>할인율 (%)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
+              onFocus={(e) => e.currentTarget.select()}
               value={values.discount_rate}
               onChange={(e) => {
                 const rate = parseInt(e.target.value) || 0;
@@ -97,7 +101,9 @@ export function QuoteBottomSheet({ item, values, setValues, onClose, onSave }: P
           <div>
             <label style={labelStyle}>할인가 (원)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
+              onFocus={(e) => e.currentTarget.select()}
               value={values.discounted_price}
               onChange={(e) => {
                 const dp = parseInt(e.target.value) || 0;
