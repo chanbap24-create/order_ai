@@ -221,7 +221,7 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logoImg(m)} alt={m.winery_name || ''}
-            crossOrigin="anonymous" style={{ height: 52, width: 'auto', maxWidth: 240, objectFit: 'contain' }}
+            crossOrigin="anonymous" style={{ height: 'auto', width: 'auto', maxHeight: 74, maxWidth: 210, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         </div>
       )}
@@ -281,7 +281,7 @@ function StoryCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
         <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 4px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logoImg(m)} alt={m.winery_name || ''}
-            crossOrigin="anonymous" style={{ height: 52, width: 'auto', maxWidth: 240, objectFit: 'contain' }}
+            crossOrigin="anonymous" style={{ height: 'auto', width: 'auto', maxHeight: 74, maxWidth: 210, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         </div>
       )}
