@@ -3,6 +3,13 @@ import { getSession } from '@/app/lib/auth';
 import { supabase } from '@/app/lib/db';
 import { flavorLabel } from '@/app/api/sales/recommend/lib/flavor';
 
+// 문자열 → 짧은 캐시버스트 토큰(djb2, base36). 로고 URL이 바뀌면 토큰이 달라져 브라우저 캐시가 무효화됨.
+function hash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
 // 프로모션 스타일 견적 카드 보강 — 품번별 영문명·향미(기본 스타일) + 양조·빈티지·와이너리·로고(스토리 스타일).
 // 세일즈 세션 필요. image_url·가격은 추천 결과에 이미 있어 여기선 다루지 않음.
 export async function POST(req: Request) {
@@ -23,7 +30,7 @@ export async function POST(req: Request) {
   // 브랜드(와이너리) 로고·이름·소개 — wines.brand(=brand_code) 기준. 브랜드자료실의 description을
   // 와이너리 설명 폴백으로 사용(노트에 없어도 브랜드 소개로 채움).
   const brandCodes = [...new Set((wines || []).map((w) => (w.brand || '').toUpperCase()).filter(Boolean))];
-  const bmap = new Map<string, { name: string; hasLogo: boolean; description: string }>();
+  const bmap = new Map<string, { name: string; hasLogo: boolean; description: string; logoVer: string }>();
   if (brandCodes.length) {
     const { data: brands } = await supabase
       .from('brands').select('brand_code, brand_name_en, brand_name_kr, logo_url, description').in('brand_code', brandCodes);
@@ -32,6 +39,7 @@ export async function POST(req: Request) {
         name: b.brand_name_en || b.brand_name_kr || '',
         hasLogo: /^(https?:\/\/|data:image\/)/.test(b.logo_url || ''),
         description: b.description || '',
+        logoVer: hash(b.logo_url || ''), // 로고 URL 변경 시 캐시 무효화용 토큰
       });
     }
   }
@@ -39,7 +47,7 @@ export async function POST(req: Request) {
   const map: Record<string, {
     name_en: string; flavors: string[];
     winemaking: string; vintage: string; winery: string;
-    brand_code: string; winery_name: string; has_logo: boolean;
+    brand_code: string; winery_name: string; has_logo: boolean; logo_ver: string;
   }> = {};
   for (const w of wines || []) {
     const n = nmap.get(w.item_code);
@@ -54,6 +62,7 @@ export async function POST(req: Request) {
       brand_code: bc,
       winery_name: b?.name || '',
       has_logo: !!b?.hasLogo,
+      logo_ver: b?.logoVer || '',
     };
   }
 

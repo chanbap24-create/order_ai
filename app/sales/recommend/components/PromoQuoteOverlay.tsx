@@ -18,8 +18,12 @@ export type PromoQuoteItem = {
 type WineMeta = {
   name_en: string; flavors: string[];
   winemaking?: string; vintage?: string; winery?: string;
-  brand_code?: string; winery_name?: string; has_logo?: boolean;
+  brand_code?: string; winery_name?: string; has_logo?: boolean; logo_ver?: string;
 };
+
+/** 와이너리 로고 프록시 URL — logo_ver를 붙여 로고 교체 시 브라우저 캐시 무효화 */
+const logoImg = (m: WineMeta) =>
+  `/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code || '')}${m.logo_ver ? `&v=${m.logo_ver}` : ''}`;
 
 const won = (n: number) => n.toLocaleString('ko-KR');
 
@@ -216,7 +220,7 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       {m?.has_logo && m.brand_code && (
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code)}`} alt={m.winery_name || ''}
+          <img src={logoImg(m)} alt={m.winery_name || ''}
             crossOrigin="anonymous" style={{ height: 52, width: 'auto', maxWidth: 240, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         </div>
@@ -276,7 +280,7 @@ function StoryCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       {m?.has_logo && m.brand_code && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0 4px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code)}`} alt={m.winery_name || ''}
+          <img src={logoImg(m)} alt={m.winery_name || ''}
             crossOrigin="anonymous" style={{ height: 52, width: 'auto', maxWidth: 240, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         </div>
