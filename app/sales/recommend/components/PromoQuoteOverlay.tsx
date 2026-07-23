@@ -78,18 +78,36 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record, showSupp
         } catch { /* 실패한 이미지는 onError로 숨겨짐 */ }
       }));
 
-      const { toJpeg } = await import('html-to-image');
+      const { toJpeg, toSvg } = await import('html-to-image');
       // 이미지를 이미 인라인했으니 cacheBust 불필요(그게 섞임의 원인이었음).
-      const opts = { quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true };
-      // iOS/Safari는 foreignObject 안 이미지를 첫 렌더에 안 그리는 버그가 있어(모바일에서
-      // 병샷·로고 누락) 워밍업 렌더 2회 후 최종 캡처. 이미지가 전부 data URL이라 섞임 위험 없음.
       const isSafari = typeof navigator !== 'undefined'
         && /iP(hone|ad|od)|^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      let dataUrl: string;
       if (isSafari) {
-        await toJpeg(capRef.current, opts);
-        await toJpeg(capRef.current, opts);
+        // Safari는 foreignObject SVG 내부 이미지를 비동기 디코드해 toJpeg 반복으로도 병샷·로고가
+        // 빠짐 → SVG를 한 번 만들고 "같은" 이미지를 지연을 두고 여러 번 그려 마지막 프레임을 사용.
+        const el = capRef.current;
+        const w = el.offsetWidth, h = el.scrollHeight;
+        // iOS 캔버스 면적 상한(약 16MP) 넘지 않게 배율 자동 조정
+        const ratio = Math.min(3, Math.sqrt(16_000_000 / Math.max(1, w * h)));
+        const svgUrl = await toSvg(el, { backgroundColor: '#ffffff', skipFonts: true });
+        const img = new Image();
+        img.src = svgUrl;
+        await img.decode().catch(() => new Promise((r) => { img.onload = r; img.onerror = r; }));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+        const ctx = canvas.getContext('2d')!;
+        for (let i = 0; i < 3; i++) {
+          await new Promise((r) => setTimeout(r, 350));
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        }
+        dataUrl = canvas.toDataURL('image/jpeg', 0.98);
+      } else {
+        dataUrl = await toJpeg(capRef.current, {
+          quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true,
+        });
       }
-      const dataUrl = await toJpeg(capRef.current, opts);
       const bin = atob(dataUrl.split(',')[1]);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
