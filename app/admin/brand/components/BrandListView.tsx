@@ -12,6 +12,8 @@ type Props = {
   countries: string[];
   onSelect: (brand: Brand) => void;
   onNew: () => void;
+  onNoteSync: () => void; // 테이스팅 노트 와이너리 소개 → 브랜드자료실 일괄 보강
+  syncingNotes: boolean;
 };
 
 export function BrandListView(p: Props) {
@@ -62,6 +64,24 @@ export function BrandListView(p: Props) {
             </option>
           ))}
         </select>
+        <button
+          onClick={p.onNoteSync}
+          disabled={p.syncingNotes}
+          title="테이스팅 노트의 와이너리 소개로 미등록·소개 빈 브랜드를 자동 등록"
+          style={{
+            height: 36,
+            padding: "0 14px",
+            background: "#fff",
+            color: p.syncingNotes ? "var(--text-muted)" : "var(--action)",
+            border: "1px solid var(--action)",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: p.syncingNotes ? "wait" : "pointer",
+          }}
+        >
+          {p.syncingNotes ? "동기화 중..." : "노트 동기화"}
+        </button>
         <button
           onClick={p.onNew}
           style={{

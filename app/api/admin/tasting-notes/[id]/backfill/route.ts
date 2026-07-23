@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseWineFieldsFromPptx, parseTastingNotesFromPptx } from "@/app/lib/tastingNotePptxParse";
 import { parseTastingNotesFromPdf } from "@/app/lib/tastingNotePdfParse";
 import { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } from "@/app/lib/wineDb";
+import { syncBrandFromNotes } from "@/app/lib/brandFromNotes";
 import { syncBottleImage } from "@/app/lib/wineBottleImage";
 import { supabase } from "@/app/lib/db";
 import { handleApiError } from "@/app/lib/errors";
@@ -55,6 +56,14 @@ export async function POST(
       notesBackfilled = await backfillTastingNoteIfEmpty(itemCode, noteFields);
     }
 
+    // 노트의 와이너리 소개로 브랜드자료실 보강(미등록·소개 빈 브랜드만)
+    let brandSynced: string | null = null;
+    try {
+      brandSynced = await syncBrandFromNotes(itemCode);
+    } catch (e) {
+      logger.warn(`[backfill] brand sync failed: ${e instanceof Error ? e.message : e}`);
+    }
+
     // 동기화된 산지를 와인산지DB에 자동 반영(미분류면 LLM 분류 후 행 추가)
     let regionClassified: string | undefined;
     try {
@@ -70,7 +79,7 @@ export async function POST(
       logger.error(`[backfill] region auto-classify failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    return NextResponse.json({ success: true, backfilled, notesBackfilled, imageSynced, ...(regionClassified ? { regionClassified } : {}) });
+    return NextResponse.json({ success: true, backfilled, notesBackfilled, imageSynced, ...(brandSynced ? { brandSynced } : {}), ...(regionClassified ? { regionClassified } : {}) });
   } catch (e) {
     return handleApiError(e);
   }

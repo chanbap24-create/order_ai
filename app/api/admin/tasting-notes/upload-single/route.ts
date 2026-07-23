@@ -6,6 +6,7 @@ import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
 import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
 import { parseTastingNotesFromPdf } from "@/app/lib/tastingNotePdfParse";
 import { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } from "@/app/lib/wineDb";
+import { syncBrandFromNotes } from "@/app/lib/brandFromNotes";
 import { syncBottleImage } from "@/app/lib/wineBottleImage";
 import { supabase } from "@/app/lib/db";
 import { logChange } from "@/app/lib/changeLogDb";
@@ -98,6 +99,12 @@ export async function POST(request: NextRequest) {
         }
       } catch (e) {
         logger.warn(`[upload-single] PDF note parse failed: ${e instanceof Error ? e.message : e}`);
+      }
+      // 노트의 와이너리 소개로 브랜드자료실 보강(미등록·소개 빈 브랜드만)
+      try {
+        await syncBrandFromNotes(wineId);
+      } catch (e) {
+        logger.warn(`[upload-single] brand sync failed: ${e instanceof Error ? e.message : e}`);
       }
       try {
         const result = await refreshReleaseIndex();
