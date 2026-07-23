@@ -79,10 +79,17 @@ export function PromoQuoteOverlay({ clientName, items, onClose, record, showSupp
       }));
 
       const { toJpeg } = await import('html-to-image');
-      // 이미지를 이미 인라인했으니 cacheBust·중복 렌더 불필요(그게 섞임의 원인이었음)
-      const dataUrl = await toJpeg(capRef.current, {
-        quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true,
-      });
+      // 이미지를 이미 인라인했으니 cacheBust 불필요(그게 섞임의 원인이었음).
+      const opts = { quality: 0.98, pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true };
+      // iOS/Safari는 foreignObject 안 이미지를 첫 렌더에 안 그리는 버그가 있어(모바일에서
+      // 병샷·로고 누락) 워밍업 렌더 2회 후 최종 캡처. 이미지가 전부 data URL이라 섞임 위험 없음.
+      const isSafari = typeof navigator !== 'undefined'
+        && /iP(hone|ad|od)|^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari) {
+        await toJpeg(capRef.current, opts);
+        await toJpeg(capRef.current, opts);
+      }
+      const dataUrl = await toJpeg(capRef.current, opts);
       const bin = atob(dataUrl.split(',')[1]);
       const bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
