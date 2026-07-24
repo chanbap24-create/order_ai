@@ -162,7 +162,7 @@ export async function researchWineWithClaude(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
     model: RESEARCH_MODEL,
-    max_tokens: 4096,
+    max_tokens: 6000, // 4096에서 긴 노트가 잘려 JSON 파싱 실패하던 문제 여유 확보(생성분만 과금)
     // 고정 프롬프트는 system + cache_control로 분리 → 일괄 조사 시 입력 비용 절감
     // (tools→system 순으로 프리픽스가 캐시되므로 web_search 정의도 함께 캐시됨)
     system: [{ type: "text", text: RESEARCH_PROMPT, cache_control: { type: "ephemeral" } }],
