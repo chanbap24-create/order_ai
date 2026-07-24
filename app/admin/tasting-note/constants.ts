@@ -1,6 +1,6 @@
 import type { NoteFilter, TastingWineRow } from "./types";
 
-export const NOTE_FILTERS: NoteFilter[] = ["all", "new", "without", "with", "db-only"];
+export const NOTE_FILTERS: NoteFilter[] = ["all", "new", "without", "with", "db-only", "dept"];
 
 /**
  * item_code 첫 글자별 카테고리 매핑.
@@ -58,6 +58,7 @@ export const NOTE_FILTER_LABELS: Record<NoteFilter, string> = {
   with: "작성완료",
   without: "미작성",
   "db-only": "DB만",
+  dept: "백화점",
 };
 
 export type NoteBadge = { label: string; color: string; bg: string; icon: string };

@@ -20,6 +20,7 @@ export interface Wine {
   status: 'active' | 'new' | 'discontinued';
   ai_researched: number; // 0 or 1
   image_url: string | null;
+  dept_batch?: boolean | null; // 2026-07 백화점 재고표 유입 와인(작업 추적용)
   created_at: string;
   updated_at: string;
 }

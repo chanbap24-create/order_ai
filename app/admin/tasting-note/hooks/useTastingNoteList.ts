@@ -118,6 +118,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
 
   const filteredWines = wines.filter((w) => {
     if (filterNote === "new") return isNewWine(w);
+    if (filterNote === "dept") return !!w.dept_batch; // 백화점 유입분은 카테고리 필터 무관하게 전부
     if (!passesCategoryFilters(w)) return false;
     if (filterNote === "with") return hasNote(w);
     if (filterNote === "without") return !hasNote(w);
@@ -135,6 +136,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     "db-only": baseFiltered.filter(
       (w) => !!w.tasting_note_id && !ghIndex[w.item_code],
     ).length,
+    dept: wines.filter((w) => !!w.dept_batch).length,
   };
 
   // 탭 배지용: 토글(와인만/제외됨)과 무관한 안정적 "신규 작업대상" 목록/수
