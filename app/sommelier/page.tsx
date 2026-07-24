@@ -1,19 +1,25 @@
 'use client';
 
-// 백화점 소믈리에 — 직원이 손님 취향을 문답으로 받아 재고 와인을 추천.
-// 세일즈 계정 로그인 필요(직원 휴대폰 사용 전제, 모바일 우선).
+// 백화점 소믈리에 — 손님과 함께 보는 취향 문답 추천.
+// 흐름: 직원 로그인 → 고객 정보(성함·핸드폰) → 문답 5단계 → 추천 → 구매 기록.
 import { useEffect, useState } from 'react';
 import { LoginCard } from '../sales/page-auth/components/LoginCard';
+import { SommelierStyles } from './components/SommelierStyles';
+import { CustomerIntro } from './components/CustomerIntro';
 import { Quiz } from './components/Quiz';
 import { ResultCards } from './components/ResultCards';
 import type { QuizAnswers } from './lib/quiz';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
+import type { SommelierCustomer } from '@/app/lib/sommelierDb';
 
 export default function SommelierPage() {
   const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
   const [managerList, setManagerList] = useState<string[]>([]);
+
+  const [customer, setCustomer] = useState<SommelierCustomer | null>(null);
   const [results, setResults] = useState<SommelierResult[] | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,10 +39,12 @@ export default function SommelierPage() {
     setError('');
     try {
       const r = await fetch('/api/sommelier/recommend', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answers }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers, customerId: customer?.id }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || '추천에 실패했습니다');
+      setSessionId(j.sessionId || null);
       setResults(j.results || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : '추천에 실패했습니다');
@@ -54,21 +62,39 @@ export default function SommelierPage() {
 
   return (
     <div style={{ minHeight: 'calc(100vh - 56px)', background: '#fff' }}>
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px 60px' }}>
-        <div style={{ paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)', marginBottom: 20 }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>와인 추천</h1>
-          <div style={{ fontSize: 12.5, color: 'var(--text-tertiary)', marginTop: 4 }}>
-            손님 취향을 여쭤보며 선택하면, 재고 중에서 꼭 맞는 와인을 찾아드려요
-          </div>
-        </div>
-
+      <SommelierStyles />
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 18px 80px' }}>
         {error && (
           <div style={{ fontSize: 13, color: 'var(--status-danger)', marginBottom: 12 }}>{error}</div>
         )}
 
-        {results === null
-          ? <Quiz onSubmit={submit} submitting={submitting} />
-          : <ResultCards results={results} onRetry={() => setResults(null)} />}
+        {!customer && <CustomerIntro onStart={setCustomer} />}
+
+        {customer && results === null && (
+          <Quiz customerName={customer.name} onSubmit={submit} submitting={submitting} />
+        )}
+
+        {customer && results !== null && (
+          <ResultCards
+            customerName={customer.name}
+            customerId={customer.id}
+            sessionId={sessionId}
+            results={results}
+            onRetry={() => { setResults(null); setSessionId(null); }}
+          />
+        )}
+
+        {/* 새 손님 시작 — 결과까지 마친 뒤 초기화 */}
+        {customer && results !== null && (
+          <div style={{ textAlign: 'center', marginTop: 10 }}>
+            <button onClick={() => { setCustomer(null); setResults(null); setSessionId(null); }} style={{
+              border: 'none', background: 'none', fontSize: 12.5, color: 'var(--text-muted)',
+              cursor: 'pointer', textDecoration: 'underline', padding: 6,
+            }}>
+              새 손님 응대 시작
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

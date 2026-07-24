@@ -4,13 +4,13 @@ export type QuizAnswers = {
   type: 'red' | 'white' | 'sparkling' | 'rose' | null; // null = 상관없음
   body: 'light' | 'medium' | 'full' | null;
   flavorGroups: string[]; // FLAVOR_GROUPS 키 (멀티)
+  countries: string[];    // COUNTRY_OPTIONS 키 (멀티, 빈 배열 = 상관없음)
   priceMin: number | null;
   priceMax: number | null;
-  occasion: 'gift' | 'meal' | 'casual' | 'special' | null;
 };
 
 export const EMPTY_ANSWERS: QuizAnswers = {
-  type: null, body: null, flavorGroups: [], priceMin: null, priceMax: null, occasion: null,
+  type: null, body: null, flavorGroups: [], countries: [], priceMin: null, priceMax: null,
 };
 
 /** 향미 취향 그룹 → 정규 향미 키(app/api/sales/recommend/lib/flavor.ts 어휘) */
@@ -68,6 +68,16 @@ export const BODY_OPTIONS = [
   { value: null, label: '상관없어요', desc: '' },
 ];
 
+/** 선호 국가 그룹 — wines.country 문자열 매칭 (멀티 선택) */
+export const COUNTRY_OPTIONS: Record<string, { label: string; desc: string; match: string[] }> = {
+  france: { label: '프랑스', desc: '부르고뉴·보르도·샴페인', match: ['프랑스', 'france'] },
+  italy: { label: '이탈리아', desc: '토스카나·피에몬테', match: ['이탈리아', 'italy'] },
+  usa: { label: '미국', desc: '나파·소노마·오리건', match: ['미국', 'united states', 'usa'] },
+  iberia: { label: '스페인·포르투갈', desc: '리오하·프리오랏·도루', match: ['스페인', '포르투갈', 'spain', 'portugal'] },
+  southam: { label: '칠레·아르헨티나', desc: '남미의 진한 과실미', match: ['칠레', '아르헨티나', 'chile', 'argentina'] },
+  oceania: { label: '호주·뉴질랜드', desc: '신세계의 깨끗한 스타일', match: ['호주', '뉴질랜드', 'australia', 'new zealand'] },
+};
+
 export const PRICE_OPTIONS = [
   { min: null, max: 30000, label: '3만원 이하' },
   { min: 30000, max: 50000, label: '3~5만원' },
@@ -75,14 +85,6 @@ export const PRICE_OPTIONS = [
   { min: 100000, max: 200000, label: '10~20만원' },
   { min: 200000, max: null, label: '20만원 이상' },
   { min: null, max: null, label: '상관없어요' },
-];
-
-export const OCCASION_OPTIONS = [
-  { value: 'gift' as const, label: '선물용', desc: '지인·거래처 선물' },
-  { value: 'meal' as const, label: '식사와 함께', desc: '음식 페어링' },
-  { value: 'casual' as const, label: '가볍게 한잔', desc: '데일리·혼술' },
-  { value: 'special' as const, label: '특별한 날', desc: '기념일·축하' },
-  { value: null, label: '상관없어요', desc: '' },
 ];
 
 /** wine_type(한/영 혼재) → 정규 타입 */
@@ -95,4 +97,10 @@ export function normalizeWineType(t: string): 'red' | 'white' | 'sparkling' | 'r
   if (s.includes('로제') || s.includes('rose') || s.includes('rosé')) return 'rose';
   if (s.includes('주정강화') || s.includes('fortified') || s.includes('디저트') || s.includes('dessert')) return 'fortified';
   return '';
+}
+
+/** 핸드폰 번호 정규화 — 숫자만 (01012345678). 10~11자리 아니면 null */
+export function normalizePhone(raw: string): string | null {
+  const d = (raw || '').replace(/\D/g, '');
+  return /^01\d{8,9}$/.test(d) ? d : null;
 }

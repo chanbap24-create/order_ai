@@ -1,8 +1,8 @@
 // 백화점 손님 취향 문답 → 재고 와인 추천 스코어링 (서버 전용).
-// 풀 = CDV 가용재고 있고 판매가(retail_price) 있는 와인. 점수 = 향미 겹침 + 바디 + 용도 가점.
+// 풀 = CDV 가용재고 있고 판매가(retail_price) 있는 와인. 점수 = 향미 겹침 + 바디 + 국가 취향.
 import { supabase } from './db';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
-import { FLAVOR_GROUPS, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
+import { COUNTRY_OPTIONS, FLAVOR_GROUPS, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
 
 export type SommelierResult = {
   item_code: string;
@@ -19,7 +19,7 @@ export type SommelierResult = {
 
 type PoolWine = {
   item_code: string; name: string; name_en: string; country: string; region: string;
-  type: string; retail: number; stock: number; tags: string[];
+  type: string; grapes: string; retail: number; stock: number; tags: string[];
 };
 
 /** CDV 재고 + 판매가 있는 와인 풀 로드 (1000행 캡 페이지네이션) */
@@ -33,12 +33,12 @@ async function loadPool(): Promise<PoolWine[]> {
     if (!data || data.length < 1000) break;
   }
   const codes = inv.map((r) => r.item_no);
-  const wines = new Map<string, { item_name_kr: string; item_name_en: string; country: string; region: string; wine_type: string }>();
+  const wines = new Map<string, { item_name_kr: string; item_name_en: string; country: string; region: string; wine_type: string; grape_varieties: string }>();
   const tags = new Map<string, string[]>();
   for (let i = 0; i < codes.length; i += 400) {
     const batch = codes.slice(i, i + 400);
     const [{ data: ws }, { data: ns }] = await Promise.all([
-      supabase.from('wines').select('item_code, item_name_kr, item_name_en, country, region, wine_type').in('item_code', batch),
+      supabase.from('wines').select('item_code, item_name_kr, item_name_en, country, region, wine_type, grape_varieties').in('item_code', batch),
       supabase.from('tasting_notes').select('wine_id, flavor_tags').in('wine_id', batch),
     ]);
     for (const w of ws || []) wines.set(w.item_code, w);
@@ -52,13 +52,24 @@ async function loadPool(): Promise<PoolWine[]> {
       name: w.item_name_kr, name_en: w.item_name_en || '',
       country: w.country || '', region: w.region || '',
       type: normalizeWineType(w.wine_type || ''),
+      grapes: (w.grape_varieties || '').toLowerCase(),
       retail: r.retail_price, stock: r.available_stock,
       tags: tags.get(r.item_no) || [],
     }];
   });
 }
 
-const FAMOUS = ['champagne', 'bourgogne', 'burgundy', 'bordeaux', 'napa', 'barolo', 'montalcino', 'toscana', 'tuscany', '샴페인', '부르고뉴', '보르도', '나파'];
+// 품종 기반 바디 근사 — 향미 태그(바디 표현)가 없는 와인 폴백
+const FULL_GRAPES = ['cabernet', 'syrah', 'shiraz', 'malbec', 'zinfandel', 'mourvedre', 'petite sirah', 'nebbiolo', 'aglianico', 'touriga', '카베르네', '시라', '쉬라즈', '말벡', '네비올로'];
+const LIGHT_GRAPES = ['pinot noir', 'gamay', 'riesling', 'sauvignon blanc', 'albarino', 'albariño', 'pinot grigio', 'pinot gris', 'vinho verde', '피노 누아', '피노누아', '가메', '리슬링', '소비뇽'];
+
+function bodyOf(w: PoolWine): 'full' | 'light' | '' {
+  if (w.tags.includes('full_body') || w.tags.includes('tannic')) return 'full';
+  if (w.tags.includes('light_body')) return 'light';
+  if (FULL_GRAPES.some((g) => w.grapes.includes(g))) return 'full';
+  if (LIGHT_GRAPES.some((g) => w.grapes.includes(g))) return 'light';
+  return '';
+}
 
 function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: string[] } {
   let score = 0;
@@ -66,25 +77,16 @@ function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: strin
   const wanted = new Set(a.flavorGroups.flatMap((g) => FLAVOR_GROUPS[g]?.keys || []));
   const matched = w.tags.filter((t) => wanted.has(t));
   score += Math.min(40, matched.length * 8);
-  // 바디
-  const hasFull = w.tags.includes('full_body') || w.tags.includes('tannic');
-  const hasLight = w.tags.includes('light_body');
-  if (a.body === 'light') score += hasLight ? 15 : hasFull ? -8 : 0;
-  else if (a.body === 'full') score += hasFull ? 15 : hasLight ? -8 : 0;
-  else if (a.body === 'medium') score += !hasFull && !hasLight ? 8 : 3;
-  // 용도
-  const regionLc = `${w.country} ${w.region}`.toLowerCase();
-  if (a.occasion === 'gift') {
-    if (w.retail >= 50000) score += 8;
-    if (FAMOUS.some((f) => regionLc.includes(f))) score += 6;
-  } else if (a.occasion === 'special') {
-    if (w.type === 'sparkling') score += 12;
-    if (w.retail >= 70000) score += 4;
-  } else if (a.occasion === 'casual') {
-    if (w.retail <= 50000) score += 8;
-    if (hasLight) score += 4;
-  } else if (a.occasion === 'meal') {
-    if (hasFull) score += 6;
+  // 바디 (태그 우선, 없으면 품종 근사)
+  const body = bodyOf(w);
+  if (a.body === 'light') score += body === 'light' ? 15 : body === 'full' ? -8 : 0;
+  else if (a.body === 'full') score += body === 'full' ? 15 : body === 'light' ? -8 : 0;
+  else if (a.body === 'medium') score += body === '' ? 8 : 3;
+  // 국가 취향 (멀티) — 매치 +15
+  if (a.countries.length) {
+    const c = w.country.toLowerCase();
+    const hit = a.countries.some((k) => (COUNTRY_OPTIONS[k]?.match || []).some((m) => c.includes(m)));
+    score += hit ? 15 : 0;
   }
   // 재고 여유 소폭 가점(품절 위험 회피)
   if (w.stock >= 6) score += 3;
@@ -94,13 +96,15 @@ function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: strin
 function buildReason(w: PoolWine, a: QuizAnswers, matched: string[]): string {
   const parts: string[] = [];
   if (matched.length) parts.push(`${matched.slice(0, 3).map((k) => FLAVOR_KO[k] || k).join('·')} 향`);
-  if (a.body === 'light' && w.tags.includes('light_body')) parts.push('가볍고 산뜻한 스타일');
-  else if (a.body === 'full' && (w.tags.includes('full_body') || w.tags.includes('tannic'))) parts.push('진하고 묵직한 스타일');
-  if (a.occasion === 'gift') parts.push('선물용으로 인기');
-  else if (a.occasion === 'special' && w.type === 'sparkling') parts.push('축하 자리에 어울리는 스파클링');
-  else if (a.occasion === 'meal') parts.push('음식과 잘 어울림');
-  else if (a.occasion === 'casual') parts.push('부담 없이 즐기기 좋음');
-  return parts.join(' · ') || '취향 조건에 맞는 재고 와인';
+  const body = bodyOf(w);
+  if (a.body === 'light' && body === 'light') parts.push('가볍고 산뜻한 스타일');
+  else if (a.body === 'full' && body === 'full') parts.push('진하고 묵직한 스타일');
+  if (a.countries.length) {
+    const c = w.country.toLowerCase();
+    const hitKey = a.countries.find((k) => (COUNTRY_OPTIONS[k]?.match || []).some((m) => c.includes(m)));
+    if (hitKey) parts.push(`선호하신 ${w.country} 와인`);
+  }
+  return parts.join(' · ') || '취향 조건에 맞는 와인';
 }
 
 /** 문답 결과로 재고 와인 추천 top N */
