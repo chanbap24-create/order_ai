@@ -71,8 +71,15 @@ async function processOneWine(wineId: string): Promise<{
     glass_pairing: result.glass_pairing,
     serving_temp: result.serving_temp,
     awards: result.awards,
+    // 향미 태그·구조 프로파일 — 단건 조사와 동일하게 저장(소믈리에 매칭용)
+    flavor_tags: result.flavor_tags && result.flavor_tags.length ? result.flavor_tags : null,
+    flavor_research_at: result.flavor_tags && result.flavor_tags.length ? new Date().toISOString() : null,
+    body: result.body ?? null,
+    sweetness: result.sweetness ?? null,
+    acidity: result.acidity ?? null,
+    tannin: result.tannin ?? null,
     ai_generated: 1,
-  });
+  } as Record<string, unknown>);
 
   await logChange('claude_batch_research', 'wine', wineId, { item_name_en: result.item_name_en });
   return { wine_id: wineId, success: true, item_name_en: result.item_name_en, validation };

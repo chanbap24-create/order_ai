@@ -217,6 +217,16 @@ export async function researchWineWithClaude(
   // 향미 매칭용 세분화 태그 추출(flavor_en 우선 + 한글 노트 보강). 추천 매칭용, 표시엔 안 쓰임.
   result.flavor_tags = [...extractFlavorKeys(`${result.flavor_en || ''} ${result.nose_note || ''} ${result.palate_note || ''}`)];
 
+  // 구조 프로파일 정제 — 문자열로 와도 1~5 정수로 클램프, 범위 밖·비수치는 null
+  const scale = (v: unknown): number | null => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) && n >= 1 && n <= 5 ? n : null;
+  };
+  result.body = scale(result.body);
+  result.sweetness = scale(result.sweetness);
+  result.acidity = scale(result.acidity);
+  result.tannin = scale(result.tannin);
+
   // Step 3: 이미지 검색 (우선순위: 와이너리 공식사이트 → Vivino → Wine-Searcher)
   if (!imageUrl) {
     const searchNames = [

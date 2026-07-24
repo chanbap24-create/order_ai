@@ -90,6 +90,10 @@ export async function POST(request: NextRequest) {
       awards: result.awards,
       flavor_tags: result.flavor_tags && result.flavor_tags.length ? result.flavor_tags : null,
       flavor_research_at: result.flavor_tags && result.flavor_tags.length ? new Date().toISOString() : null,
+      body: result.body ?? null,
+      sweetness: result.sweetness ?? null,
+      acidity: result.acidity ?? null,
+      tannin: result.tannin ?? null,
       ai_generated: 1,
       verification_status,
     } as Record<string, unknown>);
