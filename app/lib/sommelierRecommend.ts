@@ -82,32 +82,29 @@ function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: strin
   if (a.body === 'light') score += body === 'light' ? 15 : body === 'full' ? -8 : 0;
   else if (a.body === 'full') score += body === 'full' ? 15 : body === 'light' ? -8 : 0;
   else if (a.body === 'medium') score += body === '' ? 8 : 3;
-  // 국가 취향 (멀티) — 매치 +15
-  if (a.countries.length) {
-    const c = w.country.toLowerCase();
-    const hit = a.countries.some((k) => (COUNTRY_OPTIONS[k]?.match || []).some((m) => c.includes(m)));
-    score += hit ? 15 : 0;
-  }
   // 재고 여유 소폭 가점(품절 위험 회피)
   if (w.stock >= 6) score += 3;
   return { score, matched };
 }
 
-function buildReason(w: PoolWine, a: QuizAnswers, matched: string[]): string {
+function countryHit(w: PoolWine, a: QuizAnswers): boolean {
+  const c = w.country.toLowerCase();
+  return a.countries.some((k) => (COUNTRY_OPTIONS[k]?.match || []).some((m) => c.includes(m)));
+}
+
+function buildReason(w: PoolWine, a: QuizAnswers, matched: string[], countryFallback: boolean): string {
   const parts: string[] = [];
   if (matched.length) parts.push(`${matched.slice(0, 3).map((k) => FLAVOR_KO[k] || k).join('·')} 향`);
   const body = bodyOf(w);
   if (a.body === 'light' && body === 'light') parts.push('가볍고 산뜻한 스타일');
   else if (a.body === 'full' && body === 'full') parts.push('진하고 묵직한 스타일');
-  if (a.countries.length) {
-    const c = w.country.toLowerCase();
-    const hitKey = a.countries.find((k) => (COUNTRY_OPTIONS[k]?.match || []).some((m) => c.includes(m)));
-    if (hitKey) parts.push(`선호하신 ${w.country} 와인`);
-  }
+  if (a.countries.length && countryHit(w, a)) parts.push(`선호하신 ${w.country} 와인`);
+  else if (countryFallback) parts.push(`취향이 잘 맞아 함께 제안하는 ${w.country} 와인`);
   return parts.join(' · ') || '취향 조건에 맞는 와인';
 }
 
-/** 문답 결과로 재고 와인 추천 top N */
+/** 문답 결과로 재고 와인 추천 top N.
+ *  국가 선택은 하드게이트 — 선택 국가에서 먼저 뽑고, 모자랄 때만 타 국가로 보충(이유에 표기). */
 export async function recommendForCustomer(a: QuizAnswers, limit = 5): Promise<SommelierResult[]> {
   const pool = await loadPool();
   const filtered = pool.filter((w) => {
@@ -118,15 +115,24 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5): Promise<S
   });
   const scored = filtered
     .map((w) => ({ w, ...scoreWine(w, a) }))
-    .sort((x, y) => y.score - x.score || x.w.retail - y.w.retail)
-    .slice(0, limit);
-  return scored.map(({ w, score, matched }) => ({
+    .sort((x, y) => y.score - x.score || x.w.retail - y.w.retail);
+
+  let picked: { w: PoolWine; score: number; matched: string[]; fallback: boolean }[];
+  if (a.countries.length) {
+    const inCountry = scored.filter(({ w }) => countryHit(w, a)).map((s) => ({ ...s, fallback: false }));
+    const others = scored.filter(({ w }) => !countryHit(w, a)).map((s) => ({ ...s, fallback: true }));
+    picked = [...inCountry.slice(0, limit), ...others.slice(0, Math.max(0, limit - inCountry.length))];
+  } else {
+    picked = scored.slice(0, limit).map((s) => ({ ...s, fallback: false }));
+  }
+
+  return picked.map(({ w, score, matched, fallback }) => ({
     item_code: w.item_code,
     name: w.name, name_en: w.name_en,
     country: w.country, region: w.region,
     retail_price: w.retail, stock: w.stock,
     flavors: w.tags.slice(0, 5).map((k) => FLAVOR_KO[k] || k),
-    reason: buildReason(w, a, matched),
+    reason: buildReason(w, a, matched, fallback),
     score,
   }));
 }
