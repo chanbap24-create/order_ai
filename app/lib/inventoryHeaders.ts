@@ -8,6 +8,7 @@ export const HEADER_MAP: Record<string, string> = {
   '브랜드': 'brand',
   '수입사': 'importer',
   '용량': 'volume_ml',
+  '규격': 'volume_ml',     // 2026-07 재고표 헤더 변형 (용량 → 규격)
   '단위': 'unit',          // EA / B/T / 잔 등
   'IP': 'units_per_box',   // 박스당 입수량(글라스: N박스 → N×IP 잔 환산)
   '입수': 'units_per_box', // 변형 헤더 대응
@@ -51,6 +52,18 @@ export const HEADER_MAP: Record<string, string> = {
   '용마(영업1부)': 'yongma_sales1',
   '용마(영업2부)': 'yongma_sales2',
   '안성창고(CDV)': 'anseong_warehouse',
+  // 2026-07 재고표 확장 — 본사·반품·불량·위탁 + 백화점 매장별 재고
+  '본사창고(CDV)': 'hq_warehouse',
+  'KCTC(반품창고)': 'kctc_returns',
+  '불량': 'defective',
+  'OLD, 단종': 'old_discontinued',
+  '불량(누주)': 'defective_leak',
+  '위탁창고': 'consignment_warehouse',
+  '매장(현대본점)': 'store_hyundai_main',
+  '매장(현대중동점)': 'store_hyundai_jungdong',
+  '매장(현대무역센터점)': 'store_hyundai_trade',
+  '매장(신세계강남점HOS)': 'store_ssg_gangnam',
+  '매장(더현대서울)': 'store_thehyundai',
   // 창고 — DL (대유라이프)
   '보세(GIG)': 'bonded_warehouse',
   '안성창고(DL)': 'anseong_warehouse',

@@ -57,6 +57,12 @@ export function parseInventorySheet(rows: unknown[][]): Record<string, unknown>[
       obj.extra_data = extra;
     }
 
+    // 타사(위탁) 품목은 품명이 "(수입사)..." 로 시작 — 수입사 컬럼이 비어 있으면 추출해 저장
+    if (!obj.importer && typeof obj.item_name === 'string') {
+      const m = obj.item_name.match(/^\(([^)]{2,15})\)/);
+      if (m) obj.importer = m[1];
+    }
+
     obj.updated_at = new Date().toISOString();
     results.push(obj);
   }
