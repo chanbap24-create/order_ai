@@ -70,6 +70,12 @@ export const HEADER_MAP: Record<string, string> = {
   'GIG': 'gig_warehouse',
   'GIG(마케팅부)': 'gig_marketing',
   'GIG(영업1부)': 'gig_sales1',
+  // 2026-07 DL 재고표 확장
+  '본사창고(DL)': 'hq_warehouse',
+  'GIG(영업2부)': 'gig_sales2',
+  'B급재고 창고': 'b_grade_warehouse',
+  'GIG(반품)': 'gig_returns',
+  '특자판창고': 'special_warehouse',
   // 변형 대응
   '안성창고': 'anseong_warehouse',
   'GIG마케팅': 'gig_marketing',
