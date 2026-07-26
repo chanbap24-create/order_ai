@@ -44,7 +44,7 @@ export async function getWines(filters?: { status?: string; search?: string; cou
       const safeCountry = sanitizeFilterValue(filters.country);
       q = q.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
     }
-    return q.order('updated_at', { ascending: false });
+    return q.order('updated_at', { ascending: false }).order('item_code'); // 동률 정렬 안정화(중복/누락 방지)
   }, 'getWines');
   return rows as Wine[];
 }
@@ -201,7 +201,9 @@ export async function getTastingNotes(filters?: { search?: string; country?: str
       const safeCountry = sanitizeFilterValue(filters.country);
       q = q.or(`country.eq.${safeCountry},country_en.eq.${safeCountry}`);
     }
-    return q.order('updated_at', { ascending: false });
+    // item_code 보조 정렬 — updated_at이 동일한 행(일괄 등록분)이 많으면 정렬이 불안정해져
+    // range 페이지 경계에서 같은 행이 중복/누락됨(리스트 duplicate key 오류의 원인).
+    return q.order('updated_at', { ascending: false }).order('item_code');
   }, 'getTastingNotes');
 
   return rows.map((w: any) => {
@@ -383,7 +385,7 @@ export async function getNewWinesWithStatus(filters?: { status?: string; search?
       const safe = sanitizeFilterValue(filters.search);
       q = q.or(`item_name_kr.ilike.%${safe}%,item_name_en.ilike.%${safe}%,item_code.ilike.%${safe}%,brand.ilike.${safe}`);
     }
-    return q.order('updated_at', { ascending: false });
+    return q.order('updated_at', { ascending: false }).order('item_code'); // 동률 정렬 안정화(중복/누락 방지)
   }, 'getNewWinesWithStatus');
 
   return rows.map((w: any) => {
@@ -423,6 +425,7 @@ export async function getWinesForPriceList(): Promise<Wine[]> {
     .neq('status', 'discontinued')
     .order('country_en', { ascending: true })
     .order('supplier', { ascending: true })
-    .order('supply_price', { ascending: false }), 'getWinesForPriceList');
+    .order('supply_price', { ascending: false })
+    .order('item_code'), 'getWinesForPriceList'); // 동률 정렬 안정화
   return rows as Wine[];
 }
