@@ -112,9 +112,11 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     }
   };
 
-  // 신규: status=new · 재고합>0 · 노트 미등록 · 제외상태 일치 · 와인분류(토글) — 공유 규칙
+  // 신규: status=new · 재고합>0 · 노트 미등록 · 제외상태 일치 · 와인분류(토글) — 공유 규칙.
+  // 재고 임계(≤N병 숨김) 필터도 신규 목록·카운트에 동일 적용.
   const isNewWine = (w: TastingWineRow) =>
-    isActionableNew(w, hasNote(w), { requireWineCategory: wineOnly, showExcluded });
+    isActionableNew(w, hasNote(w), { requireWineCategory: wineOnly, showExcluded })
+    && (lowStockThreshold <= 0 || (w.inv_available || 0) + (w.inv_bonded || 0) > lowStockThreshold);
 
   const filteredWines = wines.filter((w) => {
     if (filterNote === "new") return isNewWine(w);
