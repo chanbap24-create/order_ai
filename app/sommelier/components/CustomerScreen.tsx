@@ -1,0 +1,72 @@
+'use client';
+
+// 고객 정보(성함·핸드폰) — 밑줄 입력 + 동의. 핸드폰 기준 upsert로 재방문 이력 누적.
+import { useState } from 'react';
+import { normalizePhone } from '../lib/quiz';
+import type { SommelierCustomer } from '@/app/lib/sommelierDb';
+
+export function CustomerScreen({ onDone, onBack }: {
+  onDone: (c: SommelierCustomer) => void;
+  onBack: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const valid = name.trim().length >= 2 && !!normalizePhone(phone) && agreed;
+
+  const submit = async () => {
+    if (!valid || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const r = await fetch('/api/sommelier/customer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), phone }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || '등록에 실패했습니다');
+      onDone(j.customer);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '등록에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="som-screen">
+      <div className="som-brand"><span className="som-lat">CAVE DE VIN</span><span>취향 문답</span></div>
+      <div className="som-prog"><i style={{ width: '8%' }} /></div>
+      <div className="som-q">
+        <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>GUEST</div>
+        <h2 className="som-rise" style={{ ['--i' as string]: 1 }}>먼저, 손님을<br />어떻게 불러드릴까요?</h2>
+
+        <div className="som-field som-rise" style={{ ['--i' as string]: 2 }}>
+          <label>성함</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" maxLength={30} />
+        </div>
+        <div className="som-field som-rise" style={{ ['--i' as string]: 3 }}>
+          <label>핸드폰 번호</label>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000"
+            type="tel" inputMode="tel" maxLength={13} />
+        </div>
+        <label className="som-consent som-rise" style={{ ['--i' as string]: 4 }}>
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+          <span>와인 추천과 안내를 위해 성함·연락처를 수집하는 데 동의합니다. 추천 이력 관리 목적으로만 사용됩니다.</span>
+        </label>
+        {error && <div className="som-err">{error}</div>}
+
+        <div className="som-subrow som-rise" style={{ ['--i' as string]: 5 }}>
+          <button className="som-link" onClick={onBack}>이전</button>
+          <button className="som-next" onClick={submit} disabled={!valid || loading}
+            style={{ opacity: valid ? 1 : 0.45 }}>
+            {loading ? '등록 중…' : '문답으로'}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}

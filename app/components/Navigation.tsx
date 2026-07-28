@@ -44,6 +44,9 @@ export default function Navigation() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  // 소믈리에(백화점 손님 대면 화면)는 앱 네비 없이 단독 풀스크린 (훅 뒤에 위치해야 함)
+  if (pathname.startsWith('/sommelier')) return null;
+
   return (
     <>
       <style>{NAV_STYLES}</style>

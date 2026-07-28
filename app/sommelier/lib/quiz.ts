@@ -54,12 +54,22 @@ export const FLAVOR_GROUPS: Record<string, { label: string; desc: string; keys: 
 };
 
 export const TYPE_OPTIONS = [
-  { value: 'red' as const, label: '레드' },
-  { value: 'white' as const, label: '화이트' },
-  { value: 'sparkling' as const, label: '스파클링' },
-  { value: 'rose' as const, label: '로제' },
-  { value: null, label: '상관없어요' },
+  { value: 'red' as const, label: '레드', desc: '깊고 따뜻한' },
+  { value: 'white' as const, label: '화이트', desc: '맑고 산뜻한' },
+  { value: 'sparkling' as const, label: '스파클링', desc: '기포가 반짝이는' },
+  { value: 'rose' as const, label: '로제', desc: '은은한 장밋빛' },
+  { value: null, label: '상관없어요', desc: '' },
 ];
+
+/** 백화점 매장 — inventory_cdv 매장 재고 컬럼 키 ↔ 표시명 */
+export const STORES: Record<string, string> = {
+  all: '전체 매장',
+  store_hyundai_trade: '현대백화점 무역센터점',
+  store_hyundai_main: '현대백화점 압구정본점',
+  store_hyundai_jungdong: '현대백화점 중동점',
+  store_ssg_gangnam: '신세계백화점 강남점',
+  store_thehyundai: '더현대 서울',
+};
 
 export const BODY_OPTIONS = [
   { value: 'light' as const, label: '가볍고 산뜻하게', desc: '경쾌한 산미, 부담 없는' },

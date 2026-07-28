@@ -1,0 +1,113 @@
+'use client';
+
+// 추천 결과 — 화이트 쇼룸 카드 레일. 구조 프로파일 4종(무게감·당도·산미·탄닌) 바 +
+// [구매 기록]으로 고객 이력 저장(향후 자동추천 학습 데이터).
+import { useState } from 'react';
+import type { SommelierResult } from '@/app/lib/sommelierRecommend';
+import { BODY_OPTIONS, PRICE_OPTIONS, TYPE_OPTIONS, type QuizAnswers } from '../lib/quiz';
+
+const won = (n: number) => n.toLocaleString('ko-KR');
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+
+function summary(a: QuizAnswers | null): string {
+  if (!a) return '';
+  const parts: string[] = [];
+  const t = TYPE_OPTIONS.find((o) => o.value === a.type);
+  if (t?.value) parts.push(t.label);
+  const b = BODY_OPTIONS.find((o) => o.value === a.body);
+  if (b?.value) parts.push(b.label);
+  const p = PRICE_OPTIONS.find((o) => o.min === a.priceMin && o.max === a.priceMax);
+  if (p && (p.min != null || p.max != null)) parts.push(p.label);
+  return parts.join(' · ');
+}
+
+export function ResultsScreen({ customerName, customerId, sessionId, answers, results, onRetry, onNewGuest }: {
+  customerName: string;
+  customerId: number | null;
+  sessionId: number | null;
+  answers: QuizAnswers | null;
+  results: SommelierResult[];
+  onRetry: () => void;
+  onNewGuest: () => void;
+}) {
+  const [ordered, setOrdered] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const order = async (r: SommelierResult) => {
+    if (!customerId || ordered.has(r.item_code) || busy) return;
+    setBusy(r.item_code);
+    try {
+      const res = await fetch('/api/sommelier/order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId, sessionId, itemCode: r.item_code, itemName: r.name,
+          retailPrice: r.retail_price, quantity: 1,
+        }),
+      });
+      if (res.ok) setOrdered((s) => new Set(s).add(r.item_code));
+      else alert('구매 기록에 실패했습니다.');
+    } catch { alert('구매 기록에 실패했습니다.'); }
+    finally { setBusy(null); }
+  };
+
+  return (
+    <section className="som-screen som-results">
+      <div className="som-head">
+        <div className="som-brand"><span className="som-lat">CAVE DE VIN</span><span>추천 결과</span></div>
+        <div className="som-prog"><i style={{ width: '100%' }} /></div>
+        <h2 className="som-rise" style={{ ['--i' as string]: 0 }}>
+          {customerName} 님의 취향으로<br />고른 {results.length}병입니다
+        </h2>
+        <p className="som-sum som-rise" style={{ ['--i' as string]: 1 }}>{summary(answers)}</p>
+      </div>
+
+      {results.length === 0 ? (
+        <div className="som-empty som-rise" style={{ ['--i' as string]: 2 }}>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>조건에 맞는 와인을 찾지 못했어요</div>
+          <div style={{ fontSize: 13, color: 'var(--som-muted)' }}>가격대나 타입을 넓혀 다시 찾아볼까요?</div>
+          <button className="som-next" style={{ marginTop: 14 }} onClick={onRetry}>다시 문답하기</button>
+        </div>
+      ) : (
+        <div className="som-rail">
+          {results.map((r, i) => {
+            const done = ordered.has(r.item_code);
+            return (
+              <div key={r.item_code} className="som-card som-rise" style={{ ['--i' as string]: i + 2 }}>
+                <div className="som-core">
+                  <div className="som-shot">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}`} alt={r.name}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                  </div>
+                  <div className="som-cardfloor" />
+                  <div className="som-rank som-lat">NO. {ROMAN[i] || i + 1}</div>
+                  <div className="som-nm">{r.name}</div>
+                  {r.name_en && <div className="som-en som-lat">{r.name_en}</div>}
+                  <div className="som-bars">
+                    <div className="som-bar"><b>무게감</b><div className="tr"><i style={{ ['--v' as string]: r.body }} /></div></div>
+                    <div className="som-bar"><b>당도</b><div className="tr"><i style={{ ['--v' as string]: r.sweetness }} /></div></div>
+                    <div className="som-bar"><b>산미</b><div className="tr"><i style={{ ['--v' as string]: r.acidity }} /></div></div>
+                    <div className="som-bar"><b>탄닌</b><div className="tr"><i style={{ ['--v' as string]: r.tannin }} /></div></div>
+                  </div>
+                  <div className="som-reason">{r.reason}</div>
+                  <div className="som-pricebox">
+                    <span className="som-price">{won(r.retail_price)}원</span>
+                    <button className={`som-buy${done ? ' done' : ''}`} onClick={() => order(r)}
+                      disabled={done || busy === r.item_code}>
+                      {done ? '✓ 기록됨' : busy === r.item_code ? '기록 중…' : '구매 기록'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+        <button className="som-again" onClick={onRetry}>다시 문답</button>
+        <button className="som-again" onClick={onNewGuest}>새 손님 응대</button>
+      </div>
+    </section>
+  );
+}

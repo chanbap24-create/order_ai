@@ -6,6 +6,7 @@ import { getCountryPair } from "@/app/lib/countryMapping";
 import { recordInventoryValuePartial } from "@/app/lib/inventoryValueDb";
 import { syncItemEmbeddings } from "@/app/lib/itemEmbeddingSync";
 import { parseInventorySheet } from "./parseInventory";
+import { hasStoreColumns, replaceDeptStoreStock } from "@/app/lib/deptStoreStock";
 
 /** 임베딩 동기화 — 실패해도 재고 업로드는 성공 처리(임베딩은 보조, 수동 재동기화 가능) */
 async function syncEmbeddingsSafe(tab: "CDV" | "DL"): Promise<void> {
@@ -109,11 +110,17 @@ export async function processDownloads(buf: Buffer) {
 
   const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" });
 
+  const inventoryRows = parseInventorySheet(rows);
+
+  // 백화점 확장 재고표(매장 컬럼 포함)는 dept_store_stock만 갱신 — 일일 영업 재고와 분리
+  if (hasStoreColumns(inventoryRows)) {
+    const items = await replaceDeptStoreStock(inventoryRows);
+    return { items, dept: true };
+  }
+
   await seedWinesBaselineIfEmpty();
 
   await supabase.from('inventory_cdv').delete().not('item_no', 'is', null);
-
-  const inventoryRows = parseInventorySheet(rows);
 
   for (let i = 0; i < inventoryRows.length; i += 500) {
     const { error } = await supabase.from('inventory_cdv').upsert(inventoryRows.slice(i, i + 500), { onConflict: 'item_no' });
@@ -134,6 +141,12 @@ export async function processDownloads(buf: Buffer) {
  */
 export async function processDownloadsFromData(inventoryRows: Record<string, unknown>[]) {
   if (!inventoryRows || inventoryRows.length === 0) throw new Error("재고 데이터가 없습니다.");
+
+  // 백화점 확장 재고표(매장 컬럼 포함)는 dept_store_stock만 갱신 — 일일 영업 재고와 분리
+  if (hasStoreColumns(inventoryRows)) {
+    const items = await replaceDeptStoreStock(inventoryRows);
+    return { items, dept: true };
+  }
 
   await seedWinesBaselineIfEmpty();
 

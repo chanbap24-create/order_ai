@@ -15,7 +15,8 @@ export async function POST(req: Request) {
     const a: QuizAnswers = { ...EMPTY_ANSWERS, ...(body?.answers || {}) };
     if (!Array.isArray(a.flavorGroups)) a.flavorGroups = [];
     if (!Array.isArray(a.countries)) a.countries = [];
-    const results = await recommendForCustomer(a, 5);
+    const store = typeof body?.store === 'string' ? body.store : 'all';
+    const results = await recommendForCustomer(a, 5, store);
 
     // 고객 문답 이력 저장 (실패해도 추천 자체는 반환)
     let sessionId: number | null = null;
