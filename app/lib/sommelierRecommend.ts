@@ -29,6 +29,10 @@ type PoolWine = {
 };
 
 const STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai'];
+// 와인 품번만: 0~5(샴페인·스파클링·레드·화이트·로제·아이스와인)·A(포트) + ZK(타사 와인).
+// 글라스(D·RD)·자재(8,9)·세트(7) 등 비와인 제외.
+const WINE_CODE = /^([0-5A]|ZK)/i;
+const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이/i;
 
 /** 백화점 매장 재고(dept_store_stock) 기반 와인 풀 로드 (1000행 캡 페이지네이션).
  *  가격 = 판매가 우선, 없으면(타사 위탁 등) 공급가 폴백. */
@@ -51,7 +55,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
         ? Number(r[storeCol]) || 0
         : STORE_COLS.reduce((s, c) => s + (Number(r[c]) || 0), 0),
     }))
-    .filter((r) => r.stock > 0 && r.retail > 0);
+    .filter((r) => r.stock > 0 && r.retail > 0 && WINE_CODE.test(r.code));
 
   const codes = rows.map((r) => r.code);
   const wines = new Map<string, { item_name_kr: string; item_name_en: string; country: string; region: string; wine_type: string; grape_varieties: string }>();
@@ -68,6 +72,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
   return rows.flatMap((r) => {
     const w = wines.get(r.code);
     if (!w || !w.item_name_kr) return [];
+    if (NON_WINE_NAME.test(w.item_name_kr)) return [];
     const note = notes.get(r.code) || null;
     return [{
       item_code: r.code,
@@ -127,46 +132,38 @@ function countryHit(w: PoolWine, a: QuizAnswers): boolean {
   return a.countries.some((k) => (COUNTRY_OPTIONS[k]?.match || []).some((m) => c.includes(m)));
 }
 
-function buildReason(w: PoolWine, a: QuizAnswers, matched: string[], countryFallback: boolean): string {
+function buildReason(w: PoolWine, a: QuizAnswers, matched: string[]): string {
   const parts: string[] = [];
   if (matched.length) parts.push(`${matched.slice(0, 3).map((k) => FLAVOR_KO[k] || k).join('·')} 향`);
   const body = bodyOf(w);
   if (a.body === 'light' && body === 'light') parts.push('가볍고 산뜻한 스타일');
   else if (a.body === 'full' && body === 'full') parts.push('진하고 묵직한 스타일');
   if (a.countries.length && countryHit(w, a)) parts.push(`선호하신 ${w.country} 와인`);
-  else if (countryFallback) parts.push(`취향이 잘 맞아 함께 제안하는 ${w.country} 와인`);
   return parts.join(' · ') || '취향 조건에 맞는 와인';
 }
 
-/** 문답 결과로 매장 재고 와인 추천 top N. 국가는 하드게이트, 모자랄 때만 타국 보충. */
+/** 문답 결과로 매장 재고 와인 추천 top N. 국가 선택은 순수 하드게이트(보충 없음). */
 export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'all'): Promise<SommelierResult[]> {
   const pool = await loadPool(store);
   const filtered = pool.filter((w) => {
     if (a.type && w.type !== a.type) return false;
     if (a.priceMin != null && w.retail < a.priceMin) return false;
     if (a.priceMax != null && w.retail > a.priceMax) return false;
+    if (a.countries.length && !countryHit(w, a)) return false; // 국가 하드게이트
     return true;
   });
-  const scored = filtered
+  const picked = filtered
     .map((w) => ({ w, ...scoreWine(w, a) }))
-    .sort((x, y) => y.score - x.score || x.w.retail - y.w.retail);
+    .sort((x, y) => y.score - x.score || x.w.retail - y.w.retail)
+    .slice(0, limit);
 
-  let picked: { w: PoolWine; score: number; matched: string[]; fallback: boolean }[];
-  if (a.countries.length) {
-    const inCountry = scored.filter(({ w }) => countryHit(w, a)).map((s) => ({ ...s, fallback: false }));
-    const others = scored.filter(({ w }) => !countryHit(w, a)).map((s) => ({ ...s, fallback: true }));
-    picked = [...inCountry.slice(0, limit), ...others.slice(0, Math.max(0, limit - inCountry.length))];
-  } else {
-    picked = scored.slice(0, limit).map((s) => ({ ...s, fallback: false }));
-  }
-
-  return picked.map(({ w, score, matched, fallback }) => ({
+  return picked.map(({ w, score, matched }) => ({
     item_code: w.item_code,
     name: w.name, name_en: w.name_en,
     country: w.country, region: w.region,
     retail_price: w.retail, stock: w.stock,
     flavors: w.tags.slice(0, 5).map((k) => FLAVOR_KO[k] || k),
-    reason: buildReason(w, a, matched, fallback),
+    reason: buildReason(w, a, matched),
     ...structureOf(w),
     score,
   }));
