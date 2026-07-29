@@ -198,8 +198,11 @@
 .som-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;padding:0 24px}
 .som-center{flex:1;display:flex;align-items:center;justify-content:center;color:var(--som-muted);font-size:14px}
 
-/* 모바일 스크롤 스포트라이트 — JS가 프레임마다 opacity/scale을 조정하므로 해당 속성 트랜지션 제외 */
-.som-rail.spotmode .som-card{transition:box-shadow .45s var(--som-ease),border-color .45s var(--som-ease)}
+/* 모바일 스크롤 스포트라이트 — 스냅된 한 장만 강조(크기 변화 없음 → 상하 고정) */
+.som-rail.spotmode .som-card{transition:opacity .4s var(--som-ease),border-color .4s var(--som-ease),box-shadow .4s var(--som-ease)}
+.som-rail.spotmode .som-card.dim{opacity:.4}
+.som-rail.spotmode .som-card.focus{opacity:1;border-color:rgba(184,154,106,.7);
+  box-shadow:0 18px 38px rgba(34,28,22,.12)}
 .som-dots{display:flex;justify-content:center;gap:8px;padding:4px 0 8px}
 .som-dots i{width:6px;height:6px;border-radius:50%;background:rgba(34,28,22,.18);
   cursor:pointer;transition:all .3s var(--som-ease)}

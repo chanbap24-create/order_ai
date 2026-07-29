@@ -48,15 +48,14 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
     let raf = 0;
     const update = () => {
       raf = 0;
+      // 스냅 중심에 가장 가까운 카드 인덱스만 계산 — 크기·위치는 건드리지 않아 상하 고정
       const center = rail.scrollLeft + rail.clientWidth / 2;
       const cards = Array.from(rail.children) as HTMLElement[];
       let best = 0, bestD = Infinity;
       cards.forEach((c, i) => {
         const cc = c.offsetLeft + c.offsetWidth / 2;
-        const d = Math.min(1, Math.abs(cc - center) / (c.offsetWidth * 1.1));
-        c.style.opacity = String(1 - d * 0.55);
-        c.style.transform = `scale(${1 - d * 0.06})`;
-        if (Math.abs(cc - center) < bestD) { bestD = Math.abs(cc - center); best = i; }
+        const d = Math.abs(cc - center);
+        if (d < bestD) { bestD = d; best = i; }
       });
       setPage(best);
     };
@@ -120,7 +119,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
           {results.map((r, i) => {
             const done = ordered.has(r.item_code);
             return (
-              <div key={r.item_code} className="som-card som-rise" style={{ ['--i' as string]: i + 2 }}>
+              <div key={r.item_code}
+                className={`som-card som-rise${spot ? (i === page ? ' focus' : ' dim') : ''}`}
+                style={{ ['--i' as string]: i + 2 }}>
                 <div className="som-core">
                   <div className="som-shot">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
