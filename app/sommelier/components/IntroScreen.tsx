@@ -1,6 +1,7 @@
 'use client';
 
 // 인트로 — 화이트 쇼룸의 병 한 병 + 카피 + "밀어서 시작" 슬라이더. 상단에서 매장 선택(바텀시트).
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { STORES } from '../lib/quiz';
 
@@ -59,9 +60,8 @@ function SlideToStart({ onStart }: { onStart: () => void }) {
   );
 }
 
-export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
+export function IntroScreen({ store, onStoreChange, onStart }: {
   store: string;
-  poolCount: number | null;
   onStoreChange: (s: string) => void;
   onStart: () => void;
 }) {
@@ -116,7 +116,7 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
   return (
     <section className="som-screen">
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
-        <a className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</a>
+        <Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link>
         <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
       </div>
 

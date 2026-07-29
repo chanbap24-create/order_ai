@@ -1,6 +1,7 @@
 'use client';
 
 // 고객 정보(성함·핸드폰) — 밑줄 입력 + 동의. 핸드폰 기준 upsert로 재방문 이력 누적.
+import Link from 'next/link';
 import { useState } from 'react';
 import { normalizePhone } from '../lib/quiz';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
@@ -38,7 +39,7 @@ export function CustomerScreen({ onDone, onBack }: {
 
   return (
     <section className="som-screen">
-      <div className="som-brand"><a className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</a><span>취향 문답</span></div>
+      <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>취향 문답</span></div>
       <div className="som-prog"><i style={{ width: '8%' }} /></div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>GUEST</div>

@@ -83,7 +83,7 @@ export default function SommelierPage() {
     <div className="som-root">
       <div className="som-spot" />
       {phase === 'intro' && (
-        <IntroScreen store={store} poolCount={null} onStoreChange={changeStore}
+        <IntroScreen store={store} onStoreChange={changeStore}
           onStart={() => setPhase('customer')} />
       )}
       {phase === 'customer' && (
