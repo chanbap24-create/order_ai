@@ -119,7 +119,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         )}
 
         {step === 3 && (
-          <div className="som-words">
+          <div className="som-words som-words-indent">
             {Object.entries(COUNTRY_OPTIONS).map(([key, c], i) => (
               <button key={key}
                 className={`som-word som-word--md som-rise${a.countries.includes(key) ? ' on' : ''}`}
