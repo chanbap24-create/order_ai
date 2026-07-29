@@ -8,6 +8,7 @@ import {
   EMPTY_ANSWERS, type QuizAnswers,
 } from '../lib/quiz';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
+import { AromaWheel } from './AromaWheel';
 
 // 아이브로우는 Didot 라틴만, 한글 힌트는 별도 줄(고딕 소형) — 두 서체를 한 줄에 섞지 않는다
 const STEPS = [
@@ -89,29 +90,22 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
         )}
 
         {step === 2 && (
-          <div className="som-words">
-            {Object.entries(FLAVOR_GROUPS).map(([key, g], i) => {
-              const open = openGroup === key;
-              const cnt = g.keys.filter((k) => a.flavors.includes(k)).length;
-              return (
-                <div key={key} className="som-group som-rise" style={{ ['--i' as string]: i + 1 }}>
-                  <button className={`som-word som-word--md${open ? ' open' : ''}${cnt ? ' on' : ''}`}
-                    onClick={() => setOpenGroup(open ? null : key)}>
-                    {g.label}{cnt > 0 && <em className="som-cnt">{cnt}</em>}
+          <div className="som-rise" style={{ ['--i' as string]: 1 }}>
+            <AromaWheel
+              selected={a.flavors}
+              activeGroup={openGroup}
+              onGroup={setOpenGroup}
+              onFlavor={(k) => setA({ ...a, flavors: toggle(a.flavors, k) })}
+            />
+            {a.flavors.length > 0 && (
+              <div className="som-wsel">
+                {a.flavors.map((k) => (
+                  <button key={k} onClick={() => setA({ ...a, flavors: toggle(a.flavors, k) })}>
+                    {FLAVOR_KO[k] || k} ×
                   </button>
-                  {open && (
-                    <div className="som-flavors">
-                      {g.keys.map((k) => (
-                        <button key={k} className={`som-flavor${a.flavors.includes(k) ? ' on' : ''}`}
-                          onClick={() => setA({ ...a, flavors: toggle(a.flavors, k) })}>
-                          {FLAVOR_KO[k] || k}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
         )}
 
