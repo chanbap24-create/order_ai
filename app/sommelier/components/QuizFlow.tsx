@@ -37,24 +37,13 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{meta.code}</div>
         {meta.title && <h2 className="som-rise" style={{ ['--i' as string]: 1 }}>{meta.title}</h2>}
 
-        {step === 0 && (
-          <>
-            <div className="som-typegrid">
-              {TYPE_OPTIONS.filter((o) => o.value).map((o, i) => (
-                <button key={String(o.value)} className="som-typecard som-rise" style={{ ['--i' as string]: i + 1 }}
-                  onClick={() => { setA({ ...a, type: o.value }); next(); }}>
-                  <span className="som-typelabel som-lat">{o.label}</span>
-                </button>
-              ))}
-            </div>
-            <button className="som-skip-center som-rise" style={{ ['--i' as string]: 5 }}
-              onClick={() => { setA({ ...a, type: null }); next(); }}>
-              상관없어요
-            </button>
-          </>
-        )}
-
         <div className="som-opts">
+          {step === 0 && TYPE_OPTIONS.map((o, i) => (
+            <button key={String(o.value)} className="som-opt som-rise" style={{ ['--i' as string]: i + 1 }}
+              onClick={() => { setA({ ...a, type: o.value }); next(); }}>
+              {o.label}
+            </button>
+          ))}
           {step === 1 && BODY_OPTIONS.map((o, i) => (
             <button key={String(o.value)} className="som-opt som-rise" style={{ ['--i' as string]: i + 2 }}
               onClick={() => { setA({ ...a, body: o.value }); next(); }}>
