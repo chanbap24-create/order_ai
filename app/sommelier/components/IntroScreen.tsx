@@ -73,10 +73,11 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
   const [idx, setIdx] = useState(0);
   const [fading, setFading] = useState(false);
   useEffect(() => {
-    fetch('/api/sommelier/featured').then((r) => r.json())
-      .then((j) => { if (Array.isArray(j.items) && j.items.length) setItems(j.items); })
+    // 매장 바꾸면 그 매장 재고 있는 와인으로 다시 뽑음
+    fetch(`/api/sommelier/featured?store=${encodeURIComponent(store)}`).then((r) => r.json())
+      .then((j) => { setIdx(0); setItems(Array.isArray(j.items) ? j.items : []); })
       .catch(() => {});
-  }, []);
+  }, [store]);
   useEffect(() => {
     if (items.length < 2) return;
     const t = setInterval(() => {
