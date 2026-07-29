@@ -67,4 +67,19 @@ export const HOME_CARDS: HomeCard[] = [
       </svg>
     ),
   },
+  {
+    id: 'sommelier',
+    href: '/sommelier',
+    title: 'Sommelier',
+    subtitle: '백화점 와인 추천',
+    desc: '손님 취향 문답으로 매장 재고에서 꼭 맞는 와인 추천 (손님 대면 화면)',
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 2h8" />
+        <path d="M7 2c0 5 1.5 8 5 9.5C15.5 10 17 7 17 2" />
+        <path d="M12 11.5V20" />
+        <path d="M8 22h8" />
+      </svg>
+    ),
+  },
 ];
