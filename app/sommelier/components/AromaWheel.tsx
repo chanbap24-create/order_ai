@@ -32,10 +32,11 @@ function seg(cx: number, cy: number, r0: number, r1: number, a0: number, a1: num
   return `M${x0},${y0} A${r1},${r1} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 ${large} 0 ${x3},${y3} Z`;
 }
 
-export function AromaWheel({ selected, activeGroup, onGroup, onFlavor }: {
+export function AromaWheel({ selected, selectedGroups, activeGroup, onGroup, onFlavor }: {
   selected: string[];
+  selectedGroups: string[];   // 계열 통째 선택(세부 없이 계열만 골라도 됨)
   activeGroup: string | null;
-  onGroup: (g: string | null) => void;
+  onGroup: (g: string) => void;
   onFlavor: (key: string) => void;
 }) {
   const C = 190, R_IN0 = 64, R_IN1 = 116, R_OUT0 = 120, R_OUT1 = 182;
@@ -73,21 +74,23 @@ export function AromaWheel({ selected, activeGroup, onGroup, onFlavor }: {
         const [tx, ty] = polar(C, C, (R_IN0 + R_IN1) / 2, mid);
         const meta = GROUP_META[g];
         const active = activeGroup === g;
+        const picked = selectedGroups.includes(g);
         const cnt = FLAVOR_GROUPS[g].keys.filter((k) => selected.includes(k)).length;
+        const sub = picked ? '✓' : cnt > 0 ? String(cnt) : '';
         return (
-          <g key={g} className="som-wseg" onClick={() => onGroup(active ? null : g)}>
+          <g key={g} className="som-wseg" onClick={() => onGroup(g)}>
             <path d={seg(C, C, R_IN0, R_IN1, a0, a1)}
-              fill={meta.color} fillOpacity={active ? 0.92 : cnt ? 0.55 : 0.22}
+              fill={meta.color} fillOpacity={picked ? 0.9 : active ? 0.75 : cnt ? 0.5 : 0.22}
               stroke="#fff" strokeWidth="1.5" />
-            <text x={tx} y={cnt ? ty - 6 : ty} textAnchor="middle" dominantBaseline="central"
+            <text x={tx} y={sub ? ty - 6 : ty} textAnchor="middle" dominantBaseline="central"
               fontSize="11" fontWeight={700}
-              fill={active ? '#fff' : 'var(--som-ink)'} fillOpacity={active ? 1 : 0.8}>
+              fill={picked || active ? '#fff' : 'var(--som-ink)'} fillOpacity={picked || active ? 1 : 0.8}>
               {meta.short}
             </text>
-            {cnt > 0 && (
+            {sub && (
               <text x={tx} y={ty + 9} textAnchor="middle" dominantBaseline="central"
-                fontSize="10" fontWeight={700} fill={active ? '#fff' : 'var(--som-stain)'}>
-                {cnt}
+                fontSize="10" fontWeight={700} fill={picked || active ? '#fff' : 'var(--som-stain)'}>
+                {sub}
               </text>
             )}
           </g>
@@ -95,14 +98,14 @@ export function AromaWheel({ selected, activeGroup, onGroup, onFlavor }: {
       })}
       {/* 중앙 */}
       <circle cx={C} cy={C} r={R_IN0 - 8} fill="#fff" stroke="rgba(184,154,106,.4)" strokeWidth="1" />
-      <text x={C} y={selected.length ? C - 8 : C} textAnchor="middle" dominantBaseline="central"
+      <text x={C} y={selectedGroups.length + selected.length ? C - 8 : C} textAnchor="middle" dominantBaseline="central"
         fontSize="12" fill="var(--som-muted)">
-        {activeGroup ? GROUP_META[activeGroup].short : '계열을 눌러보세요'}
+        {activeGroup ? GROUP_META[activeGroup].short : '계열을 골라주세요'}
       </text>
-      {selected.length > 0 && (
+      {selectedGroups.length + selected.length > 0 && (
         <text x={C} y={C + 12} textAnchor="middle" dominantBaseline="central"
           fontSize="15" fontWeight={700} fill="var(--som-stain)">
-          {selected.length}
+          {selectedGroups.length + selected.length}
         </text>
       )}
     </svg>

@@ -93,12 +93,26 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
           <div className="som-rise" style={{ ['--i' as string]: 1 }}>
             <AromaWheel
               selected={a.flavors}
+              selectedGroups={a.flavorGroups}
               activeGroup={openGroup}
-              onGroup={setOpenGroup}
+              onGroup={(g) => {
+                // 계열 탭 = 펼치기 + 계열 선택. 이미 선택된 활성 계열을 다시 탭하면 해제.
+                if (openGroup === g) {
+                  setA({ ...a, flavorGroups: toggle(a.flavorGroups, g) });
+                } else {
+                  setOpenGroup(g);
+                  if (!a.flavorGroups.includes(g)) setA({ ...a, flavorGroups: [...a.flavorGroups, g] });
+                }
+              }}
               onFlavor={(k) => setA({ ...a, flavors: toggle(a.flavors, k) })}
             />
-            {a.flavors.length > 0 && (
+            {(a.flavorGroups.length > 0 || a.flavors.length > 0) && (
               <div className="som-wsel">
+                {a.flavorGroups.map((g) => (
+                  <button key={g} onClick={() => setA({ ...a, flavorGroups: toggle(a.flavorGroups, g) })}>
+                    {FLAVOR_GROUPS[g]?.label || g} 전체 ×
+                  </button>
+                ))}
                 {a.flavors.map((k) => (
                   <button key={k} onClick={() => setA({ ...a, flavors: toggle(a.flavors, k) })}>
                     {FLAVOR_KO[k] || k} ×
@@ -143,7 +157,8 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
           <button className="som-link" onClick={back}>이전</button>
           {step === 2 && (
             <button className="som-next" onClick={next}>
-              {a.flavors.length ? `향미 ${a.flavors.length}개 · 다음` : '건너뛰기'}
+              {a.flavorGroups.length + a.flavors.length
+                ? `${a.flavorGroups.length + a.flavors.length}개 선택 · 다음` : '건너뛰기'}
             </button>
           )}
           {step === 3 && (
