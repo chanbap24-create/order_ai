@@ -50,8 +50,9 @@ export async function GET(req: NextRequest) {
     const withImage: { code: string; name: string; name_en: string; v: string }[] = [];
     for (let i = 0; i < codes.length; i += 500) {
       const { data: ws } = await supabase
-        .from('wines').select('item_code, item_name_kr, item_name_en, image_url').in('item_code', codes.slice(i, i + 500))
-        .not('image_url', 'is', null);
+        .from('wines').select('item_code, item_name_kr, item_name_en, image_url, image_px').in('item_code', codes.slice(i, i + 500))
+        .not('image_url', 'is', null)
+        .gte('image_px', 700); // 인트로는 크게 확대되므로 고해상 이미지만(저해상은 흐릿)
       for (const w of ws || []) {
         if (/^https?:\/\//.test(w.image_url || '')) {
           withImage.push({ code: w.item_code, name: w.item_name_kr || '', name_en: w.item_name_en || '', v: cacheVer(w.image_url || '') });
