@@ -71,9 +71,10 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
   // (로드 실패 후보를 화면에서 스킵하며 여러 장이 빠르게 지나가던 문제 방지)
   type Featured = { code: string; name: string; name_en: string; v?: string };
   const [items, setItems] = useState<Featured[]>([]);
-  const [display, setDisplay] = useState<{ src: string; cur: Featured | null }>({ src: '/sommelier/hero.png', cur: null });
+  const [display, setDisplay] = useState<{ src: string; cur: Featured | null }>({ src: '', cur: null });
   const [fading, setFading] = useState(false);
   const idxRef = useRef(0);
+  const busyRef = useRef(false); // 전환 중 중복 로드 방지(느린 로딩 시 순서 꼬임 가드)
   const imgUrl = (it: Featured) => `/api/sales/wine-img?code=${encodeURIComponent(it.code)}${it.v ? `&v=${it.v}` : ''}`;
 
   useEffect(() => {
@@ -87,7 +88,8 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
     if (items.length === 0) return;
     let alive = true;
     const show = (i: number, attempts = 0) => {
-      if (!alive || attempts >= items.length) return;
+      if (!alive || attempts >= items.length) { busyRef.current = false; return; }
+      busyRef.current = true;
       const it = items[i % items.length];
       const src = imgUrl(it);
       const im = new Image();
@@ -99,19 +101,20 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
           if (!alive) return;
           setDisplay({ src, cur: it });
           setFading(false);
+          busyRef.current = false;
         }, 450);
       };
       im.onerror = () => show(i + 1, attempts + 1); // 실패 후보는 화면에 안 올리고 조용히 스킵
       im.src = src;
     };
     show(0);
-    const t = setInterval(() => show(idxRef.current + 1), 6000);
+    const t = setInterval(() => { if (!busyRef.current) show(idxRef.current + 1); }, 6000);
     return () => { alive = false; clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
   const cur = display.cur;
-  const heroSrc = display.src;
+  const heroSrc = display.src; // 폴백 이미지 없음 — 이름 있는 와인만 표시(첫 병이 무명으로 보이던 문제)
 
   return (
     <section className="som-screen">
@@ -121,8 +124,12 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       </div>
 
       <div className="som-vitrine som-rise" style={{ ['--i' as string]: 1 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={heroSrc} alt="" className={fading ? 'som-hero-fade' : ''} />
+        {heroSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={heroSrc} alt="" className={fading ? 'som-hero-fade' : ''} />
+        ) : (
+          <div style={{ height: 'min(48vh,460px)' }} aria-hidden />
+        )}
         <div className="som-floor" />
       </div>
 
