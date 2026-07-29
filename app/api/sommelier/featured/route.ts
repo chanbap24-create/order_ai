@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       }
       if (!data || data.length < 1000) break;
     }
-    // 저가 판단용 최근 30일 출고량 (일일 재고표 기준 — 없는 품목은 판단 불가로 통과)
+    // 최근 30일 출고량 (일일 재고표 기준)
     const sales = new Map<string, number>();
     for (let i = 0; i < cand.length; i += 500) {
       const { data: inv } = await supabase.from('inventory_cdv')
@@ -42,8 +42,9 @@ export async function GET(req: NextRequest) {
       for (const r of inv || []) sales.set(r.item_no, Number(r.sales_30days) || 0);
     }
     const codes = cand.filter((c) => {
-      const s30 = sales.get(c.code);
-      if (s30 !== undefined && s30 <= 0) return false;             // 30일 출고 없으면 가격 무관 제외(미상은 통과)
+      // 30일 출고가 확인된 와인만 — 일일 재고표에 없는 백화점 전용 품목(미상)도 제외
+      // (영업 재고 0인 와인이 인트로에 떠서 '재고 없는 이상한 와인'으로 보이던 문제)
+      if (!(sales.get(c.code)! > 0)) return false;
       if (c.price >= PREMIUM_PRICE) return c.stock >= 1;           // 고가: 1병도 진짜 재고
       return c.stock >= MIN_STOCK_CHEAP;                           // 저가: 최소 3병
     }).map((c) => c.code);
