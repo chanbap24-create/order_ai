@@ -159,6 +159,10 @@
   scroll-snap-type:x mandatory;align-items:stretch;justify-content:safe center;
   overscroll-behavior-x:contain}
 .som-rail::-webkit-scrollbar{display:none}
+/* 모바일: 양끝 패딩 = (레일 절반 − 카드 절반) — 첫/마지막 카드도 중앙 스냅 가능하게 */
+@media (max-width:768px){
+  .som-rail{padding-left:calc(50% - min(39vw,150px));padding-right:calc(50% - min(39vw,150px))}
+}
 .som-card{scroll-snap-align:center;flex:0 0 min(78vw,300px);border-radius:22px;padding:7px;
   background:#fbf9f6;border:1px solid rgba(184,154,106,.3);display:flex;flex-direction:column;
   transition:transform .45s var(--som-ease),box-shadow .45s var(--som-ease),
