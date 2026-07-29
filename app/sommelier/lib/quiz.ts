@@ -3,14 +3,15 @@
 export type QuizAnswers = {
   type: 'red' | 'white' | 'sparkling' | 'sweet' | 'rose' | null; // null = 상관없음. sweet=당도 기반
   body: 'light' | 'medium' | 'full' | null;
-  flavorGroups: string[]; // FLAVOR_GROUPS 키 (멀티)
+  flavorGroups: string[]; // FLAVOR_GROUPS 키 (멀티, 구버전 호환)
+  flavors: string[];      // 세부 향미 키(52키 어휘) — 드릴다운에서 개별 선택
   countries: string[];    // COUNTRY_OPTIONS 키 (멀티, 빈 배열 = 상관없음)
   priceMin: number | null;
   priceMax: number | null;
 };
 
 export const EMPTY_ANSWERS: QuizAnswers = {
-  type: null, body: null, flavorGroups: [], countries: [], priceMin: null, priceMax: null,
+  type: null, body: null, flavorGroups: [], flavors: [], countries: [], priceMin: null, priceMax: null,
 };
 
 /** 향미 취향 그룹 → 정규 향미 키(app/api/sales/recommend/lib/flavor.ts 어휘) */

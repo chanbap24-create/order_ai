@@ -135,6 +135,19 @@
 .som-word-sparkling:hover,.som-word-sparkling:focus-visible,.som-word-sparkling.sel{color:#a98a3e}
 .som-word-sweet:hover,.som-word-sweet:focus-visible,.som-word-sweet.sel{color:#b56a3a}
 
+/* 향미 드릴다운 — 그룹 단어를 열면 세부 향미(52키)가 펼쳐진다 */
+.som-group{width:100%}
+.som-word.open{color:rgba(34,28,22,.6)}
+.som-cnt{font-style:normal;font-size:13px;font-weight:700;color:var(--som-stain);
+  vertical-align:super;margin-left:6px}
+.som-flavors{display:flex;flex-wrap:wrap;gap:2px 20px;padding:6px 2px 14px;
+  animation:som-rise .5s var(--som-ease) both}
+.som-flavor{all:unset;cursor:pointer;font-size:17px;font-weight:600;padding:5px 0;
+  color:rgba(34,28,22,.34);transition:color .35s var(--som-ease),transform .35s var(--som-ease)}
+.som-flavor:hover,.som-flavor:focus-visible{color:var(--som-stain);transform:translateY(-1px)}
+.som-flavor.on{color:var(--som-stain)}
+.som-flavor.on::after{content:" ●";font-size:8px;vertical-align:3px}
+
 /* ── 결과 ── */
 .som-results{padding-left:0!important;padding-right:0!important}
 .som-results .som-head{padding:0 24px}

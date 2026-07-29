@@ -116,7 +116,10 @@ function structureOf(w: PoolWine): { body: number; tannin: number; acidity: numb
 
 function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: string[] } {
   let score = 0;
-  const wanted = new Set(a.flavorGroups.flatMap((g) => FLAVOR_GROUPS[g]?.keys || []));
+  const wanted = new Set([
+    ...a.flavorGroups.flatMap((g) => FLAVOR_GROUPS[g]?.keys || []),
+    ...(a.flavors || []), // 세부 향미 개별 선택 — 세분화 매칭
+  ]);
   const matched = w.tags.filter((t) => wanted.has(t));
   score += Math.min(40, matched.length * 8);
   const body = bodyOf(w);

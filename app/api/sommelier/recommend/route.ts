@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const a: QuizAnswers = { ...EMPTY_ANSWERS, ...(body?.answers || {}) };
     if (!Array.isArray(a.flavorGroups)) a.flavorGroups = [];
+    if (!Array.isArray(a.flavors)) a.flavors = [];
     if (!Array.isArray(a.countries)) a.countries = [];
     const store = typeof body?.store === 'string' ? body.store : 'all';
     const results = await recommendForCustomer(a, 5, store);

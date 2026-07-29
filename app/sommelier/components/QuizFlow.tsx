@@ -7,6 +7,7 @@ import {
   BODY_OPTIONS, COUNTRY_OPTIONS, FLAVOR_GROUPS, PRICE_OPTIONS, TYPE_OPTIONS,
   EMPTY_ANSWERS, type QuizAnswers,
 } from '../lib/quiz';
+import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 
 // 아이브로우는 Didot 라틴만, 한글 힌트는 별도 줄(고딕 소형) — 두 서체를 한 줄에 섞지 않는다
 const STEPS = [
@@ -25,6 +26,7 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
   const [step, setStep] = useState(0);
   const [a, setA] = useState<QuizAnswers>(EMPTY_ANSWERS);
   const [sel, setSel] = useState<string | null>(null); // 단일 선택 물들기 연출
+  const [openGroup, setOpenGroup] = useState<string | null>(null); // 향미 드릴다운(아코디언)
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => (step === 0 ? onExit() : setStep((s) => s - 1));
@@ -88,14 +90,28 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
 
         {step === 2 && (
           <div className="som-words">
-            {Object.entries(FLAVOR_GROUPS).map(([key, g], i) => (
-              <button key={key}
-                className={`som-word som-word--md som-rise${a.flavorGroups.includes(key) ? ' on' : ''}`}
-                style={{ ['--i' as string]: i + 1 }}
-                onClick={() => setA({ ...a, flavorGroups: toggle(a.flavorGroups, key) })}>
-                {g.label}
-              </button>
-            ))}
+            {Object.entries(FLAVOR_GROUPS).map(([key, g], i) => {
+              const open = openGroup === key;
+              const cnt = g.keys.filter((k) => a.flavors.includes(k)).length;
+              return (
+                <div key={key} className="som-group som-rise" style={{ ['--i' as string]: i + 1 }}>
+                  <button className={`som-word som-word--md${open ? ' open' : ''}${cnt ? ' on' : ''}`}
+                    onClick={() => setOpenGroup(open ? null : key)}>
+                    {g.label}{cnt > 0 && <em className="som-cnt">{cnt}</em>}
+                  </button>
+                  {open && (
+                    <div className="som-flavors">
+                      {g.keys.map((k) => (
+                        <button key={k} className={`som-flavor${a.flavors.includes(k) ? ' on' : ''}`}
+                          onClick={() => setA({ ...a, flavors: toggle(a.flavors, k) })}>
+                          {FLAVOR_KO[k] || k}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -133,7 +149,7 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
           <button className="som-link" onClick={back}>이전</button>
           {step === 2 && (
             <button className="som-next" onClick={next}>
-              {a.flavorGroups.length ? `${a.flavorGroups.length}개 선택 · 다음` : '건너뛰기'}
+              {a.flavors.length ? `향미 ${a.flavors.length}개 · 다음` : '건너뛰기'}
             </button>
           )}
           {step === 3 && (
