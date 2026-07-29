@@ -67,36 +67,51 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // 병샷 랜덤 순환 — 매장 재고 와인 중 이미지 있는 것을 셔플로 받아 6초마다 크로스페이드
+  // 병샷 랜덤 순환 — 후보를 백그라운드에서 미리 로드해 성공한 이미지만 화면에 올린다
+  // (로드 실패 후보를 화면에서 스킵하며 여러 장이 빠르게 지나가던 문제 방지)
   type Featured = { code: string; name: string; name_en: string; v?: string };
   const [items, setItems] = useState<Featured[]>([]);
-  const [idx, setIdx] = useState(0);
+  const [display, setDisplay] = useState<{ src: string; cur: Featured | null }>({ src: '/sommelier/hero.png', cur: null });
   const [fading, setFading] = useState(false);
+  const idxRef = useRef(0);
+  const imgUrl = (it: Featured) => `/api/sales/wine-img?code=${encodeURIComponent(it.code)}${it.v ? `&v=${it.v}` : ''}`;
+
   useEffect(() => {
     // 매장 바꾸면 그 매장 재고 있는 와인으로 다시 뽑음
     fetch(`/api/sommelier/featured?store=${encodeURIComponent(store)}`).then((r) => r.json())
-      .then((j) => { setIdx(0); setItems(Array.isArray(j.items) ? j.items : []); })
+      .then((j) => setItems(Array.isArray(j.items) ? j.items : []))
       .catch(() => {});
   }, [store]);
+
   useEffect(() => {
-    if (items.length < 2) return;
-    const t = setInterval(() => {
-      setFading(true);
-      setTimeout(() => { setIdx((i) => (i + 1) % items.length); setFading(false); }, 450);
-    }, 6000);
-    return () => clearInterval(t);
+    if (items.length === 0) return;
+    let alive = true;
+    const show = (i: number, attempts = 0) => {
+      if (!alive || attempts >= items.length) return;
+      const it = items[i % items.length];
+      const src = imgUrl(it);
+      const im = new Image();
+      im.onload = () => {
+        if (!alive) return;
+        idxRef.current = i % items.length;
+        setFading(true);
+        setTimeout(() => {
+          if (!alive) return;
+          setDisplay({ src, cur: it });
+          setFading(false);
+        }, 450);
+      };
+      im.onerror = () => show(i + 1, attempts + 1); // 실패 후보는 화면에 안 올리고 조용히 스킵
+      im.src = src;
+    };
+    show(0);
+    const t = setInterval(() => show(idxRef.current + 1), 6000);
+    return () => { alive = false; clearInterval(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
-  // 다음 병샷 미리 로드(전환 시 깜빡임 방지)
-  useEffect(() => {
-    if (items.length < 2) return;
-    const n = items[(idx + 1) % items.length];
-    const next = new Image();
-    next.src = `/api/sales/wine-img?code=${encodeURIComponent(n.code)}${n.v ? `&v=${n.v}` : ''}`;
-  }, [items, idx]);
-  const cur = items[idx] || null;
-  const heroSrc = cur
-    ? `/api/sales/wine-img?code=${encodeURIComponent(cur.code)}${cur.v ? `&v=${cur.v}` : ''}`
-    : '/sommelier/hero.png';
+
+  const cur = display.cur;
+  const heroSrc = display.src;
 
   return (
     <section className="som-screen">
@@ -107,8 +122,7 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
 
       <div className="som-vitrine som-rise" style={{ ['--i' as string]: 1 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={heroSrc} alt="" className={fading ? 'som-hero-fade' : ''}
-          onError={() => { if (items.length > 1) setIdx((i) => (i + 1) % items.length); }} />
+        <img src={heroSrc} alt="" className={fading ? 'som-hero-fade' : ''} />
         <div className="som-floor" />
       </div>
 
