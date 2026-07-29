@@ -85,7 +85,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         )}
 
         {step === 2 && (
-          <div className="som-rise" style={{ ['--i' as string]: 1 }}>
+          <div className="som-mid som-rise" style={{ ['--i' as string]: 1 }}>
             <AromaWheel
               selected={a.flavors}
               selectedGroups={a.flavorGroups}
