@@ -8,6 +8,7 @@ import { STORES } from '@/app/sommelier/lib/quiz';
 import { cacheVer } from '@/app/lib/cacheVer';
 
 const WINE_CODE = /^([0-5A]|ZK)/i;
+const MIN_STOCK = 3; // 인트로 노출은 재고가 확실한(3병 이상) 와인만 — 스냅샷 오차·품절 리스크 회피
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
         const stock = storeCol
           ? Number(r[storeCol]) || 0
           : STORE_COLS.reduce((sum, c) => sum + (Number(r[c]) || 0), 0);
-        if (stock > 0 && WINE_CODE.test(code)) codes.push(code);
+        if (stock >= MIN_STOCK && WINE_CODE.test(code)) codes.push(code);
       }
       if (!data || data.length < 1000) break;
     }
