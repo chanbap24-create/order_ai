@@ -21,13 +21,14 @@ function summary(a: QuizAnswers | null): string {
   return parts.join(' · ');
 }
 
-export function ResultsScreen({ customerName, customerId, sessionId, answers, results, onRetry, onNewGuest }: {
+export function ResultsScreen({ customerName, customerId, sessionId, answers, results, onBack, onRetry, onNewGuest }: {
   customerName: string;
   customerId: number | null;
   sessionId: number | null;
   answers: QuizAnswers | null;
   results: SommelierResult[];
-  onRetry: () => void;
+  onBack: () => void;   // 문답 마지막 질문으로(답변 유지)
+  onRetry: () => void;  // 처음부터 다시 문답
   onNewGuest: () => void;
 }) {
   const [ordered, setOrdered] = useState<Set<string>>(new Set());
@@ -71,20 +72,28 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
     rail.scrollTo({ left: card.offsetLeft - (rail.clientWidth - card.offsetWidth) / 2, behavior: 'smooth' });
   };
 
+  /** 구매 기록 토글 — 기록/재탭 시 취소(DB에서도 삭제) */
   const order = async (r: SommelierResult) => {
-    if (!customerId || ordered.has(r.item_code) || busy) return;
+    if (!customerId || busy) return;
+    const cancel = ordered.has(r.item_code);
     setBusy(r.item_code);
     try {
       const res = await fetch('/api/sommelier/order', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: cancel ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId, sessionId, itemCode: r.item_code, itemName: r.name,
           retailPrice: r.retail_price, quantity: 1,
         }),
       });
-      if (res.ok) setOrdered((s) => new Set(s).add(r.item_code));
-      else alert('구매 기록에 실패했습니다.');
-    } catch { alert('구매 기록에 실패했습니다.'); }
+      if (res.ok) {
+        setOrdered((s) => {
+          const n = new Set(s);
+          if (cancel) n.delete(r.item_code); else n.add(r.item_code);
+          return n;
+        });
+      } else alert(cancel ? '취소에 실패했습니다.' : '구매 기록에 실패했습니다.');
+    } catch { alert('처리에 실패했습니다.'); }
     finally { setBusy(null); }
   };
 
@@ -131,8 +140,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                   <div className="som-pricebox">
                     <span className="som-price">{won(r.retail_price)}원</span>
                     <button className={`som-buy${done ? ' done' : ''}`} onClick={() => order(r)}
-                      disabled={done || busy === r.item_code}>
-                      {done ? '✓ 기록됨' : busy === r.item_code ? '기록 중…' : '구매 기록'}
+                      disabled={busy === r.item_code}
+                      title={done ? '다시 누르면 취소됩니다' : undefined}>
+                      {busy === r.item_code ? '처리 중…' : done ? '✓ 기록됨 · 취소' : '구매 기록'}
                     </button>
                   </div>
                 </div>
@@ -149,8 +159,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
-        <button className="som-again" onClick={onRetry}>다시 문답</button>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <button className="som-again" onClick={onBack}>← 이전으로</button>
+        <button className="som-again" onClick={onRetry}>처음부터 다시</button>
         <button className="som-again" onClick={onNewGuest}>새 손님 응대</button>
       </div>
     </section>

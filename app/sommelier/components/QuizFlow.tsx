@@ -19,13 +19,15 @@ const STEPS = [
   { code: 'Q.5 — PRICE', hint: '가격대' },
 ];
 
-export function QuizFlow({ onSubmit, submitting, onExit }: {
+export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initialStep = 0 }: {
   onSubmit: (a: QuizAnswers) => void;
   submitting: boolean;
   onExit: () => void;
+  initialAnswers?: QuizAnswers | null; // 결과에서 '이전'으로 돌아올 때 답변 유지
+  initialStep?: number;
 }) {
-  const [step, setStep] = useState(0);
-  const [a, setA] = useState<QuizAnswers>(EMPTY_ANSWERS);
+  const [step, setStep] = useState(initialStep);
+  const [a, setA] = useState<QuizAnswers>(initialAnswers ?? EMPTY_ANSWERS);
   const [sel, setSel] = useState<string | null>(null); // 단일 선택 물들기 연출
   const [openGroup, setOpenGroup] = useState<string | null>(null); // 향미 드릴다운(아코디언)
 

@@ -40,6 +40,15 @@ export async function saveSession(
   return data.id;
 }
 
+/** 구매 기록 취소 — 같은 고객·품번(+세션)의 기록 삭제 */
+export async function deleteOrder(customerId: number, itemCode: string, sessionId: number | null): Promise<void> {
+  let q = supabase.from('sommelier_orders').delete()
+    .eq('customer_id', customerId).eq('item_code', itemCode);
+  q = sessionId ? q.eq('session_id', sessionId) : q;
+  const { error } = await q;
+  if (error) throw new Error(`구매 기록 취소 실패: ${error.message}`);
+}
+
 /** 손님이 구매한 와인 기록 */
 export async function saveOrder(o: {
   customerId: number; sessionId: number | null; itemCode: string; itemName: string;

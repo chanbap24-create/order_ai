@@ -27,6 +27,8 @@ export default function SommelierPage() {
   const [results, setResults] = useState<SommelierResult[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resume, setResume] = useState(false); // 결과→이전: 답변 유지한 채 마지막 질문으로
+  const [quizNonce, setQuizNonce] = useState(0);
 
   useEffect(() => {
     try { const s = localStorage.getItem('som_store'); if (s) setStore(s); } catch { /* ignore */ }
@@ -89,7 +91,9 @@ export default function SommelierPage() {
           onDone={(c) => { setCustomer(c); setPhase('quiz'); }} />
       )}
       {phase === 'quiz' && (
-        <QuizFlow onSubmit={submit} submitting={submitting} onExit={() => setPhase('customer')} />
+        <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting}
+          onExit={() => setPhase('customer')}
+          initialAnswers={resume ? answers : null} initialStep={resume ? 4 : 0} />
       )}
       {phase === 'results' && (
         <ResultsScreen
@@ -98,7 +102,8 @@ export default function SommelierPage() {
           sessionId={sessionId}
           answers={answers}
           results={results}
-          onRetry={() => setPhase('quiz')}
+          onBack={() => { setResume(true); setQuizNonce((n) => n + 1); setPhase('quiz'); }}
+          onRetry={() => { setResume(false); setQuizNonce((n) => n + 1); setPhase('quiz'); }}
           onNewGuest={newGuest}
         />
       )}
