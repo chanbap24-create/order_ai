@@ -110,7 +110,7 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
 
       <div className="som-plate">
         <div className="som-no som-lat som-rise" style={{ ['--i' as string]: 2 }}>
-          SELECTION{poolCount ? ` ${poolCount}` : ''}
+          CAVE DE VIN WINE SELECTION
         </div>
         <h1 className="som-rise" style={{ ['--i' as string]: 3 }}>
           당신을 위한<br />단 한 병
