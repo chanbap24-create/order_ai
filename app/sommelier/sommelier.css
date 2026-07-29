@@ -36,12 +36,12 @@
 .som-prog i{display:block;height:100%;background:var(--som-stain);width:0%;transition:width .8s var(--som-ease)}
 
 /* ── 인트로 ── */
-.som-vitrine{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:0}
+.som-vitrine{flex:0 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:0;margin-top:auto}
 .som-vitrine img{height:min(42vh,400px);max-width:72vw;object-fit:contain;animation:som-sway 9s ease-in-out infinite}
 @keyframes som-sway{50%{transform:translateY(-8px)}}
 .som-floor{width:min(46vw,220px);height:16px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:-6px}
-.som-plate{text-align:center;padding:3vh 0 1vh}
+.som-plate{text-align:center;padding:3vh 0 0;margin-bottom:auto}
 .som-no{font-size:11px;letter-spacing:.34em;color:var(--som-gold)}
 .som-plate h1{font-size:clamp(26px,6.4vw,40px);font-weight:700;letter-spacing:-0.02em;line-height:1.34;margin:14px 0 10px}
 .som-plate p{margin:0;font-size:14px;line-height:1.75;color:var(--som-muted)}
