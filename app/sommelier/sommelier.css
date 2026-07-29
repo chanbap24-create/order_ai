@@ -15,10 +15,9 @@
 }
 .som-lat{font-family:Didot,"Bodoni 72",Georgia,serif;letter-spacing:.02em}
 
-.som-spot{position:absolute;left:50%;top:-18%;width:140vmin;height:140vmin;transform:translateX(-50%);
-  background:radial-gradient(closest-side, rgba(184,154,106,.10), rgba(184,154,106,.03) 45%, transparent 70%);
-  pointer-events:none;animation:som-breath 8s ease-in-out infinite}
-@keyframes som-breath{50%{opacity:.7}}
+/* 스포트라이트 글로우 제거 — 배경 틴트가 있으면 흰 배경(비누끼) 병샷이
+   사각형으로 도드라진다. 순백 유지가 어떤 병샷이든 소화하는 조건. */
+.som-spot{display:none}
 
 .som-screen{position:absolute;inset:0;display:flex;flex-direction:column;
   padding:max(20px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))}
@@ -41,8 +40,8 @@
   opacity:1;transition:opacity .45s ease}
 .som-vitrine img.som-hero-fade{opacity:0}
 @keyframes som-sway{50%{transform:translateY(-8px)}}
-.som-floor{width:min(46vw,220px);height:16px;border-radius:50%;
-  background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:-6px}
+.som-floor{width:min(46vw,220px);height:14px;border-radius:50%;
+  background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:4px}
 .som-plate{text-align:center;padding:3vh 0 0;margin-bottom:auto}
 .som-no{font-size:11px;letter-spacing:.34em;color:var(--som-gold)}
 .som-plate h1{font-size:clamp(26px,6.4vw,40px);font-weight:700;letter-spacing:-0.02em;line-height:1.34;margin:14px 0 10px}
@@ -125,8 +124,8 @@
   box-shadow:0 1px 0 rgba(34,28,22,.03), 0 14px 30px rgba(34,28,22,.06)}
 .som-shot{height:158px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:2px}
 .som-shot img{max-height:152px;max-width:126px;object-fit:contain}
-.som-cardfloor{width:92px;height:10px;border-radius:50%;
-  background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin:0 auto 12px}
+.som-cardfloor{width:92px;height:9px;border-radius:50%;
+  background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin:3px auto 12px}
 .som-rank{font-size:11px;letter-spacing:.3em;color:var(--som-gold)}
 .som-nm{font-size:16px;font-weight:700;margin:6px 0 2px;line-height:1.4}
 .som-en{font-size:11px;color:var(--som-muted);margin-bottom:11px}
