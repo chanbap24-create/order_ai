@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
+import { DetailOverlay } from './DetailOverlay';
 import { BODY_OPTIONS, PRICE_OPTIONS, TYPE_OPTIONS, type QuizAnswers } from '../lib/quiz';
 
 const won = (n: number) => n.toLocaleString('ko-KR');
@@ -34,6 +35,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
 }) {
   const [ordered, setOrdered] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [detail, setDetail] = useState<number | null>(null); // 전체화면 상세로 연 카드 인덱스
 
   // 모바일 스크롤 스포트라이트 — 중앙 스냅 카드가 조명을 받고 양옆은 흐려짐 + 페이지 점
   const railRef = useRef<HTMLDivElement>(null);
@@ -121,7 +123,8 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
             return (
               <div key={r.item_code}
                 className={`som-card som-rise${spot ? (i === page ? ' focus' : ' dim') : ''}`}
-                style={{ ['--i' as string]: i + 2 }}>
+                style={{ ['--i' as string]: i + 2, cursor: 'pointer' }}
+                onClick={() => setDetail(i)}>
                 <div className="som-core">
                   <div className="som-shot">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -141,7 +144,8 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                   <div className="som-reason">{r.reason}</div>
                   <div className="som-pricebox">
                     <span className="som-price">{won(r.retail_price)}원</span>
-                    <button className={`som-buy${done ? ' done' : ''}`} onClick={() => order(r)}
+                    <button className={`som-buy${done ? ' done' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); order(r); }}
                       disabled={busy === r.item_code}
                       title={done ? '다시 누르면 취소됩니다' : undefined}>
                       {busy === r.item_code ? '처리 중…' : done ? '✓ 기록됨 · 취소' : '구매 기록'}
@@ -166,6 +170,14 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
         <button className="som-again" onClick={onRetry}>처음부터 다시</button>
         <button className="som-again" onClick={onNewGuest}>새 손님 응대</button>
       </div>
+
+      {detail != null && results[detail] && (
+        <DetailOverlay r={results[detail]} rank={ROMAN[detail] || String(detail + 1)}
+          ordered={ordered.has(results[detail].item_code)}
+          busy={busy === results[detail].item_code}
+          onOrder={() => order(results[detail])}
+          onClose={() => setDetail(null)} />
+      )}
     </section>
   );
 }

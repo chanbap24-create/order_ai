@@ -233,6 +233,37 @@
 .som-rail.spotmode .som-card.dim{opacity:.4}
 .som-rail.spotmode .som-card.focus{opacity:1;border-color:rgba(184,154,106,.7);
   box-shadow:0 18px 38px rgba(34,28,22,.12)}
+/* 카드 전체화면 상세 — 카드가 확장되듯 떠오른다 */
+.som-detail{position:fixed;inset:0;z-index:70;background:var(--som-paper);
+  display:flex;flex-direction:column;animation:som-detin .45s var(--som-ease) both}
+@keyframes som-detin{from{opacity:0;transform:scale(.965) translateY(16px)}to{opacity:1;transform:none}}
+.som-detail.out{animation:som-detout .36s ease both}
+@keyframes som-detout{to{opacity:0;transform:scale(.97) translateY(12px)}}
+.som-detail-top{display:flex;justify-content:space-between;align-items:center;
+  padding:max(16px,env(safe-area-inset-top)) 22px 10px}
+.som-detail-back{all:unset;cursor:pointer;font-size:13.5px;color:var(--som-muted);padding:4px 0}
+.som-detail-top .som-lat{font-size:12px;letter-spacing:.24em;color:var(--som-gold)}
+.som-detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:center;
+  padding:6px 28px max(30px,env(safe-area-inset-bottom));max-width:560px;margin:0 auto;width:100%;
+  box-sizing:border-box}
+.som-detail-shot{height:min(32vh,300px);display:flex;align-items:flex-end;justify-content:center}
+.som-detail-shot img{max-height:100%;max-width:min(60vw,240px);object-fit:contain;
+  filter:drop-shadow(0 22px 26px rgba(34,28,22,.18))}
+.som-detail-meta{font-size:12px;color:var(--som-muted);margin:2px 0 18px;line-height:1.7}
+.som-detail-bars{max-width:340px;margin:0 auto 16px}
+.som-detail-fl{display:flex;flex-wrap:wrap;justify-content:center;gap:7px 14px;
+  font-size:12px;color:var(--som-ink);margin-bottom:20px}
+.som-detail-fl span{display:inline-flex;align-items:center;gap:6px}
+.som-detail-fl i{width:5px;height:5px;border-radius:50%;background:var(--som-gold)}
+.som-detail-wait{font-size:12.5px;color:var(--som-muted);padding:10px 0 4px}
+.som-detail-notes{margin:0;text-align:left;border-top:1px solid rgba(184,154,106,.28)}
+.som-detail-notes div{display:flex;gap:16px;padding:12px 2px;
+  border-bottom:1px solid rgba(34,28,22,.07)}
+.som-detail-notes dt{flex:0 0 58px;font-size:12px;color:var(--som-gold);
+  letter-spacing:.06em;padding-top:1px}
+.som-detail-notes dd{margin:0;font-size:13.5px;line-height:1.75;color:var(--som-ink);
+  word-break:keep-all}
+
 .som-dots{display:flex;justify-content:center;gap:8px;padding:4px 0 8px}
 .som-dots i{width:6px;height:6px;border-radius:50%;background:rgba(34,28,22,.18);
   cursor:pointer;transition:all .3s var(--som-ease)}
