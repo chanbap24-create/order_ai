@@ -66,6 +66,8 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
   onStart: () => void;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  // 부팅 로딩 — 첫 병샷이 준비되면(또는 5초 타임아웃) 걷어내고 본문이 떠오른다
+  const [boot, setBoot] = useState<'on' | 'out' | 'off'>('on');
 
   // 병샷 랜덤 순환 — 후보를 백그라운드에서 미리 로드해 성공한 이미지만 화면에 올린다
   // (로드 실패 후보를 화면에서 스킵하며 여러 장이 빠르게 지나가던 문제 방지)
@@ -108,6 +110,8 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       im.src = src;
     };
     show(0);
+    // 다음 병샷 2장 예열 — 첫 순환 전환이 대기 없이 되도록
+    for (const it of items.slice(1, 3)) { const w = new Image(); w.src = imgUrl(it); }
     const t = setInterval(() => { if (!busyRef.current) show(idxRef.current + 1); }, 6000);
     return () => { alive = false; clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,8 +120,29 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
   const cur = display.cur;
   const heroSrc = display.src; // 폴백 이미지 없음 — 이름 있는 와인만 표시(첫 병이 무명으로 보이던 문제)
 
+  useEffect(() => {
+    if (boot === 'on' && display.cur) setBoot('out');
+  }, [display.cur, boot]);
+  useEffect(() => {
+    if (boot !== 'out') return;
+    const t = setTimeout(() => setBoot('off'), 750);
+    return () => clearTimeout(t);
+  }, [boot]);
+  useEffect(() => {
+    // 이미지가 하나도 준비 못 되는 경우(빈 재고 등)에도 페이지가 잠기지 않게
+    const t = setTimeout(() => setBoot((b) => (b === 'on' ? 'out' : b)), 5000);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <section className="som-screen">
+      {boot !== 'off' && (
+        <div className={`som-boot${boot === 'out' ? ' out' : ''}`} aria-hidden>
+          <span className="som-lat">CAVE DE VIN</span>
+          <i />
+        </div>
+      )}
+      {boot !== 'on' && <>
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
         <Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link>
         <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
@@ -163,6 +188,7 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
           </div>
         </>
       )}
+      </>}
     </section>
   );
 }

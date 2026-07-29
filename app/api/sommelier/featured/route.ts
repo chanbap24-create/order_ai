@@ -12,12 +12,27 @@ const WINE_CODE = /^([0-5A]|ZK)/i;
 const PREMIUM_PRICE = 100000;
 const MIN_STOCK_CHEAP = 3;
 
+// 매장별 후보 캐시 — 재고표는 하루 단위 갱신이라 짧은 TTL로 충분. 셔플은 요청마다 새로.
+type Item = { code: string; name: string; name_en: string; v: string };
+const cache = new Map<string, { t: number; items: Item[] }>();
+const CACHE_TTL = 10 * 60_000;
+
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   try {
     const store = req.nextUrl.searchParams.get('store') || 'all';
     const storeCol = store !== 'all' && STORES[store] ? store : null;
+    const hit = cache.get(store);
+    const pool = hit && Date.now() - hit.t < CACHE_TTL ? hit.items : null;
+    if (pool) {
+      const a = [...pool];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return NextResponse.json({ items: a.slice(0, 12) });
+    }
     const cand: { code: string; stock: number; price: number }[] = [];
     for (let from = 0; ; from += 1000) {
       let q = supabase.from('dept_store_stock')
@@ -48,7 +63,7 @@ export async function GET(req: NextRequest) {
       if (c.price >= PREMIUM_PRICE) return c.stock >= 1;           // 고가: 1병도 진짜 재고
       return c.stock >= MIN_STOCK_CHEAP;                           // 저가: 최소 3병
     }).map((c) => c.code);
-    const withImage: { code: string; name: string; name_en: string; v: string }[] = [];
+    const withImage: Item[] = [];
     for (let i = 0; i < codes.length; i += 500) {
       const { data: ws } = await supabase
         .from('wines').select('item_code, item_name_kr, item_name_en, image_url, image_px').in('item_code', codes.slice(i, i + 500))
@@ -60,6 +75,7 @@ export async function GET(req: NextRequest) {
         }
       }
     }
+    cache.set(store, { t: Date.now(), items: [...withImage] });
     // 셔플 후 12개
     for (let i = withImage.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
