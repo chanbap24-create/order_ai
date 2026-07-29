@@ -119,13 +119,16 @@
 .som-consent input{margin-top:2px;accent-color:var(--som-ink)}
 .som-err{font-size:13px;color:var(--som-stain);margin-top:10px}
 
-/* 타입 선택 — 타이포가 인터페이스: 연회백 대형 단어가 누르면 와인 색으로 물든다 */
+/* 문답 공통 문법 — 연회백 대형 타이포가 선택 시 와인 색으로 물든다 */
 .som-words{display:flex;flex-direction:column;align-items:flex-start;margin-top:8px}
 .som-word{all:unset;cursor:pointer;font-size:clamp(40px,8.5vw,58px);font-weight:800;
-  letter-spacing:-0.025em;line-height:1.28;color:rgba(34,28,22,.16);padding:1px 0;
+  letter-spacing:-0.025em;line-height:1.3;color:rgba(34,28,22,.16);padding:1px 0;
   transition:color .4s var(--som-ease),transform .4s var(--som-ease)}
-.som-word:hover,.som-word:focus-visible,.som-word.sel{transform:translateX(8px)}
+.som-word--md{font-size:clamp(26px,5.4vw,38px);line-height:1.55;letter-spacing:-0.02em}
+.som-word:hover,.som-word:focus-visible,.som-word.sel,.som-word.on{transform:translateX(8px)}
 .som-word:focus-visible{outline:none}
+/* 기본 물들기 색 = 와인 스테인. 타입 단계는 각자 와인 색으로 오버라이드 */
+.som-word:hover,.som-word:focus-visible,.som-word.sel,.som-word.on{color:var(--som-stain)}
 .som-word-red:hover,.som-word-red:focus-visible,.som-word-red.sel{color:#8e2540}
 .som-word-white:hover,.som-word-white:focus-visible,.som-word-white.sel{color:#c2a14b}
 .som-word-sparkling:hover,.som-word-sparkling:focus-visible,.som-word-sparkling.sel{color:#a98a3e}

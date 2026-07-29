@@ -72,9 +72,9 @@ export const STORES: Record<string, string> = {
 };
 
 export const BODY_OPTIONS = [
-  { value: 'light' as const, label: '가볍고 산뜻하게', desc: '경쾌한 산미, 부담 없는' },
-  { value: 'medium' as const, label: '적당한 무게감', desc: '밸런스 좋은 미디엄' },
-  { value: 'full' as const, label: '진하고 묵직하게', desc: '풀바디, 농축된 풍미' },
+  { value: 'light' as const, label: 'Light', desc: '' },
+  { value: 'medium' as const, label: 'Medium', desc: '' },
+  { value: 'full' as const, label: 'Full', desc: '' },
   { value: null, label: '상관없어요', desc: '' },
 ];
 
