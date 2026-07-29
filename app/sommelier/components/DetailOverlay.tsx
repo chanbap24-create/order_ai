@@ -18,23 +18,6 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
 }) {
   const [d, setD] = useState<SommelierDetail | null>(null);
   const [out, setOut] = useState(false);
-  // 병샷 모드 — 진짜 누끼(위 모서리가 투명)만 띄우고, 불투명 이미지(흰 박스·통사진)는 액자로.
-  // 아래 모서리는 병 그림자·반사가 걸리므로 보지 않는다. 흰 박스도 액자로 통일 —
-  // 띄우면 drop-shadow가 박스 윤곽을 그려 흰 카드가 붕 떠 보인다.
-  const [shotMode, setShotMode] = useState<'cut' | 'photo'>('cut');
-
-  const classify = (img: HTMLImageElement) => {
-    try {
-      const cv = document.createElement('canvas');
-      cv.width = 8; cv.height = 8;
-      const g = cv.getContext('2d');
-      if (!g) return;
-      g.drawImage(img, 0, 0, 8, 8);
-      const px = g.getImageData(0, 0, 8, 8).data;
-      const alphaAt = (x: number, y: number) => px[(y * 8 + x) * 4 + 3];
-      setShotMode(alphaAt(0, 0) < 32 && alphaAt(7, 0) < 32 ? 'cut' : 'photo');
-    } catch { /* 판별 실패 시 기본(cut) 유지 */ }
-  };
 
   useEffect(() => {
     let alive = true;
@@ -65,11 +48,10 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
       <div className="som-detail-body">
         <div className="som-detail-card">
         <div className="som-detail-core">
-        <div className={`som-detail-shot ${shotMode}`}>
+        <div className="som-detail-shot">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}${r.img_ver ? `&v=${r.img_ver}` : ''}`}
             alt={r.name}
-            onLoad={(e) => classify(e.currentTarget as HTMLImageElement)}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
         </div>
         <div className="som-cardfloor" />

@@ -256,15 +256,12 @@
   padding:7px;margin:4px 0 10px}
 .som-detail-core{background:#fff;border-radius:16px;padding:26px 20px 22px}
 .som-detail-shot{height:min(32vh,300px);display:flex;align-items:flex-end;justify-content:center}
-/* 배경 있는 통사진은 액자 프레임으로 — 회색 스튜디오 배경이 카드처럼 보이던 문제 */
-.som-detail-shot.photo img{border-radius:14px;border:1px solid var(--som-line);
-  filter:drop-shadow(0 14px 20px rgba(34,28,22,.12))}
 .som-detail .som-cardfloor{margin:0 auto 14px}
 .som-detail .som-nm{font-size:19px}
 .som-detail .som-en{font-size:12.5px}
 .som-detail .som-pricebox{margin:26px 0 6px}
-.som-detail-shot img{max-height:100%;max-width:min(60vw,240px);object-fit:contain;
-  filter:drop-shadow(0 22px 26px rgba(34,28,22,.18))}
+/* 그림자 필터 금지 — 불투명(흰 박스) 이미지에서 박스 윤곽을 그려 붕 떠 보인다 */
+.som-detail-shot img{max-height:100%;max-width:min(60vw,240px);object-fit:contain}
 .som-detail-meta{font-size:12px;color:var(--som-muted);margin:2px 0 18px;line-height:1.7}
 .som-detail-bars{max-width:340px;margin:0 auto 16px}
 .som-detail-fl{display:flex;flex-wrap:wrap;justify-content:center;gap:7px 14px;
