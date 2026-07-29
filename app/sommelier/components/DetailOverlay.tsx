@@ -28,7 +28,7 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
     return () => { alive = false; };
   }, [r.item_code]);
 
-  const close = () => { setOut(true); setTimeout(onClose, 360); };
+  const close = () => { if (out) return; setOut(true); setTimeout(onClose, 360); };
 
   const flavors = (d?.flavors?.length ? d.flavors : r.flavors) || [];
   const meta = [d?.country || r.country, d?.region || r.region, d?.grape_varieties,
@@ -39,7 +39,8 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
   ] as [string, string | null][]).filter((row): row is [string, string] => !!row[1]) : [];
 
   return (
-    <div className={`som-detail${out ? ' out' : ''}`} role="dialog" aria-modal="true">
+    // 화면 아무 곳이나 다시 탭하면 닫기 (버튼은 전파 차단)
+    <div className={`som-detail${out ? ' out' : ''}`} role="dialog" aria-modal="true" onClick={close}>
       <div className="som-detail-top">
         <button className="som-detail-back" onClick={close}>← 추천 목록</button>
         <span className="som-lat">NO. {rank}</span>
@@ -85,7 +86,8 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
 
         <div className="som-pricebox">
           <span className="som-price">{won(r.retail_price)}원</span>
-          <button className={`som-buy${ordered ? ' done' : ''}`} onClick={onOrder} disabled={busy}
+          <button className={`som-buy${ordered ? ' done' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onOrder(); }} disabled={busy}
             title={ordered ? '다시 누르면 취소됩니다' : undefined}>
             {busy ? '처리 중…' : ordered ? '✓ 기록됨 · 취소' : '구매 기록'}
           </button>
