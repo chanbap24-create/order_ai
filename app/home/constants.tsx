@@ -55,19 +55,6 @@ export const HOME_CARDS: HomeCard[] = [
     ),
   },
   {
-    id: 'marketing',
-    href: '/marketing',
-    title: 'Marketing',
-    subtitle: '판매 분석 · 수입량 예측',
-    desc: '브랜드별 매출, 국가/지역/타입별 분석, 수입량 예측',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 21H4.6c-.56 0-.84 0-1.054-.109a1 1 0 0 1-.437-.437C3 20.24 3 19.96 3 19.4V3" />
-        <path d="M7 14l4-4 4 4 6-6" />
-      </svg>
-    ),
-  },
-  {
     id: 'sommelier',
     href: '/sommelier',
     title: 'Sommelier',
@@ -79,6 +66,19 @@ export const HOME_CARDS: HomeCard[] = [
         <path d="M7 2c0 5 1.5 8 5 9.5C15.5 10 17 7 17 2" />
         <path d="M12 11.5V20" />
         <path d="M8 22h8" />
+      </svg>
+    ),
+  },
+  {
+    id: 'marketing',
+    href: '/marketing',
+    title: 'Marketing',
+    subtitle: '판매 분석 · 수입량 예측',
+    desc: '브랜드별 매출, 국가/지역/타입별 분석, 수입량 예측',
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 21H4.6c-.56 0-.84 0-1.054-.109a1 1 0 0 1-.437-.437C3 20.24 3 19.96 3 19.4V3" />
+        <path d="M7 14l4-4 4 4 6-6" />
       </svg>
     ),
   },
