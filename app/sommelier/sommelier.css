@@ -121,10 +121,11 @@
 
 /* 타입 선택 — 와인 컬러 오브 카드 (텍스트 대신 색이 말한다) */
 .som-typegrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
-.som-typecard{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:14px;
-  padding:26px 10px 22px;border:1px solid rgba(184,154,106,.35);border-radius:18px;background:#fff;
-  font-size:16px;font-weight:600;color:var(--som-ink);
+.som-typecard{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  padding:34px 10px;border:1px solid rgba(184,154,106,.35);border-radius:18px;background:#fff;
+  color:var(--som-ink);
   transition:transform .4s var(--som-ease),box-shadow .4s var(--som-ease),border-color .4s var(--som-ease)}
+.som-typelabel{font-size:21px;font-weight:500;letter-spacing:.12em}
 .som-typecard:hover,.som-typecard:focus-visible{transform:translateY(-3px);
   box-shadow:0 14px 30px rgba(34,28,22,.08);border-color:rgba(184,154,106,.7)}
 .som-typecard:active{transform:scale(.97)}

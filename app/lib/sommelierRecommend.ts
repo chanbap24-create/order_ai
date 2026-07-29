@@ -146,7 +146,10 @@ function buildReason(w: PoolWine, a: QuizAnswers, matched: string[]): string {
 export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'all'): Promise<SommelierResult[]> {
   const pool = await loadPool(store);
   const filtered = pool.filter((w) => {
-    if (a.type && w.type !== a.type) return false;
+    // Sweet = 타입이 아니라 당도 기반(조사값 또는 추정 3 이상) — 디저트·모스카토·주정강화 포함
+    if (a.type === 'sweet') {
+      if (structureOf(w).sweetness < 3) return false;
+    } else if (a.type && w.type !== a.type) return false;
     if (a.priceMin != null && w.retail < a.priceMin) return false;
     if (a.priceMax != null && w.retail > a.priceMax) return false;
     if (a.countries.length && !countryHit(w, a)) return false; // 국가 하드게이트

@@ -43,8 +43,7 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
               {TYPE_OPTIONS.filter((o) => o.value).map((o, i) => (
                 <button key={String(o.value)} className="som-typecard som-rise" style={{ ['--i' as string]: i + 1 }}
                   onClick={() => { setA({ ...a, type: o.value }); next(); }}>
-                  <span className={`som-orb som-orb-${o.value}`} />
-                  <span>{o.label}</span>
+                  <span className="som-typelabel som-lat">{o.label}</span>
                 </button>
               ))}
             </div>

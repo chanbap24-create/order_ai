@@ -1,7 +1,7 @@
 // 백화점 손님 취향 문답 정의 — 질문·선택지·향미 그룹 매핑 (클라이언트/서버 공용 상수)
 
 export type QuizAnswers = {
-  type: 'red' | 'white' | 'sparkling' | 'rose' | null; // null = 상관없음
+  type: 'red' | 'white' | 'sparkling' | 'sweet' | 'rose' | null; // null = 상관없음. sweet=당도 기반
   body: 'light' | 'medium' | 'full' | null;
   flavorGroups: string[]; // FLAVOR_GROUPS 키 (멀티)
   countries: string[];    // COUNTRY_OPTIONS 키 (멀티, 빈 배열 = 상관없음)
@@ -54,10 +54,10 @@ export const FLAVOR_GROUPS: Record<string, { label: string; desc: string; keys: 
 };
 
 export const TYPE_OPTIONS = [
-  { value: 'red' as const, label: '레드', desc: '깊고 따뜻한' },
-  { value: 'white' as const, label: '화이트', desc: '맑고 산뜻한' },
-  { value: 'sparkling' as const, label: '스파클링', desc: '기포가 반짝이는' },
-  { value: 'rose' as const, label: '로제', desc: '은은한 장밋빛' },
+  { value: 'red' as const, label: 'Red', desc: '' },
+  { value: 'white' as const, label: 'White', desc: '' },
+  { value: 'sparkling' as const, label: 'Sparkling', desc: '' },
+  { value: 'sweet' as const, label: 'Sweet', desc: '' },
   { value: null, label: '상관없어요', desc: '' },
 ];
 
