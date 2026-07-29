@@ -109,11 +109,8 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
       </div>
 
       <div className="som-plate">
-        <div className="som-no som-lat som-rise" style={{ ['--i' as string]: 2 }}>
-          CAVE DE VIN WINE SELECTION
-        </div>
-        <h1 className="som-rise" style={{ ['--i' as string]: 3 }}>
-          당신을 위한<br />단 한 병
+        <h1 className="som-title som-lat som-rise" style={{ ['--i' as string]: 2 }}>
+          CAVE DE VIN<br />WINE SELECTION
         </h1>
         <p className="som-rise" style={{ ['--i' as string]: 4 }}>
           <span className="som-tagline som-lat">Five questions, one perfect bottle.</span>

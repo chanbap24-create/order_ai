@@ -44,6 +44,8 @@
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:4px}
 .som-plate{text-align:center;padding:3vh 0 0;margin-bottom:auto}
 .som-no{font-size:11px;letter-spacing:.34em;color:var(--som-gold)}
+.som-title{font-size:clamp(24px,5.6vw,38px);font-weight:500;letter-spacing:.2em;line-height:1.45;
+  color:var(--som-ink);margin:0 0 12px}
 .som-plate h1{font-size:clamp(26px,6.4vw,40px);font-weight:700;letter-spacing:-0.02em;line-height:1.34;margin:14px 0 10px}
 .som-plate p{margin:0;font-size:14px;line-height:1.75;color:var(--som-muted)}
 .som-tagline{display:block;font-style:italic;font-size:15.5px;color:var(--som-gold);
