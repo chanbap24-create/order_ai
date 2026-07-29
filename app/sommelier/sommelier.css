@@ -39,6 +39,7 @@
   background:var(--som-gold);animation:som-bootbar 1.4s ease-in-out infinite}
 @keyframes som-bootbar{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
 @keyframes som-bootpulse{0%,100%{opacity:.5}50%{opacity:1}}
+.som-boot em{font-style:normal;font-size:12.5px;color:var(--som-muted);letter-spacing:.02em}
 
 .som-brand{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
   font-size:11px;color:var(--som-muted);white-space:nowrap}

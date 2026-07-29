@@ -27,6 +27,8 @@ export default function SommelierPage() {
   const [results, setResults] = useState<SommelierResult[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // 문답 제출 → 결과 사이 로딩 커튼 (인트로 부팅과 같은 문법, 최소 0.9초 유지)
+  const [reading, setReading] = useState<'off' | 'on' | 'out'>('off');
   const [resume, setResume] = useState(false); // 결과→이전: 답변 유지한 채 마지막 질문으로
   const [quizNonce, setQuizNonce] = useState(0);
 
@@ -50,6 +52,8 @@ export default function SommelierPage() {
   const submit = async (a: QuizAnswers) => {
     if (submitting) return;
     setSubmitting(true);
+    setReading('on');
+    const t0 = Date.now();
     try {
       const r = await fetch('/api/sommelier/recommend', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -60,8 +64,13 @@ export default function SommelierPage() {
       setAnswers(a);
       setSessionId(j.sessionId || null);
       setResults(j.results || []);
-      setPhase('results');
+      setTimeout(() => {
+        setPhase('results');
+        setReading('out');
+        setTimeout(() => setReading('off'), 750);
+      }, Math.max(0, 900 - (Date.now() - t0)));
     } catch (e) {
+      setReading('off');
       alert(e instanceof Error ? e.message : '추천에 실패했습니다');
     } finally {
       setSubmitting(false);
@@ -94,6 +103,13 @@ export default function SommelierPage() {
         <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting}
           onExit={() => setPhase('customer')}
           initialAnswers={resume ? answers : null} initialStep={resume ? 4 : 0} />
+      )}
+      {reading !== 'off' && (
+        <div className={`som-boot${reading === 'out' ? ' out' : ''}`} aria-hidden>
+          <span className="som-lat">CAVE DE VIN</span>
+          <i />
+          <em>{customer?.name || '손님'} 님의 취향에 맞는 와인을 고르는 중</em>
+        </div>
       )}
       {phase === 'results' && (
         <ResultsScreen
