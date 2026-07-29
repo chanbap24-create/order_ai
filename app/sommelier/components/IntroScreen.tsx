@@ -67,31 +67,33 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // 병샷 랜덤 순환 — 매장 재고 와인 중 이미지 있는 품번을 셔플로 받아 6초마다 크로스페이드
-  const [codes, setCodes] = useState<string[]>([]);
+  // 병샷 랜덤 순환 — 매장 재고 와인 중 이미지 있는 것을 셔플로 받아 6초마다 크로스페이드
+  type Featured = { code: string; name: string; name_en: string };
+  const [items, setItems] = useState<Featured[]>([]);
   const [idx, setIdx] = useState(0);
   const [fading, setFading] = useState(false);
   useEffect(() => {
     fetch('/api/sommelier/featured').then((r) => r.json())
-      .then((j) => { if (Array.isArray(j.codes) && j.codes.length) setCodes(j.codes); })
+      .then((j) => { if (Array.isArray(j.items) && j.items.length) setItems(j.items); })
       .catch(() => {});
   }, []);
   useEffect(() => {
-    if (codes.length < 2) return;
+    if (items.length < 2) return;
     const t = setInterval(() => {
       setFading(true);
-      setTimeout(() => { setIdx((i) => (i + 1) % codes.length); setFading(false); }, 450);
+      setTimeout(() => { setIdx((i) => (i + 1) % items.length); setFading(false); }, 450);
     }, 6000);
     return () => clearInterval(t);
-  }, [codes]);
+  }, [items]);
   // 다음 병샷 미리 로드(전환 시 깜빡임 방지)
   useEffect(() => {
-    if (codes.length < 2) return;
+    if (items.length < 2) return;
     const next = new Image();
-    next.src = `/api/sales/wine-img?code=${encodeURIComponent(codes[(idx + 1) % codes.length])}`;
-  }, [codes, idx]);
-  const heroSrc = codes.length
-    ? `/api/sales/wine-img?code=${encodeURIComponent(codes[idx])}`
+    next.src = `/api/sales/wine-img?code=${encodeURIComponent(items[(idx + 1) % items.length].code)}`;
+  }, [items, idx]);
+  const cur = items[idx] || null;
+  const heroSrc = cur
+    ? `/api/sales/wine-img?code=${encodeURIComponent(cur.code)}`
     : '/sommelier/hero.png';
 
   return (
@@ -104,11 +106,17 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
       <div className="som-vitrine som-rise" style={{ ['--i' as string]: 1 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={heroSrc} alt="" className={fading ? 'som-hero-fade' : ''}
-          onError={() => { if (codes.length > 1) setIdx((i) => (i + 1) % codes.length); }} />
+          onError={() => { if (items.length > 1) setIdx((i) => (i + 1) % items.length); }} />
         <div className="som-floor" />
       </div>
 
       <div className="som-plate">
+        <div className={`som-caption${fading ? ' som-hero-fade' : ''}`}>
+          {cur && <>
+            <span className="som-cap-kr">{cur.name}</span>
+            {cur.name_en && <span className="som-cap-en som-lat">{cur.name_en}</span>}
+          </>}
+        </div>
         <div className="som-no som-lat som-rise" style={{ ['--i' as string]: 2 }}>
           CAVE DE VIN — WINE SELECTION
         </div>
