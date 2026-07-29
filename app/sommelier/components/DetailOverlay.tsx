@@ -18,7 +18,9 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
 }) {
   const [d, setD] = useState<SommelierDetail | null>(null);
   const [out, setOut] = useState(false);
-  // 병샷 모드 — 누끼(모서리가 희거나 투명)는 그대로 띄우고, 배경 있는 통사진은 액자 프레임에
+  // 병샷 모드 — 진짜 누끼(위 모서리가 투명)만 띄우고, 불투명 이미지(흰 박스·통사진)는 액자로.
+  // 아래 모서리는 병 그림자·반사가 걸리므로 보지 않는다. 흰 박스도 액자로 통일 —
+  // 띄우면 drop-shadow가 박스 윤곽을 그려 흰 카드가 붕 떠 보인다.
   const [shotMode, setShotMode] = useState<'cut' | 'photo'>('cut');
 
   const classify = (img: HTMLImageElement) => {
@@ -29,10 +31,8 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
       if (!g) return;
       g.drawImage(img, 0, 0, 8, 8);
       const px = g.getImageData(0, 0, 8, 8).data;
-      const at = (x: number, y: number) => px.slice((y * 8 + x) * 4, (y * 8 + x) * 4 + 4);
-      const clean = [at(0, 0), at(7, 0), at(0, 7), at(7, 7)].every(
-        ([r, gr, b, a]) => a < 24 || (r >= 240 && gr >= 240 && b >= 240));
-      setShotMode(clean ? 'cut' : 'photo');
+      const alphaAt = (x: number, y: number) => px[(y * 8 + x) * 4 + 3];
+      setShotMode(alphaAt(0, 0) < 32 && alphaAt(7, 0) < 32 ? 'cut' : 'photo');
     } catch { /* 판별 실패 시 기본(cut) 유지 */ }
   };
 
