@@ -36,14 +36,14 @@
 
 /* ── 인트로 ── */
 .som-vitrine{flex:0 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:0;margin-top:auto}
-.som-vitrine img{height:min(42vh,400px);max-width:72vw;object-fit:contain;animation:som-sway 9s ease-in-out infinite;
+.som-vitrine img{height:min(48vh,460px);max-width:72vw;object-fit:contain;animation:som-sway 9s ease-in-out infinite;
   opacity:1;transition:opacity .45s ease}
 .som-vitrine img.som-hero-fade{opacity:0}
 @keyframes som-sway{50%{transform:translateY(-8px)}}
 .som-floor{width:min(46vw,220px);height:14px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:4px}
 .som-plate{text-align:center;padding:3vh 0 0;margin-bottom:auto}
-.som-no{font-size:11px;letter-spacing:.34em;color:var(--som-gold)}
+.som-no{font-size:12px;letter-spacing:.34em;color:var(--som-gold);margin-bottom:4px}
 .som-title{font-size:clamp(24px,5.6vw,38px);font-weight:500;letter-spacing:.2em;line-height:1.45;
   color:var(--som-ink);margin:0 0 12px}
 .som-plate h1{font-size:clamp(26px,6.4vw,40px);font-weight:700;letter-spacing:-0.02em;line-height:1.34;margin:14px 0 10px}
@@ -51,7 +51,7 @@
 .som-tagline{display:block;font-style:italic;font-size:15.5px;color:var(--som-gold);
   letter-spacing:.03em;margin-bottom:7px}
 /* 밀어서 시작 슬라이더 */
-.som-slide{position:relative;width:min(320px,82vw);height:58px;margin:28px auto 0;
+.som-slide{position:relative;width:min(320px,82vw);height:58px;margin:22px auto 0;
   border:1px solid rgba(184,154,106,.6);border-radius:999px;background:#fff;
   box-shadow:0 10px 28px rgba(34,28,22,.08);overflow:hidden;user-select:none;-webkit-user-select:none}
 .som-slide::before{content:"";position:absolute;inset:0;border-radius:999px;
