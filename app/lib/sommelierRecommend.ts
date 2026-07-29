@@ -4,6 +4,7 @@
 import { supabase } from './db';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 import { COUNTRY_OPTIONS, FLAVOR_GROUPS, STORES, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
+import { cacheVer } from './cacheVer';
 
 export type SommelierResult = {
   item_code: string;
@@ -15,6 +16,7 @@ export type SommelierResult = {
   stock: number;       // 해당 매장(또는 전 매장 합) 재고
   flavors: string[];   // 한글 라벨 (최대 5)
   reason: string;      // 매칭 이유 한 줄 (직원 설명 대본)
+  img_ver: string;     // 병샷 캐시버스트(이미지 교체 시 즉시 반영)
   body: number;        // 구조 프로파일 1~5 (조사값, 없으면 추정)
   tannin: number;
   acidity: number;
@@ -26,6 +28,7 @@ type Note = { flavor_tags: string[]; body: number | null; sweetness: number | nu
 type PoolWine = {
   item_code: string; name: string; name_en: string; country: string; region: string;
   type: string; grapes: string; retail: number; stock: number; tags: string[]; note: Note | null;
+  imgVer: string;
 };
 
 const STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai'];
@@ -63,7 +66,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
   for (let i = 0; i < codes.length; i += 400) {
     const batch = codes.slice(i, i + 400);
     const [{ data: ws }, { data: ns }] = await Promise.all([
-      supabase.from('wines').select('item_code, item_name_kr, item_name_en, country, region, wine_type, grape_varieties').in('item_code', batch),
+      supabase.from('wines').select('item_code, item_name_kr, item_name_en, country, region, wine_type, grape_varieties, image_url').in('item_code', batch),
       supabase.from('tasting_notes').select('wine_id, flavor_tags, body, sweetness, acidity, tannin').in('wine_id', batch),
     ]);
     for (const w of ws || []) wines.set(w.item_code, w);
@@ -83,6 +86,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
       retail: r.retail, stock: r.stock,
       tags: note?.flavor_tags || [],
       note,
+      imgVer: cacheVer((w as unknown as { image_url?: string }).image_url || ''),
     }];
   });
 }
@@ -170,6 +174,7 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'a
     retail_price: w.retail, stock: w.stock,
     flavors: w.tags.slice(0, 5).map((k) => FLAVOR_KO[k] || k),
     reason: buildReason(w, a, matched),
+    img_ver: w.imgVer,
     ...structureOf(w),
     score,
   }));

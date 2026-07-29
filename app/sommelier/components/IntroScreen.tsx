@@ -68,7 +68,7 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // 병샷 랜덤 순환 — 매장 재고 와인 중 이미지 있는 것을 셔플로 받아 6초마다 크로스페이드
-  type Featured = { code: string; name: string; name_en: string };
+  type Featured = { code: string; name: string; name_en: string; v?: string };
   const [items, setItems] = useState<Featured[]>([]);
   const [idx, setIdx] = useState(0);
   const [fading, setFading] = useState(false);
@@ -89,12 +89,13 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
   // 다음 병샷 미리 로드(전환 시 깜빡임 방지)
   useEffect(() => {
     if (items.length < 2) return;
+    const n = items[(idx + 1) % items.length];
     const next = new Image();
-    next.src = `/api/sales/wine-img?code=${encodeURIComponent(items[(idx + 1) % items.length].code)}`;
+    next.src = `/api/sales/wine-img?code=${encodeURIComponent(n.code)}${n.v ? `&v=${n.v}` : ''}`;
   }, [items, idx]);
   const cur = items[idx] || null;
   const heroSrc = cur
-    ? `/api/sales/wine-img?code=${encodeURIComponent(cur.code)}`
+    ? `/api/sales/wine-img?code=${encodeURIComponent(cur.code)}${cur.v ? `&v=${cur.v}` : ''}`
     : '/sommelier/hero.png';
 
   return (

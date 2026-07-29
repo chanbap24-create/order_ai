@@ -123,7 +123,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                 <div className="som-core">
                   <div className="som-shot">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}`} alt={r.name}
+                    <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}${r.img_ver ? `&v=${r.img_ver}` : ''}`} alt={r.name}
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                   </div>
                   <div className="som-cardfloor" />

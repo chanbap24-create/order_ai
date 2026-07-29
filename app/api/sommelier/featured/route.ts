@@ -5,6 +5,7 @@ import { supabase } from '@/app/lib/db';
 import { handleApiError } from '@/app/lib/errors';
 import { STORE_COLS } from '@/app/lib/deptStoreStock';
 import { STORES } from '@/app/sommelier/lib/quiz';
+import { cacheVer } from '@/app/lib/cacheVer';
 
 const WINE_CODE = /^([0-5A]|ZK)/i;
 
@@ -28,14 +29,14 @@ export async function GET(req: NextRequest) {
       }
       if (!data || data.length < 1000) break;
     }
-    const withImage: { code: string; name: string; name_en: string }[] = [];
+    const withImage: { code: string; name: string; name_en: string; v: string }[] = [];
     for (let i = 0; i < codes.length; i += 500) {
       const { data: ws } = await supabase
         .from('wines').select('item_code, item_name_kr, item_name_en, image_url').in('item_code', codes.slice(i, i + 500))
         .not('image_url', 'is', null);
       for (const w of ws || []) {
         if (/^https?:\/\//.test(w.image_url || '')) {
-          withImage.push({ code: w.item_code, name: w.item_name_kr || '', name_en: w.item_name_en || '' });
+          withImage.push({ code: w.item_code, name: w.item_name_kr || '', name_en: w.item_name_en || '', v: cacheVer(w.image_url || '') });
         }
       }
     }
