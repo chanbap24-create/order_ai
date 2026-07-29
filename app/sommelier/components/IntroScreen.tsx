@@ -1,8 +1,63 @@
 'use client';
 
-// 인트로 — 화이트 쇼룸의 병 한 병 + 카피 + 시작 CTA. 상단에서 매장 선택(바텀시트).
-import { useState } from 'react';
+// 인트로 — 화이트 쇼룸의 병 한 병 + 카피 + "밀어서 시작" 슬라이더. 상단에서 매장 선택(바텀시트).
+import { useRef, useState } from 'react';
 import { STORES } from '../lib/quiz';
+
+/** 밀어서 시작 — 노브를 끝까지 밀면 시작. 짧은 탭이면 자동으로 밀리며 시작(발견성 보완). */
+function SlideToStart({ onStart }: { onStart: () => void }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const knobRef = useRef<HTMLDivElement>(null);
+  const drag = useRef({ startX: 0, x: 0, max: 0, active: false, moved: false });
+  const [done, setDone] = useState(false);
+
+  const setX = (x: number, animate: boolean) => {
+    const k = knobRef.current; if (!k) return;
+    k.style.transition = animate ? 'transform .45s cubic-bezier(0.32,0.72,0,1)' : 'none';
+    k.style.transform = `translateX(${x}px)`;
+    if (trackRef.current) trackRef.current.style.setProperty('--p', String(drag.current.max ? x / drag.current.max : 0));
+  };
+  const finish = () => {
+    if (done) return;
+    setDone(true);
+    setX(drag.current.max, true);
+    setTimeout(onStart, 320);
+  };
+  const onDown = (e: React.PointerEvent) => {
+    if (done || !trackRef.current || !knobRef.current) return;
+    drag.current.max = trackRef.current.clientWidth - knobRef.current.clientWidth - 8;
+    drag.current.startX = e.clientX - drag.current.x;
+    drag.current.active = true; drag.current.moved = false;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag.current.active || done) return;
+    const x = Math.max(0, Math.min(drag.current.max, e.clientX - drag.current.startX));
+    if (Math.abs(x - drag.current.x) > 2) drag.current.moved = true;
+    drag.current.x = x;
+    setX(x, false);
+    if (x >= drag.current.max * 0.92) { drag.current.active = false; finish(); }
+  };
+  const onUp = () => {
+    if (!drag.current.active || done) return;
+    drag.current.active = false;
+    if (!drag.current.moved) { finish(); return; } // 탭 → 자동 슬라이드 시작
+    drag.current.x = 0;
+    setX(0, true); // 못 미치면 스프링 백
+  };
+
+  return (
+    <div ref={trackRef} className={`som-slide${done ? ' done' : ''}`} role="button" tabIndex={0}
+      aria-label="밀어서 문답 시작"
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') finish(); }}>
+      <span className="som-slide-txt">밀어서 시작하기</span>
+      <div ref={knobRef} className="som-slide-knob"
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        →
+      </div>
+    </div>
+  );
+}
 
 export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
   store: string;
@@ -35,9 +90,9 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
         <p className="som-rise" style={{ ['--i' as string]: 4 }}>
           와인을 몰라도 괜찮습니다.<br />다섯 번의 취향 문답이면 충분합니다.
         </p>
-        <button className="som-cta som-rise" style={{ ['--i' as string]: 5 }} onClick={onStart}>
-          문답 시작하기 <i>→</i>
-        </button>
+        <div className="som-rise" style={{ ['--i' as string]: 5 }}>
+          <SlideToStart onStart={onStart} />
+        </div>
       </div>
 
       {sheetOpen && (
