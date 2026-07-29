@@ -144,7 +144,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
           </div>
         )}
 
-        <div className="som-anyrow som-rise" style={{ ['--i' as string]: 9 }}>
+        <div className="som-anyrow som-rise" style={{ ['--i' as string]: 2 }}>
           {step === 0 && (
             <button className="som-link" onClick={() => pick('any', () => ({ ...a, type: null }))}>상관없어요</button>
           )}
@@ -155,7 +155,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
             <button className="som-link" onClick={() => pick('any', () => ({ ...a, priceMin: null, priceMax: null }), true)}>상관없어요</button>
           )}
         </div>
-        <div className="som-subrow som-rise" style={{ ['--i' as string]: 10 }}>
+        <div className="som-subrow som-rise" style={{ ['--i' as string]: 3 }}>
           <button className="som-link" onClick={back}>이전</button>
           {step === 2 && (
             <button className="som-next" onClick={next}>
