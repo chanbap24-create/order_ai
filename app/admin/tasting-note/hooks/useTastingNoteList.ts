@@ -88,12 +88,14 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   const hasNote = (w: TastingWineRow) =>
     !!(w.tasting_note_id || ghIndex[w.item_code]);
 
-  /** hideZero/wineOnly/lowStockThreshold 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관) */
+  /** hideZero/wineOnly/lowStockThreshold 등 카테고리·재고 기반 1차 필터 (filterNote 와 무관).
+   *  검색 중에는 재고 필터를 건너뜀 — 품번·이름으로 콕 집어 찾을 땐 재고 0이어도 보여야 함. */
   const passesCategoryFilters = (w: TastingWineRow): boolean => {
     if (showExcluded !== !!w.note_excluded) return false; // 기본: 제외 숨김 / 제외 보기: 제외만
+    if (wineOnly && !isWineCategory(w.item_code)) return false;
+    if (debouncedSearch.trim()) return true; // 검색 중엔 재고 필터 무시
     const stock = (w.inv_available || 0) + (w.inv_bonded || 0);
     if (hideZero && stock <= 0) return false;
-    if (wineOnly && !isWineCategory(w.item_code)) return false;
     if (lowStockThreshold > 0 && stock <= lowStockThreshold) return false;
     return true;
   };
