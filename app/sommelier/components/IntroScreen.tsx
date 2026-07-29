@@ -127,7 +127,8 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       </div>
 
       <div className="som-plate">
-        <div className={`som-caption${fading ? ' som-hero-fade' : ''}`}>
+        {/* key로 와인마다 새 노드 — 텍스트 교체 잔상(이전·새 이름 겹침) 방지 */}
+        <div key={cur?.code || 'none'} className={`som-caption${fading ? ' som-hero-fade' : ''}`}>
           {cur && <>
             <span className="som-cap-kr">{cur.name}</span>
             {cur.name_en && <span className="som-cap-en som-lat">{cur.name_en}</span>}
