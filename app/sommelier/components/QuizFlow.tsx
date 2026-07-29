@@ -59,7 +59,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         )}
 
         {step === 0 && (
-          <div className="som-words">
+          <div className="som-words som-words-indent">
             {TYPE_OPTIONS.filter((o) => o.value).map((o, i) => (
               <button key={String(o.value)}
                 className={`som-word som-word-${o.value} som-rise${sel === String(o.value) ? ' sel' : ''}`}
@@ -72,7 +72,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         )}
 
         {step === 1 && (
-          <div className="som-words">
+          <div className="som-words som-words-indent">
             {BODY_OPTIONS.filter((o) => o.value).map((o, i) => (
               <button key={String(o.value)}
                 className={`som-word som-rise${sel === String(o.value) ? ' sel' : ''}`}
