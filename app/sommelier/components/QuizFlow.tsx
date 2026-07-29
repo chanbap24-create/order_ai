@@ -23,6 +23,14 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
 }) {
   const [step, setStep] = useState(0);
   const [a, setA] = useState<QuizAnswers>(EMPTY_ANSWERS);
+  const [selType, setSelType] = useState<string | null>(null); // 타입 단어 물들기 연출용
+
+  const pickType = (v: QuizAnswers['type']) => {
+    if (selType) return;
+    setSelType(String(v));
+    setA({ ...a, type: v });
+    setTimeout(() => { setSelType(null); next(); }, 420);
+  };
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => (step === 0 ? onExit() : setStep((s) => s - 1));
@@ -37,13 +45,23 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{meta.code}</div>
         {meta.title && <h2 className="som-rise" style={{ ['--i' as string]: 1 }}>{meta.title}</h2>}
 
-        <div className="som-opts">
-          {step === 0 && TYPE_OPTIONS.map((o, i) => (
-            <button key={String(o.value)} className="som-opt som-rise" style={{ ['--i' as string]: i + 1 }}
-              onClick={() => { setA({ ...a, type: o.value }); next(); }}>
-              {o.label}
+        {step === 0 && (
+          <div className="som-words">
+            {TYPE_OPTIONS.filter((o) => o.value).map((o, i) => (
+              <button key={String(o.value)}
+                className={`som-word som-word-${o.value} som-rise${selType === String(o.value) ? ' sel' : ''}`}
+                style={{ ['--i' as string]: i + 1 }} onClick={() => pickType(o.value)}>
+                {o.label}
+              </button>
+            ))}
+            <button className="som-link som-rise" style={{ ['--i' as string]: 5, marginTop: 14 }}
+              onClick={() => pickType(null)}>
+              상관없어요
             </button>
-          ))}
+          </div>
+        )}
+
+        <div className="som-opts">
           {step === 1 && BODY_OPTIONS.map((o, i) => (
             <button key={String(o.value)} className="som-opt som-rise" style={{ ['--i' as string]: i + 2 }}
               onClick={() => { setA({ ...a, body: o.value }); next(); }}>
