@@ -113,10 +113,11 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
           SELECTION{poolCount ? ` ${poolCount}` : ''}
         </div>
         <h1 className="som-rise" style={{ ['--i' as string]: 3 }}>
-          오늘 이 자리에 어울리는<br />한 병을 찾아드립니다
+          당신을 위한<br />단 한 병
         </h1>
         <p className="som-rise" style={{ ['--i' as string]: 4 }}>
-          와인을 몰라도 괜찮습니다.<br />다섯 번의 취향 문답이면 충분합니다.
+          <span className="som-tagline som-lat">Five questions, one perfect bottle.</span>
+          와인을 몰라도 괜찮습니다. 취향만 들려주세요.
         </p>
         <div className="som-rise" style={{ ['--i' as string]: 5 }}>
           <SlideToStart onStart={onStart} />
