@@ -8,9 +8,13 @@ import {
   EMPTY_ANSWERS, type QuizAnswers,
 } from '../lib/quiz';
 
-const STEP_CODE = [
-  'Q.1 — TYPE', 'Q.2 — BODY · 무게감', 'Q.3 — FLAVOR · 향미 (여러 개)',
-  'Q.4 — ORIGIN · 산지 (여러 개)', 'Q.5 — PRICE · 가격대',
+// 아이브로우는 Didot 라틴만, 한글 힌트는 별도 줄(고딕 소형) — 두 서체를 한 줄에 섞지 않는다
+const STEPS = [
+  { code: 'Q.1 — TYPE', hint: '' },
+  { code: 'Q.2 — BODY', hint: '무게감' },
+  { code: 'Q.3 — FLAVOR', hint: '향미 · 여러 개 선택' },
+  { code: 'Q.4 — ORIGIN', hint: '산지 · 여러 개 선택' },
+  { code: 'Q.5 — PRICE', hint: '가격대' },
 ];
 
 export function QuizFlow({ onSubmit, submitting, onExit }: {
@@ -43,7 +47,10 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
       <div className="som-brand"><span className="som-lat">CAVE DE VIN</span><span>취향 문답</span></div>
       <div className="som-prog"><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
       <div className="som-q">
-        <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{STEP_CODE[step]}</div>
+        <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{STEPS[step].code}</div>
+        {STEPS[step].hint && (
+          <div className="som-qhint som-rise" style={{ ['--i' as string]: 0 }}>{STEPS[step].hint}</div>
+        )}
 
         {step === 0 && (
           <div className="som-words">
