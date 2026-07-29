@@ -146,11 +146,11 @@
 
 /* ── 결과 ── */
 .som-results{padding-left:0!important;padding-right:0!important}
-.som-results .som-head{padding:0 24px}
+.som-results .som-head{padding:0 24px;text-align:center}
 .som-results h2{font-size:clamp(23px,5.4vw,32px);font-weight:700;line-height:1.4;letter-spacing:-0.02em;margin:14px 0 4px}
 .som-sum{font-size:13px;color:var(--som-muted);margin:0}
 .som-rail{flex:1;display:flex;gap:16px;overflow-x:auto;padding:3vh 24px;
-  scroll-snap-type:x mandatory;align-items:stretch}
+  scroll-snap-type:x mandatory;align-items:stretch;justify-content:safe center}
 .som-rail::-webkit-scrollbar{display:none}
 .som-card{scroll-snap-align:center;flex:0 0 min(78vw,300px);border-radius:22px;padding:7px;
   background:#fbf9f6;border:1px solid rgba(184,154,106,.3);display:flex;flex-direction:column}
@@ -160,17 +160,17 @@
 .som-shot img{max-height:152px;max-width:126px;object-fit:contain}
 .som-cardfloor{width:92px;height:9px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin:3px auto 12px}
-.som-rank{font-size:11px;letter-spacing:.3em;color:var(--som-gold)}
-.som-nm{font-size:16px;font-weight:700;margin:6px 0 2px;line-height:1.4}
-.som-en{font-size:11px;color:var(--som-muted);margin-bottom:11px}
+.som-rank{font-size:11px;letter-spacing:.3em;color:var(--som-gold);text-align:center}
+.som-nm{font-size:16px;font-weight:700;margin:6px 0 2px;line-height:1.4;text-align:center}
+.som-en{font-size:11px;color:var(--som-muted);margin-bottom:11px;text-align:center}
 .som-bars{display:flex;flex-direction:column;gap:7px;margin-bottom:11px}
 .som-bar{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--som-muted)}
 .som-bar b{width:38px;font-weight:500}
 .som-bar .tr{flex:1;height:2px;background:rgba(34,28,22,.09);border-radius:2px;position:relative}
 .som-bar .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--som-stain);
   width:calc(var(--v)*20%)}
-.som-reason{font-size:11.5px;line-height:1.6;color:var(--som-muted);margin-bottom:12px}
-.som-pricebox{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.som-reason{font-size:11.5px;line-height:1.6;color:var(--som-muted);margin-bottom:12px;text-align:center}
+.som-pricebox{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:14px}
 .som-price{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
 .som-buy{border:1px solid rgba(184,154,106,.6);border-radius:999px;background:#fff;color:var(--som-ink);
   font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer;transition:all .4s var(--som-ease);white-space:nowrap}
