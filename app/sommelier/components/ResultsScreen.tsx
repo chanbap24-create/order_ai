@@ -104,10 +104,12 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
       <div className="som-head">
         <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>추천 결과</span></div>
         <div className="som-prog"><i style={{ width: '100%' }} /></div>
-        <h2 className="som-rise" style={{ ['--i' as string]: 0 }}>
-          {customerName} 님의 취향으로<br />고른 {results.length}병입니다
+        <h2 className="som-rise som-lat" style={{ ['--i' as string]: 0 }}>
+          Selected for {customerName}
         </h2>
-        <p className="som-sum som-rise" style={{ ['--i' as string]: 1 }}>{summary(answers)}</p>
+        <p className="som-sum som-rise" style={{ ['--i' as string]: 1 }}>
+          {[summary(answers), `${results.length} bottles`].filter(Boolean).join(' · ')}
+        </p>
       </div>
 
       {results.length === 0 ? (
