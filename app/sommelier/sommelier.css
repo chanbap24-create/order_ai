@@ -37,7 +37,9 @@
 
 /* ── 인트로 ── */
 .som-vitrine{flex:0 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:0;margin-top:auto}
-.som-vitrine img{height:min(42vh,400px);max-width:72vw;object-fit:contain;animation:som-sway 9s ease-in-out infinite}
+.som-vitrine img{height:min(42vh,400px);max-width:72vw;object-fit:contain;animation:som-sway 9s ease-in-out infinite;
+  opacity:1;transition:opacity .45s ease}
+.som-vitrine img.som-hero-fade{opacity:0}
 @keyframes som-sway{50%{transform:translateY(-8px)}}
 .som-floor{width:min(46vw,220px);height:16px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:-6px}

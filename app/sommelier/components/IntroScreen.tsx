@@ -1,7 +1,7 @@
 'use client';
 
 // 인트로 — 화이트 쇼룸의 병 한 병 + 카피 + "밀어서 시작" 슬라이더. 상단에서 매장 선택(바텀시트).
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { STORES } from '../lib/quiz';
 
 /** 밀어서 시작 — 노브를 끝까지 밀면 시작. 짧은 탭이면 자동으로 밀리며 시작(발견성 보완). */
@@ -67,6 +67,33 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // 병샷 랜덤 순환 — 매장 재고 와인 중 이미지 있는 품번을 셔플로 받아 6초마다 크로스페이드
+  const [codes, setCodes] = useState<string[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    fetch('/api/sommelier/featured').then((r) => r.json())
+      .then((j) => { if (Array.isArray(j.codes) && j.codes.length) setCodes(j.codes); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (codes.length < 2) return;
+    const t = setInterval(() => {
+      setFading(true);
+      setTimeout(() => { setIdx((i) => (i + 1) % codes.length); setFading(false); }, 450);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [codes]);
+  // 다음 병샷 미리 로드(전환 시 깜빡임 방지)
+  useEffect(() => {
+    if (codes.length < 2) return;
+    const next = new Image();
+    next.src = `/api/sales/wine-img?code=${encodeURIComponent(codes[(idx + 1) % codes.length])}`;
+  }, [codes, idx]);
+  const heroSrc = codes.length
+    ? `/api/sales/wine-img?code=${encodeURIComponent(codes[idx])}`
+    : '/sommelier/hero.png';
+
   return (
     <section className="som-screen">
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
@@ -76,7 +103,8 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
 
       <div className="som-vitrine som-rise" style={{ ['--i' as string]: 1 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/sommelier/hero.png" alt="" />
+        <img src={heroSrc} alt="" className={fading ? 'som-hero-fade' : ''}
+          onError={() => { if (codes.length > 1) setIdx((i) => (i + 1) % codes.length); }} />
         <div className="som-floor" />
       </div>
 
