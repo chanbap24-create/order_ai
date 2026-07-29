@@ -18,6 +18,23 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
 }) {
   const [d, setD] = useState<SommelierDetail | null>(null);
   const [out, setOut] = useState(false);
+  // 병샷 모드 — 누끼(모서리가 희거나 투명)는 그대로 띄우고, 배경 있는 통사진은 액자 프레임에
+  const [shotMode, setShotMode] = useState<'cut' | 'photo'>('cut');
+
+  const classify = (img: HTMLImageElement) => {
+    try {
+      const cv = document.createElement('canvas');
+      cv.width = 8; cv.height = 8;
+      const g = cv.getContext('2d');
+      if (!g) return;
+      g.drawImage(img, 0, 0, 8, 8);
+      const px = g.getImageData(0, 0, 8, 8).data;
+      const at = (x: number, y: number) => px.slice((y * 8 + x) * 4, (y * 8 + x) * 4 + 4);
+      const clean = [at(0, 0), at(7, 0), at(0, 7), at(7, 7)].every(
+        ([r, gr, b, a]) => a < 24 || (r >= 240 && gr >= 240 && b >= 240));
+      setShotMode(clean ? 'cut' : 'photo');
+    } catch { /* 판별 실패 시 기본(cut) 유지 */ }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -48,10 +65,11 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
       <div className="som-detail-body">
         <div className="som-detail-card">
         <div className="som-detail-core">
-        <div className="som-detail-shot">
+        <div className={`som-detail-shot ${shotMode}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}${r.img_ver ? `&v=${r.img_ver}` : ''}`}
             alt={r.name}
+            onLoad={(e) => classify(e.currentTarget as HTMLImageElement)}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
         </div>
         <div className="som-cardfloor" />
