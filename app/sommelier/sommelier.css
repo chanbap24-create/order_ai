@@ -119,6 +119,35 @@
 .som-consent input{margin-top:2px;accent-color:var(--som-ink)}
 .som-err{font-size:13px;color:var(--som-stain);margin-top:10px}
 
+/* 타입 선택 — 와인 컬러 오브 카드 (텍스트 대신 색이 말한다) */
+.som-typegrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.som-typecard{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:26px 10px 22px;border:1px solid rgba(184,154,106,.35);border-radius:18px;background:#fff;
+  font-size:16px;font-weight:600;color:var(--som-ink);
+  transition:transform .4s var(--som-ease),box-shadow .4s var(--som-ease),border-color .4s var(--som-ease)}
+.som-typecard:hover,.som-typecard:focus-visible{transform:translateY(-3px);
+  box-shadow:0 14px 30px rgba(34,28,22,.08);border-color:rgba(184,154,106,.7)}
+.som-typecard:active{transform:scale(.97)}
+.som-typecard:focus-visible{outline:1px solid var(--som-gold);outline-offset:3px}
+.som-orb{width:66px;height:66px;border-radius:50%;
+  box-shadow:inset 0 -8px 14px rgba(0,0,0,.14), inset 0 6px 10px rgba(255,255,255,.35), 0 8px 18px rgba(34,28,22,.12)}
+.som-orb-red{background:radial-gradient(circle at 34% 30%, #a63a52 0%, #6f1d2e 45%, #46101c 100%)}
+.som-orb-white{background:radial-gradient(circle at 34% 30%, #f8efd2 0%, #ecd9a0 55%, #d9bd76 100%)}
+.som-orb-sparkling{background:radial-gradient(circle at 34% 30%, #faf3d9 0%, #eedfae 55%, #ddc383 100%),
+  radial-gradient(circle at 62% 62%, rgba(255,255,255,.9) 1.6px, transparent 2.4px),
+  radial-gradient(circle at 40% 74%, rgba(255,255,255,.85) 1.3px, transparent 2px),
+  radial-gradient(circle at 72% 36%, rgba(255,255,255,.85) 1.3px, transparent 2px);
+  background-blend-mode:normal}
+.som-orb-sparkling{position:relative;overflow:hidden}
+.som-orb-sparkling::after{content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 63% 60%, rgba(255,255,255,.95) 2px, transparent 3px),
+    radial-gradient(circle at 38% 72%, rgba(255,255,255,.9) 1.6px, transparent 2.6px),
+    radial-gradient(circle at 72% 34%, rgba(255,255,255,.9) 1.6px, transparent 2.6px),
+    radial-gradient(circle at 52% 46%, rgba(255,255,255,.85) 1.3px, transparent 2.2px)}
+.som-orb-rose{background:radial-gradient(circle at 34% 30%, #f6cdc7 0%, #ec9d9d 55%, #d97781 100%)}
+.som-skip-center{margin:20px auto 0;display:block;font-size:13.5px;color:var(--som-muted);
+  text-decoration:underline;text-underline-offset:4px;cursor:pointer;background:none;border:none;padding:6px 10px}
+
 /* ── 결과 ── */
 .som-results{padding-left:0!important;padding-right:0!important}
 .som-results .som-head{padding:0 24px}

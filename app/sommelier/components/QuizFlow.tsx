@@ -9,7 +9,7 @@ import {
 } from '../lib/quiz';
 
 const STEP_META = [
-  { code: 'Q.1 — TYPE', title: <>먼저, 어떤 와인이<br />끌리시나요?</> },
+  { code: 'Q.1 — TYPE', title: null }, // 타입은 컬러 오브가 말함 — 헤드라인·주석 없음
   { code: 'Q.2 — BODY', title: <>입안의 무게감은<br />어느 쪽이 좋으세요?</> },
   { code: 'Q.3 — FLAVOR', title: <>끌리는 향미를<br />모두 골라주세요</> },
   { code: 'Q.4 — ORIGIN', title: <>선호하는 산지가<br />있으세요?</> },
@@ -35,15 +35,27 @@ export function QuizFlow({ onSubmit, submitting, onExit }: {
       <div className="som-prog"><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{meta.code}</div>
-        <h2 className="som-rise" style={{ ['--i' as string]: 1 }}>{meta.title}</h2>
+        {meta.title && <h2 className="som-rise" style={{ ['--i' as string]: 1 }}>{meta.title}</h2>}
+
+        {step === 0 && (
+          <>
+            <div className="som-typegrid">
+              {TYPE_OPTIONS.filter((o) => o.value).map((o, i) => (
+                <button key={String(o.value)} className="som-typecard som-rise" style={{ ['--i' as string]: i + 1 }}
+                  onClick={() => { setA({ ...a, type: o.value }); next(); }}>
+                  <span className={`som-orb som-orb-${o.value}`} />
+                  <span>{o.label}</span>
+                </button>
+              ))}
+            </div>
+            <button className="som-skip-center som-rise" style={{ ['--i' as string]: 5 }}
+              onClick={() => { setA({ ...a, type: null }); next(); }}>
+              상관없어요
+            </button>
+          </>
+        )}
 
         <div className="som-opts">
-          {step === 0 && TYPE_OPTIONS.map((o, i) => (
-            <button key={String(o.value)} className="som-opt som-rise" style={{ ['--i' as string]: i + 2 }}
-              onClick={() => { setA({ ...a, type: o.value }); next(); }}>
-              {o.label} {o.desc && <small>{o.desc}</small>}
-            </button>
-          ))}
           {step === 1 && BODY_OPTIONS.map((o, i) => (
             <button key={String(o.value)} className="som-opt som-rise" style={{ ['--i' as string]: i + 2 }}
               onClick={() => { setA({ ...a, body: o.value }); next(); }}>
