@@ -34,7 +34,7 @@ export const FLAVOR_GROUPS: Record<string, { label: string; desc: string; keys: 
   },
   floral_herb: {
     label: '꽃·허브', desc: '장미·제비꽃·민트',
-    keys: ['violet', 'rose', 'floral_white', 'elderflower', 'mint', 'eucalyptus', 'herb_green', 'grassy'],
+    keys: ['violet', 'rose', 'floral_white', 'elderflower', 'mint', 'eucalyptus', 'herb_green', 'green_pepper', 'grassy'],
   },
   oak_spice: {
     label: '오크·스파이스', desc: '바닐라·커피·후추',
