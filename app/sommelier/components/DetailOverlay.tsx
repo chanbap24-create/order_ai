@@ -45,15 +45,17 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
         <span className="som-lat">NO. {rank}</span>
       </div>
       <div className="som-detail-body">
+        <div className="som-detail-card">
+        <div className="som-detail-core">
         <div className="som-detail-shot">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}${r.img_ver ? `&v=${r.img_ver}` : ''}`}
             alt={r.name}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
         </div>
-        <div className="som-cardfloor" style={{ margin: '0 auto 14px' }} />
-        <div className="som-nm" style={{ fontSize: 19 }}>{r.name}</div>
-        {r.name_en && <div className="som-en som-lat" style={{ fontSize: 12.5 }}>{r.name_en}</div>}
+        <div className="som-cardfloor" />
+        <div className="som-nm">{r.name}</div>
+        {r.name_en && <div className="som-en som-lat">{r.name_en}</div>}
         {meta && <div className="som-detail-meta">{meta}</div>}
 
         <div className="som-bars som-detail-bars">
@@ -81,12 +83,14 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
           </dl>
         )}
 
-        <div className="som-pricebox" style={{ marginTop: 26, marginBottom: 6 }}>
+        <div className="som-pricebox">
           <span className="som-price">{won(r.retail_price)}원</span>
           <button className={`som-buy${ordered ? ' done' : ''}`} onClick={onOrder} disabled={busy}
             title={ordered ? '다시 누르면 취소됩니다' : undefined}>
             {busy ? '처리 중…' : ordered ? '✓ 기록됨 · 취소' : '구매 기록'}
           </button>
+        </div>
+        </div>
         </div>
       </div>
     </div>

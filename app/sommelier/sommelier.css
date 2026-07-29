@@ -6,6 +6,8 @@
   --som-muted:#8b8178;
   --som-stain:#8e2540;
   --som-gold:#b89a6a;
+  --som-frame:#fbf9f6;                                          /* 카드 프레임(웜 화이트) */
+  --som-line:color-mix(in srgb, var(--som-gold) 30%, transparent); /* 골드 헤어라인 */
   --som-shade:rgba(34,28,22,.07);
   --som-ease:cubic-bezier(0.32,0.72,0,1);
   position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;
@@ -32,7 +34,7 @@
 .som-boot.out{opacity:0;pointer-events:none}
 .som-boot .som-lat{font-size:15px;letter-spacing:.34em;color:var(--som-ink);
   animation:som-bootpulse 2.2s ease-in-out infinite}
-.som-boot i{width:150px;height:1px;background:rgba(184,154,106,.22);position:relative;overflow:hidden}
+.som-boot i{width:150px;height:1px;background:color-mix(in srgb, var(--som-gold) 22%, transparent);position:relative;overflow:hidden}
 .som-boot i::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;
   background:var(--som-gold);animation:som-bootbar 1.4s ease-in-out infinite}
 @keyframes som-bootbar{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
@@ -180,7 +182,7 @@
   .som-rail::before,.som-rail::after{content:"";flex:0 0 max(0px, calc(50% - min(39vw,150px) - 16px))}
 }
 .som-card{scroll-snap-align:center;flex:0 0 min(78vw,300px);border-radius:22px;padding:7px;
-  background:#fbf9f6;border:1px solid rgba(184,154,106,.3);display:flex;flex-direction:column;
+  background:var(--som-frame);border:1px solid var(--som-line);display:flex;flex-direction:column;
   transition:transform .45s var(--som-ease),box-shadow .45s var(--som-ease),
     border-color .45s var(--som-ease),opacity .45s var(--som-ease),filter .45s var(--som-ease)}
 @media (hover:hover){
@@ -244,9 +246,17 @@
 .som-detail-back{all:unset;cursor:pointer;font-size:13.5px;color:var(--som-muted);padding:4px 0}
 .som-detail-top .som-lat{font-size:12px;letter-spacing:.24em;color:var(--som-gold)}
 .som-detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:center;
-  padding:6px 28px max(30px,env(safe-area-inset-bottom));max-width:560px;margin:0 auto;width:100%;
+  padding:6px 18px max(30px,env(safe-area-inset-bottom));max-width:560px;margin:0 auto;width:100%;
   box-sizing:border-box}
+/* 결과 카드와 같은 문법의 흰 카드 — 병샷의 흰 배경이 카드 안으로 녹아든다 */
+.som-detail-card{background:var(--som-frame);border:1px solid var(--som-line);border-radius:22px;
+  padding:7px;margin:4px 0 10px}
+.som-detail-core{background:#fff;border-radius:16px;padding:26px 20px 22px}
 .som-detail-shot{height:min(32vh,300px);display:flex;align-items:flex-end;justify-content:center}
+.som-detail .som-cardfloor{margin:0 auto 14px}
+.som-detail .som-nm{font-size:19px}
+.som-detail .som-en{font-size:12.5px}
+.som-detail .som-pricebox{margin:26px 0 6px}
 .som-detail-shot img{max-height:100%;max-width:min(60vw,240px);object-fit:contain;
   filter:drop-shadow(0 22px 26px rgba(34,28,22,.18))}
 .som-detail-meta{font-size:12px;color:var(--som-muted);margin:2px 0 18px;line-height:1.7}
@@ -256,7 +266,7 @@
 .som-detail-fl span{display:inline-flex;align-items:center;gap:6px}
 .som-detail-fl i{width:5px;height:5px;border-radius:50%;background:var(--som-gold)}
 .som-detail-wait{font-size:12.5px;color:var(--som-muted);padding:10px 0 4px}
-.som-detail-notes{margin:0;text-align:left;border-top:1px solid rgba(184,154,106,.28)}
+.som-detail-notes{margin:0;text-align:left;border-top:1px solid var(--som-line)}
 .som-detail-notes div{display:flex;gap:16px;padding:12px 2px;
   border-bottom:1px solid rgba(34,28,22,.07)}
 .som-detail-notes dt{flex:0 0 58px;font-size:12px;color:var(--som-gold);

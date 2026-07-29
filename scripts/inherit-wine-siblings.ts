@@ -6,7 +6,8 @@ import { supabase } from '../app/lib/db';
 import { extractVintage } from '../app/api/quote/lib/enrichment';
 
 const DRY = process.argv.includes('--dry');
-const mask = (c: string) => (c && c.length === 7 ? c.slice(0, 2) + c.slice(4) : null);
+// ZK(타사 위탁) 품번은 3~4자리가 빈티지가 아니라 마스크가 다른 와인끼리 겹침(ZK22190↔ZK24190 오염 사고) → 제외
+const mask = (c: string) => (c && c.length === 7 && !/^ZK/i.test(c) ? c.slice(0, 2) + c.slice(4) : null);
 
 // 노트에서 승계할 필드 — 빈티지 특정적인 vintage_note·awards는 제외
 const NOTE_FIELDS = [
