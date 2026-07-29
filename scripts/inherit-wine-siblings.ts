@@ -62,6 +62,17 @@ async function main() {
     const { data: sib } = await supabase.from('wines').select('*').eq('item_code', sibCode).maybeSingle();
     if (!sib) continue;
 
+    // 이름 유사성 가드 — 품번 마스크가 같아도 ERP 품명과 형제 이름의 핵심 토큰이
+    // 안 겹치면 다른 와인(품번 재사용)일 수 있으므로 승계하지 않는다.
+    // (2026-07 사고: 3021062 ERP '드모조 뫼르소'가 형제 '드모조 샤르도네'를 물려받은 등 16건)
+    const tok = (t: string) => new Set(String(t).replace(/^[A-Z]{2}\s*/i, '').replace(/[^가-힣a-zA-Z0-9]/g, ' ').toLowerCase().split(/\s+/).filter((x) => x.length >= 2));
+    const a = tok(String(r.item_name || '')), b = tok(sib.item_name_kr || '');
+    const inter = [...a].filter((t) => b.has(t)).length;
+    if (inter / (Math.min(a.size, b.size) || 1) < 0.5) {
+      console.log(`스킵(이름 불일치): ${code} ERP='${r.item_name}' vs 형제='${sib.item_name_kr}'`);
+      continue;
+    }
+
     const wineRow = {
       item_code: code,
       item_name_kr: sib.item_name_kr,
