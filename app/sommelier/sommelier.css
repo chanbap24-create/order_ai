@@ -42,9 +42,9 @@
 @keyframes som-sway{50%{transform:translateY(-8px)}}
 .som-floor{width:min(46vw,220px);height:14px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:4px}
-.som-plate{text-align:center;padding:3vh 0 0;margin-bottom:auto}
-.som-caption{min-height:44px;display:flex;flex-direction:column;align-items:center;gap:3px;
-  margin-bottom:16px;opacity:1;transition:opacity .45s ease}
+.som-plate{text-align:center;padding:4vh 0 0;margin-bottom:auto}
+.som-caption{min-height:44px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  margin-bottom:30px;opacity:1;transition:opacity .45s ease}
 .som-caption.som-hero-fade{opacity:0}
 .som-cap-kr{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;color:var(--som-ink)}
 .som-cap-en{font-size:12px;font-style:italic;color:var(--som-muted)}
@@ -56,7 +56,7 @@
 .som-tagline{display:block;font-style:italic;font-size:15.5px;color:var(--som-gold);
   letter-spacing:.03em;margin-bottom:7px}
 /* 밀어서 시작 슬라이더 */
-.som-slide{position:relative;width:min(320px,82vw);height:58px;margin:22px auto 0;
+.som-slide{position:relative;width:min(320px,82vw);height:58px;margin:34px auto 0;
   border:1px solid rgba(184,154,106,.6);border-radius:999px;background:#fff;
   box-shadow:0 10px 28px rgba(34,28,22,.08);overflow:hidden;user-select:none;-webkit-user-select:none}
 .som-slide::before{content:"";position:absolute;inset:0;border-radius:999px;
