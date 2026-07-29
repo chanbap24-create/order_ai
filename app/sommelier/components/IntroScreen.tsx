@@ -101,7 +101,7 @@ export function IntroScreen({ store, poolCount, onStoreChange, onStart }: {
   return (
     <section className="som-screen">
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
-        <span className="som-lat">CAVE DE VIN</span>
+        <a className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</a>
         <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
       </div>
 

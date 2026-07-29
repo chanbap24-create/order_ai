@@ -49,7 +49,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
 
   return (
     <section className="som-screen" key={step}>
-      <div className="som-brand"><span className="som-lat">CAVE DE VIN</span><span>취향 문답</span></div>
+      <div className="som-brand"><a className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</a><span>취향 문답</span></div>
       <div className="som-prog"><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{STEPS[step].code}</div>

@@ -100,7 +100,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
   return (
     <section className="som-screen som-results">
       <div className="som-head">
-        <div className="som-brand"><span className="som-lat">CAVE DE VIN</span><span>추천 결과</span></div>
+        <div className="som-brand"><a className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</a><span>추천 결과</span></div>
         <div className="som-prog"><i style={{ width: '100%' }} /></div>
         <h2 className="som-rise" style={{ ['--i' as string]: 0 }}>
           {customerName} 님의 취향으로<br />고른 {results.length}병입니다

@@ -27,7 +27,7 @@
 
 .som-brand{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
   font-size:11px;color:var(--som-muted);white-space:nowrap}
-.som-brand .som-lat{font-size:14px;color:var(--som-ink);letter-spacing:.28em}
+.som-brand .som-lat{font-size:14px;color:var(--som-ink);letter-spacing:.28em;text-decoration:none;cursor:pointer}
 .som-store{background:none;border:none;font-size:11px;color:var(--som-muted);cursor:pointer;
   padding:2px 0;overflow:hidden;text-overflow:ellipsis;max-width:55%;
   text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(184,154,106,.6)}
