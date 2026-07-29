@@ -246,8 +246,10 @@
 .som-detail-back{all:unset;cursor:pointer;font-size:13.5px;color:var(--som-muted);padding:4px 0}
 .som-detail-top .som-lat{font-size:12px;letter-spacing:.24em;color:var(--som-gold)}
 .som-detail-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:center;
+  scrollbar-width:none;
   padding:6px 18px max(30px,env(safe-area-inset-bottom));max-width:560px;margin:0 auto;width:100%;
   box-sizing:border-box}
+.som-detail-body::-webkit-scrollbar{display:none}
 /* 결과 카드와 같은 문법의 흰 카드 — 병샷의 흰 배경이 카드 안으로 녹아든다 */
 .som-detail-card{background:var(--som-frame);border:1px solid var(--som-line);border-radius:22px;
   padding:7px;margin:4px 0 10px}
