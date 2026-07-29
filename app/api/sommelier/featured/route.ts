@@ -42,10 +42,10 @@ export async function GET(req: NextRequest) {
       for (const r of inv || []) sales.set(r.item_no, Number(r.sales_30days) || 0);
     }
     const codes = cand.filter((c) => {
-      if (c.price >= PREMIUM_PRICE) return c.stock >= 1;          // 고가: 1병도 진짜 재고
-      if (c.stock < MIN_STOCK_CHEAP) return false;                 // 저가: 최소 3병
       const s30 = sales.get(c.code);
-      return s30 === undefined || s30 > 0;                         // 저가: 한 달 출고 있어야(미상은 통과)
+      if (s30 !== undefined && s30 <= 0) return false;             // 30일 출고 없으면 가격 무관 제외(미상은 통과)
+      if (c.price >= PREMIUM_PRICE) return c.stock >= 1;           // 고가: 1병도 진짜 재고
+      return c.stock >= MIN_STOCK_CHEAP;                           // 저가: 최소 3병
     }).map((c) => c.code);
     const withImage: { code: string; name: string; name_en: string; v: string }[] = [];
     for (let i = 0; i < codes.length; i += 500) {
