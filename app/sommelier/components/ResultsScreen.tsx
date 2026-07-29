@@ -2,7 +2,7 @@
 
 // 추천 결과 — 화이트 쇼룸 카드 레일. 구조 프로파일 4종(무게감·당도·산미·탄닌) 바 +
 // [구매 기록]으로 고객 이력 저장(향후 자동추천 학습 데이터).
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import { BODY_OPTIONS, PRICE_OPTIONS, TYPE_OPTIONS, type QuizAnswers } from '../lib/quiz';
 
@@ -32,6 +32,44 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
 }) {
   const [ordered, setOrdered] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+
+  // 모바일 스크롤 스포트라이트 — 중앙 스냅 카드가 조명을 받고 양옆은 흐려짐 + 페이지 점
+  const railRef = useRef<HTMLDivElement>(null);
+  const [spot, setSpot] = useState(false);
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || results.length === 0) return;
+    const touch = window.matchMedia('(hover: none)').matches;
+    if (!touch) return; // 데스크탑은 호버 스포트라이트가 담당
+    setSpot(true);
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const center = rail.scrollLeft + rail.clientWidth / 2;
+      const cards = Array.from(rail.children) as HTMLElement[];
+      let best = 0, bestD = Infinity;
+      cards.forEach((c, i) => {
+        const cc = c.offsetLeft + c.offsetWidth / 2;
+        const d = Math.min(1, Math.abs(cc - center) / (c.offsetWidth * 1.1));
+        c.style.opacity = String(1 - d * 0.55);
+        c.style.transform = `scale(${1 - d * 0.06})`;
+        if (Math.abs(cc - center) < bestD) { bestD = Math.abs(cc - center); best = i; }
+      });
+      setPage(best);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    rail.addEventListener('scroll', onScroll, { passive: true });
+    return () => { rail.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [results]);
+
+  const goPage = (i: number) => {
+    const rail = railRef.current;
+    const card = rail?.children[i] as HTMLElement | undefined;
+    if (!rail || !card) return;
+    rail.scrollTo({ left: card.offsetLeft - (rail.clientWidth - card.offsetWidth) / 2, behavior: 'smooth' });
+  };
 
   const order = async (r: SommelierResult) => {
     if (!customerId || ordered.has(r.item_code) || busy) return;
@@ -68,7 +106,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
           <button className="som-next" style={{ marginTop: 14 }} onClick={onRetry}>다시 문답하기</button>
         </div>
       ) : (
-        <div className="som-rail">
+        <div className={`som-rail${spot ? ' spotmode' : ''}`} ref={railRef}>
           {results.map((r, i) => {
             const done = ordered.has(r.item_code);
             return (
@@ -104,6 +142,13 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
         </div>
       )}
 
+      {spot && results.length > 1 && (
+        <div className="som-dots">
+          {results.map((r, i) => (
+            <i key={r.item_code} className={i === page ? 'on' : ''} onClick={() => goPage(i)} />
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
         <button className="som-again" onClick={onRetry}>다시 문답</button>
         <button className="som-again" onClick={onNewGuest}>새 손님 응대</button>
