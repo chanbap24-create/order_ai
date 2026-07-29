@@ -132,7 +132,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         )}
 
         {step === 4 && (
-          <div className="som-words">
+          <div className="som-words som-words-indent">
             {PRICE_OPTIONS.filter((o) => o.min != null || o.max != null).map((o, i) => (
               <button key={o.label}
                 className={`som-word som-word--md som-rise${sel === o.label ? ' sel' : ''}`}
