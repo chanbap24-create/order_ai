@@ -126,7 +126,9 @@
 .som-opt.sel::before{content:"● ";font-size:9px;vertical-align:2px}
 .som-opt:hover,.som-opt:focus-visible{padding-left:14px;color:var(--som-stain)}
 .som-opt:focus-visible{outline:1px solid var(--som-gold);outline-offset:4px}
-.som-subrow{margin-top:18px;display:flex;justify-content:space-between;align-items:center}
+/* 하단 컨트롤 고정 — 상관없어요·이전이 챕터마다 같은 자리(바닥)에 오도록 */
+.som-anyrow{margin-top:auto;padding-top:18px;min-height:21px;display:flex}
+.som-subrow{margin-top:14px;display:flex;justify-content:space-between;align-items:center}
 .som-link{font-size:13px;color:var(--som-muted);text-decoration:underline;text-underline-offset:4px;
   cursor:pointer;background:none;border:none;padding:4px 2px}
 .som-next{border:none;border-radius:999px;background:var(--som-ink);color:#f6eadf;font-size:14px;

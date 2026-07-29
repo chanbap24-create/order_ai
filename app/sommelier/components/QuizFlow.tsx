@@ -68,10 +68,6 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
                 {o.label}
               </button>
             ))}
-            <button className="som-link som-rise" style={{ ['--i' as string]: 5, marginTop: 14 }}
-              onClick={() => pick('any', () => ({ ...a, type: null }))}>
-              상관없어요
-            </button>
           </div>
         )}
 
@@ -85,10 +81,6 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
                 {o.label}
               </button>
             ))}
-            <button className="som-link som-rise" style={{ ['--i' as string]: 4, marginTop: 14 }}
-              onClick={() => pick('any', () => ({ ...a, body: null }))}>
-              상관없어요
-            </button>
           </div>
         )}
 
@@ -149,13 +141,20 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
                 {o.label}
               </button>
             ))}
-            <button className="som-link som-rise" style={{ ['--i' as string]: 6, marginTop: 14 }}
-              onClick={() => pick('any', () => ({ ...a, priceMin: null, priceMax: null }), true)}>
-              상관없어요
-            </button>
           </div>
         )}
 
+        <div className="som-anyrow som-rise" style={{ ['--i' as string]: 9 }}>
+          {step === 0 && (
+            <button className="som-link" onClick={() => pick('any', () => ({ ...a, type: null }))}>상관없어요</button>
+          )}
+          {step === 1 && (
+            <button className="som-link" onClick={() => pick('any', () => ({ ...a, body: null }))}>상관없어요</button>
+          )}
+          {step === 4 && (
+            <button className="som-link" onClick={() => pick('any', () => ({ ...a, priceMin: null, priceMax: null }), true)}>상관없어요</button>
+          )}
+        </div>
         <div className="som-subrow som-rise" style={{ ['--i' as string]: 10 }}>
           <button className="som-link" onClick={back}>이전</button>
           {step === 2 && (
