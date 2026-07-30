@@ -135,7 +135,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                   </div>
                   <div className="som-cardfloor" />
                   <div className="som-rank som-lat">NO. {ROMAN[i] || i + 1}</div>
-                  <div className="som-nm">{[r.name, r.vintage].filter(Boolean).join(' ')}</div>
+                  <div className="som-nm">{r.name}</div>
                   {r.name_en && (
                     <div className="som-en som-lat">{[r.name_en, r.vintage].filter(Boolean).join(' ')}</div>
                   )}
