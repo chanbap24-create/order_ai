@@ -76,6 +76,8 @@ function stripBrandPrefix(name: string): string {
  */
 export function buildClientMessage(p: BuildParams): string {
   if (p.orderLines.length === 0) return "";
+  // DL(대유라이프) + 특이사항에 '입금확인' — 선결제 안내(계좌·품목별 금액·부가세 합계) 포맷
+  if (p.tab === "DL" && /입금\s*확인/.test(p.deliveryNotes)) return buildPaymentFirstMessage(p);
 
   const greeting = "안녕하세요\n발주 감사합니다~";
   const deliveryLine = p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "";
@@ -108,4 +110,36 @@ export function buildClientMessage(p: BuildParams): string {
 
   const head = [greeting, deliveryLine].filter(Boolean).join("\n\n");
   return `${head}\n\n${lines.join("\n")}${tastingMsg}\n\n좋은 하루 되세요!`;
+}
+
+/**
+ * 대유라이프 입금확인후 출고 거래처용 — 결제 요청 메시지.
+ * 품목별 공급가 * 수량 = 합계, 마지막에 부가세 포함 총액과 입금 계좌 안내.
+ */
+function buildPaymentFirstMessage(p: BuildParams): string {
+  const lines: string[] = [];
+  let total = 0;
+  p.orderLines.forEach((ol, idx) => {
+    if ((p.discountRates[idx] || 0) === 100) return; // 시음주는 금액 안내에서 제외
+    const sel = getSelected(ol);
+    const displayName = sel ? stripBrandPrefix(sel.item_name) : ol.query;
+    const unit = sel ? getUnit(p.tab, sel.item_no, sel.item_name) : getUnit(p.tab, undefined, ol.query);
+    const price = getItemPrice(p.orderLines, p.discountRates, idx);
+    const sum = price * ol.quantity;
+    total += sum;
+    lines.push(
+      `- ${displayName} ${ol.quantity}${unit}` +
+      (price > 0 ? `\n${fmt(price)} * ${ol.quantity} = ${fmt(sum)}원` : ""),
+    );
+  });
+  const vat = Math.round(total * 1.1);
+  return [
+    "안녕하세요\n발주 감사합니다.",
+    "품목과 수량 금액 확인부탁드립니다.\n오늘까지 결제해 주시면 아래 날짜에 배송 예정입니다.",
+    "기업은행_(주)대유라이프  500-042529-01-016",
+    p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "배송 예정일: 입금 확인 후 안내",
+    lines.join("\n\n"),
+    `부가세포함 = ${fmt(vat)}원`,
+    "좋은 하루 되세요!",
+  ].join("\n\n");
 }
