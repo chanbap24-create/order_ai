@@ -59,16 +59,13 @@
 .som-floor{width:min(46vw,220px);height:14px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin-top:4px}
 .som-plate{text-align:center;padding:4vh 0 0;margin-bottom:auto}
-.som-caption{height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+.som-caption{height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   margin-bottom:30px;max-width:88vw;margin-left:auto;margin-right:auto;
   animation:som-capin .45s ease both}
 @keyframes som-capin{from{opacity:0}to{opacity:1}}
 /* 사라질 때도 키프레임으로 — iOS에서 텍스트 트랜지션이 안 먹어 팟 하고 바뀌던 문제 */
 .som-caption.som-hero-fade{animation:som-capout .45s ease both}
 @keyframes som-capout{from{opacity:1}to{opacity:0}}
-/* 와이너리 로고 — 흑백 소형으로 절제(원색 로고가 쇼룸을 산만하게 하지 않도록). 빈 슬롯도 높이 유지 */
-.som-cap-logo{height:24px;display:flex;align-items:center;justify-content:center}
-.som-cap-logo img{max-height:22px;max-width:130px;object-fit:contain;filter:grayscale(1);opacity:.72}
 .som-cap-kr{font-size:16.5px;font-weight:700;letter-spacing:-0.01em;color:var(--som-ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .som-cap-en{font-size:12px;font-style:italic;color:var(--som-muted);
