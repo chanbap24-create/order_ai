@@ -44,7 +44,7 @@ export function CustomerScreen({ onDone, onBack }: {
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>GUEST</div>
 
-        <div className="som-field som-rise" style={{ ['--i' as string]: 2 }}>
+        <div className="som-field som-rise" style={{ ['--i' as string]: 2, marginTop: 52 }}>
           <label>성함</label>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
         </div>
