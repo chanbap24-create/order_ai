@@ -206,6 +206,17 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
       {view === 'balance' && !list.loading && list.clients.length === 0 && !list.error && (
         <EmptyBox msg="해당 담당자의 거래처 미수현황이 없습니다." />
       )}
+
+      {ledgerClient && (
+        <LedgerPopup
+          clientCode={ledgerClient.code}
+          clientName={ledgerClient.name}
+          type={type}
+          startDate={startDate}
+          endDate={endDate}
+          onClose={() => setLedgerClient(null)}
+        />
+      )}
     </Stack>
   );
 }
@@ -228,16 +239,6 @@ function EmptyBox({ msg }: { msg: string }) {
       background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 12,
     }}>
       {msg}
-      {ledgerClient && (
-        <LedgerPopup
-          clientCode={ledgerClient.code}
-          clientName={ledgerClient.name}
-          type={type}
-          startDate={startDate}
-          endDate={endDate}
-          onClose={() => setLedgerClient(null)}
-        />
-      )}
     </div>
   );
 }
