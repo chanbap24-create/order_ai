@@ -57,8 +57,8 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
         </div>
         <div className="som-cardfloor" />
-        <div className="som-nm">{[r.vintage, r.name].filter(Boolean).join(' ')}</div>
-        {r.name_en && <div className="som-en som-lat">{[r.vintage, r.name_en].filter(Boolean).join(' ')}</div>}
+        <div className="som-nm">{[r.name, r.vintage].filter(Boolean).join(' ')}</div>
+        {r.name_en && <div className="som-en som-lat">{[r.name_en, r.vintage].filter(Boolean).join(' ')}</div>}
         {meta && <div className="som-detail-meta">{meta}</div>}
 
         <div className="som-bars som-detail-bars">
