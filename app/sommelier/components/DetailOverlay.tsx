@@ -31,8 +31,8 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
   const close = () => { if (out) return; setOut(true); setTimeout(onClose, 360); };
 
   const flavors = (d?.flavors?.length ? d.flavors : r.flavors) || [];
+  // 빈티지는 와인명 앞에 붙으므로 메타 줄에서는 제외
   const meta = [d?.country || r.country, d?.region || r.region, d?.grape_varieties,
-    d?.vintage ? (/^\d{4}$/.test(d.vintage) ? `${d.vintage} 빈티지` : d.vintage) : null,
     d?.alcohol ? `${String(d.alcohol).replace(/%$/, '')}%` : null].filter(Boolean).join(' · ');
   // 색·향·맛 서술은 위 향미 키워드가 대신 — 여기는 와이너리·양조·빈티지 이야기
   const notes: [string, string][] = d ? ([
@@ -57,8 +57,8 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
         </div>
         <div className="som-cardfloor" />
-        <div className="som-nm">{r.name}</div>
-        {r.name_en && <div className="som-en som-lat">{r.name_en}</div>}
+        <div className="som-nm">{[r.vintage, r.name].filter(Boolean).join(' ')}</div>
+        {r.name_en && <div className="som-en som-lat">{[r.vintage, r.name_en].filter(Boolean).join(' ')}</div>}
         {meta && <div className="som-detail-meta">{meta}</div>}
 
         <div className="som-bars som-detail-bars">

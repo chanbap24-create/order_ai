@@ -135,9 +135,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                   </div>
                   <div className="som-cardfloor" />
                   <div className="som-rank som-lat">NO. {ROMAN[i] || i + 1}</div>
-                  <div className="som-nm">{r.name}</div>
-                  {(r.name_en || r.vintage) && (
-                    <div className="som-en som-lat">{[r.name_en, r.vintage].filter(Boolean).join(' · ')}</div>
+                  <div className="som-nm">{[r.vintage, r.name].filter(Boolean).join(' ')}</div>
+                  {r.name_en && (
+                    <div className="som-en som-lat">{[r.vintage, r.name_en].filter(Boolean).join(' ')}</div>
                   )}
                   <div className="som-bars">
                     <div className="som-bar"><b>무게감</b><div className="tr"><i style={{ ['--v' as string]: r.body }} /></div></div>
