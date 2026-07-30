@@ -33,9 +33,10 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
   const flavors = (d?.flavors?.length ? d.flavors : r.flavors) || [];
   const meta = [d?.country || r.country, d?.region || r.region, d?.grape_varieties,
     d?.alcohol ? `${String(d.alcohol).replace(/%$/, '')}%` : null].filter(Boolean).join(' · ');
+  // 색·향·맛 서술은 위 향미 키워드가 대신 — 여기는 와이너리·양조·빈티지 이야기
   const notes: [string, string][] = d ? ([
-    ['색', d.color_note], ['향', d.nose_note], ['맛', d.palate_note],
-    ['페어링', d.food_pairing], ['서빙 온도', d.serving_temp],
+    ['와이너리', d.winery_description], ['양조', d.winemaking], ['빈티지', d.vintage_note],
+    ['숙성', d.aging_potential], ['페어링', d.food_pairing], ['서빙 온도', d.serving_temp],
   ] as [string, string | null][]).filter((row): row is [string, string] => !!row[1]) : [];
 
   return (

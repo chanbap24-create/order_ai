@@ -3,9 +3,10 @@ import { supabase } from './db';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 
 export type SommelierDetail = {
-  color_note: string | null;
-  nose_note: string | null;
-  palate_note: string | null;
+  winery_description: string | null;
+  winemaking: string | null;
+  vintage_note: string | null;
+  aging_potential: string | null;
   food_pairing: string | null;
   serving_temp: string | null;
   grape_varieties: string | null;
@@ -21,14 +22,15 @@ export async function loadSommelierDetail(code: string): Promise<SommelierDetail
       .select('grape_varieties, alcohol, country, region')
       .eq('item_code', code).maybeSingle(),
     supabase.from('tasting_notes')
-      .select('color_note, nose_note, palate_note, food_pairing, serving_temp, flavor_tags')
+      .select('winery_description, winemaking, vintage_note, aging_potential, food_pairing, serving_temp, flavor_tags')
       .eq('wine_id', code).maybeSingle(),
   ]);
   const tags: string[] = Array.isArray(n?.flavor_tags) ? n.flavor_tags : [];
   return {
-    color_note: n?.color_note || null,
-    nose_note: n?.nose_note || null,
-    palate_note: n?.palate_note || null,
+    winery_description: n?.winery_description || null,
+    winemaking: n?.winemaking || null,
+    vintage_note: n?.vintage_note || null,
+    aging_potential: n?.aging_potential || null,
     food_pairing: n?.food_pairing || null,
     serving_temp: n?.serving_temp || null,
     grape_varieties: w?.grape_varieties || null,
