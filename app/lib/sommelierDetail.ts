@@ -20,15 +20,22 @@ export type SommelierDetail = {
 export async function loadSommelierDetail(code: string): Promise<SommelierDetail> {
   const [{ data: w }, { data: n }] = await Promise.all([
     supabase.from('wines')
-      .select('grape_varieties, vintage, alcohol, country, region')
+      .select('grape_varieties, vintage, alcohol, country, region, brand')
       .eq('item_code', code).maybeSingle(),
     supabase.from('tasting_notes')
       .select('winery_description, winemaking, vintage_note, aging_potential, food_pairing, serving_temp, flavor_tags')
       .eq('wine_id', code).maybeSingle(),
   ]);
+  // 와이너리 설명은 브랜드 자료실(brands.description) 우선, 없으면 노트 폴백
+  let winery: string | null = n?.winery_description || null;
+  if (w?.brand) {
+    const { data: b } = await supabase.from('brands').select('description')
+      .ilike('brand_code', w.brand).maybeSingle();
+    if (b?.description) winery = b.description;
+  }
   const tags: string[] = Array.isArray(n?.flavor_tags) ? n.flavor_tags : [];
   return {
-    winery_description: n?.winery_description || null,
+    winery_description: winery,
     winemaking: n?.winemaking || null,
     vintage_note: n?.vintage_note || null,
     aging_potential: n?.aging_potential || null,
