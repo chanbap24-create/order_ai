@@ -10,6 +10,7 @@ export type SommelierDetail = {
   food_pairing: string | null;
   serving_temp: string | null;
   grape_varieties: string | null;
+  vintage: string | null;
   alcohol: string | null;
   country: string | null;
   region: string | null;
@@ -19,7 +20,7 @@ export type SommelierDetail = {
 export async function loadSommelierDetail(code: string): Promise<SommelierDetail> {
   const [{ data: w }, { data: n }] = await Promise.all([
     supabase.from('wines')
-      .select('grape_varieties, alcohol, country, region')
+      .select('grape_varieties, vintage, alcohol, country, region')
       .eq('item_code', code).maybeSingle(),
     supabase.from('tasting_notes')
       .select('winery_description, winemaking, vintage_note, aging_potential, food_pairing, serving_temp, flavor_tags')
@@ -34,6 +35,7 @@ export async function loadSommelierDetail(code: string): Promise<SommelierDetail
     food_pairing: n?.food_pairing || null,
     serving_temp: n?.serving_temp || null,
     grape_varieties: w?.grape_varieties || null,
+    vintage: w?.vintage || null,
     alcohol: w?.alcohol || null,
     country: w?.country || null,
     region: w?.region || null,

@@ -32,6 +32,7 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
 
   const flavors = (d?.flavors?.length ? d.flavors : r.flavors) || [];
   const meta = [d?.country || r.country, d?.region || r.region, d?.grape_varieties,
+    d?.vintage ? (/^\d{4}$/.test(d.vintage) ? `${d.vintage} 빈티지` : d.vintage) : null,
     d?.alcohol ? `${String(d.alcohol).replace(/%$/, '')}%` : null].filter(Boolean).join(' · ');
   // 색·향·맛 서술은 위 향미 키워드가 대신 — 여기는 와이너리·양조·빈티지 이야기
   const notes: [string, string][] = d ? ([
