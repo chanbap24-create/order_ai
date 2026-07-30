@@ -105,7 +105,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
         <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>추천 결과</span></div>
         <div className="som-prog"><i style={{ width: '100%' }} /></div>
         <h2 className="som-rise som-lat" style={{ ['--i' as string]: 0 }}>
-          Selected for {customerName}
+          Your Selection
         </h2>
         <p className="som-sum som-rise" style={{ ['--i' as string]: 1 }}>
           {[summary(answers), `${results.length} bottles`].filter(Boolean).join(' · ')}
