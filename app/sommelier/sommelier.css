@@ -106,6 +106,16 @@
 .som-cta:hover i{transform:translateX(3px)}
 .som-cta:disabled{opacity:.55;cursor:default}
 
+/* 진행 트레일 — 진행바 아래 한 줄, 항목 탭 = 해당 챕터로 점프 */
+.som-trail{height:34px;flex:0 0 auto;display:flex;align-items:center;gap:16px;
+  max-width:560px;margin:0 auto;width:100%;overflow-x:auto;scrollbar-width:none}
+.som-trail::-webkit-scrollbar{display:none}
+.som-trail button{all:unset;cursor:pointer;font-size:12px;color:var(--som-muted);
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  transition:color .3s var(--som-ease)}
+.som-trail button::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--som-gold)}
+.som-trail button:active,.som-trail button:hover{color:var(--som-ink)}
+
 /* ── 문답·입력 공통 ── */
 /* 세로 중앙정렬 금지 — 단계마다 내용 높이가 달라 챕터 표기가 오르내린다.
    상단 고정 오프셋으로 Q.1~Q.5(고객 GUEST 포함) 위치를 일치시킨다. */

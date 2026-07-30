@@ -36,6 +36,19 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
   const back = () => (step === 0 ? onExit() : setStep((s) => s - 1));
   const toggle = (arr: string[], k: string) => (arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k]);
 
+  /** 진행 트레일 라벨 — 지나온 챕터의 선택 요약 */
+  const trailLabel = (i: number): string => {
+    if (i === 0) return TYPE_OPTIONS.find((o) => o.value === a.type)?.label || '타입 무관';
+    if (i === 1) return BODY_OPTIONS.find((o) => o.value === a.body)?.label || '무게감 무관';
+    if (i === 2) { const n = a.flavorGroups.length + a.flavors.length; return n ? `향미 ${n}` : '향미 무관'; }
+    if (i === 3) {
+      const cs = a.countries.map((k) => COUNTRY_OPTIONS[k]?.label || k);
+      return cs.length === 0 ? '산지 무관' : cs.length === 1 ? cs[0] : `산지 ${cs.length}`;
+    }
+    const p = PRICE_OPTIONS.find((o) => o.min === a.priceMin && o.max === a.priceMax);
+    return p && (p.min != null || p.max != null) ? p.label : '가격 무관';
+  };
+
   /** 단일 선택 — 색이 물든 뒤 다음으로 (마지막 단계면 제출) */
   const pick = (key: string, apply: () => QuizAnswers, last = false) => {
     if (sel || submitting) return;
@@ -52,6 +65,14 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
     <section className="som-screen" key={step}>
       <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>취향 문답</span></div>
       <div className="som-prog"><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
+      {/* 진행 트레일 — 지나온 챕터의 선택 요약, 탭하면 그 챕터로 점프. 빈 단계에서도 높이 고정 */}
+      <div className="som-trail">
+        {Array.from({ length: step }, (_, i) => (
+          <button key={i} onClick={() => setStep(i)} aria-label={`${STEPS[i].code}로 이동`}>
+            {trailLabel(i)}
+          </button>
+        ))}
+      </div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>{STEPS[step].code}</div>
         {STEPS[step].hint && (
