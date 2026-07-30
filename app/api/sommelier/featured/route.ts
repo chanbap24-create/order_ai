@@ -13,7 +13,7 @@ const PREMIUM_PRICE = 100000;
 const MIN_STOCK_CHEAP = 3;
 
 // 매장별 후보 캐시 — 재고표는 하루 단위 갱신이라 짧은 TTL로 충분. 셔플은 요청마다 새로.
-type Item = { code: string; name: string; name_en: string; v: string };
+type Item = { code: string; name: string; name_en: string; v: string; logo?: string };
 const cache = new Map<string, { t: number; items: Item[] }>();
 const CACHE_TTL = 10 * 60_000;
 
@@ -64,16 +64,25 @@ export async function GET(req: NextRequest) {
       return c.stock >= MIN_STOCK_CHEAP;                           // 저가: 최소 3병
     }).map((c) => c.code);
     const withImage: Item[] = [];
+    const brandOf = new Map<string, string>();
     for (let i = 0; i < codes.length; i += 500) {
       const { data: ws } = await supabase
-        .from('wines').select('item_code, item_name_kr, item_name_en, image_url, image_px').in('item_code', codes.slice(i, i + 500))
+        .from('wines').select('item_code, item_name_kr, item_name_en, image_url, image_px, brand').in('item_code', codes.slice(i, i + 500))
         .not('image_url', 'is', null)
         .gte('image_px', 700); // 인트로는 크게 확대되므로 고해상 이미지만(저해상은 흐릿)
       for (const w of ws || []) {
         if (/^https?:\/\//.test(w.image_url || '')) {
           withImage.push({ code: w.item_code, name: w.item_name_kr || '', name_en: w.item_name_en || '', v: cacheVer(w.image_url || '') });
+          if (w.brand) brandOf.set(w.item_code, String(w.brand).toUpperCase());
         }
       }
+    }
+    // 와이너리 로고 (브랜드 자료실) — 있으면 캡션에 함께 표시
+    const { data: bs } = await supabase.from('brands').select('brand_code, logo_url').not('logo_url', 'is', null);
+    const logoBy = new Map((bs || []).map((b) => [String(b.brand_code || '').toUpperCase(), String(b.logo_url)]));
+    for (const it of withImage) {
+      const logo = logoBy.get(brandOf.get(it.code) || '');
+      if (logo && /^https?:\/\//.test(logo)) it.logo = logo;
     }
     cache.set(store, { t: Date.now(), items: [...withImage] });
     // 셔플 후 12개

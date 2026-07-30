@@ -71,7 +71,7 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
 
   // 병샷 랜덤 순환 — 후보를 백그라운드에서 미리 로드해 성공한 이미지만 화면에 올린다
   // (로드 실패 후보를 화면에서 스킵하며 여러 장이 빠르게 지나가던 문제 방지)
-  type Featured = { code: string; name: string; name_en: string; v?: string };
+  type Featured = { code: string; name: string; name_en: string; v?: string; logo?: string };
   const [items, setItems] = useState<Featured[]>([]);
   const [display, setDisplay] = useState<{ src: string; cur: Featured | null }>({ src: '', cur: null });
   const [fading, setFading] = useState(false);
@@ -162,6 +162,13 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
         {/* key로 와인마다 새 노드 — 텍스트 교체 잔상(이전·새 이름 겹침) 방지 */}
         <div key={cur?.code || 'none'} className={`som-caption${fading ? ' som-hero-fade' : ''}`}>
           {cur && <>
+            <span className="som-cap-logo">
+              {cur.logo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cur.logo} alt=""
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+              )}
+            </span>
             <span className="som-cap-kr">{cur.name}</span>
             {cur.name_en && <span className="som-cap-en som-lat">{cur.name_en}</span>}
           </>}
