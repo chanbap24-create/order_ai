@@ -133,13 +133,16 @@ function buildPaymentFirstMessage(p: BuildParams): string {
     );
   });
   const vat = Math.round(total * 1.1);
+  // 순서 = 받는 사람의 행동 순서: 품목 확인 → 총액 → 계좌(총액 바로 아래, 송금 동선) → 결제 시 배송일
   return [
     "안녕하세요\n발주 감사합니다.",
-    "품목과 수량 금액 확인부탁드립니다.\n오늘까지 결제해 주시면 아래 날짜에 배송 예정입니다.",
-    "기업은행_(주)대유라이프  500-042529-01-016",
-    p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "배송 예정일: 입금 확인 후 안내",
+    "품목과 수량, 금액 확인 부탁드립니다.",
     lines.join("\n\n"),
     `부가세포함 = ${fmt(vat)}원`,
+    "기업은행_(주)대유라이프  500-042529-01-016",
+    p.finalDeliveryLabel
+      ? `오늘까지 결제해 주시면 ${p.finalDeliveryLabel} 배송 예정입니다.`
+      : "입금 확인 후 배송 일정 안내드리겠습니다.",
     "좋은 하루 되세요!",
   ].join("\n\n");
 }
