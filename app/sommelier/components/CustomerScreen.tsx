@@ -43,7 +43,6 @@ export function CustomerScreen({ onDone, onBack }: {
       <div className="som-prog"><i style={{ width: '8%' }} /></div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>GUEST</div>
-        <h2 className="som-rise" style={{ ['--i' as string]: 1 }}>먼저, 손님을<br />어떻게 불러드릴까요?</h2>
 
         <div className="som-field som-rise" style={{ ['--i' as string]: 2 }}>
           <label>성함</label>
