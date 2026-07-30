@@ -10,6 +10,7 @@ export type SommelierResult = {
   item_code: string;
   name: string;
   name_en: string;
+  vintage: string;
   country: string;
   region: string;
   retail_price: number;
@@ -26,7 +27,7 @@ export type SommelierResult = {
 
 type Note = { flavor_tags: string[]; body: number | null; sweetness: number | null; acidity: number | null; tannin: number | null };
 type PoolWine = {
-  item_code: string; name: string; name_en: string; country: string; region: string;
+  item_code: string; name: string; name_en: string; vintage: string; country: string; region: string;
   type: string; grapes: string; retail: number; stock: number; tags: string[]; note: Note | null;
   imgVer: string;
 };
@@ -61,12 +62,12 @@ async function loadPool(store: string): Promise<PoolWine[]> {
     .filter((r) => r.stock > 0 && r.retail > 0 && WINE_CODE.test(r.code));
 
   const codes = rows.map((r) => r.code);
-  const wines = new Map<string, { item_name_kr: string; item_name_en: string; country: string; region: string; wine_type: string; grape_varieties: string }>();
+  const wines = new Map<string, { item_name_kr: string; item_name_en: string; vintage: string; country: string; region: string; wine_type: string; grape_varieties: string }>();
   const notes = new Map<string, Note>();
   for (let i = 0; i < codes.length; i += 400) {
     const batch = codes.slice(i, i + 400);
     const [{ data: ws }, { data: ns }] = await Promise.all([
-      supabase.from('wines').select('item_code, item_name_kr, item_name_en, country, region, wine_type, grape_varieties, image_url').in('item_code', batch),
+      supabase.from('wines').select('item_code, item_name_kr, item_name_en, vintage, country, region, wine_type, grape_varieties, image_url').in('item_code', batch),
       supabase.from('tasting_notes').select('wine_id, flavor_tags, body, sweetness, acidity, tannin').in('wine_id', batch),
     ]);
     for (const w of ws || []) wines.set(w.item_code, w);
@@ -80,6 +81,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
     return [{
       item_code: r.code,
       name: w.item_name_kr, name_en: w.item_name_en || '',
+      vintage: w.vintage || '',
       country: w.country || '', region: w.region || '',
       type: normalizeWineType(w.wine_type || ''),
       grapes: (w.grape_varieties || '').toLowerCase(),
@@ -169,7 +171,7 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'a
 
   return picked.map(({ w, score, matched }) => ({
     item_code: w.item_code,
-    name: w.name, name_en: w.name_en,
+    name: w.name, name_en: w.name_en, vintage: w.vintage,
     country: w.country, region: w.region,
     retail_price: w.retail, stock: w.stock,
     flavors: w.tags.slice(0, 5).map((k) => FLAVOR_KO[k] || k),
