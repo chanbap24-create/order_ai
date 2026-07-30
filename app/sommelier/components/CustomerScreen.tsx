@@ -46,11 +46,11 @@ export function CustomerScreen({ onDone, onBack }: {
 
         <div className="som-field som-rise" style={{ ['--i' as string]: 2 }}>
           <label>성함</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" maxLength={30} />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
         </div>
         <div className="som-field som-rise" style={{ ['--i' as string]: 3 }}>
           <label>핸드폰 번호</label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="010-0000-0000"
+          <input value={phone} onChange={(e) => setPhone(e.target.value)}
             type="tel" inputMode="tel" maxLength={13} />
         </div>
         <label className="som-consent som-rise" style={{ ['--i' as string]: 4 }}>
