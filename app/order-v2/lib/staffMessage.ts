@@ -13,6 +13,8 @@ type BuildParams = {
   /** 예: "10/15(수)" 또는 빈 문자열 */
   finalDeliveryLabel: string;
   deliveryNotes: string;
+  /** 품번(대문자) → 그 거래처 마지막 공급 단가. 할인율 미지정 시 이 가격이 우선 */
+  historyPrices?: Record<string, number>;
 };
 
 /**
@@ -120,11 +122,14 @@ function buildPaymentFirstMessage(p: BuildParams): string {
   const lines: string[] = [];
   let total = 0;
   p.orderLines.forEach((ol, idx) => {
-    if ((p.discountRates[idx] || 0) === 100) return; // 시음주는 금액 안내에서 제외
+    const rate = p.discountRates[idx] || 0;
+    if (rate === 100) return; // 시음주는 금액 안내에서 제외
     const sel = getSelected(ol);
     const displayName = sel ? stripBrandPrefix(sel.item_name) : ol.query;
     const unit = sel ? getUnit(p.tab, sel.item_no, sel.item_name) : getUnit(p.tab, undefined, ol.query);
-    const price = getItemPrice(p.orderLines, p.discountRates, idx);
+    // 규칙: 할인율을 지정하면 정가에 할인 적용, 미지정이면 이전에 공급했던 단가 그대로
+    const prev = sel ? p.historyPrices?.[sel.item_no.trim().toUpperCase()] : undefined;
+    const price = rate > 0 ? getItemPrice(p.orderLines, p.discountRates, idx) : (prev ?? getItemPrice(p.orderLines, p.discountRates, idx));
     const sum = price * ol.quantity;
     total += sum;
     lines.push(

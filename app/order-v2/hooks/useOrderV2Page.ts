@@ -61,6 +61,12 @@ export function useOrderV2Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+  // 거래처 선택 시 입고내역 자동 로드 — 메시지의 '이전 공급가' 규칙에 필요
+  useEffect(() => {
+    if (client.selected?.client_code) void history.fetchItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.selected?.client_code]);
+
   // 붙여넣기 버튼 (키보드 또는 Clipboard API)
   const pasteFromClipboard = async () => {
     const ta = orderTextRef.current;
@@ -218,6 +224,9 @@ export function useOrderV2Page() {
     historySet: parse.historySet,
     finalDeliveryLabel: delivery.finalLabel,
     deliveryNotes,
+    historyPrices: Object.fromEntries(
+      history.items.map((i) => [i.item_no.trim().toUpperCase(), i.supply_price]),
+    ),
   };
   const staffMessage = buildStaffMessage(msgParams);
   const clientMessage = buildClientMessage(msgParams);

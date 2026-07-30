@@ -44,6 +44,7 @@ export function useClientHistory(clientCode: string | undefined, tab: OrderTab) 
     items,
     loading,
     loaded,
+    fetchItems,
     show,
     setShow,
     showOld,
