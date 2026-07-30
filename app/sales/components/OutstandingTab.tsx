@@ -9,6 +9,7 @@ import { useAging } from '../outstanding/hooks/useAging';
 import { useBulkExport } from '../outstanding/hooks/useBulkExport';
 import { FilterPanel } from '../outstanding/components/FilterPanel';
 import { OutstandingTable } from '../outstanding/components/OutstandingTable';
+import { LedgerPopup } from '../briefing/components/LedgerPopup';
 import { AgingSummary } from '../outstanding/components/AgingSummary';
 import { AgingTable } from '../outstanding/components/AgingTable';
 import { ExportButtons } from '../outstanding/components/ExportButtons';
@@ -27,6 +28,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [type, setType] = useState<OutstandingType>('wine');
+  const [ledgerClient, setLedgerClient] = useState<{ code: string; name: string } | null>(null);
   // isAdmin/sales_admin 일 때 선택한 매니저, 일반 user 는 본인 매니저 그대로.
   const [selectedManager, setSelectedManager] = useState(currentManager);
 
@@ -188,6 +190,7 @@ export default function OutstandingTab({ currentManager, isAdmin, initialManager
             allChecked={list.allChecked}
             onToggleAll={list.toggleAll}
             onToggleOne={list.toggleOne}
+            onOpenLedger={(code, name) => setLedgerClient({ code, name })}
           />
           <ExportButtons
             checkedCount={list.checked.size}
@@ -225,6 +228,16 @@ function EmptyBox({ msg }: { msg: string }) {
       background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 12,
     }}>
       {msg}
+      {ledgerClient && (
+        <LedgerPopup
+          clientCode={ledgerClient.code}
+          clientName={ledgerClient.name}
+          type={type}
+          startDate={startDate}
+          endDate={endDate}
+          onClose={() => setLedgerClient(null)}
+        />
+      )}
     </div>
   );
 }

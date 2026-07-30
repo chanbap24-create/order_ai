@@ -12,6 +12,7 @@ type Props = {
   allChecked: boolean;
   onToggleAll: () => void;
   onToggleOne: (code: string) => void;
+  onOpenLedger: (code: string, name: string) => void;
 };
 
 type SortKey =
@@ -42,6 +43,7 @@ export const OutstandingTable = memo(function OutstandingTable({
   allChecked,
   onToggleAll,
   onToggleOne,
+  onOpenLedger,
 }: Props) {
   const [sort, setSort] = useState<SortState>(null);
 
@@ -158,7 +160,18 @@ export const OutstandingTable = memo(function OutstandingTable({
                       color: 'var(--text-primary)',
                     }}
                   >
-                    {c.client_name}
+                    <span
+                      onClick={(e) => { e.stopPropagation(); onOpenLedger(c.client_code, c.client_name); }}
+                      title="원장 보기"
+                      style={{
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 3,
+                        textDecorationColor: 'var(--border-strong)',
+                      }}
+                    >
+                      {c.client_name}
+                    </span>
                   </td>
                   <td style={tdRight}>{fmt(c.prev_balance)}</td>
                   <td style={tdRight}>{fmt(c.period_supply)}</td>
