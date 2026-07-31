@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 
 export type SalesTabId =
-  | 'meetings' | 'briefing' | 'shipments' | 'client-list' | 'analysis'
+  | 'meetings' | 'briefing' | 'shipments' | 'incoming' | 'client-list' | 'analysis'
   | 'ledger' | 'item-ledger' | 'outstanding' | 'payment-terms' | 'alerts' | 'expense'
   | 'recommend-quote' | 'tasting-approval' | 'promotion' | 'quote-stats';
 
@@ -11,6 +11,7 @@ const TABS: { id: SalesTabId; label: string }[] = [
   { id: 'meetings', label: '미팅' },
   { id: 'briefing', label: '브리핑' },
   { id: 'shipments', label: '출고현황' },
+  { id: 'incoming', label: '입항품목' },
   { id: 'client-list', label: '거래처' },
   { id: 'alerts', label: '알림' },
   { id: 'outstanding', label: '미수현황' },

@@ -10,6 +10,7 @@ const MeetingTab = dynamic(() => import('../../components/MeetingTab'), {
 });
 const BriefingTab = dynamic(() => import('../../components/BriefingTab'), { ssr: false });
 const ShipmentTab = dynamic(() => import('../../components/ShipmentTab'), { ssr: false });
+const IncomingTab = dynamic(() => import('../../incoming/IncomingTab'), { ssr: false });
 const AlertTab = dynamic(() => import('../../components/AlertTab'), { ssr: false });
 const AnalysisTab = dynamic(() => import('../../components/AnalysisTab'), { ssr: false });
 const LedgerTab = dynamic(() => import('../../components/LedgerTab'), { ssr: false });
@@ -44,6 +45,8 @@ export function TabContent(p: Props) {
       return <BriefingTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'shipments':
       return <ShipmentTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
+    case 'incoming':
+      return <IncomingTab />;
     case 'analysis':
       return <AnalysisTab currentManager={p.currentManager} isAdmin={p.isAdmin} />;
     case 'ledger':

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import SalesTabs from './components/SalesTabs';
+import { IncomingArrivalPopup } from './components/IncomingArrivalPopup';
 import type { SalesTabId } from './components/SalesTabs';
 import { useSalesAuth } from './page-auth/hooks/useSalesAuth';
 import { LoginCard } from './page-auth/components/LoginCard';
@@ -63,6 +64,8 @@ export default function SalesPage() {
         />
 
         {showPwChange && <PasswordChangePanel onClose={() => setShowPwChange(false)} />}
+
+        <IncomingArrivalPopup />
 
         <SalesTabs
           activeTab={activeTab}
