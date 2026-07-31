@@ -15,13 +15,13 @@ const TABS: { id: SalesTabId; label: string }[] = [
   { id: 'expense', label: '경비' },
   { id: 'tasting-approval', label: '시음주' },
   { id: 'promotion', label: '프로모션' },
-  { id: 'quote-stats', label: '견적성과' },
   { id: 'alerts', label: '알림' },
   { id: 'analysis', label: '분석' },
   { id: 'outstanding', label: '미수현황' },
-  { id: 'payment-terms', label: '수금일 설정' },
   { id: 'ledger', label: '원장' },
   { id: 'item-ledger', label: '품목별' },
+  { id: 'quote-stats', label: '견적성과' },
+  { id: 'payment-terms', label: '수금일 설정' },
 ];
 
 const EXEC_TABS: Set<SalesTabId> = new Set([
