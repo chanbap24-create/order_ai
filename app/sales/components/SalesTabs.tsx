@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+
 export type SalesTabId =
   | 'meetings' | 'briefing' | 'shipments' | 'client-list' | 'analysis'
   | 'ledger' | 'item-ledger' | 'outstanding' | 'payment-terms' | 'alerts' | 'expense'
@@ -39,10 +41,33 @@ interface SalesTabsProps {
  */
 export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole }: SalesTabsProps) {
   const visibleTabs = userRole === 'executive' ? TABS.filter((t) => EXEC_TABS.has(t.id)) : TABS;
+  const barRef = useRef<HTMLDivElement>(null);
+
+  // 데스크탑: 세로 휠을 가로 스크롤로 (스크롤바 숨김이라 다른 수단이 없음)
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // 활성 탭이 화면 밖이면 자동으로 스크롤해 보이게
+  useEffect(() => {
+    barRef.current?.querySelector('[data-active="true"]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [activeTab]);
 
   return (
     <div
       className="sales-tabs-bar"
+      ref={barRef}
       style={{
         background: '#fff',
         overflowX: 'auto',
@@ -67,6 +92,7 @@ export default function SalesTabs({ activeTab, onTabChange, alertCount, userRole
             <button
               key={tab.id}
               className="sales-tab-btn"
+              data-active={isActive || undefined}
               onClick={() => onTabChange(tab.id)}
               style={{
                 position: 'relative',
