@@ -63,11 +63,10 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
             onChange={(e) => { setPicked(null); setQuery(e.target.value); }}
             style={{ ...input, width: '100%', boxSizing: 'border-box' }} />
           {sugs.length > 0 && !picked && (
+            /* 표 래퍼의 overflow에 잘리지 않게 — 떠 있는 드롭다운 대신 흐름 배치(펼침 행이 늘어남) */
             <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
               background: 'var(--surface)', border: '1px solid var(--border-default)',
               borderRadius: 8, marginTop: 4, maxHeight: 200, overflowY: 'auto',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
             }}>
               {sugs.map((s) => (
                 <button key={s.client_code} onClick={() => { setPicked(s); setSugs([]); }}
