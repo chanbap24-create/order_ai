@@ -176,27 +176,30 @@ function IncomingRow({ it, open, onToggleOpen, onRemove, onRegistered }: {
         <td style={tdNum}>{fmtN(it.incoming)}</td>
         <td style={tdNum}>{fmtN(it.bonded)}</td>
         <td style={{ ...tdNum, fontWeight: it.available > 0 ? 700 : 400 }}>{fmtN(it.available)}</td>
-        <td style={td}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            {it.requests.map((r) => (
-              <span key={r.id} title={`${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, whiteSpace: 'nowrap' }}>
-                <i style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--status-info)' }} />
-                {r.client_name}
-                <button onClick={() => onRemove(r.id)} aria-label="대기 해제"
-                  style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, padding: '0 2px' }}>×</button>
-              </span>
-            ))}
-            <button onClick={onToggleOpen}
-              style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--action)', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}>
-              {open ? '닫기' : '+ 등록'}
-            </button>
-          </span>
+        <td style={{ ...td, whiteSpace: 'nowrap' }}>
+          <button onClick={onToggleOpen}
+            style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--action)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            {open ? '닫기' : it.requests.length > 0 ? `대기 ${it.requests.length} · 보기` : '+ 등록'}
+          </button>
         </td>
       </tr>
       {open && (
         <tr>
           <td colSpan={7} style={{ ...td, background: 'var(--surface-muted)' }}>
+            {it.requests.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 4 }}>
+                {it.requests.map((r) => (
+                  <span key={r.id} title={`${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, whiteSpace: 'nowrap' }}>
+                    <i style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--status-info)' }} />
+                    {r.client_name}
+                    {r.memo && <span style={{ color: 'var(--text-muted)', fontSize: 11.5 }}>({r.memo})</span>}
+                    <button onClick={() => onRemove(r.id)} aria-label="대기 해제"
+                      style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, padding: '0 2px' }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
             <RegisterRow itemCode={it.item_code} itemName={it.item_name} onDone={onRegistered} />
           </td>
         </tr>
