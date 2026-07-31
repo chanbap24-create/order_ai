@@ -1,7 +1,7 @@
 'use client';
 
 // 입항품목 대기 거래처 등록 인라인 폼 — 거래처 검색(자동완성) + 메모
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Suggestion = { client_code: string; client_name: string };
 
@@ -16,13 +16,16 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
   const [memo, setMemo] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // 늦게 도착한 응답이 클릭 직전에 목록을 갈아끼우면 다른 거래처가 선택되는 레이스 방지
+  const seqRef = useRef(0);
   useEffect(() => {
     if (picked || query.trim().length < 1) { setSugs([]); return; }
+    const seq = ++seqRef.current;
     const t = setTimeout(async () => {
       try {
         const r = await fetch(`/api/sales/clients?search=${encodeURIComponent(query)}&limit=8&type=wine`);
         const j = await r.json();
-        setSugs(Array.isArray(j.clients) ? j.clients : []);
+        if (seq === seqRef.current) setSugs(Array.isArray(j.clients) ? j.clients : []);
       } catch { /* ignore */ }
     }, 250);
     return () => clearTimeout(t);
@@ -74,7 +77,8 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
               borderRadius: 8, marginTop: 4, maxHeight: 200, overflowY: 'auto',
             }}>
               {sugs.map((s) => (
-                <button key={s.client_code} onClick={() => { setPicked(s); setSugs([]); }}
+                <button key={s.client_code}
+                  onMouseDown={(e) => { e.preventDefault(); seqRef.current++; setPicked(s); setSugs([]); }}
                   style={{
                     all: 'unset', display: 'flex', alignItems: 'baseline', gap: 8,
                     width: '100%', boxSizing: 'border-box',
