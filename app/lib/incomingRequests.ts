@@ -49,6 +49,12 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   ]);
   const arrival = new Map<string, string>();
   for (const s of sched || []) if (s.arrival_date) arrival.set(s.item_code, s.arrival_date);
+  // 지난 입항이 이미 소화된 품목(가용 있음·보세 없음·입항 45일 경과)의 낡은 날짜는
+  // 다음 발주 물량과 무관하므로 표시하지 않음 — 새 BL이 스케줄에 오르면 갱신됨
+  const staleDate = (code: string, row: { bonded: number; available: number }) => {
+    const d = arrival.get(code);
+    return d && d < cutoff && row.bonded === 0 && row.available > 0 ? null : d || null;
+  };
   // 최근·예정 입항 스케줄 (품목별 병수 합산)
   const recentSched = new Map<string, { name: string; btls: number }>();
   for (const s of sched || []) {
@@ -74,9 +80,9 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
     items.set(r.item_no, {
       item_code: r.item_no,
       item_name: r.item_name || '',
-      status: statusOf(row, arrival.get(r.item_no)),
+      status: statusOf(row, staleDate(r.item_no, row)),
       ...row,
-      arrival_date: arrival.get(r.item_no) || null,
+      arrival_date: staleDate(r.item_no, row),
       requests: reqByItem.get(r.item_no) || [],
     });
   }
@@ -110,9 +116,9 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
     items.set(code, {
       item_code: code,
       item_name: w?.item_name || schedInfo?.name || reqByItem.get(code)?.[0]?.item_name || '',
-      status: statusOf(row, arrival.get(code)),
+      status: statusOf(row, staleDate(code, row)),
       ...row,
-      arrival_date: arrival.get(code) || null,
+      arrival_date: staleDate(code, row),
       requests: reqByItem.get(code) || [],
     });
   }
