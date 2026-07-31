@@ -89,7 +89,8 @@ export default function IncomingTab() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
               {it.requests.map((r) => (
-                <span key={r.id} title={`${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
+                <span key={r.id}
+                  title={`담당 ${r.manager}${r.registered_by && r.registered_by !== r.manager ? ` · ${r.registered_by} 등록` : ''}${r.memo ? ` · ${r.memo}` : ''}`}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5 }}>
                   <i style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--status-info)' }} />
                   {r.client_name}
