@@ -1,8 +1,9 @@
 'use client';
 
-// 입항품목 — 입고 예정(입항·통관 전) 와인 목록 + 기다리는 거래처 등록.
+// 입항품목 — 입고 예정(입항·통관 전) 와인 테이블 + 기다리는 거래처 등록.
 // 통관 완료되면 세일즈 접속 시 담당자에게 팝업으로 알림.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Section, Stack } from '@/app/components/ui';
 import { ListSkeleton } from '@/app/components/ui/Skeleton';
 import type { IncomingItem } from '@/app/lib/incomingRequests';
@@ -13,15 +14,38 @@ const STATUS_COLOR: Record<IncomingItem['status'], string> = {
   '통관 대기': 'var(--status-warning)',
   '통관 완료': 'var(--status-success)',
 };
+const STATUS_ORDER: Record<IncomingItem['status'], number> = {
+  '입고 예정': 0, '통관 대기': 1, '통관 완료': 2,
+};
 
-const fmtDate = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(8, 10)} 입항` : '');
+type SortKey = 'item_name' | 'status' | 'arrival_date' | 'incoming' | 'bonded' | 'available';
+type SortState = { key: SortKey; dir: 'asc' | 'desc' } | null;
+
+const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center' }[] = [
+  { key: 'item_name', label: '품명', align: 'left' },
+  { key: 'status', label: '상태', align: 'center' },
+  { key: 'arrival_date', label: '입항일', align: 'right' },
+  { key: 'incoming', label: '예정', align: 'right' },
+  { key: 'bonded', label: '보세', align: 'right' },
+  { key: 'available', label: '가용', align: 'right' },
+];
+
+const th: CSSProperties = {
+  padding: '9px 10px', fontSize: 11.5, fontWeight: 500, color: 'var(--text-tertiary)',
+  borderBottom: '1px solid var(--border-default)', whiteSpace: 'nowrap',
+};
+const td: CSSProperties = { padding: '10px 10px', fontSize: 13, borderBottom: '1px solid var(--border-subtle)' };
+const tdNum: CSSProperties = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' };
+const fmtDate = (d: string | null) => (d ? `${d.slice(5, 7)}/${d.slice(8, 10)}` : '―');
+const fmtN = (n: number) => (n > 0 ? n.toLocaleString('ko-KR') : '―');
 
 export default function IncomingTab() {
   const [items, setItems] = useState<IncomingItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openFor, setOpenFor] = useState<string | null>(null); // 등록 입력 연 품목
+  const [openFor, setOpenFor] = useState<string | null>(null);
   const [waitingOnly, setWaitingOnly] = useState(false);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortState>(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,13 +65,32 @@ export default function IncomingTab() {
     if (r.ok) void load();
   };
 
+  const handleSort = (key: SortKey) => {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: 'asc' };
+      if (prev.dir === 'asc') return { key, dir: 'desc' };
+      return null;
+    });
+  };
+
   const q = search.trim().toLowerCase();
-  const shown = items
-    .filter((i) => !waitingOnly || i.requests.length > 0)
-    .filter((i) => !q
-      || i.item_name.toLowerCase().includes(q)
-      || i.item_code.toLowerCase().includes(q)
-      || i.requests.some((r) => r.client_name.toLowerCase().includes(q)));
+  const shown = useMemo(() => {
+    const filtered = items
+      .filter((i) => !waitingOnly || i.requests.length > 0)
+      .filter((i) => !q
+        || i.item_name.toLowerCase().includes(q)
+        || i.item_code.toLowerCase().includes(q)
+        || i.requests.some((r) => r.client_name.toLowerCase().includes(q)));
+    if (!sort) return filtered;
+    const { key, dir } = sort;
+    const f = dir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (key === 'item_name') return a.item_name.localeCompare(b.item_name, 'ko') * f;
+      if (key === 'status') return (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) * f;
+      if (key === 'arrival_date') return (a.arrival_date || '9999').localeCompare(b.arrival_date || '9999') * f;
+      return ((a[key] || 0) - (b[key] || 0)) * f;
+    });
+  }, [items, waitingOnly, q, sort]);
 
   return (
     <Stack gap={16}>
@@ -73,43 +116,91 @@ export default function IncomingTab() {
           </div>
         )}
 
-        {shown.map((it) => (
-          <div key={it.item_code} style={{ borderBottom: '1px solid var(--border-subtle)', padding: '11px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{it.item_name}</span>
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{it.item_code}</span>
-              <span style={{ fontSize: 12, color: STATUS_COLOR[it.status] }}>{it.status}</span>
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {fmtDate(it.arrival_date)}
-                {it.incoming > 0 && ` · 예정 ${it.incoming}`}
-                {it.bonded > 0 && ` · 보세 ${it.bonded}`}
-                {it.available > 0 && ` · 가용 ${it.available}`}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
-              {it.requests.map((r) => (
-                <span key={r.id} title={`${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5 }}>
-                  <i style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--status-info)' }} />
-                  {r.client_name}
-                  <button onClick={() => removeReq(r.id)} aria-label="대기 해제"
-                    style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, padding: '0 2px' }}>×</button>
-                </span>
-              ))}
-              <button onClick={() => setOpenFor(openFor === it.item_code ? null : it.item_code)}
-                style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--action)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                {openFor === it.item_code ? '닫기' : '+ 거래처 등록'}
-              </button>
-            </div>
-
-            {openFor === it.item_code && (
-              <RegisterRow itemCode={it.item_code} itemName={it.item_name}
-                onDone={() => { setOpenFor(null); void load(); }} />
-            )}
+        {!loading && shown.length > 0 && (
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+              <thead>
+                <tr>
+                  {COLUMNS.map((c) => (
+                    <th key={c.key} onClick={() => handleSort(c.key)} title="클릭하여 정렬"
+                      style={{ ...th, textAlign: c.align, cursor: 'pointer', userSelect: 'none' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        color: sort?.key === c.key ? 'var(--action)' : 'var(--text-tertiary)',
+                      }}>
+                        {c.label}
+                        <span style={{ fontSize: 9, opacity: sort?.key === c.key ? 1 : 0.3, width: 8 }}>
+                          {sort?.key === c.key ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
+                        </span>
+                      </span>
+                    </th>
+                  ))}
+                  <th style={{ ...th, textAlign: 'left' }}>대기 거래처</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((it) => (
+                  <IncomingRow key={it.item_code} it={it}
+                    open={openFor === it.item_code}
+                    onToggleOpen={() => setOpenFor(openFor === it.item_code ? null : it.item_code)}
+                    onRemove={removeReq}
+                    onRegistered={() => { setOpenFor(null); void load(); }} />
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        )}
       </Section>
     </Stack>
+  );
+}
+
+function IncomingRow({ it, open, onToggleOpen, onRemove, onRegistered }: {
+  it: IncomingItem;
+  open: boolean;
+  onToggleOpen: () => void;
+  onRemove: (id: number) => void;
+  onRegistered: () => void;
+}) {
+  return (
+    <>
+      <tr>
+        <td style={td}>
+          <span style={{ fontWeight: 600 }}>{it.item_name}</span>
+          <span style={{ marginLeft: 8, fontSize: 11.5, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{it.item_code}</span>
+        </td>
+        <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 12, color: STATUS_COLOR[it.status] }}>{it.status}</span>
+        </td>
+        <td style={tdNum}>{fmtDate(it.arrival_date)}</td>
+        <td style={tdNum}>{fmtN(it.incoming)}</td>
+        <td style={tdNum}>{fmtN(it.bonded)}</td>
+        <td style={{ ...tdNum, fontWeight: it.available > 0 ? 700 : 400 }}>{fmtN(it.available)}</td>
+        <td style={td}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {it.requests.map((r) => (
+              <span key={r.id} title={`${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, whiteSpace: 'nowrap' }}>
+                <i style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--status-info)' }} />
+                {r.client_name}
+                <button onClick={() => onRemove(r.id)} aria-label="대기 해제"
+                  style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11, padding: '0 2px' }}>×</button>
+              </span>
+            ))}
+            <button onClick={onToggleOpen}
+              style={{ all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--action)', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}>
+              {open ? '닫기' : '+ 등록'}
+            </button>
+          </span>
+        </td>
+      </tr>
+      {open && (
+        <tr>
+          <td colSpan={7} style={{ ...td, background: 'var(--surface-muted)' }}>
+            <RegisterRow itemCode={it.item_code} itemName={it.item_name} onDone={onRegistered} />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
