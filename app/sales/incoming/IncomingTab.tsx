@@ -189,7 +189,7 @@ function IncomingRow({ it, open, onToggleOpen, onRemove, onRegistered }: {
             {it.requests.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 4 }}>
                 {it.requests.map((r) => (
-                  <span key={r.id} title={`${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
+                  <span key={r.id} title={`${r.client_code ? r.client_code + ' · ' : ''}${r.manager} 등록${r.memo ? ` · ${r.memo}` : ''}`}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, whiteSpace: 'nowrap' }}>
                     <i style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--status-info)' }} />
                     {r.client_name}

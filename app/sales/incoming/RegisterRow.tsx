@@ -62,6 +62,11 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
           <input value={picked ? picked.client_name : query} placeholder="거래처 검색"
             onChange={(e) => { setPicked(null); setQuery(e.target.value); }}
             style={{ ...input, width: '100%', boxSizing: 'border-box' }} />
+          {picked && (
+            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
+              선택됨: {picked.client_name} · {picked.client_code}
+            </div>
+          )}
           {sugs.length > 0 && !picked && (
             /* 표 래퍼의 overflow에 잘리지 않게 — 떠 있는 드롭다운 대신 흐름 배치(펼침 행이 늘어남) */
             <div style={{
@@ -71,11 +76,15 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
               {sugs.map((s) => (
                 <button key={s.client_code} onClick={() => { setPicked(s); setSugs([]); }}
                   style={{
-                    all: 'unset', display: 'block', width: '100%', boxSizing: 'border-box',
+                    all: 'unset', display: 'flex', alignItems: 'baseline', gap: 8,
+                    width: '100%', boxSizing: 'border-box',
                     padding: '8px 10px', fontSize: 13, cursor: 'pointer',
                     borderBottom: '1px solid var(--border-subtle)',
                   }}>
                   {s.client_name}
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    {s.client_code}
+                  </span>
                 </button>
               ))}
             </div>
