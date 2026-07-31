@@ -29,17 +29,29 @@ export type IncomingRequest = {
 const statusOf = (r: { incoming: number; bonded: number; available: number }): IncomingItem['status'] =>
   r.available > 0 ? '통관 완료' : r.bonded > 0 ? '통관 대기' : '입고 예정';
 
-/** 입고 예정 품목 목록 — 재고표의 입고예정·보세 품목 + 수입 스케줄 입항일 + 대기 거래처 */
+/** 입고 예정 품목 목록 — 재고표의 입고예정·보세 품목 + 수입 스케줄(최근 45일~미래 입항) + 대기 거래처.
+ *  스케줄에는 있는데 재고표에 아직 수량이 안 잡힌 신규 입항 건도 포함(예: 입항 직후 반영 전). */
 export async function listIncomingItems(manager: string, isAdmin: boolean): Promise<IncomingItem[]> {
+  const cutoff = new Date(Date.now() - 45 * 86400_000).toISOString().slice(0, 10);
   const [{ data: inv }, { data: sched }, requests] = await Promise.all([
     supabase.from('inventory_cdv')
       .select('item_no, item_name, incoming_stock, bonded_warehouse, available_stock')
       .or('incoming_stock.gt.0,bonded_warehouse.gt.0'),
-    supabase.from('import_schedule').select('item_code, arrival_date'),
+    supabase.from('import_schedule').select('item_code, item_name_kr, arrival_date, total_btls'),
     listRequests(manager, isAdmin),
   ]);
   const arrival = new Map<string, string>();
   for (const s of sched || []) if (s.arrival_date) arrival.set(s.item_code, s.arrival_date);
+  // 최근·예정 입항 스케줄 (품목별 병수 합산)
+  const recentSched = new Map<string, { name: string; btls: number }>();
+  for (const s of sched || []) {
+    if (!s.arrival_date || s.arrival_date < cutoff) continue;
+    const cur = recentSched.get(s.item_code);
+    recentSched.set(s.item_code, {
+      name: cur?.name || s.item_name_kr || '',
+      btls: (cur?.btls || 0) + (Number(s.total_btls) || 0),
+    });
+  }
   const reqByItem = new Map<string, IncomingRequest[]>();
   for (const r of requests) {
     (reqByItem.get(r.item_code) ?? reqByItem.set(r.item_code, []).get(r.item_code)!).push(r);
@@ -61,23 +73,40 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
       requests: reqByItem.get(r.item_no) || [],
     });
   }
-  // 대기 등록이 있는데 재고표에서 빠진 품목도 표시(재고 상태 미확인이어도 등록은 보이게)
-  for (const [code, reqs] of reqByItem) {
-    if (items.has(code)) continue;
-    const { data: w } = await supabase.from('inventory_cdv')
-      .select('item_name, incoming_stock, bonded_warehouse, available_stock').eq('item_no', code).maybeSingle();
+  // 스케줄의 최근·예정 입항 + 대기 등록 품목 중 재고표 파이프라인에 없는 것 — 일괄 보충
+  const extraCodes = [
+    ...[...recentSched.keys()].filter((c) => !items.has(c)),
+    ...[...reqByItem.keys()].filter((c) => !items.has(c) && !recentSched.has(c)),
+  ];
+  const extraInv = new Map<string, { item_name: string; incoming: number; bonded: number; available: number }>();
+  for (let i = 0; i < extraCodes.length; i += 400) {
+    const { data: ws } = await supabase.from('inventory_cdv')
+      .select('item_no, item_name, incoming_stock, bonded_warehouse, available_stock')
+      .in('item_no', extraCodes.slice(i, i + 400));
+    for (const w of ws || []) {
+      extraInv.set(w.item_no, {
+        item_name: w.item_name || '',
+        incoming: Number(w.incoming_stock) || 0,
+        bonded: Number(w.bonded_warehouse) || 0,
+        available: Number(w.available_stock) || 0,
+      });
+    }
+  }
+  for (const code of extraCodes) {
+    const w = extraInv.get(code);
+    const schedInfo = recentSched.get(code);
     const row = {
-      incoming: Number(w?.incoming_stock) || 0,
-      bonded: Number(w?.bonded_warehouse) || 0,
-      available: Number(w?.available_stock) || 0,
+      incoming: w?.incoming || (w?.available ? 0 : schedInfo?.btls || 0), // 재고표 미반영이면 스케줄 병수
+      bonded: w?.bonded || 0,
+      available: w?.available || 0,
     };
     items.set(code, {
       item_code: code,
-      item_name: w?.item_name || reqs[0]?.item_name || '',
+      item_name: w?.item_name || schedInfo?.name || reqByItem.get(code)?.[0]?.item_name || '',
       status: statusOf(row),
       ...row,
       arrival_date: arrival.get(code) || null,
-      requests: reqs,
+      requests: reqByItem.get(code) || [],
     });
   }
   return [...items.values()].sort((a, b) =>
