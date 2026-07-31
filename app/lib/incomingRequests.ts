@@ -86,7 +86,7 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
 
 export async function listRequests(manager: string, isAdmin: boolean): Promise<IncomingRequest[]> {
   let q = supabase.from('incoming_requests').select('*').eq('status', 'waiting').order('created_at');
-  if (!isAdmin) q = q.or(`manager.eq.${manager.replace(/[,()]/g, '')},registered_by.eq.${manager.replace(/[,()]/g, '')}`);
+  if (!isAdmin) q = q.eq('manager', manager);
   const { data } = await q;
   return (data || []) as IncomingRequest[];
 }
@@ -94,17 +94,11 @@ export async function listRequests(manager: string, isAdmin: boolean): Promise<I
 export async function addRequest(p: {
   itemCode: string; itemName: string; clientCode: string | null; clientName: string; manager: string; memo?: string;
 }): Promise<IncomingRequest> {
-  // 알림 대상 = 그 거래처의 현재 담당(client_details.manager, 와인 기준). 미확인 시 등록자.
-  let notifyTo = p.manager;
-  if (p.clientCode) {
-    const { data: cd } = await supabase.from('client_details')
-      .select('manager').eq('client_code', p.clientCode).eq('client_type', 'wine').maybeSingle();
-    if (cd?.manager) notifyTo = cd.manager;
-  }
+  // 알림 대상 = 등록한 영업사원 본인
   const { data, error } = await supabase.from('incoming_requests').insert({
     item_code: p.itemCode, item_name: p.itemName,
     client_code: p.clientCode, client_name: p.clientName,
-    manager: notifyTo, registered_by: p.manager, memo: p.memo || null,
+    manager: p.manager, registered_by: p.manager, memo: p.memo || null,
   }).select('*').single();
   if (error) throw error;
   return data as IncomingRequest;
