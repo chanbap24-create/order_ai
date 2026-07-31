@@ -10,6 +10,7 @@ import { ChartGrid } from "./ChartGrid";
 import { ItemRankingTable } from "./ItemRankingTable";
 import { ClientRankingTable } from "./ClientRankingTable";
 import { PriceDistributionChart } from "./PriceDistributionChart";
+import { StatStripSkeleton, TableSkeleton } from "@/app/components/ui/Skeleton";
 
 type Props = {
   currentManager: string;
@@ -20,6 +21,8 @@ type Props = {
 export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Props) {
   const s = useAnalysisData({ currentManager, isAdmin });
   const isWine = s.type === "wine";
+  // 부분 로딩으로 조각조각 뜨지 않게 — 본문(요약·차트)과 거래처 랭킹이 모두 준비된 뒤 한꺼번에 표시
+  const busy = s.loading || s.rankLoading;
   const activeManager = isAdmin ? s.manager : currentManager;
   const handleSelectClient = (c: SelectedRankClient) =>
     onSelectClient(c, {
@@ -72,25 +75,17 @@ export function AnalysisSection({ currentManager, isAdmin, onSelectClient }: Pro
           onLoad={s.loadData}
         />
 
-        {s.loading && (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                border: "3px solid var(--gray-200)",
-                borderTopColor: "var(--action)",
-                borderRadius: "50%",
-                animation: "spin 0.8s linear infinite",
-                margin: "0 auto 12px",
-              }}
-            />
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            <p style={{ fontSize: "0.82rem" }}>데이터 분석 중...</p>
-          </div>
+        {busy && (
+          <>
+            <StatStripSkeleton cells={2} />
+            <div style={{ height: 20 }} />
+            <TableSkeleton rows={8} />
+            <div style={{ height: 20 }} />
+            <TableSkeleton rows={6} />
+          </>
         )}
 
-        {s.data && !s.loading && (
+        {s.data && !busy && (
           <>
             {filterLabel && (
               <p style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: 16 }}>
