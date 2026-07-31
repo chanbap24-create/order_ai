@@ -26,8 +26,15 @@ export type IncomingRequest = {
   created_at: string;
 };
 
-const statusOf = (r: { incoming: number; bonded: number; available: number }): IncomingItem['status'] =>
-  r.available > 0 ? '통관 완료' : r.bonded > 0 ? '통관 대기' : '입고 예정';
+// 상태 판정 — 재고표 수량 우선, 수량이 아직 안 잡혔어도 입항일이 지났으면 보세(통관 대기)로 추정
+const kstToday = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+const statusOf = (
+  r: { incoming: number; bonded: number; available: number },
+  arrivalDate?: string | null,
+): IncomingItem['status'] =>
+  r.available > 0 ? '통관 완료'
+    : r.bonded > 0 || (!!arrivalDate && arrivalDate <= kstToday()) ? '통관 대기'
+      : '입고 예정';
 
 /** 입고 예정 품목 목록 — 재고표의 입고예정·보세 품목 + 수입 스케줄(최근 45일~미래 입항) + 대기 거래처.
  *  스케줄에는 있는데 재고표에 아직 수량이 안 잡힌 신규 입항 건도 포함(예: 입항 직후 반영 전). */
@@ -67,7 +74,7 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
     items.set(r.item_no, {
       item_code: r.item_no,
       item_name: r.item_name || '',
-      status: statusOf(row),
+      status: statusOf(row, arrival.get(r.item_no)),
       ...row,
       arrival_date: arrival.get(r.item_no) || null,
       requests: reqByItem.get(r.item_no) || [],
@@ -103,7 +110,7 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
     items.set(code, {
       item_code: code,
       item_name: w?.item_name || schedInfo?.name || reqByItem.get(code)?.[0]?.item_name || '',
-      status: statusOf(row),
+      status: statusOf(row, arrival.get(code)),
       ...row,
       arrival_date: arrival.get(code) || null,
       requests: reqByItem.get(code) || [],
