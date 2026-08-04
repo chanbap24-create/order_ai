@@ -73,8 +73,6 @@ export async function renderQuoteCardImage(opts: {
   date: string;
   items: CardItem[];
   logoUrl?: string;
-  /** 품목별 테이스팅노트 카드 이미지(인벤토리 TastingNoteDbCard 캡처) — 있으면 카드 아래 이어붙임 */
-  noteImgs?: (HTMLImageElement | null)[];
 }): Promise<Blob> {
   const items = opts.items;
   const W = 480;
@@ -83,22 +81,14 @@ export async function renderQuoteCardImage(opts: {
     items.map((it) => (it.imageUrl ? loadImg(proxied(it.imageUrl)) : Promise.resolve(null))),
   );
 
-  // 노트카드(기존 인벤토리 카드 캡처)의 그릴 높이 — 카드 폭에 맞춰 비율 축소
-  const NOTE_W = W - PAD_X * 2;
-  const noteH = items.map((_, i) => {
-    const img = opts.noteImgs?.[i];
-    return img ? Math.round((NOTE_W / img.width) * img.height) : 0;
-  });
-
   // 카드별 높이 사전 계산(중앙 레이아웃)
-  const cardH = items.map((it, i) => {
+  const cardH = items.map((it) => {
     let h = CARD_PAD_TOP + IMG_H + 18 + 26; // 병샷 + gap + 이름
     if (it.nameEn) h += 17;
     if (it.country || it.region) h += 20;
     if ((it.flavors || []).filter(Boolean).length) h += 26;
     h += 22 + 30; // gap + 가격
     if (it.qty || it.note) h += 20;
-    if (noteH[i]) h += 18 + noteH[i];
     h += CARD_PAD_BOT;
     return h;
   });
@@ -217,13 +207,6 @@ export async function renderQuoteCardImage(opts: {
     if (it.qty || it.note) {
       iy += 20; ctx.textAlign = 'center'; ctx.fillStyle = SUB; ctx.font = F(12);
       ctx.fillText([it.qty ? `${it.qty}병 구성` : '', it.note].filter(Boolean).join(' · '), cx, iy);
-    }
-
-    // 테이스팅노트 카드(인벤토리 기존 카드 캡처) 이어붙이기
-    const nImg = opts.noteImgs?.[i];
-    if (nImg && noteH[i]) {
-      iy += 18;
-      ctx.drawImage(nImg, PAD_X, iy, NOTE_W, noteH[i]);
     }
 
     // 구분선

@@ -18,7 +18,7 @@ import { TastingNoteModal } from '@/app/inventory/components/TastingNoteModal';
 import { QuoteItemSearchAdd } from '@/app/sales/recommend/components/QuoteItemSearchAdd';
 import { renderQuoteImage } from '@/app/sales/recommend/lib/quoteImage';
 import { renderQuoteCardImage } from '@/app/sales/recommend/lib/quoteCardImage';
-import { renderNoteCardImage } from '@/app/sales/recommend/lib/noteCardSnapshot';
+import { renderPromoQuoteJpeg } from '@/app/sales/recommend/lib/promoQuoteRender';
 
 // 견적 편집 컬럼(인벤토리 키) → PNG 컬럼 키 매핑. 순서 유지·중복 제거.
 const PNG_COL_MAP: Record<string, string> = {
@@ -148,12 +148,36 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
 
   // 상세카드 이미지 — 병 사진·큰 할인가(카톡 홍보용)
   const [cardBusy, setCardBusy] = useState(false);
-  const [cardStory, setCardStory] = useState(false); // 카드에 테이스팅 스토리 포함
+  const [cardStory, setCardStory] = useState(false); // 스토리(노트) 스타일 제안서로 발행
   const handleExportCard = async () => {
     if (items.length === 0) return;
     inlineEdit.commitEdit();
     setCardBusy(true);
     try {
+      // 스토리(노트) 선택 시: 기존 '와인 제안서' 스토리 스타일(양조·빈티지·와이너리) 그대로 발행
+      if (cardStory) {
+        const blob = await renderPromoQuoteJpeg({
+          clientName: quote.clientName || '거래처',
+          mode: 'story',
+          items: items.map((it) => ({
+            code: it.item_code,
+            name: (it.product_name || it.item_name || '').replace(/^[A-Za-z]{2}\s+/, ''),
+            country: it.country || '',
+            region: it.region || '',
+            supply: it.supply_price || 0,
+            rate: it.discount_rate || 0,
+            qty: it.quantity || 1,
+            note: it.note || '',
+          })),
+        });
+        const url0 = URL.createObjectURL(blob);
+        const a0 = document.createElement('a');
+        a0.href = url0;
+        a0.download = `제안서노트_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}_${(quote.clientName || '거래처').replace(/[\\/:*?"<>|]/g, '_')}.jpg`;
+        document.body.appendChild(a0); a0.click(); document.body.removeChild(a0);
+        URL.revokeObjectURL(url0);
+        return;
+      }
       let flavorMap: Record<string, string[]> = {};
       try {
         const fr = await fetch('/api/sales/flavor-tags', {
@@ -162,13 +186,6 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
         });
         flavorMap = (await fr.json())?.tags || {};
       } catch { /* 향미 없어도 진행 */ }
-      // 노트 포함: 인벤토리의 기존 테이스팅노트 카드를 품목별로 캡처해 이어붙임
-      const noteImgs: (HTMLImageElement | null)[] = [];
-      if (cardStory) {
-        for (const it of items) {
-          noteImgs.push(await renderNoteCardImage(it.item_code, it.product_name || it.item_name || ''));
-        }
-      }
       const blob = await renderQuoteCardImage({
         clientName: quote.clientName || '거래처',
         date: new Date().toISOString().slice(0, 10),
@@ -187,7 +204,6 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           imageUrl: it.image_url || '',
           flavors: flavorMap[it.item_code] || [],
         })),
-        noteImgs: cardStory ? noteImgs : undefined,
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -225,11 +241,11 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           style={{ ...btn, opacity: cardBusy ? 0.6 : 1 }}>
           {cardBusy ? '생성 중…' : '🖼 상세카드 이미지'}
         </button>
-        <label title="상세카드에 와인별 테이스팅 스토리(맛 노트) 문단을 함께 넣습니다"
+        <label title="상세카드 대신 '와인 제안서' 스토리(노트) 스타일(양조·빈티지·와이너리)로 발행합니다"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer' }}>
           <input type="checkbox" checked={cardStory} onChange={(e) => setCardStory(e.target.checked)}
             style={{ accentColor: 'var(--action)', margin: 0 }} />
-          노트 포함
+          스토리(노트)
         </label>
         <button onClick={handleExportPng} disabled={pngBusy} title="엑셀 견적서 양식 그대로의 이미지(견적표)"
           style={{ ...btn, opacity: pngBusy ? 0.6 : 1 }}>

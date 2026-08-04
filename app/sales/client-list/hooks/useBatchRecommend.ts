@@ -7,7 +7,7 @@ import { DEFAULT_REC_COLS } from '@/app/sales/recommend/constants';
 import { selectQuoteItems } from '@/app/sales/recommend/allocateByTypeShares';
 import { renderQuoteImage, vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
 import { renderQuoteCardImage } from '@/app/sales/recommend/lib/quoteCardImage';
-import { renderNoteCardImage } from '@/app/sales/recommend/lib/noteCardSnapshot';
+import { renderPromoQuoteJpeg } from '@/app/sales/recommend/lib/promoQuoteRender';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 
 export type BatchTarget = { client_code: string; client_name: string };
@@ -148,7 +148,26 @@ export function useBatchRecommend(manager: string) {
             files.push({ name: `견적표_${stamp()}_${safeName(t.client_name)}.png`, blob: pngBlob });
           } catch { /* 비치명적 */ }
         }
-        if (opts?.pngCard) {
+        if (opts?.pngCard && opts?.cardStory) {
+          // 스토리(노트): 기존 '와인 제안서' 스토리 스타일 그대로 발행
+          try {
+            const jpg = await renderPromoQuoteJpeg({
+              clientName: t.client_name,
+              mode: 'story',
+              items: items.map((it) => ({
+                code: it.item_no,
+                name: (it.item_name || '').replace(/^[A-Za-z]{2}\s+/, ''),
+                country: it.country || '',
+                region: it.region || '',
+                supply: it.price || 0,
+                rate: it.rec_discount || 0,
+                qty: it.rec_quantity || 1,
+                note: it.rec_note || '',
+              })),
+            });
+            files.push({ name: `제안서노트_${stamp()}_${safeName(t.client_name)}.jpg`, blob: jpg });
+          } catch (e) { cardFail++; console.error('제안서(노트) 생성 실패', t.client_name, e); }
+        } else if (opts?.pngCard) {
           try {
             // 향미 키워드 조회(카드 칩용)
             let flavorMap: Record<string, string[]> = {};
@@ -159,13 +178,6 @@ export function useBatchRecommend(manager: string) {
               });
               flavorMap = (await fr.json())?.tags || {};
             } catch { /* 향미 없어도 카드 생성 */ }
-            // 노트 포함: 인벤토리의 기존 테이스팅노트 카드를 품목별로 캡처
-            const noteImgs: (HTMLImageElement | null)[] = [];
-            if (opts?.cardStory) {
-              for (const it of items) {
-                noteImgs.push(await renderNoteCardImage(it.item_no, it.item_name || ''));
-              }
-            }
             const cardBlob = await renderQuoteCardImage({
               clientName: t.client_name,
               date: new Date().toISOString().slice(0, 10),
@@ -176,7 +188,6 @@ export function useBatchRecommend(manager: string) {
                 supply: it.price || 0, rate: it.rec_discount || 0, qty: it.rec_quantity || 1, note: it.rec_note || '',
                 imageUrl: it.image_url || '', flavors: flavorMap[it.item_no] || [],
               })),
-              noteImgs: opts?.cardStory ? noteImgs : undefined,
             });
             files.push({ name: `상세카드_${stamp()}_${safeName(t.client_name)}.png`, blob: cardBlob });
           } catch (e) { cardFail++; console.error('상세카드 생성 실패', t.client_name, e); }

@@ -103,14 +103,14 @@ export function BatchRecommendBar({
           {pngCard && (
             <button
               onClick={() => setCardStory((v) => !v)}
-              title="상세카드에 와인별 테이스팅 스토리(맛 노트) 문단을 함께 넣습니다"
+              title="상세카드 대신 '와인 제안서' 스토리(노트) 스타일(양조·빈티지·와이너리)로 발행합니다"
               style={{
                 padding: '6px 11px', borderRadius: 999,
                 border: `1px solid ${cardStory ? 'var(--action)' : 'var(--gray-300)'}`,
                 background: cardStory ? 'var(--action)' : '#fff',
                 color: cardStory ? '#fff' : 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
               }}
-            >+노트</button>
+            >스토리(노트)</button>
           )}
           <button
             onClick={() => setPngQuote((v) => !v)}
