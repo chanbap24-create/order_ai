@@ -67,7 +67,7 @@ export function printLedger(args: PrintArgs) {
         w.document.write(`<tr class="pay-row"><td>${day.rows.length === 0 && i === 0 ? day.date.slice(5) : ''}</td><td>입금</td><td></td><td></td><td></td><td></td><td></td><td class="pay-val">${fmt(p.amount)}</td><td></td></tr>`);
       }
       runBal += day.totals.total - day.totals.payment;
-      if (day.rows.length > 1 || day.paymentRows.length > 0) {
+      { // 일계는 항상 표시 — 화면과 동일 규칙(단건인 날도 누적 미수액 표기)
         w.document.write(`<tr class="day-summary"><td colspan="2">${day.date.slice(5)} 일계</td><td>${fmt(day.totals.qty)}</td><td></td><td>${fmt(day.totals.supply)}</td><td>${fmt(day.totals.tax)}</td><td>${fmt(day.totals.total)}</td><td class="pay-val">${day.totals.payment ? fmt(day.totals.payment) : ''}</td><td class="bal-pos">${fmt(runBal)}</td></tr>`);
       }
     }
