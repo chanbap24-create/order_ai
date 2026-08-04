@@ -143,19 +143,27 @@ export async function renderPromoQuoteJpeg(opts: {
   showRate?: boolean;
 }): Promise<Blob> {
   const meta = await fetchPromoMeta(opts.items.map((i) => i.code));
+  // 오프스크린 이동은 바깥 host에만 — 캡처 대상(inner)은 일반 배치여야 함.
+  // (fixed/-10000px가 캡처 노드에 있으면 html-to-image 복제본에서 내용이 캔버스 밖으로 밀려 백지가 됨)
   const host = document.createElement('div');
-  host.style.cssText = 'position:fixed;left:-10000px;top:0;width:480px;background:#fff;';
-  host.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+  host.style.cssText = 'position:fixed;left:-10000px;top:0;';
   document.body.appendChild(host);
   const root = createRoot(host);
   try {
     root.render(
-      <PromoQuoteSheet clientName={opts.clientName} items={opts.items} meta={meta}
-        mode={opts.mode || 'story'} showSupply={opts.showSupply ?? true} showRate={opts.showRate ?? true}
-        today={kstToday()} />,
+      <div style={{
+        width: 480, background: '#fff',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif",
+      }}>
+        <PromoQuoteSheet clientName={opts.clientName} items={opts.items} meta={meta}
+          mode={opts.mode || 'story'} showSupply={opts.showSupply ?? true} showRate={opts.showRate ?? true}
+          today={kstToday()} />
+      </div>,
     );
     await new Promise((r) => setTimeout(r, 150)); // 렌더 정착 (이미지는 캡처 단계에서 인라인)
-    return await captureNodeJpeg(host);
+    const inner = host.firstElementChild as HTMLElement | null;
+    if (!inner) throw new Error('제안서 렌더 실패');
+    return await captureNodeJpeg(inner);
   } finally {
     root.unmount();
     host.remove();
