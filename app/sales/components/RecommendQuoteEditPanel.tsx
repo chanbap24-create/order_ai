@@ -18,6 +18,7 @@ import { TastingNoteModal } from '@/app/inventory/components/TastingNoteModal';
 import { QuoteItemSearchAdd } from '@/app/sales/recommend/components/QuoteItemSearchAdd';
 import { renderQuoteImage } from '@/app/sales/recommend/lib/quoteImage';
 import { renderQuoteCardImage } from '@/app/sales/recommend/lib/quoteCardImage';
+import { renderNoteCardImage } from '@/app/sales/recommend/lib/noteCardSnapshot';
 
 // 견적 편집 컬럼(인벤토리 키) → PNG 컬럼 키 매핑. 순서 유지·중복 제거.
 const PNG_COL_MAP: Record<string, string> = {
@@ -154,16 +155,20 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
     setCardBusy(true);
     try {
       let flavorMap: Record<string, string[]> = {};
-      let noteMap: Record<string, string> = {};
       try {
         const fr = await fetch('/api/sales/flavor-tags', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ codes: items.map((it) => it.item_code), withNotes: cardStory }),
+          body: JSON.stringify({ codes: items.map((it) => it.item_code) }),
         });
-        const fj = await fr.json();
-        flavorMap = fj?.tags || {};
-        noteMap = fj?.notes || {};
+        flavorMap = (await fr.json())?.tags || {};
       } catch { /* 향미 없어도 진행 */ }
+      // 노트 포함: 인벤토리의 기존 테이스팅노트 카드를 품목별로 캡처해 이어붙임
+      const noteImgs: (HTMLImageElement | null)[] = [];
+      if (cardStory) {
+        for (const it of items) {
+          noteImgs.push(await renderNoteCardImage(it.item_code, it.product_name || it.item_name || ''));
+        }
+      }
       const blob = await renderQuoteCardImage({
         clientName: quote.clientName || '거래처',
         date: new Date().toISOString().slice(0, 10),
@@ -181,8 +186,8 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           note: it.note || '',
           imageUrl: it.image_url || '',
           flavors: flavorMap[it.item_code] || [],
-          story: cardStory ? noteMap[it.item_code] || '' : '',
         })),
+        noteImgs: cardStory ? noteImgs : undefined,
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

@@ -7,6 +7,7 @@ import { DEFAULT_REC_COLS } from '@/app/sales/recommend/constants';
 import { selectQuoteItems } from '@/app/sales/recommend/allocateByTypeShares';
 import { renderQuoteImage, vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
 import { renderQuoteCardImage } from '@/app/sales/recommend/lib/quoteCardImage';
+import { renderNoteCardImage } from '@/app/sales/recommend/lib/noteCardSnapshot';
 import type { ScoredItem } from '@/app/sales/recommend/types';
 
 export type BatchTarget = { client_code: string; client_name: string };
@@ -149,18 +150,22 @@ export function useBatchRecommend(manager: string) {
         }
         if (opts?.pngCard) {
           try {
-            // 향미 키워드(+선택 시 테이스팅 스토리) 조회
+            // 향미 키워드 조회(카드 칩용)
             let flavorMap: Record<string, string[]> = {};
-            let noteMap: Record<string, string> = {};
             try {
               const fr = await fetch('/api/sales/flavor-tags', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codes: items.map((it) => it.item_no), withNotes: !!opts?.cardStory }),
+                body: JSON.stringify({ codes: items.map((it) => it.item_no) }),
               });
-              const fj = await fr.json();
-              flavorMap = fj?.tags || {};
-              noteMap = fj?.notes || {};
+              flavorMap = (await fr.json())?.tags || {};
             } catch { /* 향미 없어도 카드 생성 */ }
+            // 노트 포함: 인벤토리의 기존 테이스팅노트 카드를 품목별로 캡처
+            const noteImgs: (HTMLImageElement | null)[] = [];
+            if (opts?.cardStory) {
+              for (const it of items) {
+                noteImgs.push(await renderNoteCardImage(it.item_no, it.item_name || ''));
+              }
+            }
             const cardBlob = await renderQuoteCardImage({
               clientName: t.client_name,
               date: new Date().toISOString().slice(0, 10),
@@ -170,8 +175,8 @@ export function useBatchRecommend(manager: string) {
                 region: it.region || '', vintage: vintageFromCode(it.item_no), grape: it.grape || '',
                 supply: it.price || 0, rate: it.rec_discount || 0, qty: it.rec_quantity || 1, note: it.rec_note || '',
                 imageUrl: it.image_url || '', flavors: flavorMap[it.item_no] || [],
-                story: opts?.cardStory ? noteMap[it.item_no] || '' : '',
               })),
+              noteImgs: opts?.cardStory ? noteImgs : undefined,
             });
             files.push({ name: `상세카드_${stamp()}_${safeName(t.client_name)}.png`, blob: cardBlob });
           } catch (e) { cardFail++; console.error('상세카드 생성 실패', t.client_name, e); }

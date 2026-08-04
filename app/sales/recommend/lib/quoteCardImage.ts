@@ -16,7 +16,6 @@ export interface CardItem {
   note?: string | null;
   imageUrl?: string | null;
   flavors?: string[];   // 향미 키워드(한글 라벨)
-  story?: string | null; // 테이스팅 스토리(맛 노트) — 선택 시 카드에 문단으로
 }
 
 const RED = '#b23b1c';
@@ -36,27 +35,6 @@ const shortRegion = (r?: string | null) => {
   return f.length > 26 ? f.slice(0, 26) : f;
 };
 const proxied = (u?: string | null) => (u ? `/api/image-proxy?url=${encodeURIComponent(u)}` : '');
-
-/** 캔버스 폭 기준 줄바꿈 — 최대 줄 수 초과 시 말줄임 */
-function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
-  const words = text.replace(/\s+/g, ' ').trim().split(' ');
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    const next = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(next).width <= maxW) { cur = next; continue; }
-    if (cur) lines.push(cur);
-    cur = w;
-    if (lines.length === maxLines) break;
-  }
-  if (lines.length < maxLines && cur) lines.push(cur);
-  if (lines.length === maxLines && (cur || words.length)) {
-    let last = lines[maxLines - 1];
-    while (last && ctx.measureText(last + '…').width > maxW) last = last.slice(0, -1);
-    lines[maxLines - 1] = last + '…';
-  }
-  return lines.slice(0, maxLines);
-}
 
 function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -95,6 +73,8 @@ export async function renderQuoteCardImage(opts: {
   date: string;
   items: CardItem[];
   logoUrl?: string;
+  /** 품목별 테이스팅노트 카드 이미지(인벤토리 TastingNoteDbCard 캡처) — 있으면 카드 아래 이어붙임 */
+  noteImgs?: (HTMLImageElement | null)[];
 }): Promise<Blob> {
   const items = opts.items;
   const W = 480;
@@ -103,13 +83,12 @@ export async function renderQuoteCardImage(opts: {
     items.map((it) => (it.imageUrl ? loadImg(proxied(it.imageUrl)) : Promise.resolve(null))),
   );
 
-  // 스토리 줄 수 사전 계산용 측정 캔버스
-  const measure = document.createElement('canvas').getContext('2d')!;
-  measure.font = F(12);
-  const STORY_MAXW = W - PAD_X * 2 - 16;
-  const STORY_LINE_H = 18;
-  const storyLines = items.map((it) =>
-    it.story ? wrapLines(measure, it.story, STORY_MAXW, 4) : []);
+  // 노트카드(기존 인벤토리 카드 캡처)의 그릴 높이 — 카드 폭에 맞춰 비율 축소
+  const NOTE_W = W - PAD_X * 2;
+  const noteH = items.map((_, i) => {
+    const img = opts.noteImgs?.[i];
+    return img ? Math.round((NOTE_W / img.width) * img.height) : 0;
+  });
 
   // 카드별 높이 사전 계산(중앙 레이아웃)
   const cardH = items.map((it, i) => {
@@ -117,9 +96,9 @@ export async function renderQuoteCardImage(opts: {
     if (it.nameEn) h += 17;
     if (it.country || it.region) h += 20;
     if ((it.flavors || []).filter(Boolean).length) h += 26;
-    if (storyLines[i].length) h += 14 + storyLines[i].length * STORY_LINE_H;
     h += 22 + 30; // gap + 가격
     if (it.qty || it.note) h += 20;
+    if (noteH[i]) h += 18 + noteH[i];
     h += CARD_PAD_BOT;
     return h;
   });
@@ -214,14 +193,6 @@ export async function renderQuoteCardImage(opts: {
       iy += 4;
     }
 
-    // 테이스팅 스토리(맛 노트) — 중앙 문단
-    if (storyLines[i].length) {
-      iy += 14;
-      ctx.fillStyle = SUB; ctx.font = F(12); ctx.textAlign = 'center';
-      for (const ln of storyLines[i]) { iy += STORY_LINE_H; ctx.fillText(ln, cx, iy); }
-      iy -= 4;
-    }
-
     // 가격(중앙, baseline 정렬): 정상가(취소선) + 할인가(큰 빨강) + N%↓
     iy += 24;
     ctx.textAlign = 'center';
@@ -246,6 +217,13 @@ export async function renderQuoteCardImage(opts: {
     if (it.qty || it.note) {
       iy += 20; ctx.textAlign = 'center'; ctx.fillStyle = SUB; ctx.font = F(12);
       ctx.fillText([it.qty ? `${it.qty}병 구성` : '', it.note].filter(Boolean).join(' · '), cx, iy);
+    }
+
+    // 테이스팅노트 카드(인벤토리 기존 카드 캡처) 이어붙이기
+    const nImg = opts.noteImgs?.[i];
+    if (nImg && noteH[i]) {
+      iy += 18;
+      ctx.drawImage(nImg, PAD_X, iy, NOTE_W, noteH[i]);
     }
 
     // 구분선
