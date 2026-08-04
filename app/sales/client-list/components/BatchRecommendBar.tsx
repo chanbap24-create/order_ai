@@ -167,7 +167,7 @@ export function BatchRecommendBar({
         }}>선택 해제</button>
       )}
       <button
-        onClick={() => onRun({ gradeStepUp: stepUp, tnote, pngQuote, pngCard })}
+        onClick={() => onRun({ gradeStepUp: stepUp, tnote, pngQuote, pngCard, cardStory })}
         disabled={running || count === 0}
         style={{
           padding: '8px 16px', borderRadius: 8, border: 'none',
