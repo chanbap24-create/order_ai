@@ -1,5 +1,6 @@
 // 품번 목록 → 향미 키워드(한글 라벨) 조회. 상세카드 이미지의 향미 칩용.
 // tasting_notes.flavor_tags 우선, 없으면 노트 텍스트에서 추출. 빈티지 무시(base 품번) 폴백.
+// withNotes=true면 테이스팅 스토리(맛 노트, 카드 문단용)도 함께 반환.
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { flavorLabel, extractFlavorKeys } from '@/app/api/sales/recommend/lib/flavor';
@@ -11,11 +12,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const codes: string[] = Array.isArray(body.codes)
       ? body.codes.map(String).filter(Boolean).slice(0, 300) : [];
+    const withNotes = !!body.withNotes;
     if (codes.length === 0) return NextResponse.json({ tags: {} });
 
     // 노트 전체를 base 품번 맵으로(작은 테이블) — 정확·폴백 모두 커버
     const exact = new Map<string, string[]>();
     const base = new Map<string, string[]>();
+    const noteExact = new Map<string, string>();
+    const noteBase = new Map<string, string>();
     for (let off = 0; off < 20000; off += 1000) {
       const { data, error } = await supabase
         .from('tasting_notes')
@@ -27,19 +31,29 @@ export async function POST(req: NextRequest) {
         const keys = (n.flavor_tags && n.flavor_tags.length)
           ? n.flavor_tags
           : [...extractFlavorKeys(`${n.nose_note || ''} ${n.palate_note || ''}`)];
-        if (!keys.length) continue;
-        exact.set(n.wine_id, keys);
-        base.set(baseKey(n.wine_id), keys);
+        if (keys.length) {
+          exact.set(n.wine_id, keys);
+          base.set(baseKey(n.wine_id), keys);
+        }
+        if (withNotes && n.palate_note) {
+          noteExact.set(n.wine_id, n.palate_note);
+          noteBase.set(baseKey(n.wine_id), n.palate_note);
+        }
       }
       if (data.length < 1000) break;
     }
 
     const tags: Record<string, string[]> = {};
+    const notes: Record<string, string> = {};
     for (const c of codes) {
       const keys = exact.get(c) || base.get(baseKey(c));
       if (keys && keys.length) tags[c] = keys.slice(0, 4).map(flavorLabel);
+      if (withNotes) {
+        const t = noteExact.get(c) || noteBase.get(baseKey(c));
+        if (t) notes[c] = t;
+      }
     }
-    return NextResponse.json({ tags });
+    return NextResponse.json(withNotes ? { tags, notes } : { tags });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'error' }, { status: 500 });
   }

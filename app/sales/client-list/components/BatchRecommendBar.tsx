@@ -11,7 +11,7 @@ type Props = {
   running: boolean;
   progress: { done: number; total: number; name: string };
   message: string | null;
-  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean; pngQuote: boolean; pngCard: boolean }) => void;
+  onRun: (opts: { gradeStepUp: StepUpMode; tnote: boolean; pngQuote: boolean; pngCard: boolean; cardStory: boolean }) => void;
   onClear: () => void;
   // 견적서 컬럼(계정별 저장, useQuoteCols) — 생성 전 이 바에서 바로 조정
   quoteCols: string[];
@@ -38,6 +38,7 @@ export function BatchRecommendBar({
   const [tnote, setTnote] = useState(true); // 거래처당 테이스팅노트 병합 PDF 1개 동봉
   const [pngQuote, setPngQuote] = useState(false); // 견적표 PNG
   const [pngCard, setPngCard] = useState(true);    // 상세카드 PNG(카톡 홍보용)
+  const [cardStory, setCardStory] = useState(false); // 상세카드에 테이스팅 스토리(맛 노트) 문단 포함
   const idle = count === 0 && !running && !message;
   if (idle) return null;
 
@@ -99,6 +100,18 @@ export function BatchRecommendBar({
               color: pngCard ? '#fff' : 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
             }}
           >상세카드</button>
+          {pngCard && (
+            <button
+              onClick={() => setCardStory((v) => !v)}
+              title="상세카드에 와인별 테이스팅 스토리(맛 노트) 문단을 함께 넣습니다"
+              style={{
+                padding: '6px 11px', borderRadius: 999,
+                border: `1px solid ${cardStory ? 'var(--action)' : 'var(--gray-300)'}`,
+                background: cardStory ? 'var(--action)' : '#fff',
+                color: cardStory ? '#fff' : 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
+              }}
+            >+노트</button>
+          )}
           <button
             onClick={() => setPngQuote((v) => !v)}
             title="엑셀 견적서 양식 그대로의 이미지(견적표)"

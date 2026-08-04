@@ -147,18 +147,22 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
 
   // 상세카드 이미지 — 병 사진·큰 할인가(카톡 홍보용)
   const [cardBusy, setCardBusy] = useState(false);
+  const [cardStory, setCardStory] = useState(false); // 카드에 테이스팅 스토리 포함
   const handleExportCard = async () => {
     if (items.length === 0) return;
     inlineEdit.commitEdit();
     setCardBusy(true);
     try {
       let flavorMap: Record<string, string[]> = {};
+      let noteMap: Record<string, string> = {};
       try {
         const fr = await fetch('/api/sales/flavor-tags', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ codes: items.map((it) => it.item_code) }),
+          body: JSON.stringify({ codes: items.map((it) => it.item_code), withNotes: cardStory }),
         });
-        flavorMap = (await fr.json())?.tags || {};
+        const fj = await fr.json();
+        flavorMap = fj?.tags || {};
+        noteMap = fj?.notes || {};
       } catch { /* 향미 없어도 진행 */ }
       const blob = await renderQuoteCardImage({
         clientName: quote.clientName || '거래처',
@@ -177,6 +181,7 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           note: it.note || '',
           imageUrl: it.image_url || '',
           flavors: flavorMap[it.item_code] || [],
+          story: cardStory ? noteMap[it.item_code] || '' : '',
         })),
       });
       const url = URL.createObjectURL(blob);
@@ -215,6 +220,12 @@ export function RecommendQuoteEditPanel({ quote, getManagerParam }: Props) {
           style={{ ...btn, opacity: cardBusy ? 0.6 : 1 }}>
           {cardBusy ? '생성 중…' : '🖼 상세카드 이미지'}
         </button>
+        <label title="상세카드에 와인별 테이스팅 스토리(맛 노트) 문단을 함께 넣습니다"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={cardStory} onChange={(e) => setCardStory(e.target.checked)}
+            style={{ accentColor: 'var(--action)', margin: 0 }} />
+          노트 포함
+        </label>
         <button onClick={handleExportPng} disabled={pngBusy} title="엑셀 견적서 양식 그대로의 이미지(견적표)"
           style={{ ...btn, opacity: pngBusy ? 0.6 : 1 }}>
           {pngBusy ? '생성 중…' : '견적표 이미지'}

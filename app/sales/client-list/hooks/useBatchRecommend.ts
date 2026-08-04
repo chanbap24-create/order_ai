@@ -149,14 +149,17 @@ export function useBatchRecommend(manager: string) {
         }
         if (opts?.pngCard) {
           try {
-            // 향미 키워드 조회(카드 칩용)
+            // 향미 키워드(+선택 시 테이스팅 스토리) 조회
             let flavorMap: Record<string, string[]> = {};
+            let noteMap: Record<string, string> = {};
             try {
               const fr = await fetch('/api/sales/flavor-tags', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codes: items.map((it) => it.item_no) }),
+                body: JSON.stringify({ codes: items.map((it) => it.item_no), withNotes: !!opts?.cardStory }),
               });
-              flavorMap = (await fr.json())?.tags || {};
+              const fj = await fr.json();
+              flavorMap = fj?.tags || {};
+              noteMap = fj?.notes || {};
             } catch { /* 향미 없어도 카드 생성 */ }
             const cardBlob = await renderQuoteCardImage({
               clientName: t.client_name,
@@ -167,6 +170,7 @@ export function useBatchRecommend(manager: string) {
                 region: it.region || '', vintage: vintageFromCode(it.item_no), grape: it.grape || '',
                 supply: it.price || 0, rate: it.rec_discount || 0, qty: it.rec_quantity || 1, note: it.rec_note || '',
                 imageUrl: it.image_url || '', flavors: flavorMap[it.item_no] || [],
+                story: opts?.cardStory ? noteMap[it.item_no] || '' : '',
               })),
             });
             files.push({ name: `상세카드_${stamp()}_${safeName(t.client_name)}.png`, blob: cardBlob });
