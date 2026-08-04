@@ -44,8 +44,8 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   const cutoff = new Date(Date.now() - 45 * 86400_000).toISOString().slice(0, 10);
   const [{ data: inv }, { data: sched }, requests] = await Promise.all([
     supabase.from('inventory_cdv')
-      .select('item_no, item_name, incoming_stock, bonded_warehouse, available_stock')
-      .or('incoming_stock.gt.0,bonded_warehouse.gt.0'),
+      .select('item_no, item_name, incoming_stock, bonded_warehouse, bonded_kctc, available_stock')
+      .or('incoming_stock.gt.0,bonded_warehouse.gt.0,bonded_kctc.gt.0'),
     supabase.from('import_schedule').select('item_code, item_name_kr, arrival_date, total_btls'),
     listRequests(manager, isAdmin),
   ]);
@@ -76,7 +76,8 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   for (const r of inv || []) {
     const row = {
       incoming: Number(r.incoming_stock) || 0,
-      bonded: Number(r.bonded_warehouse) || 0,
+      // 보세 = 자체 보세 + KCTC 보세 (bonded_kctc 누락으로 통관 대기 미표시되던 문제)
+      bonded: (Number(r.bonded_warehouse) || 0) + (Number(r.bonded_kctc) || 0),
       available: Number(r.available_stock) || 0,
     };
     items.set(r.item_no, {
@@ -96,13 +97,13 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   const extraInv = new Map<string, { item_name: string; incoming: number; bonded: number; available: number }>();
   for (let i = 0; i < extraCodes.length; i += 400) {
     const { data: ws } = await supabase.from('inventory_cdv')
-      .select('item_no, item_name, incoming_stock, bonded_warehouse, available_stock')
+      .select('item_no, item_name, incoming_stock, bonded_warehouse, bonded_kctc, available_stock')
       .in('item_no', extraCodes.slice(i, i + 400));
     for (const w of ws || []) {
       extraInv.set(w.item_no, {
         item_name: w.item_name || '',
         incoming: Number(w.incoming_stock) || 0,
-        bonded: Number(w.bonded_warehouse) || 0,
+        bonded: (Number(w.bonded_warehouse) || 0) + (Number(w.bonded_kctc) || 0),
         available: Number(w.available_stock) || 0,
       });
     }
