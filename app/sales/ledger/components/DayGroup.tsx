@@ -13,8 +13,6 @@ type Props = {
 };
 
 export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBalance }: Props) {
-  const showDaySummary = day.rows.length > 1 || day.paymentRows.length > 0;
-
   return (
     <>
       {!collapsed && day.rows.map((r, i) => (
@@ -49,8 +47,8 @@ export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBa
           <td style={tdStyle}></td>
         </tr>
       ))}
-      {showDaySummary && (
-        <tr style={{ background: 'var(--surface-hover)', cursor: 'pointer' }} onClick={onToggle}>
+      {/* 일계는 단건인 날에도 항상 — 누적 미수액이 매일 이어져야 함 */}
+      <tr style={{ background: 'var(--surface-hover)', cursor: 'pointer' }} onClick={onToggle}>
           <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--text-tertiary)', fontSize: 11 }} colSpan={2}>
             <span style={{ marginRight: 4 }}>{collapsed ? '▶' : '▼'}</span>
             {day.date.slice(5)} 일계
@@ -63,7 +61,6 @@ export const DayGroup = memo(function DayGroup({ day, collapsed, onToggle, endBa
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: 'var(--status-info)' }}>{day.totals.payment ? fmt(day.totals.payment) : ''}</td>
           <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, fontSize: 11, color: 'var(--status-danger)' }}>{fmt(endBalance)}</td>
         </tr>
-      )}
     </>
   );
 });
