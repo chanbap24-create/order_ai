@@ -4,6 +4,7 @@
 // 오버레이(모달)와 배치·편집 패널의 이미지 발행이 같은 카드를 그대로 재사용한다.
 import { createRoot } from 'react-dom/client';
 import { roundTo100 } from '@/app/lib/priceUtils';
+import { vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
 
 export type PromoQuoteItem = {
   code: string;
@@ -224,7 +225,11 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       </div>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#111', letterSpacing: '-0.01em' }}>{it.name}</div>
-        {m?.name_en && <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>{m.name_en}</div>}
+        {(m?.name_en || vintageFromCode(it.code)) && (
+          <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 3 }}>
+            {[m?.name_en, vintageFromCode(it.code)].filter(Boolean).join(' ')}
+          </div>
+        )}
         {(it.country || it.region) && (
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
         )}
@@ -284,7 +289,11 @@ function StoryCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       </div>
       <div style={{ textAlign: 'center', padding: '0 26px' }}>
         <div style={{ fontSize: 19, fontWeight: 700, color: '#241a14', letterSpacing: '-0.01em' }}>{it.name}</div>
-        {m?.name_en && <div style={{ fontSize: 12, color: '#b0a08f', marginTop: 4 }}>{m.name_en}</div>}
+        {(m?.name_en || vintageFromCode(it.code)) && (
+          <div style={{ fontSize: 12, color: '#b0a08f', marginTop: 4 }}>
+            {[m?.name_en, vintageFromCode(it.code)].filter(Boolean).join(' ')}
+          </div>
+        )}
         {(it.country || it.region) && (
           <div style={{ fontSize: 12.5, color: '#7a6a5a', marginTop: 6 }}>{[it.country, it.region].filter(Boolean).join(' · ')}</div>
         )}
