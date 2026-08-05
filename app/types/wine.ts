@@ -161,7 +161,7 @@ export interface ImportScheduleItem {
   created_at?: string;
 }
 
-export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'client-analysis' | 'segments' | 'wine-regions' | 'brand-library' | 'company-events' | 'import-forecast' | 'feature-usage' | 'glass-images' | 'parse-stats' | 'flavor-tags' | 'sommelier';
+export type TabId = 'upload' | 'dashboard' | 'new-wine' | 'all-wines' | 'tasting-note' | 'client-analysis' | 'segments' | 'wine-regions' | 'brand-library' | 'company-events' | 'import-forecast' | 'feature-usage' | 'glass-images' | 'parse-stats' | 'flavor-tags' | 'sommelier' | 'discontinued';
 
 export interface Brand {
   id: number;

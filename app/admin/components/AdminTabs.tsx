@@ -18,6 +18,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'feature-usage', label: '사용량' },
   { id: 'parse-stats', label: '발주AI' },
   { id: 'sommelier', label: '소믈리에' },
+  { id: 'discontinued', label: '단종 관리' },
 ];
 
 interface AdminTabsProps {

@@ -80,12 +80,17 @@ export async function GET(request: NextRequest) {
     if (itemNos.length > 0) {
       const { data: wineData } = await supabase
         .from('wines')
-        .select('item_code, item_name_en')
+        .select('item_code, item_name_en, status')
         .in('item_code', itemNos);
       if (wineData) {
         const enMap: Record<string, string> = {};
+        const discSet = new Set(wineData.filter((w) => w.status === 'discontinued').map((w) => w.item_code));
         for (const w of wineData) if (w.item_name_en) enMap[w.item_code] = w.item_name_en;
-        results = results.map((r: any) => ({ ...r, item_name_en: enMap[r.item_no] || null }));
+        results = results.map((r: any) => ({
+          ...r,
+          item_name_en: enMap[r.item_no] || null,
+          discontinued: discSet.has(r.item_no),
+        }));
       }
     }
 

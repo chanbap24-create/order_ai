@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import type { TabId } from '@/app/types/wine';
 import SommelierTab from './components/SommelierTab';
+import DiscontinuedTab from './components/DiscontinuedTab';
 import AdminTabs from './components/AdminTabs';
 import AdminLoginCard from './components/AdminLoginCard';
 import UploadTab from './components/UploadTab';
@@ -240,6 +241,7 @@ export default function AdminPage() {
         {activeTab === 'glass-images' && <GlassImagesTab />}
         {activeTab === 'parse-stats' && <ParseStatsTab />}
         {activeTab === 'sommelier' && <SommelierTab />}
+        {activeTab === 'discontinued' && <DiscontinuedTab />}
       </div>
 
       {/* Toast container */}

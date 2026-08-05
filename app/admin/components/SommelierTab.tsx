@@ -37,6 +37,27 @@ export default function SommelierTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  const removeCustomer = async (c: Customer) => {
+    if (!confirm(`${c.name} 고객과 문답·구매 기록을 모두 삭제할까요?`)) return;
+    setDeleting(c.id);
+    try {
+      const r = await fetch('/api/admin/sommelier', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: c.id }),
+      });
+      if (!r.ok) throw new Error();
+      setCustomers((prev) => prev.filter((x) => x.id !== c.id));
+      setSessions((prev) => prev.filter((s) => s.customer_id !== c.id));
+      setOrders((prev) => prev.filter((o) => o.customer_id !== c.id));
+      setOpen(null);
+    } catch {
+      alert('삭제에 실패했습니다.');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/admin/sommelier').then((r) => r.json())
@@ -111,6 +132,14 @@ export default function SommelierTab() {
                     )}
                   </div>
                 ))}
+                <div style={{ paddingTop: 12, textAlign: 'right' }}>
+                  <button onClick={() => removeCustomer(c)} disabled={deleting === c.id} style={{
+                    all: 'unset', cursor: 'pointer', fontSize: 12, color: 'var(--status-danger)',
+                    textDecoration: 'underline', textUnderlineOffset: 3,
+                  }}>
+                    {deleting === c.id ? '삭제 중…' : '고객 삭제'}
+                  </button>
+                </div>
               </div>
             )}
           </div>

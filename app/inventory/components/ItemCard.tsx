@@ -87,6 +87,11 @@ export function ItemCard({
           >
             {item.item_name}
           </span>
+          {(item as { discontinued?: boolean }).discontinued && (
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--status-danger)', flexShrink: 0 }}>
+              단종
+            </span>
+          )}
           {(item as any).item_name_en && (
             <span
               style={{

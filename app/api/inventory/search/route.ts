@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (itemNos.length > 0) {
       const { data: wineData } = await supabase
         .from('wines')
-        .select('item_code, item_name_en, grape_varieties, wine_type, region, country_en')
+        .select('item_code, item_name_en, grape_varieties, wine_type, region, country_en, status')
         .in('item_code', itemNos);
       if (wineData) {
         for (const w of wineData) {
@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
       return {
         ...row,
         item_name_en: w?.item_name_en || null,
+        discontinued: w?.status === 'discontinued',
         grape_varieties: w?.grape_varieties || null,
         wine_type: w?.wine_type || null,
         wp_region: w?.region || null,
