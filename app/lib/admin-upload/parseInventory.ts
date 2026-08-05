@@ -26,8 +26,15 @@ export function parseInventorySheet(rows: unknown[][]): Record<string, unknown>[
     }
   }
 
-  // 2. 데이터 행 파싱
-  const results: Record<string, unknown>[] = [];
+  // 데이터 풍부도 — 중복 품번 dedup 시 실데이터 행 우선(placeholder 0행 버림).
+  const richness = (o: Record<string, unknown>) =>
+    (Number(o.supply_price) || 0) + (Number(o.total_stock) || 0) +
+    (Number(o.available_stock) || 0) + (Number(o.incoming_stock) || 0);
+
+  // 2. 데이터 행 파싱 (item_no 기준 dedup — 같은 품번 여러 행이면 데이터 많은 쪽만)
+  // ⚠️ dedup 필수: ERP 재고 export가 동일 품번을 'placeholder 0행 + 실데이터행' 2줄로 내보내는 경우가 있고,
+  //    이걸 그대로 upsert(onConflict:item_no)하면 "cannot affect row a second time" 로 배치 전체 실패.
+  const byCode = new Map<string, Record<string, unknown>>();
 
   for (let i = 1; i < rows.length; i++) {
     const r = (rows[i] || []) as unknown[];
@@ -74,8 +81,10 @@ export function parseInventorySheet(rows: unknown[][]): Record<string, unknown>[
     }
 
     obj.updated_at = new Date().toISOString();
-    results.push(obj);
+    const key = String(obj.item_no);
+    const prev = byCode.get(key);
+    if (!prev || richness(obj) >= richness(prev)) byCode.set(key, obj);
   }
 
-  return results;
+  return [...byCode.values()];
 }
