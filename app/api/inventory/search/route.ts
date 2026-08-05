@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (itemNos.length > 0) {
       const { data: wineData } = await supabase
         .from('wines')
-        .select('item_code, item_name_en, grape_varieties, wine_type, region, country_en, status')
+        .select('item_code, item_name_en, grape_varieties, wine_type, region, country_en, brand')
         .in('item_code', itemNos);
       if (wineData) {
         for (const w of wineData) {
@@ -54,12 +54,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 단종 브랜드 셋 — 해당 브랜드 품목은 검색 결과에 '단종' 표시
+    const { data: discBrands } = await supabase.from('brands').select('brand_code').eq('discontinued', true);
+    const discSet = new Set((discBrands || []).map((b) => String(b.brand_code || '').toUpperCase()));
+
     let results = (data || []).map((row: any) => {
       const w = wineMap[row.item_no];
       return {
         ...row,
         item_name_en: w?.item_name_en || null,
-        discontinued: w?.status === 'discontinued',
+        discontinued: discSet.has(String(w?.brand || row.brand || '').toUpperCase()),
         grape_varieties: w?.grape_varieties || null,
         wine_type: w?.wine_type || null,
         wp_region: w?.region || null,

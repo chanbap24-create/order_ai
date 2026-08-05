@@ -80,16 +80,21 @@ export async function GET(request: NextRequest) {
     if (itemNos.length > 0) {
       const { data: wineData } = await supabase
         .from('wines')
-        .select('item_code, item_name_en, status')
+        .select('item_code, item_name_en, brand')
         .in('item_code', itemNos);
       if (wineData) {
         const enMap: Record<string, string> = {};
-        const discSet = new Set(wineData.filter((w) => w.status === 'discontinued').map((w) => w.item_code));
-        for (const w of wineData) if (w.item_name_en) enMap[w.item_code] = w.item_name_en;
+        const { data: discBrands } = await supabase.from('brands').select('brand_code').eq('discontinued', true);
+        const discSet = new Set((discBrands || []).map((b: any) => String(b.brand_code || '').toUpperCase()));
+        const brandMap: Record<string, string> = {};
+        for (const w of wineData) {
+          if (w.item_name_en) enMap[w.item_code] = w.item_name_en;
+          if (w.brand) brandMap[w.item_code] = String(w.brand).toUpperCase();
+        }
         results = results.map((r: any) => ({
           ...r,
           item_name_en: enMap[r.item_no] || null,
-          discontinued: discSet.has(r.item_no),
+          discontinued: discSet.has(brandMap[r.item_no] || String(r.brand || '').toUpperCase()),
         }));
       }
     }
