@@ -91,3 +91,8 @@ nul
 
 # Expo (로컬 dev 로그에 시크릿 포함 가능 — 절대 커밋 금지)
 .expo/
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

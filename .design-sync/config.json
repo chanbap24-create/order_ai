@@ -1,0 +1,25 @@
+{
+  "projectId": "f1062a41-4329-46d3-9cea-37d5894c6e9e",
+  "shape": "package",
+  "pkg": "order-ai",
+  "globalName": "OrderAIDS",
+  "entry": ".design-sync/entry.ts",
+  "srcDir": "app/components/ui",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": "app/styles/design-system.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "guidelinesGlob": [],
+  "runtimeFontPrefixes": ["Pretendard", "Apple SD Gothic Neo"],
+  "overrides": { "StatStripSkeleton": { "cardMode": "column" }, "TableSkeleton": { "cardMode": "column" }, "ListSkeleton": { "cardMode": "column" } },
+  "componentSrcMap": {
+    "Button": "app/components/ui/Button.tsx",
+    "Card": "app/components/ui/Card.tsx",
+    "PageHeader": "app/components/ui/PageHeader.tsx",
+    "Section": "app/components/ui/Section.tsx",
+    "Stack": "app/components/ui/Stack.tsx",
+    "SkeletonBlock": "app/components/ui/Skeleton.tsx",
+    "ListSkeleton": "app/components/ui/Skeleton.tsx",
+    "StatStripSkeleton": "app/components/ui/Skeleton.tsx",
+    "TableSkeleton": "app/components/ui/Skeleton.tsx"
+  }
+}
