@@ -3,8 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { handleApiError } from '@/app/lib/errors';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // 특정 브랜드의 품목 목록 (행 펼침용)
+    const brand = (req.nextUrl.searchParams.get('brand') || '').toUpperCase().trim();
+    if (brand) {
+      const { data, error } = await supabase.from('wines')
+        .select('item_code, item_name_kr, vintage, available_stock')
+        .ilike('brand', brand)
+        .order('item_name_kr').limit(300);
+      if (error) throw error;
+      return NextResponse.json({ items: data || [] });
+    }
+
     // 브랜드 자료실 + 와인에만 있는 브랜드 코드 합집합, 품목 수 포함
     const [{ data: brands, error: be }, { data: wines, error: we }] = await Promise.all([
       supabase.from('brands').select('brand_code, brand_name_kr, brand_name_en, discontinued'),

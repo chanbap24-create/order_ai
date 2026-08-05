@@ -12,11 +12,32 @@ type BrandRow = {
   wine_count: number;
 };
 
+type ItemRow = {
+  item_code: string;
+  item_name_kr: string;
+  vintage: string | null;
+  available_stock: number | null;
+};
+
 export default function DiscontinuedTab() {
   const [brands, setBrands] = useState<BrandRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);         // 펼친 브랜드 코드
+  const [items, setItems] = useState<Record<string, ItemRow[]>>({}); // 브랜드별 품목 캐시
+
+  const toggleOpen = async (code: string) => {
+    if (open === code) { setOpen(null); return; }
+    setOpen(code);
+    if (!items[code]) {
+      try {
+        const r = await fetch(`/api/admin/discontinued?brand=${encodeURIComponent(code)}`);
+        const j = await r.json();
+        setItems((prev) => ({ ...prev, [code]: Array.isArray(j.items) ? j.items : [] }));
+      } catch { /* ignore */ }
+    }
+  };
 
   useEffect(() => {
     fetch('/api/admin/discontinued').then((r) => r.json())
@@ -74,30 +95,56 @@ export default function DiscontinuedTab() {
       {loading && <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>불러오는 중…</div>}
 
       {shown.map((b) => (
-        <div key={b.brand_code} style={{
-          display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 4px',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', width: 30 }}>
-            {b.brand_code}
-          </span>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>{b.name}</span>
-          {b.name_en && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.name_en}</span>}
-          {b.discontinued && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-danger)' }}>단종</span>}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {b.wine_count}개 품목
-          </span>
-          <button onClick={() => toggle(b)} disabled={busy === b.brand_code}
-            style={{
-              border: '1px solid var(--border-default)', borderRadius: 8, padding: '5px 12px',
-              fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap',
-              background: b.discontinued ? 'var(--surface)' : 'var(--action)',
-              color: b.discontinued ? 'var(--text-secondary)' : 'var(--text-on-primary)',
-              borderColor: b.discontinued ? 'var(--border-default)' : 'var(--action)',
-              opacity: busy === b.brand_code ? 0.5 : 1,
-            }}>
-            {busy === b.brand_code ? '처리 중…' : b.discontinued ? '단종 해제' : '단종 처리'}
-          </button>
+        <div key={b.brand_code} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <div onClick={() => toggleOpen(b.brand_code)} style={{
+            display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 4px', cursor: 'pointer',
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', width: 30 }}>
+              {b.brand_code}
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{b.name}</span>
+            {b.name_en && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.name_en}</span>}
+            {b.discontinued && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-danger)' }}>단종</span>}
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+              {b.wine_count}개 품목 {open === b.brand_code ? '▲' : '▼'}
+            </span>
+            <button onClick={(e) => { e.stopPropagation(); toggle(b); }} disabled={busy === b.brand_code}
+              style={{
+                border: '1px solid var(--border-default)', borderRadius: 8, padding: '5px 12px',
+                fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap',
+                background: b.discontinued ? 'var(--surface)' : 'var(--action)',
+                color: b.discontinued ? 'var(--text-secondary)' : 'var(--text-on-primary)',
+                borderColor: b.discontinued ? 'var(--border-default)' : 'var(--action)',
+                opacity: busy === b.brand_code ? 0.5 : 1,
+              }}>
+              {busy === b.brand_code ? '처리 중…' : b.discontinued ? '단종 해제' : '단종 처리'}
+            </button>
+          </div>
+
+          {open === b.brand_code && (
+            <div style={{ padding: '0 4px 12px 44px' }}>
+              {!items[b.brand_code] && (
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', padding: '6px 0' }}>품목 불러오는 중…</div>
+              )}
+              {items[b.brand_code]?.length === 0 && (
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', padding: '6px 0' }}>등록된 품목이 없습니다</div>
+              )}
+              {items[b.brand_code]?.map((it) => (
+                <div key={it.item_code} style={{
+                  display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 0',
+                  borderBottom: '1px solid rgba(0,0,0,0.04)', fontSize: 12.5,
+                }}>
+                  <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{it.item_code}</span>
+                  <span>{it.item_name_kr}</span>
+                  {it.vintage && <span style={{ color: 'var(--text-tertiary)' }}>{it.vintage}</span>}
+                  {b.discontinued && <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--status-danger)' }}>단종</span>}
+                  <span style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                    재고 {it.available_stock ?? 0}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
