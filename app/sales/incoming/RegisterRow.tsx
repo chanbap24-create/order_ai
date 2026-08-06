@@ -53,9 +53,10 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
     }
   };
 
+  // 입력 16px — iOS가 16px 미만 입력 포커스 시 화면을 확대해 제안 목록이 뷰포트 밖으로 밀림
   const input = {
-    border: '1px solid var(--border-default)', borderRadius: 8, padding: '7px 10px',
-    fontSize: 13, background: 'var(--surface)', outline: 'none',
+    border: '1px solid var(--border-default)', borderRadius: 8, padding: '8px 10px',
+    fontSize: 16, background: 'var(--surface)', outline: 'none',
   } as const;
 
   return (
@@ -82,7 +83,7 @@ export function RegisterRow({ itemCode, itemName, onDone }: {
                   style={{
                     all: 'unset', display: 'flex', alignItems: 'baseline', gap: 8,
                     width: '100%', boxSizing: 'border-box',
-                    padding: '8px 10px', fontSize: 13, cursor: 'pointer',
+                    padding: '10px 10px', fontSize: 14, cursor: 'pointer',
                     borderBottom: '1px solid var(--border-subtle)',
                   }}>
                   {s.client_name}

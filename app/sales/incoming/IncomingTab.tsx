@@ -100,7 +100,7 @@ export default function IncomingTab() {
             placeholder="품명 · 품번 · 거래처 검색"
             style={{
               flex: '1 1 220px', border: '1px solid var(--border-default)', borderRadius: 8,
-              padding: '7px 10px', fontSize: 13, background: 'var(--surface)', outline: 'none',
+              padding: '8px 10px', fontSize: 16, background: 'var(--surface)', outline: 'none',
             }} />
           <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <input type="checkbox" checked={waitingOnly} onChange={(e) => setWaitingOnly(e.target.checked)}
