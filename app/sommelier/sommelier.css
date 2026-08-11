@@ -150,7 +150,7 @@
 .som-field{margin-bottom:34px}
 .som-field label{display:block;font-size:11px;letter-spacing:.2em;color:var(--som-gold);margin-bottom:10px}
 .som-field input{width:100%;border:none;border-bottom:1px solid rgba(184,154,106,.5);background:transparent;
-  font-size:clamp(26px,5.4vw,34px);font-weight:700;letter-spacing:-0.02em;
+  font-size:17px;font-weight:600;letter-spacing:-0.01em;
   color:var(--som-ink);padding:6px 2px 12px;outline:none;border-radius:0;
   transition:border-color .4s var(--som-ease)}
 .som-field input:focus{border-bottom-color:var(--som-stain)}
@@ -159,6 +159,15 @@
   color:var(--som-muted);cursor:pointer;margin:6px 0 4px}
 .som-consent input{margin-top:2px;accent-color:var(--som-ink)}
 .som-err{font-size:13px;color:var(--som-stain);margin-top:10px}
+/* 재방문 제안 — 박스 없이 골드 도트 + 헤어라인 한 줄 */
+.som-returning{margin-top:4px;display:flex;flex-direction:column}
+.som-returning button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
+  padding:11px 2px;font-size:13.5px;color:var(--som-ink);
+  border-bottom:1px solid rgba(34,28,22,.07)}
+.som-returning button:first-child{border-top:1px solid rgba(34,28,22,.07)}
+.som-returning i{width:5px;height:5px;border-radius:50%;background:var(--som-gold);flex:0 0 auto}
+.som-returning em{font-style:normal;margin-left:auto;font-size:12px;color:var(--som-gold)}
+.som-returning button:active{background:rgba(184,154,106,.07)}
 
 /* 문답 공통 문법 — 연회백 대형 타이포가 선택 시 와인 색으로 물든다 */
 /* 선택지 = 챕터 표기와 하단(상관없어요) 사이 정중앙 — 위아래 auto 마진이 남는 공간을 반씩 */
@@ -209,11 +218,12 @@
   transition:transform .45s var(--som-ease),box-shadow .45s var(--som-ease),
     border-color .45s var(--som-ease),opacity .45s var(--som-ease),filter .45s var(--som-ease)}
 @media (hover:hover){
-  /* 스포트라이트 — 호버한 카드는 커지고, 나머지는 흐려지며 물러난다 */
+  /* 스포트라이트 — 호버한 카드는 이웃 위로 크게 떠오르고(포켓몬카드式), 나머지는 흐려지며 물러난다 */
   .som-rail:has(.som-card:hover) .som-card:not(:hover){
     opacity:.42;transform:scale(.96);filter:saturate(.75)}
-  .som-card:hover{transform:translateY(-10px) scale(1.03);border-color:rgba(184,154,106,.85);
-    box-shadow:0 30px 56px rgba(34,28,22,.16)}
+  .som-card:hover{transform:translateY(-14px) scale(1.14);z-index:30;position:relative;
+    border-color:rgba(184,154,106,.85);
+    box-shadow:0 40px 80px rgba(34,28,22,.28)}
   .som-card:hover .som-shot img{transform:translateY(-6px) scale(1.08)}
   .som-card:hover .som-rank{color:var(--som-stain)}
   .som-card:hover .som-price{color:var(--som-stain)}
@@ -298,6 +308,24 @@
   letter-spacing:.06em;padding-top:1px}
 .som-detail-notes dd{margin:0;font-size:13.5px;line-height:1.75;color:var(--som-ink);
   word-break:keep-all}
+
+/* 데스크탑 레일 화살표 — 호버 기기 전용, 끝에 닿으면 사라짐 */
+.som-railwrap{position:relative}
+.som-arrow{display:none}
+@media (hover:hover){
+  .som-rail{cursor:grab}
+  .som-rail:active{cursor:grabbing}
+  .som-rail img{-webkit-user-drag:none;user-select:none}
+  .som-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+    width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:#fff;border:1px solid var(--som-line);color:var(--som-ink);font-size:20px;
+    cursor:pointer;box-shadow:0 10px 26px rgba(34,28,22,.12);
+    transition:opacity .3s var(--som-ease),transform .3s var(--som-ease)}
+  .som-arrow.l{left:8px}
+  .som-arrow.r{right:8px}
+  .som-arrow:hover{transform:translateY(-50%) scale(1.06)}
+  .som-arrow:disabled{opacity:0;pointer-events:none}
+}
 
 .som-dots{display:flex;justify-content:center;gap:8px;padding:4px 0 8px}
 .som-dots i{width:6px;height:6px;border-radius:50%;background:rgba(34,28,22,.18);
