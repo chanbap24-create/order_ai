@@ -54,12 +54,32 @@ export async function GET(request: NextRequest) {
 
     if (itemCodes.length > 0) {
       const [grapeRes, invCdvRes] = await Promise.all([
-        supabase.from('wines').select('item_code, grape_varieties').in('item_code', itemCodes),
+        supabase.from('wines').select('item_code, grape_varieties, item_name_en, updated_at').in('item_code', itemCodes),
         supabase.from('inventory_cdv').select('item_no, barcode').in('item_no', itemCodes),
       ]);
 
-      for (const w of (grapeRes.data || []) as Array<{ item_code: string; grape_varieties: string | null }>) {
+      // 영문명 최신화 — 바스켓 스냅샷보다 wines(어드민 수정)가 더 최신이면 갱신.
+      // 바스켓에서 직접 고친 경우(quote_items.updated_at이 더 최신)는 그대로 존중.
+      // 저장 견적(saved_id) 재발행은 기록 보존을 위해 스냅샷 그대로.
+      const enFresh = new Map<string, { en: string; at: string }>();
+      for (const w of (grapeRes.data || []) as Array<{ item_code: string; grape_varieties: string | null; item_name_en: string | null; updated_at: string | null }>) {
         if (w.grape_varieties) grapeMap[w.item_code] = w.grape_varieties;
+        if (w.item_name_en) enFresh.set(w.item_code, { en: w.item_name_en, at: w.updated_at || '' });
+      }
+      if (!savedQuote) {
+        const staleIds: number[] = [];
+        for (const q of quoteItems) {
+          const f = enFresh.get(String(q.item_code));
+          if (!f || f.en === q.english_name) continue;
+          if (String(q.updated_at || '') >= f.at) continue; // 바스켓 수정이 더 최신 → 유지
+          q.english_name = f.en;
+          if (typeof q.id === 'number') staleIds.push(q.id);
+        }
+        // 화면(바스켓)도 다음 로드부터 최신 이름이 보이게 동기화 — 실패해도 발행엔 영향 없음
+        for (const id of staleIds) {
+          const q = quoteItems.find((x) => x.id === id);
+          if (q) void supabase.from('quote_items').update({ english_name: q.english_name }).eq('id', id).then(() => {});
+        }
       }
       for (const inv of (invCdvRes.data || []) as Array<{ item_no: string; barcode: string | null }>) {
         if (inv.barcode) barcodeMap[inv.item_no] = inv.barcode;
