@@ -218,6 +218,8 @@
   transition:transform .45s var(--som-ease),box-shadow .45s var(--som-ease),
     border-color .45s var(--som-ease),opacity .45s var(--som-ease),filter .45s var(--som-ease)}
 @media (hover:hover){
+  /* 확대(1.14배)된 카드가 레일 overflow에 잘리지 않도록 위아래 여유 확보 */
+  .som-rail{padding-top:56px;padding-bottom:32px}
   /* 스포트라이트 — 호버한 카드는 이웃 위로 크게 떠오르고(포켓몬카드式), 나머지는 흐려지며 물러난다 */
   .som-rail:has(.som-card:hover) .som-card:not(:hover){
     opacity:.42;transform:scale(.96);filter:saturate(.75)}
