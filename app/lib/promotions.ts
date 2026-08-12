@@ -125,7 +125,7 @@ export async function enrichWithStock(promos: Promotion[]): Promise<Promotion[]>
   for (let i = 0; i < codes.length; i += 500) {
     const { data } = await supabase
       .from('inventory_cdv')
-      .select('item_no, total_stock, available_stock, bonded_warehouse')
+      .select('item_no, total_stock, available_stock, bonded_warehouse, bonded_kctc')
       .in('item_no', codes.slice(i, i + 500));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const r of (data || []) as any[]) stockMap.set(String(r.item_no), r);
@@ -136,7 +136,7 @@ export async function enrichWithStock(promos: Promotion[]): Promise<Promotion[]>
       ...p,
       total_stock: s?.total_stock ?? 0,
       available_stock: s?.available_stock ?? 0,
-      bonded_warehouse: s?.bonded_warehouse ?? 0,
+      bonded_warehouse: (s?.bonded_warehouse ?? 0) + ((s as { bonded_kctc?: number } | null)?.bonded_kctc ?? 0), // 보세 합계(용마 잔여+KCTC)
     };
   });
 }

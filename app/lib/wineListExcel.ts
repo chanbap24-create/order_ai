@@ -62,9 +62,9 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
   const availMap = new Map<string, number | null>();
   const priceMap = new Map<string, number>();
   for (let i = 0; i < codes.length; i += 1000) {
-    const { data: invRows } = await supabase.from('inventory_cdv').select('item_no, available_stock, bonded_warehouse, supply_price').in('item_no', codes.slice(i, i + 1000));
+    const { data: invRows } = await supabase.from('inventory_cdv').select('item_no, available_stock, bonded_warehouse, bonded_kctc, supply_price').in('item_no', codes.slice(i, i + 1000));
     for (const r of (invRows || [])) {
-      bondedMap.set(r.item_no, r.bonded_warehouse || 0);
+      bondedMap.set(r.item_no, (r.bonded_warehouse || 0) + (r.bonded_kctc || 0));
       availMap.set(r.item_no, r.available_stock);
       if (r.supply_price) priceMap.set(r.item_no, r.supply_price);
     }

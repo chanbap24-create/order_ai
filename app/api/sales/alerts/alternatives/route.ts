@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       supabase.from('inventory_cdv')
         .select('item_no, item_name, country, supply_price')
         .eq('item_no', itemNo).maybeSingle(),
-      fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse'),
+      fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc'),
       fetchAll<WineRegionRow>('wine_regions', 'sub_region, major_region, appellation, cru_vineyard, classification'),
     ]);
     const targetWine = targetWineRes.data;
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const inv of (inventory || []) as any[]) {
       if (inv.item_no === itemNo) continue;
-      const totalStock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0);
+      const totalStock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0);
       if (totalStock <= 0) continue;
       const price = inv.supply_price || 0;
       if (totalStock < minStockForPrice(price, SR)) continue;
