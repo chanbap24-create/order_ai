@@ -143,11 +143,16 @@ export async function researchWineWithClaude(
     logger.info(`[Claude][WineSearcher] No data found for: ${itemNameEn}`);
   }
 
-  // 브랜드 컨텍스트
+  // 브랜드 컨텍스트 (+공식 홈페이지 — 와이너리 사이트의 개별 품목 페이지를 우선 검색 근거로)
   let brandContext = '';
   if (dbBrandContext?.text) {
     brandContext = `\n\n=== 브랜드 자료실 DB 정보 ===\n${dbBrandContext.text}\n`;
   }
+  const wineryDomain = (dbBrandContext?.website || '')
+    .replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+  const wineryHint = wineryDomain
+    ? `\n\n공식 홈페이지: ${dbBrandContext!.website}\n검색 시 우선 \`site:${wineryDomain} ${itemNameEn}\` 형태로 와이너리 공식 사이트의 이 와인 제품 페이지를 찾아보세요. 공식 페이지의 품목 설명(양조·빈티지·테이스팅 노트·기술 시트)이 있으면 최우선 근거로 사용하세요.`
+    : '';
 
   // 컨텍스트 풍부도 판단: WS 또는 브랜드DB 있으면 web_search 불필요
   const hasRichContext = !!(wsData || dbBrandContext);
@@ -157,7 +162,7 @@ export async function researchWineWithClaude(
   const vintageInfo = vintageYear ? `\n빈티지: ${vintageYear}년` : '';
   const supplierInfo = supplier ? `\n생산자/브랜드: ${supplier}` : '';
   const supplierWarning = supplier ? `\n\n중요: 반드시 위 생산자(${supplier})의 와인을 조사하세요. 다른 생산자의 동명 와인을 혼동하지 마세요.` : '';
-  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext?.text ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}${wineryHint}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext?.text ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
@@ -173,7 +178,8 @@ export async function researchWineWithClaude(
     // 실제 비평가 시음 평이 없음 → 관능 노트를 근거 기반으로 만들기 위해 검색 허용.
     // 검색 1회마다 누적 컨텍스트가 입력으로 재과금되어 횟수가 비용의 최대 변수
     // (4회 기준 건당 ~$0.3) → 최소한으로 제한.
-    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: hasRichContext ? 1 : 2 }],
+    // 공식 홈페이지가 있으면 site: 검색 1회 여유 추가(제품 페이지 확인용)
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: (hasRichContext ? 1 : 2) + (wineryDomain ? 1 : 0) }],
   };
 
   const response = await client.messages.create(apiParams);
