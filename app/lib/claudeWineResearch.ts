@@ -161,7 +161,7 @@ export async function researchWineWithClaude(
   const vintageInfo = vintageYear ? `\n빈티지: ${vintageYear}년` : '';
   const supplierInfo = supplier ? `\n생산자/브랜드: ${supplier}` : '';
   const supplierWarning = supplier ? `\n\n중요: 반드시 위 생산자(${supplier})의 와인을 조사하세요. 다른 생산자의 동명 와인을 혼동하지 마세요.` : '';
-  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}${wineryHint}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext?.text ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
+  const userMessage = `와인 이름(한글): ${itemNameKr}\n와인 이름(영문): ${itemNameEn}\n품번: ${itemCode}${vintageInfo}${supplierInfo}${wsContext}${brandContext}${wineryHint}\n\n위 정보를 바탕으로 이 와인에 대해 조사해주세요.${wineryDomain ? ' 내용의 근거는 와이너리 공식 홈페이지의 이 품목 페이지를 최우선으로 하고, 없을 때 Wine-Searcher·브랜드 DB를 사용하세요.' : wsData ? ' Wine-Searcher 데이터를 우선 사용하세요.' : ''}${dbBrandContext?.text ? ' 브랜드 DB 정보를 와이너리 소개와 양조에 활용하세요.' : ''}${vintageYear ? `\n\n중요: 빈티지 ${vintageYear}년의 기후, 작황에 대해 vintage_note에 구체적으로 작성해주세요.` : ''}${supplierWarning}`;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiParams: any = {
