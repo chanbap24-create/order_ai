@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { dataUrlToImage, downloadImageAsBase64, searchVivinoBottleImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
+import { dataUrlToImage, downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { trimWhitespace } from "@/app/lib/logoTrim";
 import { logger } from "@/app/lib/logger";
@@ -83,35 +83,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       }
     }
 
-    // 지정 image_url이 있으면 위에서 우선 사용됨. 다운로드 실패(핫링크 차단 등)했으면 검색으로 보완
-    // — 단 빈티지를 넘겨 '올바른 빈티지' 병샷을 찾게 한다(무통처럼 빈티지별 라벨 대응).
-    if (!bottleImageBase64) {
-      const engName = wine.item_name_en;
-      if (engName) {
-        try {
-          const vin = formatVintage4(wine.vintage || "");
-          const vivinoUrl = await searchWineImageDuckDuckGo(engName, undefined, vin).catch(() => null) || await searchVivinoBottleImage(engName);
-          if (vivinoUrl) {
-            const imgData = await downloadImageAsBase64(vivinoUrl);
-            if (imgData) {
-              const prepped = await prepBottle(imgData.base64);
-              if (prepped) {
-                bottleImageBase64 = prepped.base64;
-                bottleImageMimeType = "image/png";
-                bottleImageW = prepped.w;
-                bottleImageH = prepped.h;
-              } else {
-                bottleImageBase64 = imgData.base64;
-                bottleImageMimeType = imgData.mimeType;
-              }
-              logger.info(`[PPT] Vivino nukki image for ${wineId}`);
-            }
-          }
-        } catch {
-          logger.warn(`[PPT] Vivino search failed for ${wineId}`);
-        }
-      }
-    }
+    // 병 이미지는 저장된 것(원칙: 와이너리 공식 소스)만 사용 — 없으면 공란(검색 폴백 제거)
 
     slides.push({
       nameKr: wine.item_name_kr,

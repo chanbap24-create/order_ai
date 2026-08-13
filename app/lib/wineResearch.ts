@@ -2,7 +2,7 @@
 
 import OpenAI from "openai";
 import { logger } from "@/app/lib/logger";
-import { scrapeWineSearcher, searchVivinoBottleImage, searchWineryWebsiteImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
+import { scrapeWineSearcher, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import type { WineResearchResult } from "@/app/types/wine";
 
@@ -155,62 +155,19 @@ export async function researchWine(itemCode: string, itemNameKr: string, itemNam
 
   const result = JSON.parse(jsonStr) as WineResearchResult;
 
-  // Step 4: 이미지 검색 (우선순위: 와이너리 공식사이트 → Vivino → Wine-Searcher)
-  if (!imageUrl) {
-    const searchNames = [
-      englishName,                         // 사용자 입력/번역된 이름 (최우선)
-      result.item_name_en,                 // AI 조사명
-    ].filter(Boolean) as string[];
-    const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
-    const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
-
-    // 4-1. DuckDuckGo 이미지 (주 소스 — Vivino/WS 스크래핑 사망, DDG는 키 없이 정확)
-    for (const lowerName of uniqueNames) {
-      if (imageUrl) break;
-      const name = nameMap.get(lowerName) || lowerName;
-      imageUrl = await searchWineImageDuckDuckGo(name, brandCtx?.brandNameEn || undefined).catch(() => null);
-      if (imageUrl) logger.info(`[WineImage] DDG: "${name}"`);
-    }
-
-    // 4-2. 와이너리 공식 웹사이트에서 보틀 이미지 (DDG 실패 시)
-    if (!imageUrl && brandCtx?.website) {
-      imageUrl = await searchWineryWebsiteImage(
-        englishName || result.item_name_en, brandCtx.website, brandCtx.brandNameEn || undefined
-      );
-      if (imageUrl) {
-        logger.info(`[WineImage] Found from winery site: ${brandCtx.website}`);
-      }
-    }
-
-    // 4-2. Vivino 보틀샷
-    if (!imageUrl) {
-      for (const lowerName of uniqueNames) {
-        const name = nameMap.get(lowerName) || lowerName;
-        imageUrl = await searchVivinoBottleImage(name);
-        if (imageUrl) {
-          logger.info(`[WineImage] Vivino: "${name}"`);
-          break;
-        }
-      }
-    }
-
-    // 4-3. Wine-Searcher fallback
-    if (!imageUrl) {
-      for (const lowerName of uniqueNames) {
-        const name = nameMap.get(lowerName) || lowerName;
-        const wsRetry = await scrapeWineSearcher(name);
-        if (wsRetry?.imageUrl) {
-          imageUrl = wsRetry.imageUrl;
-          logger.info(`[WineImage] WS fallback: "${name}"`);
-          break;
-        }
-      }
-    }
+  // Step 4: 병샷은 와이너리 공식 사이트에서만 — 못 찾으면 공란(DDG/Vivino/WS 오매칭 잦아 제거)
+  if (!imageUrl && brandCtx?.website) {
+    imageUrl = await searchWineryWebsiteImage(
+      englishName || result.item_name_en, brandCtx.website, brandCtx.brandNameEn || undefined
+    ).catch(() => null);
+    if (imageUrl) logger.info(`[WineImage] Found from winery site: ${brandCtx.website}`);
   }
 
   if (imageUrl) {
     result.image_url = imageUrl;
     logger.info(`[WineImage] Image found for ${itemCode}: ${imageUrl}`);
+  } else {
+    result.image_url = undefined; // 공식 사이트 실패 시 무조건 공란
   }
 
   // 브랜드 컨텍스트 활용 여부 로깅

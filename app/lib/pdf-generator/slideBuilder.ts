@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { getWineByCode, getTastingNote } from "@/app/lib/wineDb";
-import { dataUrlToImage, downloadImageAsBase64, searchVivinoBottleImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
+import { dataUrlToImage, downloadImageAsBase64 } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { trimWhitespace } from "@/app/lib/logoTrim";
 import { formatVintage4, type SlideData } from "./theme";
@@ -115,25 +115,7 @@ export async function buildSlidesFromWineIds(wineIds: string[]): Promise<SlideDa
       } catch { /* ignore */ }
     }
 
-    // 2순위: 검색 폴백 — 지정 URL이 실패했으면 빈티지 반영해 올바른 병샷 보완
-    if (!bottleImageBase64) {
-      const engName = wine.item_name_en;
-      if (engName) {
-        try {
-          const vin = formatVintage4(wine.vintage || "");
-          const vivinoUrl = await searchWineImageDuckDuckGo(engName, undefined, vin).catch(() => null) || await searchVivinoBottleImage(engName);
-          if (vivinoUrl) {
-            const imgData = await downloadImageAsBase64(vivinoUrl);
-            if (imgData) {
-              const safe = await toPdfSafeImage(imgData.base64, imgData.mimeType);
-              bottleImageBase64 = safe.base64;
-              bottleImageMimeType = safe.mime;
-              bottleCropBottom = true; // Vivino fallback → 하단 워터마크
-            }
-          }
-        } catch { /* ignore */ }
-      }
-    }
+    // 병 이미지는 저장된 것(원칙: 와이너리 공식 소스)만 사용 — 없으면 공란(검색 폴백 제거)
 
     // 크롭 전 안전성 검사: 병이 이미지 하단까지 닿아 있으면 크롭 시 베이스가 잘림
     if (bottleCropBottom && bottleImageBase64 && !(await canCropBottom(bottleImageBase64))) {
