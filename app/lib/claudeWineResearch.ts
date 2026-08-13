@@ -2,7 +2,7 @@
 
 import { getClaudeClient } from "@/app/lib/claudeClient";
 import { logger } from "@/app/lib/logger";
-import { scrapeWineSearcher, searchVivinoBottleImage, searchWineryWebsiteImage, searchWineImageDuckDuckGo } from "@/app/lib/wineImageSearch";
+import { scrapeWineSearcher, searchWineryWebsiteImage } from "@/app/lib/wineImageSearch";
 import { getBrandContextForWine } from "@/app/lib/brandDb";
 import { parseJsonLoose } from "@/app/lib/jsonExtract";
 import { RESEARCH_PROMPT } from "@/app/lib/wineResearchPrompt";
@@ -110,9 +110,8 @@ export async function researchWineWithClaude(
   logger.info(`[Claude] Researching wine: ${itemCode} - ${itemNameKr} (en: ${itemNameEn})`);
 
   // Step 1: DB 브랜드 데이터 + Wine-Searcher + Vivino 병렬 실행 (무료)
-  const [wsData, ddgImageUrl, dbBrandContext] = await Promise.all([
+  const [wsData, dbBrandContext] = await Promise.all([
     scrapeWineSearcher(itemNameEn),
-    searchWineImageDuckDuckGo(itemNameEn, undefined, parseVintage(vintage)).catch(() => null),
     getBrandContextForWine(itemCode).catch(() => null),
   ]);
 
@@ -121,7 +120,7 @@ export async function researchWineWithClaude(
   }
 
   let wsContext = "";
-  let imageUrl: string | null = ddgImageUrl; // DDG 보틀샷 우선(빈티지 반영)
+  let imageUrl: string | null = null; // 병샷은 와이너리 공식 사이트에서만(정확도) — 못 찾으면 공란
 
   if (wsData) {
     wsContext = `\n\n=== Wine-Searcher 실제 데이터 ===\n`;
@@ -233,61 +232,25 @@ export async function researchWineWithClaude(
   result.acidity = scale(result.acidity);
   result.tannin = scale(result.tannin);
 
-  // Step 3: 이미지 검색 (우선순위: 와이너리 공식사이트 → Vivino → Wine-Searcher)
-  if (!imageUrl) {
-    const searchNames = [
-      itemNameEn,                          // 사용자 입력명 (최우선)
-      result.item_name_en,                 // AI 조사명
-    ].filter(Boolean) as string[];
-    const uniqueNames = [...new Set(searchNames.map(n => n.toLowerCase()))];
-    const nameMap = new Map(searchNames.map(n => [n.toLowerCase(), n]));
-
-    // 3-1. DuckDuckGo 이미지 (주 소스 — Vivino/Wine-Searcher 스크래핑이 JS렌더/봇차단으로 사망, DDG는 키 없이 정확)
-    for (const lowerName of uniqueNames) {
-      if (imageUrl) break;
-      const name = nameMap.get(lowerName) || lowerName;
-      imageUrl = await searchWineImageDuckDuckGo(name, dbBrandContext?.brandNameEn || undefined, parseVintage(vintage)).catch(() => null);
-      if (imageUrl) logger.info(`[Claude][WineImage] DDG: "${name}"`);
-    }
-
-    // 3-2. 와이너리 공식 웹사이트에서 보틀 이미지 (DDG 실패 시)
-    if (!imageUrl && dbBrandContext?.website) {
+  // Step 3: 병샷은 와이너리 공식 사이트에서만 찾는다 — DDG/Vivino/WS는 오매칭이 잦아 제거.
+  // 공식 사이트에 없으면 공란(수동 등록) — 엉뚱한 병이 붙는 것보다 비는 게 낫다.
+  if (dbBrandContext?.website) {
+    for (const name of [...new Set([itemNameEn, result.item_name_en].filter(Boolean))] as string[]) {
       imageUrl = await searchWineryWebsiteImage(
-        itemNameEn, dbBrandContext.website, dbBrandContext.brandNameEn || undefined
+        name, dbBrandContext.website, dbBrandContext.brandNameEn || undefined
       ).catch(() => null);
       if (imageUrl) {
         logger.info(`[Claude][WineImage] Found from winery site: ${dbBrandContext.website}`);
-      }
-    }
-
-    // 3-2. Vivino 보틀샷
-    if (!imageUrl) {
-      for (const lowerName of uniqueNames) {
-        const name = nameMap.get(lowerName) || lowerName;
-        imageUrl = await searchVivinoBottleImage(name).catch(() => null);
-        if (imageUrl) {
-          logger.info(`[Claude][WineImage] Vivino: "${name}"`);
-          break;
-        }
-      }
-    }
-
-    // 3-3. Wine-Searcher fallback
-    if (!imageUrl) {
-      for (const lowerName of uniqueNames) {
-        const name = nameMap.get(lowerName) || lowerName;
-        const wsRetry = await scrapeWineSearcher(name).catch(() => null);
-        if (wsRetry?.imageUrl) {
-          imageUrl = wsRetry.imageUrl;
-          logger.info(`[Claude][WineImage] WS fallback: "${name}"`);
-          break;
-        }
+        break;
       }
     }
   }
   if (imageUrl) {
     result.image_url = imageUrl;
     logger.info(`[Claude][WineImage] Image found for ${itemCode}: ${imageUrl}`);
+  } else {
+    result.image_url = undefined; // 모델이 지어낸 URL 방지 — 공식 사이트 실패 시 무조건 공란
+    logger.info(`[Claude][WineImage] No official-site image for ${itemCode} — leaving empty`);
   }
 
   // Step 4: 검증 — 컨텍스트 풍부하면 스킵 (WS+브랜드 둘 다 있으면 신뢰도 높음)
