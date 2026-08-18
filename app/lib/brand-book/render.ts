@@ -229,7 +229,7 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
         doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
         // 이어지는 페이지 상단에 브랜드명 소제목
         doc.font(fontBold).fontSize(10).fillColor('#8a6a48')
-          .text(`${brand.name_kr} (계속)`, i(0.65), i(0.55));
+          .text(brand.name_kr, i(0.65), i(0.55));
         y = 0.95;
       }
       wineRow(doc, w, imgs.get(w.item_code) ?? null, y, fontRegular, fontBold);
