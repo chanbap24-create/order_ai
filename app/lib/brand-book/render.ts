@@ -5,22 +5,28 @@ import { i, PAGE_W, PAGE_H, C } from '@/app/lib/pdf-generator/theme';
 import { ensureKoreanFont } from '@/app/lib/pdf-generator/fonts';
 import { downloadImageAsBase64 } from '@/app/lib/wineImageSearch';
 import { logger } from '@/app/lib/logger';
+import sharp from 'sharp';
 import type { BookBrand, BookWine } from './data';
 
 const won = (n: number) => n.toLocaleString('ko-KR');
-const MAX_IMG_BYTES = 2_500_000; // 큰 원본은 PDF 비대화 방지 차원에서 생략
 
 type Img = { buf: Buffer; mime: string } | null;
 
-async function fetchImg(url: string | null): Promise<Img> {
+/** 이미지 축소·재압축 — 원본 그대로 임베드하면 책이 수십 MB가 되므로 필수.
+ *  병샷: 흰 배경 플래튼 + 높이 560px JPEG. 로고: 투명 유지 PNG 360px. */
+async function fetchImg(url: string | null, kind: 'bottle' | 'logo' = 'bottle'): Promise<Img> {
   if (!url) return null;
   try {
     const d = await downloadImageAsBase64(url);
     if (!d) return null;
-    if (!/jpe?g|png/i.test(d.mimeType)) return null; // pdfkit는 JPG/PNG만
-    const buf = Buffer.from(d.base64, 'base64');
-    if (buf.length > MAX_IMG_BYTES) return null;
-    return { buf, mime: d.mimeType };
+    const raw = Buffer.from(d.base64, 'base64');
+    if (kind === 'logo') {
+      const buf = await sharp(raw).resize({ width: 360, withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+      return { buf, mime: 'image/png' };
+    }
+    const buf = await sharp(raw).flatten({ background: '#ffffff' })
+      .resize({ height: 560, withoutEnlargement: true }).jpeg({ quality: 78 }).toBuffer();
+    return { buf, mime: 'image/jpeg' };
   } catch { return null; }
 }
 
@@ -35,7 +41,7 @@ async function prefetchImages(brand: BookBrand): Promise<Map<string, Img>> {
   await Promise.all(Array.from({ length: 6 }, async () => {
     while (idx < jobs.length) {
       const j = jobs[idx++];
-      out.set(j.key, await fetchImg(j.url));
+      out.set(j.key, await fetchImg(j.url, j.key === '__logo__' ? 'logo' : 'bottle'));
     }
   }));
   return out;
@@ -151,7 +157,35 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
   doc.on('data', (c: Buffer) => chunks.push(c));
 
   let pageNo = 0;
+  // ── 표지 ──
+  const year = new Date(Date.now() + 9 * 3600_000).getFullYear();
+  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+  doc.addPage(); pageNo++;
+  doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
+  doc.font(fontRegular).fontSize(13).fillColor('#8a6a48')
+    .text('C A V E   D E   V I N', 0, i(3.6), { width: i(PAGE_W), align: 'center', characterSpacing: 2 });
+  doc.font(fontBold).fontSize(30).fillColor('#241a14')
+    .text(`WINE COLLECTION ${year}`, 0, i(4.1), { width: i(PAGE_W), align: 'center' });
+  doc.font(fontRegular).fontSize(10.5).fillColor('#6b7280')
+    .text(`${today} 재고 기준 · 공급가(VAT 별도)`, 0, i(4.85), { width: i(PAGE_W), align: 'center' });
+  doc.save().moveTo(i(2.4), i(5.35)).lineTo(i(PAGE_W - 2.4), i(5.35)).lineWidth(1).strokeColor('#722f37').stroke().restore();
+
+  const EN_COUNTRY: Record<string, string> = {
+    '프랑스': 'FRANCE', '이탈리아': 'ITALY', '스페인': 'SPAIN', '포르투갈': 'PORTUGAL', '독일': 'GERMANY',
+    '미국': 'USA', '칠레': 'CHILE', '아르헨티나': 'ARGENTINA', '호주': 'AUSTRALIA', '뉴질랜드': 'NEW ZEALAND', '영국': 'ENGLAND',
+  };
+  let lastCountry = '';
   for (const brand of brands) {
+    // ── 국가 구분 페이지 ──
+    if (brand.country && brand.country !== lastCountry) {
+      lastCountry = brand.country;
+      doc.addPage(); pageNo++;
+      doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#3a2a22');
+      doc.font(fontBold).fontSize(34).fillColor('#f2e9dd')
+        .text(EN_COUNTRY[brand.country] || brand.country, 0, i(4.3), { width: i(PAGE_W), align: 'center', characterSpacing: 4 });
+      doc.font(fontRegular).fontSize(12).fillColor('#c9b79c')
+        .text(brand.country, 0, i(5.0), { width: i(PAGE_W), align: 'center' });
+    }
     const imgs = await prefetchImages(brand);
     doc.addPage(); pageNo++;
     doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');

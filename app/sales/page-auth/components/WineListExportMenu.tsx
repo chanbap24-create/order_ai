@@ -36,6 +36,25 @@ export function WineListExportMenu() {
     return () => { cancelled = true; };
   }, []);
 
+  const [bookBusy, setBookBusy] = useState(false);
+  const downloadBook = async () => {
+    setBookBusy(true);
+    try {
+      const params = new URLSearchParams({ minStock: JSON.stringify(minStock) });
+      const res = await fetch(`/api/sales/brand-book?${params}`);
+      if (!res.ok) throw new Error('실패');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `brandbook_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('브랜드북 생성에 실패했습니다.');
+    } finally { setBookBusy(false); }
+  };
+
   const download = async () => {
     setDownloading(true);
     try {
@@ -73,6 +92,10 @@ export function WineListExportMenu() {
       </button>
       <button onClick={() => setOpen(o => !o)} style={{ ...btn, color: open ? 'var(--action)' : 'var(--text-tertiary)' }}>
         옵션
+      </button>
+      <button onClick={downloadBook} disabled={bookBusy} style={btn}
+        title="출고 가능 재고 기준 브랜드북 PDF (브랜드 소개+병샷). 옵션의 최소재고 규칙 적용, 생성에 1~2분 걸릴 수 있어요">
+        {bookBusy ? '생성 중…' : '브랜드북'}
       </button>
       {open && (
         <>

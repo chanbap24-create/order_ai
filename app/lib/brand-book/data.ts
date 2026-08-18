@@ -35,9 +35,14 @@ const countryRank = (c: string) => {
   return idx === -1 ? 99 : idx;
 };
 
+// 브랜드북 전용 실질 재고 하한 — 옵션 규칙과 별개로 전 가격대 공통.
+// 고가 1~5병(대용량 한정판 등)은 형식상 재고일 뿐 거래처 주문을 못 받아 북에서 제외.
+const MIN_BOOK_STOCK = 6;
+
 export async function buildBrandBookData(opts?: { minStock?: Record<string, number> | null }): Promise<BookBrand[]> {
   // 1) 와인리스트와 동일한 선별 규칙 — 검색·비상품·공급가·실재고·가격대별 최소재고(세일즈 옵션)
-  const listed = await selectWineListWines({ hideZero: true, minStock: opts?.minStock ?? null });
+  const listed0 = await selectWineListWines({ hideZero: true, minStock: opts?.minStock ?? null });
+  const listed = listed0.filter((w) => (w.available_stock ?? 0) >= MIN_BOOK_STOCK);
   const priceOf = new Map(listed.map((w) => [w.item_code, w.supply_price || 0]));
   const stockCodes = listed.map((w) => w.item_code);
 
