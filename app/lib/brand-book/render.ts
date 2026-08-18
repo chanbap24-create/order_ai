@@ -221,19 +221,47 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
     doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
     let y = brandHeader(doc, brand, imgs.get('__logo__') ?? null, fontRegular, fontBold);
     y += 0.1;
-    for (const w of brand.wines) {
-      const rh = rowHeight(doc, w, fontRegular);
-      if (y + rh > ROW_BOTTOM) {
+    // 페이지 단위 2패스 배치 — 들어갈 행을 먼저 계산하고, 남는 공간을 행간에 균등 분배(상한 캡).
+    // 위에서만 흘리면 특히 헤더가 있는 첫 페이지 하단에 어색한 공백이 남는다.
+    let idx = 0;
+    while (idx < brand.wines.length) {
+      const fit: { w: BookWine; rh: number }[] = [];
+      let yy = y;
+      while (idx + fit.length < brand.wines.length) {
+        const w = brand.wines[idx + fit.length];
+        const rh = rowHeight(doc, w, fontRegular);
+        if (yy + rh > ROW_BOTTOM) break;
+        fit.push({ w, rh });
+        yy += rh;
+      }
+      if (fit.length === 0) {
+        // 이 페이지엔 한 행도 안 들어감(헤더가 김) → 다음 페이지로
         footer(doc, fontRegular, pageNo);
         doc.addPage(); pageNo++;
         doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
-        // 이어지는 페이지 상단에 브랜드명 소제목
+        doc.font(fontBold).fontSize(10).fillColor('#8a6a48')
+          .text(brand.name_kr, i(0.65), i(0.55));
+        y = 0.95;
+        continue;
+      }
+      // 남는 공간을 행 사이에 분배 — 과하면 성기니 행당 0.35in 상한.
+      // 행이 하나뿐이면 남는 공간의 절반을 위에 줘 세로 중앙 배치(하단 공백 방지).
+      const leftover = ROW_BOTTOM - yy;
+      const extra = fit.length > 1 ? Math.min(0.35, leftover / fit.length) : 0;
+      if (fit.length === 1) y += Math.min(1.6, leftover / 2);
+      for (const { w, rh } of fit) {
+        wineRow(doc, w, imgs.get(w.item_code) ?? null, y, fontRegular, fontBold);
+        y += rh + extra;
+      }
+      idx += fit.length;
+      if (idx < brand.wines.length) {
+        footer(doc, fontRegular, pageNo);
+        doc.addPage(); pageNo++;
+        doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
         doc.font(fontBold).fontSize(10).fillColor('#8a6a48')
           .text(brand.name_kr, i(0.65), i(0.55));
         y = 0.95;
       }
-      wineRow(doc, w, imgs.get(w.item_code) ?? null, y, fontRegular, fontBold);
-      y += rh;
     }
     footer(doc, fontRegular, pageNo);
   }
