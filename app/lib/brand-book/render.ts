@@ -176,15 +176,12 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
   let pageNo = 0;
   // ── 표지 ──
   const year = new Date(Date.now() + 9 * 3600_000).getFullYear();
-  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
   doc.addPage(); pageNo++;
   doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
   doc.font(fontRegular).fontSize(13).fillColor('#8a6a48')
     .text('C A V E   D E   V I N', 0, i(3.6), { width: i(PAGE_W), align: 'center', characterSpacing: 2 });
   doc.font(fontBold).fontSize(30).fillColor('#241a14')
     .text(`WINE COLLECTION ${year}`, 0, i(4.1), { width: i(PAGE_W), align: 'center' });
-  doc.font(fontRegular).fontSize(10.5).fillColor('#6b7280')
-    .text(`${today} 재고 기준 · 공급가(VAT 별도)`, 0, i(4.85), { width: i(PAGE_W), align: 'center' });
   doc.save().moveTo(i(2.4), i(5.35)).lineTo(i(PAGE_W - 2.4), i(5.35)).lineWidth(1).strokeColor('#722f37').stroke().restore();
 
   const EN_COUNTRY: Record<string, string> = {
