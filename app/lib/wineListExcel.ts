@@ -29,7 +29,9 @@ type WineRow = {
   supply_price?: number; available_stock?: number | null;
 };
 
-export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffer> {
+/** 와인리스트 선별 규칙(공통) — 검색/국가/비상품/공급가/실재고/가격대별 최소재고 필터를
+ *  통과한 와인 목록. 엑셀·브랜드북이 같은 규칙을 공유한다. supply_price는 inventory 보정값. */
+export async function selectWineListWines(opts: WineExportOpts): Promise<WineRow[]> {
   const search = opts.search || '';
   const country = opts.country || '';
   const hideZero = !!opts.hideZero;
@@ -100,6 +102,12 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
     }
     return !(price <= 100000 && avail < 10);
   });
+
+  return allWines;
+}
+
+export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffer> {
+  let allWines = await selectWineListWines(opts);
 
   // 브랜드 약어 → 공급자명 맵 (하드코딩 + 브랜드 자료실)
   const brandMap = await loadBrandSupplierMap();
