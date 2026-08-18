@@ -3,7 +3,7 @@
 import { supabase } from '@/app/lib/db';
 import { flavorLabel } from '@/app/api/sales/recommend/lib/flavor';
 import { vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
-import { selectWineListWines } from '@/app/lib/wineListExcel';
+import { selectWineListWines, WINE_LIST_BRAND_ORDER } from '@/app/lib/wineListExcel';
 
 export interface BookWine {
   item_code: string;
@@ -28,12 +28,6 @@ export interface BookBrand {
   wines: BookWine[];
 }
 
-// 원본 브랜드북의 국가 순서 관례
-const COUNTRY_ORDER = ['프랑스', '이탈리아', '스페인', '포르투갈', '독일', '미국', '칠레', '아르헨티나', '호주', '뉴질랜드', '영국'];
-const countryRank = (c: string) => {
-  const idx = COUNTRY_ORDER.indexOf(c);
-  return idx === -1 ? 99 : idx;
-};
 
 // 브랜드북 전용 실질 재고 하한 — 옵션 규칙과 별개로 전 가격대 공통.
 // 고가 1~5병(대용량 한정판 등)은 형식상 재고일 뿐 거래처 주문을 못 받아 북에서 제외.
@@ -123,11 +117,10 @@ export async function buildBrandBookData(opts?: { minStock?: Record<string, numb
     }
     g.wines = [...byBase.values()];
   }
-  // 정렬: 국가 → 브랜드명 / 브랜드 안에서는 가격 내림차순
+  // 정렬: 와인리스트와 동일한 브랜드 순번표 / 브랜드 안에서는 가격 내림차순
   for (const g of list) g.wines.sort((a, b) => b.supply_price - a.supply_price);
   list.sort((a, b) =>
-    countryRank(a.country) - countryRank(b.country)
-    || a.country.localeCompare(b.country, 'ko')
+    (WINE_LIST_BRAND_ORDER[a.code] ?? 999) - (WINE_LIST_BRAND_ORDER[b.code] ?? 999)
     || a.name_kr.localeCompare(b.name_kr, 'ko'));
   return list;
 }

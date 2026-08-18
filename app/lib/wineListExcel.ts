@@ -10,6 +10,20 @@ import ExcelJS from 'exceljs';
 
 export const DEFAULT_WINE_MIN_STOCK = { u20k: 120, u50k: 60, u100k: 24, u200k: 12, over: 1 };
 
+// 와인리스트 표준 정렬 순번 (국가 → 브랜드) — 브랜드북 등과 공유
+export const WINE_LIST_COUNTRY_ORDER: Record<string, number> = {
+  'England': 0, '영국': 0, 'France': 1, '프랑스': 1, 'Italy': 2, '이탈리아': 2, '이태리': 2, 'Spain': 3, '스페인': 3,
+  'Portugal': 4, '포르투갈': 4, 'USA': 5, 'United States': 5, '미국': 5, 'Chile': 6, '칠레': 6, 'Argentina': 7, '아르헨티나': 7,
+  'Australia': 8, '호주': 8, 'NewZealand': 9, 'New Zealand': 9, '뉴질랜드': 9,
+  };
+export const WINE_LIST_BRAND_ORDER: Record<string, number> = {
+  RF:0,CH:1,SU:2,LG:3,CP:4,HG:5,MA:6,WM:7,VA:8,DA:9,LR:10,BL:11,DD:12,VG:13,RB:14,MG:15,CC:16,LM:17,CL:18,JP:19,
+  DF:20,CD:21,GA:22,DP:23,CF:24,MD:25,CA:26,PE:27,BO:28,AS:29,EF:30,VP:31,OR:32,BS:33,AT:34,IG:35,MM:36,JC:37,SM:38,ST:39,
+  CO:40,GH:41,BM:42,LS:43,FP:44,AR:45,LT:46,FL:47,PS:48,RG:49,RE:50,RT:51,SV:52,CR:53,RL:54,PF:55,GC:56,GF:57,MB:58,AD:59,
+  PR:60,AC:61,LB:62,SS:63,HP:64,EM:65,CK:66,RO:67,LC:68,
+  };
+
+
 // 세일즈 와인리스트에서 수동 제외할 품번 (실상품이지만 리스트 노출 원치 않음)
 const WINE_LIST_EXCLUDE_CODES = new Set<string>([
   '2014533', // 르로아(메) 쇼레 레 본
@@ -156,22 +170,11 @@ export async function generateWineListExcel(opts: WineExportOpts): Promise<Buffe
     if (w.country === 'United States') w.country = 'USA';
   }
 
-  // 커스텀 정렬 (국가 → 브랜드 → 가격)
-  const COUNTRY_ORDER: Record<string, number> = {
-    'England': 0, '영국': 0, 'France': 1, '프랑스': 1, 'Italy': 2, '이탈리아': 2, '이태리': 2, 'Spain': 3, '스페인': 3,
-    'Portugal': 4, '포르투갈': 4, 'USA': 5, 'United States': 5, '미국': 5, 'Chile': 6, '칠레': 6, 'Argentina': 7, '아르헨티나': 7,
-    'Australia': 8, '호주': 8, 'NewZealand': 9, 'New Zealand': 9, '뉴질랜드': 9,
-  };
-  const BRAND_ORDER: Record<string, number> = {
-    RF:0,CH:1,SU:2,LG:3,CP:4,HG:5,MA:6,WM:7,VA:8,DA:9,LR:10,BL:11,DD:12,VG:13,RB:14,MG:15,CC:16,LM:17,CL:18,JP:19,
-    DF:20,CD:21,GA:22,DP:23,CF:24,MD:25,CA:26,PE:27,BO:28,AS:29,EF:30,VP:31,OR:32,BS:33,AT:34,IG:35,MM:36,JC:37,SM:38,ST:39,
-    CO:40,GH:41,BM:42,LS:43,FP:44,AR:45,LT:46,FL:47,PS:48,RG:49,RE:50,RT:51,SV:52,CR:53,RL:54,PF:55,GC:56,GF:57,MB:58,AD:59,
-    PR:60,AC:61,LB:62,SS:63,HP:64,EM:65,CK:66,RO:67,LC:68,
-  };
+  // 커스텀 정렬 (국가 → 브랜드 → 가격) — 순번표는 모듈 상단 export (브랜드북과 공유)
   allWines.sort((a, b) => {
-    const co = (COUNTRY_ORDER[a.country_en || a.country || ''] ?? 99) - (COUNTRY_ORDER[b.country_en || b.country || ''] ?? 99);
+    const co = (WINE_LIST_COUNTRY_ORDER[a.country_en || a.country || ''] ?? 99) - (WINE_LIST_COUNTRY_ORDER[b.country_en || b.country || ''] ?? 99);
     if (co !== 0) return co;
-    const br = (BRAND_ORDER[(a.brand || '').toUpperCase()] ?? 999) - (BRAND_ORDER[(b.brand || '').toUpperCase()] ?? 999);
+    const br = (WINE_LIST_BRAND_ORDER[(a.brand || '').toUpperCase()] ?? 999) - (WINE_LIST_BRAND_ORDER[(b.brand || '').toUpperCase()] ?? 999);
     if (br !== 0) return br;
     return (b.supply_price || 0) - (a.supply_price || 0);
   });
