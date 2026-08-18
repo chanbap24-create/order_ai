@@ -66,7 +66,7 @@ export async function buildBrandBookData(opts?: { minStock?: Record<string, numb
 
   // 4) 브랜드 자료실 (단종 브랜드 제외)
   const { data: brandRows } = await supabase.from('brands')
-    .select('brand_code, brand_name_kr, brand_name_en, country, region, description, logo_url, discontinued');
+    .select('brand_code, brand_name_kr, brand_name_en, country, region, description, book_description, logo_url, discontinued');
   const brandBy = new Map<string, NonNullable<typeof brandRows>[number]>();
   for (const b of brandRows || []) {
     if (b.brand_code) brandBy.set(String(b.brand_code).toUpperCase(), b);
@@ -86,7 +86,8 @@ export async function buildBrandBookData(opts?: { minStock?: Record<string, numb
         name_en: b?.brand_name_en || '',
         country: b?.country || String(w.country || ''),
         region: b?.region || '',
-        description: b?.description || '',
+        // 소개글: 원본 브랜드북 전사본 우선, 없으면 브랜드 자료실 문장
+        description: b?.book_description || b?.description || '',
         logo_url: b?.logo_url || null,
         wines: [],
       });
