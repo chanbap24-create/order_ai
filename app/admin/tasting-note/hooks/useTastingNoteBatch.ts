@@ -169,6 +169,12 @@ export function useTastingNoteBatch(p: Params) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ wineIds: ids, format }),
       });
+      // JSON이 아닌 응답(개발서버 재컴파일 중 HTML 등)을 파싱 크래시 대신 읽히는 메시지로
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`서버가 JSON이 아닌 응답을 반환 (HTTP ${res.status}). 잠시 후 다시 시도해주세요.\n${text.slice(0, 120)}`);
+      }
       const data = await res.json();
       if (data.success) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
