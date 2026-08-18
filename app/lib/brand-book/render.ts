@@ -94,30 +94,46 @@ function brandHeader(
   return y;
 }
 
-const ROW_H = 1.5;          // 와인 행 높이(inch)
+const ROW_H = 1.5;          // 와인 행 기본 높이(inch)
 const ROW_BOTTOM = PAGE_H - 0.8;
+const TX = 1.85, TW = 4.05; // 텍스트 x·폭
+
+/** 영문명이 한 줄을 넘는지 — 넘으면 2줄 허용하고 행 높이를 늘린다(겹침 방지) */
+function enLineCount(doc: PDFKit.PDFDocument, w: BookWine, fontRegular: string): number {
+  const enLine = [w.name_en, w.vintage].filter(Boolean).join(' ');
+  if (!enLine) return 0;
+  doc.font(fontRegular).fontSize(8.5);
+  return doc.widthOfString(enLine) > i(TW) ? 2 : 1;
+}
+
+/** 이 와인 행이 차지할 높이 — 영문명 2줄이면 +0.19in */
+function rowHeight(doc: PDFKit.PDFDocument, w: BookWine, fontRegular: string): number {
+  return ROW_H + (enLineCount(doc, w, fontRegular) === 2 ? 0.19 : 0);
+}
 
 /** 와인 한 행 — 좌 병샷, 우 텍스트, 우측 끝 가격 */
 function wineRow(
   doc: PDFKit.PDFDocument, w: BookWine, img: Img, y: number,
   fontRegular: string, fontBold: string,
 ) {
+  const rh = rowHeight(doc, w, fontRegular);
   // 병샷 (0.95in 폭 박스)
   if (img) {
     try {
-      doc.image(img.buf, i(0.65), i(y + 0.08), { fit: [i(0.95), i(ROW_H - 0.2)], align: 'center', valign: 'center' });
+      doc.image(img.buf, i(0.65), i(y + 0.08), { fit: [i(0.95), i(rh - 0.2)], align: 'center', valign: 'center' });
     } catch { /* 이미지 실패 시 공란 */ }
   }
-  const tx = 1.85, tw = 4.05;
+  const tx = TX, tw = TW;
   let ty = y + 0.16;
   doc.font(fontBold).fontSize(11.5).fillColor('#241a14')
-    .text(w.name_kr, i(tx), i(ty), { width: i(tw), lineBreak: false, ellipsis: true });
+    .text(w.name_kr, i(tx), i(ty), { width: i(tw), height: i(0.22), lineBreak: false, ellipsis: true });
   ty += 0.24;
   const enLine = [w.name_en, w.vintage].filter(Boolean).join(' ');
   if (enLine) {
+    const two = enLineCount(doc, w, fontRegular) === 2;
     doc.font(fontRegular).fontSize(8.5).fillColor('#9ca3af')
-      .text(enLine, i(tx), i(ty), { width: i(tw), lineBreak: false, ellipsis: true });
-    ty += 0.21;
+      .text(enLine, i(tx), i(ty), { width: i(tw), height: i(two ? 0.4 : 0.2), ellipsis: true, lineGap: 1 });
+    ty += two ? 0.4 : 0.21;
   }
   if (w.region) {
     doc.font(fontRegular).fontSize(8.5).fillColor('#6b7280')
@@ -137,8 +153,9 @@ function wineRow(
   doc.font(fontBold).fontSize(12).fillColor('#722f37')
     .text(`${won(w.supply_price)}원`, i(PAGE_W - 1.85), i(y + 0.5), { width: i(1.35), align: 'right' });
   // 행 구분 헤어라인
-  doc.save().moveTo(i(0.65), i(y + ROW_H - 0.05)).lineTo(i(PAGE_W - 0.5), i(y + ROW_H - 0.05))
+  doc.save().moveTo(i(0.65), i(y + rh - 0.05)).lineTo(i(PAGE_W - 0.5), i(y + rh - 0.05))
     .lineWidth(0.5).strokeColor('#ebebeb').stroke().restore();
+  return rh;
 }
 
 /** 브랜드 1개(파일럿) 또는 여러 브랜드를 이어서 렌더 */
@@ -174,17 +191,24 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
     '프랑스': 'FRANCE', '이탈리아': 'ITALY', '스페인': 'SPAIN', '포르투갈': 'PORTUGAL', '독일': 'GERMANY',
     '미국': 'USA', '칠레': 'CHILE', '아르헨티나': 'ARGENTINA', '호주': 'AUSTRALIA', '뉴질랜드': 'NEW ZEALAND', '영국': 'ENGLAND',
   };
-  let lastCountry = '';
+  // 표기 혼용(영문/한글) 정규화 — 같은 국가가 두 번 나오지 않게
+  const NORM: Record<string, string> = {
+    France: '프랑스', Italy: '이탈리아', Spain: '스페인', Portugal: '포르투갈', Germany: '독일',
+    USA: '미국', 'United States': '미국', Chile: '칠레', Argentina: '아르헨티나',
+    Australia: '호주', 'New Zealand': '뉴질랜드', England: '영국',
+  };
+  const seenCountries = new Set<string>();
   for (const brand of brands) {
-    // ── 국가 구분 페이지 ──
-    if (brand.country && brand.country !== lastCountry) {
-      lastCountry = brand.country;
+    // ── 국가 구분 페이지 — 국가별 최초 1회만 ──
+    const country = NORM[brand.country] || brand.country;
+    if (country && !seenCountries.has(country)) {
+      seenCountries.add(country);
       doc.addPage(); pageNo++;
       doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#3a2a22');
       doc.font(fontBold).fontSize(34).fillColor('#f2e9dd')
-        .text(EN_COUNTRY[brand.country] || brand.country, 0, i(4.3), { width: i(PAGE_W), align: 'center', characterSpacing: 4 });
+        .text(EN_COUNTRY[country] || country, 0, i(4.3), { width: i(PAGE_W), align: 'center', characterSpacing: 4 });
       doc.font(fontRegular).fontSize(12).fillColor('#c9b79c')
-        .text(brand.country, 0, i(5.0), { width: i(PAGE_W), align: 'center' });
+        .text(country, 0, i(5.0), { width: i(PAGE_W), align: 'center' });
     }
     const imgs = await prefetchImages(brand);
     doc.addPage(); pageNo++;
@@ -192,7 +216,8 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
     let y = brandHeader(doc, brand, imgs.get('__logo__') ?? null, fontRegular, fontBold);
     y += 0.1;
     for (const w of brand.wines) {
-      if (y + ROW_H > ROW_BOTTOM) {
+      const rh = rowHeight(doc, w, fontRegular);
+      if (y + rh > ROW_BOTTOM) {
         footer(doc, fontRegular, pageNo);
         doc.addPage(); pageNo++;
         doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
@@ -202,7 +227,7 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
         y = 0.95;
       }
       wineRow(doc, w, imgs.get(w.item_code) ?? null, y, fontRegular, fontBold);
-      y += ROW_H;
+      y += rh;
     }
     footer(doc, fontRegular, pageNo);
   }
