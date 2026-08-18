@@ -84,6 +84,45 @@ export function WineEditPanel({ detail, generatingPpt, onGeneratePpt }: Props) {
           />
 
           <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: 16, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+              <label
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#374151",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                한글명
+              </label>
+              <input
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  border: "1px solid var(--gray-300)",
+                  borderRadius: 6,
+                  fontSize: 16,
+                }}
+                placeholder="한글 와인명..."
+                value={detail.krNameInput}
+                onChange={(e) => detail.setKrNameInput(e.target.value)}
+              />
+              <button
+                onClick={detail.saveKrName}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 6,
+                  border: "1px solid var(--gray-300)",
+                  background: "#f9fafb",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                저장
+              </button>
+            </div>
+
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
               <label
                 style={{

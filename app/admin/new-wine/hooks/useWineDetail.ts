@@ -14,6 +14,7 @@ export function useWineDetail(
   const [tastingNote, setTastingNote] = useState<TastingNote | null>(null);
   const [editForm, setEditForm] = useState<EditForm>(EMPTY_EDIT_FORM);
   const [engNameInput, setEngNameInput] = useState("");
+  const [krNameInput, setKrNameInput] = useState("");
   const [researching, setResearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -62,6 +63,7 @@ export function useWineDetail(
           setTastingNote(tn);
           if (opts?.seedInputs !== false) {
             setEngNameInput(data.data.wine.item_name_en || "");
+            setKrNameInput(data.data.wine.item_name_kr || "");
             setImageUrlInput(data.data.wine.image_url || "");
             setImageUrlExpanded(!data.data.wine.image_url);
           }
@@ -79,6 +81,7 @@ export function useWineDetail(
     // 즉시 리스트 데이터로 입력칸 seed 후, 상세는 입력칸 건드리지 않고 로드(붙여넣기 보존)
     setSelectedWine(wine);
     setEngNameInput(wine.item_name_en || "");
+    setKrNameInput(wine.item_name_kr || "");
     setImageUrlInput(wine.image_url || "");
     setImageUrlExpanded(!wine.image_url);
     setTastingNote(null);
@@ -104,6 +107,25 @@ export function useWineDetail(
       if (patchWine) patchWine(code, { item_name_en: value });
       else refreshList();
       if (latestCodeRef.current === code) setSelectedWine({ ...snapshot, item_name_en: value });
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const saveKrName = async () => {
+    if (!selectedWine || !krNameInput.trim()) return;
+    const code = selectedWine.item_code;
+    const snapshot = selectedWine;
+    const value = krNameInput.trim();
+    try {
+      await fetch(`/api/admin/wines/${code}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wine: { item_name_kr: value } }),
+      });
+      if (patchWine) patchWine(code, { item_name_kr: value });
+      else refreshList();
+      if (latestCodeRef.current === code) setSelectedWine({ ...snapshot, item_name_kr: value });
     } catch {
       /* ignore */
     }
@@ -266,11 +288,12 @@ export function useWineDetail(
     tastingNote,
     editForm, updateField,
     engNameInput, setEngNameInput,
+    krNameInput, setKrNameInput,
     imageUrlInput, setImageUrlInput,
     imageUrlExpanded, setImageUrlExpanded,
     savingImageUrl, regeneratingNote,
     researching, saving, approving,
     loadWineDetail, selectWineFromList,
-    saveEngName, saveImageUrl, doResearch, handleSave, handleApprove,
+    saveEngName, saveKrName, saveImageUrl, doResearch, handleSave, handleApprove,
   };
 }
