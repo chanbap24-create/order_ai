@@ -3,7 +3,16 @@
 import { supabase } from '@/app/lib/db';
 import { flavorLabel } from '@/app/api/sales/recommend/lib/flavor';
 import { vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
-import { selectWineListWines, WINE_LIST_BRAND_ORDER } from '@/app/lib/wineListExcel';
+import { selectWineListWines, WINE_LIST_BRAND_ORDER, WINE_LIST_COUNTRY_ORDER } from '@/app/lib/wineListExcel';
+
+// 국가 표기 정규화 — 자료실 혼용(United States/USA/미국 등) 통일. 미국권은 'USA'로 표기.
+const NORM_COUNTRY: Record<string, string> = {
+  'United States': 'USA', '미국': 'USA', USA: 'USA',
+  France: '프랑스', Italy: '이탈리아', 이태리: '이탈리아', Spain: '스페인', Portugal: '포르투갈',
+  Germany: '독일', Chile: '칠레', Argentina: '아르헨티나', Australia: '호주',
+  'New Zealand': '뉴질랜드', NewZealand: '뉴질랜드', England: '영국',
+};
+const normCountry = (c: string) => NORM_COUNTRY[c.trim()] || c.trim();
 
 export interface BookWine {
   item_code: string;
@@ -83,7 +92,7 @@ export async function buildBrandBookData(opts?: { minStock?: Record<string, numb
         code: key,
         name_kr: b?.brand_name_kr || (code ? code : '기타 와인'),
         name_en: b?.brand_name_en || '',
-        country: b?.country || String(w.country || ''),
+        country: normCountry(b?.country || String(w.country || '')),
         region: b?.region || '',
         // 소개글: 원본 브랜드북 전사본 우선, 없으면 브랜드 자료실 문장
         description: b?.book_description || b?.description || '',
@@ -117,10 +126,11 @@ export async function buildBrandBookData(opts?: { minStock?: Record<string, numb
     }
     g.wines = [...byBase.values()];
   }
-  // 정렬: 와인리스트와 동일한 브랜드 순번표 / 브랜드 안에서는 가격 내림차순
+  // 정렬: 와인리스트와 동일 — 국가 순번 → 브랜드 순번표 → 이름. 순번표 밖 브랜드도 자기 국가 안에 정렬.
   for (const g of list) g.wines.sort((a, b) => b.supply_price - a.supply_price);
   list.sort((a, b) =>
-    (WINE_LIST_BRAND_ORDER[a.code] ?? 999) - (WINE_LIST_BRAND_ORDER[b.code] ?? 999)
+    (WINE_LIST_COUNTRY_ORDER[a.country] ?? 99) - (WINE_LIST_COUNTRY_ORDER[b.country] ?? 99)
+    || (WINE_LIST_BRAND_ORDER[a.code] ?? 999) - (WINE_LIST_BRAND_ORDER[b.code] ?? 999)
     || a.name_kr.localeCompare(b.name_kr, 'ko'));
   return list;
 }

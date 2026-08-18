@@ -189,26 +189,23 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
 
   const EN_COUNTRY: Record<string, string> = {
     '프랑스': 'FRANCE', '이탈리아': 'ITALY', '스페인': 'SPAIN', '포르투갈': 'PORTUGAL', '독일': 'GERMANY',
-    '미국': 'USA', '칠레': 'CHILE', '아르헨티나': 'ARGENTINA', '호주': 'AUSTRALIA', '뉴질랜드': 'NEW ZEALAND', '영국': 'ENGLAND',
-  };
-  // 표기 혼용(영문/한글) 정규화 — 같은 국가가 두 번 나오지 않게
-  const NORM: Record<string, string> = {
-    France: '프랑스', Italy: '이탈리아', Spain: '스페인', Portugal: '포르투갈', Germany: '독일',
-    USA: '미국', 'United States': '미국', Chile: '칠레', Argentina: '아르헨티나',
-    Australia: '호주', 'New Zealand': '뉴질랜드', England: '영국',
+    USA: 'USA', '칠레': 'CHILE', '아르헨티나': 'ARGENTINA', '호주': 'AUSTRALIA', '뉴질랜드': 'NEW ZEALAND', '영국': 'ENGLAND',
   };
   const seenCountries = new Set<string>();
   for (const brand of brands) {
-    // ── 국가 구분 페이지 — 국가별 최초 1회만 ──
-    const country = NORM[brand.country] || brand.country;
+    // ── 국가 구분 페이지 — 국가별 최초 1회만 (국가 표기는 data에서 정규화됨) ──
+    const country = brand.country;
     if (country && !seenCountries.has(country)) {
       seenCountries.add(country);
       doc.addPage(); pageNo++;
       doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#3a2a22');
+      const big = EN_COUNTRY[country] || country;
       doc.font(fontBold).fontSize(34).fillColor('#f2e9dd')
-        .text(EN_COUNTRY[country] || country, 0, i(4.3), { width: i(PAGE_W), align: 'center', characterSpacing: 4 });
-      doc.font(fontRegular).fontSize(12).fillColor('#c9b79c')
-        .text(country, 0, i(5.0), { width: i(PAGE_W), align: 'center' });
+        .text(big, 0, i(4.3), { width: i(PAGE_W), align: 'center', characterSpacing: 4 });
+      if (big !== country) {
+        doc.font(fontRegular).fontSize(12).fillColor('#c9b79c')
+          .text(country, 0, i(5.0), { width: i(PAGE_W), align: 'center' });
+      }
     }
     const imgs = await prefetchImages(brand);
     doc.addPage(); pageNo++;
