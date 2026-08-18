@@ -198,14 +198,26 @@ export async function renderBrandBookPdf(brands: BookBrand[]): Promise<Buffer> {
     if (country && !seenCountries.has(country)) {
       seenCountries.add(country);
       doc.addPage(); pageNo++;
-      doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#3a2a22');
+      doc.rect(0, 0, i(PAGE_W), i(PAGE_H)).fill('#ffffff');
       const big = EN_COUNTRY[country] || country;
-      doc.font(fontBold).fontSize(34).fillColor('#f2e9dd')
-        .text(big, 0, i(4.3), { width: i(PAGE_W), align: 'center', characterSpacing: 4 });
+      // 상단 아이브로우
+      doc.font(fontRegular).fontSize(9).fillColor('#8a6a48')
+        .text('C A V E   D E   V I N  —  W I N E   C O L L E C T I O N', 0, i(3.55), { width: i(PAGE_W), align: 'center', characterSpacing: 1.5 });
+      // 이중 헤어라인(위)
+      doc.save().moveTo(i(2.2), i(4.0)).lineTo(i(PAGE_W - 2.2), i(4.0)).lineWidth(1).strokeColor('#722f37').stroke().restore();
+      doc.save().moveTo(i(2.2), i(4.03)).lineTo(i(PAGE_W - 2.2), i(4.03)).lineWidth(0.5).strokeColor('#d4c4a8').stroke().restore();
+      // 국가명 (대형·넓은 자간)
+      doc.font(fontBold).fontSize(38).fillColor('#241a14')
+        .text(big, 0, i(4.45), { width: i(PAGE_W), align: 'center', characterSpacing: 6 });
+      // 한글 부제
       if (big !== country) {
-        doc.font(fontRegular).fontSize(12).fillColor('#c9b79c')
-          .text(country, 0, i(5.0), { width: i(PAGE_W), align: 'center' });
+        doc.font(fontRegular).fontSize(12).fillColor('#8a6a48')
+          .text(country, 0, i(5.25), { width: i(PAGE_W), align: 'center', characterSpacing: 3 });
       }
+      // 이중 헤어라인(아래)
+      const by = big !== country ? 5.7 : 5.45;
+      doc.save().moveTo(i(2.2), i(by)).lineTo(i(PAGE_W - 2.2), i(by)).lineWidth(0.5).strokeColor('#d4c4a8').stroke().restore();
+      doc.save().moveTo(i(2.2), i(by + 0.03)).lineTo(i(PAGE_W - 2.2), i(by + 0.03)).lineWidth(1).strokeColor('#722f37').stroke().restore();
     }
     const imgs = await prefetchImages(brand);
     doc.addPage(); pageNo++;

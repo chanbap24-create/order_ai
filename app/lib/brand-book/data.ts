@@ -12,7 +12,15 @@ const NORM_COUNTRY: Record<string, string> = {
   Germany: '독일', Chile: '칠레', Argentina: '아르헨티나', Australia: '호주',
   'New Zealand': '뉴질랜드', NewZealand: '뉴질랜드', England: '영국',
 };
-const normCountry = (c: string) => NORM_COUNTRY[c.trim()] || c.trim();
+// 대소문자 무시 매칭 (france/FRANCE 등 자료실 표기 편차 흡수)
+const NORM_LOWER: Record<string, string> = Object.fromEntries(
+  Object.entries(NORM_COUNTRY).map(([k, v]) => [k.toLowerCase(), v]));
+const KNOWN = new Set(Object.values(NORM_COUNTRY).concat(['프랑스', '이탈리아', '스페인', '포르투갈', '독일', 'USA', '칠레', '아르헨티나', '호주', '뉴질랜드', '영국']));
+const normCountry = (c: string) => {
+  const t = c.trim();
+  if (KNOWN.has(t)) return t;
+  return NORM_LOWER[t.toLowerCase()] || t;
+};
 
 export interface BookWine {
   item_code: string;
