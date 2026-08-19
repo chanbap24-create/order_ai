@@ -34,7 +34,7 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "recharts": "^3.7.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.34.5",
     "string-similarity": "^4.0.4",
     "subset-font": "^2.4.0",
     "unpdf": "^1.6.2",
