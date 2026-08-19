@@ -65,6 +65,25 @@ export async function canAccessClient(
       .maybeSingle();
     if (carry?.manager) return carry.manager === session.manager;
 
+    // 전산이관 재채번으로 코드가 갈린 거래처(예: 오일장 30506 마스터 / 30864 옛 출고):
+    // 마스터(glass_clients) 이름과 같은 이름의 출고 이력에서 담당을 확인.
+    const { data: master } = await supabase
+      .from('glass_clients')
+      .select('client_name')
+      .eq('client_code', clientCode)
+      .maybeSingle();
+    if (master?.client_name) {
+      const { data: byName } = await supabase
+        .from('glass_shipments')
+        .select('manager')
+        .eq('client_name', master.client_name)
+        .not('manager', 'is', null)
+        .order('ship_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (byName?.manager) return byName.manager === session.manager;
+    }
+
     // 어느 소스에도 담당자 정보가 없는 신규 거래처: default-deny.
     return false;
   }
