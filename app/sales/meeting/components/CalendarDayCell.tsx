@@ -53,7 +53,7 @@ export function CalendarDayCell({
           textAlign: "center",
           marginBottom: 3,
           ...(isToday
-            ? { background: "var(--action)", borderRadius: "50%", width: 22, height: 22, lineHeight: "22px", margin: "0 auto 3px" }
+            ? { background: "var(--action)", borderRadius: "50%", width: 22, height: 22, lineHeight: "22px", marginLeft: "auto", marginRight: "auto" }
             : {}),
         }}
       >

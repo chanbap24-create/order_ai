@@ -8,6 +8,7 @@ type Params = {
 
 const KST_NOW_DATE = () =>
   new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const KST_MONTH_START = () => KST_NOW_DATE().slice(0, 8) + "01";
 
 /**
  * AnalysisSection의 모든 state + 데이터 로드 로직 집약.
@@ -28,9 +29,9 @@ export function useAnalysisData(p: Params) {
 
   const [startDate, setStartDate] = useState(() => {
     if (typeof window !== "undefined") {
-      return sessionStorage.getItem("analysis_startDate") || "2026-01-01";
+      return sessionStorage.getItem("analysis_startDate") || KST_MONTH_START();
     }
-    return "2026-01-01";
+    return KST_MONTH_START();
   });
   const [endDate, setEndDate] = useState(() => {
     if (typeof window !== "undefined") {

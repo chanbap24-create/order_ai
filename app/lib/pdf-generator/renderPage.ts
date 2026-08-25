@@ -45,11 +45,16 @@ export function renderPage(
   drawLine(doc, 0.20, 0.84, 7.10, C.BURGUNDY, 1.0);
   drawLine(doc, 0.20, 0.87, 7.10, C.GOLD_LIGHT, 0.75);
 
-  // 와인명: 배경 쉐이드 없이 텍스트만
+  // 와인명: 배경 쉐이드 없이 텍스트만.
+  // 긴 이름은 한 줄에 맞을 때까지 폰트 축소(14→10pt), 그래도 길면 두 줄 허용 + 영문명을 아래로.
   const nameKrClean = stripCodePrefix(data.nameKr);
-  drawText(nameKrClean, 2.20, 1.04, 4.90, 14, fontBold, C.BURGUNDY_DARK);
+  let krFs = 14;
+  doc.font(fontBold);
+  while (krFs > 10 && doc.fontSize(krFs).widthOfString(nameKrClean) > i(4.90)) krFs -= 0.5;
+  drawText(nameKrClean, 2.20, 1.04, 4.90, krFs, fontBold, C.BURGUNDY_DARK);
+  const krH = measure(nameKrClean, 4.90, krFs, fontBold);
   const nameEnClean = stripCodePrefix(data.nameEn);
-  if (nameEnClean) drawText(nameEnClean, 2.20, 1.42, 4.90, 10, fontEn, C.TEXT_SECONDARY);
+  if (nameEnClean) drawText(nameEnClean, 2.20, Math.max(1.42, 1.04 + krH + 0.06), 4.90, 10, fontEn, C.TEXT_SECONDARY);
 
   // ── 헤더: 와이너리 로고(병과 중앙정렬) + 이름/원산지(우측 콘텐츠 시작점 정렬) ──
   {

@@ -28,6 +28,14 @@ export function classifyFeature(method: string, pathname: string): string | null
   if (pathname === '/api/sales/clients/managers') return null;
 
   // ─ 세일즈 (구체적 → 범용 순서) ─
+  if (pathname.startsWith('/api/sales/wine-img')) return null; // 병샷 프록시(부수 호출)
+  if (pathname.startsWith('/api/sales/shipments')) return '출고현황';
+  if (pathname.startsWith('/api/sales/incoming')) return '입항품목';
+  if (pathname.startsWith('/api/sales/tasting')) return '시음주';
+  if (pathname.startsWith('/api/sales/brand-book')) return '브랜드북';
+  if (pathname.startsWith('/api/sales/quote-stats')) return '견적성과';
+  if (pathname.startsWith('/api/sales/promo')) return '프로모션'; // promotions + promo-quote
+  if (pathname.startsWith('/api/sales/collection') || pathname.startsWith('/api/sales/payment-terms')) return '수금관리';
   if (pathname === '/api/sales/ledger' && method === 'GET') return '매출처원장조회';
   if (pathname === '/api/sales/ledger/export') return '매출처원장내보내기';
   if (pathname === '/api/sales/item-ledger' && method === 'GET') return '품목별판매조회';
@@ -38,7 +46,7 @@ export function classifyFeature(method: string, pathname: string): string | null
   if (pathname.startsWith('/api/sales/expense')) return '경비관리';
   if (pathname.startsWith('/api/sales/action')) return '액션';
   if (pathname.startsWith('/api/sales/alert')) return '알림';
-  if (pathname.startsWith('/api/sales/analysis')) return '영업분석';
+  if (pathname.startsWith('/api/analysis')) return '영업분석'; // 분석 탭 실제 API (/api/analysis/client)
   if (pathname.startsWith('/api/sales/briefing')) return '브리핑';
   if (pathname.startsWith('/api/sales/dismissed')) return '미수해제';
   if (pathname.startsWith('/api/sales/clients/stats')) return '거래처통계';
@@ -60,6 +68,8 @@ export function classifyFeature(method: string, pathname: string): string | null
   if (pathname.startsWith('/api/wine')) return '와인조회';
 
   // ─ 기타 ─
+  if (pathname.startsWith('/api/sommelier')) return '소믈리에';
+  if (pathname.startsWith('/api/stock')) return '재고조회';
   if (pathname.startsWith('/api/marketing')) return '마케팅분석';
   if (pathname.startsWith('/api/forecast')) return '수입량예측';
 

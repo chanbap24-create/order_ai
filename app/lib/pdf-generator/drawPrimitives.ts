@@ -43,7 +43,9 @@ export function drawLabelBadge(
     .font(fontBold)
     .fontSize(8.5)
     .fillColor(style === "outline" ? C.BURGUNDY_DARK : C.TEXT_ON_DARK);
-  const textY = i(y) + (i(h) - 8.5) / 2;
-  doc.text(text, i(x), textY, { width: i(w), align: "center" })
+  // 세로 중앙: 폰트 크기(8.5)가 아니라 실제 라인 높이(한글 폰트는 ascender가 큼) 기준으로 센터링
+  const lh = doc.currentLineHeight();
+  const textY = i(y) + (i(h) - lh) / 2;
+  doc.text(text, i(x), textY, { width: i(w), align: "center", lineBreak: false })
     .restore();
 }
