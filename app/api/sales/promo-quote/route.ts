@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   if (list.length === 0) return NextResponse.json({ map: {} });
 
   const [{ data: wines }, { data: notes }] = await Promise.all([
-    supabase.from('wines').select('item_code, item_name_en, brand').in('item_code', list),
+    supabase.from('wines').select('item_code, item_name_en, brand, image_url').in('item_code', list),
     supabase.from('tasting_notes')
       .select('wine_id, flavor_tags, winemaking, vintage_note, winery_description').in('wine_id', list),
   ]);
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   const map: Record<string, {
     name_en: string; flavors: string[];
     winemaking: string; vintage: string; winery: string;
-    brand_code: string; winery_name: string; has_logo: boolean; logo_ver: string;
+    brand_code: string; winery_name: string; has_logo: boolean; logo_ver: string; img_ver: string;
   }> = {};
   for (const w of wines || []) {
     const n = nmap.get(w.item_code);
@@ -63,6 +63,7 @@ export async function POST(req: Request) {
       winery_name: b?.name || '',
       has_logo: !!b?.hasLogo,
       logo_ver: b?.logoVer || '',
+      img_ver: hash(w.image_url || ''), // 병샷 URL 변경 시 캐시 무효화용 토큰
     };
   }
 

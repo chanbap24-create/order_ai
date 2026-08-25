@@ -20,13 +20,13 @@ export type PromoQuoteItem = {
 export type WineMeta = {
   name_en: string; flavors: string[];
   winemaking?: string; vintage?: string; winery?: string;
-  brand_code?: string; winery_name?: string; has_logo?: boolean; logo_ver?: string;
+  brand_code?: string; winery_name?: string; has_logo?: boolean; logo_ver?: string; img_ver?: string;
 };
 
 /** 와이너리 로고 프록시 URL — logo_ver를 붙여 로고 교체 시 브라우저 캐시 무효화 */
 const logoImg = (m: WineMeta) =>
   `/api/sales/wine-img?brand=${encodeURIComponent(m.brand_code || '')}${m.logo_ver ? `&v=${m.logo_ver}` : ''}`;
-const bottleImg = (code: string) => `/api/sales/wine-img?code=${encodeURIComponent(code)}`;
+const bottleImg = (code: string, ver?: string) => `/api/sales/wine-img?code=${encodeURIComponent(code)}${ver ? `&v=${ver}` : ''}`;
 const won = (n: number) => n.toLocaleString('ko-KR');
 
 export const kstToday = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
@@ -218,7 +218,7 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={bottleImg(it.code)} alt={it.name} crossOrigin="anonymous"
+          <img src={bottleImg(it.code, meta[it.code]?.img_ver)} alt={it.name} crossOrigin="anonymous"
             style={{ height: 280, width: 'auto', maxWidth: 320, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
@@ -282,7 +282,7 @@ function StoryCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0 4px' }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={bottleImg(it.code)} alt={it.name} crossOrigin="anonymous"
+          <img src={bottleImg(it.code, meta[it.code]?.img_ver)} alt={it.name} crossOrigin="anonymous"
             style={{ height: 280, width: 'auto', maxWidth: 320, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
