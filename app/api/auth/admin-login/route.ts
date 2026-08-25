@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isProd } from '@/app/lib/env';
 import { supabase } from '@/app/lib/db';
 import { verifyPassword, isLegacyHash, verifyLegacyPassword } from '@/app/lib/auth';
 import { rateLimit } from '@/app/lib/rateLimit';
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
       });
       response.cookies.set(ADMIN_COOKIE_NAME, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProd,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 24,
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
       const response = NextResponse.json({ success: false, mfa_required: true });
       response.cookies.set(PENDING_COOKIE, pendingToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProd,
         sameSite: 'lax',
         path: '/',
         maxAge: 60 * 5, // 5분
@@ -131,14 +132,14 @@ export async function POST(req: Request) {
     const response = NextResponse.json({ success: true, mfa_required: false });
     response.cookies.set(ADMIN_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProd,
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24,
     });
     // pending 쿠키 정리
     response.cookies.set(PENDING_COOKIE, '', {
-      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      httpOnly: true, secure: isProd,
       sameSite: 'lax', path: '/', maxAge: 0,
     });
     return response;
@@ -187,7 +188,7 @@ export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.set(ADMIN_COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProd,
     sameSite: 'lax',
     path: '/',
     maxAge: 0,

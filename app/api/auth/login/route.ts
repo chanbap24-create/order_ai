@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isProd } from '@/app/lib/env';
 import { supabase } from '@/app/lib/db';
 import { hashPassword, verifyPassword, isLegacyHash, verifyLegacyPassword, createSession, COOKIE_NAME } from '@/app/lib/auth';
 
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
 
     response.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProd,
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7일
@@ -111,7 +112,7 @@ export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.set(COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProd,
     sameSite: 'lax',
     path: '/',
     maxAge: 0,

@@ -1,25 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type {
-  InventoryItem,
-  QuoteItem,
-  WarehouseTab,
-  InvColumnKey,
-  QuoteColumnKey,
-  QuoteColumnConfig,
-  DocSettings,
-} from './types';
-import {
-  INV_COLUMNS,
-  DEFAULT_INV_CDV,
-  DEFAULT_INV_DL,
-  QUOTE_COLUMNS,
-  DEFAULT_QUOTE_VISIBLE,
-} from './constants/columns';
-import { CDV_DOC_DEFAULTS } from './constants/docDefaults';
+import { useState, useCallback } from 'react';
+import type { InventoryItem, QuoteItem, QuoteColumnConfig } from './types';
 import { calcDiscountedPrice } from './lib/priceCalc';
-import { CACHE_TTL, getCached, setCached } from '@/app/lib/sessionCache';
 import {
   renderInvCellValue as renderInvCellValueLib,
   getQuoteCellValue as getQuoteCellValueLib,
@@ -44,20 +27,24 @@ import { useQuoteItems } from './hooks/useQuoteItems';
 import { useQuoteInlineEdit } from './hooks/useQuoteInlineEdit';
 import { useInventorySearch } from './hooks/useInventorySearch';
 import { useInventoryLayout } from './hooks/useInventoryLayout';
+import { useInventoryPageState } from './hooks/useInventoryPageState';
 import { useQuoteExports } from './hooks/useQuoteExports';
 import { PromoQuoteOverlay, type PromoQuoteItem } from '@/app/sales/recommend/components/PromoQuoteOverlay';
 
 export default function InventoryPage() {
   const prefs = useServerPreferences();
 
-  // ── 페이지에 남는 state ──
-  const [activeTab, setActiveTab] = useState<WarehouseTab>('CDV');
-  const [countryList, setCountryList] = useState<string[]>([]);
-  const [visibleColumnsCDV, setVisibleColumnsCDV] = useState<InvColumnKey[]>(DEFAULT_INV_CDV);
-  const [visibleColumnsDL, setVisibleColumnsDL] = useState<InvColumnKey[]>(DEFAULT_INV_DL);
-  const [visibleQuoteColumns, setVisibleQuoteColumns] =
-    useState<QuoteColumnKey[]>(DEFAULT_QUOTE_VISIBLE);
-  const [docSettings, setDocSettings] = useState<DocSettings>(CDV_DOC_DEFAULTS);
+  // ── 탭·컬럼·문서설정 + 국가 목록 (분리 훅) ──
+  const {
+    activeTab, setActiveTab, countryList,
+    visibleColumnsCDV, setVisibleColumnsCDV,
+    visibleColumnsDL, setVisibleColumnsDL,
+    visibleQuoteColumns, setVisibleQuoteColumns,
+    docSettings, setDocSettings,
+    visibleInvColumns, availableInvColumns, visibleQuoteCols,
+  } = useInventoryPageState();
+
+  // ── 페이지에 남는 UI 토글 state ──
   const [showInvColumnSettings, setShowInvColumnSettings] = useState(false);
   const [showQuoteColumnSettings, setShowQuoteColumnSettings] = useState(false);
   const [showDocSettings, setShowDocSettings] = useState(false);
@@ -120,51 +107,13 @@ export default function InventoryPage() {
     onTabSwitched: search.resetForTabSwitch,
   });
 
-  // ══════════════════════════════════════
-  // EFFECTS
-  // ══════════════════════════════════════
-
-  useEffect(() => {
-    const cacheKey = `inventory_countries_${activeTab}`;
-    const cached = getCached<string[]>(cacheKey, CACHE_TTL.COUNTRIES);
-    if (cached) setCountryList(cached);
-
-    fetch(`/api/inventory/countries?tab=${activeTab}`)
-      .then(r => r.json())
-      .then(d => {
-        const list = d.countries || [];
-        setCountryList(list);
-        setCached(cacheKey, list);
-      })
-      .catch(() => {});
-  }, [activeTab]);
-
   useInventoryPreferences(
     prefs,
     { setActiveTab, setVisibleColumnsCDV, setVisibleColumnsDL, setVisibleQuoteColumns, setDocSettings },
     { activeTab, visibleColumnsCDV, visibleColumnsDL, visibleQuoteColumns, docSettings },
   );
 
-  // ══════════════════════════════════════
-  // COMPUTED VALUES
-  // ══════════════════════════════════════
-
-  const invColumnOrder = INV_COLUMNS.map(c => c.key);
-  const rawInvVisible = activeTab === 'CDV' ? visibleColumnsCDV : visibleColumnsDL;
-  const visibleInvColumns = [...new Set(rawInvVisible)].sort(
-    (a, b) => invColumnOrder.indexOf(a) - invColumnOrder.indexOf(b),
-  );
-
-  const availableInvColumns = INV_COLUMNS.filter(col => {
-    if (activeTab === 'CDV') return !col.dlOnly;
-    if (activeTab === 'DL') return !col.cdvOnly;
-    return true;
-  });
-
-  const visibleQuoteCols = visibleQuoteColumns
-    .map(key => QUOTE_COLUMNS.find(c => c.key === key))
-    .filter(Boolean) as QuoteColumnConfig[];
-
+  // ── 견적 합계 ──
   const totalNormal = quote.quoteItems.reduce((s, i) => s + i.supply_price * i.quantity, 0);
   const totalDiscount = quote.quoteItems.reduce(
     (s, i) => s + calcDiscountedPrice(i.supply_price, i.discount_rate, i.discounted_price) * i.quantity,

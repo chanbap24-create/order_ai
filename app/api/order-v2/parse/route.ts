@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isProd } from '@/app/lib/env';
 import { supabase } from '@/app/lib/db';
 import { getClaudeClient } from '@/app/lib/claudeClient';
 import { crossCheckQuantities } from '@/app/lib/crossCheckQuantity';
@@ -547,7 +548,7 @@ JSON배열만 응답. 텍스트 없이. item_no는 와인리스트에 있는 품
   } catch (error: any) {
     console.error('Order v2 parse error:', error);
     // production에서는 detail 노출 안 함 (supabase 내부 메시지 / 스키마 힌트 누출 방지)
-    const isDev = process.env.NODE_ENV !== 'production';
+    const isDev = !isProd;
     return NextResponse.json(
       {
         error: error.message || '파싱 중 오류가 발생했습니다.',

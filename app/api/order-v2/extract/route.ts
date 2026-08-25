@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isProd } from "@/app/lib/env";
 import { extractOrderFromImage } from "@/app/lib/orderIntake";
 import { getManagerClients } from "@/app/lib/orderClients";
 import { getSession } from "@/app/lib/auth";
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("order-v2 extract error:", error);
-    const isDev = process.env.NODE_ENV !== "production";
+    const isDev = !isProd;
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "이미지 분석 중 오류가 발생했습니다.",
