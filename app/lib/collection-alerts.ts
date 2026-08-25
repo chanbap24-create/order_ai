@@ -13,6 +13,8 @@ export interface CollItem {
   net_balance: number; overdue: number; days_overdue: number;
   due_date: string | null; oldest_unpaid_date: string | null;
   promised_date: string | null; promised_amount: number | null;
+  /** 약속 금액 대비 확인된 입금 합계(약속일 14일 전~) — 부분 입금 차액 안내용 */
+  promised_paid: number;
   stage: number; status: string; special: boolean; hidden: boolean;
 }
 
@@ -52,6 +54,7 @@ export async function buildCollectionBriefing(manager: string, today = kstToday(
       net_balance: r.net_balance, overdue: r.overdue,
       days_overdue: daysOverdue, due_date: dueDate, oldest_unpaid_date: r.oldest_unpaid_date ?? null,
       promised_date: f?.promised_date ?? null, promised_amount: f?.promised_amount ?? null,
+      promised_paid: 0,
       stage: f?.stage ?? 0, status: f?.status ?? 'open',
       special: r.overdue > 0 && daysOverdue >= 30,
       hidden: f?.hidden ?? false,
@@ -95,6 +98,7 @@ export async function buildCollectionBriefing(manager: string, today = kstToday(
         const sum = (byClient.get(it.client_code) || [])
           .filter((x) => x.d >= from)
           .reduce((s, x) => s + x.a, 0);
+        it.promised_paid = sum; // 부분 입금도 항목에 기록 → 문구에서 차액 안내
         if (sum >= (it.promised_amount || 0) - 1) fulfilled.add(`${it.client_code}|${it.client_type}`);
       }
     };

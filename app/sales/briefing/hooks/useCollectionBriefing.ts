@@ -13,6 +13,8 @@ export interface CollItem {
   oldest_unpaid_date: string | null;
   promised_date: string | null;
   promised_amount: number | null;
+  /** 약속 금액 대비 확인된 입금 합계 — 부분 입금 차액 안내용 (구 캐시엔 없을 수 있음) */
+  promised_paid?: number;
   stage: number;
   status: string;
   special: boolean;

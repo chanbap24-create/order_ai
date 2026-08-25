@@ -21,8 +21,18 @@ export function buildCollectionMessage(it: CollItem, mode: Mode, sender?: Sender
   const who = sender?.manager ? `${corp} ${sender.manager}${sender.title ? ` ${sender.title}` : ''}` : corp;
 
   // 금액 = 설정된 약속 금액 우선(부분 수금 약속 존중), 없으면 연체액 → 잔액
+  // 부분 입금: 약속 금액 중 일부만 확인된 경우 입금액·차액을 명시
+  const paid = it.promised_paid || 0;
+  const partial = (mode === 'today' || mode === 'broken')
+    && it.promised_amount != null && paid > 0 && paid < it.promised_amount;
+  const diff = partial ? it.promised_amount! - paid : 0;
+
   const body: string[] = [];
-  if (mode === 'today') {
+  if (partial) {
+    const when = it.promised_date ? `${mmdd(it.promised_date)} 결제 예정이셨던` : '약속하신';
+    body.push(`${when} ${fmt(it.promised_amount!)}원 중 ${fmt(paid)}원 입금 확인되었습니다. 감사합니다.`);
+    body.push(`차액 ${fmt(diff)}원이 남아 있어 안내드립니다. 편하실 때 마저 입금해 주시면 감사하겠습니다.`);
+  } else if (mode === 'today') {
     body.push(`오늘(${it.promised_date ? mmdd(it.promised_date) : '금일'}) 결제 예정이신 ${fmt(amount)}원 안내드립니다.`);
     body.push(`편하실 때 입금해 주시면 감사하겠습니다.`);
   } else if (mode === 'broken') {
