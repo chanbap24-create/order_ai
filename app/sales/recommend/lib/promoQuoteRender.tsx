@@ -218,7 +218,7 @@ function BasicCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={bottleImg(it.code, meta[it.code]?.img_ver)} alt={it.name} crossOrigin="anonymous"
+          <img src={bottleImg(it.code, m?.img_ver)} alt={it.name} crossOrigin="anonymous"
             style={{ height: 280, width: 'auto', maxWidth: 320, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
@@ -282,7 +282,7 @@ function StoryCard({ it, m, last, showSupply, showRate }: { it: PromoQuoteItem; 
       <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0 4px' }}>
         {it.code ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={bottleImg(it.code, meta[it.code]?.img_ver)} alt={it.name} crossOrigin="anonymous"
+          <img src={bottleImg(it.code, m?.img_ver)} alt={it.name} crossOrigin="anonymous"
             style={{ height: 280, width: 'auto', maxWidth: 320, objectFit: 'contain' }}
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         ) : <div style={{ fontSize: 40, opacity: 0.15 }}>🍷</div>}
