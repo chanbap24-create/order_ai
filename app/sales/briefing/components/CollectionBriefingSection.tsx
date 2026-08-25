@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import type { CollItem, CollectionBriefing } from '../hooks/useCollectionBriefing';
 import { LedgerPopup } from './LedgerPopup';
 import type { LedgerType } from '@/app/sales/ledger/types';
+import { buildCollectionMessage, type Sender } from '../lib/collectionMessage';
 
 const fmt = (n: number) => n.toLocaleString();
 const keyOf = (it: CollItem) => `${it.client_code}|${it.client_type}`;
@@ -181,7 +182,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
                         </tr>
                         {isEditing && (
                           <tr><td colSpan={5} style={{ padding: 0 }}>
-                            <Editor item={it} onSave={onSave} onClose={() => setEditing(null)} onOpenLedger={setLedger} />
+                            <Editor item={it} mode={mode} sender={data.sender} onSave={onSave} onClose={() => setEditing(null)} onOpenLedger={setLedger} />
                           </td></tr>
                         )}
                       </Fragment>
@@ -221,10 +222,18 @@ function Th({ col, label, left, sort, onSort }: { col: SortCol; label: string; l
   );
 }
 
-function Editor({ item, onSave, onClose, onOpenLedger }: { item: CollItem; onSave?: SaveFn; onClose: () => void; onOpenLedger: OpenLedgerFn }) {
+function Editor({ item, mode, sender, onSave, onClose, onOpenLedger }: { item: CollItem; mode: Mode; sender?: Sender; onSave?: SaveFn; onClose: () => void; onOpenLedger: OpenLedgerFn }) {
   const defAmt = item.promised_amount ?? (item.overdue > 0 ? item.overdue : item.net_balance);
   const [date, setDate] = useState(item.promised_date ?? '');
   const [amount, setAmount] = useState(String(defAmt));
+  const [copiedMsg, setCopiedMsg] = useState<string | null>(null);
+
+  // 수금 안내 문구 복사 — 복사 후 미리보기 표시 (뭘 보냈는지 확인용)
+  const copyMessage = async () => {
+    const msg = buildCollectionMessage(item, mode, sender);
+    try { await navigator.clipboard.writeText(msg); } catch { /* http/구형 브라우저 — 미리보기에서 수동 복사 */ }
+    setCopiedMsg(msg);
+  };
 
   // 수금일 변경 시 그 날짜 기준 미수로 금액 재계산
   const onDateChange = async (d: string) => {
@@ -238,8 +247,10 @@ function Editor({ item, onSave, onClose, onOpenLedger }: { item: CollItem; onSav
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--surface-muted)', borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
+    <div style={{ padding: '8px 16px', background: 'var(--surface-muted)', borderTop: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       <button onClick={() => onOpenLedger(item)} style={ledgerBtn}>📄 원장 보기</button>
+      <button onClick={copyMessage} style={ledgerBtn}>{copiedMsg ? '✓ 복사됨' : '💬 문구 복사'}</button>
       {onSave && (
         <>
           <label style={lbl}>수금일</label>
@@ -258,6 +269,12 @@ function Editor({ item, onSave, onClose, onOpenLedger }: { item: CollItem; onSav
         </>
       )}
       <button onClick={onClose} style={{ padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)', cursor: 'pointer' }}>닫기</button>
+    </div>
+    {copiedMsg && (
+      <div style={{ marginTop: 8, padding: '8px 10px', fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', background: 'var(--surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, whiteSpace: 'pre-wrap', userSelect: 'all' }}>
+        {copiedMsg}
+      </div>
+    )}
     </div>
   );
 }

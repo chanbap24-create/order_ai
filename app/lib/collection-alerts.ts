@@ -22,14 +22,17 @@ export interface CollectionBriefing {
   broken: CollItem[];
   overdue: CollItem[];
   counts: { promiseToday: number; broken: number; overdue: number; special: number };
+  /** 발신자(담당) — 수금 안내 문구의 서명용 */
+  sender: { manager: string; title: string | null };
 }
 
 export async function buildCollectionBriefing(manager: string, today = kstToday()): Promise<CollectionBriefing> {
-  const [wine, glass, fo] = await Promise.all([
+  const [wine, glass, fo, senderRow] = await Promise.all([
     supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }),
     supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }),
     supabase.from('collection_followups')
       .select('client_code, client_type, stage, status, promised_date, promised_amount, payment_type, hidden').eq('manager', manager),
+    supabase.from('sales_users').select('title').eq('manager', manager).maybeSingle(),
   ]);
 
   const foMap = new Map<string, { stage: number; status: string; promised_date: string | null; promised_amount: number | null; payment_type: string | null; hidden: boolean }>();
@@ -120,6 +123,7 @@ export async function buildCollectionBriefing(manager: string, today = kstToday(
       promiseToday: promiseToday.length, broken: broken.length,
       overdue: overdue.length, special: overdue.filter(o => o.special).length,
     },
+    sender: { manager, title: senderRow.data?.title ?? null },
   };
 }
 

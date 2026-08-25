@@ -24,6 +24,8 @@ export interface CollectionBriefing {
   broken: CollItem[];
   overdue: CollItem[];
   counts: { promiseToday: number; broken: number; overdue: number; special: number };
+  /** 발신자(담당) — 수금 안내 문구 서명용 (구 캐시엔 없을 수 있음) */
+  sender?: { manager: string; title: string | null };
 }
 
 // 마지막 결과를 탭 세션에 보관 → 재진입 시 즉시 표시(stale-while-revalidate).
