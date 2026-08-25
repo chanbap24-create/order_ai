@@ -61,7 +61,7 @@ async function run(req: NextRequest) {
         const html = [
           `🔔 <b>수금 브리핑</b> — ${today}`,
           `오늘 챙길 미수 <b>${s.total}곳</b>`,
-          `· 약속 어김 ${s.broken} · 연체 ${s.overdue} · 특별관리 ${s.special}`,
+          `· 오늘 약속 ${s.promiseToday} · 약속 어김 ${s.broken} · 연체 ${s.overdue} (특별관리 ${s.special})`,
           s.topName ? `최대: ${escapeHtml(s.topName)} ${s.topAmount.toLocaleString()}원` : '',
           `<a href="https://order-ai-one.vercel.app/sales">미수현황 열기</a>`,
         ].filter(Boolean).join('\n');
