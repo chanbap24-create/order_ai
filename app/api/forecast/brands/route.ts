@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 
 // 브랜드(supplier_kr) 기준 소진 분석
 export async function GET(req: NextRequest) {
@@ -9,10 +10,11 @@ export async function GET(req: NextRequest) {
     const startDate = `${startYear}-01-01`;
     const endDate = `${endYear}-12-31`;
 
-    // 1. wines에서 brand(supplier_kr) 매핑
-    const { data: wines } = await supabase.from('wines')
-      .select('item_code, item_name_kr, supplier_kr, country, supply_price, wine_type')
-      .not('item_code', 'like', 'D%');
+    // 1. wines에서 brand(supplier_kr) 매핑 — 2,000+행이라 1000행 캡 페이지네이션
+    const wines = await fetchAllRows<{ item_code: string; item_name_kr: string | null; supplier_kr: string | null; country: string | null; supply_price: number | null; wine_type: string | null }>((f, t) =>
+      supabase.from('wines')
+        .select('item_code, item_name_kr, supplier_kr, country, supply_price, wine_type')
+        .not('item_code', 'like', 'D%').order('item_code').range(f, t));
 
     const itemBrand: Record<string, { brand: string; country: string; price: number }> = {};
     for (const w of (wines || [])) {
@@ -41,9 +43,12 @@ export async function GET(req: NextRequest) {
     // 3. 빈티지 매칭 캐시
     const vintageMap = new Map<string, string>(); // item_no → brand
     const vintageBase = new Map<string, { brand: string; country: string; price: number }>();
+    // 품번→이름 Map 사전 구축 (루프 안 .find() O(n²) 제거)
+    const nameByCode = new Map<string, string>();
+    for (const w of wines) nameByCode.set(w.item_code, w.item_name_kr || '');
     for (const [code, info] of Object.entries(itemBrand)) {
       const base = code.slice(0, 2) + code.slice(4);
-      const abbr = ((wines || []).find(w => w.item_code === code)?.item_name_kr || '').match(/^([A-Z]{2})\s/)?.[1] || '';
+      const abbr = (nameByCode.get(code) || '').match(/^([A-Z]{2})\s/)?.[1] || '';
       if (!vintageBase.has(base + '|' + abbr)) {
         vintageBase.set(base + '|' + abbr, info);
       }

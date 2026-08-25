@@ -1,4 +1,5 @@
 import { supabase } from '@/app/lib/db';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 import { NextResponse } from 'next/server';
 
 import { BRAND_COUNTRY, WINE_CODES } from './lib/constants';
@@ -48,12 +49,13 @@ export async function POST(request: Request) {
     const analysisStart = `${yearFrom}-01-01`;
     const analysisEnd = `${yearTo}-12-31`;
 
-    // ── 1단계: wines + inventory_cdv 전체 로드 (4-stage 매칭용) ──
-    const [{ data: allWines }, { data: inv }] = await Promise.all([
-      supabase.from('wines')
+    // ── 1단계: wines + inventory_cdv 전체 로드 (4-stage 매칭용) — 1000행 캡 페이지네이션 ──
+    const [allWines, inv] = await Promise.all([
+      fetchAllRows<WineRow>((f, t) => supabase.from('wines')
         .select('item_code, item_name_kr, supply_price, avg_import_cost, region, grape_varieties, wine_type, country, supplier_kr')
-        .not('item_code', 'like', 'D%'),
-      supabase.from('inventory_cdv').select('item_no, country'),
+        .not('item_code', 'like', 'D%').order('item_code').range(f, t)),
+      fetchAllRows<{ item_no: string; country: string | null }>((f, t) =>
+        supabase.from('inventory_cdv').select('item_no, country').order('item_no').range(f, t)),
     ]);
 
     const wineMapForResolve = new Map<string, WineRow>();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 
 // 미팅 달력용 수금 마커: 브리핑에서 수금일+금액을 모두 지정한 거래처만 그 약속일에 표시.
 const isAdmin = (r: string) => r === 'admin' || r === 'executive' || r === 'sales_admin';
@@ -23,9 +24,12 @@ export async function GET(req: NextRequest) {
 
     const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 
+    // aging RPC(SETOF) 1000행 캡 — 페이지네이션
     const [wine, glass, fo] = await Promise.all([
-      supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }),
-      supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetchAllRows<any>((f, t) => supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }).range(f, t)),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetchAllRows<any>((f, t) => supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }).range(f, t)),
       supabase.from('collection_followups')
         .select('client_code, client_type, status, promised_date, promised_amount').eq('manager', manager),
     ]);
@@ -50,8 +54,8 @@ export async function GET(req: NextRequest) {
         date: f.promised_date, kind: f.promised_date < today ? 'broken' : 'promise',
       });
     });
-    scan(wine.data, 'wine');
-    scan(glass.data, 'glass');
+    scan(wine, 'wine');
+    scan(glass, 'glass');
 
     return NextResponse.json({ markers });
   } catch (err) {

@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/db";
+import { fetchAllRows } from "@/app/lib/fetchAll";
 import { stripQtyAndUnit, normTight, isSpecificAlias } from "./normalize";
 import {
   LEARNING_BONUS, RECENT_PURCHASE_BONUS, FREQUENCY_BONUS,
@@ -19,15 +20,21 @@ export async function preloadScoringData(
 ): Promise<PreloadedScoringData> {
   const table = dataType === 'glass' ? 'glass_client_item_stats' : 'client_item_stats';
 
-  const [aliasResult, statsResult, tokenResult, priceResult] = await Promise.all([
-    supabase.from('item_alias').select('alias, canonical, count, client_code').limit(10000),
-    supabase.from(table).select('item_no, updated_at, supply_price').eq('client_code', clientCode).limit(10000),
-    supabase.from('token_mapping').select('token, mapped_text, learned_count').limit(10000),
-    supabase.from('inventory_cdv').select('item_no, supply_price').not('supply_price', 'is', null).limit(20000),
+  // ⚠️ limit(N>1000)은 PostgREST max-rows(1000)를 못 넘는다 → fetchAllRows 페이지네이션 필수.
+  // 학습 별칭/토큰/공급가가 1000행에서 잘리면 매칭 정확도가 조용히 저하됨.
+  const [aliasRows, statsRows, tokenRows, priceRows] = await Promise.all([
+    fetchAllRows<{ alias: string; canonical: string; count: number; client_code: string | null }>((f, t) =>
+      supabase.from('item_alias').select('alias, canonical, count, client_code').order('alias').range(f, t)),
+    fetchAllRows<{ item_no: string; updated_at: string | null; supply_price: number | null }>((f, t) =>
+      supabase.from(table).select('item_no, updated_at, supply_price').eq('client_code', clientCode).order('item_no').range(f, t)),
+    fetchAllRows<{ token: string; mapped_text: string; learned_count: number }>((f, t) =>
+      supabase.from('token_mapping').select('token, mapped_text, learned_count').order('token').range(f, t)),
+    fetchAllRows<{ item_no: string; supply_price: number }>((f, t) =>
+      supabase.from('inventory_cdv').select('item_no, supply_price').not('supply_price', 'is', null).order('item_no').range(f, t)),
   ]);
 
   const clientStats = new Map<string, { updated_at: string | null; supply_price: number | null }>();
-  for (const r of (statsResult.data || []) as Array<{ item_no: string; updated_at: string | null; supply_price: number | null }>) {
+  for (const r of statsRows) {
     clientStats.set(String(r.item_no), {
       updated_at: r.updated_at || null,
       supply_price: r.supply_price || null,
@@ -35,14 +42,14 @@ export async function preloadScoringData(
   }
 
   const supplyPrices = new Map<string, number>();
-  for (const r of (priceResult.data || []) as Array<{ item_no: string; supply_price: number }>) {
+  for (const r of priceRows) {
     if (r.supply_price) supplyPrices.set(String(r.item_no), r.supply_price);
   }
 
   return {
-    itemAliases: (aliasResult.data || []) as PreloadedScoringData['itemAliases'],
+    itemAliases: aliasRows as PreloadedScoringData['itemAliases'],
     clientStats,
-    tokenMappings: (tokenResult.data || []) as PreloadedScoringData['tokenMappings'],
+    tokenMappings: tokenRows as PreloadedScoringData['tokenMappings'],
     supplyPrices,
   };
 }

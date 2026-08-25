@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { resolveManagerScope } from '@/app/lib/authz';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 
 // GET /api/sales/outstanding/aging?manager=XXX&type=wine&as_of=YYYY-MM-DD
 // 미수금 연령 분석(0-30/31-60/61-90/90+). 까브드뱅/대유라이프 별도 RPC.
@@ -22,13 +23,14 @@ export async function GET(req: NextRequest) {
     const recentParams: Record<string, string> = { p_manager: manager, p_type: clientType };
     if (asOf) recentParams.p_as_of = asOf;
 
-    const [agingRes, recentRes] = await Promise.all([
-      supabase.rpc(rpcName, params),
+    // aging RPC(SETOF)는 1000행 캡 대상 — 미수 거래처 1000곳 초과 시 누락되므로 페이지네이션
+    const [agingRows, recentRes] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fetchAllRows<any>((f, t) => supabase.rpc(rpcName, params).range(f, t)),
       supabase.rpc('fn_recent_collections', recentParams),
     ]);
-    if (agingRes.error) throw agingRes.error;
     return NextResponse.json({
-      clients: agingRes.data || [],
+      clients: agingRows,
       recent_payment_total: recentRes.error ? null : (recentRes.data ?? 0),
     });
   } catch (err) {

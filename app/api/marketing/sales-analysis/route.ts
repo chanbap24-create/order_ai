@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 
 import { BRAND_COUNTRY } from './lib/constants';
 import { buildVintageMap } from './lib/wineResolver';
@@ -26,12 +27,14 @@ export async function GET(req: NextRequest) {
       brand: searchParams.get('brand') || '',
     };
 
-    // wines + inventory 병렬 로드
-    const [{ data: wines }, { data: inv }] = await Promise.all([
-      supabase.from('wines')
-        .select('item_code, item_name_kr, country, region, wine_type, supplier_kr, supplier, brand')
-        .not('item_code', 'like', 'D%'),
-      supabase.from('inventory_cdv').select('item_no, country'),
+    // wines + inventory 병렬 로드 — wines 2,000+행이라 1000행 캡 페이지네이션
+    const [wines, inv] = await Promise.all([
+      fetchAllRows<{ item_code: string; item_name_kr: string | null; country: string | null; region: string | null; wine_type: string | null; supplier_kr: string | null; supplier: string | null; brand: string | null }>((f, t) =>
+        supabase.from('wines')
+          .select('item_code, item_name_kr, country, region, wine_type, supplier_kr, supplier, brand')
+          .not('item_code', 'like', 'D%').order('item_code').range(f, t)),
+      fetchAllRows<{ item_no: string; country: string | null }>((f, t) =>
+        supabase.from('inventory_cdv').select('item_no, country').order('item_no').range(f, t)),
     ]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

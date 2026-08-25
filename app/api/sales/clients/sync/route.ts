@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
 import { canViewAllManagers } from '@/app/lib/authz';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 
 // POST: clients + glass_clients → client_details 동기화
 // 기존 거래처 데이터를 영업 관리용 테이블로 병합 — 관리 권한 전용
@@ -12,23 +13,16 @@ export async function POST() {
     if (!canViewAllManagers(session)) {
       return NextResponse.json({ error: '거래처 동기화 권한이 없습니다.' }, { status: 403 });
     }
-    // 1. 기존 wine 거래처
-    const { data: wineClients, error: e1 } = await supabase
-      .from('clients')
-      .select('client_code, client_name');
-    if (e1) throw e1;
-
-    // 2. 기존 glass 거래처
-    const { data: glassClients, error: e2 } = await supabase
-      .from('glass_clients')
-      .select('client_code, client_name');
-    if (e2) throw e2;
-
-    // 3. 이미 등록된 거래처 코드 조회
-    const { data: existing, error: e3 } = await supabase
-      .from('client_details')
-      .select('client_code');
-    if (e3) throw e3;
+    // 1~3. 거래처 3테이블 전량 조회 — 각각 수천 행이라 1000행 캡 페이지네이션 필수.
+    // 단발 select는 1000행에서 잘려 기존 거래처를 '신규'로 오판(덮어쓰기 오염) 위험.
+    const [wineClients, glassClients, existing] = await Promise.all([
+      fetchAllRows<{ client_code: string; client_name: string }>((f, t) =>
+        supabase.from('clients').select('client_code, client_name').order('client_code').range(f, t)),
+      fetchAllRows<{ client_code: string; client_name: string }>((f, t) =>
+        supabase.from('glass_clients').select('client_code, client_name').order('client_code').range(f, t)),
+      fetchAllRows<{ client_code: string }>((f, t) =>
+        supabase.from('client_details').select('client_code').order('client_code').range(f, t)),
+    ]);
 
     const existingCodes = new Set((existing || []).map(e => e.client_code));
 

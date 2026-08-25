@@ -1,4 +1,5 @@
 import { supabase } from './db';
+import { fetchAllRows } from './fetchAll';
 import { computeDueDate, type PaymentType } from '@/app/sales/outstanding/lib/dueDate';
 
 // 오늘의 수금 브리핑 빌더 — 브리핑 화면(API)과 텔레그램/알림톡 발송이 공유하는 단일 소스.
@@ -29,9 +30,12 @@ export interface CollectionBriefing {
 }
 
 export async function buildCollectionBriefing(manager: string, today = kstToday()): Promise<CollectionBriefing> {
-  const [wine, glass, fo, senderRow] = await Promise.all([
-    supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }),
-    supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }),
+  // aging RPC(SETOF)는 1000행 캡 대상 — 미수 거래처 1000곳 초과 시 누락되므로 페이지네이션
+  const [wineRows, glassRows, fo, senderRow] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fetchAllRows<any>((f, t) => supabase.rpc('calc_wine_aging', { p_manager: manager, p_as_of: today }).range(f, t)),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fetchAllRows<any>((f, t) => supabase.rpc('calc_glass_aging', { p_manager: manager, p_as_of: today }).range(f, t)),
     supabase.from('collection_followups')
       .select('client_code, client_type, stage, status, promised_date, promised_amount, payment_type, hidden').eq('manager', manager),
     supabase.from('sales_users').select('title').eq('manager', manager).maybeSingle(),
@@ -61,7 +65,7 @@ export async function buildCollectionBriefing(manager: string, today = kstToday(
     };
   });
 
-  const all = [...build(wine.data, 'wine'), ...build(glass.data, 'glass')];
+  const all = [...build(wineRows, 'wine'), ...build(glassRows, 'glass')];
 
   // ── 약속 이행 자동 판정 ──
   // 약속일 기준 '14일 전 ~ 이후' 입금 합계가 약속금액 이상이면 약속 이행 →

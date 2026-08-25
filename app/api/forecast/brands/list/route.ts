@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
+import { fetchAllRows } from '@/app/lib/fetchAll';
 
 export async function GET() {
   try {
-    const { data } = await supabase.from('wines')
-      .select('supplier_kr, country')
-      .not('item_code', 'like', 'D%')
-      .not('supplier_kr', 'is', null);
-
-    const { data: allWines } = await supabase.from('wines')
-      .select('brand, supplier_kr, country')
-      .not('item_code', 'like', 'D%');
+    // wines 2,000+행 — 1000행 캡 페이지네이션. (첫 쿼리는 미사용이라 제거)
+    const allWines = await fetchAllRows<{ brand: string | null; supplier_kr: string | null; country: string | null }>((f, t) =>
+      supabase.from('wines')
+        .select('brand, supplier_kr, country')
+        .not('item_code', 'like', 'D%').order('brand').range(f, t));
 
     const agg: Record<string, { supplier: string; abbr: string; country: string; count: number }> = {};
     for (const w of (allWines || [])) {
