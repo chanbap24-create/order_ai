@@ -14,6 +14,7 @@ import { ScanHeader } from '../alert/components/ScanHeader';
 import { SummaryFilters } from '../alert/components/SummaryFilters';
 import { AlertCard } from '../alert/components/AlertCard';
 import { AlternativesPanel } from '../alert/components/AlternativesPanel';
+import { TelegramLinkRow } from '../alert/components/TelegramLinkRow';
 import { Stack } from '@/app/components/ui';
 import { btnSecondary } from '@/app/styles/controls';
 
@@ -111,6 +112,8 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
         lastScanned={alertsState.lastScanned}
         onShowDismissed={() => setShowDismissed(true)}
       />
+
+      <TelegramLinkRow />
 
       {collData && <CollectionBriefingSection data={collData} onSave={saveColl} />}
 

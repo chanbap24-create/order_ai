@@ -170,6 +170,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // ── /api/telegram/webhook (POST) → 텔레그램 서버 호출: 라우트가 secret_token 헤더 자체 검증 ──
+  if (pathname === '/api/telegram/webhook' && request.method === 'POST') {
+    return NextResponse.next();
+  }
+
   // (forecast/marketing 무인증 예외 제거 — 아래 /api/* catch-all 이 sales_auth 강제 + 사용량 추적.
   //  회사 매출·거래처·가격 데이터가 무인증 노출되던 취약점 패치.)
 
