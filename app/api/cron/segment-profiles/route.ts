@@ -6,6 +6,8 @@ import { refreshSegmentProfiles } from '@/app/lib/segmentProfiles';
 
 // 업장유형·지역 세그먼트 프로파일 정기 자동 갱신(일일). 새 판매가 쌓이면 트렌드가 다음날 견적에 자동 반영.
 // Vercel Cron(Bearer) 또는 어드민(admin_auth) 트리거.
+
+export const maxDuration = 300; // 12개월 shipments 전량 스캔 — 타임아웃으로 중간 실패 방지
 async function authorize(req: NextRequest): Promise<boolean> {
   const secret = getEnv('CRON_SECRET');
   const auth = req.headers.get('authorization') || '';

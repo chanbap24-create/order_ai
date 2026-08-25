@@ -24,6 +24,9 @@ type EnvConfig = {
   SOLAPI_TEMPLATE_ID?: string;   // 승인된 알림톡 템플릿 ID
   SOLAPI_SENDER?: string;        // 발신 전화번호(알림톡 실패 시 SMS 대체)
   CRON_SECRET?: string;          // Vercel Cron 보호 시크릿 (Authorization: Bearer)
+  COMPANY_API_URL?: string;      // 전산(ERP) API — sync-daily
+  COMPANY_API_KEY?: string;
+  SETUP_SECRET_KEY?: string;     // 초기 계정 셋업 라우트 보호 키
   // 텔레그램 봇 (직원 내부 알림). 미설정 시 발송 비활성(no-op).
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_WEBHOOK_SECRET?: string; // setWebhook secret_token — webhook 요청 검증용
@@ -85,6 +88,9 @@ function validateEnv(): EnvConfig {
     SOLAPI_TEMPLATE_ID: process.env.SOLAPI_TEMPLATE_ID,
     SOLAPI_SENDER: process.env.SOLAPI_SENDER,
     CRON_SECRET: process.env.CRON_SECRET,
+    COMPANY_API_URL: process.env.COMPANY_API_URL,
+    COMPANY_API_KEY: process.env.COMPANY_API_KEY,
+    SETUP_SECRET_KEY: process.env.SETUP_SECRET_KEY,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET,
     NODE_ENV: nodeEnv,

@@ -10,6 +10,8 @@ import { buildManagerSummary, kstToday } from '@/app/lib/collection-alerts';
 // 수금 연체 알림 일일 발송 (텔레그램 DM + 알림톡). Vercel Cron(Bearer) 또는 어드민(admin_auth) 트리거.
 // ?manager=X 특정 매니저만, ?dry=1 발송 없이 미리보기.
 
+export const maxDuration = 300; // 매니저 수 × aging RPC — 직렬 지연 대비
+
 async function authorize(req: NextRequest): Promise<boolean> {
   const secret = getEnv('CRON_SECRET');
   const auth = req.headers.get('authorization') || '';
@@ -43,9 +45,10 @@ async function run(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = [];
-  for (const u of (users || [])) {
+  // 매니저별 처리 — aging RPC 2개+발송이 무거워 직렬이면 타임아웃 위험 → 3명씩 병렬
+  const processUser = async (u: { manager: string; phone: string | null; telegram_chat_id: string | null }) => {
     const s = await buildManagerSummary(u.manager, today);
-    if (s.total === 0) { results.push({ manager: u.manager, skipped: 'no_overdue' }); continue; }
+    if (s.total === 0) { results.push({ manager: u.manager, skipped: 'no_overdue' }); return; }
 
     const logSend = (channel: string, ok: boolean, error?: string | null) =>
       supabase.from('collection_alert_log').upsert({
@@ -79,7 +82,7 @@ async function run(req: NextRequest) {
     if (u.phone && solapiConfigured()) {
       if (!dryRun && sentSet.has(`${u.manager}|alimtalk`)) {
         results.push({ manager: u.manager, channel: 'alimtalk', skipped: 'already_sent' });
-        continue;
+        return;
       }
       const variables: Record<string, string> = {
         '#{이름}': u.manager,
@@ -90,11 +93,17 @@ async function run(req: NextRequest) {
         '#{대표금액}': s.topAmount.toLocaleString(),
       };
       const fallback = `[수금] ${u.manager}님, 오늘 챙길 미수 ${s.total}곳(약속어김 ${s.broken}, 특별관리 ${s.special}). 최대 ${s.topName} ${s.topAmount.toLocaleString()}원. 앱 브리핑 확인.`;
-      if (dryRun) { results.push({ manager: u.manager, channel: 'alimtalk', to: u.phone, variables }); continue; }
+      if (dryRun) { results.push({ manager: u.manager, channel: 'alimtalk', to: u.phone, variables }); return; }
       const r = await sendAlimtalk({ to: u.phone, variables, fallbackText: fallback });
       await logSend('alimtalk', r.ok, r.error);
       results.push({ manager: u.manager, channel: 'alimtalk', sent: r.ok, error: r.error });
     }
+  };
+
+  const list = users || [];
+  for (let i = 0; i < list.length; i += 3) {
+    await Promise.all(list.slice(i, i + 3).map((u) =>
+      processUser(u).catch((e) => results.push({ manager: u.manager, error: e instanceof Error ? e.message : String(e) }))));
   }
 
   return NextResponse.json({ ok: true, today, count: results.length, results });

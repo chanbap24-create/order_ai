@@ -137,10 +137,8 @@ export function useAnalysisData(p: Params) {
     }
   }, [type, manager, p.isAdmin, p.currentManager, startDate, endDate]);
 
-  useEffect(() => {
-    fetchClientRanking();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type]);
+  // (fetchClientRanking 은 loadData 가 함께 호출 — 별도 effect 로 두면 마운트/type 변경마다
+  //  같은 무거운 요청이 2회씩 나가는 이중 페칭이 됨)
 
   // ── 메인 분석 데이터 로드 ──
   const loadData = useCallback(() => {

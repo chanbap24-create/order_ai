@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { hashPassword, verifyToken } from '@/app/lib/auth';
+import { getEnv } from '@/app/lib/env';
 
 // 설정 키 검증 (초기 세팅 시 환경변수로 관리)
 function verifySetupKey(req: NextRequest): boolean {
-  const setupKey = process.env.SETUP_SECRET_KEY;
+  const setupKey = getEnv('SETUP_SECRET_KEY');
   if (!setupKey) return false; // 키 미설정 시 차단
   const provided = req.headers.get('x-setup-key') || req.nextUrl.searchParams.get('key');
   return provided === setupKey;

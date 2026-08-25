@@ -40,8 +40,8 @@ interface CompanyApiConfig {
 
 // 환경변수에서 API 설정 가져오기
 function getApiConfig(): CompanyApiConfig | null {
-  const baseUrl = process.env.COMPANY_API_URL;
-  const apiKey = process.env.COMPANY_API_KEY;
+  const baseUrl = getEnv("COMPANY_API_URL");
+  const apiKey = getEnv("COMPANY_API_KEY");
 
   if (!baseUrl || !apiKey) {
     console.error("[SYNC] API 설정이 없습니다. 환경변수를 확인하세요.");

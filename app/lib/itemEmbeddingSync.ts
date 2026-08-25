@@ -3,6 +3,7 @@
 // 재고 업로드 후 호출(또는 /api/admin/embeddings/sync 로 수동 백필).
 
 import { supabase } from "@/app/lib/db";
+import { fetchAllRows } from "@/app/lib/fetchAll";
 import { logger } from "@/app/lib/logger";
 import { buildItemContent, embedTexts } from "@/app/lib/embeddings";
 
@@ -21,23 +22,24 @@ export interface SyncResult { tab: Tab; total: number; embedded: number; deleted
 export async function syncItemEmbeddings(tab: Tab): Promise<SyncResult> {
   const invTable = INV_TABLE[tab];
 
-  // 1. 재고 전체 (item_no/품명/국가)
-  const { data: items, error: invErr } = await supabase
+  // 1. 재고 전체 (item_no/품명/국가) — 1000행 캡 페이지네이션.
+  // ⚠️ 잘린 목록 기준으로 아래 stale 삭제가 돌면 정상 품목의 임베딩을 지우게 되므로 필수.
+  const inv = await fetchAllRows<InvItem>((f, t) => supabase
     .from(invTable)
     .select("item_no, item_name, country")
     .not("item_no", "is", null)
-    .limit(5000);
-  if (invErr) throw new Error(`inventory load failed: ${invErr.message}`);
-  const inv = (items || []) as InvItem[];
+    .order("item_no")
+    .range(f, t));
 
   // 2. 기존 임베딩 content (변경 감지용)
-  const { data: existRows } = await supabase
+  const existRows = await fetchAllRows<{ item_no: string; content: string }>((f, t) => supabase
     .from("item_embeddings")
     .select("item_no, content")
     .eq("tab", tab)
-    .limit(5000);
+    .order("item_no")
+    .range(f, t));
   const existing = new Map<string, string>();
-  for (const r of (existRows || []) as { item_no: string; content: string }[]) {
+  for (const r of existRows) {
     existing.set(r.item_no, r.content);
   }
 
