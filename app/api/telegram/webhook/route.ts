@@ -3,7 +3,7 @@ import { after } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getEnv } from '@/app/lib/env';
 import { sendTelegram } from '@/app/lib/telegram';
-import { intakeTextOrder, intakePhotoOrder } from '@/app/lib/telegramIntake';
+import { intakeTextOrder, intakePhotoOrder, handleClientCallback, tryAssignByReply } from '@/app/lib/telegramIntake';
 import { logger } from '@/app/lib/logger';
 
 // 텔레그램 봇 webhook — 직원 계정 연동 + 카톡 발주 전달(수신함).
@@ -20,6 +20,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const update = await req.json();
+
+    // ── 인라인 버튼 콜백 (거래처 확정) ──
+    const cb = update?.callback_query;
+    if (cb?.id) {
+      const cbChatId = cb.message?.chat?.id != null ? String(cb.message.chat.id) : null;
+      if (cbChatId) {
+        const { data: cbUser } = await supabase.from('sales_users')
+          .select('manager').eq('telegram_chat_id', cbChatId).maybeSingle();
+        if (cbUser) await handleClientCallback(cbUser.manager, cbChatId, String(cb.id), String(cb.data || ''));
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     const msg = update?.message;
     const chatId = msg?.chat?.id != null ? String(msg.chat.id) : null;
     const text = String(msg?.text || msg?.caption || '').trim();
@@ -62,6 +75,10 @@ export async function POST(req: NextRequest) {
     // 텍스트: 10자 이상이면 발주문으로 간주해 수신함 저장 (봇 사용자는 직원뿐 — 오탐 비용 낮음)
     if (text.length >= 10) {
       await intakeTextOrder(linked.manager, chatId, text);
+      return NextResponse.json({ ok: true });
+    }
+    // 짧은 텍스트: 직전 미지정 발주가 있으면 '거래처명 답장'으로 해석
+    if (await tryAssignByReply(linked.manager, chatId, text)) {
       return NextResponse.json({ ok: true });
     }
     await sendTelegram(chatId, [

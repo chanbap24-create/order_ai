@@ -10,8 +10,10 @@ export function telegramConfigured(): boolean {
   return !!getEnv('TELEGRAM_BOT_TOKEN');
 }
 
-/** HTML parse_mode 발송. 실패해도 throw 하지 않고 결과만 반환. */
-export async function sendTelegram(chatId: string, html: string): Promise<{ ok: boolean; error?: string }> {
+/** HTML parse_mode 발송. 실패해도 throw 하지 않고 결과만 반환. extra: reply_markup(인라인 버튼) 등 */
+export async function sendTelegram(
+  chatId: string, html: string, extra?: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string }> {
   const token = getEnv('TELEGRAM_BOT_TOKEN');
   if (!token) return { ok: false, error: 'TELEGRAM_BOT_TOKEN 미설정' };
   try {
@@ -23,6 +25,7 @@ export async function sendTelegram(chatId: string, html: string): Promise<{ ok: 
         text: html,
         parse_mode: 'HTML',
         disable_web_page_preview: true,
+        ...extra,
       }),
     });
     const data = await res.json().catch(() => null);
@@ -55,6 +58,19 @@ export async function getBotUsername(): Promise<string | null> {
 /** HTML 이스케이프 (거래처명 등 데이터 삽입 시) */
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** 인라인 버튼 콜백 응답 (버튼 로딩 스피너 해제 + 짧은 토스트) */
+export async function answerCallback(callbackQueryId: string, text?: string): Promise<void> {
+  const token = getEnv('TELEGRAM_BOT_TOKEN');
+  if (!token) return;
+  try {
+    await fetch(`${API(token)}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackQueryId, text }),
+    });
+  } catch { /* ignore */ }
 }
 
 /** 텔레그램 파일 다운로드 (사진 발주 등) — file_id → Buffer */
