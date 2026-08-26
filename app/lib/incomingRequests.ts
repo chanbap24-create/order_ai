@@ -49,8 +49,18 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
     supabase.from('import_schedule').select('item_code, item_name_kr, arrival_date, total_btls'),
     listRequests(manager, isAdmin),
   ]);
+  // 품목당 스케줄이 여러 건(BL 여러 개)일 수 있음 — 마지막 행이 덮어쓰면 새로 올라온
+  // 가까운 입항이 먼 미래 입항에 가려짐. 최근 45일~미래 중 가장 이른 날짜 우선, 전부 과거면 최신.
+  const arrivalDates = new Map<string, string[]>();
+  for (const s of sched || []) {
+    if (!s.arrival_date) continue;
+    (arrivalDates.get(s.item_code) ?? arrivalDates.set(s.item_code, []).get(s.item_code)!).push(s.arrival_date);
+  }
   const arrival = new Map<string, string>();
-  for (const s of sched || []) if (s.arrival_date) arrival.set(s.item_code, s.arrival_date);
+  for (const [code, ds] of arrivalDates) {
+    const upcoming = ds.filter((d) => d >= cutoff).sort();
+    arrival.set(code, upcoming[0] ?? ds.sort()[ds.length - 1]);
+  }
   // 지난 입항이 이미 소화된 품목(가용 있음·보세 없음·입항 45일 경과)의 낡은 날짜는
   // 다음 발주 물량과 무관하므로 표시하지 않음 — 새 BL이 스케줄에 오르면 갱신됨
   const staleDate = (code: string, row: { bonded: number; available: number }) => {
