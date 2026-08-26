@@ -9,16 +9,67 @@ import { logger } from './logger';
 
 const ORDER_V2_URL = 'https://order-ai-one.vercel.app/order-v2';
 
-/** 텍스트 발주 — 즉시 저장 (LLM 미사용, 빠름) */
+/** 거래처명 대조용 정규화 — 공백·법인표기 제거 */
+const normName = (s: string) =>
+  s.toLowerCase().replace(/주식회사|\(주\)|㈜|\s+/g, '').trim();
+
+/**
+ * 발주 본문에서 담당 거래처 추정 (LLM 미사용).
+ * 카톡 발주문은 "밍글스 발주입니다"처럼 서두에 거래처명이 오는 경우가 대부분 —
+ * 첫 3줄을 담당 거래처 목록(학습 별칭 포함)과 포함 매칭. 와인명 오탐을 줄이기 위해 앞줄만 본다.
+ */
+export function guessClientFromText(
+  text: string,
+  clients: Array<{ client_code: string; client_name: string; aliases: string[] }>,
+): { client_code: string; client_name: string } | null {
+  const head = normName(text.split('\n').slice(0, 3).join(' '));
+  if (!head) return null;
+  let best: { client_code: string; client_name: string; len: number } | null = null;
+  let ambiguous = false;
+  for (const c of clients) {
+    // 괄호 병기(예: '오일장(oiljang)', '브이오(VO)')는 괄호 제거 변형도 후보로
+    const cands = [c.client_name, ...(c.aliases || [])];
+    for (const raw of [...cands]) {
+      const stripped = raw.replace(/\([^)]*\)/g, '').trim();
+      if (stripped && stripped !== raw) cands.push(stripped);
+    }
+    for (const cand of cands) {
+      const n = normName(cand);
+      if (n.length < 2 || !head.includes(n)) continue;
+      if (!best || n.length > best.len) {
+        best = { client_code: c.client_code, client_name: c.client_name, len: n.length };
+        ambiguous = false;
+      } else if (n.length === best.len && c.client_code !== best.client_code) {
+        ambiguous = true; // 같은 길이로 서로 다른 거래처 매칭 → 확정 보류
+      }
+    }
+  }
+  return best && !ambiguous ? { client_code: best.client_code, client_name: best.client_name } : null;
+}
+
+/** 텍스트 발주 — 즉시 저장 + 거래처 자동 추정 (LLM 미사용, 빠름) */
 export async function intakeTextOrder(manager: string, chatId: string, text: string): Promise<void> {
   const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+
+  // 거래처 추정: 담당 거래처 목록 대조. 실패 시 미지정(화면에서 선택)
+  let guess: { client_code: string; client_name: string } | null = null;
+  try {
+    const clients = await getManagerClients(manager, 'CDV');
+    guess = guessClientFromText(text, clients);
+  } catch { /* 추정 실패해도 수신함 저장은 계속 */ }
+
   const { error } = await supabase.from('order_intake').insert({
     manager,
     tab: 'CDV',
-    client_hint: null,
+    client_hint: guess?.client_name || null,
     order_text: text,
-    // IntakeResult 형태 유지 (client_hint 는 빈 문자열 — 수신함 onLoad 가 그대로 파서에 넣음)
-    result: { found: true, order_text: text, client_hint: '' },
+    // IntakeResult 형태 — client_code+confidence 를 주면 수신함 onLoad 가 거래처까지 자동 확정
+    result: {
+      found: true,
+      order_text: text,
+      client_hint: guess?.client_name || '',
+      ...(guess ? { client_code: guess.client_code, client_name: guess.client_name, client_confidence: 0.9 } : {}),
+    },
     status: 'pending',
   });
   if (error) {
@@ -27,10 +78,11 @@ export async function intakeTextOrder(manager: string, chatId: string, text: str
     return;
   }
   await sendTelegram(chatId, [
-    `📥 발주 수신함에 담았습니다 (${lines.length}줄)`,
+    `📥 <b>${escapeHtml(guess?.client_name || '거래처 미지정')}</b> · ${lines.length}줄 수신함에 담았습니다`,
+    guess ? '' : '(본문에서 거래처를 찾지 못했어요 — 화면에서 선택해 주세요)',
     `<code>${escapeHtml(lines.slice(0, 3).join('\n'))}${lines.length > 3 ? '\n…' : ''}</code>`,
     `<a href="${ORDER_V2_URL}">order-v2에서 파싱·확정하기</a>`,
-  ].join('\n'));
+  ].filter(Boolean).join('\n'));
 }
 
 /** 사진 발주 — 기존 iOS 단축어와 동일 파이프라인(비전 추출) 재사용 */
