@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getEnv } from '@/app/lib/env';
 import { sendTelegram } from '@/app/lib/telegram';
+import { intakeTextOrder, intakePhotoOrder } from '@/app/lib/telegramIntake';
 import { logger } from '@/app/lib/logger';
 
-// 텔레그램 봇 webhook — 직원 계정 연동 전용.
+// 텔레그램 봇 webhook — 직원 계정 연동 + 카톡 발주 전달(수신함).
 // 인증: setWebhook 시 등록한 secret_token 헤더 검증 (미들웨어 공개 예외).
-// 직원이 봇에게 앱에서 발급받은 연동 코드를 보내면 chat_id 를 계정에 저장.
+// ① 연동 코드(6자리) → chat_id 저장  ② 연동자의 텍스트/사진 → order-v2 수신함 + 요약 회신.
+
+export const maxDuration = 60; // 사진 발주 비전 추출 대기
 
 export async function POST(req: NextRequest) {
   const secret = getEnv('TELEGRAM_WEBHOOK_SECRET');
@@ -18,8 +22,9 @@ export async function POST(req: NextRequest) {
     const update = await req.json();
     const msg = update?.message;
     const chatId = msg?.chat?.id != null ? String(msg.chat.id) : null;
-    const text = String(msg?.text || '').trim();
-    if (!chatId || !text) return NextResponse.json({ ok: true });
+    const text = String(msg?.text || msg?.caption || '').trim();
+    const photos = Array.isArray(msg?.photo) ? msg.photo : [];
+    if (!chatId || (!text && photos.length === 0)) return NextResponse.json({ ok: true });
 
     // "/start CODE" (딥링크) 또는 코드 단독 입력 모두 허용
     const code = (text.startsWith('/start') ? text.slice(6) : text).trim().toUpperCase();
@@ -39,14 +44,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 연동 안내 (이미 연동된 계정이면 상태 알려줌)
+    // 연동 계정 확인
     const { data: linked } = await supabase.from('sales_users')
       .select('manager').eq('telegram_chat_id', chatId).maybeSingle();
-    if (linked) {
-      await sendTelegram(chatId, `현재 <b>${linked.manager}</b>님 계정과 연동돼 있습니다.`);
-    } else {
+    if (!linked) {
       await sendTelegram(chatId, '세일즈 앱 → 알림 탭에서 발급받은 6자리 연동 코드를 보내주세요.');
+      return NextResponse.json({ ok: true });
     }
+
+    // ── 발주 전달 (연동자 전용) ──
+    // 사진: 기존 비전 추출 파이프라인 재사용. 응답은 즉시 200(텔레그램 재시도 방지), 처리는 after 로.
+    if (photos.length > 0) {
+      const largest = photos[photos.length - 1]; // 텔레그램은 해상도 오름차순
+      after(intakePhotoOrder(linked.manager, chatId, String(largest.file_id)));
+      return NextResponse.json({ ok: true });
+    }
+    // 텍스트: 10자 이상이면 발주문으로 간주해 수신함 저장 (봇 사용자는 직원뿐 — 오탐 비용 낮음)
+    if (text.length >= 10) {
+      await intakeTextOrder(linked.manager, chatId, text);
+      return NextResponse.json({ ok: true });
+    }
+    await sendTelegram(chatId, [
+      `현재 <b>${linked.manager}</b>님 계정과 연동돼 있습니다.`,
+      '카톡 발주문을 전달(공유)하면 order-v2 수신함에 담아드립니다. (텍스트/사진 모두 가능)',
+    ].join('\n'));
     return NextResponse.json({ ok: true });
   } catch (e) {
     logger.warn(`[Telegram] webhook error: ${e instanceof Error ? e.message : e}`);

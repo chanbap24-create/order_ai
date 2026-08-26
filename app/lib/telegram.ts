@@ -56,3 +56,26 @@ export async function getBotUsername(): Promise<string | null> {
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+/** 텔레그램 파일 다운로드 (사진 발주 등) — file_id → Buffer */
+export async function downloadTelegramFile(fileId: string): Promise<{ buf: Buffer; mime: string } | null> {
+  const token = getEnv('TELEGRAM_BOT_TOKEN');
+  if (!token) return null;
+  try {
+    const meta = await fetch(`${API(token)}/getFile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_id: fileId }),
+    }).then((r) => r.json());
+    const path = meta?.result?.file_path;
+    if (!path) return null;
+    const res = await fetch(`https://api.telegram.org/file/bot${token}/${path}`);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    const mime = path.endsWith('.png') ? 'image/png' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+    return { buf, mime };
+  } catch (e) {
+    logger.warn(`[Telegram] file download failed: ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
+}
