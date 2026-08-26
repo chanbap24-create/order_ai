@@ -7,7 +7,7 @@ export type SalesTabId =
   | 'ledger' | 'item-ledger' | 'outstanding' | 'payment-terms' | 'alerts' | 'expense'
   | 'recommend-quote' | 'tasting-approval' | 'promotion' | 'quote-stats';
 
-const TABS: { id: SalesTabId; label: string }[] = [
+export const TABS: { id: SalesTabId; label: string }[] = [
   { id: 'meetings', label: '미팅' },
   { id: 'briefing', label: '브리핑' },
   { id: 'shipments', label: '출고현황' },
