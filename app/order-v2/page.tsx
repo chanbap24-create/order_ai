@@ -6,6 +6,7 @@ import { TastingSettingsModal } from "./components/TastingSettingsModal";
 import { ActionButtons } from "./components/ActionButtons";
 import { ClientHistorySection } from "./components/ClientHistorySection";
 import { ClientSearchField } from "./components/ClientSearchField";
+import { ClientSuggestChips } from "./components/ClientSuggestChips";
 import { AutoModeToggle } from "./components/AutoModeToggle";
 import { BatchQueue } from "./components/BatchQueue";
 import { ErrorBanner } from "./components/ErrorBanner";
@@ -110,6 +111,13 @@ export default function OrderV2Page() {
             setShowDropdown={client.setShowDropdown}
             onPick={client.pick}
             dropdownRef={client.dropdownRef}
+          />
+
+          <ClientSuggestChips
+            orderText={orderText}
+            selected={client.selected}
+            tab={tab}
+            onPick={client.pick}
           />
 
           {client.selected && (
