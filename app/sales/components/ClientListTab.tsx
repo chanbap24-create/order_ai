@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePersistedState } from '@/app/hooks/usePersistedState';
 import { useClientList } from '../client-list/hooks/useClientList';
 import { useBatchRecommend } from '../client-list/hooks/useBatchRecommend';
 import { useClientGroups, type ClientGroup } from '../client-list/hooks/useClientGroups';
@@ -96,8 +97,8 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     clearGroup();
   };
 
-  // 거래처명·코드 검색 (클라이언트 필터) + 활성 그룹 필터
-  const [search, setSearch] = useState('');
+  // 거래처명·코드 검색 (클라이언트 필터, 세션 유지) + 활성 그룹 필터
+  const [search, setSearch] = usePersistedState('client-list:q', '');
   const q = search.trim().toLowerCase();
   const groupCodes = activeGroup ? new Set(activeGroup.clients.map((c) => c.code)) : null;
   const shownClients = s.clients.filter(

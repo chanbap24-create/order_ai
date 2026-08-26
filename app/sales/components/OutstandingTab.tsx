@@ -2,6 +2,7 @@
 import { TableSkeleton } from '@/app/components/ui';
 
 import { useState } from 'react';
+import { usePersistedState } from '@/app/hooks/usePersistedState';
 import type { OutstandingType } from '../outstanding/types';
 import { getInitialDates } from '../outstanding/lib/format';
 import { useOutstanding } from '../outstanding/hooks/useOutstanding';
@@ -25,15 +26,16 @@ type Props = {
 
 export default function OutstandingTab({ currentManager, isAdmin, initialManagers }: Props) {
   const { today, firstOfMonth } = getInitialDates();
-  const [startDate, setStartDate] = useState(firstOfMonth);
-  const [endDate, setEndDate] = useState(today);
-  const [type, setType] = useState<OutstandingType>('wine');
+  // 조회 조건 기억 — 탭/페이지 이동 후 돌아와도 보던 화면 유지 (세션 한정)
+  const [startDate, setStartDate] = usePersistedState('outstanding:start', firstOfMonth);
+  const [endDate, setEndDate] = usePersistedState('outstanding:end', today);
+  const [type, setType] = usePersistedState<OutstandingType>('outstanding:type', 'wine');
   const [ledgerClient, setLedgerClient] = useState<{ code: string; name: string } | null>(null);
   // isAdmin/sales_admin 일 때 선택한 매니저, 일반 user 는 본인 매니저 그대로.
-  const [selectedManager, setSelectedManager] = useState(currentManager);
+  const [selectedManager, setSelectedManager] = usePersistedState('outstanding:mgr', currentManager);
 
-  const [view, setView] = useState<'balance' | 'aging'>('balance');
-  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [view, setView] = usePersistedState<'balance' | 'aging'>('outstanding:view', 'balance');
+  const [overdueOnly, setOverdueOnly] = usePersistedState('outstanding:overdue', false);
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
   const effectiveManager = isAdmin ? selectedManager : currentManager;

@@ -39,7 +39,13 @@ export default function SalesPage() {
 
   const handleLogout = async () => {
     try { await fetch('/api/auth/login', { method: 'DELETE' }); } catch { /* ignore */ }
-    try { sessionStorage.removeItem(TAB_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(TAB_KEY);
+      // 각 탭의 조회 조건 기억(tab-state:*)도 초기화 — 다음 로그인 사용자에게 안 넘어가게
+      for (const k of Object.keys(sessionStorage)) {
+        if (k.startsWith('tab-state:')) sessionStorage.removeItem(k);
+      }
+    } catch { /* ignore */ }
     auth.logoutLocal();
     setActiveTabState('meetings');
     setAlertCount(0);

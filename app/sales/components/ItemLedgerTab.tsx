@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import type { ViewMode, Warehouse } from '../item-ledger/types';
+import { useEffect, useRef, useState } from 'react';
+import type { SearchItem, ViewMode, Warehouse } from '../item-ledger/types';
 import { getInitialRange } from '../item-ledger/lib/quickRanges';
+import { usePersistedState } from '@/app/hooks/usePersistedState';
 import { useItemSearch } from '../item-ledger/hooks/useItemSearch';
 import { useItemLedger } from '../item-ledger/hooks/useItemLedger';
 import { FilterCard } from '../item-ledger/components/FilterCard';
@@ -17,18 +18,28 @@ export default function ItemLedgerTab({
   isAdmin: boolean;
 }) {
   const { yearStart, today } = getInitialRange();
-  const [startDate, setStartDate] = useState(yearStart);
-  const [endDate, setEndDate] = useState(today);
-  const [warehouse, setWarehouse] = useState<Warehouse>('CDV');
+  // 조회 조건 기억 — 탭/페이지 이동 후 돌아와도 보던 결과 복원 (데이터는 재조회)
+  const [startDate, setStartDate] = usePersistedState('item-ledger:start', yearStart);
+  const [endDate, setEndDate] = usePersistedState('item-ledger:end', today);
+  const [warehouse, setWarehouse] = usePersistedState<Warehouse>('item-ledger:wh', 'CDV');
   const [viewMode, setViewMode] = useState<ViewMode>('date');
+  const [savedItem, setSavedItem] = usePersistedState<SearchItem | null>('item-ledger:item', null);
 
-  const search = useItemSearch(warehouse);
+  const search = useItemSearch(warehouse, savedItem);
+  useEffect(() => { setSavedItem(search.selectedItem); }, [search.selectedItem, setSavedItem]);
   const ledger = useItemLedger({
     selectedItem: search.selectedItem,
     startDate,
     endDate,
     warehouse,
   });
+
+  // 복원 직후 1회 자동 재조회
+  const restoredRef = useRef(!!savedItem);
+  useEffect(() => {
+    if (restoredRef.current) { restoredRef.current = false; ledger.handleSearch(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleWarehouseChange = (w: Warehouse) => {
     setWarehouse(w);

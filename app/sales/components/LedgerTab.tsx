@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import type { LedgerType } from '../ledger/types';
+import { useEffect, useRef } from 'react';
+import type { LedgerType, SuggestionItem } from '../ledger/types';
 import { getInitialDateRange } from '../ledger/lib/quickRanges';
+import { usePersistedState } from '@/app/hooks/usePersistedState';
 import { computeGrandTotal, groupData } from '../ledger/lib/groupData';
 import { printLedger } from '../ledger/lib/printLedger';
 import { useClientSearch } from '../ledger/hooks/useClientSearch';
@@ -20,11 +21,15 @@ export default function LedgerTab({
   isAdmin: boolean;
 }) {
   const { firstOfMonth, today } = getInitialDateRange();
-  const [startDate, setStartDate] = useState(firstOfMonth);
-  const [endDate, setEndDate] = useState(today);
-  const [type, setType] = useState<LedgerType>('wine');
+  // 조회 조건 기억 — 탭/페이지 이동 후 돌아와도 보던 검색 결과 복원 (데이터는 재조회)
+  const [startDate, setStartDate] = usePersistedState('ledger:start', firstOfMonth);
+  const [endDate, setEndDate] = usePersistedState('ledger:end', today);
+  const [type, setType] = usePersistedState<LedgerType>('ledger:type', 'wine');
+  const [savedClient, setSavedClient] = usePersistedState<SuggestionItem | null>('ledger:client', null);
 
-  const search = useClientSearch(type);
+  const search = useClientSearch(type, savedClient);
+  // 거래처 선택 변화를 저장 (검색 중 해제되면 null 저장)
+  useEffect(() => { setSavedClient(search.selectedClient); }, [search.selectedClient, setSavedClient]);
   const query = useLedgerQuery({
     selectedClient: search.selectedClient,
     startDate,
@@ -43,6 +48,13 @@ export default function LedgerTab({
     setType(t);
     search.reset();
   };
+
+  // 복원 직후 1회 자동 재조회 — 보던 결과가 그대로(최신 데이터로) 나타남
+  const restoredRef = useRef(!!savedClient);
+  useEffect(() => {
+    if (restoredRef.current) { restoredRef.current = false; query.handleSearch(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const grouped = groupData(query.rows, query.payments);
   const grandTotal = computeGrandTotal(query.rows, query.payments);

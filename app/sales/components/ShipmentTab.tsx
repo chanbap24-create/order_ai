@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePersistedState } from '@/app/hooks/usePersistedState';
 import { Section, Stack } from '@/app/components/ui';
 import { inputStyle as ctlInput } from '@/app/styles/controls';
 
@@ -198,8 +199,9 @@ function ClientTable({ group, expandedClient, setExpandedClient, prefix }: {
 export default function ShipmentTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const todayStr = kstNow.toISOString().slice(0, 10);
-  const [dateFrom, setDateFrom] = useState(todayStr);
-  const [dateTo, setDateTo] = useState(todayStr);
+  // 조회 기간 기억 — 탭/페이지 이동 후 돌아와도 보던 기간 유지
+  const [dateFrom, setDateFrom] = usePersistedState('shipments:from', todayStr);
+  const [dateTo, setDateTo] = usePersistedState('shipments:to', todayStr);
 
   const presets: { label: string; from: string; to: string }[] = (() => {
     const y = kstNow.getUTCFullYear(), m = kstNow.getUTCMonth(), d = kstNow.getUTCDate();

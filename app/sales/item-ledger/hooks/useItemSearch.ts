@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SearchItem, Warehouse } from '../types';
 
-export function useItemSearch(warehouse: Warehouse) {
-  const [itemSearch, setItemSearch] = useState('');
+export function useItemSearch(warehouse: Warehouse, initialSelected: SearchItem | null = null) {
+  const [itemSearch, setItemSearch] = useState(initialSelected?.item_name || '');
   const [suggestions, setSuggestions] = useState<SearchItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<SearchItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SearchItem | null>(initialSelected);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -5,11 +5,11 @@ import type { LedgerType, SuggestionItem } from '../types';
 
 type Client = { client_code: string; client_name: string; client_type?: string };
 
-export function useClientSearch(type: LedgerType) {
-  const [clientSearch, setClientSearch] = useState('');
+export function useClientSearch(type: LedgerType, initialSelected: SuggestionItem | null = null) {
+  const [clientSearch, setClientSearch] = useState(initialSelected?.name ?? '');
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<SuggestionItem | null>(null);
+  const [selectedClient, setSelectedClient] = useState<SuggestionItem | null>(initialSelected);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
