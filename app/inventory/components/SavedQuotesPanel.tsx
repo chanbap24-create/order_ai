@@ -10,6 +10,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   getManagerParam: () => string;
+  /** 복원 대상 바스켓 스코프 (법인별 견적 분리 — 미지정 시 목록과 동일) */
+  getRestoreManagerParam?: () => string;
   hasDraftItems: boolean;
   /** 복원 완료 후: 부모가 작업 견적 재로딩 + 거래처 반영 + 견적 패널 열기 */
   onLoaded: (clientName: string, clientCode: string | null) => void;
@@ -20,8 +22,8 @@ type Folder = { key: string; name: string; quotes: SavedQuoteMeta[]; latest: str
 const fmtDate = (s: string) => (s ? s.slice(0, 16).replace("T", " ") : "");
 
 /** 저장된 견적(이력) — 거래처별 폴더로 보기 → 폴더 열면 해당 거래처 견적 목록 */
-export function SavedQuotesPanel({ open, onClose, getManagerParam, hasDraftItems, onLoaded }: Props) {
-  const sq = useSavedQuotes(getManagerParam);
+export function SavedQuotesPanel({ open, onClose, getManagerParam, getRestoreManagerParam, hasDraftItems, onLoaded }: Props) {
+  const sq = useSavedQuotes(getManagerParam, getRestoreManagerParam);
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

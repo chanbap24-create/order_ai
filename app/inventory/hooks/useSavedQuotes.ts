@@ -11,7 +11,11 @@ export type SavedQuoteMeta = {
 };
 
 /** 저장 견적(이력) 목록/단건/삭제/복원. 담당자 스코프. */
-export function useSavedQuotes(getManagerParam: () => string) {
+export function useSavedQuotes(
+  getManagerParam: () => string,
+  /** 복원 대상 바스켓 스코프 (법인별 분리 — 미지정 시 목록과 동일) */
+  getRestoreManagerParam: () => string = getManagerParam,
+) {
   const [items, setItems] = useState<SavedQuoteMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -117,7 +121,7 @@ export function useSavedQuotes(getManagerParam: () => string) {
         const res = await fetch("/api/quote/saved/restore", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, manager: getManagerParam() }),
+          body: JSON.stringify({ id, manager: getRestoreManagerParam() }),
         });
         const data = await res.json();
         return data.success ? data : null;
@@ -126,7 +130,7 @@ export function useSavedQuotes(getManagerParam: () => string) {
         return null;
       }
     },
-    [getManagerParam],
+    [getRestoreManagerParam],
   );
 
   return { items, loading, search, setSearch, date, setDate, load, remove, removeMany, removeByDate, getOne, restore, quoteConversion, clientConversion };

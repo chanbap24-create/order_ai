@@ -56,11 +56,20 @@ export default function InventoryPage() {
 
   // ── 도메인 훅 ──
   const { quoteManager, getManagerParam } = useQuoteManager();
+  // 법인별 견적 바스켓 분리 — DL 탭은 '<manager>::dl' 하위 스코프(기존 ::rec 초안 패턴).
+  // 와인 견적(까브드뱅)과 글라스 견적(대유라이프)이 서로 섞여 보이던 문제 해결.
+  const scopedQuoteManager =
+    quoteManager && quoteManager !== '__loaded__' && activeTab === 'DL'
+      ? `${quoteManager}::dl` : quoteManager;
+  const getScopedManagerParam = useCallback(() => {
+    const m = getManagerParam();
+    return m && activeTab === 'DL' ? `${m}::dl` : m;
+  }, [getManagerParam, activeTab]);
   const importSchedule = useImportSchedule();
   const tastingModal = useTastingNoteModal();
   const itemLedgerPopup = useItemLedgerPopup({ warehouse: activeTab });
 
-  const quote = useQuoteItems({ quoteManager, getManagerParam });
+  const quote = useQuoteItems({ quoteManager: scopedQuoteManager, getManagerParam: getScopedManagerParam });
   const layout = useInventoryLayout({ bottomSheetItem: quote.bottomSheetItem });
 
   const addToQuoteAndOpen = useCallback(
@@ -90,7 +99,7 @@ export default function InventoryPage() {
     activeTab,
     visibleQuoteColumns,
     docSettings,
-    getManagerParam,
+    getManagerParam: getScopedManagerParam,
     quoteItems: quote.quoteItems,
     flushPendingEdit: inlineEdit.commitEdit,
   });
@@ -246,6 +255,7 @@ export default function InventoryPage() {
         open={showSavedQuotes}
         onClose={() => setShowSavedQuotes(false)}
         getManagerParam={getManagerParam}
+        getRestoreManagerParam={getScopedManagerParam}
         hasDraftItems={quote.quoteItems.length > 0}
         onLoaded={(name, code) => {
           quote.setClientName(name);
