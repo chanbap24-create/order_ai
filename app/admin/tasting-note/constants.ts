@@ -17,9 +17,9 @@ export function isWineCategory(itemCode: string | null | undefined): boolean {
 /** 재고 부족 필터 임계값 (병 수, 0 < x <= LOW_STOCK_THRESHOLD 면 부족) */
 export const LOW_STOCK_THRESHOLD = 10;
 
-/** (가용 재고 + 보세) 합 */
+/** (가용 재고 + 보세 + 입고예정) 합 — 신규 와인은 입고예정(배송 중) 단계가 첫 등장이라 포함 필수 */
 export function totalStock(w: TastingWineRow): number {
-  return (w.inv_available || 0) + (w.inv_bonded || 0);
+  return (w.inv_available || 0) + (w.inv_bonded || 0) + (w.inv_incoming || 0);
 }
 
 /** 신규로 표기하는 기간 (등록일 기준). 이후엔 신규에서 빠지고 미작성에만 남음. */

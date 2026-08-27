@@ -22,14 +22,19 @@ export async function GET(request: NextRequest) {
     for (let i = 0; i < codes.length; i += 500) {
       const { data: inv } = await supabase
         .from('inventory_cdv')
-        .select('item_no, available_stock, bonded_warehouse, bonded_kctc')
+        .select('item_no, available_stock, bonded_warehouse, bonded_kctc, incoming_stock')
         .in('item_no', codes.slice(i, i + 500));
       for (const x of (inv || [])) invMap.set(x.item_no, x);
     }
 
     const enriched = wines.map(w => {
       const stock = invMap.get(w.item_code);
-      return { ...w, inv_available: stock?.available_stock ?? 0, inv_bonded: (stock?.bonded_warehouse ?? 0) + (stock?.bonded_kctc ?? 0) };
+      return {
+        ...w,
+        inv_available: stock?.available_stock ?? 0,
+        inv_bonded: (stock?.bonded_warehouse ?? 0) + (stock?.bonded_kctc ?? 0),
+        inv_incoming: stock?.incoming_stock ?? 0, // 입고예정 — 신규 와인은 이 단계가 첫 등장
+      };
     });
 
     return NextResponse.json({ success: true, data: enriched });

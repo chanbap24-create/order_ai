@@ -7,5 +7,6 @@ export interface TastingWineRow extends Wine {
   verification_status?: string | null;
   inv_available?: number;
   inv_bonded?: number;
+  inv_incoming?: number;
   note_excluded?: boolean | null;
 }
