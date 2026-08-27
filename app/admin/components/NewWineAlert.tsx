@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NewWinePopup } from '../tasting-note/components/NewWinePopup';
+import { useLoadGate } from '@/app/components/ui/LoadGate';
 import { useNewWinePipeline } from '../tasting-note/hooks/useNewWinePipeline';
 import { isActionableNew } from '../tasting-note/constants';
 import type { TastingWineRow } from '../tasting-note/types';
@@ -24,6 +25,9 @@ export default function NewWineAlert({
   const [open, setOpen] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const [seenLoaded, setSeenLoaded] = useState(false);
+  // 부팅 커튼 등록 — 신규 배지·팝업이 나중에 튀지 않고 첫 공개에 포함되게
+  const [initialLoading, setInitialLoading] = useState(true);
+  useLoadGate('new-wine-alert', initialLoading);
 
   useEffect(() => {
     try { seenRef.current = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); } catch { /* ignore */ }
@@ -59,7 +63,10 @@ export default function NewWineAlert({
   }, [onCountChange]);
 
   // 진입(마운트): 미확인 신규만 팝업
-  useEffect(() => { if (seenLoaded) fetchNew(false); }, [seenLoaded, fetchNew]);
+  useEffect(() => {
+    if (!seenLoaded) return;
+    fetchNew(false).finally(() => setInitialLoading(false));
+  }, [seenLoaded, fetchNew]);
 
   // 업로드 완료(refreshKey 증가): seen 무관하게 무조건 팝업. 최초 값(마운트)은 변화로 보지 않음.
   const lastRefreshRef = useRef(refreshKey);

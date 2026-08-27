@@ -18,8 +18,18 @@ import { LoginCard } from './page-auth/components/LoginCard';
 import { PasswordChangePanel } from './page-auth/components/PasswordChangePanel';
 import { Header } from './page-auth/components/Header';
 import { TabContent } from './page-auth/components/TabContent';
+import { LoadGateProvider, useLoadGate } from '@/app/components/ui/LoadGate';
 
 export default function SalesPage() {
+  // 부팅 커튼 — 인증 확인·첫 탭 초기 로딩이 끝나면 한 번에 공개 (소믈리에 부팅과 동일 문법)
+  return (
+    <LoadGateProvider>
+      <SalesPageBody />
+    </LoadGateProvider>
+  );
+}
+
+function SalesPageBody() {
   const [activeTab, setActiveTabState] = useState<SalesTabId>(() => savedTab() ?? 'meetings');
   const [alertCount, setAlertCount] = useState(0);
   const [showPwChange, setShowPwChange] = useState(false);
@@ -36,6 +46,7 @@ export default function SalesPage() {
   }, []);
 
   const auth = useSalesAuth(setDefaultTab);
+  useLoadGate('sales-auth', auth.authChecking && !auth.authenticated);
 
   const handleLogout = async () => {
     try { await fetch('/api/auth/login', { method: 'DELETE' }); } catch { /* ignore */ }
@@ -53,15 +64,8 @@ export default function SalesPage() {
   };
 
   if (auth.authChecking && !auth.authenticated) {
-    return (
-      <div style={{
-        minHeight: 'calc(100vh - 56px)',
-        background: 'var(--surface-muted)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{ color: 'var(--text-tertiary)', fontSize: 14 }}>확인 중...</div>
-      </div>
-    );
+    // 커튼(LoadGate)이 덮는 동안 빈 화면 — 인증 완료 시 로그인/본문이 한 번에 공개
+    return <div style={{ minHeight: 'calc(100vh - 56px)', background: 'var(--surface-muted)' }} />;
   }
 
   if (!auth.authenticated) {

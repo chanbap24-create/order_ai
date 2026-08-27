@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { LedgerType, SuggestionItem } from '../ledger/types';
 import { getInitialDateRange } from '../ledger/lib/quickRanges';
 import { usePersistedState } from '@/app/hooks/usePersistedState';
+import { useLoadGate } from '@/app/components/ui/LoadGate';
 import { computeGrandTotal, groupData } from '../ledger/lib/groupData';
 import { printLedger } from '../ledger/lib/printLedger';
 import { useClientSearch } from '../ledger/hooks/useClientSearch';
@@ -49,6 +50,8 @@ export default function LedgerTab({
     search.reset();
   };
 
+  // 부팅 커튼 — 복원 자동 재조회 중엔 커튼 유지 (원장 결과까지 한 번에 공개)
+  useLoadGate('tab-ledger', query.loading);
   // 복원 직후 1회 자동 재조회 — 보던 결과가 그대로(최신 데이터로) 나타남
   const restoredRef = useRef(!!savedClient);
   useEffect(() => {

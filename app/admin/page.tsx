@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { LoadGateProvider, useLoadGate } from '@/app/components/ui/LoadGate';
 import type { TabId } from '@/app/types/wine';
 import SommelierTab from './components/SommelierTab';
 import DiscontinuedTab from './components/DiscontinuedTab';
@@ -30,11 +31,21 @@ const ParseStatsTab = dynamic(() => import('./components/ParseStatsTab').then(m 
 const FlavorTagsTab = dynamic(() => import('./components/FlavorTagsTab'), { ssr: false, loading: tabLoader });
 
 export default function AdminPage() {
+  // 부팅 커튼 — 인증 확인·신규 감지 등 초기 로딩이 끝나면 한 번에 공개 (소믈리에 부팅과 동일 문법)
+  return (
+    <LoadGateProvider>
+      <AdminPageBody />
+    </LoadGateProvider>
+  );
+}
+
+function AdminPageBody() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
   const [newWineCount, setNewWineCount] = useState<number>(0);
   const [newWineRefresh, setNewWineRefresh] = useState(0); // 업로드 완료 시 전역 신규감지 재조회 트리거
   const [authenticated, setAuthenticated] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
+  useLoadGate('admin-auth', authChecking);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
@@ -108,17 +119,8 @@ export default function AdminPage() {
   };
 
   if (authChecking) {
-    return (
-      <div style={{
-        minHeight: 'calc(100vh - 56px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--surface-muted)',
-      }}>
-        <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>인증 확인 중...</div>
-      </div>
-    );
+    // 커튼(LoadGate)이 덮고 있는 동안 빈 화면 — 인증 확인 완료 시 로그인/본문이 한 번에 공개
+    return <div style={{ minHeight: 'calc(100vh - 56px)', background: 'var(--surface-muted)' }} />;
   }
 
   if (!authenticated) {

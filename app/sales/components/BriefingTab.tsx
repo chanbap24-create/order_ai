@@ -1,5 +1,6 @@
 'use client';
 import { ListSkeleton } from '@/app/components/ui';
+import { useLoadGate } from '@/app/components/ui/LoadGate';
 
 import { useState } from 'react';
 import { getKstToday } from '../briefing/lib/format';
@@ -22,6 +23,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
   const { meetings, loading, generatingId, generateBriefing, generateAll } =
     useBriefingMeetings({ todayStr, currentManager, isAdmin, onToast: setToast });
+  useLoadGate('tab-briefing', loading);
 
   const { wineShipments, glassShipments } = useTodayShipments(currentManager, isAdmin);
   const { data: collections, saveFollowup: saveCollection } = useCollectionBriefing(currentManager);

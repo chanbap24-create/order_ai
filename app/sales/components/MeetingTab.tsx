@@ -1,5 +1,6 @@
 'use client';
 import { ListSkeleton } from '@/app/components/ui';
+import { useLoadGate } from '@/app/components/ui/LoadGate';
 
 import { useEffect, useState } from 'react';
 import type { ImportScheduleItem } from '@/app/types/wine';
@@ -36,6 +37,7 @@ export default function MeetingTab({ currentManager, isAdmin, initialManagers }:
   const [showImportPanel, setShowImportPanel] = useState(false);
 
   const data = useMeetings({ isAdmin, currentManager, initialManagers });
+  useLoadGate('tab-meetings', data.loading);
   const { quoteCols, setQuoteCols } = useQuoteColumns();
 
   const detail = useMeetingDetail({
