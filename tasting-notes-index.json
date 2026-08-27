@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-08-24",
+  "updated_at": "2026-08-27",
   "base_url": "https://github.com/chanbap24-create/order_ai/releases/download/note",
   "notes": {
     "1124001": {
@@ -465,6 +465,13 @@
       "pages": 1,
       "wine_name": ""
     },
+    "2022419": {
+      "exists": true,
+      "filename": "2022419.pdf",
+      "size_kb": 285,
+      "pages": 1,
+      "wine_name": ""
+    },
     "2022424": {
       "exists": true,
       "filename": "2022424.pdf",
@@ -532,6 +539,20 @@
       "exists": true,
       "filename": "2023098.pdf",
       "size_kb": 375,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2023420": {
+      "exists": true,
+      "filename": "2023420.pdf",
+      "size_kb": 217,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "2023426": {
+      "exists": true,
+      "filename": "2023426.pdf",
+      "size_kb": 234,
       "pages": 1,
       "wine_name": ""
     },
@@ -748,7 +769,7 @@
     "2123001": {
       "exists": true,
       "filename": "2123001.pdf",
-      "size_kb": 246,
+      "size_kb": 268,
       "pages": 1,
       "wine_name": ""
     },
@@ -1848,6 +1869,13 @@
       "exists": true,
       "filename": "3024044.pdf",
       "size_kb": 271,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "3024402": {
+      "exists": true,
+      "filename": "3024402.pdf",
+      "size_kb": 242,
       "pages": 1,
       "wine_name": ""
     },
