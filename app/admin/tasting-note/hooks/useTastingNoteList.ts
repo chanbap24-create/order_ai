@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
-import { isWineCategory, isActionableNew, LOW_STOCK_THRESHOLD } from "../constants";
+import { isWineCategory, isActionableNew, totalStock, LOW_STOCK_THRESHOLD } from "../constants";
 
 /** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터 */
 export function useTastingNoteList(initialFilter: NoteFilter = "all") {
@@ -94,7 +94,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     if (showExcluded !== !!w.note_excluded) return false; // 기본: 제외 숨김 / 제외 보기: 제외만
     if (wineOnly && !isWineCategory(w.item_code)) return false;
     if (debouncedSearch.trim()) return true; // 검색 중엔 재고 필터 무시
-    const stock = (w.inv_available || 0) + (w.inv_bonded || 0);
+    const stock = totalStock(w); // 가용+보세+입고예정 — 신규(배송 중) 와인도 목록에 보이게
     if (hideZero && stock <= 0) return false;
     if (lowStockThreshold > 0 && stock <= lowStockThreshold) return false;
     return true;
@@ -118,7 +118,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   // 재고 임계(≤N병 숨김) 필터도 신규 목록·카운트에 동일 적용.
   const isNewWine = (w: TastingWineRow) =>
     isActionableNew(w, hasNote(w), { requireWineCategory: wineOnly, showExcluded })
-    && (lowStockThreshold <= 0 || (w.inv_available || 0) + (w.inv_bonded || 0) > lowStockThreshold);
+    && (lowStockThreshold <= 0 || totalStock(w) > lowStockThreshold);
 
   const filteredWines = wines.filter((w) => {
     if (filterNote === "new") return isNewWine(w);

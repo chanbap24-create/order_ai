@@ -72,7 +72,7 @@ export function NoteListPanel(p: Props) {
         p.wines.map((w) => {
           const badge = noteBadge(w, p.ghIndex);
           const isSelected = p.selectedId === w.item_code;
-          const totalStock = (w.inv_available || 0) + (w.inv_bonded || 0);
+          const totalStock = (w.inv_available || 0) + (w.inv_bonded || 0) + (w.inv_incoming || 0);
           const vb = verificationBadge(w.verification_status);
 
           return (
@@ -164,6 +164,12 @@ export function NoteListPanel(p: Props) {
                         {w.inv_bonded ?? 0}
                       </b>
                     </span>
+                    {(w.inv_incoming || 0) > 0 && (
+                      <span>
+                        입고예정{" "}
+                        <b style={{ color: "var(--status-warning)" }}>{w.inv_incoming}</b>
+                      </span>
+                    )}
                     <span>
                       합계 <b style={{ color: totalStock > 0 ? "var(--text-primary)" : "var(--gray-300)" }}>{totalStock}</b>
                     </span>
