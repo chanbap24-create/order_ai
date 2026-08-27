@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildQuickDeliveryDates } from "./lib/deliveryDates";
+import { LoadGateProvider } from "@/app/components/ui/LoadGate";
 import { LearningTab } from "./components/LearningTab";
 import { OrderTab } from "./components/OrderTab";
 import { createWineOrderHandlers } from "./hooks/useWineOrderHandlers";
@@ -14,6 +15,15 @@ import { useOrderAutoEffects } from "./hooks/useOrderAutoEffects";
 import { useOrderOptions } from "./hooks/useOrderOptions";
 
 export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
+  // 부팅 커튼 — 페이지가 조각조각 뜨지 않고 한 번에 공개
+  return (
+    <LoadGateProvider>
+      <HomeBody subTab={subTab} />
+    </LoadGateProvider>
+  );
+}
+
+function HomeBody({ subTab }: { subTab?: "order" | "learning" }) {
   const [text, setText] = useState("");
   const [clientInput, setClientInput] = useState("");
   const [force, setForce] = useState(true);

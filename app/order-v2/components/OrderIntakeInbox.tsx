@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLoadGate } from "@/app/components/ui/LoadGate";
 import type { IntakeResult } from "../lib/api";
 
 type IntakeItem = {
@@ -19,6 +20,9 @@ export function OrderIntakeInbox({ onLoad }: Props) {
   const [token, setToken] = useState<string>("");
   const [showSetup, setShowSetup] = useState(false);
   const [copied, setCopied] = useState(false);
+  // 부팅 커튼 — 수신함 첫 조회까지 커튼 유지 (나중에 튀지 않게)
+  const [initialLoading, setInitialLoading] = useState(true);
+  useLoadGate('order-intake', initialLoading);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   const load = useCallback(async () => {
@@ -38,7 +42,7 @@ export function OrderIntakeInbox({ onLoad }: Props) {
         if (alive) setItems(Array.isArray(j.items) ? j.items : []);
       } catch { /* ignore */ }
     };
-    void run();
+    void run().finally(() => setInitialLoading(false));
     const t = setInterval(() => void run(), 30000); // 30초마다 새 수신 확인
     return () => { alive = false; clearInterval(t); };
   }, []);

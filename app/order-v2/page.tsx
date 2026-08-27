@@ -28,9 +28,19 @@ import { SummaryHeaderCard } from "./components/SummaryHeaderCard";
 import { TabSelector } from "./components/TabSelector";
 import { TokenUsage } from "./components/TokenUsage";
 import { useOrderV2Page } from "./hooks/useOrderV2Page";
+import { LoadGateProvider } from "@/app/components/ui/LoadGate";
 import { calcTotalAmount } from "./lib/priceCalc";
 
 export default function OrderV2Page() {
+  // 부팅 커튼 — 수신함 등 초기 로딩 후 한 번에 공개
+  return (
+    <LoadGateProvider>
+      <OrderV2PageBody />
+    </LoadGateProvider>
+  );
+}
+
+function OrderV2PageBody() {
   const g = useOrderV2Page();
   const [showTastingSettings, setShowTastingSettings] = useState(false);
   const {

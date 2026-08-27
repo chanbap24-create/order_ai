@@ -12,8 +12,18 @@ import { useAddItem } from "./hooks/useAddItem";
 import { useOrderAutoEffects } from "./hooks/useOrderAutoEffects";
 import { LearningTab } from "./components/LearningTab";
 import { OrderTab } from "./components/OrderTab";
+import { LoadGateProvider } from "@/app/components/ui/LoadGate";
 
 export default function Home({ subTab }: { subTab?: "order" | "learning" }) {
+  // 부팅 커튼 — 페이지가 조각조각 뜨지 않고 한 번에 공개
+  return (
+    <LoadGateProvider>
+      <HomeBody subTab={subTab} />
+    </LoadGateProvider>
+  );
+}
+
+function HomeBody({ subTab }: { subTab?: "order" | "learning" }) {
   const [text, setText] = useState("");
   const [clientInput, setClientInput] = useState(""); // 거래처 입력칸
   const [force, setForce] = useState(true);

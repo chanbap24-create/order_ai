@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { LoadGateProvider } from '@/app/components/ui/LoadGate';
 
 const tabLoader = () => (
   <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>로딩 중...</div>
@@ -14,6 +15,15 @@ const WineRegionsTab = dynamic(() => import('@/app/admin/components/WineRegionsT
 const BrandTab = dynamic(() => import('@/app/admin/components/BrandTab'), { ssr: false, loading: tabLoader });
 
 export default function MarketingPage() {
+  // 부팅 커튼 — 페이지가 조각조각 뜨지 않고 한 번에 공개
+  return (
+    <LoadGateProvider>
+      <MarketingPageBody />
+    </LoadGateProvider>
+  );
+}
+
+function MarketingPageBody() {
   const [currentManager, setCurrentManager] = useState('');
   const [activeTab, setActiveTab] = useState<'forecast' | 'analysis' | 'flavor' | 'regions' | 'brands'>('forecast');
   const [showPwChange, setShowPwChange] = useState(false);

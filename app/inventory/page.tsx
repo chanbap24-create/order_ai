@@ -28,11 +28,22 @@ import { useQuoteInlineEdit } from './hooks/useQuoteInlineEdit';
 import { useInventorySearch } from './hooks/useInventorySearch';
 import { useInventoryLayout } from './hooks/useInventoryLayout';
 import { useInventoryPageState } from './hooks/useInventoryPageState';
+import { LoadGateProvider, useLoadGate } from '@/app/components/ui/LoadGate';
 import { useQuoteExports } from './hooks/useQuoteExports';
 import { PromoQuoteOverlay, type PromoQuoteItem } from '@/app/sales/recommend/components/PromoQuoteOverlay';
 
 export default function InventoryPage() {
+  // 부팅 커튼 — 설정 로드 등 초기 로딩 후 한 번에 공개 (소믈리에 부팅과 동일 문법)
+  return (
+    <LoadGateProvider>
+      <InventoryPageBody />
+    </LoadGateProvider>
+  );
+}
+
+function InventoryPageBody() {
   const prefs = useServerPreferences();
+  useLoadGate('inv-prefs', prefs.state === 'idle' || prefs.state === 'loading');
 
   // ── 탭·컬럼·문서설정 + 국가 목록 (분리 훅) ──
   const {
