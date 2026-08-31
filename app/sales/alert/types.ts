@@ -1,4 +1,12 @@
-export type FilterType = 'all' | 'low_stock' | 'out_of_stock';
+export type FilterType = 'all' | 'low_stock' | 'out_of_stock' | 'vintage_change';
+
+export interface NextVintageInfo {
+  item_no: string;
+  vintage: string;
+  available: number;
+  bonded: number;
+  incoming: number;
+}
 
 export interface ClientDetail {
   client_code: string;
@@ -10,7 +18,9 @@ export interface ClientDetail {
 export interface AlertItem {
   item_no: string;
   item_name: string;
-  alert_type: 'low_stock' | 'out_of_stock';
+  alert_type: 'low_stock' | 'out_of_stock' | 'vintage_change';
+  /** 품절이지만 후속 빈티지 재고 존재 → vintage_change 로 재분류된 경우의 후속 정보 */
+  next_vintage?: NextVintageInfo;
   current_stock: number;
   threshold: number;
   country: string;
@@ -40,6 +50,7 @@ export interface AlertsResponse {
   total: number;
   out_of_stock_count: number;
   low_stock_count: number;
+  vintage_change_count?: number;
   auto_restored: number;
   scanned_at: string;
 }
@@ -48,4 +59,5 @@ export interface AlertCounts {
   total: number;
   low: number;
   out: number;
+  vintage?: number;
 }

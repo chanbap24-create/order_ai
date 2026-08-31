@@ -15,6 +15,7 @@ type Props = {
 const FILTERS: { key: FilterType; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'out_of_stock', label: '품절' },
+  { key: 'vintage_change', label: '빈티지 변경' },
   { key: 'low_stock', label: '부족' },
 ];
 
@@ -53,6 +54,9 @@ export function SummaryFilters(p: Props) {
       <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
         {p.counts.out > 0 && (
           <span style={{ color: 'var(--status-danger)', fontWeight: 700 }}>품절 {p.counts.out}</span>
+        )}
+        {(p.counts.vintage || 0) > 0 && (
+          <span style={{ color: 'var(--status-info)', fontWeight: 700 }}>빈티지 변경 {p.counts.vintage}</span>
         )}
         {p.counts.low > 0 && (
           <span style={{ color: 'var(--status-warning)', fontWeight: 700 }}>부족 {p.counts.low}</span>

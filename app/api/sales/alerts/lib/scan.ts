@@ -8,10 +8,18 @@ interface ClientDetail {
   last_date: string;
 }
 
+export interface NextVintageInfo {
+  item_no: string;
+  vintage: string;        // '2023' 등
+  available: number;
+  bonded: number;
+  incoming: number;
+}
+
 interface AlertResult {
   item_no: string;
   item_name: string;
-  alert_type: 'low_stock' | 'out_of_stock';
+  alert_type: 'low_stock' | 'out_of_stock' | 'vintage_change';
   current_stock: number;
   threshold: number;
   country: string;
@@ -20,6 +28,8 @@ interface AlertResult {
   days_remaining: number | null;
   clients: ClientDetail[];
   total_shipped: number;
+  /** 품절인데 같은 와인의 다음 빈티지가 있으면 → vintage_change + 후속 정보 */
+  next_vintage?: NextVintageInfo;
 }
 
 export interface ScanResult {
@@ -94,13 +104,64 @@ export async function scanManagerAlerts(
   // Phase 5: 부족 판별 + 정렬
   const alerts = buildAlerts(itemMap, inventoryMap, dismissedSet, SR);
 
-  alerts.sort((a, b) => {
-    if (a.alert_type === 'out_of_stock' && b.alert_type !== 'out_of_stock') return -1;
-    if (a.alert_type !== 'out_of_stock' && b.alert_type === 'out_of_stock') return 1;
-    return b.total_shipped - a.total_shipped;
-  });
+  // Phase 6: 품절 품목 중 같은 와인의 다음 빈티지가 있으면 '빈티지 변경'으로 재분류
+  await markVintageChanges(alerts);
+
+  const rank = (t: AlertResult['alert_type']) => (t === 'out_of_stock' ? 0 : t === 'vintage_change' ? 1 : 2);
+  alerts.sort((a, b) => rank(a.alert_type) - rank(b.alert_type) || b.total_shipped - a.total_shipped);
 
   return { alerts, autoRestored: autoRestoreItems.length };
+}
+
+/**
+ * 품절 알림 중 같은 와인(베이스 품번 = 품번[1:2]+[5:7], 3~4자리가 빈티지)의
+ * 더 높은 빈티지가 재고(가용+보세+입고예정)로 존재하면 '빈티지 변경'으로 재분류.
+ * 구빈티지 소진은 품절이 아니라 자연스러운 전환이므로 알림 톤을 낮추고 후속 정보를 첨부.
+ */
+async function markVintageChanges(alerts: AlertResult[]): Promise<void> {
+  const targets = alerts.filter((a) => a.alert_type === 'out_of_stock' && /^[0-9]{7}$/.test(a.item_no));
+  if (targets.length === 0) return;
+
+  // 재고 있는 품목 전량 로드는 소규모(수백 행) — 베이스 매칭을 메모리에서 수행
+  const { data: inStock } = await supabase
+    .from('inventory_cdv')
+    .select('item_no, available_stock, bonded_warehouse, bonded_kctc, incoming_stock')
+    .or('available_stock.gt.0,bonded_warehouse.gt.0,bonded_kctc.gt.0,incoming_stock.gt.0');
+
+  const baseOf = (c: string) => c.slice(0, 2) + c.slice(4);
+  const byBase = new Map<string, Array<{ item_no: string; vintage: number; available: number; bonded: number; incoming: number }>>();
+  for (const r of inStock || []) {
+    const code = String(r.item_no || '');
+    if (!/^[0-9]{7}$/.test(code)) continue;
+    const b = baseOf(code);
+    if (!byBase.has(b)) byBase.set(b, []);
+    byBase.get(b)!.push({
+      item_no: code,
+      vintage: Number(code.slice(2, 4)),
+      available: Number(r.available_stock) || 0,
+      bonded: (Number(r.bonded_warehouse) || 0) + (Number(r.bonded_kctc) || 0),
+      incoming: Number(r.incoming_stock) || 0,
+    });
+  }
+
+  for (const a of targets) {
+    const myVintage = Number(a.item_no.slice(2, 4));
+    const siblings = (byBase.get(baseOf(a.item_no)) || [])
+      .filter((s) => s.item_no !== a.item_no && s.vintage > myVintage
+        && (s.available + s.bonded + s.incoming) > 0);
+    if (siblings.length === 0) continue;
+    // 가장 가까운 다음 빈티지 우선
+    siblings.sort((x, y) => x.vintage - y.vintage);
+    const next = siblings[0];
+    a.alert_type = 'vintage_change';
+    a.next_vintage = {
+      item_no: next.item_no,
+      vintage: `20${String(next.vintage).padStart(2, '0')}`,
+      available: next.available,
+      bonded: next.bonded,
+      incoming: next.incoming,
+    };
+  }
 }
 
 function buildCutoffDate(): string {
@@ -177,7 +238,7 @@ async function fetchInventoryParallel(itemNos: string[]): Promise<Map<string, In
     batches.map((batch) =>
       supabase
         .from('inventory_cdv')
-        .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d')
+        .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, avg_sales_90d')
         .in('item_no', batch),
     ),
   );
@@ -199,7 +260,7 @@ async function autoRestoreDismissed(
 
   for (const d of dbDismissed) {
     const inv = inventoryMap.get(d.item_no);
-    const currentStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) : 0;
+    const currentStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0) : 0;
     const dismissedStock = d.current_stock ?? 0;
     if (currentStock > dismissedStock) autoRestoreItems.push(d.item_no);
   }
@@ -227,7 +288,8 @@ function buildAlerts(
     if (dismissedSet.has(itemNo)) continue;
 
     const inv = inventoryMap.get(itemNo);
-    const totalStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) : 0;
+    // 보세 2원화: bonded_warehouse + bonded_kctc 합산 (KCTC 누락 시 통관 대기 품목이 품절로 오탐)
+    const totalStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0) : 0;
     const price = inv?.supply_price || 0;
     const threshold = minStockForPrice(price, SR);
     const avgSales90d = inv?.avg_sales_90d || 0;

@@ -48,6 +48,7 @@ export function useAlerts({ selectedManager, onCountChange }: Args) {
       total: data.total,
       low: data.low_stock_count,
       out: data.out_of_stock_count,
+      vintage: data.vintage_change_count || 0,
     });
     if (data.scanned_at) setLastScanned(data.scanned_at);
     onCountChange?.(data.total);

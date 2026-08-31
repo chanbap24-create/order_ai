@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       total: alerts.length,
       out_of_stock_count: alerts.filter((a) => a.alert_type === 'out_of_stock').length,
       low_stock_count: alerts.filter((a) => a.alert_type === 'low_stock').length,
+      vintage_change_count: alerts.filter((a) => a.alert_type === 'vintage_change').length,
       auto_restored: autoRestored,
       scanned_at: new Date().toISOString(),
     });

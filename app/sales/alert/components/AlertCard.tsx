@@ -22,7 +22,8 @@ type Props = {
 export function AlertCard(p: Props) {
   const { alert } = p;
   const isOut = alert.alert_type === 'out_of_stock';
-  const accentColor = isOut ? 'var(--status-danger)' : 'var(--status-warning)';
+  const isVintage = alert.alert_type === 'vintage_change';
+  const accentColor = isOut ? 'var(--status-danger)' : isVintage ? 'var(--status-info)' : 'var(--status-warning)';
 
   return (
     <div
@@ -45,11 +46,21 @@ export function AlertCard(p: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: accentColor, flexShrink: 0 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: accentColor }} />
-              {isOut ? '품절' : '재고 부족'}
+              {isOut ? '품절' : isVintage ? '빈티지 변경' : '재고 부족'}
             </span>
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>
               {alert.item_name || alert.item_no}
             </span>
+            {isVintage && alert.next_vintage && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--status-info)' }}>
+                → {alert.next_vintage.vintage} 빈티지
+                {alert.next_vintage.available > 0
+                  ? ` 가용 ${alert.next_vintage.available}병`
+                  : alert.next_vintage.bonded > 0
+                    ? ` 보세 ${alert.next_vintage.bonded}병 (통관 대기)`
+                    : ` 입고예정 ${alert.next_vintage.incoming}병`}
+              </span>
+            )}
             {alert.days_remaining != null && alert.days_remaining > 0 && (
               <span
                 style={{
