@@ -44,7 +44,7 @@ export function buildCollectionMessage(it: CollItem, mode: Mode, sender?: Sender
   }
 
   return [
-    `안녕하세요\n${who}입니다.`,
+    `안녕하세요, ${it.client_name} 담당자님\n${who}입니다.`,
     body.join('\n'),
     `▸ 입금 계좌: ${ACCOUNT[it.client_type] || ''}`,
     `늘 감사드립니다. 좋은 하루 보내세요.`,
