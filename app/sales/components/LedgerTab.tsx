@@ -50,6 +50,16 @@ export default function LedgerTab({
     search.reset();
   };
 
+  // 초기화 — 거래처·기간·결과·조건 기억까지 전부 새 상태로
+  const handleReset = () => {
+    search.reset();
+    query.clear();
+    setSavedClient(null);
+    setStartDate(firstOfMonth);
+    setEndDate(today);
+    setType('wine');
+  };
+
   // 부팅 커튼 — 복원 자동 재조회 중엔 커튼 유지 (원장 결과까지 한 번에 공개)
   useLoadGate('tab-ledger', query.loading);
   // 복원 직후 1회 자동 재조회 — 보던 결과가 그대로(최신 데이터로) 나타남
@@ -103,6 +113,7 @@ export default function LedgerTab({
         setEndDate={setEndDate}
         loading={query.loading}
         onSearch={query.handleSearch}
+        onReset={handleReset}
         error={query.error}
       />
 

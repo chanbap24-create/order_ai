@@ -30,6 +30,7 @@ type Props = {
   setEndDate: (v: string) => void;
   loading: boolean;
   onSearch: () => void;
+  onReset?: () => void;
   error: string;
 };
 
@@ -128,6 +129,19 @@ export function LedgerFilterCard(p: Props) {
         >
           {p.loading ? '조회 중...' : '조회'}
         </button>
+        {p.onReset && (
+          <button
+            onClick={p.onReset}
+            disabled={p.loading}
+            title="거래처·기간·조회 결과를 모두 비웁니다"
+            style={{
+              padding: '9px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
+              border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)',
+            }}
+          >
+            초기화
+          </button>
+        )}
       </div>
 
       {p.error && (

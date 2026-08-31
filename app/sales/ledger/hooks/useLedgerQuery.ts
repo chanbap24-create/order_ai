@@ -69,9 +69,20 @@ export function useLedgerQuery({ selectedClient, startDate, endDate, type }: Arg
     });
   };
 
+  /** 조회 결과 전체 비우기 (초기화 버튼용) */
+  const clear = useCallback(() => {
+    setClient(null);
+    setRows([]);
+    setPayments([]);
+    setPrevBalance(0);
+    setError('');
+    setCollapsedMonths(new Set());
+    setCollapsedDays(new Set());
+  }, []);
+
   return {
     loading, client, rows, payments, prevBalance, error,
     collapsedMonths, collapsedDays,
-    handleSearch, toggleMonth, toggleDay,
+    handleSearch, toggleMonth, toggleDay, clear,
   };
 }
