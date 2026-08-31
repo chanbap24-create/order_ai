@@ -27,24 +27,26 @@ export function buildCollectionMessage(it: CollItem, mode: Mode, sender?: Sender
     && it.promised_amount != null && paid > 0 && paid < it.promised_amount;
   const diff = partial ? it.promised_amount! - paid : 0;
 
+  // 거래처명은 본문(금액 문장)에 포함 — "현재 ○○○ 미수 잔액 ..." 형태
+  const name = it.client_name;
   const body: string[] = [];
   if (partial) {
     const when = it.promised_date ? `${mmdd(it.promised_date)} 결제 예정이셨던` : '약속하신';
-    body.push(`${when} ${fmt(it.promised_amount!)}원 중 ${fmt(paid)}원 입금 확인되었습니다. 감사합니다.`);
+    body.push(`${when} ${name} ${fmt(it.promised_amount!)}원 중 ${fmt(paid)}원 입금 확인되었습니다. 감사합니다.`);
     body.push(`차액 ${fmt(diff)}원이 남아 있어 안내드립니다. 편하실 때 마저 입금해 주시면 감사하겠습니다.`);
   } else if (mode === 'today') {
-    body.push(`오늘(${it.promised_date ? mmdd(it.promised_date) : '금일'}) 결제 예정이신 ${fmt(amount)}원 안내드립니다.`);
+    body.push(`오늘(${it.promised_date ? mmdd(it.promised_date) : '금일'}) ${name} 결제 예정 금액 ${fmt(amount)}원 안내드립니다.`);
     body.push(`편하실 때 입금해 주시면 감사하겠습니다.`);
   } else if (mode === 'broken') {
-    body.push(`${it.promised_date ? mmdd(it.promised_date) : '지난'} 결제 예정이었던 ${fmt(amount)}원이 아직 확인되지 않아 다시 안내드립니다.`);
+    body.push(`${it.promised_date ? mmdd(it.promised_date) : '지난'} 결제 예정이었던 ${name} ${fmt(amount)}원이 아직 확인되지 않아 다시 안내드립니다.`);
     body.push(`오늘 입금해 주실 수 있을까요? 일정이 변경되셨다면 편하신 날짜를 알려주시면 감사하겠습니다.`);
   } else {
-    body.push(`현재 미수 잔액 ${fmt(amount)}원이 있어 안내드립니다.`);
+    body.push(`현재 ${name} 미수 잔액 ${fmt(amount)}원이 있어 안내드립니다.`);
     body.push(`편하실 때 입금해 주시면 감사하겠습니다. 입금 예정일을 알려주시면 일정에 맞춰 기다리겠습니다.`);
   }
 
   return [
-    `안녕하세요, ${it.client_name} 담당자님\n${who}입니다.`,
+    `안녕하세요\n${who}입니다.`,
     body.join('\n'),
     `▸ 입금 계좌: ${ACCOUNT[it.client_type] || ''}`,
     `늘 감사드립니다. 좋은 하루 보내세요.`,
