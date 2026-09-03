@@ -47,13 +47,19 @@ export function useMeetings(p: Params) {
   useEffect(() => {
     const year = weekBase.getFullYear();
     const cacheKey = `holidays_${year}`;
+    // 해당 연도 항목은 병합이 아니라 통째로 교체 — 병합하면 서버에서 정정·삭제된
+    // 날짜(예: 잘못된 추석)가 이전 상태/캐시에 남아 화면에서 지워지지 않는다
+    const replaceYear = (prev: Record<string, string>, data: Record<string, string>) => ({
+      ...Object.fromEntries(Object.entries(prev).filter(([k]) => !k.startsWith(`${year}-`))),
+      ...data,
+    });
     const cached = getCached<Record<string, string>>(cacheKey, CACHE_TTL.HOLIDAYS);
-    if (cached) setHolidays((prev) => ({ ...prev, ...cached }));
+    if (cached) setHolidays((prev) => replaceYear(prev, cached));
     fetch(`/api/sales/holidays?year=${year}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.holidays) {
-          setHolidays((prev) => ({ ...prev, ...d.holidays }));
+          setHolidays((prev) => replaceYear(prev, d.holidays));
           setCached(cacheKey, d.holidays);
         }
       })
