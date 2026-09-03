@@ -118,6 +118,9 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
           ...overdue.filter(x => x.client_type === g.type && !x.hidden).map(it => ({ it, mode: 'overdue' as Mode })),
         ];
         if (rows.length === 0) return null;
+        // 법인별 미수 총합계 — 표의 '미수' 컬럼과 같은 기준(연체액, 연체 없으면 잔액), 숨김 제외 전체 행
+        const totalMisu = rows.reduce((s, { it }) =>
+          s + (it.overdue > 0 ? it.overdue : it.net_balance > 0 ? it.net_balance : 0), 0);
         const sorted = sort
           ? [...rows].sort((a, b) => {
               const va = sortValue(a.it, a.mode, sort.col), vb = sortValue(b.it, b.mode, sort.col);
@@ -139,6 +142,8 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: g.color, alignSelf: 'center' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{g.label}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{rows.length}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)' }}>미수 합계</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmt(totalMisu)}원</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
