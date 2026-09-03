@@ -346,7 +346,9 @@ export async function downloadImageAsBase64(imageUrl: string): Promise<{ base64:
   let lastStatus = 0;
   for (const headers of strategies) {
     try {
-      const res = await fetch(imageUrl, { headers });
+      // 타임아웃 필수 — 응답 없이 매달리는 호스트(예: premiumport.com)가 있으면
+      // 브랜드북 등 일괄 임베드 작업 전체가 서버 상한(300s)까지 멈춘다
+      const res = await fetch(imageUrl, { headers, signal: AbortSignal.timeout(12_000) });
       if (!res.ok) { lastStatus = res.status; continue; }
       const contentType = res.headers.get("content-type") || "image/jpeg";
       if (!contentType.includes("image")) { lastStatus = -1; continue; } // 403 HTML 등 방어
