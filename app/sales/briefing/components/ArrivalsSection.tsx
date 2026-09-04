@@ -11,6 +11,30 @@ import { shareOrDownloadFile } from '@/app/lib/shareFile';
 const todayKST = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
 const rateKeyOf = (r: { client_code: string | null; client_name: string }) => r.client_code || `name:${r.client_name}`;
 
+// 할인률 수동 조정값 보존 (localStorage) — 새로고침해도 유지, 30일 지난 항목은 정리
+const EDITS_KEY = 'arrival-rate-edits';
+type StoredEdits = Record<string, { v: string; t: number }>;
+const loadEdits = (): Record<string, string> => {
+  try {
+    const all = JSON.parse(localStorage.getItem(EDITS_KEY) || '{}') as StoredEdits;
+    const cutoff = Date.now() - 30 * 86400_000;
+    const alive: StoredEdits = {};
+    const out: Record<string, string> = {};
+    for (const [k, e] of Object.entries(all)) {
+      if (e && e.t >= cutoff) { alive[k] = e; out[k] = e.v; }
+    }
+    localStorage.setItem(EDITS_KEY, JSON.stringify(alive));
+    return out;
+  } catch { return {}; }
+};
+const saveEdit = (pk: string, v: string) => {
+  try {
+    const all = JSON.parse(localStorage.getItem(EDITS_KEY) || '{}') as StoredEdits;
+    all[pk] = { v, t: Date.now() };
+    localStorage.setItem(EDITS_KEY, JSON.stringify(all));
+  } catch { /* ignore */ }
+};
+
 export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[]; sender?: Sender }) {
   // 복사된 문구 미리보기 (request id 단위 — 뭘 보냈는지 확인용)
   const [copied, setCopied] = useState<{ id: number; msg: string } | null>(null);
@@ -21,8 +45,8 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
     if (next.has(code)) next.delete(code); else next.add(code);
     return next;
   });
-  // 할인률(%) 결정 순서: ①수동 입력(edits, 거래처×품목) ②그 와인 견적 이력(quoted_rate) ③거래처 기본할인률(gradeRates)
-  const [edits, setEdits] = useState<Record<string, string>>({});
+  // 할인률(%) 결정 순서: ①수동 입력(edits, 거래처×품목 — localStorage 보존) ②그 와인 견적 이력(quoted_rate) ③거래처 기본할인률(gradeRates)
+  const [edits, setEdits] = useState<Record<string, string>>(loadEdits);
   const [gradeRates, setGradeRates] = useState<Record<string, string>>({});
   const [holidays, setHolidays] = useState<Set<string>>(new Set());
   // 테이스팅 노트 다운로드 상태 (품목 단위): loading | none(노트 없음)
@@ -178,7 +202,7 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
                         max={99}
                         value={rateValueOf(rk, a)}
                         placeholder="0"
-                        onChange={(e) => setEdits((prev) => ({ ...prev, [pk]: e.target.value }))}
+                        onChange={(e) => { setEdits((prev) => ({ ...prev, [pk]: e.target.value })); saveEdit(pk, e.target.value); }}
                         title={fromQuote ? '이 거래처에 이 와인을 견적한 이력의 할인률' : '거래처 기본할인률 (수정 가능)'}
                         style={{ width: 44, padding: '3px 6px', fontSize: 12, textAlign: 'right', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: fromQuote ? 'var(--status-info)' : 'var(--text-primary)', fontWeight: fromQuote ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}
                         aria-label={`${r.client_name} 할인률(%)`}
