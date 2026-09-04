@@ -218,10 +218,10 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
                 />
               );
             })}
-            {/* 이전 빈티지 구매 거래처 — 같은 와인 다른 빈티지의 최근 1년 출고처 (대기 미등록만) */}
+            {/* 이전 빈티지 구매 거래처 — 같은 와인 다른 빈티지의 최근 1년 출고처 (대기 미등록만). 음영 패널로 대기 등록과 구분 */}
             {open && a.past_buyers.length > 0 && (
-              <>
-                <div style={{ marginTop: 10, paddingTop: 7, borderTop: '1px solid var(--border-subtle)', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>
+              <div style={{ marginTop: 10, padding: '7px 10px 9px', background: 'var(--surface-muted)', borderRadius: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>
                   이전 빈티지 구매 거래처 {a.past_buyers.length} · 최근 1년
                 </div>
                 {a.past_buyers.map((b) => {
@@ -242,7 +242,7 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
                     />
                   );
                 })}
-              </>
+              </div>
             )}
           </div>
         );
@@ -294,7 +294,7 @@ function ClientRow(p: {
         </button>
       </div>
       {p.copied && (
-        <div style={{ marginTop: 6, padding: '8px 10px', fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 8, whiteSpace: 'pre-wrap', userSelect: 'all' }}>
+        <div style={{ marginTop: 6, padding: '8px 10px', fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', background: 'var(--surface)', border: '1px solid var(--border-default)', borderRadius: 8, whiteSpace: 'pre-wrap', userSelect: 'all' }}>
           {p.copied}
         </div>
       )}
