@@ -75,7 +75,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
   return (
     <div style={{ marginBottom: 12, background: '#fff', border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span>💰 오늘의 수금</span>
+        <span style={{ whiteSpace: 'nowrap' }}>오늘의 수금</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           약속어김 {broken.length} · 오늘약속 {promiseToday.length} · 연체 {overdue.length}
           {newCount > 0 && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}> · 신규 {newCount}</span>}

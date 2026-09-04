@@ -125,7 +125,7 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
   return (
     <div style={{ marginBottom: 12, background: '#fff', border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span>📦 통관 완료 — 대기 품목</span>
+        <span>통관 완료 — 대기 품목</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           {arrivals.length}종
           {newCount > 0 && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}> · 미확인 {newCount}</span>}
@@ -137,21 +137,21 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
         const open = openItems.has(a.item_code);
         return (
           <div key={a.item_code} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
-            {/* 품목 줄 클릭 → 대기 거래처 펼침/접힘 */}
-            <div
-              onClick={() => toggleItem(a.item_code)}
-              style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', cursor: 'pointer' }}
-            >
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0 }}>
-                {a.item_name || a.item_code}
+            {/* 품목 줄 클릭 → 대기 거래처 펼침/접힘. 품목명 줄 + 메타 줄 2단 (모바일에서 이름 세로 붕괴 방지) */}
+            <div onClick={() => toggleItem(a.item_code)} style={{ cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {a.item_name || a.item_code}
+                </span>
                 {!a.notified_at && (
-                  <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--status-success)', borderRadius: 4, padding: '1px 4px', verticalAlign: 'middle', letterSpacing: 0.3 }}>NEW</span>
+                  <span style={{ flex: 'none', fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--status-success)', borderRadius: 4, padding: '1px 4px', letterSpacing: 0.3 }}>NEW</span>
                 )}
-                <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ flex: 'none', fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                   거래처 {a.requests.length}
                   <span style={{ display: 'inline-block', marginLeft: 3, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
                 </span>
-              </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-success)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 가용 {fmt(a.available)}병
               </span>
@@ -167,10 +167,11 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
                 onClick={(e) => { e.stopPropagation(); downloadNote(a); }}
                 disabled={noteState[a.item_code] === 'loading'}
                 title="테이스팅 노트 PDF — 모바일은 공유 시트로 카톡 전송"
-                style={{ width: 112, padding: '3px 0', fontSize: 11, fontWeight: 700, borderRadius: 6, border: '1px solid var(--border-strong, var(--border-default))', background: 'var(--surface)', color: noteState[a.item_code] === 'none' ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: noteState[a.item_code] === 'loading' ? 'default' : 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
+                style={{ marginLeft: 'auto', width: 112, padding: '3px 0', fontSize: 11, fontWeight: 700, borderRadius: 6, border: '1px solid var(--border-strong, var(--border-default))', background: 'var(--surface)', color: noteState[a.item_code] === 'none' ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: noteState[a.item_code] === 'loading' ? 'default' : 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
               >
                 {noteState[a.item_code] === 'loading' ? '노트…' : noteState[a.item_code] === 'none' ? '노트 없음' : '📄 노트'}
               </button>
+              </div>
             </div>
             {open && a.requests.map((r) => {
               const rk = rateKeyOf(r);
