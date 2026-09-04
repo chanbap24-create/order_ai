@@ -158,6 +158,7 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
     const msg = buildArrivalMessage({
       clientName: b.client_name,
       items: [itemPayload(a, toFraction(displayRate(b.client_code, a, b.quoted_rate)))],
+      variant: 'used',
       sender,
     });
     await doCopy(key, msg);

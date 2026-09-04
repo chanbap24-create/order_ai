@@ -27,10 +27,12 @@ function itemLines(it: ArrivalMessageItem): string[] {
   return lines;
 }
 
-/** 같은 거래처가 기다린 통관 품목들을 한 통으로 — 1종이면 단일 카드, 여러 종이면 [품목명] 블록 반복 */
+/** 같은 거래처가 기다린 통관 품목들을 한 통으로 — 1종이면 단일 카드, 여러 종이면 [품목명] 블록 반복.
+ *  variant: waiting=대기 등록 거래처("기다려 주셨던") / used=이전 빈티지 구매 거래처("사용해 주셨던 와인의 새 빈티지") */
 export function buildArrivalMessage(p: {
   clientName: string;
   items: ArrivalMessageItem[];
+  variant?: 'waiting' | 'used';
   sender?: Sender;
 }): string {
   // 입고 대기(incoming_requests)는 CDV 와인 전용 — 법인 고정
@@ -39,7 +41,9 @@ export function buildArrivalMessage(p: {
     : '까브드뱅';
   const many = p.items.length > 1;
 
-  const intro = `${p.clientName}에서 기다려 주셨던\n와인${many ? ` ${p.items.length}종` : ''}이 통관을 마치고 들어왔습니다.`;
+  const intro = p.variant === 'used'
+    ? `${p.clientName}에서 사용해 주셨던\n와인${many ? ` ${p.items.length}종` : ''}의 새 빈티지가 들어왔습니다.`
+    : `${p.clientName}에서 기다려 주셨던\n와인${many ? ` ${p.items.length}종` : ''}이 통관을 마치고 들어왔습니다.`;
   const blocks = many
     ? p.items.map((it) => [`[${it.itemName}${vintageLabelOf(it.vintage)}]`, ...itemLines(it)].join('\n'))
     : [[`▸ ${p.items[0].itemName}${vintageLabelOf(p.items[0].vintage)}`, ...itemLines(p.items[0])].join('\n')];
