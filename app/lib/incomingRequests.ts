@@ -200,6 +200,10 @@ export type RecentArrival = Omit<ArrivalNotice, 'requests'> & {
 
 // 같은 와인 다른 빈티지 매칭용 베이스 (7자리 숫자 품번의 3~4자리=빈티지 제거)
 const vintageBaseOf = (c: string) => (/^\d{7}$/.test(c) ? c.slice(0, 2) + c.slice(4) : c);
+// ⚠️ 베이스가 같아도 다른 와인일 수 있다 (예: 3422004 리아타 샤르도네 vs 3424004 카드레 SB —
+//    앞2+뒤3이 우연히 일치). 베이스 매칭은 반드시 와인명 키로 재검증할 것.
+const nameKeyOf = (n: string | null | undefined) =>
+  (n || '').toLowerCase().replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
 
 /** 최근 통관 완료 품목 — 브리핑 표시용.
  *  대상 = 최근 입항(45일) 스케줄 + 대기 등록 품목 중 가용재고가 생긴 것.
@@ -230,7 +234,7 @@ export async function listRecentArrivals(manager: string, days = 14, arrivalWind
   // 담당 스코프 = client_details.manager (현재 담당 기준 — shipments.manager는 옛 담당이라 금지)
   // ⚠️ 이전 빈티지 품번은 재고표(inventory_cdv)에 없을 수 있다(품절 시 삭제 — 예: 3021851).
   //    반드시 출고 기록에서 LIKE 패턴으로 직접 찾는다.
-  type ShipRow = { item_no: string; client_code: string; client_name: string | null; quantity: number; ship_date: string };
+  type ShipRow = { item_no: string; item_name: string | null; client_code: string; client_name: string | null; quantity: number; ship_date: string };
   const shipCutoff = new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10);
   const arrivalCodeSet = new Set(codes);
   const patterns = [...new Set(codes.filter((c) => /^\d{7}$/.test(c))
@@ -242,64 +246,96 @@ export async function listRecentArrivals(manager: string, days = 14, arrivalWind
       .select('client_code').eq('manager', manager).eq('client_type', 'wine').range(f, t)),
     Promise.all(patternChunks.map((chunk) =>
       fetchAllRows<ShipRow>((f, t) => supabase.from('shipments')
-        .select('item_no, client_code, client_name, quantity, ship_date')
+        .select('item_no, item_name, client_code, client_name, quantity, ship_date')
         .or(chunk.map((p) => `item_no.like.${p}`).join(','))
         .gte('ship_date', shipCutoff)
         .range(f, t)))),
   ]);
   const myClients = new Set(managerClientRows.map((r) => r.client_code));
-  // base → 해당 베이스의 (거래처 → 수량/최근일)
-  const buyersByBase = new Map<string, Map<string, { name: string; qty: number; last: string }>>();
+  // base → 출고 행 목록 (집계는 품목별 루프에서 — 와인명 키 재검증 후)
+  const shipsByBase = new Map<string, ShipRow[]>();
   for (const s of shipArrays.flat()) {
     if (!s.client_code || !myClients.has(s.client_code)) continue;
     if (arrivalCodeSet.has(s.item_no)) continue; // 같은 빈티지(현 품번) 출고 제외 — '이전 빈티지'만
     const base = vintageBaseOf(s.item_no);
-    const byClient = buyersByBase.get(base) ?? buyersByBase.set(base, new Map()).get(base)!;
-    const cur = byClient.get(s.client_code) || { name: s.client_name || s.client_code, qty: 0, last: '' };
-    cur.qty += Number(s.quantity) || 0;
-    if (s.ship_date > cur.last) cur.last = s.ship_date;
-    byClient.set(s.client_code, cur);
+    (shipsByBase.get(base) ?? shipsByBase.set(base, []).get(base)!).push(s);
   }
-  const pastBuyerCodes = [...new Set([...buyersByBase.values()].flatMap((m) => [...m.keys()]))];
+  const pastBuyerCodes = [...new Set([...shipsByBase.values()].flat().map((s) => s.client_code))];
 
-  // 견적 이력 할인률 — 거래처별 최근 견적부터 훑어 (품번 정확 일치 우선, 없으면 같은 와인 다른 빈티지)
-  const quoted = new Map<string, number>(); // `${client_code}|${code|base}` → rate(소수)
+  // 견적 이력 할인률 — 거래처별 최근 견적부터 훑어. 품번 정확 일치 우선,
+  // 빈티지 폴백(베이스 일치)은 와인명 키까지 같아야 인정 (베이스 충돌 방지)
+  const quotedExact = new Map<string, number>();                      // `${client}|${code}` → rate(소수)
+  const quotedBase = new Map<string, { rate: number; nk: string }>(); // `${client}|${base}` → rate+와인명 키
+  const quoteItemCodes = new Set<string>();
   const clientCodes = [...new Set([
     ...(alive.map((r) => r.client_code).filter(Boolean) as string[]),
     ...pastBuyerCodes,
   ])];
+  type QuoteItem = { item_code?: string; discount_rate?: number };
+  let quoteRows: Array<{ client_code: string; items?: QuoteItem[] }> = [];
   if (clientCodes.length > 0) {
     const { data: qs } = await supabase.from('saved_quotes')
       .select('client_code, items, created_at')
       .in('client_code', clientCodes)
       .order('created_at', { ascending: false })
       .limit(300);
-    for (const q of qs || []) {
-      for (const it of ((q.items || []) as Array<{ item_code?: string; discount_rate?: number }>)) {
-        const code = String(it.item_code || '');
-        const rate = Number(it.discount_rate);
-        if (!code || !Number.isFinite(rate) || rate <= 0) continue;
-        for (const key of [`${q.client_code}|${code}`, `${q.client_code}|${vintageBaseOf(code)}`]) {
-          if (!quoted.has(key)) quoted.set(key, rate); // created_at 내림차순 → 최근 견적 우선
-        }
+    quoteRows = (qs || []) as typeof quoteRows;
+    for (const q of quoteRows) {
+      for (const it of q.items || []) {
+        if (it.item_code) quoteItemCodes.add(String(it.item_code));
       }
     }
   }
-  const quotedRateOf = (clientCode: string | null, itemCode: string): number | null =>
-    clientCode
-      ? quoted.get(`${clientCode}|${itemCode}`) ?? quoted.get(`${clientCode}|${vintageBaseOf(itemCode)}`) ?? null
-      : null;
+  // 견적 품번의 와인명 (빈티지 폴백 검증용)
+  const quoteNameKey = new Map<string, string>();
+  const qCodeArr = [...quoteItemCodes];
+  for (let i = 0; i < qCodeArr.length; i += 400) {
+    const { data: ws } = await supabase.from('wines')
+      .select('item_code, item_name_kr').in('item_code', qCodeArr.slice(i, i + 400));
+    for (const w of ws || []) quoteNameKey.set(w.item_code, nameKeyOf(w.item_name_kr));
+  }
+  for (const q of quoteRows) {
+    for (const it of q.items || []) {
+      const code = String(it.item_code || '');
+      const rate = Number(it.discount_rate);
+      if (!code || !Number.isFinite(rate) || rate <= 0) continue;
+      const exactKey = `${q.client_code}|${code}`;
+      if (!quotedExact.has(exactKey)) quotedExact.set(exactKey, rate); // 내림차순 → 최근 견적 우선
+      const nk = quoteNameKey.get(code);
+      if (nk) {
+        const baseKey = `${q.client_code}|${vintageBaseOf(code)}`;
+        if (!quotedBase.has(baseKey)) quotedBase.set(baseKey, { rate, nk });
+      }
+    }
+  }
+  const quotedRateOf = (clientCode: string | null, itemCode: string, itemNk: string): number | null => {
+    if (!clientCode) return null;
+    const exact = quotedExact.get(`${clientCode}|${itemCode}`);
+    if (exact !== undefined) return exact;
+    const b = quotedBase.get(`${clientCode}|${vintageBaseOf(itemCode)}`);
+    return b && itemNk && b.nk === itemNk ? b.rate : null; // 이름 키 불일치 = 다른 와인 → 폴백 금지
+  };
   const { data: inv } = await supabase.from('inventory_cdv')
     .select('item_no, item_name, available_stock, supply_price').in('item_no', codes).gt('available_stock', 0);
   const out: RecentArrival[] = [];
   for (const w of inv || []) {
     const rs = alive.filter((r) => r.item_code === w.item_no);
     const reqClientCodes = new Set(rs.map((r) => r.client_code).filter(Boolean));
-    const pastBuyers: PastBuyer[] = [...(buyersByBase.get(vintageBaseOf(w.item_no)) || new Map()).entries()]
+    const wNk = nameKeyOf(w.item_name);
+    // 같은 베이스 출고 중 '와인명 키'까지 일치하는 것만 집계 (베이스 충돌: 리아타↔카드레 방지)
+    const byClient = new Map<string, { name: string; qty: number; last: string }>();
+    for (const s of shipsByBase.get(vintageBaseOf(w.item_no)) || []) {
+      if (!wNk || nameKeyOf(s.item_name) !== wNk) continue;
+      const cur = byClient.get(s.client_code) || { name: s.client_name || s.client_code, qty: 0, last: '' };
+      cur.qty += Number(s.quantity) || 0;
+      if (s.ship_date > cur.last) cur.last = s.ship_date;
+      byClient.set(s.client_code, cur);
+    }
+    const pastBuyers: PastBuyer[] = [...byClient.entries()]
       .filter(([code]) => !reqClientCodes.has(code)) // 이미 대기 등록된 거래처는 제외
       .map(([code, b]) => ({
         client_code: code, client_name: b.name, qty: b.qty, last_date: b.last,
-        quoted_rate: quotedRateOf(code, w.item_no),
+        quoted_rate: quotedRateOf(code, w.item_no, wNk),
       }))
       .sort((a, b) => b.last_date.localeCompare(a.last_date))
       .slice(0, 20);
@@ -310,7 +346,7 @@ export async function listRecentArrivals(manager: string, days = 14, arrivalWind
       item_name: w.item_name || '',
       available: Number(w.available_stock) || 0,
       supply_price: Number(w.supply_price) || 0,
-      requests: rs.map((r) => ({ ...r, quoted_rate: quotedRateOf(r.client_code, w.item_no) })),
+      requests: rs.map((r) => ({ ...r, quoted_rate: quotedRateOf(r.client_code, w.item_no, wNk) })),
       past_buyers: pastBuyers,
       notified_at: rs.find((r) => r.status === 'notified')?.notified_at || null,
     });
