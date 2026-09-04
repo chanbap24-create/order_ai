@@ -102,7 +102,9 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
   }, [arrivals]);
 
   if (arrivals.length === 0) return null;
-  const newCount = arrivals.filter((a) => !a.notified_at).length;
+  // NEW = 아직 팝업 확인 안 한 '대기 등록' 품목 (접점만 있는 품목은 대상 아님)
+  const isNewItem = (a: RecentArrival) => a.requests.some((r) => r.status === 'waiting');
+  const newCount = arrivals.filter(isNewItem).length;
   const today = todayKST();
 
   // 출고 가능일 = 통관일(팝업 확인일, 미확인이면 오늘) + 영업일 2일. 이미 지났으면 바로 출고.
@@ -167,11 +169,11 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
   return (
     <div style={{ marginBottom: 12, background: '#fff', border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span>통관 완료 — 대기 품목</span>
+        <span>통관 완료</span>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
           {arrivals.length}종
           {newCount > 0 && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}> · 미확인 {newCount}</span>}
-          <span> · 최근 14일</span>
+          <span> · 대기 등록 + 이전 빈티지 거래처 보유 품목</span>
         </span>
       </div>
       {arrivals.map((a) => {
@@ -183,11 +185,14 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
               <span style={{ flex: 1, minWidth: 60, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.item_name || a.item_code}
               </span>
-              {!a.notified_at && (
+              {isNewItem(a) && (
                 <span style={{ flex: 'none', fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--status-success)', borderRadius: 4, padding: '1px 4px', letterSpacing: 0.3 }}>NEW</span>
               )}
               <span style={{ flex: 'none', fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                거래처 {a.requests.length}
+                {[
+                  a.requests.length > 0 ? `대기 ${a.requests.length}` : '',
+                  a.past_buyers.length > 0 ? `이전 ${a.past_buyers.length}` : '',
+                ].filter(Boolean).join(' · ')}
                 <span style={{ display: 'inline-block', marginLeft: 3, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
               </span>
               {/* 가용·공급가·출고일은 헤더에서 숨김(품목명 확보) — 카톡 문구에는 그대로 포함됨 */}

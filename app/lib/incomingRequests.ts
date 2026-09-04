@@ -201,17 +201,30 @@ export type RecentArrival = Omit<ArrivalNotice, 'requests'> & {
 // 같은 와인 다른 빈티지 매칭용 베이스 (7자리 숫자 품번의 3~4자리=빈티지 제거)
 const vintageBaseOf = (c: string) => (/^\d{7}$/.test(c) ? c.slice(0, 2) + c.slice(4) : c);
 
-/** 최근 통관 완료된 대기 품목 — 브리핑 표시용.
- *  팝업은 확인(notified) 즉시 사라지지만, 여기서는 확인 후에도 days일간 유지해 재확인 가능하게.
+/** 최근 통관 완료 품목 — 브리핑 표시용.
+ *  대상 = 최근 입항(45일) 스케줄 + 대기 등록 품목 중 가용재고가 생긴 것.
+ *  그중 '내 접점'이 있는 품목만: 내 대기 등록이 있거나, 내 담당 거래처가 이전 빈티지를 사간 품목.
+ *  (전부 띄우면 담당자와 무관한 품목까지 쌓여 노이즈 — 접점 필터로 개인화)
  *  quoted_rate = 그 거래처에 그 와인(다른 빈티지 포함)을 견적한 이력이 있으면 최근 견적의 할인률. */
-export async function listRecentArrivals(manager: string, days = 14): Promise<RecentArrival[]> {
+export async function listRecentArrivals(manager: string, days = 14, arrivalWindowDays = 45): Promise<RecentArrival[]> {
   const cutoff = new Date(Date.now() - days * 86400_000).toISOString();
-  const { data: reqs } = await supabase.from('incoming_requests')
-    .select('*').eq('manager', manager).in('status', ['waiting', 'notified']);
+  const todayKst = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+  const arrCutoff = new Date(Date.now() - arrivalWindowDays * 86400_000).toISOString().slice(0, 10);
+
+  const [{ data: reqs }, { data: sched }] = await Promise.all([
+    supabase.from('incoming_requests')
+      .select('*').eq('manager', manager).in('status', ['waiting', 'notified']),
+    // 최근 입항 스케줄 — 대기 등록이 없어도 통관 후보에 포함 (미래 입항은 아직 통관 전이므로 제외)
+    supabase.from('import_schedule')
+      .select('item_code, arrival_date').gte('arrival_date', arrCutoff).lte('arrival_date', todayKst),
+  ]);
   const alive = ((reqs || []) as (IncomingRequest & { notified_at?: string | null })[])
     .filter((r) => r.status === 'waiting' || (r.notified_at && r.notified_at >= cutoff));
-  if (alive.length === 0) return [];
-  const codes = [...new Set(alive.map((r) => r.item_code))];
+  const codes = [...new Set([
+    ...alive.map((r) => r.item_code),
+    ...(sched || []).map((s) => String(s.item_code)).filter(Boolean),
+  ])];
+  if (codes.length === 0) return [];
 
   // ── 이전 빈티지 구매 거래처 — 같은 베이스 품번(다른 빈티지)의 최근 12개월 출고, 내 담당 거래처만 ──
   // 담당 스코프 = client_details.manager (현재 담당 기준 — shipments.manager는 옛 담당이라 금지)
@@ -219,14 +232,18 @@ export async function listRecentArrivals(manager: string, days = 14): Promise<Re
   //    반드시 출고 기록에서 LIKE 패턴으로 직접 찾는다.
   type ShipRow = { item_no: string; client_code: string; client_name: string | null; quantity: number; ship_date: string };
   const shipCutoff = new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10);
+  const arrivalCodeSet = new Set(codes);
+  const patterns = [...new Set(codes.filter((c) => /^\d{7}$/.test(c))
+    .map((c) => `${c.slice(0, 2)}__${c.slice(4)}`))];
+  const patternChunks: string[][] = [];
+  for (let i = 0; i < patterns.length; i += 15) patternChunks.push(patterns.slice(i, i + 15));
   const [managerClientRows, shipArrays] = await Promise.all([
     fetchAllRows<{ client_code: string }>((f, t) => supabase.from('client_details')
       .select('client_code').eq('manager', manager).eq('client_type', 'wine').range(f, t)),
-    Promise.all(codes.filter((c) => /^\d{7}$/.test(c)).map((c) =>
+    Promise.all(patternChunks.map((chunk) =>
       fetchAllRows<ShipRow>((f, t) => supabase.from('shipments')
         .select('item_no, client_code, client_name, quantity, ship_date')
-        .like('item_no', `${c.slice(0, 2)}__${c.slice(4)}`)
-        .neq('item_no', c) // 같은 빈티지(현 품번) 출고는 제외 — '이전 빈티지'만
+        .or(chunk.map((p) => `item_no.like.${p}`).join(','))
         .gte('ship_date', shipCutoff)
         .range(f, t)))),
   ]);
@@ -235,6 +252,7 @@ export async function listRecentArrivals(manager: string, days = 14): Promise<Re
   const buyersByBase = new Map<string, Map<string, { name: string; qty: number; last: string }>>();
   for (const s of shipArrays.flat()) {
     if (!s.client_code || !myClients.has(s.client_code)) continue;
+    if (arrivalCodeSet.has(s.item_no)) continue; // 같은 빈티지(현 품번) 출고 제외 — '이전 빈티지'만
     const base = vintageBaseOf(s.item_no);
     const byClient = buyersByBase.get(base) ?? buyersByBase.set(base, new Map()).get(base)!;
     const cur = byClient.get(s.client_code) || { name: s.client_name || s.client_code, qty: 0, last: '' };
@@ -285,6 +303,8 @@ export async function listRecentArrivals(manager: string, days = 14): Promise<Re
       }))
       .sort((a, b) => b.last_date.localeCompare(a.last_date))
       .slice(0, 20);
+    // 접점 필터 — 내 대기 등록도, 내 담당 거래처의 이전 빈티지 구매도 없으면 표시하지 않음
+    if (rs.length === 0 && pastBuyers.length === 0) continue;
     out.push({
       item_code: w.item_no,
       item_name: w.item_name || '',
@@ -295,8 +315,13 @@ export async function listRecentArrivals(manager: string, days = 14): Promise<Re
       notified_at: rs.find((r) => r.status === 'notified')?.notified_at || null,
     });
   }
-  // 미확인(waiting) 먼저, 그다음 최근 확인 순
-  return out.sort((a, b) => (b.notified_at || '9999').localeCompare(a.notified_at || '9999'));
+  // 대기 등록 품목 먼저 (미확인 우선 → 최근 확인 순), 그다음 접점만 있는 품목(이름순)
+  return out.sort((a, b) => {
+    const ar = a.requests.length > 0 ? 1 : 0, br = b.requests.length > 0 ? 1 : 0;
+    if (ar !== br) return br - ar;
+    if (ar === 1) return (b.notified_at || '9999').localeCompare(a.notified_at || '9999');
+    return a.item_name.localeCompare(b.item_name, 'ko');
+  });
 }
 
 /** 팝업 확인 처리 — 해당 품목의 내 대기 등록을 notified로 */
