@@ -1,6 +1,6 @@
 'use client';
 
-import type { Alternative } from '../types';
+import type { Alternative, ClientDetail } from '../types';
 import { LEVEL_COLORS } from '../constants';
 import { fmt } from '../lib/format';
 
@@ -12,7 +12,12 @@ type Props = {
   quoteLoading: boolean;
   quoteMsg: string | null;
   onAddToQuote: () => void;
+  /** 이 품목을 사간 거래처 (알림 스캔 결과) — AI 대체 제안 진입점 */
+  buyers?: ClientDetail[];
+  onProposeClient?: (c: ClientDetail) => void;
 };
+
+const MAX_BUYERS = 8;
 
 export function AlternativesPanel(p: Props) {
   return (
@@ -23,6 +28,42 @@ export function AlternativesPanel(p: Props) {
         background: 'var(--surface-muted)',
       }}
     >
+      {p.onProposeClient && (p.buyers?.length ?? 0) > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--action)', marginBottom: 2, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            AI 대체 제안 — 구매 거래처
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>
+            거래처를 선택하면 추천견적 &lsquo;대체 상품&rsquo; 모드로 이동 — 그 거래처의 취향·업장유형·견적학습까지 반영해 대체안을 만듭니다
+          </div>
+          <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+            {p.buyers!.slice(0, MAX_BUYERS).map((c) => (
+              <button
+                key={c.client_code}
+                onClick={() => p.onProposeClient!(c)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                  padding: '8px 2px', border: 'none', borderBottom: '1px solid var(--border-subtle)',
+                  background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12,
+                }}
+              >
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.client_name}
+                </span>
+                <span style={{ color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                  {c.total_qty}병 · {c.last_date ? c.last_date.slice(5) : '-'}
+                </span>
+                <span style={{ color: 'var(--action)', fontWeight: 700, whiteSpace: 'nowrap' }}>제안 →</span>
+              </button>
+            ))}
+          </div>
+          {p.buyers!.length > MAX_BUYERS && (
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '4px 2px' }}>
+              외 {p.buyers!.length - MAX_BUYERS}곳 — 위 거래처 목록 참고
+            </div>
+          )}
+        </div>
+      )}
       {p.altLoading ? (
         <div
           style={{
@@ -57,7 +98,7 @@ export function AlternativesPanel(p: Props) {
               textTransform: 'uppercase',
             }}
           >
-            대체 추천 ({p.alternatives.length}개)
+            빠른 대체 후보 ({p.alternatives.length}개) — 재고·유사도 기준
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {p.alternatives.map((alt) => (

@@ -15,6 +15,7 @@ import { SummaryFilters } from '../alert/components/SummaryFilters';
 import { AlertCard } from '../alert/components/AlertCard';
 import { AlternativesPanel } from '../alert/components/AlternativesPanel';
 import { TelegramLinkRow } from '../alert/components/TelegramLinkRow';
+import { setRecHandoff } from '../recommend/lib/recHandoff';
 import { Stack } from '@/app/components/ui';
 import { btnSecondary } from '@/app/styles/controls';
 
@@ -177,6 +178,15 @@ export default function AlertTab({ currentManager, isAdmin, onCountChange, onTab
                     quoteLoading={alt.quoteLoading}
                     quoteMsg={alt.quoteMsg}
                     onAddToQuote={alt.addToQuote}
+                    buyers={alert.clients}
+                    onProposeClient={(c) => {
+                      // 추천견적 '대체 상품' 모드로 핸드오프 — 거래처 + 품절 품목(앵커) 자동 세팅
+                      setRecHandoff({
+                        client: { client_code: c.client_code, client_name: c.client_name },
+                        anchor: { item_code: alert.item_no, name: alert.item_name, price: alert.supply_price },
+                      });
+                      onTabChange?.('recommend-quote');
+                    }}
                   />
                 }
               />

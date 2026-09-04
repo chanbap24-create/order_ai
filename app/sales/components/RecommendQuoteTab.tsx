@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClientOption, ScoredItem } from '../recommend/types';
 import { selectQuoteItems } from '../recommend/allocateByTypeShares';
 import { useManagers } from '../recommend/hooks/useManagers';
@@ -16,6 +16,7 @@ import { BottomActionBar } from '../recommend/components/BottomActionBar';
 import { RecControls } from '../recommend/components/RecControls';
 import { RecModeSelector, type AnchorItem } from '../recommend/components/RecModeSelector';
 import { type RecSettings, type RecMode, loadRecSettings, saveRecSettings } from '../recommend/recSettings';
+import { consumeRecHandoff, anchorFromHandoff } from '../recommend/lib/recHandoff';
 import { renderQuoteImage, vintageFromCode } from '../recommend/lib/quoteImage';
 import { PromoQuoteOverlay, type PromoQuoteItem } from '../recommend/components/PromoQuoteOverlay';
 import { useQuoteManager } from '@/app/inventory/hooks/useQuoteManager';
@@ -32,8 +33,11 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
   const [filterManager, setFilterManager] = useState(isAdmin ? '' : currentManager);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  // 알림 대체추천 → 핸드오프(1회성): 거래처 + 품절 앵커를 싣고 '대체 상품' 모드로 진입
+  const [handoff] = useState(() => (preselectedClient ? null : consumeRecHandoff()));
+
   const managers = useManagers(isAdmin);
-  const cs = useClientSearch(filterManager, preselectedClient);
+  const cs = useClientSearch(filterManager, preselectedClient ?? (handoff ? handoff.client : null));
   const rec = useRecommendQuote();
   const cols = useQuoteCols();
   const qm = useQuoteManager();
@@ -54,8 +58,11 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
 
   // lazy 초기화로 처음부터 저장값 사용(remount 시 DEFAULT 로 덮어쓰는 레이스 방지).
   // 컨트롤은 rec.result 이후에만 렌더되어 SSR 하이드레이션 불일치 없음.
-  const [settings, setSettings] = useState<RecSettings>(loadRecSettings);
-  const [anchor, setAnchor] = useState<AnchorItem | null>(null); // 대체상품 모드 기준 상품(쇼트난 품목)
+  const [settings, setSettings] = useState<RecSettings>(() => {
+    const s = loadRecSettings();
+    return handoff ? { ...s, mode: 'substitute' as RecMode } : s;
+  });
+  const [anchor, setAnchor] = useState<AnchorItem | null>(() => (handoff ? anchorFromHandoff(handoff) : null)); // 대체상품 모드 기준 상품(쇼트난 품목)
   const items = rec.result?.recommendations || [];
   // 선정·정렬은 공용 파이프라인(selectQuoteItems)에 위임 — 거래처 일괄 추천과 동일 결과 보장.
   const shares = rec.result?.typeShares || {};
@@ -89,6 +96,15 @@ export default function RecommendQuoteTab({ currentManager, isAdmin, preselected
     rec.generate(cs.selectedClient, settings, anchorArg(anchor));
   };
   const reapplyWith = (st: RecSettings) => { if (cs.selectedClient && rec.result) rec.generate(cs.selectedClient, st, anchorArg(anchor)); };
+
+  // 알림 핸드오프 진입 시 대체안 자동 생성 (1회)
+  const handoffRan = useRef(false);
+  useEffect(() => {
+    if (!handoff || handoffRan.current || !cs.selectedClient || !anchor) return;
+    handoffRan.current = true;
+    rec.generate(cs.selectedClient, settings, anchorArg(anchor));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoff, cs.selectedClient, anchor]);
 
   // 이 거래처 할인 보정(매출등급 1단계↑) — 생성 전에 켜고 끄는 단일 토글.
   // 이미 결과가 있으면 토글 즉시 재생성. ('auto'는 일괄 생성용 값 — 개별에선 켬으로 취급)
