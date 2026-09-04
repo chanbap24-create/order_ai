@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     for (let i = 0; i < codes.length; i += 500) {
       const { data: inv } = await supabase
         .from('inventory_cdv')
-        .select('item_no, available_stock, bonded_warehouse, bonded_kctc, incoming_stock')
+        .select('item_no, available_stock, stock_bonded, incoming_stock')
         .in('item_no', codes.slice(i, i + 500));
       for (const x of (inv || [])) invMap.set(x.item_no, x);
     }
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       return {
         ...w,
         inv_available: stock?.available_stock ?? 0,
-        inv_bonded: (stock?.bonded_warehouse ?? 0) + (stock?.bonded_kctc ?? 0),
+        inv_bonded: Number(stock?.stock_bonded ?? 0), // 보세 합계 = 생성 컬럼
         inv_incoming: stock?.incoming_stock ?? 0, // 입고예정 — 신규 와인은 이 단계가 첫 등장
       };
     });

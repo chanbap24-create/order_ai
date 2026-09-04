@@ -22,10 +22,10 @@ export async function dismissItems(
         const batch = item_nos.slice(i, i + 500);
         const { data } = await supabase
           .from('inventory_cdv')
-          .select('item_no, available_stock, bonded_warehouse')
+          .select('item_no, stock_total')
           .in('item_no', batch);
         for (const inv of data || []) {
-          m.set(inv.item_no, (inv.available_stock || 0) + (inv.bonded_warehouse || 0));
+          m.set(inv.item_no, Number(inv.stock_total) || 0);
         }
       }
       return m;
@@ -121,7 +121,7 @@ export async function fetchDismissedList() {
 
   const itemNos = dismissed.map((d) => d.item_no);
   const [{ data: invData }, { data: wineData }] = await Promise.all([
-    supabase.from('inventory_cdv').select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse').in('item_no', itemNos),
+    supabase.from('inventory_cdv').select('item_no, item_name, country, supply_price, stock_total').in('item_no', itemNos),
     supabase.from('wines').select('item_code, item_name_kr, country, wine_type, region').in('item_code', itemNos),
   ]);
 
@@ -135,7 +135,7 @@ export async function fetchDismissedList() {
   const items = dismissed.map((d) => {
     const inv = invMap.get(d.item_no);
     const wine = wineMap.get(d.item_no);
-    const totalStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) : 0;
+    const totalStock = inv ? (Number(inv.stock_total) || 0) : 0;
     return {
       id: d.id,
       item_no: d.item_no,

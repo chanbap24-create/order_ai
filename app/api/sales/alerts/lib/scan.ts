@@ -125,8 +125,8 @@ async function markVintageChanges(alerts: AlertResult[]): Promise<void> {
   // 재고 있는 품목 전량 로드는 소규모(수백 행) — 베이스 매칭을 메모리에서 수행
   const { data: inStock } = await supabase
     .from('inventory_cdv')
-    .select('item_no, available_stock, bonded_warehouse, bonded_kctc, incoming_stock')
-    .or('available_stock.gt.0,bonded_warehouse.gt.0,bonded_kctc.gt.0,incoming_stock.gt.0');
+    .select('item_no, available_stock, stock_bonded, incoming_stock')
+    .gt('stock_pipeline', 0);
 
   const baseOf = (c: string) => c.slice(0, 2) + c.slice(4);
   const byBase = new Map<string, Array<{ item_no: string; vintage: number; available: number; bonded: number; incoming: number }>>();
@@ -139,7 +139,7 @@ async function markVintageChanges(alerts: AlertResult[]): Promise<void> {
       item_no: code,
       vintage: Number(code.slice(2, 4)),
       available: Number(r.available_stock) || 0,
-      bonded: (Number(r.bonded_warehouse) || 0) + (Number(r.bonded_kctc) || 0),
+      bonded: Number(r.stock_bonded) || 0,
       incoming: Number(r.incoming_stock) || 0,
     });
   }
@@ -238,7 +238,7 @@ async function fetchInventoryParallel(itemNos: string[]): Promise<Map<string, In
     batches.map((batch) =>
       supabase
         .from('inventory_cdv')
-        .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, bonded_kctc, avg_sales_90d')
+        .select('item_no, item_name, country, supply_price, stock_total, avg_sales_90d')
         .in('item_no', batch),
     ),
   );
@@ -260,7 +260,7 @@ async function autoRestoreDismissed(
 
   for (const d of dbDismissed) {
     const inv = inventoryMap.get(d.item_no);
-    const currentStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0) : 0;
+    const currentStock = inv ? (Number(inv.stock_total) || 0) : 0;
     const dismissedStock = d.current_stock ?? 0;
     if (currentStock > dismissedStock) autoRestoreItems.push(d.item_no);
   }
@@ -288,8 +288,7 @@ function buildAlerts(
     if (dismissedSet.has(itemNo)) continue;
 
     const inv = inventoryMap.get(itemNo);
-    // 보세 2원화: bonded_warehouse + bonded_kctc 합산 (KCTC 누락 시 통관 대기 품목이 품절로 오탐)
-    const totalStock = inv ? (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0) : 0;
+    const totalStock = inv ? (Number(inv.stock_total) || 0) : 0; // 재고 합산 = 생성 컬럼(단일 정의)
     const price = inv?.supply_price || 0;
     const threshold = minStockForPrice(price, SR);
     const avgSales90d = inv?.avg_sales_90d || 0;

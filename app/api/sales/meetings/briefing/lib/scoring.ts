@@ -138,7 +138,7 @@ export function scoreCandidates(params: {
       tags,
       reason: reasons.join(' · ') || tags.join(' · '),
       price: invPrice,
-      stock: inv._totalStock ?? ((inv.available_stock || 0) + (inv.bonded_warehouse || 0)),
+      stock: inv._totalStock ?? (Number(inv.stock_total) || 0),
       country: invCountry,
       region: wine?.region || '',
       grape: invGrapes,

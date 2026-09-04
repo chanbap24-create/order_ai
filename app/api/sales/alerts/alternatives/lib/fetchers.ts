@@ -23,8 +23,7 @@ export async function fetchInventoryInStock<T>(select: string): Promise<T[]> {
     const { data, error } = await supabase
       .from('inventory_cdv')
       .select(select)
-      // 보세 2원화: bonded_warehouse(용마 잔여) + kctc/bonded_kctc — recommend fetchers 와 동일 기준
-      .or('available_stock.gt.0,bonded_warehouse.gt.0,kctc.gt.0,bonded_kctc.gt.0')
+      .gt('stock_total', 0) // 재고 필터 = 생성 컬럼(단일 정의)
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
     all.push(...(data as T[]));

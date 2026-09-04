@@ -131,7 +131,7 @@ export function scoreDiscovery(
       grape: c.wine?.grape_varieties || '',
       wine_type: bucketLabel(c.bucket) || c.wine?.wine_type || '',
       price: c.price,
-      stock: c.inv._totalStock ?? ((c.inv.available_stock || 0) + (c.inv.bonded_warehouse || 0) + (c.inv.bonded_kctc || 0)),
+      stock: c.inv._totalStock ?? (Number(c.inv.stock_total) || 0),
       score,
       tags,
       reason: reasons.join(' · ') || '추천 와인',

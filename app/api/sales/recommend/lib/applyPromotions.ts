@@ -16,7 +16,7 @@ function itemBucket(wine: any): string {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildScored(itemNo: string, inv: any, wine: any): ScoredItem {
-  const stock = (inv?.available_stock || 0) + (inv?.bonded_warehouse || 0) + (inv?.bonded_kctc || 0);
+  const stock = Number(inv?.stock_total) || 0; // 단일 정의(생성 컬럼)
   return {
     item_no: itemNo,
     item_name: inv?.item_name || wine?.item_name_kr || itemNo,

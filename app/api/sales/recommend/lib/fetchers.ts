@@ -24,7 +24,7 @@ export async function fetchInventoryInStock<T>(select: string): Promise<T[]> {
     const { data, error } = await supabase
       .from('inventory_cdv')
       .select(select)
-      .or('available_stock.gt.0,bonded_warehouse.gt.0,kctc.gt.0,bonded_kctc.gt.0')
+      .gt('stock_total', 0)
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
     all.push(...(data as T[]));

@@ -81,7 +81,7 @@ export async function buildCandidates(
     supabase.from('client_details').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('clients').select('*').eq('client_code', clientCode).maybeSingle(),
     supabase.from('shipments').select('item_no, item_name, unit_price, quantity, ship_date').eq('client_code', clientCode).gte('ship_date', sinceStr),
-    fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, discount_price, available_stock, bonded_warehouse, bonded_kctc, sales_30days, avg_sales_90d, avg_sales_365d'),
+    fetchInventoryInStock<Record<string, unknown>>('item_no, item_name, country, supply_price, discount_price, available_stock, stock_total, stock_bonded, sales_30days, avg_sales_90d, avg_sales_365d'),
     fetchAll<WineRegionRow>('wine_regions', 'country, sub_region, major_region, appellation, cru_vineyard, classification'),
     supabase.from('recommendations').select('item_codes').eq('client_code', clientCode).eq('status', 'sent').gte('created_at', recoSinceMidnight).lt('created_at', todayKstMidnight),
   ]);
@@ -171,7 +171,7 @@ export async function buildCandidates(
     if (!o.includeNonStandard && isNonStandardBottle(inv.item_name as string)) return false;
     // 기프트박스(GB) — 선물용 패키지라 항상 제외
     if (isGiftBox(inv.item_name as string)) return false;
-    const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0);
+    const stock = Number(inv.stock_total) || 0; // 단일 정의(생성 컬럼)
     if (stock <= 0) return false;
     if (stock < minStockForPrice(price)) return false;
     // 최소 1개월치 재고만 확보되면 추천(품절 임박만 배제). 빠른 회전 와인이 과도하게

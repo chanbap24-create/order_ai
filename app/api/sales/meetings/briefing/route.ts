@@ -108,15 +108,15 @@ export async function POST(req: NextRequest) {
     const [settings, invRes] = await Promise.all([
       loadSettings(),
       supabase.from('inventory_cdv')
-        .select('item_no, item_name, country, supply_price, available_stock, bonded_warehouse, avg_sales_90d, brand')
-        .or('available_stock.gt.0,bonded_warehouse.gt.0'),
+        .select('item_no, item_name, country, supply_price, stock_total, avg_sales_90d, brand')
+        .gt('stock_total', 0),
     ]);
     const { W, SR } = settings;
     const rawInventory = invRes.data;
     const minStockForPrice = makeMinStockForPrice(SR);
 
     const inventory = (rawInventory || []).filter((inv) => {
-      const stock = (inv.available_stock || 0) + (inv.bonded_warehouse || 0);
+      const stock = Number(inv.stock_total) || 0;
       if (stock <= 0) return false;
       if (stock < minStockForPrice(inv.supply_price || 0)) return false;
       const sales90d = inv.avg_sales_90d || 0;

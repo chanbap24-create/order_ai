@@ -197,7 +197,7 @@ export function scoreRecommendations(params: {
     if (flavorPts > 0) breakdown.push(`향미 +${flavorPts.toFixed(1)}(${shared.length}개 매칭)`);
     if (grapePts > 0) breakdown.push(`품종 +${grapePts.toFixed(1)}`);
 
-    if ((inv.available_stock || 0) <= 0 && ((inv.bonded_warehouse || 0) > 0 || (inv.bonded_kctc || 0) > 0)) tags.push('통관필요');
+    if ((Number(inv.stock_total) || 0) - (Number(inv.stock_bonded) || 0) <= 0 && (Number(inv.stock_bonded) || 0) > 0) tags.push('통관필요');
 
     // 최근 30일 이미 제안한 품목은 강등(영구 제외 아님 — 신선한 후보가 위로 올라오게).
     if (recentlyRecommended?.has(String(itemNo))) {
@@ -288,7 +288,7 @@ export function scoreRecommendations(params: {
       grape: invGrapes,
       wine_type: bucketLabel(bucket) || wine?.wine_type || '',
       price: invPrice,
-      stock: inv._totalStock ?? ((inv.available_stock || 0) + (inv.bonded_warehouse || 0) + (inv.bonded_kctc || 0)),
+      stock: inv._totalStock ?? (Number(inv.stock_total) || 0),
       score: Math.round(score * 10) / 10,
       tags,
       reason: reasons.join(' · ') || '추천 와인',

@@ -41,12 +41,12 @@ export async function GET(request: NextRequest) {
     // Build Supabase query for data
     let dataQuery = supabase
       .from('inventory')
-      .select('item_no, item_name, available_stock, bonded_warehouse, updated_at');
+      .select('item_no, item_name, available_stock, stock_bonded, stock_total, updated_at');
 
     // Build Supabase query for stats
     let statsQuery = supabase
       .from('inventory')
-      .select('available_stock, bonded_warehouse');
+      .select('available_stock, stock_bonded, stock_total');
 
     // Apply search filter
     if (search) {
@@ -59,13 +59,13 @@ export async function GET(request: NextRequest) {
     // Apply stock filter
     switch (stockFilter) {
       case 'in_stock':
-        countQuery = countQuery.or('available_stock.gt.0,bonded_warehouse.gt.0');
-        dataQuery = dataQuery.or('available_stock.gt.0,bonded_warehouse.gt.0');
-        statsQuery = statsQuery.or('available_stock.gt.0,bonded_warehouse.gt.0');
+        countQuery = countQuery.gt('stock_total', 0);
+        dataQuery = dataQuery.gt('stock_total', 0);
+        statsQuery = statsQuery.gt('stock_total', 0);
         break;
       case 'out_of_stock':
-        countQuery = countQuery.eq('available_stock', 0).eq('bonded_warehouse', 0);
-        dataQuery = dataQuery.eq('available_stock', 0).eq('bonded_warehouse', 0);
+        countQuery = countQuery.eq('stock_total', 0);
+        dataQuery = dataQuery.eq('stock_total', 0);
         statsQuery = statsQuery.eq('available_stock', 0).eq('bonded_warehouse', 0);
         break;
       case 'bonded_only':
@@ -100,9 +100,9 @@ export async function GET(request: NextRequest) {
     // Calculate stats from statsResult data
     const statsData = statsResult.data || [];
     const totalAvailableStock = statsData.reduce((sum: number, r: any) => sum + (r.available_stock || 0), 0);
-    const totalBondedWarehouse = statsData.reduce((sum: number, r: any) => sum + (r.bonded_warehouse || 0), 0);
-    const itemsWithStock = statsData.filter((r: any) => (r.available_stock || 0) > 0 || (r.bonded_warehouse || 0) > 0).length;
-    const itemsOutOfStock = statsData.filter((r: any) => (r.available_stock || 0) === 0 && (r.bonded_warehouse || 0) === 0).length;
+    const totalBondedWarehouse = statsData.reduce((sum: number, r: any) => sum + (Number(r.stock_bonded) || 0), 0);
+    const itemsWithStock = statsData.filter((r: any) => (Number(r.stock_total) || 0) > 0).length;
+    const itemsOutOfStock = statsData.filter((r: any) => (Number(r.stock_total) || 0) === 0).length;
 
     return NextResponse.json({
       success: true,
