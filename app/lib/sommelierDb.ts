@@ -24,6 +24,16 @@ export async function upsertCustomer(name: string, phone: string): Promise<Somme
 }
 
 /** 문답 세션 저장(답변 + 추천 결과 스냅샷) → session_id */
+/** 재방문 고객 검색 — 숫자 입력이면 전화번호 부분일치, 아니면 이름 부분일치. 최대 3명 */
+export async function searchCustomers(q: string): Promise<SommelierCustomer[]> {
+  const digits = q.replace(/[^0-9]/g, '');
+  const base = supabase.from('sommelier_customers').select('id, name, phone').limit(3);
+  const { data } = digits.length >= 3
+    ? await base.like('phone', `%${digits}%`).order('id', { ascending: false })
+    : await base.ilike('name', `%${q.replace(/[%_]/g, '')}%`).order('id', { ascending: false });
+  return (data || []) as SommelierCustomer[];
+}
+
 export async function saveSession(
   customerId: number, manager: string, answers: QuizAnswers, results: SommelierResult[],
 ): Promise<number> {

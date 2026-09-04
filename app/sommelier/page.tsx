@@ -25,6 +25,7 @@ export default function SommelierPage() {
   const [customer, setCustomer] = useState<SommelierCustomer | null>(null);
   const [answers, setAnswers] = useState<QuizAnswers | null>(null);
   const [results, setResults] = useState<SommelierResult[]>([]);
+  const [priceHint, setPriceHint] = useState<{ count: number; minPrice: number } | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // 문답 제출 → 결과 사이 로딩 커튼 (인트로 부팅과 같은 문법, 최소 0.9초 유지)
@@ -64,6 +65,7 @@ export default function SommelierPage() {
       setAnswers(a);
       setSessionId(j.sessionId || null);
       setResults(j.results || []);
+      setPriceHint(j.priceHint || null);
       setTimeout(() => {
         setPhase('results');
         setReading('out');
@@ -118,6 +120,7 @@ export default function SommelierPage() {
           sessionId={sessionId}
           answers={answers}
           results={results}
+          priceHint={priceHint}
           onBack={() => { setResume(true); setQuizNonce((n) => n + 1); setPhase('quiz'); }}
           onRetry={() => { setResume(false); setQuizNonce((n) => n + 1); setPhase('quiz'); }}
           onNewGuest={newGuest}
