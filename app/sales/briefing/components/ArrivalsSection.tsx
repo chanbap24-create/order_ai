@@ -10,6 +10,11 @@ import { shareOrDownloadFile } from '@/app/lib/shareFile';
 
 const fmt = (n: number) => n.toLocaleString();
 const todayKST = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+// 헤더용 짧은 날짜 (9/7(월)) — 문구에는 긴 형태(9월 7일(월)) 유지
+const shortDate = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${'일월화수목금토'[d.getUTCDay()]})`;
+};
 const rateKeyOf = (r: { client_code: string | null; client_name: string }) => r.client_code || `name:${r.client_name}`;
 
 export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[]; sender?: Sender }) {
@@ -137,41 +142,37 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
         const open = openItems.has(a.item_code);
         return (
           <div key={a.item_code} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
-            {/* 품목 줄 클릭 → 대기 거래처 펼침/접힘. 품목명 줄 + 메타 줄 2단 (모바일에서 이름 세로 붕괴 방지) */}
-            <div onClick={() => toggleItem(a.item_code)} style={{ cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {a.item_name || a.item_code}
-                </span>
-                {!a.notified_at && (
-                  <span style={{ flex: 'none', fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--status-success)', borderRadius: 4, padding: '1px 4px', letterSpacing: 0.3 }}>NEW</span>
-                )}
-                <span style={{ flex: 'none', fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                  거래처 {a.requests.length}
-                  <span style={{ display: 'inline-block', marginLeft: 3, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-success)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            {/* 품목 줄 클릭 → 대기 거래처 펼침/접힘. 한 줄 고정 — 품목명만 말줄임, 메타는 nowrap 압축 */}
+            <div onClick={() => toggleItem(a.item_code)} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', minWidth: 0 }}>
+              <span style={{ flex: 1, minWidth: 60, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {a.item_name || a.item_code}
+              </span>
+              {!a.notified_at && (
+                <span style={{ flex: 'none', fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--status-success)', borderRadius: 4, padding: '1px 4px', letterSpacing: 0.3 }}>NEW</span>
+              )}
+              <span style={{ flex: 'none', fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                거래처 {a.requests.length}
+                <span style={{ display: 'inline-block', marginLeft: 3, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
+              </span>
+              <span style={{ flex: 'none', fontSize: 12, fontWeight: 700, color: 'var(--status-success)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 가용 {fmt(a.available)}병
               </span>
               {a.supply_price > 0 && (
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                <span style={{ flex: 'none', fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                   {fmt(a.supply_price)}원
                 </span>
               )}
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {ship ? `출고 ${ship.label}~` : '바로 출고 가능'}
+              <span style={{ flex: 'none', fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {ship ? `출고 ${shortDate(ship.iso)}~` : '바로 출고'}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); downloadNote(a); }}
                 disabled={noteState[a.item_code] === 'loading'}
                 title="테이스팅 노트 PDF — 모바일은 공유 시트로 카톡 전송"
-                style={{ marginLeft: 'auto', width: 112, padding: '3px 0', fontSize: 11, fontWeight: 700, borderRadius: 6, border: '1px solid var(--border-strong, var(--border-default))', background: 'var(--surface)', color: noteState[a.item_code] === 'none' ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: noteState[a.item_code] === 'loading' ? 'default' : 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
+                style={{ padding: '3px 9px', fontSize: 11, fontWeight: 700, borderRadius: 6, border: '1px solid var(--border-strong, var(--border-default))', background: 'var(--surface)', color: noteState[a.item_code] === 'none' ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: noteState[a.item_code] === 'loading' ? 'default' : 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
               >
-                {noteState[a.item_code] === 'loading' ? '노트…' : noteState[a.item_code] === 'none' ? '노트 없음' : '📄 노트'}
+                {noteState[a.item_code] === 'loading' ? '…' : noteState[a.item_code] === 'none' ? '노트 없음' : '노트'}
               </button>
-              </div>
             </div>
             {open && a.requests.map((r) => {
               const rk = rateKeyOf(r);
