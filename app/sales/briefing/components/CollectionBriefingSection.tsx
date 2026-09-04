@@ -61,7 +61,6 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
   const { broken, promiseToday, overdue } = data;
   const allItems = [...broken, ...promiseToday, ...overdue];
   const hiddenItems = allItems.filter(it => it.hidden);
-  const newCount = allItems.filter(it => !it.hidden && isNew(it)).length;
   const [editing, setEditing] = useState<string | null>(null);
   const [ledger, setLedger] = useState<CollItem | null>(null);
   const [sort, setSort] = useState<Sort | null>(null);
@@ -76,17 +75,12 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
     <div style={{ marginBottom: 12, background: '#fff', border: '1px solid var(--border-default)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '10px 14px', background: 'var(--surface-muted)', borderBottom: '1px solid var(--action-muted)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ whiteSpace: 'nowrap' }}>오늘의 수금</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
-          약속어김 {broken.length} · 오늘약속 {promiseToday.length} · 연체 {overdue.length}
-          {newCount > 0 && <span style={{ color: 'var(--status-success)', fontWeight: 700 }}> · 신규 {newCount}</span>}
-          {data.counts.special > 0 && <span style={{ color: 'var(--status-danger)' }}> (특별관리 {data.counts.special})</span>}
-        </span>
         {hiddenItems.length > 0 && (
           <button
             onClick={() => setShowHidden(v => !v)}
             style={{ marginLeft: 'auto', padding: '3px 9px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid var(--border-default)', background: showHidden ? 'var(--action)' : 'var(--surface)', color: showHidden ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
           >
-            숨김목록 {hiddenItems.length}
+            숨김목록
           </button>
         )}
       </div>
