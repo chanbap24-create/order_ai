@@ -46,6 +46,7 @@ export default function IncomingTab() {
   const [waitingOnly, setWaitingOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortState>(null);
+  const [view, setView] = useState<'items' | 'clients'>('items'); // 품목별 | 거래처별(대기 등록 몰아보기)
 
   const load = useCallback(async () => {
     try {
@@ -92,31 +93,96 @@ export default function IncomingTab() {
     });
   }, [items, waitingOnly, q, sort]);
 
+  // 거래처별 몰아보기 — 모든 대기 등록을 거래처 단위로 그룹 (검색: 거래처명·품명)
+  const clientGroups = useMemo(() => {
+    const map = new Map<string, { name: string; rows: { it: IncomingItem; req: IncomingItem['requests'][number] }[] }>();
+    for (const it of items) {
+      for (const req of it.requests) {
+        const key = req.client_code || `name:${req.client_name}`;
+        if (!map.has(key)) map.set(key, { name: req.client_name, rows: [] });
+        map.get(key)!.rows.push({ it, req });
+      }
+    }
+    let groups = [...map.values()];
+    if (q) {
+      groups = groups
+        .map((g) => (g.name.toLowerCase().includes(q)
+          ? g
+          : { ...g, rows: g.rows.filter(({ it }) => it.item_name.toLowerCase().includes(q) || it.item_code.toLowerCase().includes(q)) }))
+        .filter((g) => g.rows.length > 0);
+    }
+    for (const g of groups) {
+      g.rows.sort((a, b) => (a.it.arrival_date || '9999').localeCompare(b.it.arrival_date || '9999'));
+    }
+    return groups.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  }, [items, q]);
+
   return (
     <Stack gap={16}>
-      <Section title="입항품목" meta={`${shown.length}개`} padding="none">
+      <Section title="입항품목" meta={view === 'items' ? `${shown.length}개` : `거래처 ${clientGroups.length}곳`} padding="none">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12.5, color: 'var(--text-tertiary)', flexWrap: 'wrap' }}>
+          {/* 보기 전환 서브탭 — 플랫 텍스트 + 세로 구분선 */}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
+            {(['items', 'clients'] as const).map((v, i) => (
+              <span key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                {i > 0 && <span style={{ width: 1, height: 12, background: 'var(--border-default)' }} />}
+                <button onClick={() => setView(v)}
+                  style={{ all: 'unset', cursor: 'pointer', fontSize: 12.5, fontWeight: view === v ? 700 : 400, color: view === v ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                  {v === 'items' ? '품목별' : '거래처별'}
+                </button>
+              </span>
+            ))}
+          </span>
           <input value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="품명 · 품번 · 거래처 검색"
             style={{
               flex: '1 1 220px', border: '1px solid var(--border-default)', borderRadius: 8,
               padding: '8px 10px', fontSize: 16, background: 'var(--surface)', outline: 'none',
             }} />
-          <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <input type="checkbox" checked={waitingOnly} onChange={(e) => setWaitingOnly(e.target.checked)}
-              style={{ accentColor: 'var(--action)' }} />
-            대기 있는 품목만
-          </label>
+          {view === 'items' && (
+            <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <input type="checkbox" checked={waitingOnly} onChange={(e) => setWaitingOnly(e.target.checked)}
+                style={{ accentColor: 'var(--action)' }} />
+              대기 있는 품목만
+            </label>
+          )}
         </div>
 
         {loading && <div style={{ padding: 14 }}><ListSkeleton rows={8} /></div>}
-        {!loading && shown.length === 0 && (
+        {!loading && view === 'items' && shown.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
             표시할 입고 예정 품목이 없습니다
           </div>
         )}
 
-        {!loading && shown.length > 0 && (
+        {/* 거래처별 몰아보기 — 대기 등록을 거래처 단위로 */}
+        {!loading && view === 'clients' && clientGroups.length === 0 && (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            대기 등록된 거래처가 없습니다
+          </div>
+        )}
+        {!loading && view === 'clients' && clientGroups.map((g) => (
+          <div key={g.name}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, padding: '12px 14px 7px', borderBottom: '1px solid var(--border-default)' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{g.rows.length}품목</span>
+            </div>
+            {g.rows.map(({ it, req }) => (
+              <div key={req.id} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontSize: 13 }}>
+                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontWeight: 600 }}>{it.item_name}</span>
+                  {req.memo && <span style={{ marginLeft: 8, fontSize: 11.5, color: 'var(--text-muted)' }}>{req.memo}</span>}
+                </span>
+                <span style={{ fontSize: 12, color: STATUS_COLOR[it.status], whiteSpace: 'nowrap' }}>{it.status}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtDate(it.arrival_date)}</span>
+                <button onClick={() => removeReq(req.id)} aria-label="대기 해제"
+                  style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '0 2px' }}>×</button>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {!loading && view === 'items' && shown.length > 0 && (
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
               <thead>
