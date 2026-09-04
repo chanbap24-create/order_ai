@@ -8,13 +8,7 @@ import { buildArrivalMessage, addBusinessDays, shipDateLabelOf } from '../lib/ar
 import { vintageFromCode } from '@/app/sales/recommend/lib/quoteImage';
 import { shareOrDownloadFile } from '@/app/lib/shareFile';
 
-const fmt = (n: number) => n.toLocaleString();
 const todayKST = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
-// 헤더용 짧은 날짜 (9/7(월)) — 문구에는 긴 형태(9월 7일(월)) 유지
-const shortDate = (iso: string) => {
-  const d = new Date(`${iso}T00:00:00Z`);
-  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${'일월화수목금토'[d.getUTCDay()]})`;
-};
 const rateKeyOf = (r: { client_code: string | null; client_name: string }) => r.client_code || `name:${r.client_name}`;
 
 export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[]; sender?: Sender }) {
@@ -138,7 +132,6 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
         </span>
       </div>
       {arrivals.map((a) => {
-        const ship = shipInfoOf(a);
         const open = openItems.has(a.item_code);
         return (
           <div key={a.item_code} style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -154,17 +147,7 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
                 거래처 {a.requests.length}
                 <span style={{ display: 'inline-block', marginLeft: 3, transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
               </span>
-              <span style={{ flex: 'none', fontSize: 12, fontWeight: 700, color: 'var(--status-success)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                가용 {fmt(a.available)}병
-              </span>
-              {a.supply_price > 0 && (
-                <span style={{ flex: 'none', fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {fmt(a.supply_price)}원
-                </span>
-              )}
-              <span style={{ flex: 'none', fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {ship ? `출고 ${shortDate(ship.iso)}~` : '바로 출고'}
-              </span>
+              {/* 가용·공급가·출고일은 헤더에서 숨김(품목명 확보) — 카톡 문구에는 그대로 포함됨 */}
               <button
                 onClick={(e) => { e.stopPropagation(); downloadNote(a); }}
                 disabled={noteState[a.item_code] === 'loading'}
