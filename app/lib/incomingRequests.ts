@@ -215,34 +215,32 @@ export async function listRecentArrivals(manager: string, days = 14): Promise<Re
 
   // ── 이전 빈티지 구매 거래처 — 같은 베이스 품번(다른 빈티지)의 최근 12개월 출고, 내 담당 거래처만 ──
   // 담당 스코프 = client_details.manager (현재 담당 기준 — shipments.manager는 옛 담당이라 금지)
-  const [managerClientRows, sibArrays] = await Promise.all([
+  // ⚠️ 이전 빈티지 품번은 재고표(inventory_cdv)에 없을 수 있다(품절 시 삭제 — 예: 3021851).
+  //    반드시 출고 기록에서 LIKE 패턴으로 직접 찾는다.
+  type ShipRow = { item_no: string; client_code: string; client_name: string | null; quantity: number; ship_date: string };
+  const shipCutoff = new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10);
+  const [managerClientRows, shipArrays] = await Promise.all([
     fetchAllRows<{ client_code: string }>((f, t) => supabase.from('client_details')
       .select('client_code').eq('manager', manager).eq('client_type', 'wine').range(f, t)),
-    Promise.all(codes.filter((c) => /^\d{7}$/.test(c)).map(async (c) => {
-      const { data } = await supabase.from('inventory_cdv')
-        .select('item_no').like('item_no', `${c.slice(0, 2)}__${c.slice(4)}`);
-      return (data || []).map((w) => w.item_no as string).filter((s) => s !== c);
-    })),
+    Promise.all(codes.filter((c) => /^\d{7}$/.test(c)).map((c) =>
+      fetchAllRows<ShipRow>((f, t) => supabase.from('shipments')
+        .select('item_no, client_code, client_name, quantity, ship_date')
+        .like('item_no', `${c.slice(0, 2)}__${c.slice(4)}`)
+        .neq('item_no', c) // 같은 빈티지(현 품번) 출고는 제외 — '이전 빈티지'만
+        .gte('ship_date', shipCutoff)
+        .range(f, t)))),
   ]);
   const myClients = new Set(managerClientRows.map((r) => r.client_code));
-  const sibCodes = [...new Set(sibArrays.flat())];
   // base → 해당 베이스의 (거래처 → 수량/최근일)
   const buyersByBase = new Map<string, Map<string, { name: string; qty: number; last: string }>>();
-  if (sibCodes.length > 0) {
-    const shipCutoff = new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10);
-    const ships = await fetchAllRows<{ item_no: string; client_code: string; client_name: string | null; quantity: number; ship_date: string }>(
-      (f, t) => supabase.from('shipments')
-        .select('item_no, client_code, client_name, quantity, ship_date')
-        .in('item_no', sibCodes).gte('ship_date', shipCutoff).range(f, t));
-    for (const s of ships) {
-      if (!s.client_code || !myClients.has(s.client_code)) continue;
-      const base = vintageBaseOf(s.item_no);
-      const byClient = buyersByBase.get(base) ?? buyersByBase.set(base, new Map()).get(base)!;
-      const cur = byClient.get(s.client_code) || { name: s.client_name || s.client_code, qty: 0, last: '' };
-      cur.qty += Number(s.quantity) || 0;
-      if (s.ship_date > cur.last) cur.last = s.ship_date;
-      byClient.set(s.client_code, cur);
-    }
+  for (const s of shipArrays.flat()) {
+    if (!s.client_code || !myClients.has(s.client_code)) continue;
+    const base = vintageBaseOf(s.item_no);
+    const byClient = buyersByBase.get(base) ?? buyersByBase.set(base, new Map()).get(base)!;
+    const cur = byClient.get(s.client_code) || { name: s.client_name || s.client_code, qty: 0, last: '' };
+    cur.qty += Number(s.quantity) || 0;
+    if (s.ship_date > cur.last) cur.last = s.ship_date;
+    byClient.set(s.client_code, cur);
   }
   const pastBuyerCodes = [...new Set([...buyersByBase.values()].flatMap((m) => [...m.keys()]))];
 
