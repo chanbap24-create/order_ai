@@ -86,7 +86,7 @@ export function CollectionBriefingSection({ data, onSave }: { data: CollectionBr
             onClick={() => setShowHidden(v => !v)}
             style={{ marginLeft: 'auto', padding: '3px 9px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid var(--border-default)', background: showHidden ? 'var(--action)' : 'var(--surface)', color: showHidden ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}
           >
-            🙈 숨김목록 {hiddenItems.length}
+            숨김목록 {hiddenItems.length}
           </button>
         )}
       </div>
@@ -270,7 +270,7 @@ function Editor({ item, mode, sender, onSave, onClose, onOpenLedger }: { item: C
             onClick={() => { onSave(item.client_code, item.client_type, { hidden: true }); onClose(); }}
             style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-tertiary)', cursor: 'pointer' }}
             title="이 거래처를 브리핑에서 숨깁니다 (숨김목록에서 해제 가능)"
-          >🙈 숨김</button>
+          >숨김</button>
         </>
       )}
       <button onClick={onClose} style={{ padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: 'var(--text-secondary)', cursor: 'pointer' }}>닫기</button>

@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 interface Summary {
   todayMeetings: Array<{ client_name: string }>;
   outstanding: { total: number; count: number };
-  winback?: { sent: number; converted: number } | null;
 }
 
 /**
@@ -35,27 +34,25 @@ export function TodayStrip() {
     }}>
       <Stat label="오늘 미팅" value={`${s.todayMeetings.length}건`} />
       <Stat label="미수 거래처" value={`${s.outstanding.count}곳`} divider />
-      <Stat label="미수 총액" value={`${s.outstanding.total.toLocaleString()}원`} divider danger={s.outstanding.total > 0} />
-      {s.winback && (
-        <Stat
-          label="윈백 (30일)"
-          value={`${s.winback.sent}곳 → 재주문 ${s.winback.converted}`}
-          divider
-          danger={false}
-        />
-      )}
+      <Stat label="미수 총액" value={`${s.outstanding.total.toLocaleString()}원`} divider danger={s.outstanding.total > 0} grow={1.7} />
     </div>
   );
 }
 
-function Stat({ label, value, divider, danger }: { label: string; value: string; divider?: boolean; danger?: boolean }) {
+function Stat({ label, value, divider, danger, grow = 1 }: { label: string; value: string; divider?: boolean; danger?: boolean; grow?: number }) {
   return (
-    <div style={{ flex: 1, padding: '14px 18px', borderLeft: divider ? '1px solid var(--border-default)' : 'none' }}>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3, fontWeight: 600 }}>{label}</div>
+    <div style={{
+      flex: `${grow} 1 0`, minWidth: 0,
+      padding: '12px 14px',
+      borderLeft: divider ? '1px solid var(--border-default)' : 'none',
+    }}>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3, fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</div>
       <div style={{
-        fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
+        // 미수 총액처럼 긴 숫자도 모바일 3열에서 줄바꿈 없이 — clamp로 축소
+        fontSize: 'clamp(14px, 4.2vw, 19px)', fontWeight: 700, letterSpacing: '-0.01em',
         color: danger ? 'var(--status-danger)' : 'var(--text-primary)',
-        fontVariantNumeric: 'tabular-nums',
+        fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+        overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {value}
       </div>
