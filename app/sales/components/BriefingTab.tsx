@@ -16,6 +16,8 @@ import { BriefingHeader } from '../briefing/components/BriefingHeader';
 import { BriefingToast, EmptyState } from '../briefing/components/EmptyState';
 import { MeetingCard } from '../briefing/components/MeetingCard';
 import { TodayStrip } from '../briefing/components/TodayStrip';
+import { useArrivals } from '../briefing/hooks/useArrivals';
+import { ArrivalsSection } from '../briefing/components/ArrivalsSection';
 
 export default function BriefingTab({ currentManager, isAdmin }: { currentManager: string; isAdmin: boolean }) {
   const { todayStr, todayLabel } = getKstToday();
@@ -27,6 +29,7 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
 
   const { wineShipments, glassShipments } = useTodayShipments(currentManager, isAdmin);
   const { data: collections, saveFollowup: saveCollection } = useCollectionBriefing(currentManager);
+  const arrivals = useArrivals();
 
   const { quoteCols, toggle: toggleCol, reset: resetCols } = useQuoteCols();
   const { quoteLoadingId, createQuoteFromBriefing } =
@@ -46,13 +49,14 @@ export default function BriefingTab({ currentManager, isAdmin }: { currentManage
   const hasCollections = !!collections &&
     (collections.broken.length + collections.promiseToday.length + collections.overdue.length > 0);
 
-  if (meetings.length === 0 && !wineShipments && !glassShipments && !hasCollections) {
+  if (meetings.length === 0 && !wineShipments && !glassShipments && !hasCollections && arrivals.length === 0) {
     return <EmptyState todayLabel={todayLabel} />;
   }
 
   return (
     <div style={{ paddingBottom: 40 }}>
       <TodayStrip />
+      <ArrivalsSection arrivals={arrivals} sender={collections?.sender} />
       {collections && <CollectionBriefingSection data={collections} onSave={saveCollection} />}
 
       {meetings.length > 0 && (

@@ -44,8 +44,8 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   const cutoff = new Date(Date.now() - 45 * 86400_000).toISOString().slice(0, 10);
   const [{ data: inv }, { data: sched }, requests] = await Promise.all([
     supabase.from('inventory_cdv')
-      .select('item_no, item_name, incoming_stock, bonded_warehouse, bonded_kctc, available_stock')
-      .or('incoming_stock.gt.0,bonded_warehouse.gt.0,bonded_kctc.gt.0'),
+      .select('item_no, item_name, incoming_stock, stock_bonded, available_stock')
+      .or('incoming_stock.gt.0,stock_bonded.gt.0'),
     supabase.from('import_schedule').select('item_code, item_name_kr, arrival_date, total_btls'),
     listRequests(manager, isAdmin),
   ]);
@@ -86,8 +86,7 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   for (const r of inv || []) {
     const row = {
       incoming: Number(r.incoming_stock) || 0,
-      // 보세 = 자체 보세 + KCTC 보세 (bonded_kctc 누락으로 통관 대기 미표시되던 문제)
-      bonded: (Number(r.bonded_warehouse) || 0) + (Number(r.bonded_kctc) || 0),
+      bonded: Number(r.stock_bonded) || 0, // 보세 합계 = 생성 컬럼(단일 정의)
       available: Number(r.available_stock) || 0,
     };
     items.set(r.item_no, {
@@ -107,13 +106,13 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
   const extraInv = new Map<string, { item_name: string; incoming: number; bonded: number; available: number }>();
   for (let i = 0; i < extraCodes.length; i += 400) {
     const { data: ws } = await supabase.from('inventory_cdv')
-      .select('item_no, item_name, incoming_stock, bonded_warehouse, bonded_kctc, available_stock')
+      .select('item_no, item_name, incoming_stock, stock_bonded, available_stock')
       .in('item_no', extraCodes.slice(i, i + 400));
     for (const w of ws || []) {
       extraInv.set(w.item_no, {
         item_name: w.item_name || '',
         incoming: Number(w.incoming_stock) || 0,
-        bonded: (Number(w.bonded_warehouse) || 0) + (Number(w.bonded_kctc) || 0),
+        bonded: Number(w.stock_bonded) || 0,
         available: Number(w.available_stock) || 0,
       });
     }
@@ -186,6 +185,70 @@ export async function checkArrivals(manager: string): Promise<ArrivalNotice[]> {
     });
   }
   return notices;
+}
+
+export type ArrivalRequest = IncomingRequest & { quoted_rate: number | null };
+export type RecentArrival = Omit<ArrivalNotice, 'requests'> & {
+  requests: ArrivalRequest[];
+  notified_at: string | null;
+  supply_price: number;
+};
+
+// 같은 와인 다른 빈티지 매칭용 베이스 (7자리 숫자 품번의 3~4자리=빈티지 제거)
+const vintageBaseOf = (c: string) => (/^\d{7}$/.test(c) ? c.slice(0, 2) + c.slice(4) : c);
+
+/** 최근 통관 완료된 대기 품목 — 브리핑 표시용.
+ *  팝업은 확인(notified) 즉시 사라지지만, 여기서는 확인 후에도 days일간 유지해 재확인 가능하게.
+ *  quoted_rate = 그 거래처에 그 와인(다른 빈티지 포함)을 견적한 이력이 있으면 최근 견적의 할인률. */
+export async function listRecentArrivals(manager: string, days = 14): Promise<RecentArrival[]> {
+  const cutoff = new Date(Date.now() - days * 86400_000).toISOString();
+  const { data: reqs } = await supabase.from('incoming_requests')
+    .select('*').eq('manager', manager).in('status', ['waiting', 'notified']);
+  const alive = ((reqs || []) as (IncomingRequest & { notified_at?: string | null })[])
+    .filter((r) => r.status === 'waiting' || (r.notified_at && r.notified_at >= cutoff));
+  if (alive.length === 0) return [];
+  const codes = [...new Set(alive.map((r) => r.item_code))];
+
+  // 견적 이력 할인률 — 거래처별 최근 견적부터 훑어 (품번 정확 일치 우선, 없으면 같은 와인 다른 빈티지)
+  const quoted = new Map<string, number>(); // `${client_code}|${code|base}` → rate(소수)
+  const clientCodes = [...new Set(alive.map((r) => r.client_code).filter(Boolean))] as string[];
+  if (clientCodes.length > 0) {
+    const { data: qs } = await supabase.from('saved_quotes')
+      .select('client_code, items, created_at')
+      .in('client_code', clientCodes)
+      .order('created_at', { ascending: false })
+      .limit(300);
+    for (const q of qs || []) {
+      for (const it of ((q.items || []) as Array<{ item_code?: string; discount_rate?: number }>)) {
+        const code = String(it.item_code || '');
+        const rate = Number(it.discount_rate);
+        if (!code || !Number.isFinite(rate) || rate <= 0) continue;
+        for (const key of [`${q.client_code}|${code}`, `${q.client_code}|${vintageBaseOf(code)}`]) {
+          if (!quoted.has(key)) quoted.set(key, rate); // created_at 내림차순 → 최근 견적 우선
+        }
+      }
+    }
+  }
+  const quotedRateOf = (clientCode: string | null, itemCode: string): number | null =>
+    clientCode
+      ? quoted.get(`${clientCode}|${itemCode}`) ?? quoted.get(`${clientCode}|${vintageBaseOf(itemCode)}`) ?? null
+      : null;
+  const { data: inv } = await supabase.from('inventory_cdv')
+    .select('item_no, item_name, available_stock, supply_price').in('item_no', codes).gt('available_stock', 0);
+  const out: RecentArrival[] = [];
+  for (const w of inv || []) {
+    const rs = alive.filter((r) => r.item_code === w.item_no);
+    out.push({
+      item_code: w.item_no,
+      item_name: w.item_name || '',
+      available: Number(w.available_stock) || 0,
+      supply_price: Number(w.supply_price) || 0,
+      requests: rs.map((r) => ({ ...r, quoted_rate: quotedRateOf(r.client_code, w.item_no) })),
+      notified_at: rs.find((r) => r.status === 'notified')?.notified_at || null,
+    });
+  }
+  // 미확인(waiting) 먼저, 그다음 최근 확인 순
+  return out.sort((a, b) => (b.notified_at || '9999').localeCompare(a.notified_at || '9999'));
 }
 
 /** 팝업 확인 처리 — 해당 품목의 내 대기 등록을 notified로 */
