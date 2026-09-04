@@ -36,8 +36,8 @@ const saveEdit = (pk: string, v: string) => {
 };
 
 export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[]; sender?: Sender }) {
-  // 복사된 문구 미리보기 (request id 단위 — 뭘 보냈는지 확인용)
-  const [copied, setCopied] = useState<{ id: number; msg: string } | null>(null);
+  // 복사된 문구 미리보기 (행 키 단위 — 뭘 보냈는지 확인용)
+  const [copied, setCopied] = useState<{ key: string; msg: string } | null>(null);
   // 품목 아코디언 — 기본은 품목만, 줄 클릭 시 대기 거래처 펼침
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
   const toggleItem = (code: string) => setOpenItems((prev) => {
@@ -83,9 +83,10 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
 
   // 거래처 기본할인률 로드 — 견적 이력이 없는 (거래처×품목)의 기본값
   useEffect(() => {
-    const codes = [...new Set(
-      arrivals.flatMap((a) => a.requests).map((r) => r.client_code).filter(Boolean) as string[],
-    )];
+    const codes = [...new Set([
+      ...(arrivals.flatMap((a) => a.requests).map((r) => r.client_code).filter(Boolean) as string[]),
+      ...arrivals.flatMap((a) => a.past_buyers.map((b) => b.client_code)),
+    ])];
     for (const code of codes) {
       if (gradeRates[code] !== undefined) continue;
       fetch(`/api/sales/clients/grade?client_code=${encodeURIComponent(code)}`, { credentials: 'include' })
@@ -115,34 +116,51 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
   const itemsOfClient = (rk: string): RecentArrival[] =>
     arrivals.filter((a) => a.requests.some((q) => rateKeyOf(q) === rk));
 
-  // (거래처×품목) 입력 표시값: 수동 입력 → 견적 이력 → 기본할인률
-  const rateValueOf = (rk: string, a: RecentArrival): string => {
+  // (거래처×품목) 입력 표시값: 수동 입력 → 견적 이력(quotedRate) → 기본할인률
+  const displayRate = (rk: string, a: RecentArrival, quotedRate: number | null | undefined): string => {
     const edit = edits[`${rk}|${a.item_code}`];
     if (edit !== undefined) return edit;
-    const q = a.requests.find((x) => rateKeyOf(x) === rk)?.quoted_rate;
-    if (typeof q === 'number' && q > 0) return String(Math.round(q * 100));
+    if (typeof quotedRate === 'number' && quotedRate > 0) return String(Math.round(quotedRate * 100));
     return gradeRates[rk] ?? '';
   };
-  const rateFractionOf = (rk: string, a: RecentArrival): number => {
-    const pct = parseFloat(rateValueOf(rk, a));
+  const rateValueOf = (rk: string, a: RecentArrival): string =>
+    displayRate(rk, a, a.requests.find((x) => rateKeyOf(x) === rk)?.quoted_rate);
+  const toFraction = (v: string): number => {
+    const pct = parseFloat(v);
     return Number.isFinite(pct) && pct > 0 ? pct / 100 : 0;
   };
 
-  const copyMessage = async (id: number, r: { client_code: string | null; client_name: string }) => {
+  const itemPayload = (a: RecentArrival, rate: number) => ({
+    itemName: a.item_name || a.item_code,
+    vintage: vintageFromCode(a.item_code),
+    supplyPrice: a.supply_price,
+    discountRate: rate,
+    shipDateLabel: shipInfoOf(a)?.label ?? null,
+  });
+
+  const doCopy = async (key: string, msg: string) => {
+    try { await navigator.clipboard.writeText(msg); } catch { /* http/구형 브라우저 — 미리보기에서 수동 복사 */ }
+    setCopied((prev) => (prev?.key === key ? null : { key, msg }));
+  };
+
+  // 대기 등록 거래처: 이 거래처가 기다린 품목 전부 한 통으로
+  const copyMessage = async (key: string, r: { client_code: string | null; client_name: string }) => {
     const rk = rateKeyOf(r);
     const msg = buildArrivalMessage({
       clientName: r.client_name,
-      items: itemsOfClient(rk).map((a) => ({
-        itemName: a.item_name || a.item_code,
-        vintage: vintageFromCode(a.item_code),
-        supplyPrice: a.supply_price,
-        discountRate: rateFractionOf(rk, a),
-        shipDateLabel: shipInfoOf(a)?.label ?? null,
-      })),
+      items: itemsOfClient(rk).map((a) => itemPayload(a, toFraction(rateValueOf(rk, a)))),
       sender,
     });
-    try { await navigator.clipboard.writeText(msg); } catch { /* http/구형 브라우저 — 미리보기에서 수동 복사 */ }
-    setCopied((prev) => (prev?.id === id ? null : { id, msg }));
+    await doCopy(key, msg);
+  };
+  // 이전 빈티지 구매 거래처: 이 품목 단건 안내
+  const copyBuyerMessage = async (key: string, a: RecentArrival, b: { client_code: string; client_name: string; quoted_rate: number | null }) => {
+    const msg = buildArrivalMessage({
+      clientName: b.client_name,
+      items: [itemPayload(a, toFraction(displayRate(b.client_code, a, b.quoted_rate)))],
+      sender,
+    });
+    await doCopy(key, msg);
   };
 
   return (
@@ -183,51 +201,102 @@ export function ArrivalsSection({ arrivals, sender }: { arrivals: RecentArrival[
             </div>
             {open && a.requests.map((r) => {
               const rk = rateKeyOf(r);
-              const pk = `${rk}|${a.item_code}`;
-              const fromQuote = edits[pk] === undefined && typeof r.quoted_rate === 'number' && r.quoted_rate > 0;
+              const key = `r${r.id}`;
               return (
-                <div key={r.id}>
-                  {/* 줄 전체가 클릭 영역 — 누르면 문구 복사 + 미리보기 토글 (입력/버튼 클릭은 제외) */}
-                  <div
-                    onClick={() => copyMessage(r.id, r)}
-                    style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}
-                  >
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{r.client_name}</span>
-                    {r.memo && <span style={{ color: 'var(--text-muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.memo}</span>}
-                    <span onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', cursor: 'default' }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>할인</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={99}
-                        value={rateValueOf(rk, a)}
-                        placeholder="0"
-                        onChange={(e) => { setEdits((prev) => ({ ...prev, [pk]: e.target.value })); saveEdit(pk, e.target.value); }}
-                        title={fromQuote ? '이 거래처에 이 와인을 견적한 이력의 할인률' : '거래처 기본할인률 (수정 가능)'}
-                        style={{ width: 44, padding: '3px 6px', fontSize: 12, textAlign: 'right', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: fromQuote ? 'var(--status-info)' : 'var(--text-primary)', fontWeight: fromQuote ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}
-                        aria-label={`${r.client_name} 할인률(%)`}
-                      />
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>%</span>
-                    </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); copyMessage(r.id, r); }}
-                      style={{ width: 112, padding: '3px 0', fontSize: 11, fontWeight: 700, borderRadius: 6, border: '1px solid var(--action)', background: 'var(--surface)', color: 'var(--action)', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
-                    >
-                      {copied?.id === r.id ? '✓ 복사됨'
-                        : itemsOfClient(rk).length > 1 ? `💬 문구 복사 (${itemsOfClient(rk).length}종)` : '💬 문구 복사'}
-                    </button>
-                  </div>
-                  {copied?.id === r.id && (
-                    <div style={{ marginTop: 6, padding: '8px 10px', fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 8, whiteSpace: 'pre-wrap', userSelect: 'all' }}>
-                      {copied.msg}
-                    </div>
-                  )}
-                </div>
+                <ClientRow
+                  key={key}
+                  rowKey={key}
+                  name={r.client_name}
+                  sub={r.memo || undefined}
+                  rateValue={rateValueOf(rk, a)}
+                  fromQuote={edits[`${rk}|${a.item_code}`] === undefined && typeof r.quoted_rate === 'number' && r.quoted_rate > 0}
+                  onRateChange={(v) => { const pk = `${rk}|${a.item_code}`; setEdits((prev) => ({ ...prev, [pk]: v })); saveEdit(pk, v); }}
+                  onCopy={() => copyMessage(key, r)}
+                  copyLabel={itemsOfClient(rk).length > 1 ? `💬 문구 복사 (${itemsOfClient(rk).length}종)` : '💬 문구 복사'}
+                  copied={copied?.key === key ? copied.msg : null}
+                />
               );
             })}
+            {/* 이전 빈티지 구매 거래처 — 같은 와인 다른 빈티지의 최근 1년 출고처 (대기 미등록만) */}
+            {open && a.past_buyers.length > 0 && (
+              <>
+                <div style={{ marginTop: 10, paddingTop: 7, borderTop: '1px solid var(--border-subtle)', fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>
+                  이전 빈티지 구매 거래처 {a.past_buyers.length} · 최근 1년
+                </div>
+                {a.past_buyers.map((b) => {
+                  const key = `b${a.item_code}|${b.client_code}`;
+                  const pk = `${b.client_code}|${a.item_code}`;
+                  return (
+                    <ClientRow
+                      key={key}
+                      rowKey={key}
+                      name={b.client_name}
+                      sub={`${b.qty}병 · ${b.last_date.slice(5)}`}
+                      rateValue={displayRate(b.client_code, a, b.quoted_rate)}
+                      fromQuote={edits[pk] === undefined && typeof b.quoted_rate === 'number' && b.quoted_rate > 0}
+                      onRateChange={(v) => { setEdits((prev) => ({ ...prev, [pk]: v })); saveEdit(pk, v); }}
+                      onCopy={() => copyBuyerMessage(key, a, b)}
+                      copyLabel="💬 문구 복사"
+                      copied={copied?.key === key ? copied.msg : null}
+                    />
+                  );
+                })}
+              </>
+            )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** 거래처 한 줄 — 줄 클릭=문구 복사+미리보기 토글, 할인 입력, 복사 버튼 (대기 등록·이전 빈티지 공용) */
+function ClientRow(p: {
+  rowKey: string;
+  name: string;
+  sub?: string;
+  rateValue: string;
+  fromQuote: boolean;
+  onRateChange: (v: string) => void;
+  onCopy: () => void;
+  copyLabel: string;
+  copied: string | null;
+}) {
+  return (
+    <div>
+      <div
+        onClick={p.onCopy}
+        style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}
+      >
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>{p.name}</span>
+        {p.sub && <span style={{ color: 'var(--text-muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{p.sub}</span>}
+        <span onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', cursor: 'default' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>할인</span>
+          <input
+            type="number"
+            min={0}
+            max={99}
+            value={p.rateValue}
+            placeholder="0"
+            onChange={(e) => p.onRateChange(e.target.value)}
+            title={p.fromQuote ? '이 거래처에 이 와인을 견적한 이력의 할인률' : '거래처 기본할인률 (수정 가능)'}
+            style={{ width: 44, padding: '3px 6px', fontSize: 12, textAlign: 'right', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--surface)', color: p.fromQuote ? 'var(--status-info)' : 'var(--text-primary)', fontWeight: p.fromQuote ? 700 : 400, fontVariantNumeric: 'tabular-nums' }}
+            aria-label={`${p.name} 할인률(%)`}
+          />
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>%</span>
+        </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); p.onCopy(); }}
+          style={{ width: 112, padding: '3px 0', fontSize: 11, fontWeight: 700, borderRadius: 6, border: '1px solid var(--action)', background: 'var(--surface)', color: 'var(--action)', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}
+        >
+          {p.copied ? '✓ 복사됨' : p.copyLabel}
+        </button>
+      </div>
+      {p.copied && (
+        <div style={{ marginTop: 6, padding: '8px 10px', fontSize: 12, lineHeight: 1.6, color: 'var(--text-secondary)', background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 8, whiteSpace: 'pre-wrap', userSelect: 'all' }}>
+          {p.copied}
+        </div>
+      )}
     </div>
   );
 }
