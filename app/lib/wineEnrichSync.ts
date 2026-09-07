@@ -6,6 +6,7 @@
 import { getClaudeClient } from './claudeClient';
 import { supabase } from './db';
 import { logger } from './logger';
+import { loadNoteIndex } from './noteStore';
 
 type WineLite = {
   item_code: string;
@@ -101,23 +102,20 @@ export async function backfillFromTastingNotes(limit = 40): Promise<number> {
   const targets = (data || []).map((w) => w.item_code);
   if (targets.length === 0) return 0;
 
-  const { listReleaseAssetNames } = await import('./githubRelease');
   const { parseWineFieldsFromPptx, parseTastingNotesFromPptx } = await import('./tastingNotePptxParse');
   const { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } = await import('./wineDb');
 
-  let names: Set<string>;
-  try { names = await listReleaseAssetNames(); }
-  catch (e) { logger.warn(`[WineEnrich] 릴리스 목록 조회 실패: ${e instanceof Error ? e.message : e}`); return 0; }
-
-  const RELEASE_BASE = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
+  const idx = await loadNoteIndex();
+  if (!idx) { logger.warn('[WineEnrich] 노트 인덱스 조회 실패'); return 0; }
+  const files = idx.files;
   let filled = 0;
   let processed = 0;
   for (const code of targets) {
     if (processed >= limit) break;
-    if (!names.has(`${code}.pptx`)) continue;
+    if (!files[`${code}.pptx`]) continue;
     processed++;
     try {
-      const res = await fetch(`${RELEASE_BASE}/${code}.pptx`, { cache: 'no-store' });
+      const res = await fetch(files[`${code}.pptx`], { cache: 'no-store' });
       if (!res.ok) continue;
       const buffer = Buffer.from(await res.arrayBuffer());
       const fields = await parseWineFieldsFromPptx(buffer);

@@ -3,9 +3,7 @@ import { supabase } from '@/app/lib/db';
 
 export const runtime = 'nodejs';
 
-// GitHub Release URL
-const GITHUB_RELEASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
-const INDEX_URL = `${GITHUB_RELEASE_URL}/tasting-notes-index.json`;
+import { loadNoteIndex, type NoteIndex } from '@/app/lib/noteStore';
 
 // 메모리 캐시 (5분)
 let indexCache: any = null;
@@ -34,12 +32,9 @@ export async function GET(request: NextRequest) {
       await ensureIndexLoaded(forceRefresh);
 
       let pdfUrl: string | undefined;
-      if (indexCache?.notes) {
-        const pdfNote = indexCache.notes[itemNo];
-        if (pdfNote?.exists) {
-          const baseUrl = indexCache.base_url || GITHUB_RELEASE_URL;
-          pdfUrl = `${baseUrl}/${pdfNote.filename}?v=${Date.now()}`;
-        }
+      if (indexCache?.files) {
+        const u = indexCache.files[`${itemNo}.pdf`];
+        if (u) pdfUrl = u;
       }
 
       // 1) GitHub Release PDF 우선 (원본 그대로 표시)
@@ -127,24 +122,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** GitHub 인덱스 캐시 로드. force=true 면 메모리·fetch 캐시 모두 우회. */
+/** 노트 인덱스 캐시 로드 (Storage index.json — 레거시 GitHub + Storage 통합). */
 async function ensureIndexLoaded(force = false) {
   const now = Date.now();
   if (!force && indexCache && now - cacheTime <= CACHE_DURATION) return;
-
-  try {
-    // force 시 cache-buster query + no-store 로 GitHub CDN/Next fetch 캐시 모두 우회
-    const url = force ? `${INDEX_URL}?ts=${now}` : INDEX_URL;
-    const response = await fetch(
-      url,
-      force ? { cache: 'no-store' } : { next: { revalidate: 300 } },
-    );
-    if (!response.ok) throw new Error(`Failed: ${response.status}`);
-    indexCache = await response.json();
+  const idx: NoteIndex | null = await loadNoteIndex();
+  if (idx) {
+    indexCache = idx;
     cacheTime = now;
-  } catch (error: any) {
-    if (!indexCache) {
-      console.error('Failed to load tasting notes index:', error.message);
-    }
+  } else if (!indexCache) {
+    console.error('Failed to load tasting notes index');
   }
 }

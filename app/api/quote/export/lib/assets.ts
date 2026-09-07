@@ -1,8 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-
-export const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
-const TASTING_NOTE_INDEX_URL = `${TASTING_NOTE_BASE_URL}/tasting-notes-index.json`;
+import { loadNoteIndex } from '@/app/lib/noteStore';
 
 export function getLogoPath(company: string): string | null {
   const filename = company === 'DL' ? 'riedel.png' : 'cavedevin.png';
@@ -26,29 +24,25 @@ export function getLogoPath(company: string): string | null {
  * 콜드 스타트엔 어차피 fetch 1회는 필수.
  */
 const INDEX_TTL_MS = 60_000;
-let cachedIndex: { data: Set<string>; expiresAt: number } | null = null;
+let cachedIndex: { data: Map<string, string>; expiresAt: number } | null = null;
 
-export async function loadTastingNoteIndex(): Promise<Set<string>> {
+/** 품번 → PDF URL (Storage 인덱스 — 레거시 GitHub + Storage 통합) */
+export async function loadTastingNoteIndex(): Promise<Map<string, string>> {
   const now = Date.now();
   if (cachedIndex && cachedIndex.expiresAt > now) {
     return cachedIndex.data;
   }
   try {
-    const res = await fetch(`${TASTING_NOTE_INDEX_URL}?t=${now}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' },
-    });
-    if (!res.ok) return new Set();
-    const data = await res.json();
-    const s = new Set<string>();
-    for (const [k, v] of Object.entries(data.notes || {} as Record<string, unknown>)) {
-      if ((v as { exists?: boolean })?.exists) s.add(k);
+    const idx = await loadNoteIndex();
+    const m = new Map<string, string>();
+    for (const [name, url] of Object.entries(idx?.files || {})) {
+      if (name.toLowerCase().endsWith('.pdf')) m.set(name.replace(/\.pdf$/i, ''), url);
     }
-    cachedIndex = { data: s, expiresAt: now + INDEX_TTL_MS };
-    return s;
+    cachedIndex = { data: m, expiresAt: now + INDEX_TTL_MS };
+    return m;
   } catch {
-    // 네트워크 오류 시 이전 캐시라도 있으면 재사용 (stale-while-fail)
+    // 오류 시 이전 캐시라도 있으면 재사용 (stale-while-fail)
     if (cachedIndex) return cachedIndex.data;
-    return new Set();
+    return new Map();
   }
 }

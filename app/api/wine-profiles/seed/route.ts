@@ -5,8 +5,7 @@ import JSZip from 'jszip';
 
 export const maxDuration = 300; // 5분 타임아웃
 
-const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
-const INDEX_URL = `${TASTING_NOTE_BASE_URL}/tasting-notes-index.json`;
+import { loadNoteIndex } from '@/app/lib/noteStore';
 
 async function downloadPptx(code: string): Promise<Buffer | null> {
   try {
@@ -144,17 +143,13 @@ export async function POST() {
     ensureWineProfileTable();
 
     // 1. 테이스팅노트 인덱스에서 PPTX가 있는 품목코드 목록 가져오기
-    const indexRes = await fetch(`${INDEX_URL}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!indexRes.ok) {
+    const noteIdx = await loadNoteIndex();
+    if (!noteIdx) {
       return NextResponse.json({ error: '테이스팅노트 인덱스를 불러올 수 없습니다.' }, { status: 500 });
     }
-    const indexData = await indexRes.json();
-    const notes = indexData.notes || {};
-
-    const pptxCodes: string[] = [];
-    for (const [code, info] of Object.entries(notes as Record<string, any>)) {
-      if (info?.pptx) pptxCodes.push(code);
-    }
+    const pptxCodes: string[] = Object.keys(noteIdx.files)
+      .filter((n) => n.toLowerCase().endsWith('.pptx'))
+      .map((n) => n.replace(/\.pptx$/i, ''));
 
     if (pptxCodes.length === 0) {
       return NextResponse.json({ success: true, message: 'PPTX 파일이 없습니다.', imported: 0 });

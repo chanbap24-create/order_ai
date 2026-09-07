@@ -2,7 +2,6 @@ import type ExcelJS from 'exceljs';
 import type { ColDef } from './types';
 import { roundTo100 } from '@/app/lib/priceUtils';
 import { IMG_ROW_HEIGHT } from './types';
-import { TASTING_NOTE_BASE_URL } from './assets';
 import type { BottleImageMap } from './imagePreload';
 import {
   THIN, CURR, PCT, HEADER_FILL, ALT_FILL, SUMMARY_FILL, FONT,
@@ -21,7 +20,7 @@ export async function buildDataRows(
   items: Record<string, unknown>[],
   activeCols: ColDef[],
   pos: Record<string, number>,
-  tastingNoteSet: Set<string>,
+  tastingNoteSet: Map<string, string>,
   bottleImages: BottleImageMap,
 ): Promise<{ DS: number }> {
   // Column headers (Row 21)
@@ -233,7 +232,7 @@ function renderLinkCell(
   row: ExcelJS.Row,
   c: number,
   item: Record<string, unknown>,
-  tastingNoteSet: Set<string>,
+  tastingNoteSet: Map<string, string>,
   rowFill: ExcelJS.Fill | undefined,
 ) {
   const itemCode = String(item.item_code || '');
@@ -242,7 +241,7 @@ function renderLinkCell(
     return;
   }
   const exists = tastingNoteSet.has(itemCode);
-  const pdfUrl = `${TASTING_NOTE_BASE_URL}/${itemCode}.pdf?v=${Date.now()}`;
+  const pdfUrl = tastingNoteSet.get(itemCode) || '';
   const cell = row.getCell(c);
   if (exists) {
     cell.value = { text: '테이스팅노트', hyperlink: pdfUrl } as ExcelJS.CellHyperlinkValue;

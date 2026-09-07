@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateSingleWinePpt } from "@/app/lib/pptGenerator";
 import { generateSingleWinePdf } from "@/app/lib/pdfGenerator";
-import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
+import { uploadNote, refreshNoteIndex } from "@/app/lib/noteStore";
 import { getTastingNote, upsertTastingNote } from "@/app/lib/wineDb";
 import { logger } from "@/app/lib/logger";
 
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
     ]);
 
     // GitHub Release에 {code}.pptx / {code}.pdf 로 덮어쓰기
-    await uploadToRelease(`${code}.pptx`, pptBuffer, PPTX_CT);
-    await uploadToRelease(`${code}.pdf`, pdfBuffer, "application/pdf");
-    await refreshReleaseIndex().catch(() => null); // PDF 인덱스 갱신(실패해도 무시)
+    await uploadNote(`${code}.pptx`, pptBuffer, PPTX_CT);
+    await uploadNote(`${code}.pdf`, pdfBuffer, "application/pdf");
+    await refreshNoteIndex().catch(() => null); // PDF 인덱스 갱신(실패해도 무시)
     await upsertTastingNote(code, { ppt_generated: 1 }).catch(() => null);
 
     logger.info(`[Regenerate] Re-uploaded pptx+pdf for ${code}`);

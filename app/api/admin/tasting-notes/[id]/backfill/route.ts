@@ -13,8 +13,7 @@ import { ensureRegionsClassified } from "@/app/api/admin/wine-regions/lib/classi
 
 export const maxDuration = 60;
 
-const RELEASE_BASE =
-  "https://github.com/chanbap24-create/order_ai/releases/download/note";
+import { loadNoteIndex, noteUrlOf } from "@/app/lib/noteStore";
 
 export async function POST(
   _request: NextRequest,
@@ -27,7 +26,12 @@ export async function POST(
       return NextResponse.json({ success: false, error: "품번이 필요합니다." }, { status: 400 });
     }
 
-    const pptxRes = await fetch(`${RELEASE_BASE}/${itemCode}.pptx?t=${Date.now()}`, { cache: "no-store" });
+    const noteIdx = await loadNoteIndex();
+    const pptxUrl = noteUrlOf(noteIdx, itemCode, "pptx");
+    if (!pptxUrl) {
+      return NextResponse.json({ success: false, error: "PPTX 노트가 없습니다." }, { status: 404 });
+    }
+    const pptxRes = await fetch(pptxUrl, { cache: "no-store" });
     const pdfRes = pptxRes.ok ? null : await fetch(`${RELEASE_BASE}/${itemCode}.pdf?t=${Date.now()}`, { cache: "no-store" });
     if (!pptxRes.ok && !(pdfRes && pdfRes.ok)) {
       return NextResponse.json(

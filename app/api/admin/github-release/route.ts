@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateSingleWinePpt } from "@/app/lib/pptGenerator";
 import { generateSingleWinePdf } from "@/app/lib/pdfGenerator";
 import { savePptx } from "@/app/lib/fileOutput";
-import { uploadBatchToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
+import { uploadNote, refreshNoteIndex } from "@/app/lib/noteStore";
 import { getWineByCode } from "@/app/lib/wineDb";
 import { logChange } from "@/app/lib/changeLogDb";
 import { logger } from "@/app/lib/logger";
@@ -56,10 +56,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2단계: 일괄 업로드 (릴리스/에셋 목록 1회 조회)
-    const uploadResults = files.length > 0
-      ? await uploadBatchToRelease(files.map(f => ({ fileName: f.fileName, buffer: f.buffer, contentType: f.contentType })))
-      : [];
+    // 2단계: 일괄 업로드 — Storage(tasting-notes 버킷). GitHub 릴리즈 1,000개 리밋 대체.
+    const uploadResults: { fileName: string; url?: string; error?: string }[] = [];
+    for (const f of files) {
+      try {
+        const url = await uploadNote(f.fileName, f.buffer, f.contentType);
+        uploadResults.push({ fileName: f.fileName, url });
+      } catch (e) {
+        uploadResults.push({ fileName: f.fileName, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
 
     // 결과 합치기
     const results = [
@@ -84,7 +90,7 @@ export async function POST(request: NextRequest) {
     let indexTotal = 0;
     if (uploadedCount > 0 && format === "pdf") {
       try {
-        const indexResult = await refreshReleaseIndex();
+        const indexResult = await refreshNoteIndex();
         indexTotal = indexResult.total;
         logger.info(`[GitHub] Index refreshed after upload: ${indexTotal} items`);
       } catch (e) {

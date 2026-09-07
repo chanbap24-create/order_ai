@@ -18,7 +18,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-import { TASTING_NOTE_BASE_URL } from "../constants/docDefaults";
 import type { QuoteColumnConfig, QuoteItem } from "../types";
 import { qTdStyle } from "./sharedStyles";
 import { QuoteTableFoot } from "./QuoteTableFoot";
@@ -372,7 +371,7 @@ function Cell({
         />
       ) : col.key === "tasting_note" && item.item_code ? (
         <a
-          href={`${TASTING_NOTE_BASE_URL}/${item.item_code}.pdf?v=${Date.now()}`}
+          href={`/api/tasting-notes/pdf?item_code=${item.item_code}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}

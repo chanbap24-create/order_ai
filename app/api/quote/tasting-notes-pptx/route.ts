@@ -1,26 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import JSZip from 'jszip';
+import { loadNoteIndex, noteUrlOf, type NoteIndex } from '@/app/lib/noteStore';
 
 export const maxDuration = 120;
-
-const TASTING_NOTE_BASE_URL = 'https://github.com/chanbap24-create/order_ai/releases/download/note';
-const TASTING_NOTE_INDEX_URL = `${TASTING_NOTE_BASE_URL}/tasting-notes-index.json`;
-
-async function loadTastingNoteIndex(): Promise<Set<string>> {
-  try {
-    const res = await fetch(`${TASTING_NOTE_INDEX_URL}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return new Set();
-    const data = await res.json();
-    const s = new Set<string>();
-    for (const [k, v] of Object.entries(data.notes || {} as Record<string, any>)) {
-      if ((v as any)?.exists) s.add(k);
-    }
-    return s;
-  } catch {
-    return new Set();
-  }
-}
 
 /**
  * 여러 PPTX 파일을 하나로 병합 (같은 pptxgenjs 템플릿 전제)
@@ -147,10 +130,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '견적서에 품목이 없습니다.' }, { status: 400 });
     }
 
-    const noteIndex = await loadTastingNoteIndex();
+    const noteIndex: NoteIndex | null = await loadNoteIndex();
     const itemCodes = quoteRows
       .map((r: any) => r.item_code)
-      .filter((code: string) => code && noteIndex.has(code));
+      .filter((code: string) => code && noteUrlOf(noteIndex, code, 'pptx'));
 
     if (itemCodes.length === 0) {
       return NextResponse.json({ error: '테이스팅 노트가 있는 와인이 없습니다.' }, { status: 404 });
@@ -160,7 +143,7 @@ export async function GET(request: NextRequest) {
     const pptxBuffers: ArrayBuffer[] = [];
     for (const itemCode of itemCodes) {
       try {
-        const res = await fetch(`${TASTING_NOTE_BASE_URL}/${itemCode}.pptx?t=${Date.now()}`, { cache: 'no-store' });
+        const res = await fetch(`${noteUrlOf(noteIndex, itemCode, 'pptx')}`, { cache: 'no-store' });
         if (!res.ok) continue;
         pptxBuffers.push(await res.arrayBuffer());
       } catch {

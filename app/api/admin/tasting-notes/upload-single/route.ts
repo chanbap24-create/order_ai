@@ -2,7 +2,7 @@
 // 단일 와인의 사용자 업로드 파일(PDF/PPTX)을 GitHub Release 에 업로드.
 // 파일명은 항상 {wineId}.{ext} 로 강제 변경되며, PDF 일 때 인덱스도 자동 갱신.
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToRelease, refreshReleaseIndex } from "@/app/lib/githubRelease";
+import { uploadNote, refreshNoteIndex } from "@/app/lib/noteStore";
 import { parseWineFieldsFromPptx } from "@/app/lib/tastingNotePptxParse";
 import { parseTastingNotesFromPdf } from "@/app/lib/tastingNotePdfParse";
 import { backfillWineFieldsIfEmpty, backfillTastingNoteIfEmpty } from "@/app/lib/wineDb";
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       `[upload-single] ${wineId} ← ${originalName} (${buffer.length}b) → ${fileName}`,
     );
 
-    const url = await uploadToRelease(fileName, buffer, CONTENT_TYPE[ext]);
+    const url = await uploadNote(fileName, buffer, CONTENT_TYPE[ext]);
 
     // PPTX(시스템 템플릿)면 라벨 파싱 → wines 빈 칸 backfill + 병 이미지 동기화
     let backfilled: string[] = [];
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         logger.warn(`[upload-single] brand sync failed: ${e instanceof Error ? e.message : e}`);
       }
       try {
-        const result = await refreshReleaseIndex();
+        const result = await refreshNoteIndex();
         indexTotal = result.total;
       } catch (e) {
         logger.warn(
