@@ -91,6 +91,8 @@ export default function TastingNoteTab({
         setHideZero={list.setHideZero}
         wineOnly={list.wineOnly}
         setWineOnly={list.setWineOnly}
+        deptOnly={list.deptOnly}
+        setDeptOnly={list.setDeptOnly}
         showExcluded={list.showExcluded}
         setShowExcluded={list.setShowExcluded}
         lowStockThreshold={list.lowStockThreshold}
