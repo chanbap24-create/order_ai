@@ -123,10 +123,11 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   const filteredWines = wines.filter((w) => {
     if (filterNote === "new") return isNewWine(w);
     if (filterNote === "dept") return !!w.dept_batch; // 백화점 유입분은 카테고리 필터 무관하게 전부
+    // DB만(노란 뱃지: DB 노트 있음 + PDF 없음)도 재고·분류 무관 전수 — 타사(ZK)처럼 재고 0인 품목 포함
+    if (filterNote === "db-only") return !!w.tasting_note_id && !ghIndex[w.item_code];
     if (!passesCategoryFilters(w)) return false;
     if (filterNote === "with") return hasNote(w);
     if (filterNote === "without") return !hasNote(w);
-    if (filterNote === "db-only") return !!w.tasting_note_id && !ghIndex[w.item_code];
     return true;
   });
 
@@ -137,7 +138,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     new: wines.filter(isNewWine).length,
     with: baseFiltered.filter((w) => hasNote(w)).length,
     without: baseFiltered.filter((w) => !hasNote(w)).length,
-    "db-only": baseFiltered.filter(
+    "db-only": wines.filter(
       (w) => !!w.tasting_note_id && !ghIndex[w.item_code],
     ).length,
     dept: wines.filter((w) => !!w.dept_batch).length,
