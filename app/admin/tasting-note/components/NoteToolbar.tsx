@@ -14,8 +14,8 @@ type Props = {
   setHideZero: (b: boolean) => void;
   wineOnly: boolean;
   setWineOnly: (b: boolean) => void;
-  deptOnly: boolean;
-  setDeptOnly: (b: boolean) => void;
+  zkOnly: boolean;
+  setZkOnly: (b: boolean) => void;
   showExcluded: boolean;
   setShowExcluded: (b: boolean) => void;
   lowStockThreshold: number;
@@ -121,16 +121,16 @@ export function NoteToolbar(p: Props) {
             와인만
           </button>
           <button
-            onClick={() => p.setDeptOnly(!p.deptOnly)}
-            title="백화점 유입분만 표시 — 다른 필터(DB만·미작성 등)와 조합해서 좁혀 보기"
+            onClick={() => p.setZkOnly(!p.zkOnly)}
+            title="타사와인(ZK 품번)만 표시 — 다른 필터(DB만·미작성 등)와 조합해서 좁혀 보기"
             style={{
               ...btn,
-              background: p.deptOnly ? "white" : "transparent",
-              color: p.deptOnly ? "var(--action)" : "var(--text-muted)",
-              boxShadow: p.deptOnly ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+              background: p.zkOnly ? "white" : "transparent",
+              color: p.zkOnly ? "var(--action)" : "var(--text-muted)",
+              boxShadow: p.zkOnly ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             }}
           >
-            백화점만
+            타사만
           </button>
           <button
             onClick={() => p.setShowExcluded(!p.showExcluded)}

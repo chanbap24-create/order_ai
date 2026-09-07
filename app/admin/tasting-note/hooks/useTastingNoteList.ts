@@ -12,8 +12,8 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [hideZero, setHideZero] = useState(true);
-  // 백화점 유입분(dept_batch)만 — 다른 노트 필터와 조합해서 좁혀 보기
-  const [deptOnly, setDeptOnly] = useState(false);
+  // 타사와인(ZK 품번)만 — 다른 노트 필터와 조합해서 좁혀 보기
+  const [zkOnly, setZkOnly] = useState(false);
   // 미작성 탭은 와인 위주 업데이트를 위한 곳이라 기본 ON.
   const [wineOnly, setWineOnly] = useState(true);
   // 재고 lowStockThreshold 병 이하 와인을 숨김. 0 이면 필터 OFF.
@@ -123,7 +123,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     && (lowStockThreshold <= 0 || totalStock(w) > lowStockThreshold);
 
   const filteredWines = wines.filter((w) => {
-    if (deptOnly && !w.dept_batch) return false; // 백화점만 토글 — 모든 필터에 공통 적용
+    if (zkOnly && !w.item_code.toUpperCase().startsWith('ZK')) return false; // 타사와인만 토글 — 모든 필터에 공통 적용
     if (filterNote === "new") return isNewWine(w);
     if (filterNote === "dept") return !!w.dept_batch; // 백화점 유입분은 카테고리 필터 무관하게 전부
     // DB만(노란 뱃지: DB 노트 있음 + PDF 없음)도 재고·분류 무관 전수 — 타사(ZK)처럼 재고 0인 품목 포함
@@ -135,8 +135,8 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
   });
 
   // 노트 필터별 카운트는 카테고리·재고 1차 필터를 적용한 결과를 기준으로 계산.
-  // 백화점만 토글이 켜져 있으면 카운트도 백화점 유입분 기준.
-  const countSrc = deptOnly ? wines.filter((w) => !!w.dept_batch) : wines;
+  // 타사와인만 토글이 켜져 있으면 카운트도 타사(ZK) 기준.
+  const countSrc = zkOnly ? wines.filter((w) => w.item_code.toUpperCase().startsWith('ZK')) : wines;
   const baseFiltered = countSrc.filter(passesCategoryFilters);
   const counts: Record<NoteFilter, number> = {
     all: baseFiltered.length,
@@ -180,7 +180,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     filterNote, setFilterNote,
     hideZero, setHideZero,
     wineOnly, setWineOnly,
-    deptOnly, setDeptOnly,
+    zkOnly, setZkOnly,
     lowStockThreshold, setLowStockThreshold,
     showExcluded, setShowExcluded, setExcluded,
     ghIndex, ghError, refreshGhIndex, counts, newActionableCount, newWines,
