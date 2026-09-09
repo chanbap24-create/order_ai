@@ -25,7 +25,8 @@ export type ClientType = 'wine' | 'glass';
  * 올바른 테이블에서 매니저를 검증할 수 있다.
  *
  *  - wine  : client_details (client_type='wine') 의 manager 매칭
- *  - glass : glass_shipments 의 최신 manager 매칭 (glass_clients 에는 manager 컬럼 없음)
+ *  - glass : glass_clients.manager(현재 담당, 거래처정보 업로드로 최신 유지) 우선.
+ *            마스터에 담당이 없으면 최신 출고 담당 → 이월(carryover) → 이름 매칭 폴백.
  *  - 미지정: 과거 동작 호환을 위해 client_details → glass_clients 순으로 확인
  */
 export async function canAccessClient(
@@ -38,7 +39,17 @@ export async function canAccessClient(
   if (session.role === 'admin' || session.role === 'executive' || session.role === 'sales_admin') return true;
 
   if (clientType === 'glass') {
-    // 글라스: 가장 최근 출고의 매니저로 본인 담당 여부 확인
+    // 글라스 1순위: 현재 담당 = glass_clients.manager (거래처정보 업로드로 최신 유지).
+    //   출고당시 담당(glass_shipments)을 먼저 보면 ① 신규 거래처(출고 0건)가 차단되고
+    //   ② 재배정된 거래처의 접근이 옛 담당에게 남는 문제 — 매출 귀속과 동일하게 현재 담당 기준.
+    const { data: masterMgr } = await supabase
+      .from('glass_clients')
+      .select('manager')
+      .eq('client_code', clientCode)
+      .maybeSingle();
+    if (masterMgr?.manager) return masterMgr.manager === session.manager;
+
+    // 마스터에 담당이 없으면: 가장 최근 출고의 매니저로 확인(마스터 미등록 거래처)
     const { data: ship } = await supabase
       .from('glass_shipments')
       .select('manager')
@@ -50,8 +61,7 @@ export async function canAccessClient(
 
     if (ship?.manager) return ship.manager === session.manager;
 
-    // 출고 이력이 없는 글라스 거래처(신규 등록 직후 등): 거래명세표가 아직 업로드
-    // 되지 않은 상태이므로 글라스 전용 마스터의 담당자를 fallback 으로 사용.
+    // 출고 이력도 없는 글라스 거래처(신규 등록 직후 등):
     //  glass_client_carryover.manager — 이월 미수금 업로드 시 함께 들어가는 매니저
     //
     // ⚠️ client_details 는 와인(CDV) 코드 공간을 쓰는 테이블이라 fallback 으로 쓰면 안 됨.
