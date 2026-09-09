@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-08-27",
+  "updated_at": "2026-09-09",
   "base_url": "https://github.com/chanbap24-create/order_ai/releases/download/note",
   "notes": {
     "1124001": {
@@ -468,7 +468,7 @@
     "2022419": {
       "exists": true,
       "filename": "2022419.pdf",
-      "size_kb": 285,
+      "size_kb": 332,
       "pages": 1,
       "wine_name": ""
     },
@@ -545,14 +545,14 @@
     "2023420": {
       "exists": true,
       "filename": "2023420.pdf",
-      "size_kb": 217,
+      "size_kb": 138,
       "pages": 1,
       "wine_name": ""
     },
     "2023426": {
       "exists": true,
       "filename": "2023426.pdf",
-      "size_kb": 234,
+      "size_kb": 364,
       "pages": 1,
       "wine_name": ""
     },
@@ -1742,7 +1742,7 @@
     "3023068": {
       "exists": true,
       "filename": "3023068.pdf",
-      "size_kb": 222,
+      "size_kb": 509,
       "pages": 1,
       "wine_name": ""
     },
@@ -1763,7 +1763,7 @@
     "3023403": {
       "exists": true,
       "filename": "3023403.pdf",
-      "size_kb": 240,
+      "size_kb": 333,
       "pages": 1,
       "wine_name": ""
     },
@@ -1840,7 +1840,7 @@
     "3023851": {
       "exists": true,
       "filename": "3023851.pdf",
-      "size_kb": 299,
+      "size_kb": 298,
       "pages": 1,
       "wine_name": ""
     },
@@ -1889,7 +1889,7 @@
     "3024402": {
       "exists": true,
       "filename": "3024402.pdf",
-      "size_kb": 242,
+      "size_kb": 347,
       "pages": 1,
       "wine_name": ""
     },
@@ -3150,6 +3150,349 @@
       "exists": true,
       "filename": "ACXX803.pdf",
       "size_kb": 395,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK11161": {
+      "exists": true,
+      "filename": "ZK11161.pdf",
+      "size_kb": 228,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK12092": {
+      "exists": true,
+      "filename": "ZK12092.pdf",
+      "size_kb": 222,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK13174": {
+      "exists": true,
+      "filename": "ZK13174.pdf",
+      "size_kb": 210,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK14075": {
+      "exists": true,
+      "filename": "ZK14075.pdf",
+      "size_kb": 221,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK14116": {
+      "exists": true,
+      "filename": "ZK14116.pdf",
+      "size_kb": 222,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK14131": {
+      "exists": true,
+      "filename": "ZK14131.pdf",
+      "size_kb": 205,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK16137": {
+      "exists": true,
+      "filename": "ZK16137.pdf",
+      "size_kb": 201,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK16234": {
+      "exists": true,
+      "filename": "ZK16234.pdf",
+      "size_kb": 947,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK16245": {
+      "exists": true,
+      "filename": "ZK16245.pdf",
+      "size_kb": 205,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK16252": {
+      "exists": true,
+      "filename": "ZK16252.pdf",
+      "size_kb": 222,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK17147": {
+      "exists": true,
+      "filename": "ZK17147.pdf",
+      "size_kb": 210,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK17150": {
+      "exists": true,
+      "filename": "ZK17150.pdf",
+      "size_kb": 197,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK17313": {
+      "exists": true,
+      "filename": "ZK17313.pdf",
+      "size_kb": 201,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK17314": {
+      "exists": true,
+      "filename": "ZK17314.pdf",
+      "size_kb": 213,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK17352": {
+      "exists": true,
+      "filename": "ZK17352.pdf",
+      "size_kb": 208,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK18387": {
+      "exists": true,
+      "filename": "ZK18387.pdf",
+      "size_kb": 212,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK18458": {
+      "exists": true,
+      "filename": "ZK18458.pdf",
+      "size_kb": 197,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK18515": {
+      "exists": true,
+      "filename": "ZK18515.pdf",
+      "size_kb": 211,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK18589": {
+      "exists": true,
+      "filename": "ZK18589.pdf",
+      "size_kb": 193,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK18611": {
+      "exists": true,
+      "filename": "ZK18611.pdf",
+      "size_kb": 209,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19254": {
+      "exists": true,
+      "filename": "ZK19254.pdf",
+      "size_kb": 272,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19459": {
+      "exists": true,
+      "filename": "ZK19459.pdf",
+      "size_kb": 216,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19486": {
+      "exists": true,
+      "filename": "ZK19486.pdf",
+      "size_kb": 216,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19522": {
+      "exists": true,
+      "filename": "ZK19522.pdf",
+      "size_kb": 197,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19603": {
+      "exists": true,
+      "filename": "ZK19603.pdf",
+      "size_kb": 218,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19617": {
+      "exists": true,
+      "filename": "ZK19617.pdf",
+      "size_kb": 198,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK19636": {
+      "exists": true,
+      "filename": "ZK19636.pdf",
+      "size_kb": 215,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK21075": {
+      "exists": true,
+      "filename": "ZK21075.pdf",
+      "size_kb": 206,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK21292": {
+      "exists": true,
+      "filename": "ZK21292.pdf",
+      "size_kb": 205,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK22017": {
+      "exists": true,
+      "filename": "ZK22017.pdf",
+      "size_kb": 531,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK22049": {
+      "exists": true,
+      "filename": "ZK22049.pdf",
+      "size_kb": 218,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK22093": {
+      "exists": true,
+      "filename": "ZK22093.pdf",
+      "size_kb": 976,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK22190": {
+      "exists": true,
+      "filename": "ZK22190.pdf",
+      "size_kb": 1375,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK23008": {
+      "exists": true,
+      "filename": "ZK23008.pdf",
+      "size_kb": 198,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK23009": {
+      "exists": true,
+      "filename": "ZK23009.pdf",
+      "size_kb": 221,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK23049": {
+      "exists": true,
+      "filename": "ZK23049.pdf",
+      "size_kb": 230,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK23114": {
+      "exists": true,
+      "filename": "ZK23114.pdf",
+      "size_kb": 1179,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK23123": {
+      "exists": true,
+      "filename": "ZK23123.pdf",
+      "size_kb": 195,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK24014": {
+      "exists": true,
+      "filename": "ZK24014.pdf",
+      "size_kb": 769,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK24033": {
+      "exists": true,
+      "filename": "ZK24033.pdf",
+      "size_kb": 199,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZK24190": {
+      "exists": true,
+      "filename": "ZK24190.pdf",
+      "size_kb": 214,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKMV001": {
+      "exists": true,
+      "filename": "ZKMV001.pdf",
+      "size_kb": 218,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV070": {
+      "exists": true,
+      "filename": "ZKNV070.pdf",
+      "size_kb": 209,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV112": {
+      "exists": true,
+      "filename": "ZKNV112.pdf",
+      "size_kb": 715,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV124": {
+      "exists": true,
+      "filename": "ZKNV124.pdf",
+      "size_kb": 250,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV141": {
+      "exists": true,
+      "filename": "ZKNV141.pdf",
+      "size_kb": 213,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV233": {
+      "exists": true,
+      "filename": "ZKNV233.pdf",
+      "size_kb": 156,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV245": {
+      "exists": true,
+      "filename": "ZKNV245.pdf",
+      "size_kb": 215,
+      "pages": 1,
+      "wine_name": ""
+    },
+    "ZKNV252": {
+      "exists": true,
+      "filename": "ZKNV252.pdf",
+      "size_kb": 239,
       "pages": 1,
       "wine_name": ""
     },
