@@ -11,6 +11,7 @@ import { SummaryCards } from '../client-list/components/SummaryCards';
 import { ClientsTable } from '../client-list/components/ClientsTable';
 import { BatchRecommendBar } from '../client-list/components/BatchRecommendBar';
 import { ClientGroupBar } from '../client-list/components/ClientGroupBar';
+import { MasterSearchAdd } from '../client-list/components/MasterSearchAdd';
 import { ClientDetailPanel } from '../analysis/components/ClientDetailPanel';
 import type { SelectedRankClient, AnalysisFilters } from '../analysis/types';
 import { Stack } from '@/app/components/ui';
@@ -49,11 +50,22 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     setPicked(new Set(g.clients.map((c) => c.code)));
   };
   const clearGroup = () => { setActiveGroupId(null); setPicked(new Set()); };
+  // 마스터 검색으로 추가한 거래처(기간 내 출고 없음 — 목록·그룹 밖) — 추천 대상 포함용
+  const [extraClients, setExtraClients] = useState<Map<string, string>>(new Map());
+  const addExtraClient = (c: { code: string; name: string }) => {
+    setExtraClients((prev) => new Map(prev).set(c.code, c.name));
+    setPicked((prev) => new Set(prev).add(c.code));
+  };
+  const removeExtraClient = (code: string) => {
+    setExtraClients((prev) => { const n = new Map(prev); n.delete(code); return n; });
+    setPicked((prev) => { const n = new Set(prev); n.delete(code); return n; });
+  };
   const pickedAsGroupClients = () => {
-    // 체크된 거래처의 이름: 현재 목록 → 활성 그룹 → 코드 순으로 확보
+    // 체크된 거래처의 이름: 현재 목록 → 활성 그룹 → 마스터 검색 추가분 → 코드 순으로 확보
     const nameOf = new Map<string, string>();
     for (const c of s.clients) if (c.client_code) nameOf.set(c.client_code, c.client_name);
     for (const g of grp.groups) for (const c of g.clients) if (!nameOf.has(c.code)) nameOf.set(c.code, c.name);
+    for (const [code, name] of extraClients) if (!nameOf.has(code)) nameOf.set(code, name);
     return [...picked].map((code) => ({ code, name: nameOf.get(code) || code }));
   };
   const saveNewGroup = async () => {
@@ -191,6 +203,20 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--text-primary)'; }}
         onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-default)'; }}
       />
+
+      {/* 마스터 검색 — 기간 내 출고 없는 담당 거래처도 추천 대상으로 추가(+추가된 칩 표시) */}
+      {batchable && (
+        <MasterSearchAdd
+          query={search}
+          type={s.type}
+          manager={isAdmin ? s.managerFilter : currentManager}
+          excludeCodes={new Set(s.clients.map((c) => c.client_code).filter(Boolean))}
+          picked={picked}
+          extraClients={extraClients}
+          onAdd={addExtraClient}
+          onRemove={removeExtraClient}
+        />
+      )}
 
       {batchable && (
         <ClientGroupBar
