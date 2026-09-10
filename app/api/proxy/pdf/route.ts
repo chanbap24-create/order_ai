@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { env } from '@/app/lib/env';
 
 export const runtime = 'nodejs';
 
@@ -28,8 +29,16 @@ export async function GET(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: '올바른 URL 형식이 아닙니다.' }, { status: 400 });
     }
-    if (parsedUrl.hostname !== 'github.com' && !parsedUrl.hostname.endsWith('.github.com') && parsedUrl.hostname !== 'objects.githubusercontent.com') {
-      return NextResponse.json({ error: '올바른 GitHub Release 파일 URL이 아닙니다.' }, { status: 400 });
+    // 허용 호스트: GitHub Release(레거시) + Supabase Storage(현재 노트 저장소).
+    // 노트가 GitHub → Supabase Storage 로 이전돼, Storage 공개 URL도 허용해야 한다.
+    const h = parsedUrl.hostname;
+    let supaHost: string | null = null;
+    try { if (env.SUPABASE_URL) supaHost = new URL(env.SUPABASE_URL).hostname; } catch { /* ignore */ }
+    const allowedHost =
+      h === 'github.com' || h.endsWith('.github.com') || h === 'objects.githubusercontent.com' ||
+      (!!supaHost && h === supaHost) || h.endsWith('.supabase.co');
+    if (!allowedHost) {
+      return NextResponse.json({ error: '허용되지 않은 파일 호스트입니다. (GitHub/Supabase만 허용)' }, { status: 400 });
     }
     if (parsedUrl.protocol !== 'https:') {
       return NextResponse.json({ error: 'HTTPS URL만 허용됩니다.' }, { status: 400 });
