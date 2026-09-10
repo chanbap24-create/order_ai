@@ -206,11 +206,13 @@ const nameKeyOf = (n: string | null | undefined) =>
   (n || '').toLowerCase().replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
 
 /** 최근 통관 완료 품목 — 브리핑 표시용.
- *  대상 = 최근 입항(45일) 스케줄 + 대기 등록 품목 중 가용재고가 생긴 것.
+ *  대상 = 최근 입항(14일) 스케줄 + 대기 등록 품목 중 가용재고가 생긴 것.
+ *  (미착 리스트가 과거 입항 이력을 계속 담고 있어 창을 넓게 잡으면
+ *   이미 통관·입고 끝난 옛 품목이 대거 노출됨 — 45→14일로 축소)
  *  그중 '내 접점'이 있는 품목만: 내 대기 등록이 있거나, 내 담당 거래처가 이전 빈티지를 사간 품목.
  *  (전부 띄우면 담당자와 무관한 품목까지 쌓여 노이즈 — 접점 필터로 개인화)
  *  quoted_rate = 그 거래처에 그 와인(다른 빈티지 포함)을 견적한 이력이 있으면 최근 견적의 할인률. */
-export async function listRecentArrivals(manager: string, days = 14, arrivalWindowDays = 45): Promise<RecentArrival[]> {
+export async function listRecentArrivals(manager: string, days = 14, arrivalWindowDays = 14): Promise<RecentArrival[]> {
   const cutoff = new Date(Date.now() - days * 86400_000).toISOString();
   const todayKst = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
   const arrCutoff = new Date(Date.now() - arrivalWindowDays * 86400_000).toISOString().slice(0, 10);
