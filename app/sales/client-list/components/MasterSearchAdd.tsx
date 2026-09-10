@@ -8,7 +8,7 @@ type Found = { client_code: string; client_name: string };
  * 거래처 마스터 검색 — 기간 목록에 없는(출고 이력 없는) 담당 거래처를 찾아
  * 추천견적 대상으로 추가. 검색어는 상단 검색창을 공유한다.
  */
-export function MasterSearchAdd({ query, type, manager, excludeCodes, picked, extraClients, onAdd, onRemove }: {
+export function MasterSearchAdd({ query, type, manager, excludeCodes, picked, extraClients, onAdd, onRemove, onOpen }: {
   query: string;
   type: string;                 // wine 전용(추천엔진 CDV)
   manager: string;              // 어드민이면 선택 담당, 일반은 본인(서버에서 강제)
@@ -17,6 +17,7 @@ export function MasterSearchAdd({ query, type, manager, excludeCodes, picked, ex
   extraClients: Map<string, string>; // 검색으로 추가된 거래처(code→name) — 칩 표시
   onAdd: (c: { code: string; name: string }) => void;
   onRemove: (code: string) => void;
+  onOpen: (c: { code: string; name: string }) => void; // 행 클릭 → 거래처 상세(등급·정보·추천견적)
 }) {
   const [results, setResults] = useState<Found[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,28 +70,35 @@ export function MasterSearchAdd({ query, type, manager, excludeCodes, picked, ex
       padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6,
     }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>
-        기간 내 출고 없는 거래처 — 클릭하면 추천 대상에 추가
+        기간 내 출고 없는 거래처 — 클릭하면 거래처 상세(추천견적) · ＋는 일괄 대상 추가
       </div>
       {fresh.slice(0, 5).map((c) => {
         const added = picked.has(c.client_code);
         return (
-          <button
+          <div
             key={c.client_code}
-            onClick={() => !added && onAdd({ code: c.client_code, name: c.client_name })}
+            onClick={() => onOpen({ code: c.client_code, name: c.client_name })}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
-              padding: '7px 10px', borderRadius: 8, fontSize: 13, cursor: added ? 'default' : 'pointer',
-              border: '1px solid var(--border-default)',
-              background: added ? 'var(--surface-muted)' : '#fff',
-              color: 'var(--text-primary)',
+              padding: '7px 10px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
+              border: '1px solid var(--border-default)', background: '#fff', color: 'var(--text-primary)',
             }}
           >
             <span style={{ fontWeight: 600, flex: 1 }}>{c.client_name}</span>
             <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.client_code}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: added ? 'var(--status-success)' : 'var(--action)' }}>
-              {added ? '추가됨 ✓' : '＋ 추가'}
-            </span>
-          </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); if (!added) onAdd({ code: c.client_code, name: c.client_name }); }}
+              style={{
+                border: `1px solid ${added ? 'var(--gray-300)' : 'var(--action)'}`,
+                background: added ? 'var(--surface-muted)' : '#fff',
+                color: added ? 'var(--status-success)' : 'var(--action)',
+                borderRadius: 999, padding: '3px 10px', fontSize: 12, fontWeight: 700,
+                cursor: added ? 'default' : 'pointer',
+              }}
+            >
+              {added ? '추가됨 ✓' : '＋ 일괄 추가'}
+            </button>
+          </div>
         );
       })}
     </div>

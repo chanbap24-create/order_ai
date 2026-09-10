@@ -144,6 +144,17 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
     if (activeGroup) void grp.update(activeGroup.id, { columns: null }); // 그룹 전용 해제 → 계정 기본
     else cols.reset();
   };
+  // 거래처 상세 열기 — 테이블 행·마스터 검색 공용
+  const openClient = (code: string, name: string, businessType: string | null) =>
+    setSelected({
+      client: {
+        client_code: code, client_name: name, importance: 3,
+        manager: s.managerFilter && s.managerFilter !== '전체' ? s.managerFilter : null,
+        business_type: businessType, client_type: s.type,
+      },
+      filters: { type: s.type, startDate: s.startDate, endDate: s.endDate, manager: s.managerFilter },
+    });
+
   const runBatch = (opts?: { gradeStepUp?: boolean | 'auto'; tnote?: boolean; pngQuote?: boolean; pngCard?: boolean }) => {
     // 그룹 구성원은 이번 기간 목록에 없어도 견적 대상에 포함(이름은 그룹에 저장된 값 사용)
     const targets = pickedAsGroupClients().map((c) => ({ client_code: c.code, client_name: c.name }));
@@ -215,6 +226,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
           extraClients={extraClients}
           onAdd={addExtraClient}
           onRemove={removeExtraClient}
+          onOpen={(c) => openClient(c.code, c.name, null)}
         />
       )}
 
@@ -262,19 +274,7 @@ export default function ClientListTab({ currentManager, isAdmin }: { currentMana
         onToggleSelect={togglePick}
         onToggleAll={toggleAll}
         allSelected={allSelected}
-        onRowClick={(c) =>
-          setSelected({
-            client: {
-              client_code: c.client_code,
-              client_name: c.client_name,
-              importance: 3,
-              manager: s.managerFilter && s.managerFilter !== '전체' ? s.managerFilter : null,
-              business_type: c.business_type || null,
-              client_type: s.type,
-            },
-            filters: { type: s.type, startDate: s.startDate, endDate: s.endDate, manager: s.managerFilter },
-          })
-        }
+        onRowClick={(c) => openClient(c.client_code, c.client_name, c.business_type || null)}
       />
 
       {!s.loading && s.clients.length > 0 && (
