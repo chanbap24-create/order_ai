@@ -112,10 +112,12 @@ export async function processDownloads(buf: Buffer) {
 
   const inventoryRows = parseInventorySheet(rows);
 
-  // 백화점 확장 재고표(매장 컬럼 포함)는 dept_store_stock만 갱신 — 일일 영업 재고와 분리
+  // 백화점 확장 재고표(매장 컬럼 포함): dept_store_stock 갱신 + 일반 재고도 함께 반영.
+  //   parseInventorySheet가 매장 재고 합을 재고수량·가용재고에서 이미 차감하므로
+  //   inventory_cdv에는 영업 가용분만 들어간다 — 한 장으로 둘 다 업데이트.
+  let deptItems = 0;
   if (hasStoreColumns(inventoryRows)) {
-    const items = await replaceDeptStoreStock(inventoryRows);
-    return { items, dept: true };
+    deptItems = await replaceDeptStoreStock(inventoryRows);
   }
 
   await seedWinesBaselineIfEmpty();
@@ -132,7 +134,7 @@ export async function processDownloads(buf: Buffer) {
 
   await recordCdvInventoryValue(inventoryRows);
   await syncEmbeddingsSafe('CDV');
-  return { items: inventoryRows.length };
+  return { items: inventoryRows.length, ...(deptItems ? { dept: deptItems } : {}) };
 }
 
 /**
@@ -142,10 +144,11 @@ export async function processDownloads(buf: Buffer) {
 export async function processDownloadsFromData(inventoryRows: Record<string, unknown>[]) {
   if (!inventoryRows || inventoryRows.length === 0) throw new Error("재고 데이터가 없습니다.");
 
-  // 백화점 확장 재고표(매장 컬럼 포함)는 dept_store_stock만 갱신 — 일일 영업 재고와 분리
+  // 백화점 확장 재고표(매장 컬럼 포함): dept_store_stock 갱신 + 일반 재고도 함께 반영.
+  //   매장 재고 차감은 브라우저 파서(parseInventorySheet)에서 이미 적용돼 옴.
+  let deptItems = 0;
   if (hasStoreColumns(inventoryRows)) {
-    const items = await replaceDeptStoreStock(inventoryRows);
-    return { items, dept: true };
+    deptItems = await replaceDeptStoreStock(inventoryRows);
   }
 
   await seedWinesBaselineIfEmpty();
@@ -159,7 +162,7 @@ export async function processDownloadsFromData(inventoryRows: Record<string, unk
 
   await recordCdvInventoryValue(inventoryRows);
   await syncEmbeddingsSafe('CDV');
-  return { items: inventoryRows.length };
+  return { items: inventoryRows.length, ...(deptItems ? { dept: deptItems } : {}) };
 }
 
 export async function processDl(buf: Buffer) {
