@@ -35,9 +35,10 @@ export async function GET(req: NextRequest) {
     }
     const cand: { code: string; stock: number; price: number }[] = [];
     for (let from = 0; ; from += 1000) {
-      let q = supabase.from('dept_store_stock')
+      // 재고 소스 = inventory_cdv(업로드 시 매장 컬럼까지 최신). 옛 dept_store_stock 대신 일원화.
+      let q = supabase.from('inventory_cdv')
         .select(`item_no, retail_price, supply_price, ${STORE_COLS.join(', ')}`);
-      if (storeCol) q = q.gt(storeCol, 0);
+      q = storeCol ? q.gt(storeCol, 0) : q.or(STORE_COLS.map((c) => `${c}.gt.0`).join(','));
       const { data } = await q.range(from, from + 999);
       for (const r of (data || []) as Record<string, unknown>[]) {
         const code = String(r.item_no);

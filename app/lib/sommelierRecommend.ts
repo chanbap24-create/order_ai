@@ -116,15 +116,20 @@ const STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyund
 const WINE_CODE = /^([0-5A]|ZK)/i;
 const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프/i;
 
-/** 백화점 매장 재고(dept_store_stock) 기반 와인 풀 로드 (1000행 캡 페이지네이션).
+/** 백화점 매장 재고 기반 와인 풀 로드 (1000행 캡 페이지네이션).
+ *  재고 소스 = inventory_cdv(재고 업로드 시 매장 컬럼까지 최신 반영). 예전 dept_store_stock는
+ *  별도 업로드가 필요해 갱신이 밀렸었다 → 추천이 최신 재고를 바로 읽도록 일원화.
  *  가격 = 판매가 우선, 없으면(타사 위탁 등) 공급가 폴백. */
 async function loadPool(store: string): Promise<PoolWine[]> {
   const storeCol = store !== 'all' && STORES[store] ? store : null;
   const inv: Record<string, unknown>[] = [];
   for (let from = 0; ; from += 1000) {
-    let q = supabase.from('dept_store_stock')
+    let q = supabase.from('inventory_cdv')
       .select(`item_no, retail_price, supply_price, ${STORE_COLS.join(', ')}`);
-    q = storeCol ? q.gt(storeCol, 0) : q;
+    // 특정 매장은 그 컬럼>0만, 전체는 어느 매장이든 재고>0인 것만(매장 없는 일반 재고 제외)
+    q = storeCol
+      ? q.gt(storeCol, 0)
+      : q.or(STORE_COLS.map((c) => `${c}.gt.0`).join(','));
     const { data } = await q.range(from, from + 999);
     inv.push(...(data || []));
     if (!data || data.length < 1000) break;
