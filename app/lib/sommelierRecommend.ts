@@ -5,7 +5,7 @@
 // 변형은 1장만, 같은 생산자는 상위권에 최대 2장(초과분은 뒤로 밀림 — 제거 아님).
 import { supabase } from './db';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
-import { COUNTRY_OPTIONS, FLAVOR_GROUPS, STORES, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
+import { COUNTRY_OPTIONS, FLAVOR_GROUPS, CDV_STORE_COLS, DL_STORE_COLS, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
 import { cacheVer } from './cacheVer';
 
 export type SommelierResult = {
@@ -110,7 +110,6 @@ function dailyJitter(code: string): number {
   return (h >>> 0) % 9973;
 }
 
-const STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai'];
 // 와인 품번만: 0~5(샴페인·스파클링·레드·화이트·로제·아이스와인)·A(포트) + ZK(타사 와인).
 // 글라스(D·RD)·자재(8,9)·세트(7) 등 비와인 제외.
 const WINE_CODE = /^([0-5A]|ZK)/i;
@@ -125,33 +124,47 @@ export function retailPriceOf(retailPrice: unknown, supplyPrice: unknown, code: 
 }
 const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프/i;
 
-/** 백화점 매장 재고 기반 와인 풀 로드 (1000행 캡 페이지네이션).
- *  재고 소스 = inventory_cdv(재고 업로드 시 매장 컬럼까지 최신 반영). 예전 dept_store_stock는
- *  별도 업로드가 필요해 갱신이 밀렸었다 → 추천이 최신 재고를 바로 읽도록 일원화.
- *  가격 = 판매가 우선, 없으면(타사 위탁 등) 공급가 폴백. */
-async function loadPool(store: string): Promise<PoolWine[]> {
-  const storeCol = store !== 'all' && STORES[store] ? store : null;
-  const inv: Record<string, unknown>[] = [];
+/** 한 재고 테이블에서 매장 재고 있는 와인 로드 → {code, retail, stock}. 1000행 캡 페이지네이션.
+ *  storeCol=특정 매장만, null=그 테이블의 어느 매장이든 재고>0. */
+async function loadFromTable(table: string, cols: string[], storeCol: string | null) {
+  const out: { code: string; retail: number; stock: number }[] = [];
   for (let from = 0; ; from += 1000) {
-    let q = supabase.from('inventory_cdv')
-      .select(`item_no, retail_price, supply_price, ${STORE_COLS.join(', ')}`);
-    // 특정 매장은 그 컬럼>0만, 전체는 어느 매장이든 재고>0인 것만(매장 없는 일반 재고 제외)
-    q = storeCol
-      ? q.gt(storeCol, 0)
-      : q.or(STORE_COLS.map((c) => `${c}.gt.0`).join(','));
+    let q = supabase.from(table).select(`item_no, retail_price, supply_price, ${cols.join(', ')}`);
+    q = storeCol ? q.gt(storeCol, 0) : q.or(cols.map((c) => `${c}.gt.0`).join(','));
     const { data } = await q.range(from, from + 999);
-    inv.push(...(data || []));
+    for (const r of (data || []) as Record<string, unknown>[]) {
+      out.push({
+        code: String(r.item_no),
+        retail: retailPriceOf(r.retail_price, r.supply_price, String(r.item_no)),
+        stock: storeCol ? Number(r[storeCol]) || 0 : cols.reduce((s, c) => s + (Number(r[c]) || 0), 0),
+      });
+    }
     if (!data || data.length < 1000) break;
   }
-  const rows = inv
-    .map((r) => ({
-      code: String(r.item_no),
-      retail: retailPriceOf(r.retail_price, r.supply_price, String(r.item_no)),
-      stock: storeCol
-        ? Number(r[storeCol]) || 0
-        : STORE_COLS.reduce((s, c) => s + (Number(r[c]) || 0), 0),
-    }))
-    .filter((r) => r.stock > 0 && r.retail > 0 && WINE_CODE.test(r.code));
+  return out;
+}
+
+/** 매장 재고 기반 와인 풀 로드. CDV(inventory_cdv)·DL(inventory_dl) 두 사업자 재고를 합산.
+ *  매장 선택 시 그 매장이 속한 테이블만, 전체(all)면 양쪽 다. 같은 품번은 재고 합산.
+ *  가격 = 판매가 우선, 없으면(타사 위탁) 공급가×3.2 폴백. */
+async function loadPool(store: string): Promise<PoolWine[]> {
+  const raw: { code: string; retail: number; stock: number }[] = [];
+  if (DL_STORE_COLS.includes(store)) {
+    raw.push(...await loadFromTable('inventory_dl', DL_STORE_COLS, store));
+  } else if (CDV_STORE_COLS.includes(store)) {
+    raw.push(...await loadFromTable('inventory_cdv', CDV_STORE_COLS, store));
+  } else { // 전체(all) 또는 미지정 — 양쪽 사업자 매장 재고 모두
+    raw.push(...await loadFromTable('inventory_cdv', CDV_STORE_COLS, null));
+    raw.push(...await loadFromTable('inventory_dl', DL_STORE_COLS, null));
+  }
+  // 유효 품목만 + 같은 품번(두 테이블 걸침) 재고 합산
+  const byCode = new Map<string, { code: string; retail: number; stock: number }>();
+  for (const r of raw) {
+    if (!(r.stock > 0 && r.retail > 0 && WINE_CODE.test(r.code))) continue;
+    const ex = byCode.get(r.code);
+    if (ex) ex.stock += r.stock; else byCode.set(r.code, { ...r });
+  }
+  const rows = [...byCode.values()];
 
   const codes = rows.map((r) => r.code);
   const wines = new Map<string, { item_name_kr: string; item_name_en: string; vintage: string; country: string; region: string; wine_type: string; grape_varieties: string; brand: string | null; supplier: string | null }>();

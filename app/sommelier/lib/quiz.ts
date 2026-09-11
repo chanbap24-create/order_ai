@@ -95,7 +95,13 @@ export const STORES: Record<string, string> = {
   store_hyundai_jungdong: '현대백화점 중동점',
   store_ssg_gangnam: '신세계백화점 강남점',
   store_thehyundai: '더현대 서울',
+  store_ssg_gangnam_dl: '신세계 강남점(대유)',
+  store_ssg_southcity: '신세계 사우스시티',
 };
+
+/** 매장 컬럼이 속한 재고 테이블 — CDV(현대·강남HOS·더현대) vs DL(강남대유·사우스시티) */
+export const CDV_STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai'];
+export const DL_STORE_COLS = ['store_ssg_gangnam_dl', 'store_ssg_southcity'];
 
 export const BODY_OPTIONS = [
   { value: 'light' as const, label: 'Light', desc: '' },

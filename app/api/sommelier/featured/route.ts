@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 import { supabase } from '@/app/lib/db';
 import { handleApiError } from '@/app/lib/errors';
-import { STORE_COLS } from '@/app/lib/deptStoreStock';
-import { STORES } from '@/app/sommelier/lib/quiz';
+import { CDV_STORE_COLS, DL_STORE_COLS } from '@/app/sommelier/lib/quiz';
 import { cacheVer } from '@/app/lib/cacheVer';
 import { retailPriceOf } from '@/app/lib/sommelierRecommend';
 
@@ -23,7 +22,6 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   try {
     const store = req.nextUrl.searchParams.get('store') || 'all';
-    const storeCol = store !== 'all' && STORES[store] ? store : null;
     const hit = cache.get(store);
     const pool = hit && Date.now() - hit.t < CACHE_TTL ? hit.items : null;
     if (pool) {
@@ -34,23 +32,26 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json({ items: a.slice(0, 12) });
     }
+    // CDV(inventory_cdv)·DL(inventory_dl) 매장 재고 합산. 매장 선택 시 그 사업자 테이블만.
     const cand: { code: string; stock: number; price: number }[] = [];
-    for (let from = 0; ; from += 1000) {
-      // 재고 소스 = inventory_cdv(업로드 시 매장 컬럼까지 최신). 옛 dept_store_stock 대신 일원화.
-      let q = supabase.from('inventory_cdv')
-        .select(`item_no, retail_price, supply_price, ${STORE_COLS.join(', ')}`);
-      q = storeCol ? q.gt(storeCol, 0) : q.or(STORE_COLS.map((c) => `${c}.gt.0`).join(','));
-      const { data } = await q.range(from, from + 999);
-      for (const r of (data || []) as Record<string, unknown>[]) {
-        const code = String(r.item_no);
-        const stock = storeCol
-          ? Number(r[storeCol]) || 0
-          : STORE_COLS.reduce((sum, c) => sum + (Number(r[c]) || 0), 0);
-        const price = retailPriceOf(r.retail_price, r.supply_price, code);
-        if (stock > 0 && WINE_CODE.test(code)) cand.push({ code, stock, price });
+    const loadStore = async (table: string, cols: string[], col: string | null) => {
+      for (let from = 0; ; from += 1000) {
+        let q = supabase.from(table).select(`item_no, retail_price, supply_price, ${cols.join(', ')}`);
+        q = col ? q.gt(col, 0) : q.or(cols.map((c) => `${c}.gt.0`).join(','));
+        const { data } = await q.range(from, from + 999);
+        for (const r of (data || []) as Record<string, unknown>[]) {
+          const code = String(r.item_no);
+          const stock = col ? Number(r[col]) || 0 : cols.reduce((sum, c) => sum + (Number(r[c]) || 0), 0);
+          if (stock > 0 && WINE_CODE.test(code)) {
+            cand.push({ code, stock, price: retailPriceOf(r.retail_price, r.supply_price, code) });
+          }
+        }
+        if (!data || data.length < 1000) break;
       }
-      if (!data || data.length < 1000) break;
-    }
+    };
+    if (DL_STORE_COLS.includes(store)) await loadStore('inventory_dl', DL_STORE_COLS, store);
+    else if (CDV_STORE_COLS.includes(store)) await loadStore('inventory_cdv', CDV_STORE_COLS, store);
+    else { await loadStore('inventory_cdv', CDV_STORE_COLS, null); await loadStore('inventory_dl', DL_STORE_COLS, null); }
     // 최근 30일 출고량 (일일 재고표 기준)
     const sales = new Map<string, number>();
     for (let i = 0; i < cand.length; i += 500) {
