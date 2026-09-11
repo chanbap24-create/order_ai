@@ -21,6 +21,13 @@ function summary(a: QuizAnswers | null): string {
   if (b?.value) parts.push(b.label);
   const p = PRICE_OPTIONS.find((o) => o.min === a.priceMin && o.max === a.priceMax);
   if (p && (p.min != null || p.max != null)) parts.push(p.label);
+  else if (a.priceMin != null || a.priceMax != null) {
+    const man = (n: number) => (n / 10000).toLocaleString('ko-KR');
+    parts.push(
+      a.priceMin != null && a.priceMax != null ? `${man(a.priceMin)}~${man(a.priceMax)}만원`
+        : a.priceMax != null ? `${man(a.priceMax)}만원 이하` : `${man(a.priceMin!)}만원 이상`,
+    );
+  }
   return parts.join(' · ');
 }
 
@@ -206,7 +213,10 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                   </div>
                   <div className="som-cardfloor" />
-                  <div className="som-rank som-lat">NO. {ROMAN[i] || i + 1}</div>
+                  <div className="som-rank som-lat">
+                    NO. {ROMAN[i] || i + 1}
+                    <span className="som-score" title="추천 점수 (베타 기간 표시)">{r.score}점</span>
+                  </div>
                   <div className="som-nm">{r.name}</div>
                   {r.name_en && (
                     <div className="som-en som-lat">{[r.name_en, r.vintage].filter(Boolean).join(' ')}</div>
@@ -217,7 +227,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                     <div className="som-bar"><b>산미</b><div className="tr"><i style={{ ['--v' as string]: r.acidity }} /></div></div>
                     <div className="som-bar"><b>탄닌</b><div className="tr"><i style={{ ['--v' as string]: r.tannin }} /></div></div>
                   </div>
+                  {r.award_note && <div className="som-awardline">{r.award_note}</div>}
                   <div className="som-reason">{r.reason}</div>
+                  {r.vintage_hint && <div className="som-vintagehint">{r.vintage_hint}</div>}
                   <div className="som-pricebox">
                     <span className="som-price">{won(r.retail_price)}원</span>
                     <button className={`som-buy${done ? ' done' : ''}`}

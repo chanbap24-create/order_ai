@@ -137,6 +137,16 @@
 .som-opt:hover,.som-opt:focus-visible{padding-left:14px;color:var(--som-stain)}
 .som-opt:focus-visible{outline:1px solid var(--som-gold);outline-offset:4px}
 /* 하단 컨트롤 고정 — 상관없어요·이전이 챕터마다 같은 자리(바닥)에 오도록 */
+/* 가격 직접 입력 — 만원 단위, 한쪽만 입력 가능 */
+.som-priceinput{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:20px}
+.som-priceinput input{width:82px;font-size:16px;padding:10px 12px;border:1px solid var(--som-line);
+  border-radius:12px;background:#fff;color:var(--som-ink);font-family:inherit;text-align:center;
+  -moz-appearance:textfield}
+.som-priceinput input::-webkit-outer-spin-button,.som-priceinput input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.som-priceinput input:focus{outline:none;border-color:var(--som-gold)}
+.som-priceinput span{font-size:14px;color:var(--som-muted)}
+.som-priceinput .som-next{margin-left:6px;padding:11px 22px;font-size:13px}
+.som-priceinput .som-next:disabled{opacity:.4;cursor:not-allowed}
 .som-anyrow{margin-top:0;padding-top:18px;min-height:21px;display:flex}
 .som-subrow{margin-top:14px;display:flex;justify-content:space-between;align-items:center}
 .som-link{font-size:13px;color:var(--som-muted);text-decoration:underline;text-underline-offset:4px;

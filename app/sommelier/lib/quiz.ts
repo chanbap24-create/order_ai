@@ -117,9 +117,13 @@ export const COUNTRY_OPTIONS: Record<string, { label: string; desc: string; matc
 export const PRICE_OPTIONS = [
   { min: null, max: 30000, label: '3만원 이하' },
   { min: 30000, max: 50000, label: '3~5만원' },
-  { min: 50000, max: 100000, label: '5~10만원' },
-  { min: 100000, max: 200000, label: '10~20만원' },
-  { min: 200000, max: null, label: '20만원 이상' },
+  { min: 50000, max: 70000, label: '5~7만원' },
+  { min: 70000, max: 100000, label: '7~10만원' },
+  { min: 100000, max: 150000, label: '10~15만원' },
+  { min: 150000, max: 200000, label: '15~20만원' },
+  { min: 200000, max: 300000, label: '20~30만원' },
+  { min: 300000, max: 500000, label: '30~50만원' },
+  { min: 500000, max: null, label: '50만원 이상' },
   { min: null, max: null, label: '상관없어요' },
 ];
 

@@ -31,6 +31,8 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
   const [a, setA] = useState<QuizAnswers>(initialAnswers ?? EMPTY_ANSWERS);
   const [sel, setSel] = useState<string | null>(null); // 단일 선택 물들기 연출
   const [openGroup, setOpenGroup] = useState<string | null>(null); // 향미 드릴다운(아코디언)
+  const [pMin, setPMin] = useState(''); // 가격 직접 입력(만원 단위)
+  const [pMax, setPMax] = useState('');
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const back = () => (step === 0 ? onExit() : setStep((s) => s - 1));
@@ -162,16 +164,33 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         )}
 
         {step === 4 && (
-          <div className="som-words som-words-indent">
-            {PRICE_OPTIONS.filter((o) => o.min != null || o.max != null).map((o, i) => (
-              <button key={o.label}
-                className={`som-word som-word--md som-rise${sel === o.label ? ' sel' : ''}`}
-                style={{ ['--i' as string]: i + 1 }}
-                onClick={() => pick(o.label, () => ({ ...a, priceMin: o.min, priceMax: o.max }), true)}>
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="som-words som-words-indent">
+              {PRICE_OPTIONS.filter((o) => o.min != null || o.max != null).map((o, i) => (
+                <button key={o.label}
+                  className={`som-word som-word--md som-rise${sel === o.label ? ' sel' : ''}`}
+                  style={{ ['--i' as string]: i + 1 }}
+                  onClick={() => pick(o.label, () => ({ ...a, priceMin: o.min, priceMax: o.max }), true)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {/* 직접 입력 — 만원 단위, 한쪽만 입력해도 됨(이하/이상) */}
+            <div className="som-priceinput som-rise" style={{ ['--i' as string]: 6 }}>
+              <input type="number" inputMode="numeric" min="0" placeholder="최소" value={pMin}
+                onChange={(e) => setPMin(e.target.value)} aria-label="최소 가격(만원)" />
+              <span>만원 ~</span>
+              <input type="number" inputMode="numeric" min="0" placeholder="최대" value={pMax}
+                onChange={(e) => setPMax(e.target.value)} aria-label="최대 가격(만원)" />
+              <span>만원</span>
+              <button className="som-next" disabled={submitting || (!pMin && !pMax)}
+                onClick={() => {
+                  const lo = pMin ? Number(pMin) * 10000 : null;
+                  const hi = pMax ? Number(pMax) * 10000 : null;
+                  pick('직접입력', () => ({ ...a, priceMin: lo, priceMax: hi }), true);
+                }}>적용</button>
+            </div>
+          </>
         )}
 
         <div className="som-anyrow som-rise" style={{ ['--i' as string]: 2 }}>
