@@ -241,8 +241,11 @@
 .som-cardfloor{width:92px;height:9px;border-radius:50%;
   background:radial-gradient(closest-side,var(--som-shade),transparent 70%);margin:3px auto 12px}
 .som-rank{font-size:11px;letter-spacing:.3em;color:var(--som-gold);text-align:center}
-.som-nm{font-size:16px;font-weight:700;margin:6px 0 2px;line-height:1.4;text-align:center}
-.som-en{font-size:11px;color:var(--som-muted);margin-bottom:11px;text-align:center}
+/* 제목·영문은 2줄 높이로 고정 — 길이가 달라도 아래 맛 차트가 카드마다 같은 선에서 시작 */
+.som-nm{font-size:16px;font-weight:700;margin:6px 0 2px;line-height:1.4;text-align:center;
+  min-height:calc(1.4em*2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.som-en{font-size:11px;color:var(--som-muted);margin-bottom:11px;text-align:center;line-height:1.4;
+  min-height:calc(1.4em*2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .som-bars{display:flex;flex-direction:column;gap:7px;margin-bottom:11px}
 .som-bar{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--som-muted)}
 .som-bar b{width:38px;font-weight:500}
@@ -250,6 +253,14 @@
 .som-bar .tr i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--som-stain);
   width:calc(var(--v)*20%)}
 .som-reason{font-size:11.5px;line-height:1.6;color:var(--som-muted);margin-bottom:12px;text-align:center}
+/* 베타 기간 점수 표시 — 랭크 옆에 조용히 */
+.som-score{margin-left:8px;font-size:10px;font-weight:500;letter-spacing:.04em;color:var(--som-muted);opacity:.85}
+/* 평점 한 줄 — 바 아래 reason 영역 (카드 상단 정렬 비침범).
+   음용적기(peak) 상태는 화면에 표기하지 않고 랭킹 가감점으로만 반영 (사용자 결정) */
+.som-awardline{font-size:11px;font-weight:600;color:var(--som-stain);text-align:center;margin:-3px 0 7px;letter-spacing:.01em}
+/* 빈티지 한 줄 대본 — reason 아래, 최대 2줄 */
+.som-vintagehint{font-size:11px;line-height:1.55;color:var(--som-muted);margin:-6px 0 12px;text-align:center;font-style:italic;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .som-pricebox{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:14px}
 .som-price{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;
   transition:color .4s var(--som-ease)}
