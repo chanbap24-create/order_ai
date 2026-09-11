@@ -114,6 +114,15 @@ const STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyund
 // 와인 품번만: 0~5(샴페인·스파클링·레드·화이트·로제·아이스와인)·A(포트) + ZK(타사 와인).
 // 글라스(D·RD)·자재(8,9)·세트(7) 등 비와인 제외.
 const WINE_CODE = /^([0-5A]|ZK)/i;
+
+/** 타사(ZK) 위탁 와인은 판매가(retail_price)가 없어 공급가에 마진 3.2배 → 100원 단위 반올림. */
+export const CONSIGN_MARKUP = 3.2;
+export function retailPriceOf(retailPrice: unknown, supplyPrice: unknown, code: string): number {
+  const retail = Number(retailPrice) || 0;
+  if (retail > 0) return retail;
+  const supply = Number(supplyPrice) || 0;
+  return /^ZK/i.test(code) ? Math.round((supply * CONSIGN_MARKUP) / 100) * 100 : supply;
+}
 const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프/i;
 
 /** 백화점 매장 재고 기반 와인 풀 로드 (1000행 캡 페이지네이션).
@@ -137,7 +146,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
   const rows = inv
     .map((r) => ({
       code: String(r.item_no),
-      retail: (Number(r.retail_price) || 0) > 0 ? Number(r.retail_price) : Number(r.supply_price) || 0,
+      retail: retailPriceOf(r.retail_price, r.supply_price, String(r.item_no)),
       stock: storeCol
         ? Number(r[storeCol]) || 0
         : STORE_COLS.reduce((s, c) => s + (Number(r[c]) || 0), 0),

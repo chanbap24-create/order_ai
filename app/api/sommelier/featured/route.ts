@@ -6,6 +6,7 @@ import { handleApiError } from '@/app/lib/errors';
 import { STORE_COLS } from '@/app/lib/deptStoreStock';
 import { STORES } from '@/app/sommelier/lib/quiz';
 import { cacheVer } from '@/app/lib/cacheVer';
+import { retailPriceOf } from '@/app/lib/sommelierRecommend';
 
 const WINE_CODE = /^([0-5A]|ZK)/i;
 // "사실상 있는 재고"만 노출: 고가(10만↑)는 1병도 진짜 재고, 저가는 3병 이상 + 최근 한 달 출고 있어야
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
         const stock = storeCol
           ? Number(r[storeCol]) || 0
           : STORE_COLS.reduce((sum, c) => sum + (Number(r[c]) || 0), 0);
-        const price = (Number(r.retail_price) || 0) > 0 ? Number(r.retail_price) : Number(r.supply_price) || 0;
+        const price = retailPriceOf(r.retail_price, r.supply_price, code);
         if (stock > 0 && WINE_CODE.test(code)) cand.push({ code, stock, price });
       }
       if (!data || data.length < 1000) break;
