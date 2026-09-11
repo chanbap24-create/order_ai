@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 import { supabase } from '@/app/lib/db';
 import { proxyImage } from '@/app/lib/imageProxy';
+import { bottleImageResponse } from '@/app/lib/bottleNormalize';
 
 // 병샷/와이너리 로고 프록시 (세일즈 세션) — 프로모션 스타일 견적 이미지(canvas) 저장용 same-origin 이미지.
 //   ?code=<품번> → 와인 병샷 / ?brand=<브랜드코드> → 와이너리 로고. 키 조회라 SSRF 없음. 로그인 필요.
@@ -20,5 +21,9 @@ export async function GET(req: NextRequest) {
   if (!code || code.length > 20) return new NextResponse(null, { status: 400 });
 
   const { data: w } = await supabase.from('wines').select('image_url').eq('item_code', code).maybeSingle();
+  // fit=bottle → 병 여백 잘라 높이 통일(소믈리에 카드용). 그 외엔 원본 프록시.
+  if ((req.nextUrl.searchParams.get('fit') || '') === 'bottle' && w?.image_url) {
+    return bottleImageResponse(w.image_url);
+  }
   return proxyImage(w?.image_url || '', 'private');
 }
