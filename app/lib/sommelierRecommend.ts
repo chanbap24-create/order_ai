@@ -1,6 +1,8 @@
 // 백화점 손님 취향 문답 → 매장 재고 와인 추천 스코어링 (서버 전용).
 // 풀 = 선택한 백화점 매장에 재고가 있고 판매가(retail_price) 있는 와인.
-// 점수 = 향미 겹침 + 바디 + 재고 가점. 국가 선택은 하드게이트(부족 시 타국 보충).
+// 점수 = 향미(취향 그룹당 1회 인정) + 바디(실측 축 거리) + 평점 자산 + 음용적기 ± 재고.
+// 동점은 가격순이 아니라 평점→일자 시드 셔플(매일 로테이션). 같은 와인의 용량/포장
+// 변형은 1장만, 같은 생산자는 상위권에 최대 2장(초과분은 뒤로 밀림 — 제거 아님).
 import { supabase } from './db';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 import { COUNTRY_OPTIONS, FLAVOR_GROUPS, STORES, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
@@ -23,6 +25,9 @@ export type SommelierResult = {
   acidity: number;
   sweetness: number;
   score: number;
+  award_note: string | null;   // 평점 한 줄 (예: "James Suckling 96점")
+  vintage_hint: string | null; // 빈티지 스토리 첫 문장 — 카드용 짧은 대본
+  peak: 'peak' | 'past' | null; // 음용적기 상태 (vintage_note 기반)
 };
 
 type Note = { flavor_tags: string[]; body: number | null; sweetness: number | null; acidity: number | null; tannin: number | null };
@@ -30,7 +35,80 @@ type PoolWine = {
   item_code: string; name: string; name_en: string; vintage: string; country: string; region: string;
   type: string; grapes: string; retail: number; stock: number; tags: string[]; note: Note | null;
   imgVer: string;
+  producer: string;          // 다양성 가드 키 (brand > supplier > 이름 첫 토큰)
+  awardBonus: number;        // 평점 자산 가점 (0~10)
+  awardNote: string | null;  // 평점 표시 한 줄
+  peak: 'peak' | 'past' | null;
+  vintageHint: string | null;
 };
+
+/** awards 텍스트 → 가점 + 표시 한 줄. 점수는 85~100 범위만 인정(연도 오인 방지).
+ *  Vivino류 커뮤니티 평점(4.x)은 가점·표시 모두 제외 — 평론가 점수만 자산으로 친다. */
+function awardInfoOf(text: string | null | undefined): { bonus: number; note: string | null } {
+  const t = (text || '').trim();
+  if (!t || /없음|미공개|미확인/.test(t)) return { bonus: 0, note: null };
+  const segs = t.split(/[,·;|]|(?<=점)\s+/).map((s) => s.trim())
+    .filter((s) => s && !/vivino|비비노|커뮤니티|평균|cellartracker/i.test(s));
+  const scoreOf = (s: string) => {
+    // "89/100"의 분모, "Top 100 선정"류의 100은 점수가 아님 — 매칭 전에 제거
+    const clean = s.replace(/\/\s*100\b/g, '').replace(/top\s*100|100\s*(선|대|위|중)/gi, '');
+    const m = [...clean.matchAll(/(?<![\d/])(8[5-9]|9[0-9]|100)(?!\d)/g)].map((x) => Number(x[1]));
+    return m.length ? Math.max(...m) : 0;
+  };
+  let best: { seg: string; score: number } | null = null;
+  for (const s of segs) {
+    const sc = scoreOf(s);
+    if (sc && (!best || sc > best.score)) best = { seg: s, score: sc };
+  }
+  const max = best?.score || 0;
+  const bonus = max >= 98 ? 10 : max >= 95 ? 8 : max >= 90 ? 5 : max >= 85 ? 3
+    : /금메달|골드|gold|트로피/i.test(t) ? 2 : 0;
+  if (bonus === 0) return { bonus: 0, note: null };
+  // 표시: 점수가 실제로 들어있는 세그먼트. 문장형이거나 길면 "평론가 N점"으로 축약
+  const seg = (best?.seg || '').replace(/^수상[·:\s]*/, '').replace(/^[—–\-([\s]+|[)\]\s]+$/g, '').trim();
+  // 문장 파편("전후이며 비평가에 따라 95~98점" 등)은 표기용으로 부적합 → 축약형으로
+  const fragment = /[은는이가을를]\s|이며|하며|따라|기준|으로|에서/.test(seg);
+  const note = max > 0
+    ? (seg.length > 0 && seg.length <= 30 && !fragment ? seg : `평론가 ${max}점`)
+    : null;
+  return { bonus, note };
+}
+
+/** vintage_note → 음용적기 상태. 조사 때 "음용적기 지남/산화 우려" 등을 기록해 둔 것을 활용 */
+function peakOf(text: string | null | undefined): 'peak' | 'past' | null {
+  const t = text || '';
+  if (!t) return null;
+  if (/적기[를을가 ]*(지|넘|경과)|음용\s*적기\s*지남|산화\s*우려|퇴색|과숙|내리막/.test(t)) return 'past';
+  if (/절정|정점|음용\s*적기(?![를을가 ]*(지|넘|경과))/.test(t)) return 'peak';
+  return null;
+}
+
+/** vintage_note 첫 문장 — 카드에 얹는 짧은 빈티지 대본 */
+function vintageHintOf(text: string | null | undefined): string | null {
+  const t = (text || '').trim();
+  if (!t) return null;
+  const first = t.split(/(?<=\.)\s+/)[0].replace(/\s+/g, ' ').trim();
+  if (!first) return null;
+  return first.length > 90 ? `${first.slice(0, 88)}…` : first;
+}
+
+/** 같은 와인의 용량·포장 변형을 한 장으로 묶는 키 (이름에서 용량·빈티지·포장 표기 제거) */
+function wineKeyOf(name: string): string {
+  return name
+    .replace(/\d+(\.\d+)?\s*(ml|㎖|l)\b/gi, '')
+    .replace(/매그넘|하프|우드박스|기프트|에디션|\bGB\b|\bWB\b|\bWCS\b/gi, '')
+    .replace(/(19|20)\d{2}/g, '')
+    .replace(/[^가-힣a-z]/gi, '')
+    .toLowerCase();
+}
+
+/** 일자 시드 셔플 — 동점을 매일 다른 순서로 돌려 추천 다양화 (하루 안에서는 안정) */
+function dailyJitter(code: string): number {
+  const s = code + new Date().toISOString().slice(0, 10);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return (h >>> 0) % 9973;
+}
 
 const STORE_COLS = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai'];
 // 와인 품번만: 0~5(샴페인·스파클링·레드·화이트·로제·아이스와인)·A(포트) + ZK(타사 와인).
@@ -62,13 +140,13 @@ async function loadPool(store: string): Promise<PoolWine[]> {
     .filter((r) => r.stock > 0 && r.retail > 0 && WINE_CODE.test(r.code));
 
   const codes = rows.map((r) => r.code);
-  const wines = new Map<string, { item_name_kr: string; item_name_en: string; vintage: string; country: string; region: string; wine_type: string; grape_varieties: string }>();
-  const notes = new Map<string, Note>();
+  const wines = new Map<string, { item_name_kr: string; item_name_en: string; vintage: string; country: string; region: string; wine_type: string; grape_varieties: string; brand: string | null; supplier: string | null }>();
+  const notes = new Map<string, Note & { awards: string | null; vintage_note: string | null }>();
   for (let i = 0; i < codes.length; i += 400) {
     const batch = codes.slice(i, i + 400);
     const [{ data: ws }, { data: ns }] = await Promise.all([
-      supabase.from('wines').select('item_code, item_name_kr, item_name_en, vintage, country, region, wine_type, grape_varieties, image_url').in('item_code', batch),
-      supabase.from('tasting_notes').select('wine_id, flavor_tags, body, sweetness, acidity, tannin').in('wine_id', batch),
+      supabase.from('wines').select('item_code, item_name_kr, item_name_en, vintage, country, region, wine_type, grape_varieties, image_url, brand, supplier').in('item_code', batch),
+      supabase.from('tasting_notes').select('wine_id, flavor_tags, body, sweetness, acidity, tannin, awards, vintage_note').in('wine_id', batch),
     ]);
     for (const w of ws || []) wines.set(w.item_code, w);
     for (const n of ns || []) notes.set(n.wine_id, { ...n, flavor_tags: (n.flavor_tags || []) as string[] });
@@ -78,6 +156,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
     if (!w || !w.item_name_kr) return [];
     if (NON_WINE_NAME.test(w.item_name_kr)) return [];
     const note = notes.get(r.code) || null;
+    const award = awardInfoOf(note?.awards);
     return [{
       item_code: r.code,
       name: w.item_name_kr, name_en: w.item_name_en || '',
@@ -89,6 +168,11 @@ async function loadPool(store: string): Promise<PoolWine[]> {
       tags: note?.flavor_tags || [],
       note,
       imgVer: cacheVer((w as unknown as { image_url?: string }).image_url || ''),
+      producer: (w.brand || w.supplier || w.item_name_kr.split(/[\s,·]/)[0] || '').toLowerCase(),
+      awardBonus: award.bonus,
+      awardNote: award.note,
+      peak: peakOf(note?.vintage_note),
+      vintageHint: vintageHintOf(note?.vintage_note),
     }];
   });
 }
@@ -100,10 +184,15 @@ const LIGHT_GRAPES = ['pinot noir', 'gamay', 'riesling', 'sauvignon blanc', 'alb
 function bodyOf(w: PoolWine): 'full' | 'light' | '' {
   const b = w.note?.body;
   if (b != null) return b >= 4 ? 'full' : b <= 2 ? 'light' : '';
-  if (w.tags.includes('full_body') || w.tags.includes('tannic')) return 'full';
-  if (w.tags.includes('light_body')) return 'light';
+  // 태그는 노트 텍스트 추출이라 노이즈("진한 체리"→full_body, "구조감"→tannic)가 섞임 —
+  // 상충하면 품종이 우선(피노누아=라이트). tannic 단독은 최후 순위.
+  const full = w.tags.includes('full_body');
+  const light = w.tags.includes('light_body');
+  if (full && !light) return 'full';
+  if (light && !full) return 'light';
   if (FULL_GRAPES.some((g) => w.grapes.includes(g))) return 'full';
   if (LIGHT_GRAPES.some((g) => w.grapes.includes(g))) return 'light';
+  if (w.tags.includes('tannic')) return 'full';
   return '';
 }
 
@@ -112,7 +201,7 @@ function structureOf(w: PoolWine): { body: number; tannin: number; acidity: numb
   const est = bodyOf(w);
   const body = w.note?.body ?? (est === 'full' ? 4 : est === 'light' ? 2 : 3);
   const tannin = w.note?.tannin
-    ?? (w.type === 'red' ? (w.tags.includes('tannic') ? 4 : 3) : 1);
+    ?? (w.type === 'red' ? (est === 'light' ? 2 : w.tags.includes('tannic') ? 4 : 3) : 1);
   const acidity = w.note?.acidity
     ?? (w.type === 'white' || w.type === 'sparkling' ? 4 : w.tags.includes('light_body') ? 4 : 3);
   const sweet = /모스카토|moscato|아이스바인|eiswein|소테른|sauternes/i.test(w.name + ' ' + w.name_en);
@@ -122,16 +211,49 @@ function structureOf(w: PoolWine): { body: number; tannin: number; acidity: numb
 
 function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: string[] } {
   let score = 0;
-  const wanted = new Set([
-    ...a.flavorGroups.flatMap((g) => FLAVOR_GROUPS[g]?.keys || []),
-    ...(a.flavors || []), // 세부 향미 개별 선택 — 세분화 매칭
-  ]);
-  const matched = w.tags.filter((t) => wanted.has(t));
-  score += Math.min(40, matched.length * 8);
-  const body = bodyOf(w);
-  if (a.body === 'light') score += body === 'light' ? 15 : body === 'full' ? -8 : 0;
-  else if (a.body === 'full') score += body === 'full' ? 15 : body === 'light' ? -8 : 0;
-  else if (a.body === 'medium') score += body === '' ? 8 : 3;
+  const matched: string[] = [];
+  // 향미: 취향 그룹당 1회 인정(그룹 내 2키 이상 매치는 확신 보정으로 +4 한 번만).
+  // 예전 방식(매치 키 개수 × 8)은 태그가 많은 와인이 표면적만으로 이기고,
+  // 그룹 하나가 4키로 확장돼 한 취향이 4번 카운트되는 편향이 있었다.
+  for (const g of a.flavorGroups) {
+    const keys = FLAVOR_GROUPS[g]?.keys || [];
+    const hits = keys.filter((k) => w.tags.includes(k));
+    if (hits.length) {
+      score += hits.length >= 2 ? 12 : 8;
+      matched.push(...hits.slice(0, 2));
+    }
+  }
+  // 세부 향미 개별 선택(드릴다운)은 더 정밀한 취향 — 개당 6점
+  for (const f of a.flavors || []) {
+    if (w.tags.includes(f) && !matched.includes(f)) { score += 6; matched.push(f); }
+  }
+  if (score > 40) score = 40;
+
+  // 바디: 실측 축이 있으면 거리 기반(전 품목 조사 완료로 대부분 실측), 없으면 추정 폴백.
+  // Full 목표=5(가장 묵직할수록 유리), 두 단계 이상 어긋나면 -15로 강하게 감점(무게감 반영 강화).
+  if (a.body) {
+    const target = a.body === 'light' ? 2 : a.body === 'medium' ? 3 : 5;
+    const b = w.note?.body;
+    if (b != null) {
+      const diff = Math.abs(b - target);
+      score += diff === 0 ? 15 : diff === 1 ? 6 : -15;
+    } else {
+      const est = bodyOf(w);
+      if (a.body === 'light') score += est === 'light' ? 15 : est === 'full' ? -15 : 0;
+      else if (a.body === 'full') score += est === 'full' ? 15 : est === 'light' ? -15 : 0;
+      else score += est === '' ? 8 : 3;
+    }
+  }
+
+  // Sweet 문답이면 당도 강도 가점 (게이트 통과 후 강한 쪽 우선)
+  if (a.type === 'sweet') {
+    const s = structureOf(w).sweetness;
+    if (s >= 5) score += 8; else if (s >= 4) score += 5;
+  }
+
+  score += w.awardBonus;                       // 평점 자산 (RP·JS 등 95+면 크게)
+  if (w.peak === 'past') score -= 20;          // 음용적기 지남/산화 우려 — 강한 감점
+  else if (w.peak === 'peak') score += 3;      // 지금이 절정
   if (w.stock >= 6) score += 3;
   return { score, matched };
 }
@@ -164,10 +286,30 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'a
     if (a.countries.length && !countryHit(w, a)) return false; // 국가 하드게이트
     return true;
   });
-  const picked = filtered
+  // 정렬: 점수 → 평점 자산 → 일자 시드 셔플. (예전의 '가격 오름차순' 동점 처리는
+  // 점수 단위가 거칠어 사실상 최저가 정렬이 되는 문제가 있었다 — 제거)
+  const scored = filtered
     .map((w) => ({ w, ...scoreWine(w, a) }))
-    .sort((x, y) => y.score - x.score || x.w.retail - y.w.retail)
-    .slice(0, limit);
+    .sort((x, y) => y.score - x.score || y.w.awardBonus - x.w.awardBonus
+      || dailyJitter(x.w.item_code) - dailyJitter(y.w.item_code));
+
+  // 다양성 가드: ① 같은 와인의 용량·포장 변형은 최고 순위 1장만
+  //             ② 같은 생산자는 상위권에 최대 2장 — 초과분은 제거하지 않고 뒤로 밀어 더보기에서 노출
+  const seenWine = new Set<string>();
+  const producerCount = new Map<string, number>();
+  const head: typeof scored = [];
+  const tail: typeof scored = [];
+  for (const s of scored) {
+    const wk = wineKeyOf(s.w.name);
+    if (wk && seenWine.has(wk)) continue;
+    if (wk) seenWine.add(wk);
+    const pk = s.w.producer;
+    const cnt = producerCount.get(pk) || 0;
+    if (pk && cnt >= 2) { tail.push(s); continue; }
+    if (pk) producerCount.set(pk, cnt + 1);
+    head.push(s);
+  }
+  const picked = [...head, ...tail].slice(0, limit);
 
   return picked.map(({ w, score, matched }) => ({
     item_code: w.item_code,
@@ -179,5 +321,8 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'a
     img_ver: w.imgVer,
     ...structureOf(w),
     score,
+    award_note: w.awardNote,
+    vintage_hint: w.vintageHint,
+    peak: w.peak,
   }));
 }
