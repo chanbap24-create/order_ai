@@ -215,19 +215,21 @@ function scoreWine(w: PoolWine, a: QuizAnswers): { score: number; matched: strin
   // 향미: 취향 그룹당 1회 인정(그룹 내 2키 이상 매치는 확신 보정으로 +4 한 번만).
   // 예전 방식(매치 키 개수 × 8)은 태그가 많은 와인이 표면적만으로 이기고,
   // 그룹 하나가 4키로 확장돼 한 취향이 4번 카운트되는 편향이 있었다.
+  let flavor = 0;
   for (const g of a.flavorGroups) {
     const keys = FLAVOR_GROUPS[g]?.keys || [];
     const hits = keys.filter((k) => w.tags.includes(k));
     if (hits.length) {
-      score += hits.length >= 2 ? 12 : 8;
+      flavor += hits.length >= 2 ? 12 : 8;
       matched.push(...hits.slice(0, 2));
     }
   }
   // 세부 향미 개별 선택(드릴다운)은 더 정밀한 취향 — 개당 6점
   for (const f of a.flavors || []) {
-    if (w.tags.includes(f) && !matched.includes(f)) { score += 6; matched.push(f); }
+    if (w.tags.includes(f) && !matched.includes(f)) { flavor += 6; matched.push(f); }
   }
-  if (score > 40) score = 40;
+  if (flavor > 40) flavor = 40;
+  score += Math.round(flavor * 1.3); // 향미 가중치 1.3배(표시 점수 상향, 최대 52)
 
   // 바디: 실측 축이 있으면 거리 기반(전 품목 조사 완료로 대부분 실측), 없으면 추정 폴백.
   // Full 목표=5(가장 묵직할수록 유리), 두 단계 이상 어긋나면 -15로 강하게 감점(무게감 반영 강화).
