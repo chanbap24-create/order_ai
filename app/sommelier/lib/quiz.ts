@@ -93,9 +93,9 @@ export const STORES: Record<string, string> = {
   store_hyundai_trade: '현대백화점 무역센터점',
   store_hyundai_main: '현대백화점 압구정본점',
   store_hyundai_jungdong: '현대백화점 중동점',
-  store_ssg_gangnam: '신세계백화점 강남점',
+  store_ssg_gangnam: '신세계백화점HOS',
   store_thehyundai: '더현대 서울',
-  store_ssg_gangnam_dl: '신세계 강남점(대유)',
+  store_ssg_gangnam_dl: '신세계백화점 강남점',
   store_ssg_southcity: '신세계 사우스시티',
 };
 
