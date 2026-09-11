@@ -71,4 +71,15 @@ export const SIDEBAR_LINKS: SidebarLink[] = [
       </svg>
     ),
   },
+  {
+    href: '/sommelier',
+    label: 'Sommelier',
+    icon: (
+      <svg {...IconCommon}>
+        <path d="M8 3h8l-.5 6a3.5 3.5 0 0 1-7 0z" />
+        <line x1="12" y1="12.5" x2="12" y2="20" />
+        <line x1="8.5" y1="21" x2="15.5" y2="21" />
+      </svg>
+    ),
+  },
 ];

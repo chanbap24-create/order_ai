@@ -60,6 +60,7 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
         <div className="som-nm">{[r.name, r.vintage].filter(Boolean).join(' ')}</div>
         {r.name_en && <div className="som-en som-lat">{[r.name_en, r.vintage].filter(Boolean).join(' ')}</div>}
         {meta && <div className="som-detail-meta">{meta}</div>}
+        {r.award_note && <div className="som-awardline">{r.award_note}</div>}
 
         <div className="som-bars som-detail-bars">
           <div className="som-bar"><b>무게감</b><div className="tr"><i style={{ ['--v' as string]: r.body }} /></div></div>
