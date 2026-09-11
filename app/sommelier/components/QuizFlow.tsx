@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import {
   BODY_OPTIONS, COUNTRY_OPTIONS, FLAVOR_GROUPS, PRICE_OPTIONS, TYPE_OPTIONS,
-  EMPTY_ANSWERS, type QuizAnswers,
+  TYPE_EXCLUDE, EMPTY_ANSWERS, type QuizAnswers,
 } from '../lib/quiz';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 import { AromaWheel } from './AromaWheel';
@@ -85,7 +85,15 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
               <button key={String(o.value)}
                 className={`som-word som-word-${o.value} som-rise${sel === String(o.value) ? ' sel' : ''}`}
                 style={{ ['--i' as string]: i + 1 }}
-                onClick={() => pick(String(o.value), () => ({ ...a, type: o.value }))}>
+                onClick={() => pick(String(o.value), () => {
+                  // 타입을 바꾸면 그 타입에 없는 향미 선택은 정리(제외 계열·세부향)
+                  const ex = o.value ? TYPE_EXCLUDE[o.value] : null;
+                  return {
+                    ...a, type: o.value,
+                    flavorGroups: ex ? a.flavorGroups.filter((g) => !ex.groups.includes(g)) : a.flavorGroups,
+                    flavors: ex ? a.flavors.filter((k) => !ex.keys.includes(k)) : a.flavors,
+                  };
+                })}>
                 {o.label}
               </button>
             ))}
@@ -108,6 +116,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
         {step === 2 && (
           <div className="som-mid som-rise" style={{ ['--i' as string]: 1 }}>
             <AromaWheel
+              winetype={a.type}
               selected={a.flavors}
               selectedGroups={a.flavorGroups}
               activeGroup={openGroup}

@@ -2,7 +2,7 @@
 
 // 아로마 휠 — 안쪽 링: 향미 9계열(고정), 바깥 링: 선택한 계열의 세부 향미(원 전체에 전개).
 // 바깥 조각을 탭하면 선택(와인 스테인으로 물듦). 중앙엔 선택 수.
-import { FLAVOR_GROUPS } from '../lib/quiz';
+import { FLAVOR_GROUPS, allowedGroups, allowedFlavorKeys } from '../lib/quiz';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 
 // 휠용 짧은 계열명 + 계열 고유색(뮤트 팔레트)
@@ -32,17 +32,20 @@ function seg(cx: number, cy: number, r0: number, r1: number, a0: number, a1: num
   return `M${x0},${y0} A${r1},${r1} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 ${large} 0 ${x3},${y3} Z`;
 }
 
-export function AromaWheel({ selected, selectedGroups, activeGroup, onGroup, onFlavor }: {
+export function AromaWheel({ selected, selectedGroups, activeGroup, onGroup, onFlavor, winetype = null }: {
   selected: string[];
   selectedGroups: string[];   // 계열 통째 선택(세부 없이 계열만 골라도 됨)
   activeGroup: string | null;
   onGroup: (g: string) => void;
   onFlavor: (key: string) => void;
+  winetype?: string | null;   // 선택한 와인 타입 — 그 타입에 없는 향미는 휠에서 제외
 }) {
   const C = 190, R_IN0 = 64, R_IN1 = 116, R_OUT0 = 120, R_OUT1 = 182;
-  const groups = Object.keys(FLAVOR_GROUPS);
+  // 타입에 실제로 나오는 계열만 노출(수집 데이터 기준). 원 등분은 노출 계열 수에 맞춰 재배치.
+  const groups = allowedGroups(winetype);
   const gAngle = TAU / groups.length;
-  const flavors = activeGroup ? FLAVOR_GROUPS[activeGroup].keys : [];
+  // 펼친 계열이 이 타입에서 제외됐으면 세부링을 비운다(타입 변경 잔상 방지)
+  const flavors = activeGroup && groups.includes(activeGroup) ? allowedFlavorKeys(winetype, activeGroup) : [];
   const fAngle = flavors.length ? TAU / flavors.length : 0;
 
   return (

@@ -54,6 +54,31 @@ export const FLAVOR_GROUPS: Record<string, { label: string; desc: string; keys: 
   },
 };
 
+/** 타입별 제외 향미 — 수집 데이터 분석(재고 기준). 그 타입에서 계열 최다향<10%면 계열 제외,
+ *  유효 계열 내 0병 세부향은 개별 제외. type=null(상관없음)이면 필터 없이 전체 노출.
+ *  갱신: tasting_notes 재집계로 다시 생성 (2026-09 기준). */
+export const TYPE_EXCLUDE: Record<string, { groups: string[]; keys: string[] }> = {
+  red: { groups: ['sweet_fruit', 'creamy'], keys: ['green_apple', 'quince', 'melon', 'elderflower'] },
+  white: { groups: ['red_fruit', 'black_fruit'], keys: ['eucalyptus', 'coffee_choc'] },
+  sparkling: { groups: [], keys: ['green_pepper', 'cedar', 'coconut', 'petrol'] },
+  rose: { groups: ['mineral', 'creamy'], keys: ['lime', 'green_apple', 'apple', 'quince', 'pineapple', 'mango', 'lychee', 'blueberry', 'elderflower', 'eucalyptus', 'green_pepper', 'cedar', 'coffee_choc', 'coconut', 'mushroom', 'leather_tobacco'] },
+  fortified: { groups: [], keys: ['melon', 'lychee', 'green_pepper', 'flint', 'chalk', 'petrol'] },
+};
+
+/** 타입에서 노출할 계열 키 목록 (제외 계열 뺀 것). type 없으면 전체. */
+export function allowedGroups(type: string | null): string[] {
+  const all = Object.keys(FLAVOR_GROUPS);
+  const ex = type ? TYPE_EXCLUDE[type]?.groups : null;
+  return ex && ex.length ? all.filter((g) => !ex.includes(g)) : all;
+}
+
+/** 계열의 세부 향미 중 그 타입에서 노출할 키 (0병 세부향 제외). type 없으면 전체. */
+export function allowedFlavorKeys(type: string | null, group: string): string[] {
+  const keys = FLAVOR_GROUPS[group]?.keys || [];
+  const ex = type ? TYPE_EXCLUDE[type]?.keys : null;
+  return ex && ex.length ? keys.filter((k) => !ex.includes(k)) : keys;
+}
+
 export const TYPE_OPTIONS = [
   { value: 'red' as const, label: 'Red', desc: '' },
   { value: 'white' as const, label: 'White', desc: '' },
