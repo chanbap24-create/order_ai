@@ -15,16 +15,24 @@ export async function GET(request: NextRequest) {
 
     const wines = await getTastingNotes({ search, country, hasNote });
 
-    // 재고 정보 병합 — ≤500 코드씩 배치(단발 .in은 1000행 캡에 걸려 초과 품목 재고가 0으로 표기됨)
+    // 재고 정보 병합 — CDV(inventory_cdv) 우선, 없으면 DL(inventory_dl). ≤500 코드씩 배치.
     const codes = wines.map(w => w.item_code);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const invMap = new Map<string, any>();
     for (let i = 0; i < codes.length; i += 500) {
-      const { data: inv } = await supabase
-        .from('inventory_cdv')
-        .select('item_no, available_stock, stock_bonded, incoming_stock')
-        .in('item_no', codes.slice(i, i + 500));
-      for (const x of (inv || [])) invMap.set(x.item_no, x);
+      const batch = codes.slice(i, i + 500);
+      const [{ data: cdv }, { data: dl }] = await Promise.all([
+        supabase.from('inventory_cdv').select('item_no, available_stock, stock_bonded, incoming_stock').in('item_no', batch),
+        supabase.from('inventory_dl').select('item_no, available_stock, total_stock, incoming_stock, store_ssg_gangnam_dl, store_ssg_southcity').in('item_no', batch),
+      ]);
+      for (const x of (cdv || [])) invMap.set(x.item_no, x);
+      // CDV에 없는 DL 와인 — 재고가 매장에만 있을 수 있어 가용·전체·매장합 중 최대로 표시
+      for (const x of (dl || [])) {
+        if (invMap.has(x.item_no)) continue;
+        const store = (Number(x.store_ssg_gangnam_dl) || 0) + (Number(x.store_ssg_southcity) || 0);
+        const avail = Math.max(Number(x.available_stock) || 0, Number(x.total_stock) || 0, store);
+        invMap.set(x.item_no, { available_stock: avail, stock_bonded: 0, incoming_stock: Number(x.incoming_stock) || 0 });
+      }
     }
 
     const enriched = wines.map(w => {
