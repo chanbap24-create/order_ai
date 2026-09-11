@@ -72,7 +72,8 @@ export function parseInventorySheet(rows: unknown[][]): Record<string, unknown>[
 
     // 매장(백화점) 재고는 백화점 팀 전용 — ERP 재고수량·가용재고에 합산돼 오므로 차감해
     // 영업 화면(인벤토리·추천·알림)에는 영업 가용분만 보이게 한다. 원수치 = 가용재고 + 매장합.
-    const storeSum = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai']
+    const storeSum = ['store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai',
+      'store_ssg_gangnam_dl', 'store_ssg_southcity']
       .reduce((s, c) => s + (Number(obj[c]) || 0), 0);
     if (storeSum > 0) {
       for (const c of ['total_stock', 'stock_excl_available', 'available_stock']) {

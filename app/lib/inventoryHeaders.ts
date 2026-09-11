@@ -64,6 +64,9 @@ export const HEADER_MAP: Record<string, string> = {
   '매장(현대무역센터점)': 'store_hyundai_trade',
   '매장(신세계강남점HOS)': 'store_ssg_gangnam',
   '매장(더현대서울)': 'store_thehyundai',
+  // 백화점 매장 — DL 재고표에 포함(CDV 강남점HOS와 별도 매장)
+  '매장(신세계강남점)': 'store_ssg_gangnam_dl',
+  '매장(신세계사우스시티)': 'store_ssg_southcity',
   // 창고 — DL (대유라이프)
   '보세(GIG)': 'bonded_warehouse',
   '안성창고(DL)': 'anseong_warehouse',
