@@ -1,0 +1,6 @@
+# 과거 커밋 히스토리의 폐기된 OpenAI 키 (2026-09-14 확인: 두 키 모두 401 — 이미 revoke됨)
+# 파일들은 HEAD에서 삭제된 상태. 핑거프린트 형식: <commit>:<file>:<rule>:<line>
+f234f4244d16a70dae2ceeadf85e6cb72e5affd3:verify-key-format.js:openai-api-key:1
+f234f4244d16a70dae2ceeadf85e6cb72e5affd3:test-with-fetch.js:openai-api-key:1
+f234f4244d16a70dae2ceeadf85e6cb72e5affd3:test-new-key.js:openai-api-key:3
+4eced0b9da03cc7192d7dd07a3e5faf66608e93b:vercel-env-guide.txt:openai-api-key:11
