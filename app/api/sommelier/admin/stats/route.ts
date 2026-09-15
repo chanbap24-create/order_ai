@@ -6,6 +6,17 @@ import { supabase } from '@/app/lib/db';
 import { canEditDiscounts } from '@/app/lib/sommelierDiscount';
 import { handleApiError } from '@/app/lib/errors';
 
+/** 특정 월(YYYY-MM)의 KST 범위 [시작, 다음 달 시작) */
+function monthRangeOf(month: string): { from: string; to: string } | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!m) return null;
+  const y = Number(m[1]); const mo = Number(m[2]);
+  if (mo < 1 || mo > 12) return null;
+  const from = Date.UTC(y, mo - 1, 1) - 9 * 3600_000;
+  const to = Date.UTC(mo === 12 ? y + 1 : y, mo === 12 ? 0 : mo, 1) - 9 * 3600_000;
+  return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
+}
+
 /** 기간 컷오프 — days=0은 오늘(KST 자정), null은 전체 */
 function cutoffOf(days: number | null): string | null {
   if (days == null) return null;
@@ -24,15 +35,21 @@ export async function GET(req: NextRequest) {
     if (!canEditDiscounts(session)) {
       return NextResponse.json({ success: false, error: '관리자 권한이 없습니다.' }, { status: 403 });
     }
+    const monthParam = req.nextUrl.searchParams.get('month');
+    const range = monthParam ? monthRangeOf(monthParam) : null;
     const daysParam = req.nextUrl.searchParams.get('days');
     const days = daysParam == null || daysParam === 'all' ? null : Math.max(0, Number(daysParam) || 0);
-    const cutoff = cutoffOf(days);
+    const cutoff = range ? null : cutoffOf(days);
 
     // 소믈리에 데이터는 소규모(세션 수백 건) — 행 페치 후 JS 집계로 충분
     let sessQ = supabase.from('sommelier_sessions').select('id, customer_id, manager, created_at');
     let ordQ = supabase.from('sommelier_orders').select('id, session_id, manager, item_code, item_name, retail_price, quantity, created_at');
     let custQ = supabase.from('sommelier_customers').select('id, created_by, created_at');
-    if (cutoff) { sessQ = sessQ.gte('created_at', cutoff); ordQ = ordQ.gte('created_at', cutoff); custQ = custQ.gte('created_at', cutoff); }
+    if (range) {
+      sessQ = sessQ.gte('created_at', range.from).lt('created_at', range.to);
+      ordQ = ordQ.gte('created_at', range.from).lt('created_at', range.to);
+      custQ = custQ.gte('created_at', range.from).lt('created_at', range.to);
+    } else if (cutoff) { sessQ = sessQ.gte('created_at', cutoff); ordQ = ordQ.gte('created_at', cutoff); custQ = custQ.gte('created_at', cutoff); }
     const [{ data: sess }, { data: ords }, { data: custs }, { data: allSess }] = await Promise.all([
       sessQ, ordQ, custQ,
       supabase.from('sommelier_sessions').select('id, customer_id, created_at'), // 재방문 판정용 전체 이력

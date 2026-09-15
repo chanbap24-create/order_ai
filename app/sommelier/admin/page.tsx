@@ -15,6 +15,19 @@ const PERIODS: { key: string; label: string }[] = [
   { key: '0', label: '오늘' }, { key: '7', label: '7일' }, { key: '30', label: '30일' }, { key: 'all', label: '전체' },
 ];
 
+/** 최근 12개월 옵션 (KST 기준, 이번 달부터 역순) — key: m:YYYY-MM */
+function monthOptions(): { key: string; label: string }[] {
+  const kst = new Date(Date.now() + 9 * 3600_000);
+  let y = kst.getUTCFullYear(); let m = kst.getUTCMonth() + 1;
+  const out: { key: string; label: string }[] = [];
+  for (let i = 0; i < 12; i++) {
+    out.push({ key: `m:${y}-${String(m).padStart(2, '0')}`, label: `${y}년 ${m}월` });
+    m -= 1; if (m === 0) { m = 12; y -= 1; }
+  }
+  return out;
+}
+const MONTHS = monthOptions();
+
 const th: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary, #999)', fontWeight: 500, textAlign: 'right', padding: '0 0 8px' };
 const td: React.CSSProperties = { fontSize: 13.5, textAlign: 'right', padding: '11px 0', fontVariantNumeric: 'tabular-nums', borderTop: '1px solid var(--border-subtle, #f0f0f0)' };
 
@@ -26,7 +39,8 @@ export default function SommelierAdminPage() {
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/sommelier/admin/stats?days=${period}`)
+    const qs = period.startsWith('m:') ? `month=${period.slice(2)}` : `days=${period}`;
+    fetch(`/api/sommelier/admin/stats?${qs}`)
       .then(async (r) => {
         const d = await r.json();
         // 권한자(박경아·조성재) 외에는 페이지 자체를 열어두지 않는다 — 즉시 메인으로
@@ -48,8 +62,8 @@ export default function SommelierAdminPage() {
         <Link href="/sommelier" style={{ fontSize: 12, color: 'var(--text-tertiary, #888)', textDecoration: 'none' }}>← 소믈리에</Link>
       </div>
 
-      {/* 기간 토글 — 플랫, 세로 구분선 */}
-      <div style={{ display: 'flex', gap: 0, margin: '18px 0 6px' }}>
+      {/* 기간 토글 — 플랫, 세로 구분선 + 월별 드롭다운 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, margin: '18px 0 6px' }}>
         {PERIODS.map((p, i) => (
           <button key={p.key} onClick={() => setPeriod(p.key)}
             style={{
@@ -61,6 +75,18 @@ export default function SommelierAdminPage() {
             {p.label}
           </button>
         ))}
+        <select
+          value={period.startsWith('m:') ? period : ''}
+          onChange={(e) => { if (e.target.value) setPeriod(e.target.value); }}
+          style={{
+            marginLeft: 10, padding: '5px 8px', fontSize: 13, borderRadius: 8,
+            border: '1px solid var(--border-default, #ddd)', background: '#fff',
+            fontWeight: period.startsWith('m:') ? 700 : 400,
+            color: period.startsWith('m:') ? 'var(--text-primary, #111)' : 'var(--text-tertiary, #999)',
+          }}>
+          <option value="">월별 보기</option>
+          {MONTHS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+        </select>
       </div>
 
       {err && <div style={{ padding: '20px 0', fontSize: 13, color: 'var(--status-danger, #b91c1c)' }}>{err}</div>}
