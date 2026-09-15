@@ -4,6 +4,7 @@
 // 지표 설계: 등록(신규 손님) → 상담(문답 세션) → 판매(병수·금액) 퍼널 + 전환율·재방문.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type MgrRow = { manager: string; customers: number; sessions: number; revisits: number; bottles: number; amount: number; conversion: number };
 type WineRow = { item_code: string; name: string; bottles: number; amount: number };
@@ -18,6 +19,7 @@ const th: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary, #99
 const td: React.CSSProperties = { fontSize: 13.5, textAlign: 'right', padding: '11px 0', fontVariantNumeric: 'tabular-nums', borderTop: '1px solid var(--border-subtle, #f0f0f0)' };
 
 export default function SommelierAdminPage() {
+  const router = useRouter();
   const [period, setPeriod] = useState('7');
   // 로딩 상태는 파생값(요청 기간 ≠ 로드된 기간) — effect 안 동기 setState 회피
   const [loaded, setLoaded] = useState<{ period: string; stats: Stats | null; err: string } | null>(null);
@@ -25,11 +27,15 @@ export default function SommelierAdminPage() {
   useEffect(() => {
     let alive = true;
     fetch(`/api/sommelier/admin/stats?days=${period}`)
-      .then((r) => r.json())
-      .then((d) => { if (alive) setLoaded({ period, stats: d.success ? d : null, err: d.success ? '' : (d.error || '불러오기 실패') }); })
+      .then(async (r) => {
+        const d = await r.json();
+        // 권한자(박경아·조성재) 외에는 페이지 자체를 열어두지 않는다 — 즉시 메인으로
+        if (r.status === 401 || r.status === 403) { router.replace('/sommelier'); return; }
+        if (alive) setLoaded({ period, stats: d.success ? d : null, err: d.success ? '' : (d.error || '불러오기 실패') });
+      })
       .catch(() => { if (alive) setLoaded({ period, stats: null, err: '불러오기 실패' }); });
     return () => { alive = false; };
-  }, [period]);
+  }, [period, router]);
 
   const stats = loaded?.stats ?? null;
   const err = loaded?.err ?? '';
