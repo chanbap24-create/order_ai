@@ -6,19 +6,29 @@ import type { SommelierResult } from './sommelierRecommend';
 
 export type SommelierCustomer = { id: number; name: string; phone: string };
 
-/** 핸드폰 기준 고객 upsert. 이름이 바뀌면 최신으로 갱신. */
-export async function upsertCustomer(name: string, phone: string, createdBy?: string): Promise<SommelierCustomer> {
+/** 핸드폰 기준 고객 upsert. 이름이 바뀌면 최신으로 갱신.
+ *  marketingOptIn=true면 수신동의·시각 기록(선택 동의 — 철회는 false로 덮어쓰지 않고 별도 처리). */
+export async function upsertCustomer(
+  name: string, phone: string, createdBy?: string, marketingOptIn?: boolean,
+): Promise<SommelierCustomer> {
   const { data: existing } = await supabase
     .from('sommelier_customers').select('id, name, phone').eq('phone', phone).maybeSingle();
   if (existing) {
-    if (existing.name !== name) {
+    const upd: Record<string, unknown> = {};
+    if (existing.name !== name) upd.name = name;
+    if (marketingOptIn) { upd.marketing_opt_in = true; upd.marketing_opt_in_at = new Date().toISOString(); }
+    if (Object.keys(upd).length) {
       await supabase.from('sommelier_customers')
-        .update({ name, updated_at: new Date().toISOString() }).eq('id', existing.id);
+        .update({ ...upd, updated_at: new Date().toISOString() }).eq('id', existing.id);
     }
     return { ...existing, name };
   }
   const { data, error } = await supabase
-    .from('sommelier_customers').insert({ name, phone, created_by: createdBy || null }).select('id, name, phone').single();
+    .from('sommelier_customers').insert({
+      name, phone, created_by: createdBy || null,
+      marketing_opt_in: !!marketingOptIn,
+      marketing_opt_in_at: marketingOptIn ? new Date().toISOString() : null,
+    }).select('id, name, phone').single();
   if (error || !data) throw new Error(`고객 등록 실패: ${error?.message}`);
   return data;
 }

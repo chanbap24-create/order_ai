@@ -13,6 +13,7 @@ export function CustomerScreen({ onDone, onBack }: {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [marketing, setMarketing] = useState(false); // [선택] 광고성 정보 수신 동의
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   // 재방문 고객 — 입력 중 조용히 검색해 골드 도트 한 줄로 제안, 탭하면 즉시 문답으로
@@ -42,7 +43,7 @@ export function CustomerScreen({ onDone, onBack }: {
     try {
       const r = await fetch('/api/sommelier/customer', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), phone }),
+        body: JSON.stringify({ name: name.trim(), phone, marketing }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || '등록에 실패했습니다');
@@ -72,9 +73,16 @@ export function CustomerScreen({ onDone, onBack }: {
             <input value={phone} onChange={(e) => setPhone(e.target.value)}
               type="tel" inputMode="tel" maxLength={13} />
           </div>
+          {/* 개인정보보호법 제15조② 필수 고지: 목적·항목·보유기간·거부권 / 제22조: 마케팅은 선택 동의 분리 */}
           <label className="som-consent">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-            <span>와인 추천과 안내를 위해 성함·연락처를 수집하는 데 동의합니다. 추천 이력 관리 목적으로만 사용됩니다.</span>
+            <span><b>[필수]</b> 와인 추천 및 재방문 응대를 위해 성함·연락처를 수집·이용하는 데 동의합니다.
+              보유기간: 마지막 방문일로부터 3년 또는 동의 철회 시까지.
+              동의를 거부하실 수 있으나, 거부 시 추천 이력 서비스는 이용하실 수 없습니다.</span>
+          </label>
+          <label className="som-consent">
+            <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
+            <span><b>[선택]</b> 신상품·행사 등 광고성 정보 수신(문자)에 동의합니다.</span>
           </label>
           {error && <div className="som-err">{error}</div>}
 
