@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     for (let i = 0; i < codes.length; i += 500) {
       const batch = codes.slice(i, i + 500);
       const [{ data: cdv }, { data: dl }] = await Promise.all([
-        supabase.from('inventory_cdv').select('item_no, available_stock, stock_bonded, incoming_stock').in('item_no', batch),
+        supabase.from('inventory_cdv').select('item_no, available_stock, stock_bonded, incoming_stock, total_stock').in('item_no', batch),
         supabase.from('inventory_dl').select('item_no, available_stock, total_stock, incoming_stock, store_ssg_gangnam_dl, store_ssg_southcity').in('item_no', batch),
       ]);
       for (const x of (cdv || [])) invMap.set(x.item_no, x);
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         if (invMap.has(x.item_no)) continue;
         const store = (Number(x.store_ssg_gangnam_dl) || 0) + (Number(x.store_ssg_southcity) || 0);
         const avail = Math.max(Number(x.available_stock) || 0, Number(x.total_stock) || 0, store);
-        invMap.set(x.item_no, { available_stock: avail, stock_bonded: 0, incoming_stock: Number(x.incoming_stock) || 0 });
+        invMap.set(x.item_no, { available_stock: avail, stock_bonded: 0, incoming_stock: Number(x.incoming_stock) || 0, total_stock: avail });
       }
     }
 
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         inv_available: stock?.available_stock ?? 0,
         inv_bonded: Number(stock?.stock_bonded ?? 0), // 보세 합계 = 생성 컬럼
         inv_incoming: stock?.incoming_stock ?? 0, // 입고예정 — 신규 와인은 이 단계가 첫 등장
+        inv_total: Number(stock?.total_stock ?? 0), // ERP 전체 재고 — 예비·마케팅·특수·위탁 등 기타 창고 포함
       };
     });
 

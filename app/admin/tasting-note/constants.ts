@@ -17,9 +17,12 @@ export function isWineCategory(itemCode: string | null | undefined): boolean {
 /** 재고 부족 필터 임계값 (병 수, 0 < x <= LOW_STOCK_THRESHOLD 면 부족) */
 export const LOW_STOCK_THRESHOLD = 10;
 
-/** (가용 재고 + 보세 + 입고예정) 합 — 신규 와인은 입고예정(배송 중) 단계가 첫 등장이라 포함 필수 */
+/** (가용 재고 + 보세 + 입고예정) 합 — 신규 와인은 입고예정(배송 중) 단계가 첫 등장이라 포함 필수.
+ *  ERP 전체 재고(inv_total: 용마 예비·마케팅·특수·위탁 등 기타 창고 포함)가 더 크면 그 값을 쓴다 —
+ *  가용 0이어도 사내 어딘가 실물이 있으면 미작성 목록에 잡히게 (예: 도베네 슈발리에가 마케팅 창고에만 1병). */
 export function totalStock(w: TastingWineRow): number {
-  return (w.inv_available || 0) + (w.inv_bonded || 0) + (w.inv_incoming || 0);
+  const pipeline = (w.inv_available || 0) + (w.inv_bonded || 0) + (w.inv_incoming || 0);
+  return Math.max(pipeline, w.inv_total || 0);
 }
 
 /** 신규로 표기하는 기간 (등록일 기준). 이후엔 신규에서 빠지고 미작성에만 남음. */

@@ -8,5 +8,7 @@ export interface TastingWineRow extends Wine {
   inv_available?: number;
   inv_bonded?: number;
   inv_incoming?: number;
+  /** ERP 전체 재고(total_stock) — 가용/보세 외 창고(용마 예비·마케팅·특수·위탁 등) 포함 */
+  inv_total?: number;
   note_excluded?: boolean | null;
 }

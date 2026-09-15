@@ -72,7 +72,10 @@ export function NoteListPanel(p: Props) {
         p.wines.map((w) => {
           const badge = noteBadge(w, p.ghIndex);
           const isSelected = p.selectedId === w.item_code;
-          const totalStock = (w.inv_available || 0) + (w.inv_bonded || 0) + (w.inv_incoming || 0);
+          const pipelineStock = (w.inv_available || 0) + (w.inv_bonded || 0) + (w.inv_incoming || 0);
+          // ERP 전체 재고가 더 크면 그 값이 합계 — 차액은 기타 창고(예비·마케팅·특수·위탁 등) 실물
+          const totalStock = Math.max(pipelineStock, w.inv_total || 0);
+          const otherStock = totalStock - pipelineStock;
           const vb = verificationBadge(w.verification_status);
 
           return (
@@ -168,6 +171,11 @@ export function NoteListPanel(p: Props) {
                       <span>
                         입고예정{" "}
                         <b style={{ color: "var(--status-warning)" }}>{w.inv_incoming}</b>
+                      </span>
+                    )}
+                    {otherStock > 0 && (
+                      <span title="가용·보세 외 창고(예비·마케팅·특수·위탁 등) 재고">
+                        기타 <b style={{ color: "var(--text-secondary)" }}>{otherStock}</b>
                       </span>
                     )}
                     <span>
