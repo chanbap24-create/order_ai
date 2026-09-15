@@ -7,7 +7,7 @@ import type { SommelierResult } from './sommelierRecommend';
 export type SommelierCustomer = { id: number; name: string; phone: string };
 
 /** 핸드폰 기준 고객 upsert. 이름이 바뀌면 최신으로 갱신. */
-export async function upsertCustomer(name: string, phone: string): Promise<SommelierCustomer> {
+export async function upsertCustomer(name: string, phone: string, createdBy?: string): Promise<SommelierCustomer> {
   const { data: existing } = await supabase
     .from('sommelier_customers').select('id, name, phone').eq('phone', phone).maybeSingle();
   if (existing) {
@@ -18,7 +18,7 @@ export async function upsertCustomer(name: string, phone: string): Promise<Somme
     return { ...existing, name };
   }
   const { data, error } = await supabase
-    .from('sommelier_customers').insert({ name, phone }).select('id, name, phone').single();
+    .from('sommelier_customers').insert({ name, phone, created_by: createdBy || null }).select('id, name, phone').single();
   if (error || !data) throw new Error(`고객 등록 실패: ${error?.message}`);
   return data;
 }

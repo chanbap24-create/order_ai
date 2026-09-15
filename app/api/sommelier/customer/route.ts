@@ -12,7 +12,12 @@ export async function GET(req: NextRequest) {
   try {
     const q = (req.nextUrl.searchParams.get('q') || '').trim().slice(0, 30);
     if (q.length < 2) return NextResponse.json({ customers: [] });
-    return NextResponse.json({ customers: await searchCustomers(q) });
+    // 개인정보 최소화: 전체 전화번호는 응답에 싣지 않는다 — 재방문 식별은 마스킹 번호로 충분(선택은 id)
+    const customers = (await searchCustomers(q)).map((c) => ({
+      id: c.id, name: c.name,
+      phone: String(c.phone || '').replace(/^(\d{3})[- ]?(\d{3,4})[- ]?(\d{4})$/, '$1-****-$3'),
+    }));
+    return NextResponse.json({ customers });
   } catch (e) {
     return handleApiError(e);
   }
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
     const ph = normalizePhone(typeof phone === 'string' ? phone : '');
     if (!nm || nm.length > 30) return NextResponse.json({ error: '성함을 확인해주세요.' }, { status: 400 });
     if (!ph) return NextResponse.json({ error: '핸드폰 번호를 확인해주세요.' }, { status: 400 });
-    const customer = await upsertCustomer(nm, ph);
+    const customer = await upsertCustomer(nm, ph, session.manager);
     return NextResponse.json({ customer });
   } catch (e) {
     return handleApiError(e);

@@ -223,7 +223,7 @@
   .som-rail{padding-left:0;padding-right:0}
   .som-rail::before,.som-rail::after{content:"";flex:0 0 max(0px, calc(50% - min(39vw,150px) - 16px))}
 }
-.som-card{scroll-snap-align:center;flex:0 0 min(78vw,300px);border-radius:22px;padding:7px;
+.som-card{position:relative;scroll-snap-align:center;flex:0 0 min(78vw,300px);border-radius:22px;padding:7px;
   background:var(--som-frame);border:1px solid var(--som-line);display:flex;flex-direction:column;
   transition:transform .45s var(--som-ease),box-shadow .45s var(--som-ease),
     border-color .45s var(--som-ease),opacity .45s var(--som-ease),filter .45s var(--som-ease)}
@@ -271,9 +271,15 @@
 /* 빈티지 한 줄 대본 — reason 아래, 최대 2줄 */
 .som-vintagehint{font-size:11px;line-height:1.55;color:var(--som-muted);margin:-6px 0 12px;text-align:center;font-style:italic;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.som-pricebox{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:14px}
+.som-pricebox{margin-top:auto;padding-top:14px;display:flex;align-items:center;justify-content:center;gap:14px;
+  border-top:1px solid rgba(184,154,106,.22)}
 .som-price{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;
   transition:color .4s var(--som-ease)}
+/* 백화점 할인 표기: 정찰 태그처럼 "정상가(취소선) → 할인가"를 한 베이스라인에.
+   한 줄 구성이라 할인 유무와 무관하게 가격 구역 높이가 동일하다. */
+.som-pricewrap{display:inline-flex;align-items:baseline;gap:8px}
+.som-price-strike{font-size:12.5px;color:var(--som-muted);text-decoration:line-through;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
 .som-buy{border:1px solid rgba(184,154,106,.6);border-radius:999px;background:#fff;color:var(--som-ink);
   font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer;transition:all .4s var(--som-ease);white-space:nowrap}
 .som-buy:active{transform:scale(.96)}
@@ -293,10 +299,27 @@
   box-shadow:0 18px 38px rgba(34,28,22,.12)}
 /* 카드 전체화면 상세 — 카드가 확장되듯 떠오른다 */
 .som-detail{position:fixed;inset:0;z-index:70;background:var(--som-paper);
-  display:flex;flex-direction:column;animation:som-detin .45s var(--som-ease) both}
-@keyframes som-detin{from{opacity:0;transform:scale(.965) translateY(16px)}to{opacity:1;transform:none}}
+  display:flex;flex-direction:column;animation:som-detin .4s ease both}
+@keyframes som-detin{from{opacity:0}to{opacity:1}}
 .som-detail.out{animation:som-detout .36s ease both}
 @keyframes som-detout{to{opacity:0;transform:scale(.97) translateY(12px)}}
+/* 전환 스태거: 종이(배경) → 카드 → 병샷 → 텍스트 순으로 시차를 두고 떠오름 */
+.som-detail .som-detail-card{animation:som-cardin .55s var(--som-ease) both .06s}
+@keyframes som-cardin{from{opacity:0;transform:translateY(30px) scale(.965)}to{opacity:1;transform:none}}
+.som-detail .som-detail-shot img{animation:som-shotin .6s var(--som-ease) both .16s}
+@keyframes som-shotin{from{opacity:0;transform:translateY(16px) scale(.93)}to{opacity:1;transform:none}}
+.som-detail .som-nm,.som-detail .som-en,.som-detail .som-detail-meta,.som-detail .som-awardline{
+  animation:som-textin .5s var(--som-ease) both .26s}
+.som-detail .som-detail-bars,.som-detail .som-detail-fl{animation:som-textin .5s var(--som-ease) both .34s}
+.som-detail .som-detail-notes,.som-detail .som-detail-wait,.som-detail .som-pricebox{
+  animation:som-textin .5s var(--som-ease) both .42s}
+@keyframes som-textin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){
+  .som-detail,.som-detail .som-detail-card,.som-detail .som-detail-shot img,
+  .som-detail .som-nm,.som-detail .som-en,.som-detail .som-detail-meta,.som-detail .som-awardline,
+  .som-detail .som-detail-bars,.som-detail .som-detail-fl,
+  .som-detail .som-detail-notes,.som-detail .som-detail-wait,.som-detail .som-pricebox{animation:none}
+}
 .som-detail-top{display:flex;justify-content:space-between;align-items:center;
   padding:max(16px,env(safe-area-inset-top)) 22px 10px}
 .som-detail-back{all:unset;cursor:pointer;font-size:13.5px;color:var(--som-muted);padding:4px 0}
@@ -373,3 +396,47 @@
   .som-root *,.som-spot,.som-vitrine img{animation:none!important;transition-duration:.01s!important}
   .som-rise{opacity:1;transform:none}
 }
+
+/* 더블탭 구매 기록 — 와인잔 자국(스테인 링 블룸) + 셀러 장부 도장이 찍히는 연출.
+   링 두 개가 시차를 두고 번지고, 세리프 도장이 살짝 기울어 스냅되며 안착 후 사라진다. */
+.som-burst{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;animation:somBurstFade 1.05s ease forwards}
+.som-burst i{position:absolute;width:160px;height:160px;border-radius:50%;
+  border:2px solid color-mix(in srgb, var(--som-stain) 55%, transparent);
+  animation:somRing .9s cubic-bezier(.22,1,.36,1) forwards}
+.som-burst i:nth-child(2){width:160px;height:160px;border-width:4px;
+  border-color:color-mix(in srgb, var(--som-stain) 30%, transparent);
+  animation-delay:.08s;animation-duration:1s}
+.som-burst b{position:relative;padding:11px 22px;border:2.5px solid var(--som-stain);border-radius:6px;
+  color:var(--som-stain);background:color-mix(in srgb, var(--som-paper, #fff) 90%, transparent);
+  font-size:21px;font-weight:700;letter-spacing:.24em;text-indent:.24em;white-space:nowrap;
+  box-shadow:0 4px 22px rgba(142,37,64,.18);
+  animation:somStamp .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.som-burst.cancel b{border-style:dashed;letter-spacing:.2em;text-indent:.2em;
+  color:var(--som-muted);border-color:var(--som-muted);box-shadow:none}
+.som-burst.cancel i{border-color:color-mix(in srgb, var(--som-muted) 40%, transparent)}
+@keyframes somStamp{
+  0%{opacity:0;transform:rotate(-14deg) scale(1.7)}
+  55%{opacity:1;transform:rotate(-7deg) scale(.96)}
+  75%{transform:rotate(-8deg) scale(1.03)}
+  100%{opacity:1;transform:rotate(-8deg) scale(1)}
+}
+@keyframes somRing{
+  0%{opacity:0;transform:scale(.45)}
+  25%{opacity:.9}
+  100%{opacity:0;transform:scale(1.65)}
+}
+@keyframes somBurstFade{
+  0%,72%{opacity:1}
+  100%{opacity:0}
+}
+@media (prefers-reduced-motion: reduce){
+  .som-burst,.som-burst i,.som-burst b{animation:none}
+  .som-burst{opacity:.95}.som-burst i{display:none}.som-burst b{transform:rotate(-8deg)}
+}
+
+/* 매장 선택 시트 하단 직원용 링크 — 헤어라인으로 분리된 조용한 진입점 */
+.som-sheet-admin{display:block;margin-top:10px;padding:12px 0 2px;text-align:center;
+  border-top:1px solid var(--som-line, #eee);font-size:12.5px;color:var(--som-muted);
+  text-decoration:none;letter-spacing:.02em}
+.som-sheet-admin:active{color:var(--som-stain)}

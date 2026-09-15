@@ -7,6 +7,7 @@ import { supabase } from './db';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 import { COUNTRY_OPTIONS, FLAVOR_GROUPS, CDV_STORE_COLS, DL_STORE_COLS, normalizeWineType, type QuizAnswers } from '@/app/sommelier/lib/quiz';
 import { cacheVer } from './cacheVer';
+import { loadDiscountBands, saleOf } from './sommelierDiscount';
 
 export type SommelierResult = {
   item_code: string;
@@ -15,7 +16,9 @@ export type SommelierResult = {
   vintage: string;
   country: string;
   region: string;
-  retail_price: number;
+  retail_price: number; // 정상가 (백화점 정가 표기)
+  sale_price: number;   // 할인 적용가 — 할인 없으면 retail_price와 동일
+  discount_rate: number; // 적용 할인율 % (0 = 할인 없음)
   stock: number;       // 해당 매장(또는 전 매장 합) 재고
   flavors: string[];   // 한글 라벨 (최대 5)
   reason: string;      // 매칭 이유 한 줄 (직원 설명 대본)
@@ -122,7 +125,7 @@ export function retailPriceOf(retailPrice: unknown, supplyPrice: unknown, code: 
   const supply = Number(supplyPrice) || 0;
   return /^ZK/i.test(code) ? Math.round((supply * CONSIGN_MARKUP) / 100) * 100 : supply;
 }
-const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프/i;
+const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프|노트북|푸어러|마개/i;
 
 /** 한 재고 테이블에서 매장 재고 있는 와인 로드 → {code, retail, stock}. 1000행 캡 페이지네이션.
  *  storeCol=특정 매장만, null=그 테이블의 어느 매장이든 재고>0. */
@@ -304,14 +307,17 @@ function buildReason(w: PoolWine, a: QuizAnswers, matched: string[]): string {
 
 /** 문답 결과로 매장 재고 와인 추천 top N. 국가 선택은 순수 하드게이트(보충 없음). */
 export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'all'): Promise<SommelierResult[]> {
-  const pool = await loadPool(store);
+  const [pool, bands] = await Promise.all([loadPool(store), loadDiscountBands()]);
+  // 예산 필터는 손님이 실제 내는 돈 = 할인 적용가 기준
+  const salePriceOf = (w: PoolWine) => saleOf(w.retail, bands);
   const filtered = pool.filter((w) => {
     // Sweet = 타입이 아니라 당도 기반(조사값 또는 추정 3 이상) — 디저트·모스카토·주정강화 포함
     if (a.type === 'sweet') {
       if (structureOf(w).sweetness < 3) return false;
     } else if (a.type && w.type !== a.type) return false;
-    if (a.priceMin != null && w.retail < a.priceMin) return false;
-    if (a.priceMax != null && w.retail > a.priceMax) return false;
+    const { sale } = salePriceOf(w);
+    if (a.priceMin != null && sale < a.priceMin) return false;
+    if (a.priceMax != null && sale > a.priceMax) return false;
     if (a.countries.length && !countryHit(w, a)) return false; // 국가 하드게이트
     return true;
   });
@@ -344,7 +350,10 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'a
     item_code: w.item_code,
     name: w.name, name_en: w.name_en, vintage: w.vintage,
     country: w.country, region: w.region,
-    retail_price: w.retail, stock: w.stock,
+    retail_price: w.retail,
+    sale_price: salePriceOf(w).sale,
+    discount_rate: salePriceOf(w).rate,
+    stock: w.stock,
     flavors: w.tags.slice(0, 5).map((k) => FLAVOR_KO[k] || k),
     reason: buildReason(w, a, matched),
     img_ver: w.imgVer,

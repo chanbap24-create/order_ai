@@ -50,6 +50,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
   // 데스크탑 좌우 화살표 + 마우스 드래그 스와이프
   const [edge, setEdge] = useState({ l: false, r: false });
   const dragMoved = useRef(false); // 드래그 직후 클릭(상세 열림) 오발 방지
+  // 싱글탭=상세, 더블탭=구매 기록(토글) — 260ms 디바운스로 구분
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [burst, setBurst] = useState<{ code: string; cancel: boolean } | null>(null);
 
   // 모바일 스크롤 스포트라이트 — 중앙 스냅 카드가 조명을 받고 양옆은 흐려짐 + 페이지 점
   const railRef = useRef<HTMLDivElement>(null);
@@ -156,7 +159,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId, sessionId, itemCode: r.item_code, itemName: r.name,
-          retailPrice: r.retail_price, quantity: 1,
+          retailPrice: r.sale_price || r.retail_price, quantity: 1,
         }),
       });
       if (res.ok) {
@@ -205,8 +208,28 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
               <div key={r.item_code}
                 className={`som-card som-rise${spot ? (i === page ? ' focus' : ' dim') : ''}`}
                 style={{ ['--i' as string]: Math.min(i, 6) + 2, cursor: 'pointer' }}
-                onClick={() => { if (!dragMoved.current) setDetail(i); }}>
+                onClick={() => {
+                  if (dragMoved.current) return;
+                  if (tapTimer.current) { // 더블탭 → 구매 기록 토글 + 도장 이펙트 → 상세 전환
+                    clearTimeout(tapTimer.current); tapTimer.current = null;
+                    const cancel = ordered.has(r.item_code);
+                    setBurst({ code: r.item_code, cancel });
+                    order(r);
+                    setTimeout(() => {
+                      setBurst(null);
+                      if (!cancel) setDetail(i); // 기록 완료 후 자세히 보기로 자연 전환 (취소는 제자리)
+                    }, 1080);
+                  } else {
+                    tapTimer.current = setTimeout(() => { tapTimer.current = null; setDetail(i); }, 260);
+                  }
+                }}>
                 <div className="som-core">
+                  {burst?.code === r.item_code && (
+                    <span className={`som-burst${burst.cancel ? ' cancel' : ''}`} aria-hidden>
+                      <i /><i />
+                      <b>{burst.cancel ? '선택 취소' : '탁월한 선택'}</b>
+                    </span>
+                  )}
                   <div className="som-shot">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`/api/sales/wine-img?code=${encodeURIComponent(r.item_code)}&fit=bottle${r.img_ver ? `&v=${r.img_ver}` : ''}`} alt={r.name}
@@ -231,12 +254,17 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                   <div className="som-reason">{r.reason}</div>
                   {r.vintage_hint && <div className="som-vintagehint">{r.vintage_hint}</div>}
                   <div className="som-pricebox">
-                    <span className="som-price">{won(r.retail_price)}원</span>
+                    {r.discount_rate > 0 ? (
+                      <span className="som-pricewrap">
+                        <span className="som-price-strike">{won(r.retail_price)}원</span>
+                        <span className="som-price">{won(r.sale_price)}원</span>
+                      </span>
+                    ) : (
+                      <span className="som-price">{won(r.retail_price)}원</span>
+                    )}
                     <button className={`som-buy${done ? ' done' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); order(r); }}
-                      disabled={busy === r.item_code}
-                      title={done ? '다시 누르면 취소됩니다' : undefined}>
-                      {busy === r.item_code ? '처리 중…' : done ? '✓ 기록됨 · 취소' : '구매 기록'}
+                      onClick={(e) => { e.stopPropagation(); if (!dragMoved.current) setDetail(i); }}>
+                      {done ? '✓ 선택됨' : '자세히 보기'}
                     </button>
                   </div>
                 </div>

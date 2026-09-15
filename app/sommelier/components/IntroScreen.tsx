@@ -185,6 +185,8 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
                 {label}
               </button>
             ))}
+            {/* 직원용 진입점 — 손님 대면 인트로에는 노출하지 않는다 */}
+            <a href="/sommelier/admin" className="som-sheet-admin">관리자</a>
           </div>
         </>
       )}

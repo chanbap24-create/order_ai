@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     if (results.length === 0 && (a.priceMin != null || a.priceMax != null)) {
       const relaxed = await recommendForCustomer({ ...a, priceMin: null, priceMax: null }, 50, store);
       if (relaxed.length > 0) {
-        priceHint = { count: relaxed.length, minPrice: Math.min(...relaxed.map((r) => r.retail_price)) };
+        priceHint = { count: relaxed.length, minPrice: Math.min(...relaxed.map((r) => r.sale_price)) };
       }
     }
 

@@ -88,7 +88,14 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
         )}
 
         <div className="som-pricebox">
-          <span className="som-price">{won(r.retail_price)}원</span>
+          {r.discount_rate > 0 ? (
+            <span className="som-pricewrap">
+              <span className="som-price-strike">{won(r.retail_price)}원</span>
+              <span className="som-price">{won(r.sale_price)}원</span>
+            </span>
+          ) : (
+            <span className="som-price">{won(r.retail_price)}원</span>
+          )}
           <button className={`som-buy${ordered ? ' done' : ''}`}
             onClick={(e) => { e.stopPropagation(); onOrder(); }} disabled={busy}
             title={ordered ? '다시 누르면 취소됩니다' : undefined}>
