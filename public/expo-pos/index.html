@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="행사 POS">
+<meta name="theme-color" content="#f4f5f7">
+<link rel="manifest" href="/expo-pos/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>까브드뱅 행사 POS</title>
+</head>
+<body>
+<style>
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --ink: #17191d;
+  --ink-2: #5c626b;
+  --ink-3: #9096a0;
+  --line: #dcdfe5;
+  --accent: #6e1e2e;
+  --accent-ink: #ffffff;
+  --good: #2b7a4b;
+  --warn: #b0731a;
+  --bad: #b3261e;
+  --shadow: 0 6px 24px rgba(23, 25, 29, 0.08);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141619; --surface: #1d2025; --surface-2: #272b31; --ink: #eceef1; --ink-2: #aab0b9; --ink-3: #6f7681;
+    --line: #33383f; --accent: #c8556b; --accent-ink: #ffffff; --good: #5bbf84; --warn: #d8a04a; --bad: #e57368;
+    --shadow: 0 6px 24px rgba(0,0,0,0.4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141619; --surface: #1d2025; --surface-2: #272b31; --ink: #eceef1; --ink-2: #aab0b9; --ink-3: #6f7681;
+  --line: #33383f; --accent: #c8556b; --accent-ink: #ffffff; --good: #5bbf84; --warn: #d8a04a; --bad: #e57368;
+  --shadow: 0 6px 24px rgba(0,0,0,0.4); color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 16px; line-height: 1.5; word-break: keep-all;
+  -webkit-text-size-adjust: 100%; -webkit-user-select: none; user-select: none;
+  overscroll-behavior: none;
+}
+input, select { font: inherit; color: inherit; -webkit-user-select: text; user-select: text; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.app { display: flex; flex-direction: column; height: 100dvh; }
+header {
+  display: flex; align-items: center; gap: 16px; padding: 10px 20px;
+  background: var(--surface); border-bottom: 1px solid var(--line); flex: none;
+}
+header h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+header h1 span { color: var(--accent); }
+.tabs { display: flex; gap: 4px; margin-left: 8px; }
+.tab { padding: 8px 14px; border-radius: 8px; font-weight: 500; color: var(--ink-2); min-height: 40px; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.today { margin-left: auto; color: var(--ink-3); font-size: 14px; }
+
+main { flex: 1; min-height: 0; display: flex; }
+.view { display: none; flex: 1; min-height: 0; }
+.view.on { display: flex; }
+
+/* 판매 */
+.sell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.groups { display: flex; gap: 6px; padding: 12px 16px 0; overflow-x: auto; flex: none; -webkit-overflow-scrolling: touch; }
+.groups button { flex: none; min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--ink-2); background: var(--surface); white-space: nowrap; }
+.groups button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.groups .n { margin-left: 5px; font-size: 12px; opacity: 0.7; }
+.products { flex: 1; overflow-y: auto; padding: 12px 16px 16px; display: grid; gap: 10px; align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.p {
+  display: flex; flex-direction: column; gap: 6px; min-height: 108px; padding: 12px 14px; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; transition: transform 80ms;
+}
+.p:active { transform: scale(0.98); background: var(--surface-2); }
+.p .name { font-weight: 700; font-size: 17px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.p .price { font-size: 15px; font-weight: 500; color: var(--ink-2); margin-top: auto; }
+.p .meta { font-size: 13px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
+.p.out { opacity: 0.6; }
+.p.out .price { color: var(--ink-3); }
+.p .out-tag { color: var(--bad); font-weight: 700; }
+.p .low { color: var(--warn); font-weight: 700; }
+.p .incart { margin-left: auto; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 9px; font-size: 13px; font-weight: 700; }
+.p .convert { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 3px 9px; min-height: 30px; }
+
+.cart {
+  width: 360px; flex: none; display: flex; flex-direction: column; background: var(--surface);
+  border-left: 1px solid var(--line);
+}
+.cart h2 { font-size: 15px; font-weight: 700; margin: 0; padding: 14px 18px 10px; display: flex; align-items: baseline; }
+.cart h2 .clear { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--ink-3); }
+.lines { flex: 1; overflow-y: auto; padding: 0 18px; }
+.empty { color: var(--ink-3); padding: 24px 0; text-align: center; font-size: 14px; }
+.line { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.line .lname { font-size: 14px; font-weight: 500; }
+.line .lsub { font-size: 12.5px; color: var(--ink-3); }
+.line .ltotal { font-weight: 700; text-align: right; align-self: start; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper button { width: 38px; height: 36px; font-size: 18px; font-weight: 500; background: var(--surface-2); }
+.stepper button:disabled { opacity: 0.35; }
+.stepper .q { width: 40px; text-align: center; font-weight: 700; }
+.line .lctl { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+.line .rm { color: var(--ink-3); font-size: 13px; margin-left: auto; min-height: 36px; }
+.checkout { padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.total { display: flex; align-items: baseline; }
+.total .lbl { color: var(--ink-2); font-size: 14px; }
+.total .amt { margin-left: auto; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+.pay { display: flex; gap: 6px; margin: 10px 0 12px; }
+.pay button { flex: 1; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-weight: 500; }
+.pay button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.go { width: 100%; min-height: 54px; background: var(--accent); color: var(--accent-ink); border-radius: 10px; font-size: 17px; font-weight: 700; }
+.go:disabled { opacity: 0.35; }
+
+/* 내역 */
+.page { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.strip > div { padding: 12px 14px; border-left: 1px solid var(--line); }
+.strip > div:first-child { border-left: 0; padding-left: 0; }
+.strip .k { font-size: 12px; color: var(--ink-3); }
+.strip .v { font-size: 20px; font-weight: 700; white-space: nowrap; }
+.sec { display: flex; align-items: baseline; gap: 12px; margin: 22px 0 8px; }
+.sec h3 { font-size: 15px; font-weight: 700; margin: 0; }
+.sec .act { margin-left: auto; display: flex; gap: 8px; }
+.btn { min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; font-weight: 500; background: var(--surface); }
+.btn.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--ink-3); font-weight: 500; background: var(--surface-2); }
+td.r, th.r { text-align: right; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tfoot td { font-weight: 700; background: var(--surface-2); border-top: 2px solid var(--line); }
+.sale { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 14px; }
+.sale .t { font-weight: 700; }
+.sale .pm { font-size: 12px; color: var(--ink-3); }
+.sale .it { font-size: 14px; color: var(--ink-2); }
+.sale .amt { font-weight: 700; text-align: right; }
+.sale .cx { grid-column: 3; text-align: right; }
+.sale .cx button { font-size: 13px; color: var(--ink-3); min-height: 32px; }
+.sale .cx button.confirm { color: var(--bad); font-weight: 700; }
+.sale.canceled { opacity: 0.5; }
+.sale.canceled .t, .sale.canceled .amt { text-decoration: line-through; }
+.tag-cx { font-size: 12px; color: var(--bad); font-weight: 700; }
+.hint { font-size: 13px; color: var(--ink-3); margin: 6px 0 0; }
+textarea.export { width: 100%; height: 120px; margin-top: 8px; font: 13px/1.5 ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 10px; -webkit-user-select: text; user-select: text; }
+
+/* 시음주 */
+.tst { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 6px 14px; align-items: center; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+.tst .nm { font-weight: 500; }
+.tst .sub { font-size: 12.5px; color: var(--ink-3); }
+.tst .left { font-size: 22px; font-weight: 700; min-width: 44px; text-align: right; }
+.tst .left.zero { color: var(--ink-3); }
+.tst .use { min-height: 46px; padding: 0 18px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; }
+.tst .back { min-height: 46px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; font-weight: 500; }
+.tst .cv2 { min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; color: var(--ink-2); }
+.tst button:disabled { opacity: 0.3; }
+.tlog { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.tlog .t { color: var(--ink-3); width: 48px; }
+.tlog .undo { margin-left: auto; font-size: 13px; font-weight: 500; min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; }
+@media (max-width: 820px) { .tst { grid-template-columns: 1fr auto; } .tst .left { grid-column: 2; } .tst .use, .tst .cv2 { grid-column: span 1; } }
+
+/* 재고·가격 */
+.inv select { font: inherit; color: inherit; min-height: 38px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.grp { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.grp .row { display: flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 12px; background: var(--surface); }
+.grp .row input { width: 110px; border: 0; padding: 4px 0; background: none; text-align: left; font-size: 14px; }
+.grp .row .n { font-size: 12px; color: var(--ink-3); }
+.grp .row .del { min-width: 30px; min-height: 30px; color: var(--ink-3); font-size: 16px; border-radius: 50%; }
+.grp .row .del:active { background: var(--surface-2); }
+.grp .add { display: flex; gap: 6px; align-items: center; }
+.grp .add input { width: 130px; text-align: left; }
+.inv input { width: 92px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); text-align: right; font-size: 15px; }
+.inv input:focus { border-color: var(--accent); }
+.inv .cv { font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; min-height: 34px; padding: 0 8px; border: 1px solid var(--accent); border-radius: 999px; }
+.inv .cv:disabled { opacity: 0.3; }
+.addrow input { width: 100%; text-align: left; }
+
+.veil { position: fixed; inset: 0; background: rgba(23,25,29,0.45); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+.veil.on { display: flex; }
+.dlg { background: var(--surface); color: var(--ink); border-radius: 14px; padding: 22px 22px 18px; width: min(380px, 100%); box-shadow: var(--shadow); }
+.dlg .msg { white-space: pre-line; font-size: 16px; font-weight: 500; line-height: 1.5; }
+.dlg .sub { font-size: 13.5px; color: var(--ink-2); margin-top: 6px; }
+.dlg .acts { display: flex; gap: 8px; margin-top: 18px; }
+.dlg .acts button { flex: 1; min-height: 48px; border-radius: 10px; font-size: 15px; font-weight: 500; border: 1px solid var(--line); }
+.dlg .acts .yes { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--ink); color: var(--bg); padding: 12px 20px; border-radius: 10px; font-weight: 500; box-shadow: var(--shadow); transition: all 200ms; pointer-events: none; z-index: 10; white-space: nowrap; }
+.toast.on { opacity: 1; transform: translateX(-50%); }
+@media (prefers-reduced-motion: reduce) { .toast, .p { transition: none; } }
+
+@media (max-width: 820px) {
+  header { padding: 8px 14px; gap: 8px; flex-wrap: wrap; }
+  .today { display: none; }
+  .view.on { flex-direction: column; }
+  .products { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 10px 12px 12px; }
+  .groups { padding: 10px 12px 0; }
+  .cart { width: auto; border-left: 0; border-top: 1px solid var(--line); max-height: 46dvh; }
+  .page { padding: 12px 14px 40px; }
+}
+</style>
+
+<div class="app">
+  <header>
+    <h1>까브드뱅 <span>행사 POS</span></h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="sell" aria-selected="true">판매</button>
+      <button class="tab" role="tab" data-view="taste" aria-selected="false">시음주</button>
+      <button class="tab" role="tab" data-view="log" aria-selected="false">내역·정산</button>
+      <button class="tab" role="tab" data-view="inv" aria-selected="false">재고·가격</button>
+    </nav>
+    <div class="today num" id="today"></div>
+  </header>
+
+  <main>
+    <section class="view on" id="view-sell">
+      <div class="sell"><div class="groups" id="groups"></div><div class="products" id="products"></div></div>
+      <aside class="cart">
+        <h2>현재 판매 <button class="clear" id="clearCart">비우기</button></h2>
+        <div class="lines" id="lines"></div>
+        <div class="checkout">
+          <div class="total"><span class="lbl">합계</span><span class="amt num" id="total">0원</span></div>
+          <div class="pay" id="pay">
+            <button data-pay="카드" aria-pressed="true">카드</button>
+            <button data-pay="현금" aria-pressed="false">현금</button>
+            <button data-pay="계좌" aria-pressed="false">계좌이체</button>
+          </div>
+          <button class="go" id="checkout" disabled>결제 완료</button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="view" id="view-log">
+      <div class="page">
+        <div class="strip" id="strip"></div>
+        <div class="sec"><h3>품목별 정산</h3>
+          <div class="act"><button class="btn" id="copyItems">정산표 복사</button></div></div>
+        <div id="itemTable"></div>
+        <div class="sec"><h3>판매 내역</h3>
+          <div class="act"><button class="btn" id="copyLog">내역 복사</button></div></div>
+        <div id="sales"></div>
+        <p class="hint">복사가 안 되면 아래 칸의 글자를 길게 눌러 전체 선택 후 복사하세요.</p>
+        <textarea class="export" id="exportBox" readonly placeholder="복사 버튼을 누르면 여기에도 표시됩니다"></textarea>
+      </div>
+    </section>
+
+    <section class="view" id="view-taste">
+      <div class="page">
+        <div class="strip" id="tasteStrip"></div>
+        <p class="hint" style="margin-bottom:10px">시음용으로 한 병 열 때마다 "1병 소진"을 누르세요. 잘못 눌렀으면 옆의 "되돌리기"로 한 병씩 되돌립니다. 판매 재고가 모자라면 "판매로 전환"으로 옮깁니다. 시음주 입고 수량은 재고·가격 탭에서 입력합니다.</p>
+        <div id="tasteList"></div>
+        <div class="sec"><h3>소진 기록</h3></div>
+        <div id="tasteLog"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-inv">
+      <div class="page inv">
+        <div class="sec"><h3>그룹</h3></div>
+        <div class="grp" id="groupMgr"></div>
+        <p class="hint" style="margin-bottom:14px">이름을 고치면 해당 품목 전체에 적용됩니다. 삭제하면 품목은 '기타'로 옮겨집니다.</p>
+        <div class="sec"><h3>재고·판매가</h3>
+          <div class="act"><button class="btn danger" id="reset">행사 초기화</button></div></div>
+        <p class="hint" style="margin-bottom:10px">판매가는 다음 판매부터 적용됩니다. 재고가 0이면 시음주를 판매 재고로 옮길 수 있습니다.</p>
+        <div id="invTable"></div>
+        <div class="sec"><h3>품목 추가</h3></div>
+        <table class="addrow"><tr>
+          <td><input id="addName" placeholder="제품명"></td>
+          <td style="width:140px"><select id="addGroup"></select></td>
+          <td class="r" style="width:120px"><input id="addPrice" type="number" inputmode="numeric" placeholder="판매가" style="text-align:right"></td>
+          <td class="r" style="width:90px"><input id="addStock" type="number" inputmode="numeric" placeholder="재고" style="text-align:right"></td>
+          <td class="r" style="width:90px"><input id="addTasting" type="number" inputmode="numeric" placeholder="시음주" style="text-align:right"></td>
+          <td class="r" style="width:90px"><button class="btn primary" id="addItem">추가</button></td>
+        </tr></table>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="veil" id="veil"><div class="dlg" role="dialog" aria-modal="true"><div class="msg" id="dlgMsg"></div><div class="sub" id="dlgSub"></div>
+  <div class="acts"><button id="dlgNo">아니오</button><button class="yes" id="dlgYes">예</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'cdv-expo-pos-v1';
+const DEFAULT_ITEMS = [
+  ['그라함 블렌드 넘버5', 31000, 18, '포트'], ['그라함 10년 토니 포트', 55000, 30, '포트'], ['그라함 20년 토니 포트', 108000, 18, '포트'],
+  ['그라함 30년 토니 포트', 209000, 6, '포트'], ['그라함 40년 토니 포트', 363000, 3, '포트'], ['그라함 50년 토니 포트', 871000, 1, '포트'],
+  ['블랜디스 마데이라 알바다 5년', 37000, 24, '마데이라'], ['블랜디스 마데이라 콜헤이타 맘지', 154000, 6, '마데이라'],
+  ['펠라사 모스카토 다스티', 27000, 60, '스파클링'], ['글라지아 까바', 19000, 24, '스파클링'],
+  ['쏨 이올라 아미티 힐스 윌라멧 밸리 샤르도네', 145000, 6, '화이트'], ['쏨 쿰스빌 나파밸리 카베르네 소비뇽', 232000, 6, '레드'],
+  ['마콩-빌라주 떼루아 뒤 마코네 2024', 63000, 12, '화이트'], ["마콩-베르제 '레 페르슈' 2024", 73000, 12, '화이트'],
+].map(([name, price, stock, group], i) => ({ id: 'i' + (i + 1), name, price, stock, tasting: 0, group }));
+const NO_GROUP = '기타';
+const DEFAULT_GROUPS = ['포트', '마데이라', '스파클링', '화이트', '레드'];
+
+const fresh = () => ({ items: DEFAULT_ITEMS.map(x => ({ ...x })), sales: [], cart: [], pay: '카드', seq: 1, group: '', groups: [...DEFAULT_GROUPS], tasteLog: [] });
+let S = load();
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.items)) {
+      // 그룹 없던 저장본: 기본 품목은 기본 그룹, 나머지는 기타
+      for (const it of d.items) if (!it.group) it.group = DEFAULT_ITEMS.find(x => x.id === it.id)?.group || NO_GROUP;
+      if (!Array.isArray(d.groups)) d.groups = [...new Set([...DEFAULT_GROUPS, ...d.items.map(it => it.group)])].filter(g => g !== NO_GROUP);
+      if (!Array.isArray(d.tasteLog)) d.tasteLog = [];
+      return { ...fresh(), ...d };
+    } } } catch {}
+  return fresh();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+const won = n => n.toLocaleString('ko-KR') + '원';
+const item = id => S.items.find(x => x.id === id);
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const hhmm = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+const groupOf = it => (S.groups.includes(it.group) ? it.group : NO_GROUP);
+const groupNames = () => S.items.some(it => groupOf(it) === NO_GROUP) ? [...S.groups, NO_GROUP] : [...S.groups];
+const groupOptions = sel => [...S.groups, NO_GROUP].map(g => `<option value="${esc(g)}" ${g === sel ? 'selected' : ''}>${esc(g)}</option>`).join('');
+// 그룹 관리: 이름 변경 / 삭제 / 추가
+$('#groupMgr').addEventListener('change', e => {
+  const i = e.target; if (!i.dataset.rename) return;
+  const old = i.dataset.rename, name = i.value.trim();
+  if (!name || name === NO_GROUP || (name !== old && S.groups.includes(name))) { toast('사용할 수 없는 이름입니다'); render(); return; }
+  S.groups = S.groups.map(g => g === old ? name : g);
+  for (const it of S.items) if (it.group === old) it.group = name;
+  if (S.group === old) S.group = name;
+  save(); render();
+});
+$('#groupMgr').addEventListener('click', e => {
+  const d = e.target.closest('[data-del]'); if (d) {
+    const g = d.dataset.del, n = S.items.filter(it => it.group === g).length;
+    S.groups = S.groups.filter(x => x !== g);
+    for (const it of S.items) if (it.group === g) it.group = NO_GROUP;
+    if (S.group === g) S.group = '';
+    save(); render(); toast(n ? `${g} 삭제 · 품목 ${n}개는 기타로 이동` : `${g} 삭제`); return;
+  }
+  if (e.target.id === 'groupAdd') {
+    const name = $('#groupName').value.trim();
+    if (!name || name === NO_GROUP || S.groups.includes(name)) { toast('이미 있거나 사용할 수 없는 이름입니다'); return; }
+    S.groups.push(name); $('#groupName').value = ''; save(); render(); toast(`${name} 그룹 추가`);
+  }
+});
+$('#groups').addEventListener('click', e => { const b = e.target.closest('[data-group]'); if (!b) return; S.group = b.dataset.group; save(); render(); });
+let askYes = null;
+function ask(msg, sub, onYes) { $('#dlgMsg').textContent = msg; $('#dlgSub').textContent = sub || ''; askYes = onYes; $('#veil').classList.add('on'); }
+function closeAsk() { askYes = null; $('#veil').classList.remove('on'); }
+$('#dlgNo').addEventListener('click', closeAsk);
+$('#dlgYes').addEventListener('click', () => { const fn = askYes; closeAsk(); if (fn) fn(); });
+$('#veil').addEventListener('click', e => { if (e.target === e.currentTarget) closeAsk(); });
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 1800); }
+
+const now = new Date();
+$('#today').textContent = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+
+/* ---------- 탭 ---------- */
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + b.dataset.view));
+  render();
+}));
+
+/* ---------- 판매 ---------- */
+const inCart = id => S.cart.find(l => l.id === id);
+function addToCart(id) {
+  const it = item(id), l = inCart(id), q = l ? l.qty : 0;
+  if (q >= it.stock) { toast(it.stock === 0 ? '재고가 없습니다' : `재고 ${it.stock}병까지만 가능합니다`); return; }
+  if (l) l.qty++; else S.cart.push({ id, qty: 1 });
+  save(); render();
+}
+function changeQty(id, d) {
+  const l = inCart(id); if (!l) return;
+  const it = item(id);
+  if (d > 0 && l.qty >= it.stock) { toast(`재고 ${it.stock}병까지만 가능합니다`); return; }
+  l.qty += d; if (l.qty <= 0) S.cart = S.cart.filter(x => x !== l);
+  save(); render();
+}
+function convertTasting(id) {
+  const it = item(id);
+  if (it.tasting <= 0) { toast('시음주가 없습니다'); return; }
+  it.tasting--; it.stock++; save(); render(); toast(`${it.name} 시음주 1병 → 판매 재고`);
+}
+function useTasting(id) {
+  const it = item(id);
+  if (it.tasting <= 0) { toast('남은 시음주가 없습니다'); return; }
+  it.tasting--; S.tasteLog.unshift({ no: Date.now(), at: new Date().toISOString(), id, name: it.name });
+  save(); render(); toast(`${it.name} 시음주 1병 소진 · 남음 ${it.tasting}`);
+}
+function undoTasting(no) {
+  const i = S.tasteLog.findIndex(x => x.no === no); if (i < 0) return;
+  const [e] = S.tasteLog.splice(i, 1); const it = item(e.id); if (it) it.tasting++;
+  save(); render(); toast(`${e.name} 소진 기록 취소`);
+}
+const usedCount = id => S.tasteLog.filter(e => e.id === id).length;
+$('#tasteList').addEventListener('click', e => {
+  const u = e.target.closest('[data-use]'); if (u) { useTasting(u.dataset.use); return; }
+  const bk = e.target.closest('[data-back]'); if (bk) { const last = S.tasteLog.find(x => x.id === bk.dataset.back); if (last) askUndo(last.no); return; }
+  const c = e.target.closest('[data-convert]'); if (c) askConvert(c.dataset.convert);
+});
+$('#tasteLog').addEventListener('click', e => { const b = e.target.closest('[data-undo]'); if (b) askUndo(Number(b.dataset.undo)); });
+function askConvert(id) {
+  const it = item(id); if (it.tasting <= 0) { toast('시음주가 없습니다'); return; }
+  ask(`${it.name}\n시음주 1병을 판매 재고로 옮길까요?`, `시음주 ${it.tasting} → ${it.tasting - 1} · 판매 재고 ${it.stock} → ${it.stock + 1}`, () => convertTasting(id));
+}
+function askUndo(no) {
+  const e = S.tasteLog.find(x => x.no === no); if (!e) return;
+  ask(`${e.name}\n${hhmm(e.at)} 소진 기록을 되돌릴까요?`, '남은 시음주가 1병 늘어납니다', () => undoTasting(no));
+}
+const cartTotal = () => S.cart.reduce((s, l) => s + item(l.id).price * l.qty, 0);
+
+function checkout() {
+  if (S.cart.length === 0) return;
+  const lines = S.cart.map(l => { const it = item(l.id); return { id: it.id, name: it.name, price: it.price, qty: l.qty }; });
+  for (const l of lines) { const it = item(l.id); if (it.stock < l.qty) { toast(`${it.name} 재고 부족`); return; } }
+  for (const l of lines) item(l.id).stock -= l.qty;
+  const total = lines.reduce((s, l) => s + l.price * l.qty, 0);
+  S.sales.unshift({ no: S.seq++, at: new Date().toISOString(), lines, total, pay: S.pay, canceled: false });
+  S.cart = []; save(); render();
+  toast(`판매 기록 · ${won(total)} (${S.pay})`);
+}
+function cancelSale(no) {
+  const s = S.sales.find(x => x.no === no); if (!s || s.canceled) return;
+  s.canceled = true;
+  for (const l of s.lines) { const it = item(l.id); if (it) it.stock += l.qty; }
+  save(); render(); toast(`${no}번 판매 취소 · 재고 복구`);
+}
+
+$('#products').addEventListener('click', e => {
+  const cv = e.target.closest('[data-convert]'); if (cv) { askConvert(cv.dataset.convert); return; }
+  const p = e.target.closest('[data-add]'); if (p) addToCart(p.dataset.add);
+});
+$('#lines').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.inc) changeQty(b.dataset.inc, 1);
+  else if (b.dataset.dec) changeQty(b.dataset.dec, -1);
+  else if (b.dataset.rm) { S.cart = S.cart.filter(l => l.id !== b.dataset.rm); save(); render(); }
+});
+$('#clearCart').addEventListener('click', () => { S.cart = []; save(); render(); });
+$('#pay').addEventListener('click', e => { const b = e.target.closest('[data-pay]'); if (!b) return; S.pay = b.dataset.pay; save(); render(); });
+$('#checkout').addEventListener('click', checkout);
+
+/* ---------- 내역 ---------- */
+let pendingCancel = null;
+$('#sales').addEventListener('click', e => {
+  const b = e.target.closest('[data-cancel]'); if (!b) return;
+  const no = Number(b.dataset.cancel);
+  if (pendingCancel === no) { pendingCancel = null; cancelSale(no); }
+  else { pendingCancel = no; render(); setTimeout(() => { if (pendingCancel === no) { pendingCancel = null; render(); } }, 4000); }
+});
+
+function itemSummary() {
+  return S.items.map(it => {
+    let qty = 0, amt = 0;
+    for (const s of S.sales) if (!s.canceled) for (const l of s.lines) if (l.id === it.id) { qty += l.qty; amt += l.price * l.qty; }
+    return { ...it, qty, amt };
+  });
+}
+function itemsCsv() {
+  const rows = [['그룹', '제품명', '판매가', '판매수량', '판매금액', '남은재고', '시음주남음', '시음소진']];
+  for (const r of itemSummary()) rows.push([groupOf(r), r.name, r.price, r.qty, r.amt, r.stock, r.tasting, usedCount(r.id)]);
+  const live = S.sales.filter(s => !s.canceled);
+  rows.push(['', '합계', '', live.reduce((s, x) => s + x.lines.reduce((a, l) => a + l.qty, 0), 0), live.reduce((s, x) => s + x.total, 0), '', '', S.tasteLog.length]);
+  return rows.map(r => r.join('\t')).join('\n');
+}
+function logCsv() {
+  const rows = [['번호', '시각', '결제', '상태', '품목', '금액']];
+  for (const s of [...S.sales].reverse()) rows.push([s.no, s.at.slice(0, 16).replace('T', ' '), s.pay, s.canceled ? '취소' : '완료', s.lines.map(l => `${l.name} x${l.qty}`).join(', '), s.canceled ? 0 : s.total]);
+  return rows.map(r => r.join('\t')).join('\n');
+}
+async function copyText(text, label) {
+  $('#exportBox').value = text;
+  try { await navigator.clipboard.writeText(text); toast(`${label} 복사됨 · 엑셀에 붙여넣기`); }
+  catch { toast('아래 칸에서 직접 복사해 주세요'); }
+}
+$('#copyItems').addEventListener('click', () => copyText(itemsCsv(), '정산표'));
+$('#copyLog').addEventListener('click', () => copyText(logCsv(), '판매 내역'));
+
+/* ---------- 재고·가격 ---------- */
+$('#invTable').addEventListener('change', e => {
+  const i = e.target; if (!i.dataset.field) return;
+  const it = item(i.dataset.id);
+  if (i.dataset.field === 'group') { it.group = i.value; save(); render(); return; }
+  const v = Math.max(0, Math.floor(Number(i.value) || 0));
+  it[i.dataset.field] = v; save(); render();
+});
+$('#invTable').addEventListener('click', e => { const b = e.target.closest('[data-convert]'); if (b) askConvert(b.dataset.convert); });
+$('#addItem').addEventListener('click', () => {
+  const name = $('#addName').value.trim(); const price = Number($('#addPrice').value);
+  if (!name || !(price > 0)) { toast('제품명과 판매가를 입력하세요'); return; }
+  S.items.push({ id: 'i' + Date.now(), name, price, group: $('#addGroup').value || NO_GROUP, stock: Math.max(0, Number($('#addStock').value) || 0), tasting: Math.max(0, Number($('#addTasting').value) || 0) });
+  ['#addName', '#addPrice', '#addStock', '#addTasting'].forEach(s => $(s).value = '');
+  save(); render(); toast(`${name} 추가됨`);
+});
+let resetArmed = false;
+$('#reset').addEventListener('click', () => {
+  if (!resetArmed) { resetArmed = true; $('#reset').textContent = '정말 초기화? (판매 내역 삭제·재고 원복)'; setTimeout(() => { resetArmed = false; $('#reset').textContent = '행사 초기화'; }, 5000); return; }
+  resetArmed = false; $('#reset').textContent = '행사 초기화'; S = fresh(); save(); render(); toast('초기화 완료');
+});
+
+/* ---------- 렌더 ---------- */
+function render() {
+  // 판매
+  const groups = groupNames();
+  if (S.group && !groups.includes(S.group)) S.group = '';
+  const count = g => S.items.filter(it => groupOf(it) === g).length;
+  $('#groups').innerHTML = [`<button data-group="" aria-pressed="${S.group === ''}">전체<span class="n num">${S.items.length}</span></button>`,
+    ...groups.map(g => `<button data-group="${esc(g)}" aria-pressed="${S.group === g}">${esc(g)}<span class="n num">${count(g)}</span></button>`)].join('');
+  const shown = S.group ? S.items.filter(it => groupOf(it) === S.group) : S.items;
+  $('#products').innerHTML = shown.map(it => {
+    const q = inCart(it.id)?.qty || 0, out = it.stock === 0, low = !out && it.stock <= 3;
+    return `<button class="p${out ? ' out' : ''}" data-add="${it.id}">
+      <div class="name">${esc(it.name)}</div>
+      <div class="price num">${won(it.price)}</div>
+      <div class="meta num">${out ? '<span class="out-tag">품절</span>' : `<span class="${low ? 'low' : ''}">재고 ${it.stock}</span>`}<span>시음 ${it.tasting}</span>
+        ${q ? `<span class="incart">${q}</span>` : out && it.tasting > 0 ? `<span class="convert" data-convert="${it.id}">시음주 → 재고</span>` : ''}</div>
+    </button>`;
+  }).join('');
+  $('#lines').innerHTML = S.cart.length === 0 ? '<div class="empty">품목을 눌러 담으세요</div>' : S.cart.map(l => {
+    const it = item(l.id);
+    return `<div class="line">
+      <div class="lname">${esc(it.name)}</div><div class="ltotal num">${won(it.price * l.qty)}</div>
+      <div class="lctl"><span class="stepper"><button data-dec="${it.id}">−</button><span class="q num">${l.qty}</span><button data-inc="${it.id}" ${l.qty >= it.stock ? 'disabled' : ''}>+</button></span>
+        <span class="lsub num">${won(it.price)} · 재고 ${it.stock}</span><button class="rm" data-rm="${it.id}">삭제</button></div>
+    </div>`;
+  }).join('');
+  $('#total').textContent = won(cartTotal());
+  $('#checkout').disabled = S.cart.length === 0;
+  $('#checkout').textContent = S.cart.length ? `결제 완료 · ${won(cartTotal())}` : '결제 완료';
+  document.querySelectorAll('#pay button').forEach(b => b.setAttribute('aria-pressed', b.dataset.pay === S.pay));
+
+  // 내역·정산
+  const live = S.sales.filter(s => !s.canceled);
+  const sum = k => live.filter(s => s.pay === k).reduce((a, s) => a + s.total, 0);
+  const bottles = live.reduce((a, s) => a + s.lines.reduce((b, l) => b + l.qty, 0), 0);
+  $('#strip').innerHTML = [['매출 합계', won(live.reduce((a, s) => a + s.total, 0))], ['판매 건수', live.length + '건'], ['판매 병수', bottles + '병'],
+    ['카드', won(sum('카드'))], ['현금', won(sum('현금'))], ['계좌이체', won(sum('계좌'))]]
+    .map(([k, v]) => `<div><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('');
+  const rows = itemSummary();
+  $('#itemTable').innerHTML = `<div style="overflow-x:auto"><table><thead><tr><th>제품명</th><th class="r">판매가</th><th class="r">판매</th><th class="r">금액</th><th class="r">남은 재고</th><th class="r">시음주</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.name)}</td><td class="r num">${won(r.price)}</td><td class="r num">${r.qty}</td><td class="r num">${won(r.amt)}</td><td class="r num">${r.stock}</td><td class="r num">${r.tasting}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>합계</td><td></td><td class="r num">${bottles}</td><td class="r num">${won(rows.reduce((a, r) => a + r.amt, 0))}</td><td class="r num">${rows.reduce((a, r) => a + r.stock, 0)}</td><td class="r num">${rows.reduce((a, r) => a + r.tasting, 0)}</td></tr></tfoot></table></div>`;
+  $('#sales').innerHTML = S.sales.length === 0 ? '<div class="empty">아직 판매 기록이 없습니다</div>' : S.sales.map(s => `
+    <div class="sale${s.canceled ? ' canceled' : ''}">
+      <div><div class="t num">${hhmm(s.at)}</div><div class="pm">#${s.no} · ${s.pay}</div></div>
+      <div class="it">${s.lines.map(l => `${esc(l.name)} <b class="num">×${l.qty}</b>`).join('<br>')}</div>
+      <div class="amt num">${won(s.total)}</div>
+      <div class="cx">${s.canceled ? '<span class="tag-cx">취소됨</span>' : `<button data-cancel="${s.no}" class="${pendingCancel === s.no ? 'confirm' : ''}">${pendingCancel === s.no ? '한 번 더 누르면 취소' : '판매 취소'}</button>`}</div>
+    </div>`).join('');
+
+  // 시음주
+  const tLeft = S.items.reduce((a, it) => a + it.tasting, 0), tUsed = S.tasteLog.length;
+  $('#tasteStrip').innerHTML = [['남은 시음주', tLeft + '병'], ['소진', tUsed + '병'], ['소진 품목', new Set(S.tasteLog.map(e => e.id)).size + '종']]
+    .map(([k, v]) => `<div><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('');
+  const tItems = S.items.filter(it => it.tasting > 0 || usedCount(it.id) > 0);
+  $('#tasteList').innerHTML = tItems.length === 0 ? '<div class="empty">시음주가 등록된 품목이 없습니다. 재고·가격 탭에서 시음주 수량을 입력하세요.</div>' : tItems.map(it => `
+    <div class="tst">
+      <div><div class="nm">${esc(it.name)}</div><div class="sub num">소진 ${usedCount(it.id)}병 · 판매 재고 ${it.stock}</div></div>
+      <div class="left num${it.tasting === 0 ? ' zero' : ''}">${it.tasting}</div>
+      <button class="use" data-use="${it.id}" ${it.tasting <= 0 ? 'disabled' : ''}>1병 소진</button>
+      <button class="back" data-back="${it.id}" ${usedCount(it.id) === 0 ? 'disabled' : ''}>되돌리기</button>
+      <button class="cv2" data-convert="${it.id}" ${it.tasting <= 0 ? 'disabled' : ''}>판매로 전환</button>
+    </div>`).join('');
+  $('#tasteLog').innerHTML = S.tasteLog.length === 0 ? '<div class="empty">아직 소진 기록이 없습니다</div>' : S.tasteLog.slice(0, 50).map(e => `
+    <div class="tlog"><span class="t num">${hhmm(e.at)}</span><span>${esc(e.name)}</span><button class="undo" data-undo="${e.no}">되돌리기</button></div>`).join('');
+
+  // 재고·가격
+  $('#invTable').innerHTML = `<div style="overflow-x:auto"><table><thead><tr><th>제품명</th><th>그룹</th><th class="r">판매가</th><th class="r">판매 재고</th><th class="r">시음주</th><th class="r">전환</th></tr></thead><tbody>
+    ${S.items.map(it => `<tr><td>${esc(it.name)}</td>
+      <td><select data-id="${it.id}" data-field="group">${groupOptions(groupOf(it))}</select></td>
+      <td class="r"><input type="number" inputmode="numeric" step="1000" value="${it.price}" data-id="${it.id}" data-field="price"></td>
+      <td class="r"><input type="number" inputmode="numeric" value="${it.stock}" data-id="${it.id}" data-field="stock"></td>
+      <td class="r"><input type="number" inputmode="numeric" value="${it.tasting}" data-id="${it.id}" data-field="tasting"></td>
+      <td class="r"><button class="cv" data-convert="${it.id}" ${it.tasting <= 0 ? 'disabled' : ''}>시음주 1병 → 재고</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+  $('#groupMgr').innerHTML = S.groups.map(g => `<span class="row"><input value="${esc(g)}" data-rename="${esc(g)}"><span class="n num">${count(g)}</span><button class="del" data-del="${esc(g)}" title="삭제">×</button></span>`).join('')
+    + `<span class="add"><input id="groupName" placeholder="새 그룹 이름" value="${esc($('#groupName')?.value || '')}"><button class="btn primary" id="groupAdd">추가</button></span>`;
+  $('#addGroup').innerHTML = groupOptions($('#addGroup').value || S.groups[0] || NO_GROUP);
+}
+render();
+</script>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/expo-pos/sw.js').catch(() => {});
+</script>
+</body>
+</html>

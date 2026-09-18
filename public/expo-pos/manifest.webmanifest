@@ -1,0 +1,11 @@
+{
+  "name": "까브드뱅 행사 POS",
+  "short_name": "행사 POS",
+  "start_url": "/expo-pos/index.html",
+  "scope": "/expo-pos/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f5f7",
+  "theme_color": "#f4f5f7",
+  "icons": [{ "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }]
+}
