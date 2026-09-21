@@ -95,8 +95,12 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   if (promisedAmount != null) {
     const expected = Math.min(promisedAmount, c.net_now);
     const remain = c.net_now - expected;
-    // 약속 금액이 이월분만 커버하면 당월 신규분의 다음 회차를 비고로 안내 (약속일 기준 다음 달)
-    return { expected, remain, dueDate: manualDate, note: nextCycleNote(pt, manualDate ?? today, remain) };
+    // 비고는 잔액이 '당월 신규분'뿐일 때만 — 약속이 이월분을 전액 커버해야 한다.
+    // 부분 약속(예: 부띠끄 셀라 200만)이라 기존 결제일을 넘긴 연체 이월분이 잔액에 섞여 있으면
+    // 다음 회차 안내가 오히려 오해를 부르므로 표기하지 않음.
+    const carry = Math.max(c.net_close - c.period_payment, 0);
+    const note = expected >= carry ? nextCycleNote(pt, manualDate ?? today, remain) : null;
+    return { expected, remain, dueDate: manualDate, note };
   }
 
   // 분할상환·선결제·미지정·미수없음: 금액 공란 (예정일은 직접 정한 값이 있으면 표기)
