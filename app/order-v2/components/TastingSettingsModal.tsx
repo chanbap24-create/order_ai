@@ -64,7 +64,8 @@ export function TastingSettingsModal({ tab, clientCode, onClose }: { tab: OrderT
   const onFavSearch = async (q: string) => {
     setFavQ(q);
     if (q.trim().length < 1) { setFavResults([]); return; }
-    try { setFavResults(await searchWines(q, tab)); } catch { setFavResults([]); }
+    // 시음주는 실물이 있어야 하므로 재고 0 품목은 후보에서 제외 (서버 필터)
+    try { setFavResults(await searchWines(q, tab, true)); } catch { setFavResults([]); }
   };
   const addFav = async (itemNo: string, itemName: string) => {
     setFavQ(""); setFavResults([]);

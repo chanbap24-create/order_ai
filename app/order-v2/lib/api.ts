@@ -105,10 +105,10 @@ export async function extractFromImage(
   return json;
 }
 
-/** 와인/글라스 수동 검색 */
-export async function searchWines(q: string, tab: OrderTab): Promise<SearchResult[]> {
+/** 와인/글라스 수동 검색. inStock=true면 재고 있는 품목만 (시음주 선택 등) */
+export async function searchWines(q: string, tab: OrderTab, inStock?: boolean): Promise<SearchResult[]> {
   if (!q.trim()) return [];
-  const url = `/api/order-v2/search?q=${encodeURIComponent(q)}&tab=${tab}`;
+  const url = `/api/order-v2/search?q=${encodeURIComponent(q)}&tab=${tab}${inStock ? '&in_stock=1' : ''}`;
   const res = await fetch(url);
   const json = await res.json();
   return json.results || [];

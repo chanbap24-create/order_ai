@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         const { data, error } = await supabase
           .from(table)
           .select('item_no, item_name, supply_price, available_stock, units_per_box')
+          .not('item_no', 'ilike', 'zk%') // 백화점 매장 품번(ZK) 제외 — 발주 매칭 후보 아님
           .order('item_no', { ascending: true })
           .range(from, from + 999);
         if (error) throw error;
