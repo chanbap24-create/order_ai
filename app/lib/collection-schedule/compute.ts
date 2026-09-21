@@ -65,6 +65,20 @@ function scheduleDue(pt: PaymentType, today: Date, hasEff: boolean): Date | null
   return (hasEff && thisN >= today) ? thisN : workdayOnOrAfter(ny, nm0, n);
 }
 
+// 비고: 당월 신규분(미수잔액)의 다음 회차 안내 — 익월류(nm·nme)만.
+//   예: 익월말 — 8월분 100만 → 9/30 예정, 9월 신규 110만 → '10월30일 1,100,000원'
+//   익익월(nnm)은 잔액에 두 달치 신규가 섞여 다음 회차 금액이 확정이 아니므로 제외.
+//   base = 이번 회차가 속한 달 (자동계산=오늘, 브리핑 약속=약속일).
+const NNM_TYPES = new Set<PaymentType>(['nnm10', 'nnm15', 'nnme']);
+function nextCycleNote(pt: PaymentType | null, base: Date, remain: number): string | null {
+  if (!pt || remain <= 0 || NNM_TYPES.has(pt)) return null;
+  if (!MONTH_END_TYPES.has(pt) && !NM_DAY[pt]) return null;
+  const y = base.getUTCFullYear(), m0 = base.getUTCMonth();
+  const ny = m0 === 11 ? y + 1 : y, nm0 = m0 === 11 ? 0 : m0 + 1;
+  const occ = MONTH_END_TYPES.has(pt) ? lastWorkday(ny, nm0) : workdayOnOrAfter(ny, nm0, NM_DAY[pt]!);
+  return `${occ.getUTCMonth() + 1}월${occ.getUTCDate()}일 ${remain.toLocaleString('ko-KR')}원`;
+}
+
 // todayISO: 'YYYY-MM-DD'
 export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const today = new Date(`${todayISO}T00:00:00Z`);
@@ -80,7 +94,9 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   // 단 입금예정금액은 총미수를 넘을 수 없음(기납입/반품으로 잔액이 줄어든 경우 캡).
   if (promisedAmount != null) {
     const expected = Math.min(promisedAmount, c.net_now);
-    return { expected, remain: c.net_now - expected, dueDate: manualDate, note: null };
+    const remain = c.net_now - expected;
+    // 약속 금액이 이월분만 커버하면 당월 신규분의 다음 회차를 비고로 안내 (약속일 기준 다음 달)
+    return { expected, remain, dueDate: manualDate, note: nextCycleNote(pt, manualDate ?? today, remain) };
   }
 
   // 분할상환·선결제·미지정·미수없음: 금액 공란 (예정일은 직접 정한 값이 있으면 표기)
@@ -109,18 +125,7 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const raw = thisCycle ? eff : c.net_now;
   const expected = Math.min(raw, c.net_now);
   const remain = c.net_now - expected;
-
-  // 비고: 이번 회차가 이월분만 걷는 경우, 당월 신규분(미수잔액)의 다음 회차를 안내.
-  //   예: 익월말 거래처 — 8월분 100만 → 9/30, 9월 신규 110만 → '10월31일 1,100,000원'
-  //   익익월(nnm)은 잔액에 두 달치 신규가 섞여 다음 회차 금액이 확정이 아니므로 제외.
-  let note: string | null = null;
-  const NNM = new Set<PaymentType>(['nnm10', 'nnm15', 'nnme']);
-  if (thisCycle && remain > 0 && !NNM.has(pt)) {
-    const ny = m0 === 11 ? y + 1 : y, nm0 = m0 === 11 ? 0 : m0 + 1;
-    const nextOcc = MONTH_END_TYPES.has(pt)
-      ? lastWorkday(ny, nm0)
-      : workdayOnOrAfter(ny, nm0, NM_DAY[pt]!);
-    note = `${nextOcc.getUTCMonth() + 1}월${nextOcc.getUTCDate()}일 ${remain.toLocaleString('ko-KR')}원`;
-  }
+  // 이번 회차가 이월분만 걷는 경우, 당월 신규분(미수잔액)의 다음 회차를 비고로 안내
+  const note = thisCycle ? nextCycleNote(pt, today, remain) : null;
   return { expected, remain, dueDate: due, note };
 }
