@@ -118,11 +118,17 @@ export async function listIncomingItems(manager: string, isAdmin: boolean): Prom
       });
     }
   }
+  // 스케줄 물량 소화 판정 유예 — 입항 후 10일 안에는 옛 가용재고가 남아 있어도
+  // ERP 미반영(통관 진행 중)으로 보고 스케줄 병수를 예정으로 표시한다.
+  // (기존엔 가용>0이면 무조건 0 처리 → 옛 재고 1병 때문에 신규 입항 수량이 안 보이는 버그)
+  const graceCut = new Date(Date.now() - 10 * 86400_000).toISOString().slice(0, 10);
   for (const code of extraCodes) {
     const w = extraInv.get(code);
     const schedInfo = recentSched.get(code);
+    const arrivalD = arrival.get(code);
+    const absorbed = !!w?.available && !!arrivalD && arrivalD < graceCut; // 입항 10일 경과 + 가용만 남음 → 이미 소화
     const row = {
-      incoming: w?.incoming || (w?.available ? 0 : schedInfo?.btls || 0), // 재고표 미반영이면 스케줄 병수
+      incoming: w?.incoming || (absorbed ? 0 : schedInfo?.btls || 0), // 재고표 미반영이면 스케줄 병수
       bonded: w?.bonded || 0,
       available: w?.available || 0,
     };
@@ -168,20 +174,48 @@ export async function removeRequest(id: number, manager: string, isAdmin: boolea
 
 export type ArrivalNotice = { item_code: string; item_name: string; available: number; requests: IncomingRequest[] };
 
+/** 최근(21일) 입항 스케줄 병수 — '이번 물량이 실제로 가용에 들어왔는지' 통관 완료 판정 기준.
+ *  옛 잔여 가용재고(예: 뫼르소 블라니 1병·레 끌루 75병) 때문에 아직 통관 전인
+ *  신규 입항이 통관 완료로 오인되는 것 방지. */
+async function pendingArrivalBtls(codes: string[]): Promise<Map<string, number>> {
+  if (codes.length === 0) return new Map();
+  const todayKst = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+  const cut = new Date(Date.now() - 21 * 86400_000).toISOString().slice(0, 10);
+  const m = new Map<string, number>();
+  for (let i = 0; i < codes.length; i += 400) {
+    const { data } = await supabase.from('import_schedule')
+      .select('item_code, arrival_date, total_btls')
+      .in('item_code', codes.slice(i, i + 400))
+      .gte('arrival_date', cut).lte('arrival_date', todayKst);
+    for (const s of data || []) {
+      m.set(s.item_code, (m.get(s.item_code) || 0) + (Number(s.total_btls) || 0));
+    }
+  }
+  return m;
+}
+/** 최근 입항 물량이 있으면 가용이 그 절반은 돼야 통관 완료로 인정 (부분 통관·직후 판매 여유분 50%) */
+const arrivedEnough = (available: number, pendingBtls: number | undefined) =>
+  !pendingBtls || available >= pendingBtls * 0.5;
+
 /** 통관 완료(가용재고 발생)된 대기 품목 — 세일즈 접속 시 팝업용 */
 export async function checkArrivals(manager: string): Promise<ArrivalNotice[]> {
   const { data: reqs } = await supabase.from('incoming_requests')
     .select('*').eq('status', 'waiting').eq('manager', manager);
   if (!reqs || reqs.length === 0) return [];
   const codes = [...new Set(reqs.map((r) => r.item_code))];
-  const { data: inv } = await supabase.from('inventory_cdv')
-    .select('item_no, item_name, available_stock').in('item_no', codes).gt('available_stock', 0);
+  const [{ data: inv }, pending] = await Promise.all([
+    supabase.from('inventory_cdv')
+      .select('item_no, item_name, available_stock').in('item_no', codes).gt('available_stock', 0),
+    pendingArrivalBtls(codes),
+  ]);
   const notices: ArrivalNotice[] = [];
   for (const w of inv || []) {
+    const available = Number(w.available_stock) || 0;
+    if (!arrivedEnough(available, pending.get(w.item_no))) continue; // 신규 물량 미통관 — 옛 잔여 가용 오인 방지
     notices.push({
       item_code: w.item_no,
       item_name: w.item_name || '',
-      available: Number(w.available_stock) || 0,
+      available,
       requests: (reqs as IncomingRequest[]).filter((r) => r.item_code === w.item_no),
     });
   }
@@ -317,10 +351,15 @@ export async function listRecentArrivals(manager: string, days = 14, arrivalWind
     const b = quotedBase.get(`${clientCode}|${vintageBaseOf(itemCode)}`);
     return b && itemNk && b.nk === itemNk ? b.rate : null; // 이름 키 불일치 = 다른 와인 → 폴백 금지
   };
-  const { data: inv } = await supabase.from('inventory_cdv')
-    .select('item_no, item_name, available_stock, supply_price').in('item_no', codes).gt('available_stock', 0);
+  const [{ data: inv }, pendingBtls] = await Promise.all([
+    supabase.from('inventory_cdv')
+      .select('item_no, item_name, available_stock, supply_price').in('item_no', codes).gt('available_stock', 0),
+    pendingArrivalBtls(codes),
+  ]);
   const out: RecentArrival[] = [];
   for (const w of inv || []) {
+    // 신규 입항 물량이 아직 가용에 안 들어왔으면(옛 잔여 재고만 있으면) 통관 완료 아님
+    if (!arrivedEnough(Number(w.available_stock) || 0, pendingBtls.get(w.item_no))) continue;
     const rs = alive.filter((r) => r.item_code === w.item_no);
     const reqClientCodes = new Set(rs.map((r) => r.client_code).filter(Boolean));
     const wNk = nameKeyOf(w.item_name);
