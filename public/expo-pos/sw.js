@@ -1,5 +1,5 @@
 // 행사 POS 오프라인 캐시 — 앱 셸을 저장해 인터넷 없이도 열리게 한다. 내용 바꾸면 VERSION을 올릴 것.
-const VERSION = 'expo-pos-v10';
+const VERSION = 'expo-pos-v11';
 const SHELL = ['/expo-pos/index.html', '/expo-pos/manifest.webmanifest', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {

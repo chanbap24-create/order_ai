@@ -86,6 +86,13 @@ main { flex: 1; min-height: 0; display: flex; }
 .p:active { transform: scale(0.98); background: var(--surface-2); }
 .p .name { flex: none; font-weight: 700; font-size: 17px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .p .price { font-size: 15px; font-weight: 500; color: var(--ink-2); margin-top: auto; }
+.p { position: relative; }
+.p .star { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; line-height: 36px; text-align: center; color: var(--ink-3); opacity: 0.55; }
+.p .star.on { color: var(--accent); opacity: 1; }
+.p .name { padding-right: 30px; }
+.p.fav { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.inv .fstar { width: 38px; height: 38px; border-radius: 50%; font-size: 20px; color: var(--ink-3); opacity: 0.5; }
+.inv .fstar.on { color: var(--accent); opacity: 1; }
 .p .meta { font-size: 13px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
 .p.out { opacity: 0.6; }
 .p.out .price { color: var(--ink-3); }
@@ -228,7 +235,7 @@ textarea.export { width: 100%; height: 120px; margin-top: 8px; font: 13px/1.5 ui
   .p .name { font-size: 15.5px; }
   .page { padding: 12px 14px 40px; }
   .strip .v { font-size: 18px; }
-  th:first-child, td:first-child { min-width: 170px; }
+  #invTable th:nth-child(2), #invTable td:nth-child(2), #itemTable th:first-child, #itemTable td:first-child { min-width: 170px; }
 }
 
 /* 폰 세로 (<700px 세로 또는 아주 좁은 화면): 장바구니를 하단 시트로 */
@@ -280,7 +287,7 @@ textarea.export { width: 100%; height: 120px; margin-top: 8px; font: 13px/1.5 ui
   .inv select { font-size: 16px; }
   .inv .cv { font-size: 12px; padding: 0 6px; }
   th, td { padding: 8px 8px; }
-  th:first-child, td:first-child { min-width: 150px; }
+  #invTable th:nth-child(2), #invTable td:nth-child(2), #itemTable th:first-child, #itemTable td:first-child { min-width: 150px; }
   .setup { grid-template-columns: 1fr; }
   .dev { grid-template-columns: 1fr; }
   .dlg { padding: 18px 16px 14px; }
@@ -421,7 +428,7 @@ const DEFAULT_ITEMS = [
   ['펠라사 모스카토 다스티', 27000, 60, '스파클링'], ['글라지아 까바', 19000, 24, '스파클링'],
   ['쏨 이올라 아미티 힐스 윌라멧 밸리 샤르도네', 145000, 6, '화이트'], ['쏨 쿰스빌 나파밸리 카베르네 소비뇽', 232000, 6, '레드'],
   ['마콩-빌라주 떼루아 뒤 마코네 2024', 63000, 12, '화이트'], ["마콩-베르제 '레 페르슈' 2024", 73000, 12, '화이트'],
-].map(([name, price, stock, group], i) => ({ id: 'i' + (i + 1), name, price, stock, tasting: 0, group }));
+].map(([name, price, stock, group], i) => ({ id: 'i' + (i + 1), name, price, stock, tasting: 0, group, fav: false }));
 const NO_GROUP = '기타';
 const DEFAULT_GROUPS = ['포트', '마데이라', '스파클링', '화이트', '레드'];
 
@@ -433,6 +440,7 @@ function load() {
       for (const it of d.items) if (!it.group) it.group = DEFAULT_ITEMS.find(x => x.id === it.id)?.group || NO_GROUP;
       if (!Array.isArray(d.groups)) d.groups = [...new Set([...DEFAULT_GROUPS, ...d.items.map(it => it.group)])].filter(g => g !== NO_GROUP);
       if (!Array.isArray(d.tasteLog)) d.tasteLog = [];
+      for (const it of d.items) if (typeof it.fav !== 'boolean') it.fav = false;
       return { ...fresh(), ...d };
     } } } catch {}
   return fresh();
@@ -504,7 +512,7 @@ $('#groupMgr').addEventListener('click', e => {
   }
   if (e.target.id === 'groupAdd') {
     const name = $('#groupName').value.trim();
-    if (!name || name === NO_GROUP || S.groups.includes(name)) { toast('이미 있거나 사용할 수 없는 이름입니다'); return; }
+    if (!name || name === NO_GROUP || name === '★' || S.groups.includes(name)) { toast('이미 있거나 사용할 수 없는 이름입니다'); return; }
     S.groups.push(name); $('#groupName').value = ''; save(); render(); toast(`${name} 그룹 추가`);
   }
 });
@@ -548,6 +556,7 @@ function convertTasting(id) {
   if (it.tasting <= 0) { toast('시음주가 없습니다'); return; }
   it.tasting--; it.stock++; save(); render(); toast(`${it.name} 시음주 1병 → 판매 재고`);
 }
+function toggleFav(id) { const it = item(id); it.fav = !it.fav; save(); render(); toast(it.fav ? `${it.name} 즐겨찾기 등록 · 맨 위에 표시` : `${it.name} 즐겨찾기 해제`); }
 function useTasting(id) {
   const it = item(id);
   if (it.tasting <= 0) { toast('남은 시음주가 없습니다'); return; }
@@ -594,6 +603,7 @@ function cancelSale(no) {
 }
 
 $('#products').addEventListener('click', e => {
+  const st = e.target.closest('[data-fav]'); if (st) { toggleFav(st.dataset.fav); return; }
   const cv = e.target.closest('[data-convert]'); if (cv) { askConvert(cv.dataset.convert); return; }
   const p = e.target.closest('[data-add]'); if (p) addToCart(p.dataset.add);
 });
@@ -652,7 +662,7 @@ $('#invTable').addEventListener('change', e => {
   const v = Math.max(0, Math.floor(Number(i.value) || 0));
   it[i.dataset.field] = v; save(); render();
 });
-$('#invTable').addEventListener('click', e => { const b = e.target.closest('[data-convert]'); if (b) askConvert(b.dataset.convert); });
+$('#invTable').addEventListener('click', e => { const f = e.target.closest('[data-fav]'); if (f) { toggleFav(f.dataset.fav); return; } const b = e.target.closest('[data-convert]'); if (b) askConvert(b.dataset.convert); });
 $('#addItem').addEventListener('click', () => {
   const name = $('#addName').value.trim(); const price = Number($('#addPrice').value);
   if (!name || !(price > 0)) { toast('제품명과 판매가를 입력하세요'); return; }
@@ -710,14 +720,19 @@ $('#reset').addEventListener('click', () => {
 function render() {
   // 판매
   const groups = groupNames();
-  if (S.group && !groups.includes(S.group)) S.group = '';
+  if (S.group && S.group !== '★' && !groups.includes(S.group)) S.group = '';
+  if (S.group === '★' && !S.items.some(it => it.fav)) S.group = '';
   const count = g => S.items.filter(it => groupOf(it) === g).length;
   $('#groups').innerHTML = [`<button data-group="" aria-pressed="${S.group === ''}">전체<span class="n num">${S.items.length}</span></button>`,
+    ...(S.items.some(it => it.fav) ? [`<button data-group="★" aria-pressed="${S.group === '★'}">★ 즐겨찾기<span class="n num">${S.items.filter(it => it.fav).length}</span></button>`] : []),
     ...groups.map(g => `<button data-group="${esc(g)}" aria-pressed="${S.group === g}">${esc(g)}<span class="n num">${count(g)}</span></button>`)].join('');
-  const shown = S.group ? S.items.filter(it => groupOf(it) === S.group) : S.items;
+  const favCount = S.items.filter(it => it.fav).length;
+  const base = S.group === '★' ? S.items.filter(it => it.fav) : S.group ? S.items.filter(it => groupOf(it) === S.group) : S.items;
+  const shown = [...base].sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
   $('#products').innerHTML = shown.map(it => {
     const q = inCart(it.id)?.qty || 0, out = it.stock === 0, low = !out && it.stock <= 3;
-    return `<button class="p${out ? ' out' : ''}" data-add="${it.id}">
+    return `<button class="p${out ? ' out' : ''}${it.fav ? ' fav' : ''}" data-add="${it.id}">
+      <span class="star${it.fav ? ' on' : ''}" data-fav="${it.id}" role="button" aria-label="즐겨찾기">${it.fav ? '★' : '☆'}</span>
       <div class="name">${esc(it.name)}</div>
       <div class="price num">${won(it.price)}</div>
       <div class="meta num">${out ? '<span class="out-tag">품절</span>' : `<span class="${low ? 'low' : ''}">재고 ${it.stock}</span>`}<span>시음 ${it.tasting}</span>
@@ -776,8 +791,8 @@ function render() {
     <div class="tlog"><span class="t num">${hhmm(e.at)}</span><span>${esc(e.name)}</span><button class="undo" data-undo="${e.no}">되돌리기</button></div>`).join('');
 
   // 재고·가격
-  $('#invTable').innerHTML = `<div style="overflow-x:auto"><table><thead><tr><th>제품명</th><th>그룹</th><th class="r">판매가</th><th class="r">판매 재고</th><th class="r">시음주</th><th class="r">전환</th></tr></thead><tbody>
-    ${S.items.map(it => `<tr><td>${esc(it.name)}</td>
+  $('#invTable').innerHTML = `<div style="overflow-x:auto"><table><thead><tr><th style="width:44px">★</th><th>제품명</th><th>그룹</th><th class="r">판매가</th><th class="r">판매 재고</th><th class="r">시음주</th><th class="r">전환</th></tr></thead><tbody>
+    ${S.items.map(it => `<tr><td><button class="fstar${it.fav ? ' on' : ''}" data-fav="${it.id}" aria-label="즐겨찾기">${it.fav ? '★' : '☆'}</button></td><td>${esc(it.name)}</td>
       <td><select data-id="${it.id}" data-field="group">${groupOptions(groupOf(it))}</select></td>
       <td class="r"><input type="number" inputmode="numeric" step="1000" value="${it.price}" data-id="${it.id}" data-field="price"></td>
       <td class="r"><input type="number" inputmode="numeric" value="${it.stock}" data-id="${it.id}" data-field="stock"></td>
