@@ -135,11 +135,13 @@ export const PRICE_OPTIONS = [
 
 /** wine_type(한/영 혼재) → 정규 타입 */
 export function normalizeWineType(t: string): 'red' | 'white' | 'sparkling' | 'rose' | 'fortified' | '' {
-  const s = (t || '').toLowerCase().trim();
+  // "논스파클링" 같은 부정어는 매칭 전에 제거
+  const s = (t || '').toLowerCase().trim().replace(/논\s?스파클링|non-?sparkling/g, '');
   if (!s) return '';
+  // 스파클링 최우선 — "스파클링 (화이트)"·"스위트 스파클링 레드"처럼 색 병기 시 색이 먼저 잡히는 오분류 방지
+  if (s.includes('스파클링') || s.includes('sparkling') || s.includes('샴페인') || s.includes('champagne')) return 'sparkling';
   if (s.includes('레드') || s.includes('red')) return 'red';
   if (s.includes('화이트') || s.includes('white')) return 'white';
-  if (s.includes('스파클링') || s.includes('sparkling') || s.includes('샴페인') || s.includes('champagne')) return 'sparkling';
   if (s.includes('로제') || s.includes('rose') || s.includes('rosé')) return 'rose';
   if (s.includes('주정강화') || s.includes('fortified') || s.includes('디저트') || s.includes('dessert')) return 'fortified';
   return '';
