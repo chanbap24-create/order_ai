@@ -34,3 +34,42 @@ export const totalStockOf = (r: RawStockRow): number =>
 /** 파이프라인 합계 = 가용 + 보세 + 입고예정 (신규/입항 와인 포함 판정용) */
 export const pipelineStockOf = (r: RawStockRow): number =>
   totalStockOf(r) + (Number(r.incoming_stock) || 0);
+
+// ── 백화점 매장 재고 노출 제한 ──────────────────────────────────────────
+// ERP total_stock(재고수량)에는 백화점 매장 재고가 포함된다.
+// 백화점 채널은 영업2부 소관 — 영업2부(+관리자·임원) 외에는 인벤토리에서
+// 매장 재고를 보지 못하게 total_stock에서 매장분을 빼고 매장 컬럼을 제거한다.
+
+/** CDV 재고표의 백화점 매장 컬럼 */
+export const DEPT_STORE_COLS_CDV = [
+  'store_hyundai_main', 'store_hyundai_jungdong', 'store_hyundai_trade', 'store_ssg_gangnam', 'store_thehyundai',
+] as const;
+/** DL 재고표의 백화점 매장 컬럼 */
+export const DEPT_STORE_COLS_DL = ['store_ssg_gangnam_dl', 'store_ssg_southcity'] as const;
+
+/** 백화점 매장 재고를 볼 수 있는 계정 — 영업2부 또는 관리자급 */
+export function canSeeDeptStoreStock(s: { department?: string; role?: string } | null): boolean {
+  if (!s) return false;
+  if (s.department === '영업2부') return true;
+  return ['admin', 'sales_admin', 'executive'].includes(s.role || '');
+}
+
+/** 권한 없는 계정용 행 마스킹 — total_stock에서 매장분 차감 + 매장 컬럼 제거 */
+export function stripDeptStoreStock<T extends Record<string, unknown>>(
+  rows: T[],
+  tab: 'CDV' | 'DL',
+): T[] {
+  const cols = tab === 'DL' ? DEPT_STORE_COLS_DL : DEPT_STORE_COLS_CDV;
+  return rows.map((r) => {
+    const out: Record<string, unknown> = { ...r };
+    let stores = 0;
+    for (const c of cols) {
+      stores += Number(out[c]) || 0;
+      delete out[c];
+    }
+    if (stores > 0 && typeof out.total_stock === 'number') {
+      out.total_stock = Math.max(0, (out.total_stock as number) - stores);
+    }
+    return out as T;
+  });
+}

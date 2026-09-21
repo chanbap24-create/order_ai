@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { sanitizeFilterValue } from '@/app/lib/validation';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
+import { getSession } from '@/app/lib/auth';
+import { canSeeDeptStoreStock, stripDeptStoreStock } from '@/app/lib/stock';
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,6 +85,9 @@ export async function GET(request: NextRequest) {
         r.grape_varieties && r.grape_varieties.toLowerCase().includes(filterGrapeVariety.toLowerCase())
       );
     }
+
+    // 백화점 매장 재고는 영업2부(+관리자급)만 — 그 외는 재고수량에서 매장분 차감·컬럼 제거
+    if (!canSeeDeptStoreStock(await getSession())) results = stripDeptStoreStock(results, 'CDV');
 
     return NextResponse.json({
       results,

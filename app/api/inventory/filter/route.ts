@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
+import { getSession } from '@/app/lib/auth';
+import { canSeeDeptStoreStock, stripDeptStoreStock } from '@/app/lib/stock';
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,6 +99,11 @@ export async function GET(request: NextRequest) {
           discontinued: discSet.has(brandMap[r.item_no] || String(r.brand || '').toUpperCase()),
         }));
       }
+    }
+
+    // 백화점 매장 재고는 영업2부(+관리자급)만 — 그 외는 재고수량에서 매장분 차감·컬럼 제거
+    if (!canSeeDeptStoreStock(await getSession())) {
+      results = stripDeptStoreStock(results, tab === 'DL' ? 'DL' : 'CDV');
     }
 
     return NextResponse.json({ results, count: results.length });
