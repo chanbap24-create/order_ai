@@ -170,6 +170,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // ── /api/expo-pos/sync → 행사 POS(공개 정적 페이지) 백업: 라우트가 x-expo-key 헤더(EXPO_POS_KEY) 자체 검증 ──
+  if (pathname === '/api/expo-pos/sync') {
+    return NextResponse.next();
+  }
+
   // ── /api/telegram/webhook (POST) → 텔레그램 서버 호출: 라우트가 secret_token 헤더 자체 검증 ──
   if (pathname === '/api/telegram/webhook' && request.method === 'POST') {
     return NextResponse.next();

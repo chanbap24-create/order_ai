@@ -27,6 +27,7 @@ type EnvConfig = {
   COMPANY_API_URL?: string;      // 전산(ERP) API — sync-daily
   COMPANY_API_KEY?: string;
   SETUP_SECRET_KEY?: string;     // 초기 계정 셋업 라우트 보호 키
+  EXPO_POS_KEY?: string;         // 행사 POS(/expo-pos) 백업 API 행사 코드. 미설정 시 백업 비활성(401)
   // 텔레그램 봇 (직원 내부 알림). 미설정 시 발송 비활성(no-op).
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_WEBHOOK_SECRET?: string; // setWebhook secret_token — webhook 요청 검증용
@@ -91,6 +92,7 @@ function validateEnv(): EnvConfig {
     COMPANY_API_URL: process.env.COMPANY_API_URL,
     COMPANY_API_KEY: process.env.COMPANY_API_KEY,
     SETUP_SECRET_KEY: process.env.SETUP_SECRET_KEY,
+    EXPO_POS_KEY: process.env.EXPO_POS_KEY,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET,
     NODE_ENV: nodeEnv,
