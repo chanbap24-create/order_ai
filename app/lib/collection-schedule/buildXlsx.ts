@@ -69,6 +69,7 @@ function addSheet(wb: ExcelJS.Workbook, name: string, clients: ScheduleClient[],
     if (cols.expected != null) total.getCell(15).value = cols.expected;
     if (cols.remain != null) total.getCell(16).value = cols.remain;
     if (cols.dueDate != null) total.getCell(17).value = cols.dueDate;
+    if (cols.note) total.getCell(18).value = cols.note; // 비고 — 당월 신규분 다음 회차 안내
     styleRow(total);
   }
 

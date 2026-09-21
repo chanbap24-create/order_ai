@@ -28,6 +28,7 @@ export interface ScheduleCols {
   expected: number | null;   // 입금예정금액 (null=공란)
   remain: number | null;     // 미수잔액
   dueDate: Date | null;      // 입금예정일
+  note: string | null;       // 비고 — 당월 신규분의 다음 회차 안내 (예: '10월31일 1,100,000원')
 }
 
 // 수금일(N일) 매핑 — 익익월(nnm)도 매월 같은 N일 주기라 동일 취급(마감시점만 RPC cl_d가 2달 전).
@@ -79,13 +80,13 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   // 단 입금예정금액은 총미수를 넘을 수 없음(기납입/반품으로 잔액이 줄어든 경우 캡).
   if (promisedAmount != null) {
     const expected = Math.min(promisedAmount, c.net_now);
-    return { expected, remain: c.net_now - expected, dueDate: manualDate };
+    return { expected, remain: c.net_now - expected, dueDate: manualDate, note: null };
   }
 
   // 분할상환·선결제·미지정·미수없음: 금액 공란 (예정일은 직접 정한 값이 있으면 표기)
-  if (c.manual_amount) return { expected: null, remain: null, dueDate: manualDate };
-  if (!pt || pt === 'prepay') return { expected: null, remain: null, dueDate: manualDate };
-  if (c.net_now <= 0) return { expected: null, remain: null, dueDate: manualDate };
+  if (c.manual_amount) return { expected: null, remain: null, dueDate: manualDate, note: null };
+  if (!pt || pt === 'prepay') return { expected: null, remain: null, dueDate: manualDate, note: null };
+  if (c.net_now <= 0) return { expected: null, remain: null, dueDate: manualDate, note: null };
 
   // 남은 이월분 = 마감시점 이월잔액 − 이 기간 수금
   const eff = Math.max(c.net_close - c.period_payment, 0);
@@ -94,7 +95,7 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   if (pt === 'eom') {
     // 월말: 미수 전액을 이달 말일에.
     const expected = c.net_now;
-    return { expected, remain: c.net_now - expected, dueDate: due };
+    return { expected, remain: c.net_now - expected, dueDate: due, note: null };
   }
 
   // 익월/익익월(nm·nnm·nme·nnme): 이번달 수금일이 아직 안 지났고 이월분이 있으면 → 이월분만 이번 수금일에
@@ -107,5 +108,19 @@ export function computeCols(c: ScheduleClient, todayISO: string): ScheduleCols {
   const thisCycle = eff > 0 && thisOcc != null && thisOcc >= today;
   const raw = thisCycle ? eff : c.net_now;
   const expected = Math.min(raw, c.net_now);
-  return { expected, remain: c.net_now - expected, dueDate: due };
+  const remain = c.net_now - expected;
+
+  // 비고: 이번 회차가 이월분만 걷는 경우, 당월 신규분(미수잔액)의 다음 회차를 안내.
+  //   예: 익월말 거래처 — 8월분 100만 → 9/30, 9월 신규 110만 → '10월31일 1,100,000원'
+  //   익익월(nnm)은 잔액에 두 달치 신규가 섞여 다음 회차 금액이 확정이 아니므로 제외.
+  let note: string | null = null;
+  const NNM = new Set<PaymentType>(['nnm10', 'nnm15', 'nnme']);
+  if (thisCycle && remain > 0 && !NNM.has(pt)) {
+    const ny = m0 === 11 ? y + 1 : y, nm0 = m0 === 11 ? 0 : m0 + 1;
+    const nextOcc = MONTH_END_TYPES.has(pt)
+      ? lastWorkday(ny, nm0)
+      : workdayOnOrAfter(ny, nm0, NM_DAY[pt]!);
+    note = `${nextOcc.getUTCMonth() + 1}월${nextOcc.getUTCDate()}일 ${remain.toLocaleString('ko-KR')}원`;
+  }
+  return { expected, remain, dueDate: due, note };
 }
