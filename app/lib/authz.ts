@@ -36,7 +36,9 @@ export async function canAccessClient(
 ): Promise<boolean> {
   if (!clientCode) return false;
   // admin/executive 는 모든 거래처, sales_admin 은 사무업무 처리용으로 영업 전체 거래처 접근.
-  if (session.role === 'admin' || session.role === 'executive' || session.role === 'sales_admin') return true;
+  // 마케팅부: UI(computeIsAdmin)가 매니저 전환을 제공하므로 서버도 동일 기준 — 여기만 막으면
+  //   수금일 설정 등에서 클릭이 403으로 조용히 원복되는 불일치 버그가 난다(canViewAllManagers와 동일 기준).
+  if (canViewAllManagers(session)) return true;
 
   if (clientType === 'glass') {
     // 글라스 1순위: 현재 담당 = glass_clients.manager (거래처정보 업로드로 최신 유지).

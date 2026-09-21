@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { getSession } from '@/app/lib/auth';
 import { isValidClientCode } from '@/app/lib/validators';
-import { requireClientAccess } from '@/app/lib/authz';
+import { requireClientAccess, canViewAllManagers } from '@/app/lib/authz';
 import { PAYMENT_TYPES } from '@/app/sales/outstanding/lib/dueDate';
 
 // 수금 워크플로우(독촉 단계·약속일·메모) — collection_followups CRUD.
 // 거래처별 1행(client_code+client_type) upsert. 까브드뱅/대유라이프 분리.
 
-const isAdmin = (role: string) => role === 'admin' || role === 'executive' || role === 'sales_admin';
+// 매니저 전환 허용 기준은 UI(computeIsAdmin)와 동일해야 함 — canViewAllManagers(마케팅부 포함) 사용.
 
 // GET /api/sales/collections?manager=XXX&type=wine → 해당 매니저의 followup 목록
 export async function GET(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const clientType = searchParams.get('type') === 'glass' ? 'glass' : 'wine';
     // 일반 영업자는 본인 것만, 관리자는 지정 매니저.
-    const manager = isAdmin(session.role) ? (searchParams.get('manager') || session.manager) : session.manager;
+    const manager = canViewAllManagers(session) ? (searchParams.get('manager') || session.manager) : session.manager;
 
     const { data, error } = await supabase
       .from('collection_followups')
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest) {
     if (access) return access;
 
     // 매니저: 관리자는 body 지정 가능, 일반 영업자는 본인.
-    const manager = isAdmin(session.role) ? (body.manager || session.manager) : session.manager;
+    const manager = canViewAllManagers(session) ? (body.manager || session.manager) : session.manager;
 
     const PAY_TYPES: string[] = PAYMENT_TYPES; // 정본 목록(익월25·익익월 포함)
     // 부분 업데이트: body 에 들어온 필드만 갱신(나머지 컬럼은 기존값 유지).
