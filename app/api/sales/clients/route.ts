@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/db';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
+import { rankByActivity } from '@/app/lib/clientActivity';
 import { getSession } from '@/app/lib/auth';
 import { canViewAllManagers } from '@/app/lib/authz';
 
@@ -53,10 +54,14 @@ export async function GET(req: NextRequest) {
       const { data: glassData, error: glassErr, count: glassCount } = await glassQuery;
       if (glassErr) throw glassErr;
 
-      // glass_clients에 결과가 있으면 반환
+      // glass_clients에 결과가 있으면 반환 — 검색 드롭다운이면 활성(최근 출고) 우선
       if (glassData && glassData.length > 0) {
+        const isDropdown = !!search && page === 1 && limit <= 20;
+        const rows = isDropdown
+          ? await rankByActivity(glassData, 'DL', { cap: limit })
+          : glassData;
         return NextResponse.json({
-          clients: glassData.map(c => ({ ...c, client_type: 'glass' })),
+          clients: rows.map(c => ({ ...c, client_type: 'glass' })),
           total: glassCount || 0,
           page,
           limit,
@@ -137,8 +142,13 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
 
+    // 검색 드롭다운(search + 소량 limit)이면 활성(최근 24개월 출고) 우선 — 옛 코드가 목록을 가리는 문제.
+    // 거래처 목록 브라우징(페이지네이션·정렬)은 기존 동작 유지.
+    const isDropdown = !!search && page === 1 && limit <= 20;
+    const rows = isDropdown ? await rankByActivity(data || [], 'CDV', { cap: limit }) : (data || []);
+
     return NextResponse.json({
-      clients: data || [],
+      clients: rows,
       total: count || 0,
       page,
       limit,

@@ -3,6 +3,7 @@ import { supabase } from '@/app/lib/db';
 import { splitSearchWords, applyMultiWordSearch } from '@/app/lib/searchUtils';
 import { getSession } from '@/app/lib/auth';
 import { getManagerClientCodes } from '@/app/lib/orderClients';
+import { activeClientCodes } from '@/app/lib/clientActivity';
 
 // 폐업/휴업/사용안함 거래처 제외 — 거래처정보 상태(client_details/glass_clients). 정상/미지정만 노출.
 async function filterActive<T extends { client_code: string }>(list: T[], tab: string): Promise<T[]> {
@@ -121,7 +122,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ clients: scope(await filterActive([...map.values()], tab)) });
+    // 활성(최근 24개월 출고) 우선 — 안 쓰는 옛 코드가 드롭다운을 가리는 문제.
+    // 정렬: 내 거래처 → 활성 → 이름. 활성·내 거래처가 충분하면 죽은 코드는 잘라냄.
+    const filtered = scope(await filterActive([...map.values()], tab));
+    const activeSet = await activeClientCodes(filtered.map((c) => c.client_code), tab);
+    const ranked = filtered
+      .map((c) => ({ ...c, active: activeSet.has(c.client_code) }))
+      .sort((a, b) =>
+        Number(b.mine ?? false) - Number(a.mine ?? false)
+        || Number(b.active) - Number(a.active)
+        || a.client_name.localeCompare(b.client_name, 'ko'));
+    const alive = ranked.filter((c) => c.mine || c.active);
+    const final = alive.length >= 5 ? alive.slice(0, 15) : ranked.slice(0, 15);
+    return NextResponse.json({ clients: final });
   } catch (error) {
     return NextResponse.json({ clients: [], error: error instanceof Error ? error.message : 'error' }, { status: 500 });
   }
