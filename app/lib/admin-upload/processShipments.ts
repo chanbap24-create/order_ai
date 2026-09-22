@@ -90,10 +90,18 @@ async function syncClientMasters(
   const isGlass = table === 'glass_shipments';
   const insertResults: Array<Promise<void>> = [];
 
-  // 1-a) wine: client_details (client_type='wine'), glass: glass_clients (manager 컬럼 없음)
+  // 1-a) wine: client_details (client_type='wine'), glass: glass_clients
+  // 신규 거래처는 명세표의 담당(manager)까지 함께 등록 — 담당 NULL로 들어가면
+  // 오늘출고·매출 등 '현재 담당' 스코프 화면에서 통째로 빠진다(비브레 사례).
   const primaryMaster = isGlass ? 'glass_clients' : 'client_details';
   const primaryRows = Array.from(seen.entries()).map(([code, v]) => {
-    if (isGlass) return { client_code: code, client_name: v.client_name };
+    if (isGlass) {
+      return {
+        client_code: code,
+        client_name: v.client_name,
+        ...(v.manager ? { manager: v.manager } : {}),
+      };
+    }
     return {
       client_code: code,
       client_name: v.client_name,
@@ -140,6 +148,14 @@ async function syncClientMasters(
       const { error } = await target;
       if (error) {
         logger.error(`[Shipments] manager update error`, { error, mgr, table });
+      }
+      // 글라스 마스터(glass_clients.manager): 담당이 '비어 있는' 거래처만 명세표 담당으로 채움.
+      //   기존 지정 담당은 절대 덮어쓰지 않음 — 거래처정보 업로드/수기 재배정이 우선.
+      //   (upsert ignoreDuplicates라 기존 행은 위 1단계에서 manager가 안 채워짐 → 여기서 보충)
+      if (isGlass) {
+        const { error: gcErr } = await supabase.from('glass_clients')
+          .update({ manager: mgr }).is('manager', null).in('client_code', chunk);
+        if (gcErr) logger.error(`[Shipments] glass_clients manager fill error`, { error: gcErr, mgr });
       }
       managerUpdated += chunk.length;
     }
