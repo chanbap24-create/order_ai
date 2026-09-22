@@ -102,6 +102,27 @@ export async function GET(req: NextRequest) {
     return codes;
   };
 
+  // 글라스 신규 거래처 폴백 — 마스터(glass_clients)에 담당이 아직 없는 거래처는
+  // 기간 내 출고의 manager(출고 담당)로 귀속. (예: 비브레 — 신규 등록 직후 마스터 담당 NULL이라
+  // 당일 출고 5건이 담당자 화면에서 통째로 빠지던 문제. authz의 글라스 폴백 체인과 동일 사상)
+  const fetchGlassFallbackCodes = async (fromD: string, toD: string): Promise<string[]> => {
+    const { data: shipped } = await supabase.from('glass_shipments')
+      .select('client_code').eq('manager', manager!)
+      .gte('ship_date', fromD).lte('ship_date', toD).limit(2000);
+    const cand = [...new Set((shipped || []).map((r) => String(r.client_code)).filter(Boolean))];
+    if (cand.length === 0) return [];
+    const out: string[] = [];
+    for (let i = 0; i < cand.length; i += 200) {
+      const { data: masters } = await supabase.from('glass_clients')
+        .select('client_code, manager').in('client_code', cand.slice(i, i + 200));
+      const managed = new Map((masters || []).map((m) => [String(m.client_code), m.manager]));
+      for (const c of cand.slice(i, i + 200)) {
+        if (!managed.get(c)) out.push(c); // 마스터 미등록 또는 담당 NULL → 출고 담당 폴백
+      }
+    }
+    return out;
+  };
+
   // Supabase 1000행 캡 — '올해' 같은 긴 기간은 한 번에 잘리므로 id 기준 페이지네이션으로 전체 로드.
   // 담당 스코프는 코드 청크(.in)로 적용(코드가 많아 URL 길이 제한 회피).
   const fetchAllRows = async (table: string, codes: string[] | null): Promise<ShipRow[]> => {
@@ -125,9 +146,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const scoped = !!manager && manager !== 'admin';
-    const [wineCodes, glassCodes] = scoped
-      ? await Promise.all([fetchManagerCodes('client_details', true), fetchManagerCodes('glass_clients', false)])
-      : [null, null];
+    const [wineCodes, glassMasterCodes, glassFallback] = scoped
+      ? await Promise.all([
+          fetchManagerCodes('client_details', true),
+          fetchManagerCodes('glass_clients', false),
+          fetchGlassFallbackCodes(from, to),
+        ])
+      : [null, null, []];
+    const glassCodes = glassMasterCodes === null ? null : [...new Set([...glassMasterCodes, ...glassFallback])];
     const [wineRows, glassRows] = await Promise.all([
       fetchAllRows('shipments', wineCodes),
       fetchAllRows('glass_shipments', glassCodes),
