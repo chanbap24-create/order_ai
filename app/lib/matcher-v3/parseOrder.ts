@@ -6,8 +6,9 @@ import { matchLineV3, embedBatch, cleanLineForSearch, loadClientHistory, type V3
 
 const EXTRACT_MODEL = 'claude-haiku-4-5-20251001';
 
-export type ExtractedLine = { name: string; qty: number; boxes?: number };
+export type ExtractedLine = { name: string; qty: number; boxes?: number; price?: number };
 // boxes: 박스 단위 주문 — 글라스는 품목별 본입수(units_per_box)가 달라 매칭 후 환산한다
+// price: 라인에 병기된 지정 단가 ("489/48 12 6750" = 품번 12개 6,750원) — 메시지 가격에 우선 적용
 
 /** ① 추출 — 자유 발주 텍스트에서 와인 라인만 분리. 인사말·질문·요청사항은 버린다. */
 export async function extractOrderLines(orderText: string, tab: MatchTab = 'CDV'): Promise<{ lines: ExtractedLine[]; usage: { input_tokens: number; output_tokens: number } }> {
@@ -30,6 +31,7 @@ export async function extractOrderLines(orderText: string, tab: MatchTab = 'CDV'
                 name: { type: 'string', description: '품목 이름 부분 (수량·단위 제외, 원문 표기 유지)' },
                 qty: { type: 'number', description: '수량. 미표기는 1' },
                 boxes: { type: 'number', description: '박스/케이스 단위 주문이면 박스 수 (qty 대신)' },
+                price: { type: 'number', description: '라인에 병기된 단가(원). "품명 12 6750"처럼 숫자 둘이면 앞=수량, 뒤=단가' },
               },
               required: ['name', 'qty'],
             },
@@ -42,7 +44,7 @@ export async function extractOrderLines(orderText: string, tab: MatchTab = 'CDV'
     messages: [{
       role: 'user',
       content: tab === 'DL'
-        ? `다음 리델 글라스 발주 텍스트에서 주문 라인만 추출해.\n규칙: ① 인사말·질문·자료 요청·배송 요청사항은 라인이 아님 ② 한 줄에 여러 품목이면 분리 ③ 수량 단위: 개/잔/EA는 qty, 박스/케이스/CS는 boxes에 박스 수(개수 환산 금지 — 품목별 본입수가 다름) ④ 이름은 원문 표기 그대로(오타 수정 금지).\n\n발주 텍스트:\n"""\n${orderText}\n"""`
+        ? `다음 리델 글라스 발주 텍스트에서 주문 라인만 추출해.\n규칙: ① 인사말·질문·자료 요청·배송 요청사항은 라인이 아님 ② 한 줄에 여러 품목이면 분리 ③ 수량 단위: 개/잔/EA는 qty, 박스/케이스/CS는 boxes에 박스 수(개수 환산 금지 — 품목별 본입수가 다름) ④ 숫자가 둘 연속이면(예: \"489/48 12 6750\") 앞=수량(qty), 뒤=단가(price·원) — 절대 곱하지 마 ⑤ 이름은 원문 표기 그대로(오타 수정 금지).\n\n발주 텍스트:\n"""\n${orderText}\n"""`
         : `다음 와인 발주 텍스트에서 주문 라인만 추출해.\n규칙: ① 인사말·감사 인사·질문·자료 요청("카탈로그 보내주세요" 등)·배송 요청사항은 라인이 아님 ② 한 줄에 여러 와인이 있으면 분리 ③ 수량 단위: 병=1, 박스/케이스/CS=12병, 반박스=6병 ④ 이름 뒤 2자리 숫자+"빈"은 빈티지이므로 이름에 포함(수량 아님) ⑤ 이름은 원문 표기 그대로(오타 수정 금지).\n\n발주 텍스트:\n"""\n${orderText}\n"""`,
     }],
   });
@@ -55,6 +57,7 @@ export async function extractOrderLines(orderText: string, tab: MatchTab = 'CDV'
           name: String(l.name || '').trim(),
           qty: Math.max(1, Math.trunc(Number(l.qty) || 1)),
           ...(Number(l.boxes) > 0 ? { boxes: Math.trunc(Number(l.boxes)) } : {}),
+          ...(Number((l as { price?: unknown }).price) >= 100 ? { price: Math.trunc(Number((l as { price?: unknown }).price)) } : {}),
         }))
         .filter((l: ExtractedLine) => l.name.length >= 2)
         .slice(0, 30)
@@ -91,7 +94,17 @@ export function tryFastExtract(orderText: string, tab: MatchTab = 'CDV'): Extrac
   if (rawLines.length === 0) return null;
   const out: ExtractedLine[] = [];
   for (const raw of rawLines) {
-    const m = raw.match(/^(.{2,}?)[\s,]*(\d{1,3})\s*(병|개|본|ea|btl)?\.?$/i)
+    // "이름 수량 단가" (예: 489/48 12 6750 · 데구스타 12개 6,750원) — 뒤 숫자 1000 이상이면 단가
+    const mp = raw.match(/^(.{2,}?)[\s,]+(\d{1,3})\s*(병|개|잔|본|ea)?[\s,]+([\d,]{4,9})\s*원?\.?$/i);
+    if (mp) {
+      const name = mp[1].trim();
+      const price = parseInt(mp[4].replace(/,/g, ''), 10);
+      if (name.length >= 2 && !/^\d+$/.test(name) && price >= 1000) {
+        out.push({ name, qty: Math.max(1, parseInt(mp[2], 10)), price });
+        continue;
+      }
+    }
+    const m = raw.match(/^(.{2,}?)[\s,]*(\d{1,3})\s*(병|개|잔|본|ea|btl)?\.?$/i)
       || raw.match(/^(.{2,}?)[\s,]*(\d{1,2})\s*(박스|box|cs)\.?$/i);
     if (!m) return null; // 한 줄이라도 안 맞으면 LLM 추출로 폴백 (인사말 섞인 원문 등)
     const name = m[1].trim();
@@ -113,7 +126,7 @@ export async function parseOrderV3(orderText: string, clientCode: string | null,
   const tab: MatchTab = opts?.tab ?? 'CDV';
   let lines: ExtractedLine[] | null = null;
   let usage = { input_tokens: 0, output_tokens: 0 };
-  if (opts?.fromImage) lines = tryFastExtract(orderText, tab);
+  lines = tryFastExtract(orderText, tab); // 정형 발주는 소스 무관 즉시 분리, 안 맞으면 LLM 폴백
   if (!lines) {
     const r = await extractOrderLines(orderText, tab);
     lines = r.lines; usage = r.usage;
@@ -169,6 +182,7 @@ export async function parseOrderV3(orderText: string, clientCode: string | null,
       upb = ruleUpb || invUpb || 6;
     }
     const quantity = tab === 'DL' && boxes ? boxes * upb : finalLines[i].qty;
+    const linePrice = finalLines[i].price; // 발주에 병기된 지정 단가 — 선택 후보 가격에 우선
     return {
       query: finalLines[i].name,
       quantity,
@@ -176,9 +190,13 @@ export async function parseOrderV3(orderText: string, clientCode: string | null,
         item_no: c.item_no,
         item_name: c.item_name,
         confidence: r.picked?.item_no === c.item_no ? r.confidence : Math.min(0.6, c.final),
-        supply_price: priceMap.get(c.item_no)?.supply_price || 0,
+        supply_price: (linePrice && r.picked?.item_no === c.item_no)
+          ? linePrice
+          : priceMap.get(c.item_no)?.supply_price || 0,
         available_stock: priceMap.get(c.item_no)?.available_stock || 0,
-        reasoning: badge(c.item_no),
+        reasoning: (linePrice && r.picked?.item_no === c.item_no)
+          ? [badge(c.item_no), '지정단가'].filter(Boolean).join(' · ')
+          : badge(c.item_no),
       })),
       v3: {
         decidedBy: r.decidedBy, confidence: r.confidence, reason: r.reason,
