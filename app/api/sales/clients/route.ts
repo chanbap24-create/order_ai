@@ -37,8 +37,9 @@ export async function GET(req: NextRequest) {
         .from('glass_clients')
         // 거래처정보(글라스) 업로드로 채운 담당·업종·연락처·주소 포함 → 상세 패널에 표시
         .select('client_code, client_name, created_at, manager, business_type, contact_name, address', { count: 'exact' })
-        // 비활성화된 옛 코드 ((X) prefix) 는 검색 결과에서 제외
-        .not('client_name', 'ilike', '(X)%');
+        // 비활성화된 옛 코드 ((X) prefix, N코드=2025-08 이관 전 체계) 는 검색 결과에서 제외
+        .not('client_name', 'ilike', '(X)%')
+        .not('client_code', 'ilike', 'N%');
 
       if (search) {
         const words = splitSearchWords(search);
@@ -74,8 +75,9 @@ export async function GET(req: NextRequest) {
         let shipQuery = supabase
           .from('glass_shipments')
           .select('client_name, client_code')
-          // 옛 코드 fallback 결과에서도 (X) 거래처 제외
-          .not('client_name', 'ilike', '(X)%');
+          // 옛 코드 fallback 결과에서도 (X)·N코드 거래처 제외
+          .not('client_name', 'ilike', '(X)%')
+          .not('client_code', 'ilike', 'N%');
         shipQuery = applyMultiWordSearch(shipQuery, words, 'client_name', []);
         if (manager) {
           shipQuery = shipQuery.eq('manager', manager);

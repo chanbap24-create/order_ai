@@ -124,7 +124,9 @@ export async function GET(req: NextRequest) {
 
     // 활성(최근 24개월 출고) 우선 — 안 쓰는 옛 코드가 드롭다운을 가리는 문제.
     // 정렬: 내 거래처 → 활성 → 이름. 활성·내 거래처가 충분하면 죽은 코드는 잘라냄.
-    const filtered = scope(await filterActive([...map.values()], tab));
+    // 글라스 N코드 = 2025-08 전산이관 전 옛 체계 (전원 이관 후 출고 0, 재채번 완료) — 검색 제외
+    const noOldCodes = [...map.values()].filter((c) => !(tab === 'DL' && /^N/i.test(c.client_code)));
+    const filtered = scope(await filterActive(noOldCodes, tab));
     const activeSet = await activeClientCodes(filtered.map((c) => c.client_code), tab);
     const ranked = filtered
       .map((c) => ({ ...c, active: activeSet.has(c.client_code) }))
