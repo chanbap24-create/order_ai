@@ -10,11 +10,11 @@ const fmt = (n: number) => n.toLocaleString('ko-KR');
 const DISCOUNTS = [0, 5, 10, 15, 20, 30, 40, 50];
 
 export function LineRow({
-  line, expanded, historySet, discount,
+  line, unit = '병', expanded, historySet, discount,
   isSearching, searchQuery, setSearchQuery, searchResults, searchLoading, searchRef, onOpenSearch,
   onToggle, onQty, onRemove, onSelect, onPickSearch, onDiscount,
 }: {
-  line: V3Line; expanded: boolean;
+  line: V3Line; unit?: string; expanded: boolean;
   historySet: Set<string>; discount: number;
   isSearching: boolean; searchQuery: string; setSearchQuery: (v: string) => void;
   searchResults: SearchResult[]; searchLoading: boolean;
@@ -47,7 +47,7 @@ export function LineRow({
             {line.query}
           </span>
           <span style={{ flex: 'none', fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {line.quantity}병
+            {line.quantity}{unit}
           </span>
           <span style={{ flex: 'none', fontSize: 12, color: 'var(--text-tertiary)' }}>{expanded ? '▴' : '▾'}</span>
         </div>

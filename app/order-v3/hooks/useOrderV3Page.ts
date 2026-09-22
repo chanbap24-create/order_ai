@@ -20,7 +20,7 @@ export type V3Meta = { decidedBy: string; confidence: number; reason?: string; p
 export type V3Line = OrderLine & { v3?: V3Meta };
 
 export function useOrderV3Page() {
-  const tab = 'CDV' as const; // v3 매처는 와인 전용 — 글라스(DL)는 v2 사용
+  const [tab, setTabState] = useState<'CDV' | 'DL'>('CDV');
   const client = useClientSearch(tab);
   const history = useClientHistory(client.selected?.client_code, tab);
   const delivery = useDeliveryDate(tab);
@@ -47,7 +47,7 @@ export function useOrderV3Page() {
     try {
       const res = await fetch('/api/order-v3/parse', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_text: text, client_code: clientCode, from_image: fromImage }),
+        body: JSON.stringify({ order_text: text, client_code: clientCode, from_image: fromImage, tab }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || '분석 실패');
@@ -70,6 +70,13 @@ export function useOrderV3Page() {
   const reset = () => {
     setOrderText(''); setLines([]); setError(''); setDiscountRates({});
     setExpanded(new Set()); setDeliveryNotes(''); client.setSelected(null); client.setQuery('');
+  };
+
+  // 탭 전환 — 법인이 바뀌면 거래처·결과 전부 리셋 (CDV/DL 코드 공간이 독립)
+  const setTab = (t: 'CDV' | 'DL') => {
+    if (t === tab) return;
+    setTabState(t);
+    reset();
   };
 
   const pasteFromClipboard = async () => {
@@ -189,7 +196,7 @@ export function useOrderV3Page() {
   const totalAmount = calcTotalAmount(lines, discountRates);
 
   return {
-    tab, client, history, delivery, wineSearch,
+    tab, setTab, client, history, delivery, wineSearch,
     orderText, setOrderText, orderTextRef, pasteFromClipboard,
     lines, historySet, loading, error, parse, reset,
     setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory,

@@ -21,7 +21,7 @@ const STEPS: { key: Step; label: string }[] = [
 export default function OrderV3Page() {
   // 훅 결과는 전부 구조분해 — ref를 품은 객체를 멤버 접근하면 react-compiler 린트에 걸린다 (v2 page와 동일 패턴)
   const {
-    client, history, delivery, wineSearch,
+    tab, setTab, client, history, delivery, wineSearch,
     orderText, setOrderText, orderTextRef, pasteFromClipboard,
     lines, historySet, loading, error, parse, reset,
     setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory,
@@ -65,10 +65,24 @@ export default function OrderV3Page() {
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px 120px', color: 'var(--text-primary)' }}>
       {/* 헤더 + 단계 표시 */}
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+      <header style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 500, margin: 0 }}>발주</h1>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>v3 베타 · 와인 전용</span>
-        <a href="/order-v2" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)', textDecoration: 'none' }}>글라스·배치는 v2 →</a>
+        {/* 법인 토글 — 플랫 세로 구분선 */}
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 0 }}>
+          {([['CDV', '까브드뱅'], ['DL', '대유라이프']] as const).map(([v, label], i) => (
+            <button key={v} onClick={() => setTab(v)}
+              style={{
+                all: 'unset', cursor: 'pointer', padding: '0 10px', fontSize: 13.5,
+                fontWeight: tab === v ? 700 : 400,
+                color: tab === v ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none',
+              }}>
+              {label}
+            </button>
+          ))}
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>v3 베타</span>
+        <a href="/order-v2" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)', textDecoration: 'none' }}>배치는 v2 →</a>
       </header>
       <nav style={{ display: 'flex', alignItems: 'center', gap: 0, margin: '16px 0 22px', borderBottom: '1px solid var(--border-default)' }}>
         {STEPS.map((s, i) => {
@@ -92,7 +106,7 @@ export default function OrderV3Page() {
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'baseline', gap: 12, whiteSpace: 'nowrap' }}>
           {lines.length > 0 && (
             <span style={{ fontSize: 12, color: unresolved > 0 ? 'var(--status-warning)' : 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
-              {unresolved > 0 ? `미확정 ${unresolved}` : `${lines.length}종 · ${fmt(totalQty)}병`}
+              {unresolved > 0 ? `미확정 ${unresolved}` : `${lines.length}종 · ${fmt(totalQty)}${tab === 'DL' ? '개' : '병'}`}
             </span>
           )}
           {(lines.length > 0 || orderText.trim()) && (
@@ -160,7 +174,7 @@ export default function OrderV3Page() {
           <div style={{ display: 'flex', borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)' }}>
             {[
               ['품목', `${lines.length}종`],
-              ['수량', `${fmt(totalQty)}병`],
+              ['수량', `${fmt(totalQty)}${tab === 'DL' ? '개' : '병'}`],
               ['공급가 합계', totalAmount > 0 ? fmt(totalAmount) : '—'],
             ].map(([k, v], i) => (
               <div key={k} style={{ flex: 1, textAlign: 'center', padding: '12px 4px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none', minWidth: 0 }}>
@@ -175,6 +189,7 @@ export default function OrderV3Page() {
               <LineRow
                 key={`${line.query}-${idx}`}
                 line={line}
+                unit={tab === 'DL' ? '개' : '병'}
                 expanded={expanded.has(idx) || line.selectedIdx < 0}
                 historySet={historySet}
                 discount={discountRates[idx] || 0}
@@ -208,7 +223,7 @@ export default function OrderV3Page() {
           {/* 자동 직행 시 검토 요약 한 줄 — 문제 없었음을 알리고 복귀 동선 제공 */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '0 2px 12px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12.5, color: 'var(--status-success)' }}>
-              ● {lines.length}종 전체 확정 · {fmt(totalQty)}병
+              ● {lines.length}종 전체 확정 · {fmt(totalQty)}{tab === 'DL' ? '개' : '병'}
             </span>
             <button onClick={() => setStep('review')}
               style={{ all: 'unset', cursor: 'pointer', fontSize: 12.5, color: 'var(--text-tertiary)', textDecoration: 'underline', textUnderlineOffset: 3 }}>

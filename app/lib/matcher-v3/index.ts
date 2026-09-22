@@ -4,6 +4,7 @@ import { supabase } from '../db';
 import { getClaudeClient } from '../claudeClient';
 import { getEnv } from '../env';
 import { toJamo } from './jamo';
+import { pipelineStockOf } from '../stock';
 
 export type V3Candidate = {
   item_no: string;
@@ -26,6 +27,13 @@ export type V3Result = {
   candidates: V3Candidate[];
   timingMs: { embed: number; retrieve: number; rank: number; decide: number };
 };
+
+export type MatchTab = 'CDV' | 'DL';
+// 법인별 소스 — 와인(CDV)과 글라스(DL)는 테이블·RPC·이력 전부 분리 (법인 분리 원칙)
+const SRC = {
+  CDV: { inv: 'inventory_cdv', ship: 'shipments', rpcVec: 'match_wines', rpcJamo: 'match_wines_jamo' },
+  DL: { inv: 'inventory_dl', ship: 'glass_shipments', rpcVec: 'match_glasses', rpcJamo: 'match_glasses_jamo' },
+} as const;
 
 const EMBED_MODEL = 'text-embedding-3-small';
 const DECIDE_MODEL = 'claude-haiku-4-5-20251001';
@@ -52,9 +60,11 @@ export function cleanLineForSearch(line: string): string {
   return cleanForSearch(line) || line;
 }
 
-/** 와인 분류 품번(0~5, A)만 — 글라스·자재·세트 제외 */
+/** 와인 분류 품번(0~5, A)만 — 글라스·자재·세트 제외. DL은 백화점(ZK)만 제외 */
 const WINE_PREFIX = new Set(['0', '1', '2', '3', '4', '5', 'A']);
 const isWineItemNo = (no: string) => WINE_PREFIX.has(no.charAt(0).toUpperCase());
+const isOrderable = (no: string, tab: MatchTab) =>
+  tab === 'DL' ? !no.toUpperCase().startsWith('ZK') : isWineItemNo(no);
 
 /** 검색용 라인 정제 — 수량·단위·말미 숫자 제거 ("뱅상 리자르댕 12" → "뱅상 리자르댕").
  *  숫자가 쿼리에 남으면 임베딩이 "넘버12"류 품목으로 끌려간다. 빈티지 힌트는 정제 전에 추출. */
@@ -79,17 +89,17 @@ function itemVintageOf(itemNo: string): string | null {
 }
 
 /** 거래처 구매 이력 전체(최근 24개월, 와인만) — 빈도 0~1 + 품명. 후보 선제 주입용. */
-export async function loadClientHistory(clientCode: string | null): Promise<Map<string, { name: string; freq: number; n: number }>> {
+export async function loadClientHistory(clientCode: string | null, tab: MatchTab = 'CDV'): Promise<Map<string, { name: string; freq: number; n: number }>> {
   const map = new Map<string, { name: string; freq: number; n: number }>();
   if (!clientCode) return map;
   const cutoff = new Date(Date.now() - 730 * 86400_000).toISOString().slice(0, 10);
-  const { data } = await supabase.from('shipments')
+  const { data } = await supabase.from(SRC[tab].ship)
     .select('item_no, item_name')
     .eq('client_code', clientCode).gte('ship_date', cutoff).limit(3000);
   const freq = new Map<string, { name: string; n: number }>();
   for (const s of data || []) {
     const no = String(s.item_no || '');
-    if (!isWineItemNo(no)) continue;
+    if (!isOrderable(no, tab)) continue;
     const cur = freq.get(no);
     freq.set(no, { name: cur?.name || String(s.item_name || ''), n: (cur?.n || 0) + 1 });
   }
@@ -116,7 +126,7 @@ function jamoTrgmSim(query: string, target: string): number {
 }
 
 /** LLM 판정 — 후보 중 하나 선택 (구조화 출력). 애매한 꼬리에만 호출. */
-async function decideWithLlm(line: string, cands: V3Candidate[], model = DECIDE_MODEL): Promise<{ item_no: string | null; confidence: number; reason: string }> {
+async function decideWithLlm(line: string, cands: V3Candidate[], model = DECIDE_MODEL, tab: MatchTab = 'CDV'): Promise<{ item_no: string | null; confidence: number; reason: string }> {
   const claude = getClaudeClient();
   const resp = await claude.messages.create({
     model,
@@ -138,7 +148,7 @@ async function decideWithLlm(line: string, cands: V3Candidate[], model = DECIDE_
     tool_choice: { type: 'tool', name: 'pick' },
     messages: [{
       role: 'user',
-      content: `와인 발주 라인: "${line}"\n\n후보 목록:\n${cands.map((c, i) =>
+      content: `${tab === 'DL' ? '리델 글라스' : '와인'} 발주 라인: "${line}"\n\n후보 목록:\n${cands.map((c, i) =>
         `${i + 1}. [${c.item_no}] ${c.item_name}${c.in_history ? ` (이 거래처 최근 2년 ${c.hist_n || 1}회 구매)` : ''}`).join('\n')}\n\n이 라인이 가리키는 와인을 골라. 규칙: ① 빈티지 숫자·약어·생산자에 주의 ② 같은 와인이 빈티지만 다르게 여럿이면(품번 3~4자리=빈티지) 라인에 빈티지 명시가 없는 한 최신 빈티지를 골라 ③ 띄어쓰기·표기 차이("레끌루"="레 끌루")나 가벼운 오타("레긔에뜨"="레귀에뜨")는 같은 와인으로 인정 ④ 발주는 대부분 재주문이다 — 구매이력 후보의 생산자/핵심 이름이 라인과 통하면 반드시 그것을 골라라 (라인의 '샴페인·레드·화이트' 같은 종류 단어는 품명에 없어도 무시) ⑤ 하지만 실제로 다른 와인/다른 생산자인데 "그나마 비슷한 것"을 고르는 것은 오답 — 그땐 반드시 item_no=null.`,
     }],
   });
@@ -182,7 +192,7 @@ const AUTO_FLOOR = 0.55;    // 최소 점수
  *  ① 자모 trgm (오타 '리자르댕'→'지라르댕', 띄어쓰기 '레끌루'→'레 끌루')
  *  ② 토큰 포함 비율 (비연속 토큰 '누나'+'말벡' → '차카나 누나 에스테이트 말벡')
  *  짧은 한글 쿼리에서 임베딩(sim ~0.4대)보다 변별력이 좋아 주 신호로 쓴다. */
-async function lexicalRetrieve(line: string, limit = 15): Promise<Map<string, { item_name: string; lex: number }>> {
+async function lexicalRetrieve(line: string, limit = 15, tab: MatchTab = 'CDV'): Promise<Map<string, { item_name: string; lex: number }>> {
   const out = new Map<string, { item_name: string; lex: number }>();
   const tokens = line.split(/\s+/).filter((t) => t.length >= 2 && !/^\d+$/.test(t));
   const put = (no: string, name: string, lex: number) => {
@@ -190,9 +200,9 @@ async function lexicalRetrieve(line: string, limit = 15): Promise<Map<string, { 
     if (!cur || lex > cur.lex) out.set(no, { item_name: name, lex });
   };
   const [jamoRes, tokenRes] = await Promise.all([
-    supabase.rpc('match_wines_jamo', { q_jamo: toJamo(line), match_count: limit }),
+    supabase.rpc(SRC[tab].rpcJamo, { q_jamo: toJamo(line), match_count: limit }),
     tokens.length
-      ? supabase.from('inventory_cdv').select('item_no, item_name')
+      ? supabase.from(SRC[tab].inv).select('item_no, item_name')
           .not('item_no', 'ilike', 'zk%')
           .or(tokens.map((t) => `item_name.ilike.%${t.replace(/[,%]/g, '')}%`).join(','))
           .limit(200)
@@ -201,7 +211,7 @@ async function lexicalRetrieve(line: string, limit = 15): Promise<Map<string, { 
   for (const r of jamoRes.data || []) put(String(r.item_no), String(r.item_name || ''), Number(r.lex) || 0);
   for (const r of tokenRes.data || []) {
     const no = String(r.item_no || '');
-    if (!isWineItemNo(no)) continue;
+    if (!isOrderable(no, tab)) continue;
     const name = String(r.item_name || '');
     const hit = tokens.filter((t) => name.includes(t)).length;
     put(no, name, hit / tokens.length);
@@ -212,6 +222,8 @@ async function lexicalRetrieve(line: string, limit = 15): Promise<Map<string, { 
 export type MatchOpts = {
   topK?: number;
   noLlm?: boolean;
+  /** 법인 — CDV(와인, 기본) | DL(글라스) */
+  tab?: MatchTab;
   /** 사전 계산 쿼리 임베딩 — 발주 파이프라인이 전 라인을 한 번에 배치 임베딩해 전달 */
   queryVec?: number[];
   /** 사전 로드된 거래처 이력 — 라인마다 같은 이력을 반복 조회하지 않게 */
@@ -219,15 +231,16 @@ export type MatchOpts = {
 };
 
 export async function matchLineV3(line: string, clientCode: string | null, opts?: MatchOpts): Promise<V3Result> {
+  const tab: MatchTab = opts?.tab ?? 'CDV';
   const t0 = Date.now();
-  const vHintRaw = vintageHintOf(line); // 정제 전에 빈티지 힌트 추출 (정제가 숫자를 지우므로)
+  const vHintRaw = tab === 'CDV' ? vintageHintOf(line) : null; // 글라스는 빈티지 개념 없음
   const q = cleanForSearch(line) || line;
   const vec = opts?.queryVec ?? await embedQuery(q);
   const t1 = Date.now();
 
   const [{ data: hits, error }, lexHits] = await Promise.all([
-    supabase.rpc('match_wines', { query_embedding: JSON.stringify(vec), match_count: opts?.topK ?? 15 }),
-    lexicalRetrieve(q),
+    supabase.rpc(SRC[tab].rpcVec, { query_embedding: JSON.stringify(vec), match_count: opts?.topK ?? 15 }),
+    lexicalRetrieve(q, 15, tab),
   ]);
   if (error) throw new Error(error.message);
   const t2 = Date.now();
@@ -244,7 +257,7 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
   }
   // 거래처 이력 선제 주입 — 이 집이 사갔던 와인을 쿼리와 직접 대조해 조금이라도 닮았으면 후보로.
   // ("뱅상 리자르댕 12" → 이력의 '뀌베 생 뱅상'이 카탈로그 검색에서 빠졌어도 후보에 올라옴)
-  const historyMap = opts?.history ?? await loadClientHistory(clientCode);
+  const historyMap = opts?.history ?? await loadClientHistory(clientCode, tab);
   const qJamo = toJamo(q);
   for (const [no, h] of historyMap) {
     const s = jamoTrgmSim(qJamo, toJamo(h.name));
@@ -261,9 +274,16 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
   {
     const nos = [...merged.keys()];
     for (let i = 0; i < nos.length; i += 200) {
-      const { data: st } = await supabase.from('inventory_cdv')
-        .select('item_no, stock_pipeline').in('item_no', nos.slice(i, i + 200));
-      for (const r of st || []) stockMap.set(String(r.item_no), Number(r.stock_pipeline) || 0);
+      if (tab === 'CDV') {
+        const { data: st } = await supabase.from('inventory_cdv')
+          .select('item_no, stock_pipeline').in('item_no', nos.slice(i, i + 200));
+        for (const r of st || []) stockMap.set(String(r.item_no), Number(r.stock_pipeline) || 0);
+      } else {
+        // DL엔 생성 컬럼이 없음 — 원시 컬럼으로 계산 (stock.ts pipelineStockOf 단일 정의)
+        const { data: st } = await supabase.from('inventory_dl')
+          .select('item_no, available_stock, bonded_warehouse, bonded_kctc, incoming_stock').in('item_no', nos.slice(i, i + 200));
+        for (const r of st || []) stockMap.set(String(r.item_no), pipelineStockOf(r));
+      }
     }
     for (const no of nos) {
       if ((stockMap.get(no) || 0) <= 0 && !historyMap.has(no)) merged.delete(no);
@@ -306,10 +326,10 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
         decidedBy = 'jev'; confidence = jev.confidence; reason = jev.reason;
         picked = candidates.find((c) => c.item_no === jev.item_no) || null;
       } else {
-        let llm = await decideWithLlm(line, plausible.slice(0, 8));
+        let llm = await decideWithLlm(line, plausible.slice(0, 8), DECIDE_MODEL, tab);
         // Haiku 기권 + 이력 후보 존재 → 상위 모델 재판정 (재주문 패턴은 이력이 결정적인데 Haiku가 과하게 보수적)
         if (!llm.item_no && plausible.some((c) => c.in_history)) {
-          llm = await decideWithLlm(line, plausible.slice(0, 8), ESCALATE_MODEL);
+          llm = await decideWithLlm(line, plausible.slice(0, 8), ESCALATE_MODEL, tab);
         }
         decidedBy = 'llm'; confidence = llm.confidence; reason = llm.reason;
         picked = llm.item_no ? candidates.find((c) => c.item_no === llm.item_no) || null : null;
@@ -317,7 +337,7 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
     }
   }
   // 품절 스왑 — 고른 와인이 재고 0이면 같은 베이스 품번(빈티지만 다름)의 재고 있는 최신 빈티지로 교체
-  if (picked && (picked.stock ?? 0) <= 0 && /^\d{7}$/.test(picked.item_no)) {
+  if (tab === 'CDV' && picked && (picked.stock ?? 0) <= 0 && /^\d{7}$/.test(picked.item_no)) {
     const base = picked.item_no.slice(0, 2) + picked.item_no.slice(4);
     const { data: sib } = await supabase.from('inventory_cdv')
       .select('item_no, item_name, stock_pipeline')
