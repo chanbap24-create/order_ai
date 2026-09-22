@@ -242,9 +242,14 @@ export async function resolveItemsByClientWeighted(
       }
     }
 
-    const pool = Array.from(poolMap.values());
+    // ⚠️ 와인 발주 매칭 풀에서 비와인 제외 — 글라스·자재(D/6~9 등)와 백화점 품번(ZK)이 섞이면
+    //   "샴페인" 같은 검색어에 리델 샴페인 글라스가 후보로 뜬다(매처 비교 테스트에서 확인).
+    //   와인 분류 품번 = 첫자리 0~5, A (isWineCategory와 동일 규칙).
+    const WINE_PREFIX = new Set(['0', '1', '2', '3', '4', '5', 'A']);
+    const pool = Array.from(poolMap.values())
+      .filter((r) => WINE_PREFIX.has(r.item_no.charAt(0).toUpperCase()));
 
-    console.log(`[후보풀] 거래처이력 ${clientRows.length}개 + 마스터 ${masterRows1.length + masterRows2.length}개 + 영문 ${englishRows.length}개 = 총 ${pool.length}개`);
+    console.log(`[후보풀] 거래처이력 ${clientRows.length}개 + 마스터 ${masterRows1.length + masterRows2.length}개 + 영문 ${englishRows.length}개 = 총 ${pool.length}개 (와인 분류만)`);
 
     // 🏭 생산자 필터링: 생산자가 감지되면 해당 생산자 품목만 남기기
     let filteredPool = pool;
@@ -481,8 +486,9 @@ export async function resolveItemsByClientWeighted(
     }
 
     // ✅ 토큰 3개 이상인 경우: 고신뢰도 점수 요구 (완화된 조건)
+    // ⚠️ top 가드 필수 — 후보 0개(비와인 라인 등)에서 top.score 읽다 전체 매칭이 죽던 버그
     const tokenCount = stripQtyAndUnit(it.name).split(" ").filter(Boolean).length;
-    if (tokenCount >= 3) {
+    if (tokenCount >= 3 && top) {
       const gap = second ? (top.score ?? 0) - (second.score ?? 0) : 999;
 
       // learned가 있는 경우 (기존 로직 유지)
