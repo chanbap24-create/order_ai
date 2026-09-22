@@ -31,14 +31,29 @@ async function main() {
   const { supabase } = await import('../app/lib/db');
   const { fetchAllRows } = await import('../app/lib/fetchAll');
 
-  let docs: Array<{ item_no: string; item_name: string; doc: string }>;
+  // 브랜드 코드 → 한글/영문명 — 품명엔 코드(BL·CL 등)만 있어 '로쉬벨렌' 같은 발주 표기가
+  // 어떤 신호에도 안 걸리던 문제의 근본 해결: 인덱스 문서·자모에 브랜드명을 주입한다.
+  const { data: brandRows } = await supabase.from('brands').select('brand_code, brand_name_kr, brand_name_en');
+  const brandMap = new Map<string, { kr: string; en: string }>();
+  for (const b of brandRows || []) {
+    if (b.brand_code) brandMap.set(String(b.brand_code).toUpperCase(), { kr: b.brand_name_kr || '', en: b.brand_name_en || '' });
+  }
+  const brandOf = (itemName: string, brandCol?: string | null) => {
+    const code = (brandCol || itemName.split(/\s+/)[0] || '').toUpperCase();
+    return /^[A-Z]{2,3}$/.test(code) ? brandMap.get(code) : undefined;
+  };
+
+  let docs: Array<{ item_no: string; item_name: string; doc: string; jamoExtra?: string }>;
   if (isDl) {
     // DL: 글라스·액세서리 전 품목 (백화점 ZK만 제외)
     const inv = await fetchAllRows<{ item_no: string; item_name: string; brand: string | null }>(
       (f, t) => supabase.from('inventory_dl').select('item_no, item_name, brand').not('item_no', 'ilike', 'zk%').range(f, t));
     docs = inv
       .filter((r) => r.item_no && r.item_name)
-      .map((r) => ({ item_no: String(r.item_no), item_name: r.item_name, doc: [r.item_name, r.brand].filter(Boolean).join(' | ') }));
+      .map((r) => {
+        const b = brandOf(r.item_name, r.brand);
+        return { item_no: String(r.item_no), item_name: r.item_name, doc: [r.item_name, b?.kr, b?.en, r.brand].filter(Boolean).join(' | '), jamoExtra: b?.kr };
+      });
   } else {
     // 카탈로그: CDV 재고표의 "와인 분류"만 (품번 첫자리 0~5, A) — 글라스·자재·세트·백화점(ZK) 제외.
     // 글라스(리델 RD)·유리병 같은 비와인이 섞이면 임베딩 검색이 오염된다(v3 테스트에서 확인).
@@ -53,8 +68,9 @@ async function main() {
       .filter((r) => r.item_no && r.item_name)
       .map((r) => {
         const w = wineMap.get(r.item_no);
-        const parts = [r.item_name, w?.item_name_en, r.brand || w?.brand, r.country];
-        return { item_no: String(r.item_no), item_name: r.item_name, doc: parts.filter(Boolean).join(' | ') };
+        const b = brandOf(r.item_name, r.brand || w?.brand);
+        const parts = [r.item_name, b?.kr, b?.en, w?.item_name_en, r.brand || w?.brand, r.country];
+        return { item_no: String(r.item_no), item_name: r.item_name, doc: parts.filter(Boolean).join(' | '), jamoExtra: b?.kr };
       });
   }
   console.log(`[${table}] 카탈로그 ${docs.length}품목`);
@@ -69,7 +85,11 @@ async function main() {
   for (let i = 0; i < targets.length; i += BATCH) {
     const chunk = targets.slice(i, i + BATCH);
     const vecs = await embedBatch(chunk.map((c) => c.doc));
-    const rows = chunk.map((c, j) => ({ ...c, jamo: toJamo(c.item_name), embedding: JSON.stringify(vecs[j]), updated_at: new Date().toISOString() }));
+    const rows = chunk.map((c, j) => ({
+      item_no: c.item_no, item_name: c.item_name, doc: c.doc,
+      jamo: toJamo(c.item_name + (c.jamoExtra ? ' ' + c.jamoExtra : '')),
+      embedding: JSON.stringify(vecs[j]), updated_at: new Date().toISOString(),
+    }));
     const { error } = await supabase.from(table).upsert(rows, { onConflict: 'item_no' });
     if (error) throw new Error(error.message);
     console.log(`  ${Math.min(i + BATCH, targets.length)}/${targets.length}`);

@@ -108,6 +108,46 @@ export async function loadClientHistory(clientCode: string | null, tab: MatchTab
   return map;
 }
 
+/** 브랜드 별칭 캐시 — 한글 브랜드명(자모) → 코드. '로쉬벨렌'→BL 같은 발주 표기를 코드로 확장.
+ *  10분 TTL 모듈 캐시 (brands 테이블 소스). */
+let brandAliasCache: { at: number; list: Array<{ code: string; kr: string; krJamo: string }> } | null = null;
+async function loadBrandAliases(): Promise<Array<{ code: string; kr: string; krJamo: string }>> {
+  if (brandAliasCache && Date.now() - brandAliasCache.at < 600_000) return brandAliasCache.list;
+  const { data } = await supabase.from('brands').select('brand_code, brand_name_kr');
+  const list = (data || [])
+    .filter((b) => b.brand_code && b.brand_name_kr)
+    .map((b) => ({ code: String(b.brand_code).toUpperCase(), kr: String(b.brand_name_kr), krJamo: toJamo(String(b.brand_name_kr)) }));
+  brandAliasCache = { at: Date.now(), list };
+  return list;
+}
+
+/** 후보 품명에 브랜드 한글명 주석 — 판정 모델이 'CL=클레멍 라발리'를 알게 ('다른 생산자' 오판 기권 방지) */
+async function annotateBrandNames(cands: V3Candidate[]): Promise<V3Candidate[]> {
+  const aliases = await loadBrandAliases();
+  const byCode = new Map(aliases.map((a) => [a.code, a.kr]));
+  return cands.map((c) => {
+    const code = (c.item_name.split(/\s+/)[0] || '').toUpperCase();
+    const kr = /^[A-Z]{2,3}$/.test(code) ? byCode.get(code) : undefined;
+    return kr ? { ...c, item_name: `${c.item_name} (${code}=${kr})` } : c;
+  });
+}
+
+/** 라인에서 브랜드 한글명 감지 → 코드 목록 ('로쉬벨렌'⊂'메종 로쉬 벨렌' 부분 표기·오타 허용) */
+async function detectBrandCodes(line: string): Promise<string[]> {
+  const aliases = await loadBrandAliases();
+  const tokens = line.split(/\s+/).filter((t) => /[가-힣]{3,}/.test(t));
+  const out = new Set<string>();
+  for (const t of tokens) {
+    const tj = toJamo(t);
+    if (tj.length < 6) continue;
+    for (const a of aliases) {
+      // 토큰이 브랜드명에 포함되거나(부분 표기) 브랜드명이 토큰에 포함(붙여쓰기)
+      if (a.krJamo.includes(tj) || tj.includes(a.krJamo) || jamoTrgmSim(tj, a.krJamo) >= 0.75) out.add(a.code);
+    }
+  }
+  return [...out];
+}
+
 /** JS 자모 trigram — 쿼리 커버리지 방식 (pg_trgm word_similarity와 동일 발상).
  *  Jaccard는 "짧은 쿼리 vs 긴 품명"에서 합집합이 커져 무조건 낮게 나옴 → 쿼리 그램이
  *  품명에 얼마나 포함되는지(inter/|query|)로 측정. */
@@ -149,7 +189,7 @@ async function decideWithLlm(line: string, cands: V3Candidate[], model = DECIDE_
     messages: [{
       role: 'user',
       content: `${tab === 'DL' ? '리델 글라스' : '와인'} 발주 라인: "${line}"\n\n후보 목록:\n${cands.map((c, i) =>
-        `${i + 1}. [${c.item_no}] ${c.item_name}${c.in_history ? ` (이 거래처 최근 2년 ${c.hist_n || 1}회 구매)` : ''}`).join('\n')}\n\n이 라인이 가리키는 와인을 골라. 규칙: ① 빈티지 숫자·약어·생산자에 주의 ② 같은 와인이 빈티지만 다르게 여럿이면(품번 3~4자리=빈티지) 라인에 빈티지 명시가 없는 한 최신 빈티지를 골라 ③ 띄어쓰기·표기 차이("레끌루"="레 끌루")나 가벼운 오타("레긔에뜨"="레귀에뜨")는 같은 와인으로 인정 ④ 발주는 대부분 재주문이다 — 구매이력 후보의 생산자/핵심 이름이 라인과 통하면 반드시 그것을 골라라 (라인의 '샴페인·레드·화이트' 같은 종류 단어는 품명에 없어도 무시) ⑤ 하지만 실제로 다른 와인/다른 생산자인데 "그나마 비슷한 것"을 고르는 것은 오답 — 그땐 반드시 item_no=null.`,
+        `${i + 1}. [${c.item_no}] ${c.item_name}${c.in_history ? ` (이 거래처 최근 2년 ${c.hist_n || 1}회 구매)` : ''}`).join('\n')}\n\n이 라인이 가리키는 와인을 골라. 규칙: ① 빈티지 숫자·약어·생산자에 주의 ② 같은 와인이 빈티지만 다르게 여럿이면(품번 3~4자리=빈티지) 라인에 빈티지 명시가 없는 한 최신 빈티지를 골라 ③ 띄어쓰기·표기 차이("레끌루"="레 끌루")나 가벼운 오타("레긔에뜨"="레귀에뜨")는 같은 와인으로 인정 ④ 발주는 대부분 재주문이다 — 구매이력 후보의 생산자/핵심 이름이 라인과 통하면 반드시 그것을 골라라 (라인의 '샴페인·레드·화이트' 같은 종류 단어는 품명에 없어도 무시) ⑤ 라인이 퀴베명 없는 기본형(예: "라발리 샤블리")이고 후보에 같은 생산자의 기본형과 퀴베들이 함께 있으면 수식어 없는 기본형을 골라라 — 기권하지 마 ⑥ 하지만 실제로 다른 와인/다른 생산자인데 "그나마 비슷한 것"을 고르는 것은 오답 — 그땐 반드시 item_no=null.`,
     }],
   });
   const tool = resp.content.find((c) => c.type === 'tool_use');
@@ -214,13 +254,19 @@ async function lexicalRetrieve(line: string, limit = 15, tab: MatchTab = 'CDV'):
     const cur = out.get(no);
     if (!cur || lex > cur.lex) out.set(no, { item_name: name, lex });
   };
+  const brandCodes = await detectBrandCodes(line);
+  const ors = [
+    ...tokens.map((t) => `item_name.ilike.%${t.replace(/[,%]/g, '')}%`),
+    // 브랜드 한글명 감지 시 코드 프리픽스로도 검색 ('로쉬벨렌 샤르도네' → item_name 'BL %')
+    ...brandCodes.map((c) => `item_name.ilike.${c} %`),
+  ];
   const [jamoRes, tokenRes] = await Promise.all([
     supabase.rpc(SRC[tab].rpcJamo, { q_jamo: toJamo(line), match_count: limit }),
-    tokens.length
+    ors.length
       ? supabase.from(SRC[tab].inv).select('item_no, item_name')
           .not('item_no', 'ilike', 'zk%')
-          .or(tokens.map((t) => `item_name.ilike.%${t.replace(/[,%]/g, '')}%`).join(','))
-          .limit(200)
+          .or(ors.join(','))
+          .limit(250)
       : Promise.resolve({ data: [] as Array<{ item_no: string; item_name: string }> }),
   ]);
   for (const r of jamoRes.data || []) put(String(r.item_no), String(r.item_name || ''), Number(r.lex) || 0);
@@ -228,8 +274,10 @@ async function lexicalRetrieve(line: string, limit = 15, tab: MatchTab = 'CDV'):
     const no = String(r.item_no || '');
     if (!isOrderable(no, tab)) continue;
     const name = String(r.item_name || '');
-    const hit = tokens.filter((t) => name.includes(t)).length;
-    put(no, name, hit / tokens.length);
+    const nameCode = (name.split(/\s+/)[0] || '').toUpperCase();
+    const brandHit = brandCodes.includes(nameCode) ? 1 : 0; // 브랜드명 토큰 = 코드 매치로 인정
+    const hit = tokens.filter((t) => name.includes(t)).length + brandHit;
+    put(no, name, Math.min(1, hit / Math.max(1, tokens.length)));
   }
   return new Map([...out.entries()].sort((a, b) => b[1].lex - a[1].lex).slice(0, limit + 5));
 }
@@ -335,16 +383,18 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
       picked = histStrong[0]; decidedBy = 'history';
       confidence = 0.8; reason = `이력 재주문 (최근 2년 ${histStrong[0].hist_n || 1}회)`;
     } else {
-      // 1차: Jev(연결돼 있으면) — 보정 확률 0.9 이상만 신뢰, 아니면 LLM으로
-      const jev = await decideWithJev(line, plausible.slice(0, 8), tab);
-      if (jev && jev.item_no && jev.confidence >= 0.9) {
+      // 판정 후보엔 브랜드 한글명 주석 부착 — 'CL 샤블리'만 보면 모델이 "다른 생산자"로 오판해 기권한다
+      const annotated = await annotateBrandNames(plausible.slice(0, 8));
+      // 1차: Jev — 채택 여부는 어댑터가 확률 분포(1위·격차)로 판정. 미달·미연결이면 LLM 폴백
+      const jev = await decideWithJev(line, annotated, tab);
+      if (jev && jev.item_no) {
         decidedBy = 'jev'; confidence = jev.confidence; reason = jev.reason;
         picked = candidates.find((c) => c.item_no === jev.item_no) || null;
       } else {
-        let llm = await decideWithLlm(line, plausible.slice(0, 8), DECIDE_MODEL, tab);
-        // Haiku 기권 + 이력 후보 존재 → 상위 모델 재판정 (재주문 패턴은 이력이 결정적인데 Haiku가 과하게 보수적)
-        if (!llm.item_no && plausible.some((c) => c.in_history)) {
-          llm = await decideWithLlm(line, plausible.slice(0, 8), ESCALATE_MODEL, tab);
+        let llm = await decideWithLlm(line, annotated, DECIDE_MODEL, tab);
+        // 기권 + (이력 후보 또는 어휘 강매치 존재) → 상위 모델 재판정
+        if (!llm.item_no && plausible.some((c) => c.in_history || c.lexical >= 0.6)) {
+          llm = await decideWithLlm(line, annotated, ESCALATE_MODEL, tab);
         }
         decidedBy = 'llm'; confidence = llm.confidence; reason = llm.reason;
         picked = llm.item_no ? candidates.find((c) => c.item_no === llm.item_no) || null : null;
