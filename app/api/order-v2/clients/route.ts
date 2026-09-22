@@ -24,7 +24,12 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q') || '';
   const tab = req.nextUrl.searchParams.get('tab') || 'CDV';
 
-  const clientTable = tab === 'DL' ? 'glass_clients' : 'clients';
+  // CDV 정본 = client_details(client_type='wine') — 'clients' 테이블은 옛 통합 마스터 잔재로
+  // 대유(글라스) 전용 거래처 476곳이 섞여 있어(와인 출고 0) 법인 교차 노출의 원인이었음.
+  const clientTable = tab === 'DL' ? 'glass_clients' : 'client_details';
+  const wineOnly = <T,>(qb: T): T =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (tab === 'DL' ? qb : (qb as any).eq('client_type', 'wine')) as T;
   const aliasTable = tab === 'DL' ? 'glass_client_alias' : 'client_alias';
 
   try {
@@ -41,9 +46,10 @@ export async function GET(req: NextRequest) {
     };
 
     if (!q.trim()) {
-      const { data, error } = await supabase
-        .from(clientTable)
-        .select('client_code, client_name')
+      const { data, error } = await wineOnly(
+        supabase
+          .from(clientTable)
+          .select('client_code, client_name'))
         .order('client_name', { ascending: true })
         .limit(50);
       if (error) throw error;
@@ -53,7 +59,7 @@ export async function GET(req: NextRequest) {
     const words = splitSearchWords(q);
 
     // 3개 쿼리 병렬 실행 (순차→병렬 최적화)
-    let directQuery = supabase.from(clientTable).select('client_code, client_name');
+    let directQuery = wineOnly(supabase.from(clientTable).select('client_code, client_name'));
     directQuery = applyMultiWordSearch(directQuery, words, 'client_name', ['client_code']);
 
     let aliasQuery = supabase.from(aliasTable).select('client_code, alias');
@@ -83,9 +89,10 @@ export async function GET(req: NextRequest) {
     const aliasCodes = [...aliasMap.keys()].filter(c => !direct?.some(d => d.client_code === c));
     let aliasClients: Array<{ client_code: string; client_name: string; matched_alias: string | null }> = [];
     if (aliasCodes.length > 0) {
-      const { data } = await supabase
-        .from(clientTable)
-        .select('client_code, client_name')
+      const { data } = await wineOnly(
+        supabase
+          .from(clientTable)
+          .select('client_code, client_name'))
         .in('client_code', aliasCodes);
       aliasClients = (data || []).map(c => ({
         ...c,
