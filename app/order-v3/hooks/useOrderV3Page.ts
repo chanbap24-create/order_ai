@@ -37,7 +37,7 @@ export function useOrderV3Page() {
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
   // textOverride/clientCodeOverride: 스샷 추출 직후 자동 분석 — setState 직후엔 클로저가 옛 값을 봐서 인자로 직접 전달
-  const parse = async (textOverride?: string, clientCodeOverride?: string | null) => {
+  const parse = async (textOverride?: string, clientCodeOverride?: string | null, fromImage = false) => {
     const text = textOverride ?? orderText;
     const clientCode = clientCodeOverride !== undefined ? clientCodeOverride : (client.selected?.client_code || null);
     if (!text.trim()) return;
@@ -46,7 +46,7 @@ export function useOrderV3Page() {
     try {
       const res = await fetch('/api/order-v3/parse', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_text: text, client_code: clientCode }),
+        body: JSON.stringify({ order_text: text, client_code: clientCode, from_image: fromImage }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || '분석 실패');
@@ -90,7 +90,7 @@ export function useOrderV3Page() {
       client.setShowDropdown(true);
     }
     // 스샷 추출 성공 → 분석 버튼 없이 바로 실행
-    if (r.order_text?.trim()) void parse(r.order_text, code);
+    if (r.order_text?.trim()) void parse(r.order_text, code, true); // 비전 추출 정형 텍스트 → 빠른 파서
   };
   const imageIntake = useImageIntake(applyExtraction, tab);
   const handleFiles = (files: File[]) => {

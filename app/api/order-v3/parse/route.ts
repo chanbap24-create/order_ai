@@ -9,13 +9,13 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
 
-    const { order_text, client_code } = await req.json();
+    const { order_text, client_code, from_image } = await req.json();
     if (!order_text?.trim()) return NextResponse.json({ error: '발주 내용을 입력해주세요.' }, { status: 400 });
     if (typeof order_text !== 'string' || order_text.length > 5000) {
       return NextResponse.json({ error: '발주 내용이 너무 깁니다. (최대 5000자)' }, { status: 400 });
     }
 
-    const result = await parseOrderV3(order_text, client_code || null);
+    const result = await parseOrderV3(order_text, client_code || null, { fromImage: !!from_image });
     return NextResponse.json(result);
   } catch (e) {
     return handleApiError(e);

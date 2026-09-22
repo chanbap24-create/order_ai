@@ -2,7 +2,7 @@
 // 응답은 v2 OrderLine 호환 형태 — 메시지 빌더(staffMessage)·학습(learnOrderCorrections) 재사용을 위해.
 import { supabase } from '../db';
 import { getClaudeClient } from '../claudeClient';
-import { matchLineV3, type V3Result } from './index';
+import { matchLineV3, embedBatch, cleanLineForSearch, loadClientHistory, type V3Result } from './index';
 
 const EXTRACT_MODEL = 'claude-haiku-4-5-20251001';
 
@@ -66,15 +66,46 @@ export type V3OrderLine = {
   v3: { decidedBy: V3Result['decidedBy']; confidence: number; reason?: string; picked_in_history: boolean; picked_stock: number };
 };
 
-/** ①+③ 전체 파이프라인 */
-export async function parseOrderV3(orderText: string, clientCode: string | null): Promise<{
+/** 빠른 라인 파서 — 비전 추출 결과("품목 수량\n품목 수량")는 이미 정형이라 LLM 재추출이 낭비.
+ *  전 라인이 "이름 + 말미 수량(단위)" 패턴이면 정규식으로 즉시 분리 (LLM 홉 1개 제거, ~2-3초 절감). */
+export function tryFastExtract(orderText: string): ExtractedLine[] | null {
+  const rawLines = orderText.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (rawLines.length === 0) return null;
+  const out: ExtractedLine[] = [];
+  for (const raw of rawLines) {
+    const m = raw.match(/^(.{2,}?)[\s,]*(\d{1,3})\s*(병|개|본|ea|btl)?\.?$/i)
+      || raw.match(/^(.{2,}?)[\s,]*(\d{1,2})\s*(박스|box|cs)\.?$/i);
+    if (!m) return null; // 한 줄이라도 안 맞으면 LLM 추출로 폴백 (인사말 섞인 원문 등)
+    const name = m[1].trim();
+    if (name.length < 2 || /^\d+$/.test(name)) return null;
+    const qty = Math.max(1, parseInt(m[2], 10));
+    const isBox = /박스|box|cs/i.test(m[3] || '');
+    out.push({ name, qty: isBox ? qty * 12 : qty });
+  }
+  return out.length > 0 ? out : null;
+}
+
+/** ①+③ 전체 파이프라인. fromImage=true면 비전 추출 정형 텍스트로 보고 빠른 파서 우선. */
+export async function parseOrderV3(orderText: string, clientCode: string | null, opts?: { fromImage?: boolean }): Promise<{
   orderLines: V3OrderLine[];
   usage: { input_tokens: number; output_tokens: number };
   historyItemNos: string[];
 }> {
-  const { lines, usage } = await extractOrderLines(orderText);
+  let lines: ExtractedLine[] | null = null;
+  let usage = { input_tokens: 0, output_tokens: 0 };
+  if (opts?.fromImage) lines = tryFastExtract(orderText);
+  if (!lines) {
+    const r = await extractOrderLines(orderText);
+    lines = r.lines; usage = r.usage;
+  }
 
-  const results = await Promise.all(lines.map((l) => matchLineV3(l.name, clientCode)));
+  // 임베딩 배치(1회 호출) + 거래처 이력 1회 로드 — 라인별 반복 제거
+  const [vecs, history] = await Promise.all([
+    lines.length ? embedBatch(lines.map((l) => cleanLineForSearch(l.name))) : Promise.resolve([]),
+    loadClientHistory(clientCode),
+  ]);
+  const results = await Promise.all(lines.map((l, i) =>
+    matchLineV3(l.name, clientCode, { queryVec: vecs[i], history })));
 
   // 후보 품번의 공급가·가용재고 일괄 보강
   const allNos = [...new Set(results.flatMap((r) => r.candidates.map((c) => c.item_no)))];
@@ -87,15 +118,10 @@ export async function parseOrderV3(orderText: string, clientCode: string | null)
     }
   }
 
-  // 거래처 이력 품번 (메시지 가격 표기·학습용)
-  const historyItemNos: string[] = [];
-  if (clientCode) {
-    const { data } = await supabase.from('shipments')
-      .select('item_no').eq('client_code', clientCode)
-      .gte('ship_date', new Date(Date.now() - 730 * 86400_000).toISOString().slice(0, 10)).limit(2000);
-    for (const r of data || []) historyItemNos.push(String(r.item_no));
-  }
+  // 거래처 이력 품번 (메시지 가격 표기·학습용) — 위에서 로드한 history 재사용
+  const historyItemNos = [...history.keys()];
 
+  const finalLines = lines;
   const orderLines: V3OrderLine[] = results.map((r, i) => {
     // picked 우선 정렬, 나머지는 final 순 — v2 규약(selectedIdx=0=선택)과 호환
     const rest = r.candidates.filter((c) => c.item_no !== r.picked?.item_no).slice(0, 5);
@@ -108,8 +134,8 @@ export async function parseOrderV3(orderText: string, clientCode: string | null)
       return r.decidedBy === 'margin' ? '점수 확정' : 'AI 판정';
     };
     return {
-      query: lines[i].name,
-      quantity: lines[i].qty,
+      query: finalLines[i].name,
+      quantity: finalLines[i].qty,
       candidates: ordered.map((c) => ({
         item_no: c.item_no,
         item_name: c.item_name,

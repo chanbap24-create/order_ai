@@ -32,13 +32,24 @@ const DECIDE_MODEL = 'claude-haiku-4-5-20251001';
 const ESCALATE_MODEL = 'claude-sonnet-4-6'; // Haiku 기권 + 이력 후보 존재 시 재판정
 
 async function embedQuery(text: string): Promise<number[]> {
+  return (await embedBatch([text]))[0];
+}
+
+/** 배치 임베딩 — 발주 전 라인을 OpenAI 1회 호출로 (라인별 개별 호출 대비 왕복 N-1회 절감) */
+export async function embedBatch(texts: string[]): Promise<number[][]> {
   const res = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getEnv('OPENAI_API_KEY')}` },
-    body: JSON.stringify({ model: EMBED_MODEL, input: text }),
+    body: JSON.stringify({ model: EMBED_MODEL, input: texts }),
   });
   if (!res.ok) throw new Error(`embed failed ${res.status}`);
-  return (await res.json()).data[0].embedding;
+  const j = await res.json();
+  return j.data.map((d: { embedding: number[] }) => d.embedding);
+}
+
+/** 검색용 정제 문자열 — 배치 임베딩 시 파이프라인이 같은 정제를 써야 벡터가 일치 */
+export function cleanLineForSearch(line: string): string {
+  return cleanForSearch(line) || line;
 }
 
 /** 와인 분류 품번(0~5, A)만 — 글라스·자재·세트 제외 */
@@ -68,7 +79,7 @@ function itemVintageOf(itemNo: string): string | null {
 }
 
 /** 거래처 구매 이력 전체(최근 24개월, 와인만) — 빈도 0~1 + 품명. 후보 선제 주입용. */
-async function loadClientHistory(clientCode: string | null): Promise<Map<string, { name: string; freq: number; n: number }>> {
+export async function loadClientHistory(clientCode: string | null): Promise<Map<string, { name: string; freq: number; n: number }>> {
   const map = new Map<string, { name: string; freq: number; n: number }>();
   if (!clientCode) return map;
   const cutoff = new Date(Date.now() - 730 * 86400_000).toISOString().slice(0, 10);
@@ -198,11 +209,20 @@ async function lexicalRetrieve(line: string, limit = 15): Promise<Map<string, { 
   return new Map([...out.entries()].sort((a, b) => b[1].lex - a[1].lex).slice(0, limit + 5));
 }
 
-export async function matchLineV3(line: string, clientCode: string | null, opts?: { topK?: number; noLlm?: boolean }): Promise<V3Result> {
+export type MatchOpts = {
+  topK?: number;
+  noLlm?: boolean;
+  /** 사전 계산 쿼리 임베딩 — 발주 파이프라인이 전 라인을 한 번에 배치 임베딩해 전달 */
+  queryVec?: number[];
+  /** 사전 로드된 거래처 이력 — 라인마다 같은 이력을 반복 조회하지 않게 */
+  history?: Awaited<ReturnType<typeof loadClientHistory>>;
+};
+
+export async function matchLineV3(line: string, clientCode: string | null, opts?: MatchOpts): Promise<V3Result> {
   const t0 = Date.now();
   const vHintRaw = vintageHintOf(line); // 정제 전에 빈티지 힌트 추출 (정제가 숫자를 지우므로)
   const q = cleanForSearch(line) || line;
-  const vec = await embedQuery(q);
+  const vec = opts?.queryVec ?? await embedQuery(q);
   const t1 = Date.now();
 
   const [{ data: hits, error }, lexHits] = await Promise.all([
@@ -224,7 +244,7 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
   }
   // 거래처 이력 선제 주입 — 이 집이 사갔던 와인을 쿼리와 직접 대조해 조금이라도 닮았으면 후보로.
   // ("뱅상 리자르댕 12" → 이력의 '뀌베 생 뱅상'이 카탈로그 검색에서 빠졌어도 후보에 올라옴)
-  const historyMap = await loadClientHistory(clientCode);
+  const historyMap = opts?.history ?? await loadClientHistory(clientCode);
   const qJamo = toJamo(q);
   for (const [no, h] of historyMap) {
     const s = jamoTrgmSim(qJamo, toJamo(h.name));
