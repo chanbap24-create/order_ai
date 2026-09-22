@@ -158,29 +158,44 @@ async function decideWithLlm(line: string, cands: V3Candidate[], model = DECIDE_
   return { item_no: inp.item_no ?? null, confidence: Number(inp.confidence) || 0, reason: String(inp.reason || '') };
 }
 
-/** Jev(TypeSafe AI) 판정 어댑터 — 결정 전용 모델. JEV_API_KEY 설정 시에만 활성.
- *  보정된 확률로 후보 중 선택. 한국어 성능은 A/B로 검증 후 기본값 전환 판단. */
-async function decideWithJev(line: string, cands: V3Candidate[]): Promise<{ item_no: string | null; confidence: number; reason: string } | null> {
-  const key = process.env.JEV_API_KEY;
-  if (!key) return null; // 미연결 — 호출 경로(웨이트리스트/게이트웨이 키) 확보 전
+/** Jev(TypeSafe AI) 판정 — Vercel AI Gateway /v1/evaluate 경유. AI_GATEWAY_API_KEY 필요.
+ *  보정된 확률 분포로 후보 중 선택. ZDR(무보존)·no-training 보장, 응답 ~200ms. */
+export async function decideWithJev(line: string, cands: V3Candidate[], tab: MatchTab = 'CDV'): Promise<{ item_no: string | null; confidence: number; reason: string } | null> {
+  const key = process.env.AI_GATEWAY_API_KEY;
+  if (!key || cands.length === 0) return null;
   try {
-    const res = await fetch('https://api.jevai.net/v1/decide', {
+    const criteria: Record<string, string> = {};
+    for (const c of cands) {
+      criteria[c.item_no] = `${c.item_name}${c.in_history ? ` (이 거래처 최근 2년 ${c.hist_n || 1}회 구매)` : ''}`;
+    }
+    criteria.NONE = '해당 없음 — 후보 중에 같은 상품이 없다';
+    const res = await fetch('https://ai-gateway.vercel.sh/v1/evaluate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        input: `와인 발주 라인: "${line}" — 이 라인이 가리키는 와인은?`,
-        decision: {
-          type: 'choice',
-          options: [...cands.map((c) => `[${c.item_no}] ${c.item_name}${c.in_history ? ' (구매이력)' : ''}`), '해당 없음'],
-        },
+        model: 'typesafe-ai/jev',
+        state: `${tab === 'DL' ? '리델 글라스' : '와인'} 발주 라인: "${line}"\n발주는 대부분 재주문 — 구매이력 후보가 이름이 통하면 그것이 정답일 가능성이 높다. 띄어쓰기·가벼운 오타는 같은 상품. 정말 다른 상품뿐이면 NONE.`,
+        questions: { pick: { type: 'choice', criteria } },
       }),
     });
     if (!res.ok) return null;
     const j = await res.json();
-    const idx = Number(j?.choice_index ?? j?.decision?.index ?? -1);
-    const prob = Number(j?.probability ?? j?.confidence ?? 0);
-    if (idx < 0 || idx >= cands.length) return { item_no: null, confidence: prob, reason: 'jev: 해당 없음' };
-    return { item_no: cands[idx].item_no, confidence: prob, reason: 'jev 판정' };
+    const a = j?.answers?.pick;
+    if (!a) return null;
+    const choice = String(a.choice || '');
+    const probs: Record<string, number> = a.probabilities || {};
+    const sorted = Object.entries(probs).sort((x, y) => y[1] - x[1]);
+    const top = Number(sorted[0]?.[1]) || 0;
+    const margin = top - (Number(sorted[1]?.[1]) || 0);
+    const conf = Number(a.confidence) || top;
+    if (choice === 'NONE' || !criteria[choice]) return { item_no: null, confidence: conf, reason: 'jev: 해당 없음' };
+    // 채택 = 1위 확률·격차 기준 (보정 분포 활용) — 낮으면 상위 모델 폴백
+    const accept = (top >= 0.6 && margin >= 0.3) || conf >= 0.7;
+    return {
+      item_no: accept ? choice : null,
+      confidence: conf,
+      reason: accept ? `jev ${Math.round(top * 100)}% (격차 ${Math.round(margin * 100)}%p)` : 'jev 저확신 → LLM 폴백',
+    };
   } catch { return null; }
 }
 
@@ -321,7 +336,7 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
       confidence = 0.8; reason = `이력 재주문 (최근 2년 ${histStrong[0].hist_n || 1}회)`;
     } else {
       // 1차: Jev(연결돼 있으면) — 보정 확률 0.9 이상만 신뢰, 아니면 LLM으로
-      const jev = await decideWithJev(line, plausible.slice(0, 8));
+      const jev = await decideWithJev(line, plausible.slice(0, 8), tab);
       if (jev && jev.item_no && jev.confidence >= 0.9) {
         decidedBy = 'jev'; confidence = jev.confidence; reason = jev.reason;
         picked = candidates.find((c) => c.item_no === jev.item_no) || null;
