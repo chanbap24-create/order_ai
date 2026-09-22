@@ -41,7 +41,7 @@ export default function OrderV3Page() {
   useEffect(() => {
     if (loading || lines.length === 0 || step !== 'input') return;
     if (lines.every((l) => l.selectedIdx >= 0)) {
-      setStep('send'); setMsgTab('staff'); void copy('staff');
+      setStep('send'); setMsgTab('staff'); setShowOriginal(true); void copy('staff'); // 전송 직행 시 원문 자동 펼침 — 대조용
     } else {
       setStep('review');
     }
@@ -49,6 +49,28 @@ export default function OrderV3Page() {
   }, [loading, lines.length]);
 
   const goReset = () => { reset(); setStep('input'); };
+
+  // 발주 원문 패널 — 검토·전송 공용 (전송 직행 플로우에서도 원문 대조가 필요)
+  const originalPanel = orderText.trim() ? (
+    <div style={{ marginBottom: 14 }}>
+      <button onClick={() => setShowOriginal((v) => !v)}
+        style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'baseline', gap: 6, padding: '2px 2px 6px', width: '100%', boxSizing: 'border-box' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-secondary)' }}>발주 원문</span>
+        <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{showOriginal ? '접기 ▴' : '펼치기 ▾'}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}>빠진 라인이 없는지 확인</span>
+      </button>
+      {showOriginal && (
+        <pre style={{
+          margin: 0, padding: '10px 12px', fontSize: 13, lineHeight: 1.6,
+          whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit',
+          color: 'var(--text-secondary)', background: 'var(--surface-muted)',
+          borderRadius: 10, maxHeight: 180, overflowY: 'auto',
+        }}>
+          {orderText}
+        </pre>
+      )}
+    </div>
+  ) : null;
 
   const clientSection = (onPick: (it: Parameters<typeof addLineFromHistory>[0]) => void) => (
     <ClientSection
@@ -150,27 +172,8 @@ export default function OrderV3Page() {
       {/* ── ② 검토 ── */}
       {step === 'review' && lines.length > 0 && (
         <section>
-          {/* 발주 원문 — 추출 누락·수량 오인 대조용. 접기 가능 */}
-          {orderText.trim() && (
-            <div style={{ marginBottom: 14 }}>
-              <button onClick={() => setShowOriginal((v) => !v)}
-                style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'baseline', gap: 6, padding: '2px 2px 6px', width: '100%', boxSizing: 'border-box' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-secondary)' }}>발주 원문</span>
-                <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{showOriginal ? '접기 ▴' : '펼치기 ▾'}</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)' }}>빠진 라인이 없는지 확인</span>
-              </button>
-              {showOriginal && (
-                <pre style={{
-                  margin: 0, padding: '10px 12px', fontSize: 13, lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit',
-                  color: 'var(--text-secondary)', background: 'var(--surface-muted)',
-                  borderRadius: 10, maxHeight: 180, overflowY: 'auto',
-                }}>
-                  {orderText}
-                </pre>
-              )}
-            </div>
-          )}
+          {/* 발주 원문 — 추출 누락·수량 오인 대조용 */}
+          {originalPanel}
           <div style={{ display: 'flex', borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)' }}>
             {[
               ['품목', `${lines.length}종`],
@@ -220,6 +223,7 @@ export default function OrderV3Page() {
       {/* ── ③ 전송 ── */}
       {step === 'send' && lines.length > 0 && (
         <section>
+          {originalPanel}
           {/* 자동 직행 시 검토 요약 한 줄 — 문제 없었음을 알리고 복귀 동선 제공 */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '0 2px 12px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12.5, color: 'var(--status-success)' }}>
