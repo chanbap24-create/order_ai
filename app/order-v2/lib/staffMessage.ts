@@ -78,8 +78,8 @@ function stripBrandPrefix(name: string): string {
  */
 export function buildClientMessage(p: BuildParams): string {
   if (p.orderLines.length === 0) return "";
-  // DL(대유라이프) + 특이사항에 '입금확인' — 선결제 안내(계좌·품목별 금액·부가세 합계) 포맷
-  if (p.tab === "DL" && /입금\s*확인/.test(p.deliveryNotes)) return buildPaymentFirstMessage(p);
+  // 특이사항에 '입금확인' — 선결제 안내(계좌·품목별 금액·부가세 합계) 포맷. 계좌는 법인별.
+  if (/입금\s*확인/.test(p.deliveryNotes)) return buildPaymentFirstMessage(p);
 
   const greeting = "안녕하세요\n발주 감사합니다~";
   const deliveryLine = p.finalDeliveryLabel ? `배송 예정일: ${p.finalDeliveryLabel}` : "";
@@ -144,7 +144,9 @@ function buildPaymentFirstMessage(p: BuildParams): string {
     "품목과 수량, 금액 확인 부탁드립니다.",
     lines.join("\n\n"),
     `부가세포함 = ${fmt(vat)}원`,
-    "기업은행_(주)대유라이프  500-042529-01-016",
+    p.tab === "DL"
+      ? "기업은행_(주)대유라이프  500-042529-01-016"
+      : "기업은행\n예금주 : 까브드뱅\n500-042293-04-015",
     p.finalDeliveryLabel
       ? `오늘까지 결제해 주시면 ${p.finalDeliveryLabel} 배송 예정입니다.`
       : "입금 확인 후 배송 일정 안내드리겠습니다.",

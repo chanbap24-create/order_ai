@@ -26,7 +26,7 @@ export default function OrderV3Page() {
     lines, historySet, loading, error, parse, reset,
     setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory,
     expanded, toggleExpand, discountRates, setDiscount,
-    deliveryNotes, setDeliveryNotes,
+    deliveryNotes, setDeliveryNotes, finalDeliveryLabel, paymentFirst,
     staffMessage, clientMessage, copied, copy, totalAmount,
     imageIntake, handleFiles,
   } = useOrderV3Page();
@@ -218,8 +218,11 @@ export default function OrderV3Page() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 2px 12px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)', flex: 'none' }}>배송 예정일</span>
             <span style={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums', flex: 'none' }}>
-              {delivery.finalLabel || '—'}
+              {finalDeliveryLabel || '—'}
             </span>
+            {paymentFirst && (
+              <span style={{ fontSize: 11.5, color: 'var(--status-warning)', flex: 'none' }}>입금확인 · 영업일 +2 자동</span>
+            )}
             {delivery.info?.isFriday && (
               <span style={{ display: 'inline-flex', gap: 6, flex: 'none' }}>
                 {(['sat', 'mon'] as const).map((c) => (

@@ -13,6 +13,7 @@ import type { IntakeResult } from '@/app/order-v2/lib/api';
 import { buildStaffMessage, buildClientMessage } from '@/app/order-v2/lib/staffMessage';
 import { learnOrderCorrections } from '@/app/order-v2/lib/api';
 import { calcTotalAmount } from '@/app/order-v2/lib/priceCalc';
+import { formatCustomDeliveryLabel } from '@/app/order-v2/lib/deliveryDates';
 import type { SearchResult } from '@/app/order-v2/types';
 
 export type V3Meta = { decidedBy: string; confidence: number; reason?: string; picked_in_history: boolean; picked_stock: number };
@@ -140,17 +141,38 @@ export function useOrderV3Page() {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(idx)) n.delete(idx); else n.add(idx); return n; });
   const setDiscount = (idx: number, rate: number) => setDiscountRates((p) => ({ ...p, [idx]: rate }));
 
+  // ── 배송일: '입금확인' 특이사항이면 영업일 +2로 자동 (결제 대기 시간 감안). 직접 지정한 날짜가 있으면 그것 우선 ──
+  const paymentFirst = /입금\s*확인/.test(deliveryNotes);
+  const bizPlus2Label = useMemo(() => {
+    if (!paymentFirst) return '';
+    const kst = new Date(Date.now() + 9 * 3600_000);
+    const d = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()));
+    const isBiz = (x: Date) => {
+      const dow = x.getUTCDay();
+      const ymd = x.toISOString().slice(0, 10);
+      return dow !== 0 && dow !== 6 && !delivery.holidays.has(ymd);
+    };
+    for (let i = 0; i < 2; i++) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      while (!isBiz(d)) d.setUTCDate(d.getUTCDate() + 1);
+    }
+    return formatCustomDeliveryLabel(d.toISOString().slice(0, 10));
+  }, [paymentFirst, delivery.holidays]);
+  const finalDeliveryLabel = delivery.customDate
+    ? formatCustomDeliveryLabel(delivery.customDate)
+    : paymentFirst ? bizPlus2Label : delivery.finalLabel;
+
   // ── 메시지 ──
   const msgParams = {
     orderLines: lines, tab, selectedClient: client.selected, clientQuery: client.query,
-    discountRates, historySet, finalDeliveryLabel: delivery.finalLabel, deliveryNotes,
+    discountRates, historySet, finalDeliveryLabel, deliveryNotes,
   };
   const staffMessage = useMemo(() => buildStaffMessage(msgParams),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lines, discountRates, historySet, delivery.finalLabel, deliveryNotes, client.selected, client.query]);
+    [lines, discountRates, historySet, finalDeliveryLabel, deliveryNotes, client.selected, client.query]);
   const clientMessage = useMemo(() => buildClientMessage(msgParams),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lines, discountRates, historySet, delivery.finalLabel, deliveryNotes, client.selected, client.query]);
+    [lines, discountRates, historySet, finalDeliveryLabel, deliveryNotes, client.selected, client.query]);
 
   const copy = async (which: 'staff' | 'client') => {
     const text = which === 'staff' ? staffMessage : clientMessage;
@@ -172,7 +194,7 @@ export function useOrderV3Page() {
     lines, historySet, loading, error, parse, reset,
     setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory,
     expanded, toggleExpand, discountRates, setDiscount,
-    deliveryNotes, setDeliveryNotes,
+    deliveryNotes, setDeliveryNotes, finalDeliveryLabel, paymentFirst,
     staffMessage, clientMessage, copied, copy, totalAmount,
     imageIntake, handleFiles,
   };
