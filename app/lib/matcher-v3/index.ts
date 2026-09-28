@@ -401,6 +401,28 @@ export async function matchLineV3(line: string, clientCode: string | null, opts?
       }
     }
   }
+  // 최신 빈티지 스왑 — 빈티지 미지정 발주인데 같은 와인의 '더 최신' 빈티지가 재고에 있으면 교체.
+  // (이력 가중치가 많이 산 옛 빈티지를 이기게 해 margin/이력 경로에서 옛 빈티지가 뽑히던 버그 —
+  //  최신 선호 규칙이 LLM 프롬프트에만 있고 점수에는 없었음. 빈티지를 명시한 발주는 존중)
+  if (tab === 'CDV' && picked && !vHint && /^\d{7}$/.test(picked.item_no)) {
+    const base = picked.item_no.slice(0, 2) + picked.item_no.slice(4);
+    const { data: sib } = await supabase.from('inventory_cdv')
+      .select('item_no, item_name, stock_pipeline')
+      .like('item_no', `${picked.item_no.slice(0, 2)}__${picked.item_no.slice(4)}`)
+      .gt('stock_pipeline', 0).limit(10);
+    const pickedJamo = toJamo(picked.item_name);
+    const newer = (sib || [])
+      .filter((r) => String(r.item_no) > picked!.item_no
+        && (String(r.item_no).slice(0, 2) + String(r.item_no).slice(4)) === base
+        && jamoTrgmSim(pickedJamo, toJamo(String(r.item_name))) >= 0.7) // 베이스 충돌(다른 와인) 방지
+      .sort((a, b) => String(b.item_no).localeCompare(String(a.item_no)));
+    if (newer.length > 0) {
+      const alt = newer[0];
+      reason = `${reason ? reason + ' · ' : ''}최신 빈티지 우선 (${picked.item_no.slice(2, 4)}→${String(alt.item_no).slice(2, 4)})`;
+      picked = { ...picked, item_no: String(alt.item_no), item_name: String(alt.item_name), stock: Number(alt.stock_pipeline) || 0 };
+    }
+  }
+
   // 품절 스왑 — 고른 와인이 재고 0이면 같은 베이스 품번(빈티지만 다름)의 재고 있는 최신 빈티지로 교체
   if (tab === 'CDV' && picked && (picked.stock ?? 0) <= 0 && /^\d{7}$/.test(picked.item_no)) {
     const base = picked.item_no.slice(0, 2) + picked.item_no.slice(4);

@@ -2,6 +2,7 @@
 
 // 발주 라인 행 — 접힘: 한 줄 요약 / 펼침: 수량·후보·직접검색·할인.
 // 모바일 안전: 모든 flex 자식에 minWidth:0, 긴 품명은 말줄임, 숫자 tabular.
+import { useState } from 'react';
 import type { CSSProperties, RefObject } from 'react';
 import type { SearchResult } from '@/app/order-v2/types';
 import type { V3Line } from '../hooks/useOrderV3Page';
@@ -27,6 +28,7 @@ export function LineRow({
   onPickSearch: (w: SearchResult) => void;
   onDiscount: (rate: number) => void;
 }) {
+  const [customOpen, setCustomOpen] = useState(false); // 할인율 직접입력 필드 토글
   const sel = line.selectedIdx >= 0 ? line.candidates[line.selectedIdx] : undefined;
   const unresolved = !sel;
   const v3 = line.v3;
@@ -101,11 +103,33 @@ export function LineRow({
             </div>
             <select
               value={DISCOUNTS.includes(discount) ? String(discount) : discount === 100 ? '100' : 'custom'}
-              onChange={(e) => onDiscount(e.target.value === '100' ? 100 : Number(e.target.value) || 0)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'custom') { setCustomOpen(true); return; }
+                setCustomOpen(false);
+                onDiscount(v === '100' ? 100 : Number(v) || 0);
+              }}
               style={{ padding: '9px 10px', fontSize: 13, borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--surface)' }}>
               {DISCOUNTS.map((d) => <option key={d} value={d}>{d === 0 ? '할인 없음' : `${d}%`}</option>)}
+              <option value="custom">직접입력</option>
               <option value="100">시음주</option>
             </select>
+            {(customOpen || (!DISCOUNTS.includes(discount) && discount !== 100 && discount > 0)) && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  autoFocus inputMode="numeric"
+                  defaultValue={discount > 0 && discount < 100 ? String(discount) : ''}
+                  onBlur={(e) => {
+                    const n = Math.min(Math.max(parseInt(e.target.value || '0', 10) || 0, 0), 99);
+                    onDiscount(n); setCustomOpen(false);
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                  placeholder="0"
+                  style={{ width: 56, padding: '9px 8px', fontSize: 16, textAlign: 'right', borderRadius: 10, border: '1px solid var(--border-default)', outline: 'none', background: 'var(--surface)', fontVariantNumeric: 'tabular-nums' }}
+                />
+                <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)' }}>%</span>
+              </span>
+            )}
             <button onClick={onRemove}
               style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 12.5, color: 'var(--text-tertiary)', padding: '6px 4px' }}>
               행 삭제

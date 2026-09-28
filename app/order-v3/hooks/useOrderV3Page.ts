@@ -136,6 +136,8 @@ export function useOrderV3Page() {
     wineSearch.setIdx(null);
   };
   const addLineFromHistory = (item: { item_no: string; item_name: string; supply_price: number }) => {
+    // ⚠️ history의 supply_price는 '지난 거래단가' — 할인 기준은 정상 공급가여야 하므로
+    // 재고표에서 정상가를 비동기 조회해 교체한다 (조회 전엔 지난 단가로 임시 표시).
     setLines((prev) => [...prev, {
       query: item.item_name, quantity: 1, selectedIdx: 0, llm_top_item_no: item.item_no,
       candidates: [{
@@ -143,6 +145,19 @@ export function useOrderV3Page() {
         supply_price: item.supply_price || 0, available_stock: 0, reasoning: '입고내역에서 추가',
       }],
     }]);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/order-v2/search?q=${encodeURIComponent(item.item_no)}&tab=${tab}`);
+        const j = await res.json();
+        const hit = (j.results || []).find((r: SearchResult) => r.item_no === item.item_no);
+        if (!hit) return;
+        setLines((prev) => prev.map((l) => {
+          if (l.llm_top_item_no !== item.item_no || l.candidates[0]?.item_no !== item.item_no) return l;
+          const c0 = { ...l.candidates[0], supply_price: hit.supply_price || l.candidates[0].supply_price, available_stock: hit.available_stock ?? 0 };
+          return { ...l, candidates: [c0, ...l.candidates.slice(1)] };
+        }));
+      } catch { /* 조회 실패 시 지난 단가 유지 */ }
+    })();
   };
   const toggleExpand = (idx: number) =>
     setExpanded((prev) => { const n = new Set(prev); if (n.has(idx)) n.delete(idx); else n.add(idx); return n; });
