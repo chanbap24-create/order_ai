@@ -15,6 +15,8 @@ type BuildParams = {
   deliveryNotes: string;
   /** 품번(대문자) → 그 거래처 마지막 공급 단가. 할인율 미지정 시 이 가격이 우선 */
   historyPrices?: Record<string, number>;
+  /** 가격을 직접 입력한 라인 idx — 이력 품목이라도 가격을 반드시 표기 (v3 할인가 직접입력) */
+  forcePriceIdx?: Set<number>;
 };
 
 /**
@@ -55,7 +57,7 @@ export function buildStaffMessage(p: BuildParams): string {
         ? " / 시음주"
         : rate > 0
           ? ` / ${fmt(price)} (${rate}%↓)`
-          : !hasHistory && sel.supply_price > 0
+          : (p.forcePriceIdx?.has(idx) || !hasHistory) && sel.supply_price > 0
             ? ` / ${fmt(sel.supply_price)}`
             : "";
 

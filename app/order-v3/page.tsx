@@ -24,7 +24,7 @@ export default function OrderV3Page() {
     tab, setTab, client, history, delivery, wineSearch,
     orderText, setOrderText, orderTextRef, pasteFromClipboard,
     lines, historySet, loading, error, parse, reset,
-    setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory,
+    setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory, updatePrice,
     expanded, toggleExpand, discountRates, setDiscount,
     deliveryNotes, setDeliveryNotes, finalDeliveryLabel, paymentFirst,
     staffMessage, clientMessage, copied, copy, totalAmount,
@@ -207,6 +207,7 @@ export default function OrderV3Page() {
                 onQty={(q) => setQty(idx, q)}
                 onRemove={() => removeLine(idx)}
                 onSelect={(c) => selectCandidate(idx, c)}
+                onPrice={(p2) => updatePrice(idx, p2)}
                 onPickSearch={(w) => replaceWithSearch(idx, w)}
                 onDiscount={(r) => setDiscount(idx, r)}
               />

@@ -13,7 +13,7 @@ const DISCOUNTS = [0, 5, 10, 15, 20, 30, 40, 50];
 export function LineRow({
   line, unit = '병', expanded, historySet, discount,
   isSearching, searchQuery, setSearchQuery, searchResults, searchLoading, searchRef, onOpenSearch,
-  onToggle, onQty, onRemove, onSelect, onPickSearch, onDiscount,
+  onToggle, onQty, onRemove, onSelect, onPickSearch, onDiscount, onPrice,
 }: {
   line: V3Line; unit?: string; expanded: boolean;
   historySet: Set<string>; discount: number;
@@ -25,6 +25,7 @@ export function LineRow({
   onQty: (qty: number) => void;
   onRemove: () => void;
   onSelect: (cIdx: number) => void;
+  onPrice: (price: number) => void;
   onPickSearch: (w: SearchResult) => void;
   onDiscount: (rate: number) => void;
 }) {
@@ -128,6 +129,24 @@ export function LineRow({
                   style={{ width: 56, padding: '9px 8px', fontSize: 16, textAlign: 'right', borderRadius: 10, border: '1px solid var(--border-default)', outline: 'none', background: 'var(--surface)', fontVariantNumeric: 'tabular-nums' }}
                 />
                 <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)' }}>%</span>
+              </span>
+            )}
+            {/* 할인가(최종 적용가) 직접 입력 — 입력 시 할인율은 0으로 리셋되고 이 가격이 메시지에 표기 */}
+            {sel && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  key={`${line.selectedIdx}-${sel.supply_price}-${discount}`}
+                  inputMode="numeric"
+                  defaultValue={sel.supply_price > 0 ? String(Math.round(sel.supply_price * (1 - discount / 100))) : ''}
+                  onBlur={(e) => {
+                    const n = parseInt(e.target.value.replace(/[,\s]/g, ''), 10);
+                    if (n > 0 && n !== Math.round(sel.supply_price * (1 - discount / 100))) onPrice(n);
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                  placeholder="적용가"
+                  style={{ width: 84, padding: '9px 8px', fontSize: 16, textAlign: 'right', borderRadius: 10, border: '1px solid var(--border-default)', outline: 'none', background: 'var(--surface)', fontVariantNumeric: 'tabular-nums' }}
+                />
+                <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)' }}>원</span>
               </span>
             )}
             <button onClick={onRemove}

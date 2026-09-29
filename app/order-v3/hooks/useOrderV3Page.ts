@@ -17,7 +17,7 @@ import { formatCustomDeliveryLabel } from '@/app/order-v2/lib/deliveryDates';
 import type { SearchResult } from '@/app/order-v2/types';
 
 export type V3Meta = { decidedBy: string; confidence: number; reason?: string; picked_in_history: boolean; picked_stock: number };
-export type V3Line = OrderLine & { v3?: V3Meta };
+export type V3Line = OrderLine & { v3?: V3Meta; priceEdited?: boolean };
 
 export function useOrderV3Page() {
   const [tab, setTabState] = useState<'CDV' | 'DL'>('CDV');
@@ -123,6 +123,16 @@ export function useOrderV3Page() {
     });
   };
   const selectCandidate = (idx: number, cIdx: number) => updateLine(idx, { selectedIdx: cIdx });
+  /** 할인가(최종 적용가) 직접 입력 — 선택 후보의 공급가를 입력가로 교체, 할인율은 0으로 */
+  const updatePrice = (idx: number, price: number) => {
+    if (!(price > 0)) return;
+    setLines((prev) => prev.map((l, i) => {
+      if (i !== idx || l.selectedIdx < 0) return l;
+      const cands = l.candidates.map((c, ci) => ci === l.selectedIdx ? { ...c, supply_price: price } : c);
+      return { ...l, candidates: cands, priceEdited: true };
+    }));
+    setDiscountRates((prev) => ({ ...prev, [idx]: 0 }));
+  };
   const replaceWithSearch = (idx: number, wine: SearchResult) => {
     setLines((prev) => prev.map((l, i) => {
       if (i !== idx) return l;
@@ -188,6 +198,7 @@ export function useOrderV3Page() {
   const msgParams = {
     orderLines: lines, tab, selectedClient: client.selected, clientQuery: client.query,
     discountRates, historySet, finalDeliveryLabel, deliveryNotes,
+    forcePriceIdx: new Set(lines.map((l, i) => (l.priceEdited ? i : -1)).filter((i) => i >= 0)),
   };
   const staffMessage = useMemo(() => buildStaffMessage(msgParams),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +225,7 @@ export function useOrderV3Page() {
     tab, setTab, client, history, delivery, wineSearch,
     orderText, setOrderText, orderTextRef, pasteFromClipboard,
     lines, historySet, loading, error, parse, reset,
-    setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory,
+    setQty, removeLine, selectCandidate, replaceWithSearch, addLineFromHistory, updatePrice,
     expanded, toggleExpand, discountRates, setDiscount,
     deliveryNotes, setDeliveryNotes, finalDeliveryLabel, paymentFirst,
     staffMessage, clientMessage, copied, copy, totalAmount,
