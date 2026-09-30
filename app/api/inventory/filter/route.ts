@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
     const supplyPriceMax = p.get('supplyPriceMax');
     const retailPriceMin = p.get('retailPriceMin');
     const retailPriceMax = p.get('retailPriceMax');
+    const minPriceMin = p.get('minPriceMin');
+    const minPriceMax = p.get('minPriceMax');
     const country = p.get('country');
 
     let query = supabase.from(table).select('*');
@@ -41,6 +43,10 @@ export async function GET(request: NextRequest) {
     // Retail price range
     if (retailPriceMin) query = query.gte('retail_price', Number(retailPriceMin));
     if (retailPriceMax) query = query.lte('retail_price', Number(retailPriceMax));
+
+    // 최저판매가 range — 클라이언트(flattenFilters)는 보내는데 서버가 안 읽어 필터가 무시되던 버그
+    if (minPriceMin) query = query.gte('min_price', Number(minPriceMin));
+    if (minPriceMax) query = query.lte('min_price', Number(minPriceMax));
 
     // Vintage range
     if (vintageMin) query = query.gte('vintage', vintageMin);
