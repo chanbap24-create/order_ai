@@ -14,6 +14,10 @@ import { useTastingNoteModal } from '../inventory/hooks/useTastingNoteModal';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
+// 소믈리에와 같은 브랜드 문법 — Didot 라틴 워드마크 + 골드 헤어라인
+const LAT: CSSProperties = { fontFamily: 'Didot, "Bodoni 72", Georgia, serif', letterSpacing: '0.28em', fontWeight: 400 };
+const GOLD_LINE = 'color-mix(in srgb, #b89a6a 32%, transparent)';
+
 export default function StorePage() {
   const g = useStoreApp();
   const notes = useTastingNoteModal();
@@ -39,8 +43,9 @@ export default function StorePage() {
   if (!g.storeKey) {
     return (
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '15vh 24px 40px' }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 500, margin: '0 0 4px' }}>까브 매장</h1>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 24px' }}>근무하는 매장을 선택하세요 (한 번만)</p>
+        <h1 style={{ ...LAT, fontSize: 17, margin: '0 0 6px' }}>CAVE DE VIN</h1>
+        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>근무하는 매장을 선택하세요 (한 번만)</p>
+        <div style={{ height: 1, background: GOLD_LINE, margin: '18px 0 22px' }} />
         {(['cdv', 'dl'] as Corp[]).map((corp) => (
           <div key={corp} style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-tertiary)', padding: '0 0 7px 2px' }}>{CORP_LABEL[corp]}</div>
@@ -62,14 +67,16 @@ export default function StorePage() {
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', padding: '18px 16px calc(40px + env(safe-area-inset-bottom))' }}>
-      {/* 헤더 */}
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>{storeLabel}</span>
-        <h1 style={{ fontSize: '1.35rem', fontWeight: 500, margin: 0 }}>재고 확인</h1>
-        <button onClick={() => g.setStoreKey('' as StoreKey)}
-          style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-tertiary)' }}>
-          매장 변경
-        </button>
+      {/* 헤더 — 소믈리에와 같은 워드마크, 매장명은 골드 밑줄(탭=매장 변경) */}
+      <header>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <h1 style={{ ...LAT, fontSize: 15, margin: 0, color: 'var(--text-primary)' }}>CAVE DE VIN</h1>
+          <button onClick={() => g.setStoreKey('' as StoreKey)} aria-label="매장 변경"
+            style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--text-secondary)', textDecoration: 'underline', textUnderlineOffset: 3, textDecorationColor: 'rgba(184,154,106,0.6)' }}>
+            {storeLabel}
+          </button>
+        </div>
+        <div style={{ height: 1, background: GOLD_LINE, margin: '12px -16px 0' }} />
       </header>
 
       {/* 검색 — 엄지 존 최상단, 16px (iOS 줌 방지) */}
@@ -206,8 +213,9 @@ function LoginScreen({ onLogin }: { onLogin: (m: string, p: string) => Promise<s
 
   return (
     <div style={{ maxWidth: 420, margin: '0 auto', padding: '18vh 24px 40px' }}>
-      <h1 style={{ fontSize: '1.4rem', fontWeight: 500, margin: '0 0 4px' }}>까브 매장</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 24px' }}>매장 재고 확인 — 직원 로그인</p>
+      <h1 style={{ ...LAT, fontSize: 17, margin: '0 0 6px' }}>CAVE DE VIN</h1>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>매장 재고 — 직원 로그인</p>
+      <div style={{ height: 1, background: GOLD_LINE, margin: '18px 0 24px' }} />
       <input value={manager} onChange={(e) => setManager(e.target.value)} placeholder="이름" autoComplete="username" style={inputStyle} />
       <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" type="password" autoComplete="current-password"
         onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
