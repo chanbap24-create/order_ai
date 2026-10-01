@@ -1,0 +1,14 @@
+{
+  "name": "까브 매장",
+  "short_name": "까브 매장",
+  "description": "까브드뱅 백화점 매장 재고 확인",
+  "start_url": "/store",
+  "scope": "/store",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111214",
+  "icons": [
+    { "src": "/store/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/store/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
