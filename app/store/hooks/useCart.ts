@@ -1,7 +1,7 @@
 'use client';
 
 // 정산 카트 — 매장에서 손님 구매 와인을 담아 판매가(백화점가) 합계를 내는 용도.
-// 기기 로컬에만 저장(cave_store_cart), 서버 기록 없음.
+// 세션 저장(sessionStorage) — 앱을 닫으면 비워진다. 손님 간 이월 방지. 서버 기록 없음.
 import { useEffect, useState } from 'react';
 import type { StoreStockRow } from '@/app/lib/store/types';
 
@@ -24,8 +24,8 @@ export function useCart() {
     // setTimeout 0 — effect 내 동기 setState 캐스케이드 방지 (react-compiler 규칙)
     const t = setTimeout(() => {
       try {
-        setItems(JSON.parse(localStorage.getItem(LS_CART) || '[]'));
-        setExtraRateState(Math.min(50, Math.max(0, Number(localStorage.getItem(LS_EXTRA)) || 0)));
+        setItems(JSON.parse(sessionStorage.getItem(LS_CART) || '[]'));
+        setExtraRateState(Math.min(50, Math.max(0, Number(sessionStorage.getItem(LS_EXTRA)) || 0)));
       } catch { /* ignore */ }
     }, 0);
     return () => clearTimeout(t);
@@ -34,12 +34,12 @@ export function useCart() {
   const setExtraRate = (pct: number) => {
     const v = Math.min(50, Math.max(0, Math.round(pct) || 0));
     setExtraRateState(v);
-    try { localStorage.setItem(LS_EXTRA, String(v)); } catch { /* ignore */ }
+    try { sessionStorage.setItem(LS_EXTRA, String(v)); } catch { /* ignore */ }
   };
 
   const persist = (next: CartItem[]) => {
     setItems(next);
-    try { localStorage.setItem(LS_CART, JSON.stringify(next)); } catch { /* ignore */ }
+    try { sessionStorage.setItem(LS_CART, JSON.stringify(next)); } catch { /* ignore */ }
   };
 
   const add = (row: StoreStockRow) => {

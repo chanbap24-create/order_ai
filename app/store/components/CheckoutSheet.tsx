@@ -78,7 +78,16 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border-default)', borderRadius: 999 }}>
                 <button onClick={() => onQty(i.item_no, i.qty - 1)} aria-label="수량 감소"
                   style={{ all: 'unset', cursor: 'pointer', padding: '6px 13px', fontSize: 14 }}>−</button>
-                <span style={{ minWidth: 22, textAlign: 'center', fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{i.qty}</span>
+                {/* 수량 직접 입력 — 숫자만 반영, 지워도 행 유지(0은 − 버튼으로) */}
+                <input
+                  value={i.qty}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
+                    if (!Number.isNaN(n)) onQty(i.item_no, Math.min(999, n));
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  inputMode="numeric"
+                  style={{ width: 34, border: 'none', outline: 'none', background: 'transparent', textAlign: 'center', fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums', padding: 0 }} />
                 <button onClick={() => onQty(i.item_no, i.qty + 1)} aria-label="수량 증가"
                   style={{ all: 'unset', cursor: 'pointer', padding: '6px 13px', fontSize: 14 }}>+</button>
               </span>
@@ -111,7 +120,6 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
                 style={{ width: 34, border: 'none', outline: 'none', textAlign: 'right', fontSize: 16, padding: '3px 2px', background: 'transparent', fontVariantNumeric: 'tabular-nums' }} />
               <span style={{ padding: '0 6px 0 1px', color: 'var(--text-tertiary)' }}>%</span>
             </span>
-            <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>점장 재량</span>
             <span style={{ marginLeft: 'auto', color: extraAmount > 0 ? 'var(--status-success)' : 'var(--text-tertiary)' }}>
               {extraAmount > 0 ? `-${fmt(extraAmount)}원` : '—'}
             </span>
