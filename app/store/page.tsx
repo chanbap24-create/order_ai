@@ -222,7 +222,7 @@ export default function StorePage() {
           }}>
           <span style={{ fontSize: 13.5, fontWeight: 700 }}>정산 {cart.items.length}종 {fmt(cart.bottles)}병</span>
           <span style={{ marginLeft: 'auto', fontSize: 15.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-            {fmt(cart.total)}원 →
+            {fmt(cart.finalTotal)}원 →
           </span>
         </button>
       )}
@@ -230,8 +230,10 @@ export default function StorePage() {
       {checkoutOpen && (
         <CheckoutSheet
           items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
+          extraRate={cart.extraRate} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
           storeLabel={storeLabel}
-          onQty={cart.setQty} onClear={() => { cart.clear(); setCheckoutOpen(false); }}
+          onQty={cart.setQty} onExtraRate={cart.setExtraRate}
+          onClear={() => { cart.clear(); setCheckoutOpen(false); }}
           onClose={() => setCheckoutOpen(false)} />
       )}
 

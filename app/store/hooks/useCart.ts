@@ -14,17 +14,28 @@ export type CartItem = {
 };
 
 const LS_CART = 'cave_store_cart';
+const LS_EXTRA = 'cave_store_extra_rate';
 
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [extraRate, setExtraRateState] = useState(0); // 점장 재량 추가 할인율 %
 
   useEffect(() => {
     // setTimeout 0 — effect 내 동기 setState 캐스케이드 방지 (react-compiler 규칙)
     const t = setTimeout(() => {
-      try { setItems(JSON.parse(localStorage.getItem(LS_CART) || '[]')); } catch { /* ignore */ }
+      try {
+        setItems(JSON.parse(localStorage.getItem(LS_CART) || '[]'));
+        setExtraRateState(Math.min(50, Math.max(0, Number(localStorage.getItem(LS_EXTRA)) || 0)));
+      } catch { /* ignore */ }
     }, 0);
     return () => clearTimeout(t);
   }, []);
+
+  const setExtraRate = (pct: number) => {
+    const v = Math.min(50, Math.max(0, Math.round(pct) || 0));
+    setExtraRateState(v);
+    try { localStorage.setItem(LS_EXTRA, String(v)); } catch { /* ignore */ }
+  };
 
   const persist = (next: CartItem[]) => {
     setItems(next);
@@ -46,11 +57,14 @@ export function useCart() {
       : items.map((i) => (i.item_no === itemNo ? { ...i, qty } : i)));
   };
 
-  const clear = () => persist([]);
+  const clear = () => { persist([]); setExtraRate(0); };
 
   const bottles = items.reduce((s, i) => s + i.qty, 0);
   const total = items.reduce((s, i) => s + i.sale_price * i.qty, 0);
   const retailTotal = items.reduce((s, i) => s + i.retail_price * i.qty, 0);
+  // 점장 재량 추가 할인 — 할인가 합계 기준, 100원 단위 내림
+  const extraAmount = Math.floor((total * extraRate) / 100 / 100) * 100;
+  const finalTotal = total - extraAmount;
 
-  return { items, add, setQty, clear, bottles, total, retailTotal };
+  return { items, add, setQty, clear, bottles, total, retailTotal, extraRate, setExtraRate, extraAmount, finalTotal };
 }
