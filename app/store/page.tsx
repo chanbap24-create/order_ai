@@ -2,7 +2,7 @@
 
 // 까브 매장 — 점장용 재고 확인 PWA (1단계: 3초 재고 답변).
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색+요약+오늘 들어온 와인) → 결과 → 상세 바텀시트.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { CORP_LABEL, STORES, type Corp, type StoreKey } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
@@ -25,6 +25,13 @@ export default function StorePage() {
   const notes = useTastingNoteModal();
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // 소믈리에 결과 → '정산' 바로 진입 (?checkout=1)
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).get('checkout')) return;
+    const t = setTimeout(() => setCheckoutOpen(true), 0);
+    window.history.replaceState(null, '', '/store');
+    return () => clearTimeout(t);
+  }, []);
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
   // 소믈리에(취향 문답)로 이동 — 매장 선택을 그대로 넘긴다 (컬럼 키 동일)
   const openSommelier = () => {

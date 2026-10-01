@@ -15,12 +15,34 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
   onClear: () => void; onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recorded, setRecorded] = useState(false);
   const discount = retailTotal - total;
   // 소믈리에 고객정보 단계에서 '재고에서 선택'으로 넘어온 손님 (렌더는 클라이언트 전용 시점)
   const guest = (() => {
-    try { return JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { name?: string } | null; }
+    try { return JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { id?: number; name?: string } | null; }
     catch { return null; }
   })();
+
+  /** 구매 기록 — 카트 전 품목을 수량 포함 일괄 기록 (관리자 조회용, 소믈리에 기록과 같은 테이블) */
+  const record = async () => {
+    if (recording || recorded) return;
+    if (!guest?.id) { alert('연결된 손님이 없습니다 — 소믈리에 손님 등록에서 "재고에서 선택"으로 들어오면 기록됩니다.'); return; }
+    setRecording(true);
+    try {
+      const results = await Promise.all(items.map((i) =>
+        fetch('/api/sommelier/order', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: guest.id, itemCode: i.item_no, itemName: i.item_name,
+            retailPrice: i.sale_price, quantity: i.qty,
+          }),
+        }).then((r) => r.ok)));
+      if (results.every(Boolean)) setRecorded(true);
+      else alert('일부 품목 기록에 실패했습니다. 다시 시도해주세요.');
+    } catch { alert('구매 기록에 실패했습니다.'); }
+    finally { setRecording(false); }
+  };
 
   const copy = async () => {
     const lines = [
@@ -145,6 +167,14 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
             }}
               style={{ flex: 'none', padding: '13px 16px', borderRadius: 11, border: '1px solid var(--border-default)', background: 'transparent', fontSize: 13.5, cursor: 'pointer' }}>
               비우기
+            </button>
+            <button onClick={() => void record()}
+              style={{
+                flex: 1, padding: '13px 0', borderRadius: 11, fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+                border: '1px solid var(--border-default)', background: recorded ? 'var(--surface-muted)' : 'transparent',
+                color: recorded ? 'var(--status-success)' : 'var(--text-primary)', opacity: recording ? 0.6 : 1,
+              }}>
+              {recorded ? '✓ 기록됨' : recording ? '기록 중…' : '구매 기록'}
             </button>
             <button onClick={() => void copy()}
               style={{ flex: 1, padding: '13px 0', borderRadius: 11, border: 'none', background: 'var(--action)', color: '#fff', fontSize: 14.5, fontWeight: 700, cursor: 'pointer' }}>

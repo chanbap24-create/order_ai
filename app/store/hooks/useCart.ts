@@ -4,18 +4,9 @@
 // 세션 저장(sessionStorage) — 앱을 닫으면 비워진다. 손님 간 이월 방지. 서버 기록 없음.
 import { useEffect, useState } from 'react';
 import type { StoreStockRow } from '@/app/lib/store/types';
+import { CART_KEY as LS_CART, EXTRA_RATE_KEY as LS_EXTRA, EXTRA_WON_KEY as LS_EXTRA_WON, type CartItem } from '@/app/lib/store/cartSession';
 
-export type CartItem = {
-  item_no: string;
-  item_name: string;
-  qty: number;
-  sale_price: number;   // 적용 판매가 (백화점 할인가)
-  retail_price: number; // 정상가
-};
-
-const LS_CART = 'cave_store_cart';
-const LS_EXTRA = 'cave_store_extra_rate';
-const LS_EXTRA_WON = 'cave_store_extra_won';
+export type { CartItem } from '@/app/lib/store/cartSession';
 
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
