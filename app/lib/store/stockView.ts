@@ -187,11 +187,13 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   const arrivals = await loadArrivals(corp, nos);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows = await overlayZkNames(await overlayCdvHq(corp, ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals))));
+  // 어디에도 없는 품목(매장·본사·보세·입고 전부 0)은 노이즈 — 결과에서 제외
+  const alive = rows.filter((r) => r.store_total + r.hq_available + r.hq_bonded + r.incoming + r.arrival_btls > 0);
   // 정렬: 검색 점수 순 유지하되, 실판매품(판매가 있음)과 재고 보유를 더미·키트류보다 앞세운다
   const order = new Map(nos.map((no, i) => [no, i]));
   const demote = (r: StoreStockRow) =>
     (/더미|키트|쇼핑백|에어팩/.test(r.item_name) ? 2 : 0) + (r.retail_price <= 0 ? 1 : 0);
-  return rows.sort((a, b) =>
+  return alive.sort((a, b) =>
     demote(a) - demote(b)
     || Number((b.store_total + b.hq_available) > 0) - Number((a.store_total + a.hq_available) > 0)
     || (order.get(a.item_no) ?? 99) - (order.get(b.item_no) ?? 99));

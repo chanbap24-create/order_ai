@@ -230,9 +230,9 @@ export default function StorePage() {
       {checkoutOpen && (
         <CheckoutSheet
           items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
-          extraRate={cart.extraRate} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
+          extraRate={cart.extraRate} extraWon={cart.extraWon} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
           storeLabel={storeLabel}
-          onQty={cart.setQty} onExtraRate={cart.setExtraRate}
+          onQty={cart.setQty} onExtraRate={cart.setExtraRate} onExtraWon={cart.setExtraWon}
           onClear={() => { cart.clear(); setCheckoutOpen(false); }}
           onClose={() => setCheckoutOpen(false)} />
       )}

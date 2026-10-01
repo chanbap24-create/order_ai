@@ -7,10 +7,11 @@ import type { CartItem } from '../hooks/useCart';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
-export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, extraAmount, finalTotal, storeLabel, onQty, onExtraRate, onClear, onClose }: {
+export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, extraWon, extraAmount, finalTotal, storeLabel, onQty, onExtraRate, onExtraWon, onClear, onClose }: {
   items: CartItem[]; bottles: number; total: number; retailTotal: number;
-  extraRate: number; extraAmount: number; finalTotal: number; storeLabel: string;
-  onQty: (itemNo: string, qty: number) => void; onExtraRate: (pct: number) => void;
+  extraRate: number; extraWon: number; extraAmount: number; finalTotal: number; storeLabel: string;
+  onQty: (itemNo: string, qty: number) => void;
+  onExtraRate: (pct: number) => void; onExtraWon: (won: number) => void;
   onClear: () => void; onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -25,7 +26,7 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
     const lines = [
       `[CAVE DE VIN 정산] ${storeLabel}${guest?.name ? ` · ${guest.name} 님` : ''}`,
       ...items.map((i) => `- ${i.item_name} ×${i.qty}  ${fmt(i.sale_price * i.qty)}원`),
-      ...(extraAmount > 0 ? [`추가 할인 ${extraRate}%  -${fmt(extraAmount)}원`] : []),
+      ...(extraAmount > 0 ? [`추가 할인${extraRate > 0 ? ` ${extraRate}%` : ''}  -${fmt(extraAmount)}원`] : []),
       `합계 ${fmt(bottles)}병 ${fmt(finalTotal)}원` + (discount > 0 ? ` (정상 ${fmt(retailTotal)} / 할인 -${fmt(discount + extraAmount)})` : ''),
     ];
     try {
@@ -109,7 +110,7 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
               <span>할인</span><span>-{fmt(discount)}원</span>
             </div>
           )}
-          {/* 점장 재량 추가 할인 — 할인 아래 별도 행 */}
+          {/* 추가 할인 — %와 금액 중 하나로 입력 (한쪽을 쓰면 다른 쪽 해제) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontVariantNumeric: 'tabular-nums', marginTop: 5 }}>
             <span style={{ color: 'var(--text-secondary)' }}>추가 할인</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border-default)', borderRadius: 7, overflow: 'hidden' }}>
@@ -117,8 +118,16 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
                 value={extraRate === 0 ? '' : String(extraRate)}
                 onChange={(e) => onExtraRate(Number(e.target.value.replace(/[^0-9]/g, '')))}
                 inputMode="numeric" placeholder="0"
-                style={{ width: 34, border: 'none', outline: 'none', textAlign: 'right', fontSize: 16, padding: '3px 2px', background: 'transparent', fontVariantNumeric: 'tabular-nums' }} />
+                style={{ width: 30, border: 'none', outline: 'none', textAlign: 'right', fontSize: 16, padding: '3px 2px', background: 'transparent', fontVariantNumeric: 'tabular-nums' }} />
               <span style={{ padding: '0 6px 0 1px', color: 'var(--text-tertiary)' }}>%</span>
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border-default)', borderRadius: 7, overflow: 'hidden' }}>
+              <input
+                value={extraWon === 0 ? '' : extraWon.toLocaleString('ko-KR')}
+                onChange={(e) => onExtraWon(Number(e.target.value.replace(/[^0-9]/g, '')))}
+                inputMode="numeric" placeholder="0"
+                style={{ width: 72, border: 'none', outline: 'none', textAlign: 'right', fontSize: 16, padding: '3px 2px', background: 'transparent', fontVariantNumeric: 'tabular-nums' }} />
+              <span style={{ padding: '0 6px 0 1px', color: 'var(--text-tertiary)' }}>원</span>
             </span>
             <span style={{ marginLeft: 'auto', color: extraAmount > 0 ? 'var(--status-success)' : 'var(--text-tertiary)' }}>
               {extraAmount > 0 ? `-${fmt(extraAmount)}원` : '—'}
