@@ -69,7 +69,13 @@ export default function StorePage() {
       {/* 헤더 — 소믈리에와 같은 워드마크, 매장명은 골드 밑줄(탭=매장 변경) */}
       <header>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <h1 style={{ ...LAT, fontSize: 15, margin: 0, color: 'var(--text-primary)' }}>CAVE DE VIN</h1>
+          {/* 워드마크 탭 → 소믈리에 인트로(메인)로 복귀 */}
+          <h1 style={{ margin: 0 }}>
+            <button onClick={openSommelier} aria-label="소믈리에 메인으로"
+              style={{ all: 'unset', cursor: 'pointer', ...LAT, fontSize: 15, color: 'var(--text-primary)' }}>
+              CAVE DE VIN
+            </button>
+          </h1>
           <button onClick={() => g.setStoreKey('' as StoreKey)} aria-label="매장 변경"
             style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, color: 'var(--text-secondary)', textDecoration: 'underline', textUnderlineOffset: 3, textDecorationColor: 'rgba(184,154,106,0.6)' }}>
             {storeLabel}
