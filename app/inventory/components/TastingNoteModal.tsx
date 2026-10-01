@@ -244,8 +244,9 @@ function PdfFrame({
           position: "relative",
         }}
       >
+        {/* toolbar=0 — 뷰어 크롬 없이 문서만 (다운로드는 위 PDF/PPTX 버튼) */}
         <iframe
-          src={`${pdfUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+          src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
           title="테이스팅 노트 PDF"
           width="100%"
           height="100%"
