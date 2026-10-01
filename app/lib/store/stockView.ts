@@ -91,14 +91,15 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   if (/^[0-9A-Za-z]{4,}$/.test(query)) ors.push(`item_no.ilike.${query}%`); // 품번 직접 검색
 
   const [jamoRes, tokenRes] = await Promise.all([
-    supabase.rpc(src.jamoRpc, { q_jamo: toJamo(query), match_count: 12 }),
+    supabase.rpc(src.jamoRpc, { q_jamo: toJamo(query), match_count: 24 }),
     ors.length
       ? supabase.from(src.table).select('item_no, item_name')
-          .not('item_no', 'ilike', 'zk%').or(ors.join(',')).limit(150)
+          .not('item_no', 'ilike', 'zk%').or(ors.join(',')).limit(400)
       : Promise.resolve({ data: [] as Array<{ item_no: string; item_name: string }> }),
   ]);
 
   // 점수 병합 (어휘 우선 — 매장 검색은 이름을 아는 사람이 찾는 용도)
+  const qLower = query.toLowerCase();
   const score = new Map<string, number>();
   for (const r of jamoRes.data || []) {
     const no = String(r.item_no);
@@ -107,11 +108,14 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   for (const r of tokenRes.data || []) {
     const no = String(r.item_no || '');
     if (!keepItem(corp, no)) continue;
-    const name = String(r.item_name || '');
-    const hit = tokens.length ? tokens.filter((t) => name.includes(t)).length / tokens.length : 0.5;
-    score.set(no, Math.max(score.get(no) || 0, 0.3 + 0.7 * hit));
+    const name = String(r.item_name || '').toLowerCase();
+    const hit = tokens.length ? tokens.filter((t) => name.includes(t.toLowerCase())).length / tokens.length : 0.5;
+    // 브랜드 코드 검색('ch' 등) — 품명이 쿼리로 시작하면 최우선
+    const prefix = name.startsWith(qLower) ? 0.3 : 0;
+    score.set(no, Math.max(score.get(no) || 0, Math.min(1, 0.3 + 0.7 * hit + prefix)));
   }
-  const nos = [...score.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([no]) => no);
+  // 브랜드 코드처럼 짧은 쿼리는 품목이 많다 — 넉넉히 노출(스크롤 목록)
+  const nos = [...score.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([no]) => no);
   if (nos.length === 0) return [];
 
   const [{ data: inv }, bands] = await Promise.all([

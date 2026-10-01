@@ -5,8 +5,9 @@ import { corpOfStore, storesOfCorp, type StoreKey, type StoreStockRow } from '@/
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
-export function DetailSheet({ row, storeKey, alts, onClose }: {
+export function DetailSheet({ row, storeKey, alts, onClose, onNote }: {
   row: StoreStockRow; storeKey: StoreKey; alts: StoreStockRow[]; onClose: () => void;
+  onNote?: (() => void) | null; // 테이스팅 노트 열기 (있는 품목만)
 }) {
   const mine = row.stores[storeKey] || 0;
   const corpStores = storesOfCorp(corpOfStore(storeKey)); // 같은 법인 매장만 표시
@@ -22,8 +23,16 @@ export function DetailSheet({ row, storeKey, alts, onClose }: {
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-default)', margin: '0 auto 14px' }} />
 
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, lineHeight: 1.4, wordBreak: 'keep-all' }}>{row.item_name}</h2>
-        <div style={{ marginTop: 3, fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
-          {row.item_no}{row.vintage ? ` · ${row.vintage}` : ''}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 3 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+            {row.item_no}{row.vintage ? ` · ${row.vintage}` : ''}
+          </span>
+          {onNote && (
+            <button onClick={onNote}
+              style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'var(--action)', border: '1px solid var(--border-default)', borderRadius: 999, padding: '5px 12px' }}>
+              테이스팅 노트
+            </button>
+          )}
         </div>
 
         {/* 가격 — 정상가 취소선 + 백화점가 크게 */}

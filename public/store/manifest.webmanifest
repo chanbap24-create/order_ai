@@ -3,7 +3,7 @@
   "short_name": "까브 매장",
   "description": "까브드뱅 백화점 매장 재고 확인",
   "start_url": "/store",
-  "scope": "/store",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#111214",
