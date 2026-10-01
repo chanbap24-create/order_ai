@@ -4,7 +4,7 @@
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색+요약+오늘 들어온 와인) → 결과 → 상세 바텀시트.
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import { STORES, type StoreKey } from '@/app/lib/store/stockView';
+import { STORES, type StoreKey } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { useStoreApp } from './hooks/useStoreApp';

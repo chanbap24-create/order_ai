@@ -1,7 +1,7 @@
 'use client';
 
 // 품목 상세 바텀시트 — 위치별 병수 + 백화점가 + (우리 매장에 없으면) 대체품. 시안 ③ 화면.
-import { STORES, type StoreKey, type StoreStockRow } from '@/app/lib/store/stockView';
+import { STORES, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 

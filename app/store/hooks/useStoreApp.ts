@@ -2,7 +2,7 @@
 
 // 점장 매장 앱 오케스트레이터 — 로그인/매장선택/검색/요약. 시안의 "3초 규칙" 준수.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { StoreKey, StoreStockRow } from '@/app/lib/store/stockView';
+import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
 
 export type Summary = {
   my_items: number;

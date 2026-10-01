@@ -2,7 +2,7 @@
 
 // 검색 결과 한 행 — "우리 N · 타매장 N · 본사 N · 입고 N" 시안 그대로.
 // 색은 숫자에만: 초록=지금 팔 수 있음 · 주황=들어오는 중 · 회색=없음.
-import type { StoreKey, StoreStockRow } from '@/app/lib/store/stockView';
+import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
