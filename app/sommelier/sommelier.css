@@ -282,8 +282,14 @@
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .som-buy{border:1px solid rgba(184,154,106,.6);border-radius:999px;background:#fff;color:var(--som-ink);
   font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer;transition:all .4s var(--som-ease);white-space:nowrap}
-.som-buy:active{transform:scale(.96)}
+.som-buy:hover{background:color-mix(in srgb, var(--som-gold) 12%, #fff);border-color:var(--som-gold);
+  transform:translateY(-1px);box-shadow:0 3px 10px rgba(184,154,106,.25)}
+.som-buy:active{transform:scale(.94);box-shadow:none}
+.som-buy:focus-visible{outline:2px solid var(--som-gold);outline-offset:2px}
+.som-buy:focus:not(:focus-visible){outline:none}
 .som-buy.done{border-color:transparent;background:rgba(142,37,64,.08);color:var(--som-stain);cursor:default}
+/* 담기 성공 순간 — 골드 필 플래시 */
+.som-buy.added{background:var(--som-gold);border-color:var(--som-gold);color:#fff}
 .som-again{margin:0 24px;text-align:center;font-size:13px;color:var(--som-muted);background:none;border:none;
   text-decoration:underline;text-underline-offset:4px;cursor:pointer;padding:10px}
 .som-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;padding:0 24px}

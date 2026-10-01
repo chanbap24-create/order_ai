@@ -49,6 +49,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
   const [detail, setDetail] = useState<number | null>(null); // 전체화면 상세로 연 카드 인덱스
   // 정산 카트(매장 POS와 공유) — 담기면 하단 바로 합계 노출
   const [cart, setCart] = useState<{ bottles: number; total: number }>({ bottles: 0, total: 0 });
+  const [added, setAdded] = useState<string | null>(null); // 담기 직후 '✓ 담김' 플래시
   useEffect(() => {
     const t = setTimeout(() => {
       const c = readCart();
@@ -282,7 +283,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                       onClick={(e) => { e.stopPropagation(); if (!dragMoved.current) setDetail(i); }}>
                       {done ? '✓ 선택됨' : '자세히 보기'}
                     </button>
-                    <button className="som-buy" aria-label="정산에 담기"
+                    <button className={`som-buy${added === r.item_code ? ' added' : ''}`} aria-label="정산에 담기"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (dragMoved.current) return;
@@ -291,8 +292,10 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                           sale_price: r.sale_price || r.retail_price, retail_price: r.retail_price,
                         });
                         setCart({ bottles: next.reduce((s, x) => s + x.qty, 0), total: next.reduce((s, x) => s + x.sale_price * x.qty, 0) });
+                        setAdded(r.item_code);
+                        setTimeout(() => setAdded((cur) => (cur === r.item_code ? null : cur)), 900);
                       }}>
-                      담기
+                      {added === r.item_code ? '✓ 담김' : '담기'}
                     </button>
                   </div>
                 </div>
