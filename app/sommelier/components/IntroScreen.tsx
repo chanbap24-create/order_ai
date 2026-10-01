@@ -145,7 +145,14 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       {boot !== 'on' && <>
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
         <Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link>
-        <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
+        <span className="som-brand-right">
+          {/* 매장 재고 앱으로 — 선택된 매장을 그대로 넘긴다 (키 동일) */}
+          <Link className="som-stocklink" href="/store"
+            onClick={() => { try { if (store && store !== 'all') localStorage.setItem('cave_store_key', store); } catch { /* ignore */ } }}>
+            재고 확인
+          </Link>
+          <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
+        </span>
       </div>
 
       <div className="som-vitrine som-rise" style={{ ['--i' as string]: 1 }}>
@@ -171,13 +178,6 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
         </div>
         <div className="som-rise" style={{ ['--i' as string]: 3 }}>
           <SlideToStart onStart={onStart} />
-        </div>
-        {/* 매장 재고 앱으로 — 선택된 매장을 그대로 넘긴다 (키 동일) */}
-        <div className="som-rise" style={{ ['--i' as string]: 4 }}>
-          <Link className="som-stocklink" href="/store"
-            onClick={() => { try { if (store && store !== 'all') localStorage.setItem('cave_store_key', store); } catch { /* ignore */ } }}>
-            재고 확인 →
-          </Link>
         </div>
       </div>
 

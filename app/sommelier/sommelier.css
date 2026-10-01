@@ -445,7 +445,8 @@
 .som-consent + .som-consent{margin-top:6px}
 .som-consent b{font-weight:700;color:var(--som-ink)}
 
-/* 인트로 → 매장 재고 앱 링크 (슬라이더 아래 조용한 보조 동선) */
-.som-stocklink{display:block;text-align:center;margin-top:16px;font-size:12.5px;
-  color:var(--som-muted);text-decoration:underline;text-underline-offset:4px;
+/* 인트로 우측 상단 — 재고 확인 링크 + 매장 선택 묶음 */
+.som-brand-right{display:flex;align-items:baseline;gap:14px;min-width:0}
+.som-stocklink{font-size:11px;color:var(--som-muted);white-space:nowrap;
+  text-decoration:underline;text-underline-offset:3px;
   text-decoration-color:rgba(184,154,106,.6)}
