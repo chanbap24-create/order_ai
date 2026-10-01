@@ -91,8 +91,11 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
           {matches.length > 0 && (
             <div className="som-returning">
               {matches.map((m) => (
-                <button key={m.id} onClick={() => onDone(m)}>
-                  <i />{m.name} · {maskPhone(m.phone)} <em>재방문 — 바로 시작</em>
+                <button key={m.id} onClick={() => {
+                  // 재방문도 분기(추천/재고)를 타야 하므로 폼만 채운다
+                  setName(m.name); setPhone(m.phone); setAgreed(true); setMatches([]);
+                }}>
+                  <i />{m.name} · {maskPhone(m.phone)} <em>재방문 — 탭하여 선택</em>
                 </button>
               ))}
             </div>
