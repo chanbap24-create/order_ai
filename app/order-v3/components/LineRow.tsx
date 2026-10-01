@@ -178,6 +178,10 @@ export function LineRow({
                     <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.item_name}
                     </span>
+                    {/* 품번 — 3~4자리가 빈티지라 선택 판단에 필수 */}
+                    <span style={{ flex: 'none', fontSize: 11, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                      {c.item_no}
+                    </span>
                     <span style={{ marginLeft: 'auto', flex: 'none', fontSize: 11, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                       {hasHistory ? '이력 · ' : ''}{c.available_stock > 0 ? `재고 ${c.available_stock}` : '재고 0'}
                     </span>
@@ -211,6 +215,9 @@ export function LineRow({
                       borderBottom: '1px solid var(--border-subtle)',
                     }}>
                     <span style={{ fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.item_name}</span>
+                    <span style={{ flex: 'none', fontSize: 11, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                      {w.item_no}
+                    </span>
                     <span style={{ marginLeft: 'auto', flex: 'none', fontSize: 11, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                       재고 {w.available_stock ?? 0}
                     </span>
