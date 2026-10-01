@@ -99,7 +99,15 @@ export default function SommelierPage() {
       )}
       {phase === 'customer' && (
         <CustomerScreen onBack={() => setPhase('intro')}
-          onDone={(c) => { setCustomer(c); setPhase('quiz'); }} />
+          onDone={(c) => { setCustomer(c); setPhase('quiz'); }}
+          onStock={(c) => {
+            // 기존 재고에서 선택 — 매장 재고(POS)로, 매장·고객을 함께 넘긴다
+            try {
+              if (store && store !== 'all') localStorage.setItem('cave_store_key', store);
+              localStorage.setItem('cave_store_customer', JSON.stringify({ id: c.id, name: c.name }));
+            } catch { /* ignore */ }
+            window.location.href = '/store';
+          }} />
       )}
       {phase === 'quiz' && (
         <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting}

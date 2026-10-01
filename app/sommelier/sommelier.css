@@ -450,3 +450,7 @@
 .som-stocklink{font-size:11px;color:var(--som-muted);white-space:nowrap;
   text-decoration:underline;text-underline-offset:3px;
   text-decoration-color:rgba(184,154,106,.6)}
+
+/* 고객 정보 분기 — 보조 CTA(기존 재고에서 선택): 윤곽선 고스트 */
+.som-next.som-ghost{background:transparent;color:var(--som-ink);
+  border:1px solid color-mix(in srgb, var(--som-gold) 55%, transparent)}

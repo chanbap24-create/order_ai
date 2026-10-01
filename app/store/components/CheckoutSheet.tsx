@@ -13,10 +13,15 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, storeLabel, 
 }) {
   const [copied, setCopied] = useState(false);
   const discount = retailTotal - total;
+  // 소믈리에 고객정보 단계에서 '재고에서 선택'으로 넘어온 손님 (렌더는 클라이언트 전용 시점)
+  const guest = (() => {
+    try { return JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { name?: string } | null; }
+    catch { return null; }
+  })();
 
   const copy = async () => {
     const lines = [
-      `[CAVE DE VIN 정산] ${storeLabel}`,
+      `[CAVE DE VIN 정산] ${storeLabel}${guest?.name ? ` · ${guest.name} 님` : ''}`,
       ...items.map((i) => `- ${i.item_name} ×${i.qty}  ${fmt(i.sale_price * i.qty)}원`),
       `합계 ${fmt(bottles)}병 ${fmt(total)}원` + (discount > 0 ? ` (정상 ${fmt(retailTotal)} / 할인 -${fmt(discount)})` : ''),
     ];
@@ -32,7 +37,9 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, storeLabel, 
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'max(18px, env(safe-area-inset-top)) 16px 0' }}>
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>정산</h2>
-        <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>{storeLabel}</span>
+        <span style={{ fontSize: 11.5, color: 'var(--text-tertiary)' }}>
+          {storeLabel}{guest?.name ? ` · ${guest.name} 님` : ''}
+        </span>
         <button onClick={onClose}
           style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 13, color: 'var(--text-secondary)', padding: '4px 2px' }}>
           닫기
@@ -95,7 +102,11 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, storeLabel, 
             <span style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}원</span>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button onClick={() => { if (window.confirm('정산 내역을 비울까요?')) onClear(); }}
+            <button onClick={() => {
+              if (!window.confirm('정산 내역을 비울까요?')) return;
+              try { localStorage.removeItem('cave_store_customer'); } catch { /* ignore */ }
+              onClear();
+            }}
               style={{ flex: 'none', padding: '13px 16px', borderRadius: 11, border: '1px solid var(--border-default)', background: 'transparent', fontSize: 13.5, cursor: 'pointer' }}>
               비우기
             </button>

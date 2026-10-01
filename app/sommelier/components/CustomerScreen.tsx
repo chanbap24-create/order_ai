@@ -6,8 +6,9 @@ import { useEffect, useState } from 'react';
 import { normalizePhone } from '../lib/quiz';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
 
-export function CustomerScreen({ onDone, onBack }: {
+export function CustomerScreen({ onDone, onStock, onBack }: {
   onDone: (c: SommelierCustomer) => void;
+  onStock: (c: SommelierCustomer) => void; // 기존 재고에서 선택 → 매장 재고(POS)로
   onBack: () => void;
 }) {
   const [name, setName] = useState('');
@@ -36,7 +37,8 @@ export function CustomerScreen({ onDone, onBack }: {
 
   const valid = name.trim().length >= 2 && !!normalizePhone(phone) && agreed;
 
-  const submit = async () => {
+  // 등록 후 분기 — quiz: 취향 문답으로, stock: 기존 재고에서 선택(매장 재고로)
+  const submit = async (mode: 'quiz' | 'stock' = 'quiz') => {
     if (!valid || loading) return;
     setLoading(true);
     setError('');
@@ -47,7 +49,7 @@ export function CustomerScreen({ onDone, onBack }: {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || '등록에 실패했습니다');
-      onDone(j.customer);
+      (mode === 'stock' ? onStock : onDone)(j.customer);
     } catch (e) {
       setError(e instanceof Error ? e.message : '등록에 실패했습니다');
     } finally {
@@ -100,10 +102,16 @@ export function CustomerScreen({ onDone, onBack }: {
         <div className="som-anyrow" />
         <div className="som-subrow som-rise" style={{ ['--i' as string]: 3 }}>
           <button className="som-link" onClick={onBack}>이전</button>
-          <button className="som-next" onClick={submit} disabled={!valid || loading}
-            style={{ opacity: valid ? 1 : 0.45 }}>
-            {loading ? '등록 중…' : '문답으로'}
-          </button>
+          <span style={{ display: 'flex', gap: 10 }}>
+            <button className="som-next som-ghost" onClick={() => void submit('stock')} disabled={!valid || loading}
+              style={{ opacity: valid ? 1 : 0.45 }}>
+              재고에서 선택
+            </button>
+            <button className="som-next" onClick={() => void submit('quiz')} disabled={!valid || loading}
+              style={{ opacity: valid ? 1 : 0.45 }}>
+              {loading ? '등록 중…' : '추천 문답'}
+            </button>
+          </span>
         </div>
       </div>
     </section>
