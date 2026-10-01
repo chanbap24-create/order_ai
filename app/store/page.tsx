@@ -160,7 +160,10 @@ export default function StorePage() {
             <div style={{ padding: '28px 2px', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>검색 결과가 없습니다</div>
           )}
           {(g.rows || []).map((row) => (
-            <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)} />
+            <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)}
+              onLongPress={notes.tastingNoteSet.has(row.item_no)
+                ? () => void notes.openFor(row.item_no, row.item_name)
+                : null} />
           ))}
         </div>
       )}
