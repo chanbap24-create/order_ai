@@ -4,7 +4,7 @@
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색+요약+오늘 들어온 와인) → 결과 → 상세 바텀시트.
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import { CORP_LABEL, STORES, corpOfStore, type Corp, type StoreKey } from '@/app/lib/store/types';
+import { CORP_LABEL, STORES, type Corp, type StoreKey } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { useStoreApp } from './hooks/useStoreApp';
@@ -22,7 +22,6 @@ export default function StorePage() {
   const g = useStoreApp();
   const notes = useTastingNoteModal();
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
-  const corp = g.storeKey ? corpOfStore(g.storeKey) : 'cdv';
   // 소믈리에(취향 문답)로 이동 — 매장 선택을 그대로 넘긴다 (컬럼 키 동일)
   const openSommelier = () => {
     try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
@@ -108,15 +107,13 @@ export default function StorePage() {
       {/* 홈 — 요약 스트립 + 소믈리에 진입 + 오늘 들어온 와인 */}
       {showHome && (
         <>
-          {/* 소믈리에 — 손님 취향 문답 추천 (와인 매장) */}
-          {corp === 'cdv' && (
-            <button onClick={openSommelier}
-              style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'baseline', gap: 8, width: '100%', cursor: 'pointer', marginTop: 18, padding: '13px 2px', borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>소믈리에</span>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>손님 취향 문답으로 와인 추천</span>
-              <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-tertiary)' }}>→</span>
-            </button>
-          )}
+          {/* 소믈리에 — 손님 취향 문답 추천 (DL 매장도 와인 취급 — 전 매장 노출) */}
+          <button onClick={openSommelier}
+            style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'baseline', gap: 8, width: '100%', cursor: 'pointer', marginTop: 18, padding: '13px 2px', borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-subtle)' }}>
+            <span style={{ ...LAT, fontSize: 12.5 }}>SOMMELIER</span>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>손님 취향 문답으로 와인 추천</span>
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#b89a6a' }}>→</span>
+          </button>
           {g.summary && (
             <div style={{ display: 'flex', marginTop: 22, borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)' }}>
               {[
@@ -164,7 +161,7 @@ export default function StorePage() {
 
       {g.detail && (
         <DetailSheet row={g.detail} storeKey={g.storeKey as StoreKey} alts={g.alts} onClose={() => g.setDetail(null)}
-          onNote={corp === 'cdv' && notes.tastingNoteSet.has(g.detail.item_no)
+          onNote={notes.tastingNoteSet.has(g.detail.item_no)
             ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name)
             : null} />
       )}
