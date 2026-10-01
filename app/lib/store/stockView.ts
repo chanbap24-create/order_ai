@@ -38,8 +38,9 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
     storeTotal += v;
   }
   const retail = Number(r.retail_price) || 0;
-  // 백화점 할인 밴드는 CDV 와인 전용 — DL은 정상가 그대로
-  const { sale, rate } = bands ? saleOf(retail, bands) : { sale: retail, rate: 0 };
+  // 소믈리에 관리자 할인 밴드 — 와인 품번에만 적용 (DL 글라스는 정상가 그대로)
+  const isWine = WINE_PREFIX.has(String(r.item_no).charAt(0).toUpperCase());
+  const { sale, rate } = bands && isWine ? saleOf(retail, bands) : { sale: retail, rate: 0 };
   const arr = arrival.get(String(r.item_no));
   return {
     item_no: String(r.item_no),
@@ -58,7 +59,8 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
   };
 }
 
-const loadBands = (corp: Corp): Promise<Bands> => (corp === 'dl' ? Promise.resolve(null) : loadDiscountBands());
+// 할인 밴드는 법인 무관 로드 — 적용 여부는 toRow에서 품번(와인만)으로 판정
+const loadBands = (_corp: Corp): Promise<Bands> => loadDiscountBands();
 
 /** 미래·최근 입항 스케줄 (품목별 다음 입항) — CDV 와인 수입 전용 */
 async function loadArrivals(corp: Corp, itemNos: string[]): Promise<Map<string, { date: string; btls: number }>> {

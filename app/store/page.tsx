@@ -181,14 +181,18 @@ export default function StorePage() {
           onAdd={g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined} />
       )}
 
-      {/* POS 하단 바 — 담긴 게 있으면 합계 상시 노출, 탭=정산 화면 */}
+      {/* POS 하단 바 — 바 전체가 버튼(탭=정산 화면), 담긴 게 있으면 상시 노출 */}
       {cart.items.length > 0 && !checkoutOpen && (
-        <button onClick={() => setCheckoutOpen(true)}
+        <button onClick={() => setCheckoutOpen(true)} aria-label="정산 화면 열기"
+          onPointerDown={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)'; }}
+          onPointerUp={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+          onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
           style={{
             position: 'fixed', left: 12, right: 12, bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 40,
-            display: 'flex', alignItems: 'baseline', gap: 8, padding: '14px 18px',
+            display: 'flex', alignItems: 'baseline', gap: 8, padding: '16px 18px',
             borderRadius: 13, border: 'none', background: 'var(--action)', color: '#fff', cursor: 'pointer',
             boxShadow: '0 4px 18px rgba(0,0,0,0.18)', maxWidth: 536, margin: '0 auto',
+            transition: 'transform 0.1s ease', WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
           }}>
           <span style={{ fontSize: 13.5, fontWeight: 700 }}>정산 {cart.items.length}종 {fmt(cart.bottles)}병</span>
           <span style={{ marginLeft: 'auto', fontSize: 15.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
