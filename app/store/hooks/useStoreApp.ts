@@ -56,7 +56,8 @@ export function useStoreApp() {
     if (!query) { setRows(null); return; }
     setSearching(true); setError('');
     try {
-      const res = await fetch(`/api/store/search?q=${encodeURIComponent(query)}`);
+      // store 파라미터로 법인(까브/대유) 재고 테이블이 갈린다
+      const res = await fetch(`/api/store/search?q=${encodeURIComponent(query)}&store=${storeKey}`);
       if (res.status === 401) { setAuthed(false); return; }
       const j = await res.json();
       setRows(j.rows || []);
@@ -71,7 +72,7 @@ export function useStoreApp() {
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [storeKey]);
 
   // 입력 디바운스 검색 (300ms) — "3초 안에 답" 핵심
   const onInput = (text: string) => {
@@ -84,7 +85,7 @@ export function useStoreApp() {
   const openDetail = async (row: StoreStockRow) => {
     setDetail(row); setAlts([]);
     if (!storeKey) return;
-    const need = row.stores[storeKey] <= 0; // 우리 매장에 없으면 대체품 로드
+    const need = (row.stores[storeKey] || 0) <= 0; // 우리 매장에 없으면 대체품 로드
     if (need) {
       try {
         const res = await fetch(`/api/store/alt?item=${row.item_no}&store=${storeKey}`);

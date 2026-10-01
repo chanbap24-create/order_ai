@@ -1,7 +1,7 @@
 'use client';
 
 // 품목 상세 바텀시트 — 위치별 병수 + 백화점가 + (우리 매장에 없으면) 대체품. 시안 ③ 화면.
-import { STORES, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { corpOfStore, storesOfCorp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
@@ -9,6 +9,7 @@ export function DetailSheet({ row, storeKey, alts, onClose }: {
   row: StoreStockRow; storeKey: StoreKey; alts: StoreStockRow[]; onClose: () => void;
 }) {
   const mine = row.stores[storeKey] || 0;
+  const corpStores = storesOfCorp(corpOfStore(storeKey)); // 같은 법인 매장만 표시
 
   return (
     <div onClick={onClose}
@@ -42,7 +43,7 @@ export function DetailSheet({ row, storeKey, alts, onClose }: {
 
         {/* 위치별 재고 */}
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {STORES.map((s) => {
+          {corpStores.map((s) => {
             const n = row.stores[s.key] || 0;
             const isMine = s.key === storeKey;
             return (
@@ -85,7 +86,7 @@ export function DetailSheet({ row, storeKey, alts, onClose }: {
               <div key={a.item_no} style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', minWidth: 0 }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.item_name}</span>
                 <span style={{ flex: 'none', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {a.stores[storeKey] > 0 ? `우리 ${a.stores[storeKey]}` : `본사 ${fmt(a.hq_available)}`}
+                  {(a.stores[storeKey] || 0) > 0 ? `우리 ${a.stores[storeKey]}` : `본사 ${fmt(a.hq_available)}`}
                   {a.sale_price > 0 ? ` · ${fmt(a.sale_price)}` : ''}
                 </span>
               </div>

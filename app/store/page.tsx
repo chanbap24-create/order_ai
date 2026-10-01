@@ -4,7 +4,7 @@
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색+요약+오늘 들어온 와인) → 결과 → 상세 바텀시트.
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
-import { STORES, type StoreKey } from '@/app/lib/store/types';
+import { CORP_LABEL, STORES, type Corp, type StoreKey } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { useStoreApp } from './hooks/useStoreApp';
@@ -31,14 +31,19 @@ export default function StorePage() {
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '15vh 24px 40px' }}>
         <h1 style={{ fontSize: '1.4rem', fontWeight: 500, margin: '0 0 4px' }}>까브 매장</h1>
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 24px' }}>근무하는 매장을 선택하세요 (한 번만)</p>
-        <div style={{ borderTop: '1px solid var(--border-default)' }}>
-          {STORES.map((s) => (
-            <button key={s.key} onClick={() => g.setStoreKey(s.key)}
-              style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', padding: '16px 4px', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)' }}>
-              {s.label}
-            </button>
-          ))}
-        </div>
+        {(['cdv', 'dl'] as Corp[]).map((corp) => (
+          <div key={corp} style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-tertiary)', padding: '0 0 7px 2px' }}>{CORP_LABEL[corp]}</div>
+            <div style={{ borderTop: '1px solid var(--border-default)' }}>
+              {STORES.filter((s) => s.corp === corp).map((s) => (
+                <button key={s.key} onClick={() => g.setStoreKey(s.key)}
+                  style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', padding: '16px 4px', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)' }}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
