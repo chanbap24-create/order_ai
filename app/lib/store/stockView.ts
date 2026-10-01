@@ -5,6 +5,7 @@
 import { supabase } from '../db';
 import { toJamo } from '../matcher-v3/jamo';
 import { loadDiscountBands, saleOf } from '../sommelierDiscount';
+import { retailPriceOf } from '../sommelierRecommend';
 import { corpOfStore, storesOfCorp, type Corp, type StoreKey, type StoreStockRow } from './types';
 
 export { STORES, corpOfStore, type Corp, type StoreKey, type StoreStockRow } from './types';
@@ -37,9 +38,11 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
     stores[s.key] = v;
     storeTotal += v;
   }
-  const retail = Number(r.retail_price) || 0;
+  const no = String(r.item_no);
+  // ZK(타사 위탁 와인)는 retail이 비어 있어 공급가×3.2 (소믈리에와 동일 공식)
+  const retail = retailPriceOf(r.retail_price, r.supply_price, no);
   // 소믈리에 관리자 할인 밴드 — 와인 품번에만 적용 (DL 글라스는 정상가 그대로)
-  const isWine = WINE_PREFIX.has(String(r.item_no).charAt(0).toUpperCase());
+  const isWine = WINE_PREFIX.has(no.charAt(0).toUpperCase()) || /^zk/i.test(no);
   const { sale, rate } = bands && isWine ? saleOf(retail, bands) : { sale: retail, rate: 0 };
   const arr = arrival.get(String(r.item_no));
   return {
@@ -82,6 +85,19 @@ async function loadArrivals(corp: Corp, itemNos: string[]): Promise<Map<string, 
   return out;
 }
 
+/** ZK(타사 와인)는 재고표 이름이 ERP식("(와이너리)(B)22샤토 보빌라쥬26/01") —
+ *  wines 테이블의 정식 이름·빈티지로 교체해 표시한다. */
+async function overlayZkNames(rows: StoreStockRow[]): Promise<StoreStockRow[]> {
+  const zk = rows.filter((r) => /^zk/i.test(r.item_no)).map((r) => r.item_no);
+  if (zk.length === 0) return rows;
+  const { data } = await supabase.from('wines').select('item_code, item_name_kr, vintage').in('item_code', zk);
+  const m = new Map((data || []).map((r) => [String(r.item_code), r]));
+  return rows.map((r) => {
+    const w = m.get(r.item_no);
+    return w?.item_name_kr ? { ...r, item_name: String(w.item_name_kr), vintage: w.vintage ? String(w.vintage) : r.vintage } : r;
+  });
+}
+
 /** DL 매장 와인은 본사 물량이 inventory_cdv에 있다(법인 간 공유 재고) —
  *  같은 품번이 CDV 재고표에 있으면 본사 가용·보세·입고·입항을 CDV 값으로 교체.
  *  글라스(RD 등)는 CDV에 없으므로 inventory_dl 값 유지. */
@@ -118,12 +134,22 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   const ors = tokens.map((t) => `item_name.ilike.%${t.replace(/[,%]/g, '')}%`);
   if (/^[0-9A-Za-z]{4,}$/.test(query)) ors.push(`item_no.ilike.${query}%`); // 품번 직접 검색
 
-  const [jamoRes, tokenRes] = await Promise.all([
+  // ZK(타사 와인)는 DL 매장에서 판매 — ERP 이름이 지저분해 wines 테이블 정식 이름으로도 찾는다
+  const zkPromise: Promise<string[]> = corp === 'dl' && tokens.length
+    ? supabase.from('wines').select('item_code')
+        .ilike('item_code', 'zk%').or(tokens.map((t) => `item_name_kr.ilike.%${t.replace(/[,%]/g, '')}%`).join(','))
+        .limit(60).then(({ data }) => (data || []).map((r) => String(r.item_code)))
+    : Promise.resolve([]);
+
+  const [jamoRes, tokenRes, zkCodes] = await Promise.all([
     supabase.rpc(src.jamoRpc, { q_jamo: toJamo(query), match_count: 24 }),
     ors.length
-      ? supabase.from(src.table).select('item_no, item_name')
-          .not('item_no', 'ilike', 'zk%').or(ors.join(',')).limit(400)
+      ? (corp === 'cdv'
+          // CDV 재고표의 zk행은 매장 소속이 아니라 제외 (DL은 ZK가 실제 매장 판매품)
+          ? supabase.from(src.table).select('item_no, item_name').not('item_no', 'ilike', 'zk%').or(ors.join(',')).limit(400)
+          : supabase.from(src.table).select('item_no, item_name').or(ors.join(',')).limit(400))
       : Promise.resolve({ data: [] as Array<{ item_no: string; item_name: string }> }),
+    zkPromise,
   ]);
 
   // 점수 병합 (어휘 우선 — 매장 검색은 이름을 아는 사람이 찾는 용도)
@@ -146,6 +172,8 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
     const prefix = name.startsWith(qLower) ? 0.3 : 0;
     score.set(no, Math.max(score.get(no) || 0, Math.min(1, 0.3 + 0.7 * hit + prefix)));
   }
+  // ZK 정식 이름(wines) 매칭 — ERP 이름으로 못 찾는 타사 와인 보강
+  for (const code of zkCodes) score.set(code, Math.max(score.get(code) || 0, 0.9));
   // 브랜드 코드처럼 짧은 쿼리는 품목이 많다 — 넉넉히 노출(스크롤 목록)
   const nos = [...score.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([no]) => no);
   if (nos.length === 0) return [];
@@ -156,7 +184,7 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   ]);
   const arrivals = await loadArrivals(corp, nos);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = await overlayCdvHq(corp, ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals)));
+  const rows = await overlayZkNames(await overlayCdvHq(corp, ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals))));
   // 정렬: 검색 점수 순 유지하되, 실판매품(판매가 있음)과 재고 보유를 더미·키트류보다 앞세운다
   const order = new Map(nos.map((no, i) => [no, i]));
   const demote = (r: StoreStockRow) =>
@@ -165,6 +193,28 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
     demote(a) - demote(b)
     || Number((b.store_total + b.hq_available) > 0) - Number((a.store_total + a.hq_available) > 0)
     || (order.get(a.item_no) ?? 99) - (order.get(b.item_no) ?? 99));
+}
+
+/** 요약 박스 탭 → 전체 리스트. mine=우리 매장 보유, incoming=입고 예정(법인 재고표 기준) */
+export async function listStoreStock(storeKey: StoreKey, mode: 'mine' | 'incoming'): Promise<StoreStockRow[]> {
+  const corp = corpOfStore(storeKey);
+  const src = SRC[corp];
+  const { fetchAllRows } = await import('../fetchAll');
+  const [raw, bands] = await Promise.all([
+    fetchAllRows((f, t) => {
+      let q = supabase.from(src.table).select(invCols(corp)).order('item_name');
+      q = mode === 'mine' ? q.gt(storeKey, 0) : q.gt('incoming_stock', 0);
+      return q.range(f, t);
+    }),
+    loadBands(corp),
+  ]);
+  const nos = (raw as Array<{ item_no: string }>).map((r) => String(r.item_no));
+  const arrivals = await loadArrivals(corp, nos.slice(0, 450));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = await overlayZkNames(await overlayCdvHq(corp, (raw as any[]).map((r) => toRow(corp, r, bands, arrivals))));
+  // 더미·키트류는 리스트에서도 뒤로
+  const demote = (r: StoreStockRow) => (/더미|키트|쇼핑백|에어팩/.test(r.item_name) ? 1 : 0);
+  return rows.sort((a, b) => demote(a) - demote(b) || a.item_name.localeCompare(b.item_name, 'ko'));
 }
 
 /** 홈 요약 — 우리 매장 품목수 · 들어오는 중 · 최근 입항 와인(CDV만) */

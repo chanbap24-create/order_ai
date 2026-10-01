@@ -117,23 +117,49 @@ export default function StorePage() {
       {/* 홈 — 요약 스트립 + 소믈리에 진입 + 오늘 들어온 와인 */}
       {showHome && (
         <>
-          {/* 소믈리에 — 손님 취향 문답 추천 (DL 매장도 와인 취급 — 전 매장 노출) */}
-          <button onClick={openSommelier}
-            style={{ all: 'unset', boxSizing: 'border-box', display: 'flex', alignItems: 'baseline', gap: 8, width: '100%', cursor: 'pointer', marginTop: 18, padding: '13px 2px', borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-subtle)' }}>
-            <span style={{ ...LAT, fontSize: 12.5 }}>SOMMELIER</span>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>손님 취향 문답으로 와인 추천</span>
-            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#b89a6a' }}>→</span>
-          </button>
+          {/* 스탯 스트립 — 탭하면 해당 리스트 */}
           {g.summary && (
-            <div style={{ display: 'flex', marginTop: 22, borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)' }}>
-              {[
-                ['우리 매장', `${fmt(g.summary.my_items)}종`],
-                ['들어오는 중', `${fmt(g.summary.incoming_items)}종`],
-              ].map(([k, v], i) => (
-                <div key={k} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+            <div style={{ display: 'flex', marginTop: 20, borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-subtle)' }}>
+              {([
+                ['우리 매장', `${fmt(g.summary.my_items)}종`, 'mine'],
+                ['들어오는 중', `${fmt(g.summary.incoming_items)}종`, 'incoming'],
+              ] as const).map(([k, v, mode], i) => (
+                <button key={k} onClick={() => (g.listMode === mode ? g.closeList() : void g.openList(mode))}
+                  style={{
+                    all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', padding: '13px 0', cursor: 'pointer',
+                    borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none',
+                    background: g.listMode === mode ? 'var(--surface-muted)' : 'transparent',
+                  }}>
                   <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)' }}>{k}</div>
                   <div style={{ fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
-                </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 소믈리에 진입 — 스트립과 한 몸(이중 라인 없이) */}
+          <button onClick={openSommelier}
+            style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', textAlign: 'center', cursor: 'pointer', padding: '15px 2px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <span style={{ ...LAT, fontSize: 13 }}>SOMMELIER</span>
+            <span style={{ marginLeft: 10, fontSize: 13, color: '#b89a6a' }}>→</span>
+          </button>
+
+          {/* 보유/입고 리스트 — 요약 박스 탭 */}
+          {g.listMode && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '18px 2px 4px' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 700 }}>{g.listMode === 'mine' ? '우리 매장 보유' : '들어오는 중'}</span>
+                {g.listRows && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmt(g.listRows.length)}종</span>}
+                <button onClick={g.closeList}
+                  style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>닫기</button>
+              </div>
+              {!g.listRows && <div style={{ padding: '16px 2px', fontSize: 12.5, color: 'var(--text-tertiary)' }}>불러오는 중…</div>}
+              {(g.listRows || []).map((row) => (
+                <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)}
+                  onLongPress={notes.tastingNoteSet.has(row.item_no)
+                    ? () => void notes.openFor(row.item_no, row.item_name)
+                    : null}
+                  onAdd={row.retail_price > 0 ? () => cart.add(row) : undefined} />
               ))}
             </div>
           )}

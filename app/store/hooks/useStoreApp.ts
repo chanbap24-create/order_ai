@@ -82,6 +82,19 @@ export function useStoreApp() {
     debounce.current = setTimeout(() => void runSearch(text), 300);
   };
 
+  // 요약 박스 탭 → 보유/입고 전체 리스트
+  const [listMode, setListMode] = useState<'mine' | 'incoming' | null>(null);
+  const [listRows, setListRows] = useState<StoreStockRow[] | null>(null);
+  const openList = async (mode: 'mine' | 'incoming') => {
+    setListMode(mode); setListRows(null);
+    try {
+      const res = await fetch(`/api/store/list?store=${storeKey}&mode=${mode}`);
+      const j = await res.json();
+      setListRows(j.rows || []);
+    } catch { setListRows([]); }
+  };
+  const closeList = () => { setListMode(null); setListRows(null); };
+
   const openDetail = async (row: StoreStockRow) => {
     setDetail(row); setAlts([]);
     if (!storeKey) return;
@@ -112,6 +125,7 @@ export function useStoreApp() {
     authed, login, storeKey, setStoreKey,
     q, onInput, rows, searching, error, runSearch,
     summary, recent,
+    listMode, listRows, openList, closeList,
     detail, setDetail, alts, openDetail,
   };
 }
