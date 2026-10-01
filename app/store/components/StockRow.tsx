@@ -75,6 +75,11 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
         }}>
           {row.item_name}
         </span>
+        {row.vintage && (
+          <span style={{ flex: 'none', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+            {row.vintage}
+          </span>
+        )}
         {row.sale_price > 0 && (
           <span style={{ flex: 'none', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             {row.discount_rate > 0 && (

@@ -6,7 +6,7 @@ import { supabase } from '../db';
 import { toJamo } from '../matcher-v3/jamo';
 import { loadDiscountBands, saleOf } from '../sommelierDiscount';
 import { retailPriceOf } from '../sommelierRecommend';
-import { corpOfStore, storesOfCorp, type Corp, type StoreKey, type StoreStockRow } from './types';
+import { corpOfStore, storesOfCorp, vintageOfItemNo, type Corp, type StoreKey, type StoreStockRow } from './types';
 
 export { STORES, corpOfStore, type Corp, type StoreKey, type StoreStockRow } from './types';
 
@@ -48,9 +48,10 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
   const { sale, rate } = bands && isWine ? saleOf(retail, bands) : { sale: retail, rate: 0 };
   const arr = arrival.get(String(r.item_no));
   return {
-    item_no: String(r.item_no),
+    item_no: no,
     item_name: String(r.item_name || ''),
-    vintage: r.vintage ? String(r.vintage) : null,
+    // 빈티지는 품번 3~4자리가 정본 (ERP 컬럼은 폴백)
+    vintage: vintageOfItemNo(no) ?? (r.vintage ? String(r.vintage) : null),
     retail_price: retail,
     sale_price: sale,
     discount_rate: rate,

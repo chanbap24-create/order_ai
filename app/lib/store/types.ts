@@ -27,6 +27,17 @@ export function storesOfCorp(corp: Corp) {
   return STORES.filter((s) => s.corp === corp);
 }
 
+/** 빈티지 = 와인 품번 3~4자리 (ERP 빈티지 컬럼은 신뢰 불가 — vintage formula 정본).
+ *  예: 0019044→2019, 2021474→2021, ZK22159→2022. 글라스·자재는 null. */
+export function vintageOfItemNo(itemNo: string): string | null {
+  const no = String(itemNo || '');
+  if (!/^([0-5A]|Z)/i.test(no)) return null; // 와인(0~5·A·ZK)만
+  const m = no.match(/^[A-Z0-9]{2}(\d{2})/i);
+  if (!m) return null;
+  const yy = Number(m[1]);
+  return String(yy >= 50 ? 1900 + yy : 2000 + yy);
+}
+
 export type StoreStockRow = {
   item_no: string;
   item_name: string;
