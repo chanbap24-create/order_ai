@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import { DetailOverlay } from './DetailOverlay';
-import { BODY_OPTIONS, PRICE_OPTIONS, TYPE_OPTIONS, type QuizAnswers } from '../lib/quiz';
-import { addToCart, readCart } from '@/app/lib/store/cartSession';
+import { BODY_OPTIONS, PRICE_OPTIONS, STORES, TYPE_OPTIONS, type QuizAnswers } from '../lib/quiz';
+import { useCart } from '@/app/store/hooks/useCart';
+import { CheckoutSheet } from '@/app/store/components/CheckoutSheet';
 
 const won = (n: number) => n.toLocaleString('ko-KR');
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
@@ -47,22 +48,18 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
   const [visible, setVisible] = useState(5); // 5병씩 더보기
   const [busy, setBusy] = useState<string | null>(null);
   const [detail, setDetail] = useState<number | null>(null); // 전체화면 상세로 연 카드 인덱스
-  // 정산 카트(매장 POS와 공유) — 담기면 하단 바로 합계 노출
-  const [cart, setCart] = useState<{ bottles: number; total: number }>({ bottles: 0, total: 0 });
+  // 정산 카트(매장 POS와 공유) — 결과 화면 안에서 시트로 열어 추천 상태를 잃지 않는다
+  const cart = useCart();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [added, setAdded] = useState<string | null>(null); // 담기 직후 '✓ 담김' 플래시
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const c = readCart();
-      setCart({ bottles: c.reduce((s, x) => s + x.qty, 0), total: c.reduce((s, x) => s + x.sale_price * x.qty, 0) });
-    }, 0);
-    return () => clearTimeout(t);
-  }, []);
+  const storeLabel = (() => {
+    try { return STORES[localStorage.getItem('som_store') || ''] || ''; } catch { return ''; }
+  })();
   const syncGuest = () => {
     try {
       if (customerId) localStorage.setItem('cave_store_customer', JSON.stringify({ id: customerId, name: customerName || '' }));
     } catch { /* ignore */ }
   };
-  const goCheckout = () => { syncGuest(); window.location.href = '/store?checkout=1'; };
   // 추천 → 재고 선택(POS 검색)으로 — 손님·카트 유지
   const goStock = () => { syncGuest(); window.location.href = '/store'; };
   const shown = results.slice(0, visible);
@@ -289,11 +286,10 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                       onClick={(e) => {
                         e.stopPropagation();
                         if (dragMoved.current) return;
-                        const next = addToCart({
+                        cart.add({
                           item_no: r.item_code, item_name: r.name,
                           sale_price: r.sale_price || r.retail_price, retail_price: r.retail_price,
                         });
-                        setCart({ bottles: next.reduce((s, x) => s + x.qty, 0), total: next.reduce((s, x) => s + x.sale_price * x.qty, 0) });
                         setAdded(r.item_code);
                         setTimeout(() => setAdded((cur) => (cur === r.item_code ? null : cur)), 900);
                       }}>
@@ -330,9 +326,9 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
         <button className="som-again" onClick={onNewGuest}>새 손님 응대</button>
       </div>
 
-      {/* 정산 바 — 담긴 게 있으면 포스(매장 재고 정산)로 */}
-      {cart.bottles > 0 && (
-        <button onClick={goCheckout}
+      {/* 정산 바 — 결과 위에 시트로 연다 (추천 카드 유지) */}
+      {cart.bottles > 0 && !checkoutOpen && (
+        <button onClick={() => { syncGuest(); setCheckoutOpen(true); }}
           style={{
             position: 'fixed', left: 16, right: 16, bottom: 'calc(14px + env(safe-area-inset-bottom))', zIndex: 45,
             display: 'flex', alignItems: 'baseline', gap: 8, padding: '15px 20px', maxWidth: 560, margin: '0 auto',
@@ -341,9 +337,19 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
           }}>
           <span style={{ fontSize: 13.5, fontWeight: 600 }}>정산 {cart.bottles}병</span>
           <span style={{ marginLeft: 'auto', fontSize: 15, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-            {won(cart.total)}원 →
+            {won(cart.finalTotal)}원 →
           </span>
         </button>
+      )}
+
+      {checkoutOpen && (
+        <CheckoutSheet
+          items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
+          extraRate={cart.extraRate} extraWon={cart.extraWon} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
+          storeLabel={storeLabel}
+          onQty={cart.setQty} onExtraRate={cart.setExtraRate} onExtraWon={cart.setExtraWon}
+          onClear={() => { cart.clear(); setCheckoutOpen(false); }}
+          onClose={() => setCheckoutOpen(false)} />
       )}
 
       {detail != null && results[detail] && (

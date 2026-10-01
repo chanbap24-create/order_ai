@@ -3,8 +3,10 @@
 // 정산 카트 — 매장에서 손님 구매 와인을 담아 판매가(백화점가) 합계를 내는 용도.
 // 세션 저장(sessionStorage) — 앱을 닫으면 비워진다. 손님 간 이월 방지. 서버 기록 없음.
 import { useEffect, useState } from 'react';
-import type { StoreStockRow } from '@/app/lib/store/types';
 import { CART_KEY as LS_CART, EXTRA_RATE_KEY as LS_EXTRA, EXTRA_WON_KEY as LS_EXTRA_WON, type CartItem } from '@/app/lib/store/cartSession';
+
+/** 담기에 필요한 최소 필드 — StoreStockRow·SommelierResult 변환값 모두 수용 */
+type AddInput = { item_no: string; item_name: string; sale_price: number; retail_price: number };
 
 export type { CartItem } from '@/app/lib/store/cartSession';
 
@@ -50,7 +52,7 @@ export function useCart() {
     try { sessionStorage.setItem(LS_CART, JSON.stringify(next)); } catch { /* ignore */ }
   };
 
-  const add = (row: StoreStockRow) => {
+  const add = (row: AddInput) => {
     const found = items.find((i) => i.item_no === row.item_no);
     persist(found
       ? items.map((i) => (i.item_no === row.item_no ? { ...i, qty: i.qty + 1 } : i))
