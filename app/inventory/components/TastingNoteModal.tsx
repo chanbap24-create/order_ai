@@ -22,6 +22,9 @@ type Props = {
  * - source === 'db': DB 저장 노트를 카드로 렌더
  * - source === 'pdf': 원본 PDF를 iframe으로 렌더
  */
+const isMobile = () =>
+  typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
+
 export function TastingNoteModal({
   open,
   onClose,
@@ -36,6 +39,7 @@ export function TastingNoteModal({
   onDownload,
 }: Props) {
   if (!open) return null;
+  const mobile = isMobile();
 
   return (
     <div
@@ -47,20 +51,22 @@ export function TastingNoteModal({
         alignItems: "center",
         justifyContent: "center",
         zIndex: 1000,
-        padding: 16,
+        padding: mobile ? 0 : 16,
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "white",
-          borderRadius: 12,
-          width: "95vw",
-          maxWidth: "1400px",
-          height: "95vh",
+          // 모바일은 풀스크린 시트 — 띄운 카드 대신 화면 전체
+          borderRadius: mobile ? 0 : 12,
+          width: mobile ? "100vw" : "95vw",
+          maxWidth: mobile ? undefined : "1400px",
+          height: mobile ? "100dvh" : "95vh",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          paddingTop: mobile ? "env(safe-area-inset-top)" : 0,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -165,6 +171,33 @@ function PdfFrame({
   itemNo: string;
   onDownload: (url: string, filename: string) => void;
 }) {
+  // 모바일(iOS Safari)은 PDF iframe이 첫 페이지만 렌더/스크롤 불가 —
+  // 새 탭 네이티브 뷰어(핀치줌 지원)로 연다
+  if (isMobile()) {
+    return (
+      <div style={{ width: "100%", textAlign: "center", padding: "32px 0" }}>
+        <button
+          onClick={() => window.open(pdfUrl, "_blank")}
+          style={{
+            padding: "14px 28px", borderRadius: 11, border: "none",
+            background: "var(--action)", color: "white", fontWeight: 700, fontSize: 15, cursor: "pointer",
+          }}
+        >
+          PDF 전체 화면으로 보기
+        </button>
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "center", gap: 8 }}>
+          <button onClick={() => onDownload(originalPdfUrl, `${itemNo}.pdf`)}
+            style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid var(--border-default)", background: "transparent", fontSize: "0.8rem", cursor: "pointer" }}>
+            PDF 저장
+          </button>
+          <button onClick={() => onDownload(originalPdfUrl.replace(".pdf", ".pptx"), `${itemNo}.pptx`)}
+            style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid var(--border-default)", background: "transparent", fontSize: "0.8rem", cursor: "pointer" }}>
+            PPTX 저장
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ marginBottom: 12, display: "flex", justifyContent: "flex-end", gap: 8 }}>
