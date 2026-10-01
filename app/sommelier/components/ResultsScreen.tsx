@@ -57,12 +57,14 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
     }, 0);
     return () => clearTimeout(t);
   }, []);
-  const goCheckout = () => {
+  const syncGuest = () => {
     try {
       if (customerId) localStorage.setItem('cave_store_customer', JSON.stringify({ id: customerId, name: customerName || '' }));
     } catch { /* ignore */ }
-    window.location.href = '/store?checkout=1';
   };
+  const goCheckout = () => { syncGuest(); window.location.href = '/store?checkout=1'; };
+  // 추천 → 재고 선택(POS 검색)으로 — 손님·카트 유지
+  const goStock = () => { syncGuest(); window.location.href = '/store'; };
   const shown = results.slice(0, visible);
   // 데스크탑 좌우 화살표 + 마우스 드래그 스와이프
   const [edge, setEdge] = useState({ l: false, r: false });
@@ -323,6 +325,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
           </button>
         )}
         <button className="som-again" onClick={onBack}>← 이전으로</button>
+        <button className="som-again" onClick={goStock}>재고에서 선택</button>
         <button className="som-again" onClick={onRetry}>처음부터 다시</button>
         <button className="som-again" onClick={onNewGuest}>새 손님 응대</button>
       </div>

@@ -159,7 +159,18 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
             <span style={{ fontSize: 13, fontWeight: 700 }}>합계 {fmt(bottles)}병</span>
             <span style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(finalTotal)}원</span>
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          {/* 재고 선택 후 취향 추천으로 자연 연결 — 카트·손님 유지 */}
+          <button onClick={() => {
+            try {
+              const k = localStorage.getItem('cave_store_key');
+              if (k) localStorage.setItem('som_store', k);
+            } catch { /* ignore */ }
+            window.location.href = '/sommelier?quiz=1';
+          }}
+            style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', textAlign: 'center', cursor: 'pointer', marginTop: 12, padding: '10px 0', fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'underline', textUnderlineOffset: 3, textDecorationColor: 'rgba(184,154,106,0.6)' }}>
+            이어서 취향 문답으로 추천받기 →
+          </button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button onClick={() => {
               if (!window.confirm('정산 내역을 비울까요?')) return;
               try { localStorage.removeItem('cave_store_customer'); } catch { /* ignore */ }

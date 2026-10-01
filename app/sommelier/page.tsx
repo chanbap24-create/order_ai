@@ -35,6 +35,19 @@ export default function SommelierPage() {
 
   useEffect(() => {
     try { const s = localStorage.getItem('som_store'); if (s) setStore(s); } catch { /* ignore */ }
+    // 매장 재고(POS)에서 넘어온 문답 직행 — 연결된 손님이 있으면 고객 단계 생략
+    try {
+      if (new URLSearchParams(window.location.search).get('quiz')) {
+        const g = JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { id?: number; name?: string } | null;
+        if (g?.id) {
+          setCustomer({ id: g.id, name: g.name || '' } as SommelierCustomer);
+          setPhase('quiz');
+        } else {
+          setPhase('customer'); // 손님 미연결이면 등록부터
+        }
+        window.history.replaceState(null, '', '/sommelier');
+      }
+    } catch { /* ignore */ }
     Promise.all([
       fetch('/api/auth/me').then((r) => r.json()).catch(() => null),
       fetch('/api/sales/clients/managers').then((r) => r.json()).catch(() => null),

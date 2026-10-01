@@ -33,10 +33,15 @@ export default function StorePage() {
     return () => clearTimeout(t);
   }, []);
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
-  // 소믈리에(취향 문답)로 이동 — 매장 선택을 그대로 넘긴다 (컬럼 키 동일)
+  // 소믈리에(취향 문답)로 이동 — 매장 선택을 그대로 넘긴다 (컬럼 키 동일).
+  // 손님이 연결돼 있으면 문답 직행(양쪽을 넘나들며 품목 추가하는 흐름), 아니면 인트로부터.
   const openSommelier = () => {
-    try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
-    window.location.href = '/sommelier';
+    let hasGuest = false;
+    try {
+      if (g.storeKey) localStorage.setItem('som_store', g.storeKey);
+      hasGuest = !!(JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { id?: number } | null)?.id;
+    } catch { /* ignore */ }
+    window.location.href = hasGuest ? '/sommelier?quiz=1' : '/sommelier';
   };
   // 설치 안내 — 이미 홈 화면 앱(standalone)으로 열렸으면 숨김
   const [installHintOff, setInstallHintOff] = useState(false);
