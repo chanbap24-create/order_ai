@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
       }
 
       // 1) GitHub Release PDF 우선 (원본 그대로 표시)
-      if (pdfUrl) {
+      //    단 prefer=db면 DB 노트(깔끔한 인라인 뷰)를 먼저 시도하고 PDF는 폴백 —
+      //    매장 PWA처럼 뷰어 크롬 없이 보여야 하는 화면용
+      const preferDb = request.nextUrl.searchParams.get('prefer') === 'db';
+      if (pdfUrl && !preferDb) {
         return NextResponse.json({
           success: true,
           source: 'pdf',
@@ -69,7 +72,19 @@ export async function GET(request: NextRequest) {
           item_no: itemNo,
           tasting_note: dbNote,
           wine_info: wineInfo || null,
+          pdf_url: pdfUrl, // 원본 PDF가 있으면 다운로드용으로 함께
           updated_at: dbNote.updated_at,
+        });
+      }
+
+      // prefer=db였지만 DB 노트가 없으면 PDF로 폴백
+      if (pdfUrl) {
+        return NextResponse.json({
+          success: true,
+          source: 'pdf',
+          item_no: itemNo,
+          pdf_url: pdfUrl,
+          updated_at: indexCache?.updated_at,
         });
       }
 

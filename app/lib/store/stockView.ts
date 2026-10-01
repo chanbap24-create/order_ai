@@ -48,9 +48,9 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
     retail_price: retail,
     sale_price: sale,
     discount_rate: rate,
-    hq_available: Number(r.available_stock) || 0,
-    hq_bonded: Number(corp === 'dl' ? r.bonded_warehouse : r.stock_bonded) || 0,
-    incoming: Number(r.incoming_stock) || 0,
+    hq_available: Math.max(0, Number(r.available_stock) || 0),
+    hq_bonded: Math.max(0, Number(corp === 'dl' ? r.bonded_warehouse : r.stock_bonded) || 0),
+    incoming: Math.max(0, Number(r.incoming_stock) || 0),
     arrival_date: arr?.date ?? null,
     arrival_btls: arr?.btls ?? 0,
     stores,
@@ -78,6 +78,32 @@ async function loadArrivals(corp: Corp, itemNos: string[]): Promise<Map<string, 
     }
   }
   return out;
+}
+
+/** DL 매장 와인은 본사 물량이 inventory_cdv에 있다(법인 간 공유 재고) —
+ *  같은 품번이 CDV 재고표에 있으면 본사 가용·보세·입고·입항을 CDV 값으로 교체.
+ *  글라스(RD 등)는 CDV에 없으므로 inventory_dl 값 유지. */
+async function overlayCdvHq(corp: Corp, rows: StoreStockRow[]): Promise<StoreStockRow[]> {
+  if (corp !== 'dl' || rows.length === 0) return rows;
+  const nos = rows.map((r) => r.item_no);
+  const { data } = await supabase.from('inventory_cdv')
+    .select('item_no, available_stock, stock_bonded, incoming_stock').in('item_no', nos);
+  const cdv = new Map((data || []).map((r) => [String(r.item_no), r]));
+  if (cdv.size === 0) return rows;
+  const arrivals = await loadArrivals('cdv', [...cdv.keys()]);
+  return rows.map((r) => {
+    const c = cdv.get(r.item_no);
+    if (!c) return r;
+    const arr = arrivals.get(r.item_no);
+    return {
+      ...r,
+      hq_available: Math.max(0, Number(c.available_stock) || 0),
+      hq_bonded: Math.max(0, Number(c.stock_bonded) || 0),
+      incoming: Math.max(0, Number(c.incoming_stock) || 0),
+      arrival_date: arr?.date ?? null,
+      arrival_btls: arr?.btls ?? 0,
+    };
+  });
 }
 
 /** 매장 재고 검색 — 자모 trgm(오타·브랜드) + 토큰 ILIKE 병합, 판매가능성과 무관하게 전 품목 */
@@ -128,7 +154,7 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   ]);
   const arrivals = await loadArrivals(corp, nos);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals));
+  const rows = await overlayCdvHq(corp, ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals)));
   // 정렬: 검색 점수 순 유지하되, 실판매품(판매가 있음)과 재고 보유를 더미·키트류보다 앞세운다
   const order = new Map(nos.map((no, i) => [no, i]));
   const demote = (r: StoreStockRow) =>
@@ -194,7 +220,7 @@ export async function alternatives(itemNo: string, storeKey: StoreKey): Promise<
     loadBands(corp),
   ]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = ((inv || []) as any[]).map((r) => toRow(corp, r, bands, new Map()));
+  const rows = await overlayCdvHq(corp, ((inv || []) as any[]).map((r) => toRow(corp, r, bands, new Map())));
   return rows
     .filter((r) => ((r.stores[storeKey] || 0) > 0 || r.hq_available > 0)
       && r.retail_price > 0

@@ -42,7 +42,8 @@ export function useTastingNoteModal() {
     })();
   }, []);
 
-  const openFor = useCallback(async (itemNo: string, itemName: string) => {
+  // prefer 'db' = DB 노트(깔끔한 인라인 뷰) 우선, PDF는 폴백 — 매장 PWA용
+  const openFor = useCallback(async (itemNo: string, itemName: string, prefer?: 'db') => {
     setSelectedItemNo(itemNo);
     setSelectedWineName(itemName);
     setTastingNoteLoading(true);
@@ -53,7 +54,7 @@ export function useTastingNoteModal() {
     setTastingNoteUrl("");
     setOriginalPdfUrl("");
     try {
-      const response = await fetch(`/api/tasting-notes?item_no=${itemNo}`, {
+      const response = await fetch(`/api/tasting-notes?item_no=${itemNo}${prefer ? `&prefer=${prefer}` : ''}`, {
         cache: "no-store",
       });
       const data = await response.json();

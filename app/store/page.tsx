@@ -162,7 +162,7 @@ export default function StorePage() {
           {(g.rows || []).map((row) => (
             <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)}
               onLongPress={notes.tastingNoteSet.has(row.item_no)
-                ? () => void notes.openFor(row.item_no, row.item_name)
+                ? () => void notes.openFor(row.item_no, row.item_name, 'db')
                 : null} />
           ))}
         </div>
@@ -171,7 +171,7 @@ export default function StorePage() {
       {g.detail && (
         <DetailSheet row={g.detail} storeKey={g.storeKey as StoreKey} alts={g.alts} onClose={() => g.setDetail(null)}
           onNote={notes.tastingNoteSet.has(g.detail.item_no)
-            ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name)
+            ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name, 'db')
             : null} />
       )}
 
