@@ -9,9 +9,10 @@ import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 const LONG_PRESS_MS = 500;
 
-export function StockRow({ row, storeKey, onOpen, onLongPress }: {
+export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
   row: StoreStockRow; storeKey: StoreKey; onOpen: () => void;
   onLongPress?: (() => void) | null; // 테이스팅 노트 (있는 품목만)
+  onAdd?: () => void;                // 정산에 바로 담기 (POS 빠른 흐름)
 }) {
   const mine = row.stores[storeKey] || 0;
   const others = row.store_total - mine;
@@ -77,6 +78,18 @@ export function StockRow({ row, storeKey, onOpen, onLongPress }: {
         {row.sale_price > 0 && (
           <span style={{ flex: 'none', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
             {fmt(row.sale_price)}
+          </span>
+        )}
+        {onAdd && (
+          <span role="button" aria-label="정산에 담기"
+            onClick={(e) => { e.stopPropagation(); onAdd(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              flex: 'none', alignSelf: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--border-default)',
+              fontSize: 17, lineHeight: 1, color: 'var(--text-primary)', cursor: 'pointer',
+            }}>
+            +
           </span>
         )}
       </div>

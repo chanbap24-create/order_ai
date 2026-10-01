@@ -5,9 +5,10 @@ import { corpOfStore, storesOfCorp, type StoreKey, type StoreStockRow } from '@/
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
-export function DetailSheet({ row, storeKey, alts, onClose, onNote }: {
+export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
   row: StoreStockRow; storeKey: StoreKey; alts: StoreStockRow[]; onClose: () => void;
   onNote?: (() => void) | null; // 테이스팅 노트 열기 (있는 품목만)
+  onAdd?: () => void;           // 정산에 담기 (POS)
 }) {
   const mine = row.stores[storeKey] || 0;
   const corpStores = storesOfCorp(corpOfStore(storeKey)); // 같은 법인 매장만 표시
@@ -101,6 +102,14 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote }: {
               </div>
             ))}
           </>
+        )}
+
+        {/* 정산에 담기 — POS 흐름의 진입 */}
+        {onAdd && (
+          <button onClick={() => { onAdd(); onClose(); }}
+            style={{ display: 'block', width: '100%', marginTop: 16, padding: '14px 0', borderRadius: 11, border: 'none', background: 'var(--action)', color: '#fff', fontSize: 14.5, fontWeight: 700, cursor: 'pointer' }}>
+            정산에 담기{row.sale_price > 0 ? ` · ${fmt(row.sale_price)}원` : ''}
+          </button>
         )}
       </div>
     </div>

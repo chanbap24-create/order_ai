@@ -8,6 +8,8 @@ import { CORP_LABEL, STORES, type Corp, type StoreKey } from '@/app/lib/store/ty
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { useStoreApp } from './hooks/useStoreApp';
+import { useCart } from './hooks/useCart';
+import { CheckoutSheet } from './components/CheckoutSheet';
 // 테이스팅 노트는 인벤토리와 동일 모듈 재사용 (복제 금지)
 import { TastingNoteModal } from '../inventory/components/TastingNoteModal';
 import { useTastingNoteModal } from '../inventory/hooks/useTastingNoteModal';
@@ -21,6 +23,8 @@ const GOLD_LINE = 'color-mix(in srgb, #b89a6a 32%, transparent)';
 export default function StorePage() {
   const g = useStoreApp();
   const notes = useTastingNoteModal();
+  const cart = useCart();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
   // 소믈리에(취향 문답)로 이동 — 매장 선택을 그대로 넘긴다 (컬럼 키 동일)
   const openSommelier = () => {
@@ -163,7 +167,8 @@ export default function StorePage() {
             <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)}
               onLongPress={notes.tastingNoteSet.has(row.item_no)
                 ? () => void notes.openFor(row.item_no, row.item_name)
-                : null} />
+                : null}
+              onAdd={row.retail_price > 0 ? () => cart.add(row) : undefined} />
           ))}
         </div>
       )}
@@ -172,7 +177,32 @@ export default function StorePage() {
         <DetailSheet row={g.detail} storeKey={g.storeKey as StoreKey} alts={g.alts} onClose={() => g.setDetail(null)}
           onNote={notes.tastingNoteSet.has(g.detail.item_no)
             ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name)
-            : null} />
+            : null}
+          onAdd={g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined} />
+      )}
+
+      {/* POS 하단 바 — 담긴 게 있으면 합계 상시 노출, 탭=정산 화면 */}
+      {cart.items.length > 0 && !checkoutOpen && (
+        <button onClick={() => setCheckoutOpen(true)}
+          style={{
+            position: 'fixed', left: 12, right: 12, bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 40,
+            display: 'flex', alignItems: 'baseline', gap: 8, padding: '14px 18px',
+            borderRadius: 13, border: 'none', background: 'var(--action)', color: '#fff', cursor: 'pointer',
+            boxShadow: '0 4px 18px rgba(0,0,0,0.18)', maxWidth: 536, margin: '0 auto',
+          }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>정산 {cart.items.length}종 {fmt(cart.bottles)}병</span>
+          <span style={{ marginLeft: 'auto', fontSize: 15.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            {fmt(cart.total)}원 →
+          </span>
+        </button>
+      )}
+
+      {checkoutOpen && (
+        <CheckoutSheet
+          items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
+          storeLabel={storeLabel}
+          onQty={cart.setQty} onClear={() => { cart.clear(); setCheckoutOpen(false); }}
+          onClose={() => setCheckoutOpen(false)} />
       )}
 
       <TastingNoteModal
