@@ -25,6 +25,8 @@ const invCols = (corp: Corp) => `item_no, item_name, vintage, retail_price, supp
   .replace('stock_bonded', corp === 'dl' ? 'bonded_warehouse' : 'stock_bonded');
 
 const WINE_PREFIX = new Set(['0', '1', '2', '3', '4', '5', 'A']);
+/** 와인 품번만 거르는 PostgREST or 조건 (0~5·A·ZK 프리픽스, ilike=대소문자 무시) */
+const WINE_OR = [...WINE_PREFIX, 'ZK'].map((p) => `item_no.ilike.${p}%`).join(',');
 /** CDV는 와인 품번(ZK 제외)만 노출. DL은 전 품목. */
 const keepItem = (corp: Corp, no: string) => corp === 'dl' || WINE_PREFIX.has(no.charAt(0).toUpperCase());
 
@@ -198,20 +200,23 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
 /** 요약 박스 탭 → 전체 리스트. mine=우리 매장 보유, incoming=입고 예정(법인 재고표 기준) */
 export async function listStoreStock(storeKey: StoreKey, mode: 'mine' | 'incoming'): Promise<StoreStockRow[]> {
   const corp = corpOfStore(storeKey);
-  const src = SRC[corp];
+  // 들어오는 중 = 본사로 입고 중인 와인만. 와인 입고는 법인 무관 inventory_cdv가 소스
+  // (DL 재고표의 입고예정은 전부 글라스 — DL 매장 와인도 본사 입고는 CDV에 잡힌다)
+  const dataCorp: Corp = mode === 'incoming' ? 'cdv' : corp;
+  const src = SRC[dataCorp];
   const { fetchAllRows } = await import('../fetchAll');
   const [raw, bands] = await Promise.all([
     fetchAllRows((f, t) => {
-      let q = supabase.from(src.table).select(invCols(corp)).order('item_name');
-      q = mode === 'mine' ? q.gt(storeKey, 0) : q.gt('incoming_stock', 0);
+      let q = supabase.from(src.table).select(invCols(dataCorp)).order('item_name');
+      q = mode === 'mine' ? q.gt(storeKey, 0) : q.gt('incoming_stock', 0).or(WINE_OR);
       return q.range(f, t);
     }),
-    loadBands(corp),
+    loadBands(dataCorp),
   ]);
   const nos = (raw as Array<{ item_no: string }>).map((r) => String(r.item_no));
-  const arrivals = await loadArrivals(corp, nos.slice(0, 450));
+  const arrivals = await loadArrivals(dataCorp, nos.slice(0, 450));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = await overlayZkNames(await overlayCdvHq(corp, (raw as any[]).map((r) => toRow(corp, r, bands, arrivals))));
+  const rows = await overlayZkNames(await overlayCdvHq(dataCorp, (raw as any[]).map((r) => toRow(dataCorp, r, bands, arrivals))));
   // 더미·키트류는 리스트에서도 뒤로
   const demote = (r: StoreStockRow) => (/더미|키트|쇼핑백|에어팩/.test(r.item_name) ? 1 : 0);
   return rows.sort((a, b) => demote(a) - demote(b) || a.item_name.localeCompare(b.item_name, 'ko'));
@@ -229,7 +234,8 @@ export async function storeSummary(storeKey: StoreKey): Promise<{
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
   const [{ count: myItems }, { count: incomingItems }, { data: sched }] = await Promise.all([
     supabase.from(src.table).select('*', { count: 'exact', head: true }).gt(storeKey, 0),
-    supabase.from(src.table).select('*', { count: 'exact', head: true }).gt('incoming_stock', 0),
+    // 들어오는 중 = 본사(CDV)로 입고 중인 와인 수 — 법인 무관 동일 소스
+    supabase.from('inventory_cdv').select('*', { count: 'exact', head: true }).gt('incoming_stock', 0).or(WINE_OR),
     corp === 'cdv'
       ? supabase.from('import_schedule').select('item_code, item_name_kr, arrival_date')
           .gte('arrival_date', weekAgo).lte('arrival_date', today)

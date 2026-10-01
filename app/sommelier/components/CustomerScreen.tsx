@@ -17,8 +17,10 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
   const [marketing, setMarketing] = useState(false); // [선택] 광고성 정보 수신 동의
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // 재방문 고객 — 입력 중 조용히 검색해 골드 도트 한 줄로 제안, 탭하면 즉시 문답으로
+  // 재방문 고객 — 입력 중 조용히 검색해 골드 도트 한 줄로 제안, 탭하면 선택 상태로
   const [matches, setMatches] = useState<SommelierCustomer[]>([]);
+  // 선택된 재방문 고객 — API가 번호를 마스킹해 주므로 폼 재입력 대신 객체를 그대로 쓴다
+  const [picked, setPicked] = useState<SommelierCustomer | null>(null);
 
   const query = (phone.replace(/[^0-9]/g, '').length >= 3 ? phone : name).trim();
   useEffect(() => {
@@ -35,11 +37,13 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
   const maskPhone = (p: string) =>
     p.length >= 8 ? `${p.slice(0, 3)}-····-${p.slice(-4)}` : p;
 
-  const valid = name.trim().length >= 2 && !!normalizePhone(phone) && agreed;
+  const valid = !!picked || (name.trim().length >= 2 && !!normalizePhone(phone) && agreed);
 
   // 등록 후 분기 — quiz: 취향 문답으로, stock: 기존 재고에서 선택(매장 재고로)
   const submit = async (mode: 'quiz' | 'stock' = 'quiz') => {
     if (!valid || loading) return;
+    // 재방문 선택 시 재등록 없이 그대로 진행
+    if (picked) { (mode === 'stock' ? onStock : onDone)(picked); return; }
     setLoading(true);
     setError('');
     try {
@@ -68,11 +72,11 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
         <div className="som-mid som-rise" style={{ ['--i' as string]: 1 }}>
           <div className="som-field">
             <label>성함</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={30} />
+            <input value={name} onChange={(e) => { setName(e.target.value); setPicked(null); }} maxLength={30} />
           </div>
           <div className="som-field">
             <label>핸드폰 번호</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)}
+            <input value={phone} onChange={(e) => { setPhone(e.target.value); setPicked(null); }}
               type="tel" inputMode="tel" maxLength={13} />
           </div>
           {/* 개인정보보호법 제15조② 필수 고지: 목적·항목·보유기간·거부권 / 제22조: 마케팅은 선택 동의 분리 */}
@@ -92,8 +96,8 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
             <div className="som-returning">
               {matches.map((m) => (
                 <button key={m.id} onClick={() => {
-                  // 재방문도 분기(추천/재고)를 타야 하므로 폼만 채운다
-                  setName(m.name); setPhone(m.phone); setAgreed(true); setMatches([]);
+                  // 재방문도 분기(추천/재고)를 타야 하므로 고객을 선택 상태로만 잡는다
+                  setPicked(m); setName(m.name); setPhone(maskPhone(m.phone)); setMatches([]);
                 }}>
                   <i />{m.name} · {maskPhone(m.phone)} <em>재방문 — 탭하여 선택</em>
                 </button>
