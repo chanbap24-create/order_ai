@@ -101,9 +101,13 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   // 점수 병합 (어휘 우선 — 매장 검색은 이름을 아는 사람이 찾는 용도)
   const qLower = query.toLowerCase();
   const score = new Map<string, number>();
+  // 자모 임계값 — 짧은 쿼리(브랜드 코드)는 한 글자 겹침 잡음(0.333)이 많아 높게.
+  // 예: 'cp' → CP 0.667 / CH·CD·CC 0.333 (긴 쿼리는 오타 허용 위해 낮게)
+  const jamoMin = query.length <= 3 ? 0.5 : 0.3;
   for (const r of jamoRes.data || []) {
     const no = String(r.item_no);
-    if (keepItem(corp, no)) score.set(no, Math.max(score.get(no) || 0, Number(r.lex) || 0));
+    const lex = Number(r.lex) || 0;
+    if (lex >= jamoMin && keepItem(corp, no)) score.set(no, Math.max(score.get(no) || 0, lex));
   }
   for (const r of tokenRes.data || []) {
     const no = String(r.item_no || '');
