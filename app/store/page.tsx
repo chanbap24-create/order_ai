@@ -158,7 +158,7 @@ export default function StorePage() {
           transition: `max-height ${EASE}, padding-top ${EASE}, margin-bottom ${EASE}, opacity ${EASE}, transform ${EASE}`,
         }}>
         <button onClick={goMain} aria-label="매장 앱 메인으로" tabIndex={hero ? 0 : -1}
-          style={{ all: 'unset', cursor: 'pointer', ...LAT, letterSpacing: '0.32em', fontSize: 'clamp(24px, 7.5vw, 34px)', lineHeight: 1.6, color: GOLD }}>
+          style={{ all: 'unset', cursor: 'pointer', ...LAT, letterSpacing: '0.32em', fontSize: 'clamp(20px, 6vw, 30px)', lineHeight: 1.6, color: GOLD }}>
           CAVE DE VIN
         </button>
       </div>

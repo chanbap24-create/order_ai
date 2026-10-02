@@ -196,32 +196,24 @@ export function QuizFlow({ onSubmit, submitting, onExit, onHome, initialAnswers,
           </>
         )}
 
-        <div className="som-anyrow som-rise" style={{ ['--i' as string]: 2 }}>
-          {step === 0 && (
-            <button className="som-link" onClick={() => pick('any', () => ({ ...a, type: null }))}>상관없어요</button>
-          )}
-          {step === 1 && (
-            <button className="som-link" onClick={() => pick('any', () => ({ ...a, body: null }))}>상관없어요</button>
-          )}
-          {step === 4 && (
-            <button className="som-link" onClick={() => pick('any', () => ({ ...a, priceMin: null, priceMax: null }), true)}>상관없어요</button>
-          )}
-        </div>
         <div className="som-subrow som-rise" style={{ ['--i' as string]: 3 }}>
           <RoundBackButton onClick={back} label="이전 질문" style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />
-          {step === 2 && (
-            <button className="som-next" onClick={next}>
-              {a.flavorGroups.length + a.flavors.length
-                ? `${a.flavorGroups.length + a.flavors.length}개 선택 · 다음` : '건너뛰기'}
-            </button>
+          {step === 2 && (a.flavorGroups.length + a.flavors.length
+            ? <button className="som-next" onClick={next}>{a.flavorGroups.length + a.flavors.length}개 선택 · 다음</button>
+            : <RoundBackButton dir="next" label="상관없음 · 다음" onClick={next} style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />)}
+          {step === 3 && (a.countries.length
+            ? <button className="som-next" onClick={next}>{a.countries.length}개 선택 · 다음</button>
+            : <RoundBackButton dir="next" label="상관없음 · 다음" onClick={next} style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />)}
+          {/* 상관없음·건너뛰기 = 오른쪽 원형 › (뒤로 ‹와 짝). 고른 게 있으면 'N개 선택 · 다음' */}
+          {step === 0 && (
+            <RoundBackButton dir="next" label="상관없음 · 다음" onClick={() => pick('any', () => ({ ...a, type: null }))} style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />
           )}
-          {step === 3 && (
-            <button className="som-next" onClick={next}>
-              {a.countries.length ? `${a.countries.length}개 선택 · 다음` : '상관없어요 · 다음'}
-            </button>
+          {step === 1 && (
+            <RoundBackButton dir="next" label="상관없음 · 다음" onClick={() => pick('any', () => ({ ...a, body: null }))} style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />
           )}
-          {step === 4 && submitting && <span style={{ fontSize: 13, color: 'var(--som-muted)' }}>와인을 찾는 중…</span>}
-          {(step === 0 || step === 1) && <span />}
+          {step === 4 && (submitting
+            ? <span style={{ fontSize: 13, color: 'var(--som-muted)' }}>와인을 찾는 중…</span>
+            : <RoundBackButton dir="next" label="상관없음 · 다음" onClick={() => pick('any', () => ({ ...a, priceMin: null, priceMax: null }), true)} style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />)}
         </div>
       </div>
     </section>

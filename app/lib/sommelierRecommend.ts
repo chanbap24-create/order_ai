@@ -36,7 +36,7 @@ export type SommelierResult = {
 type Note = { flavor_tags: string[]; body: number | null; sweetness: number | null; acidity: number | null; tannin: number | null };
 type PoolWine = {
   item_code: string; name: string; name_en: string; vintage: string; country: string; region: string;
-  type: string; grapes: string; retail: number; stock: number; tags: string[]; note: Note | null;
+  type: string; typeRaw: string; grapes: string; retail: number; stock: number; tags: string[]; note: Note | null;
   imgVer: string;
   producer: string;          // 다양성 가드 키 (brand > supplier > 이름 첫 토큰)
   awardBonus: number;        // 평점 자산 가점 (0~10)
@@ -193,6 +193,7 @@ async function loadPool(store: string): Promise<PoolWine[]> {
       vintage: w.vintage || '',
       country: w.country || '', region: w.region || '',
       type: normalizeWineType(w.wine_type || ''),
+      typeRaw: w.wine_type || '', // 원문 타입('디저트(귀부 스위트)' 등) — 스위트 판정용
       grapes: (w.grape_varieties || '').toLowerCase(),
       retail: r.retail, stock: r.stock,
       tags: note?.flavor_tags || [],
@@ -224,6 +225,19 @@ function bodyOf(w: PoolWine): 'full' | 'light' | '' {
   if (LIGHT_GRAPES.some((g) => w.grapes.includes(g))) return 'light';
   if (w.tags.includes('tannic')) return 'full';
   return '';
+}
+
+/** 단맛 표시 — 이름·영문명·원문 타입에 스위트 스타일 단서가 있는가 */
+const SWEET_MARK = /모스카토|moscato|무스까|muscat|드미\s?섹|demi[-\s]?sec|돌체|dolce|스위트|sweet|디저트|dessert|귀부|botryti|아이스\s?바인|eiswein|ice\s?wine|소테른|sauternes|바르삭|barsac|토카이|tokaj|푸토뇨|puttony|아우스레제|auslese|슈페트레제|sp[äa]tlese|베렌|beerenauslese|브라케토|brachetto|레치오토|recioto|파시토|passito|포트|port\b|토니|tawny|크림\s?셰리|크림쉐리|cream sherry|페드로\s?히메네스|pedro xim/i;
+const hasSweetMark = (w: PoolWine) => SWEET_MARK.test(`${w.name} ${w.name_en} ${w.typeRaw}`);
+
+/** 스위트 게이트 — 당도 4~5는 통과, 당도 3(오프드라이 경계)·당도 미조사는 단맛 표시가 있을 때만.
+ *  (당도 3만으로 통과시키면 드라이 샤르도네·게뷔르츠 등이 섞임) */
+function isSweetWine(w: PoolWine): boolean {
+  const s = w.note?.sweetness;
+  if (s != null && s >= 4) return true;
+  if (s != null && s <= 2) return false;
+  return hasSweetMark(w);
 }
 
 /** 표시용 구조 프로파일 — 조사값 우선, 없으면 타입·태그로 추정 */
@@ -311,9 +325,9 @@ export async function recommendForCustomer(a: QuizAnswers, limit = 5, store = 'a
   // 예산 필터는 손님이 실제 내는 돈 = 할인 적용가 기준
   const salePriceOf = (w: PoolWine) => saleOf(w.retail, bands);
   const filtered = pool.filter((w) => {
-    // Sweet = 타입이 아니라 당도 기반(조사값 또는 추정 3 이상) — 디저트·모스카토·주정강화 포함
+    // Sweet = 타입이 아니라 당도 기반 하드게이트(isSweetWine) — 디저트·모스카토·주정강화 포함
     if (a.type === 'sweet') {
-      if (structureOf(w).sweetness < 3) return false;
+      if (!isSweetWine(w)) return false;
     } else if (a.type && w.type !== a.type) return false;
     const { sale } = salePriceOf(w);
     if (a.priceMin != null && sale < a.priceMin) return false;
