@@ -35,13 +35,14 @@ export async function upsertCustomer(
 }
 
 /** 문답 세션 저장(답변 + 추천 결과 스냅샷) → session_id */
-/** 재방문 고객 검색 — 숫자 입력이면 전화번호 부분일치, 아니면 이름 부분일치. 최대 3명 */
-export async function searchCustomers(q: string): Promise<SommelierCustomer[]> {
-  const digits = q.replace(/[^0-9]/g, '');
-  const base = supabase.from('sommelier_customers').select('id, name, phone').limit(3);
-  const { data } = digits.length >= 3
-    ? await base.like('phone', `%${digits}%`).order('id', { ascending: false })
-    : await base.ilike('name', `%${q.replace(/[%_]/g, '')}%`).order('id', { ascending: false });
+/** 재방문 고객 검색 — 성함 정확 일치 + 전화번호 숫자 4자리 이상 부분일치 둘 다 맞아야 한다.
+ *  (번호 일부·이름 일부만으로 다른 손님 목록이 보이던 개인정보 노출 차단) 최대 3명 */
+export async function searchCustomers(name: string, phoneDigits: string): Promise<SommelierCustomer[]> {
+  const nm = name.trim();
+  const digits = phoneDigits.replace(/[^0-9]/g, '');
+  if (nm.length < 2 || digits.length < 4) return [];
+  const { data } = await supabase.from('sommelier_customers').select('id, name, phone')
+    .eq('name', nm).like('phone', `%${digits}%`).order('id', { ascending: false }).limit(3);
   return (data || []) as SommelierCustomer[];
 }
 

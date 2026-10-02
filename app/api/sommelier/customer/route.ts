@@ -5,15 +5,16 @@ import { upsertCustomer, searchCustomers } from '@/app/lib/sommelierDb';
 import { normalizePhone } from '@/app/sommelier/lib/quiz';
 import { handleApiError } from '@/app/lib/errors';
 
-/** 재방문 고객 검색 — 이름 일부 또는 전화번호 숫자(3자리 이상) */
+/** 재방문 고객 검색 — 성함(정확히) + 전화번호 숫자 4자리 이상이 함께 있어야 조회 */
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   try {
-    const q = (req.nextUrl.searchParams.get('q') || '').trim().slice(0, 30);
-    if (q.length < 2) return NextResponse.json({ customers: [] });
+    const name = (req.nextUrl.searchParams.get('name') || '').trim().slice(0, 30);
+    const phone = (req.nextUrl.searchParams.get('phone') || '').replace(/[^0-9]/g, '').slice(0, 11);
+    if (name.length < 2 || phone.length < 4) return NextResponse.json({ customers: [] });
     // 개인정보 최소화: 전체 전화번호는 응답에 싣지 않는다 — 재방문 식별은 마스킹 번호로 충분(선택은 id)
-    const customers = (await searchCustomers(q)).map((c) => ({
+    const customers = (await searchCustomers(name, phone)).map((c) => ({
       id: c.id, name: c.name,
       phone: String(c.phone || '').replace(/^(\d{3})[- ]?(\d{3,4})[- ]?(\d{4})$/, '$1-****-$3'),
     }));
