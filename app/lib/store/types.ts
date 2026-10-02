@@ -27,11 +27,18 @@ export function storesOfCorp(corp: Corp) {
   return STORES.filter((s) => s.corp === corp);
 }
 
+/** 와인 품번 판정 — 자사 0~5·A + 타사 ZK. 단 ZK00xxx는 타사 액세서리(스토퍼·브루카트 등)라 제외. */
+export function isWineItemNo(itemNo: string): boolean {
+  const no = String(itemNo || '');
+  return /^[0-5A]/i.test(no) || /^ZK(?!00)/i.test(no);
+}
+
 /** 빈티지 = 와인 품번 3~4자리 (ERP 빈티지 컬럼은 신뢰 불가 — vintage formula 정본).
- *  예: 0019044→2019, 2021474→2021, ZK22159→2022. 글라스·자재는 null. */
+ *  예: 0019044→2019, 2021474→2021, ZK22159→2022, ZKNV308→NV. 글라스·액세서리는 null. */
 export function vintageOfItemNo(itemNo: string): string | null {
   const no = String(itemNo || '');
-  if (!/^([0-5A]|Z)/i.test(no)) return null; // 와인(0~5·A·ZK)만
+  if (!isWineItemNo(no)) return null;
+  if (/^ZKNV/i.test(no)) return 'NV';
   const m = no.match(/^[A-Z0-9]{2}(\d{2})/i);
   if (!m) return null;
   const yy = Number(m[1]);

@@ -75,11 +75,6 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
         }}>
           {row.item_name}
         </span>
-        {row.vintage && (
-          <span style={{ flex: 'none', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
-            {row.vintage}
-          </span>
-        )}
         {row.sale_price > 0 && (
           <span style={{ flex: 'none', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             {row.discount_rate > 0 && (
@@ -103,7 +98,16 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 14, marginTop: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {/* 빈티지 — 둘째 줄 맨 앞 고정 열(행마다 같은 x 위치라 훑어보기 쉬움) */}
+        {row.vintage && (
+          <span style={{
+            flex: 'none', minWidth: 36, paddingRight: 12, borderRight: '1px solid var(--border-subtle)',
+            fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums',
+          }}>
+            {row.vintage}
+          </span>
+        )}
         {cell('우리', mine, mine > 0 ? 'ok' : 'zero')}
         {cell('타매장', others, others > 0 ? 'ok' : 'zero')}
         {cell('본사', row.hq_available, row.hq_available > 0 ? 'ok' : 'zero')}

@@ -6,7 +6,7 @@ import { supabase } from '../db';
 import { toJamo } from '../matcher-v3/jamo';
 import { loadDiscountBands, saleOf } from '../sommelierDiscount';
 import { retailPriceOf } from '../sommelierRecommend';
-import { corpOfStore, storesOfCorp, vintageOfItemNo, type Corp, type StoreKey, type StoreStockRow } from './types';
+import { corpOfStore, isWineItemNo, storesOfCorp, vintageOfItemNo, type Corp, type StoreKey, type StoreStockRow } from './types';
 
 export { STORES, corpOfStore, type Corp, type StoreKey, type StoreStockRow } from './types';
 
@@ -44,14 +44,16 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
   // ZK(타사 위탁 와인)는 retail이 비어 있어 공급가×3.2 (소믈리에와 동일 공식)
   const retail = retailPriceOf(r.retail_price, r.supply_price, no);
   // 소믈리에 관리자 할인 밴드 — 와인 품번에만 적용 (DL 글라스는 정상가 그대로)
-  const isWine = WINE_PREFIX.has(no.charAt(0).toUpperCase()) || /^zk/i.test(no);
-  const { sale, rate } = bands && isWine ? saleOf(retail, bands) : { sale: retail, rate: 0 };
+  // ZK00(타사 액세서리)는 와인 할인 대상 아님 — isWineItemNo가 정본 판정
+  const { sale, rate } = bands && isWineItemNo(no) ? saleOf(retail, bands) : { sale: retail, rate: 0 };
   const arr = arrival.get(String(r.item_no));
   return {
     item_no: no,
     item_name: String(r.item_name || ''),
     // 빈티지는 품번 3~4자리가 정본 (ERP 컬럼은 폴백)
-    vintage: vintageOfItemNo(no) ?? (r.vintage ? String(r.vintage) : null),
+    // ERP 컬럼은 와인이면서 정상 연도/NV일 때만 폴백 (액세서리 '0' 등 차단)
+    vintage: vintageOfItemNo(no)
+      ?? (isWineItemNo(no) && /^(19|20)\d{2}$|^NV$/i.test(String(r.vintage ?? '')) ? String(r.vintage) : null),
     retail_price: retail,
     sale_price: sale,
     discount_rate: rate,
@@ -97,8 +99,21 @@ async function overlayZkNames(rows: StoreStockRow[]): Promise<StoreStockRow[]> {
   const m = new Map((data || []).map((r) => [String(r.item_code), r]));
   return rows.map((r) => {
     const w = m.get(r.item_no);
-    return w?.item_name_kr ? { ...r, item_name: String(w.item_name_kr), vintage: w.vintage ? String(w.vintage) : r.vintage } : r;
+    // 이름만 정식명으로 — 빈티지는 품번 추출이 정본(wines 값은 품번에서 못 얻을 때만)
+    if (w?.item_name_kr) return { ...r, item_name: String(w.item_name_kr), vintage: r.vintage ?? (w.vintage ? String(w.vintage) : null) };
+    // wines에 없는 ZK는 ERP 이름 정리: '(수입사)(B)21미라피오레 바롤로26/01' → '미라피오레 바롤로'
+    return { ...r, item_name: cleanErpName(r.item_name) };
   });
+}
+
+function cleanErpName(name: string): string {
+  const cleaned = name
+    .replace(/^\([^)]*\)/, '')          // (수입사)
+    .replace(/^\([A-Z]\)/i, '')          // (A)/(B) 등급 표기
+    .replace(/^(\d{2}|NV)(?=\D)/i, '')   // 선두 빈티지 2자리/NV
+    .replace(/\s*\d{2}\/\d{2}$/, '')       // 꼬리 입고 연월 yy/mm
+    .trim();
+  return cleaned || name;
 }
 
 /** DL 매장 와인은 본사 물량이 inventory_cdv에 있다(법인 간 공유 재고) —
