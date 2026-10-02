@@ -4,11 +4,21 @@
 // 색은 숫자에만: 초록=지금 팔 수 있음 · 주황=들어오는 중 · 회색=없음.
 // 탭=상세 바텀시트, 꾹(0.5초)=테이스팅 노트 바로 열기.
 import { useRef } from 'react';
-import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
+import { stockTierOf, type StockTier, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
 import { GOLD } from '../brand';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 const LONG_PRESS_MS = 500;
+
+// 재고 위치 음영 — 우리 매장=흰색(바로 판매 가능) · 우리 매장에 없음(다른 매장·본사)=회색.
+// 회색은 저채도 모니터·밝은 매장 조명에서도 구분되게 8% (surface-active 6%로는 약했음)
+const ELSEWHERE_BG = 'color-mix(in srgb, var(--action) 8%, transparent)';
+const TIER_BG: Record<StockTier, string> = {
+  0: 'transparent',
+  1: ELSEWHERE_BG,
+  2: ELSEWHERE_BG,
+  3: ELSEWHERE_BG,
+};
 
 export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
   row: StoreStockRow; storeKey: StoreKey; onOpen: () => void;
@@ -63,16 +73,18 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
       onPointerMove={move}
       onContextMenu={(e) => { if (onLongPress) e.preventDefault(); }}
       style={{
-        all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', cursor: 'pointer',
-        padding: '13px 2px', borderBottom: '1px solid var(--border-subtle)',
+        all: 'unset', boxSizing: 'border-box', display: 'block', width: 'calc(100% + 16px)', cursor: 'pointer',
+        // 음영이 행 폭 끝까지 차도록 좌우 8px 확장. 왼쪽 18px = 노트 점(6~12px)이 음영 안에 온전히 들어가는 여백
+        margin: '0 -8px', padding: '13px 10px 13px 18px', background: TIER_BG[stockTierOf(row, storeKey)],
+        borderBottom: '1px solid var(--border-subtle)',
         // 롱프레스 시 iOS 텍스트 선택/콜아웃 억제
         WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', position: 'relative',
       } as React.CSSProperties}>
-      {/* 테이스팅 노트 있음 = 이름 앞 골드 점. 왼쪽 여백에 걸어(hanging) 이름·빈티지 정렬 유지.
+      {/* 테이스팅 노트 있음 = 이름 앞 골드 점. 행 왼쪽 여백 안에 둬 이름·빈티지 정렬 유지.
           롱프레스(노트 열기)가 가능한 행과 같은 조건 */}
       {onLongPress && (
         <i aria-label="테이스팅 노트 있음" style={{
-          position: 'absolute', left: -9, top: 21, width: 6, height: 6, borderRadius: '50%', background: GOLD,
+          position: 'absolute', left: 6, top: 21, width: 6, height: 6, borderRadius: '50%', background: GOLD,
         }} />
       )}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
@@ -99,7 +111,7 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
             onPointerDown={(e) => e.stopPropagation()}
             style={{
               flex: 'none', alignSelf: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--border-default)',
+              width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--border-default)', background: 'var(--surface)',
               fontSize: 17, lineHeight: 1, color: 'var(--text-primary)', cursor: 'pointer',
             }}>
             +

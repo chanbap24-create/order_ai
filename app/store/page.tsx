@@ -3,7 +3,7 @@
 // 까브 매장 — 점장용 재고 확인 + POS 정산 PWA.
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색 + StoreHome) → 결과 → 상세 바텀시트 → 정산 시트.
 import { useEffect, useState } from 'react';
-import { CORP_LABEL, STORES, type Corp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { CORP_LABEL, STORES, sortByTier, type Corp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { CheckoutSheet } from './components/CheckoutSheet';
@@ -115,7 +115,8 @@ export default function StorePage() {
           {!g.searching && g.rows && g.rows.length === 0 && (
             <div style={{ padding: '28px 2px', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>검색 결과가 없습니다</div>
           )}
-          {(g.rows || []).map(renderRow)}
+          {/* 우리 매장 → 다른 매장 → 본사 순으로 묶어서(음영 구역이 섞이지 않게) */}
+          {sortByTier(g.rows || [], g.storeKey as StoreKey).map(renderRow)}
         </div>
       )}
 

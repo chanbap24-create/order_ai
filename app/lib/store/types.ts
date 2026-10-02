@@ -60,3 +60,20 @@ export type StoreStockRow = {
   stores: Partial<Record<StoreKey, number>>;
   store_total: number;        // 같은 법인 전 매장 합
 };
+
+/** 재고 위치 구역 — 0 우리 매장 · 1 다른 매장 · 2 본사(가용·보세·입고) · 3 없음. 목록 음영·정렬 공용. */
+export type StockTier = 0 | 1 | 2 | 3;
+export function stockTierOf(row: StoreStockRow, storeKey: StoreKey): StockTier {
+  const mine = row.stores[storeKey] || 0;
+  if (mine > 0) return 0;
+  if (row.store_total - mine > 0) return 1;
+  if (row.hq_available + row.hq_bonded + row.incoming + row.arrival_btls > 0) return 2;
+  return 3;
+}
+
+/** 구역 순 안정 정렬 — 같은 구역 안에서는 기존(검색 관련도) 순서 유지 */
+export function sortByTier(rows: StoreStockRow[], storeKey: StoreKey): StoreStockRow[] {
+  return rows.map((r, i) => ({ r, i, t: stockTierOf(r, storeKey) }))
+    .sort((a, b) => a.t - b.t || a.i - b.i)
+    .map((x) => x.r);
+}
