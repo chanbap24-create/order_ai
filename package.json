@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "backup:storage": "npx -y tsx scripts/backup-storage.ts"
+    "backup:storage": "npx -y tsx scripts/backup-storage.ts",
+    "postinstall": "node scripts/copy-pdfjs-assets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
@@ -25,6 +26,7 @@
     "openai": "^6.15.0",
     "otplib": "^13.4.0",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.7.284",
     "pdfkit": "^0.17.2",
     "pg": "^8.18.0",
     "postgres": "^3.4.8",

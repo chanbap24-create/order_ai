@@ -96,3 +96,6 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
+
+# pdf.js 정적 자산 — postinstall(scripts/copy-pdfjs-assets.mjs)이 생성
+/public/pdfjs/

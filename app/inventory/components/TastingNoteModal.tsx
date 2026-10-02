@@ -1,6 +1,7 @@
 "use client";
 
 import { TastingNoteDbCard } from "./TastingNoteDbCard";
+import { PdfCanvasViewer } from "@/app/components/PdfCanvasViewer";
 
 type Props = {
   open: boolean;
@@ -173,28 +174,20 @@ function PdfFrame({
 }) {
   // 모바일(iOS Safari)은 PDF iframe이 첫 페이지만 렌더/스크롤 불가 —
   // 새 탭 네이티브 뷰어(핀치줌 지원)로 연다
+  // 모바일 — 안드로이드는 내장 PDF 뷰어가 없어 다운로드로 빠지므로 pdf.js로 원본을 직접 그린다(iOS도 동일 화면)
   if (isMobile()) {
     return (
-      <div style={{ width: "100%", textAlign: "center", padding: "32px 0" }}>
-        <button
-          onClick={() => window.open(pdfUrl, "_blank")}
-          style={{
-            padding: "14px 28px", borderRadius: 11, border: "none",
-            background: "var(--action)", color: "white", fontWeight: 700, fontSize: 15, cursor: "pointer",
-          }}
-        >
-          PDF 전체 화면으로 보기
-        </button>
-        <div style={{ marginTop: 18, display: "flex", justifyContent: "center", gap: 8 }}>
+      <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
+        <PdfCanvasViewer url={pdfUrl} actions={<>
           <button onClick={() => onDownload(originalPdfUrl, `${itemNo}.pdf`)}
-            style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid var(--border-default)", background: "transparent", fontSize: "0.8rem", cursor: "pointer" }}>
+            style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid var(--border-default)", background: "transparent", fontSize: 12, cursor: "pointer" }}>
             PDF 저장
           </button>
           <button onClick={() => onDownload(originalPdfUrl.replace(".pdf", ".pptx"), `${itemNo}.pptx`)}
-            style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid var(--border-default)", background: "transparent", fontSize: "0.8rem", cursor: "pointer" }}>
+            style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid var(--border-default)", background: "transparent", fontSize: 12, cursor: "pointer" }}>
             PPTX 저장
           </button>
-        </div>
+        </>} />
       </div>
     );
   }
