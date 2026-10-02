@@ -142,6 +142,22 @@ async function overlayCdvHq(corp: Corp, rows: StoreStockRow[]): Promise<StoreSto
   });
 }
 
+/** DL 매장 검색용 — 대유 재고표에 없는 CDV 와인(본사 재고만 있는 신빈티지 등)을 DL 매장 뷰 행으로.
+ *  매장 열은 DL 매장 키로 0 채움(대유 매장엔 없음), 본사·보세·입항은 CDV 값 그대로. */
+async function cdvOnlyRows(nos: string[], dlRows: StoreStockRow[]): Promise<StoreStockRow[]> {
+  const have = new Set(dlRows.map((r) => r.item_no));
+  const missing = nos.filter((no) => !have.has(no));
+  if (missing.length === 0) return [];
+  const [{ data }, bands, arrivals] = await Promise.all([
+    supabase.from('inventory_cdv').select(invCols('cdv')).in('item_no', missing),
+    loadBands('cdv'),
+    loadArrivals('cdv', missing),
+  ]);
+  const dlStores = Object.fromEntries(storesOfCorp('dl').map((s) => [s.key, 0])) as Partial<Record<StoreKey, number>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data || []) as any[]).map((r) => ({ ...toRow('cdv', r, bands, arrivals), stores: dlStores, store_total: 0 }));
+}
+
 /** 매장 재고 검색 — 자모 trgm(오타·브랜드) + 토큰 ILIKE 병합, 판매가능성과 무관하게 전 품목 */
 export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStockRow[]> {
   const query = q.trim();
@@ -159,15 +175,23 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
         .limit(60).then(({ data }) => (data || []).map((r) => String(r.item_code)))
     : Promise.resolve([]);
 
-  const [jamoRes, tokenRes, zkCodes] = await Promise.all([
+  type NameRow = { item_no: string; item_name: string };
+  const none = Promise.resolve({ data: [] as NameRow[] });
+  // DL 매장도 본사(까브) 와인을 판다 — 본사 재고는 inventory_cdv에만 있으므로 CDV 와인도 함께 검색
+  const withCdv = corp === 'dl';
+  const [jamoRes, tokenRes, zkCodes, cdvJamoRes, cdvTokenRes] = await Promise.all([
     supabase.rpc(src.jamoRpc, { q_jamo: toJamo(query), match_count: 24 }),
     ors.length
       ? (corp === 'cdv'
           // CDV 재고표의 zk행은 매장 소속이 아니라 제외 (DL은 ZK가 실제 매장 판매품)
           ? supabase.from(src.table).select('item_no, item_name').not('item_no', 'ilike', 'zk%').or(ors.join(',')).limit(400)
           : supabase.from(src.table).select('item_no, item_name').or(ors.join(',')).limit(400))
-      : Promise.resolve({ data: [] as Array<{ item_no: string; item_name: string }> }),
+      : none,
     zkPromise,
+    withCdv ? supabase.rpc(SRC.cdv.jamoRpc, { q_jamo: toJamo(query), match_count: 24 }) : none,
+    withCdv && ors.length
+      ? supabase.from('inventory_cdv').select('item_no, item_name').not('item_no', 'ilike', 'zk%').or(ors.join(',')).limit(400)
+      : none,
   ]);
 
   // 점수 병합 (어휘 우선 — 매장 검색은 이름을 아는 사람이 찾는 용도)
@@ -176,20 +200,28 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   // 자모 임계값 — 짧은 쿼리(브랜드 코드)는 한 글자 겹침 잡음(0.333)이 많아 높게.
   // 예: 'cp' → CP 0.667 / CH·CD·CC 0.333 (긴 쿼리는 오타 허용 위해 낮게)
   const jamoMin = query.length <= 3 ? 0.5 : 0.3;
-  for (const r of jamoRes.data || []) {
-    const no = String(r.item_no);
-    const lex = Number(r.lex) || 0;
-    if (lex >= jamoMin && keepItem(corp, no)) score.set(no, Math.max(score.get(no) || 0, lex));
-  }
-  for (const r of tokenRes.data || []) {
-    const no = String(r.item_no || '');
-    if (!keepItem(corp, no)) continue;
-    const name = String(r.item_name || '').toLowerCase();
-    const hit = tokens.length ? tokens.filter((t) => name.includes(t.toLowerCase())).length / tokens.length : 0.5;
-    // 브랜드 코드 검색('ch' 등) — 품명이 쿼리로 시작하면 최우선
-    const prefix = name.startsWith(qLower) ? 0.3 : 0;
-    score.set(no, Math.max(score.get(no) || 0, Math.min(1, 0.3 + 0.7 * hit + prefix)));
-  }
+  const addJamo = (rows: Array<{ item_no: string; lex?: number }>, keepCorp: Corp) => {
+    for (const r of rows) {
+      const no = String(r.item_no);
+      const lex = Number(r.lex) || 0;
+      if (lex >= jamoMin && keepItem(keepCorp, no)) score.set(no, Math.max(score.get(no) || 0, lex));
+    }
+  };
+  const addTokens = (rows: NameRow[], keepCorp: Corp) => {
+    for (const r of rows) {
+      const no = String(r.item_no || '');
+      if (!keepItem(keepCorp, no)) continue;
+      const name = String(r.item_name || '').toLowerCase();
+      const hit = tokens.length ? tokens.filter((t) => name.includes(t.toLowerCase())).length / tokens.length : 0.5;
+      // 브랜드 코드 검색('ch' 등) — 품명이 쿼리로 시작하면 최우선
+      const prefix = name.startsWith(qLower) ? 0.3 : 0;
+      score.set(no, Math.max(score.get(no) || 0, Math.min(1, 0.3 + 0.7 * hit + prefix)));
+    }
+  };
+  addJamo(jamoRes.data || [], corp);
+  addTokens((tokenRes.data || []) as NameRow[], corp);
+  addJamo(cdvJamoRes.data || [], 'cdv');
+  addTokens((cdvTokenRes.data || []) as NameRow[], 'cdv');
   // ZK 정식 이름(wines) 매칭 — ERP 이름으로 못 찾는 타사 와인 보강
   for (const code of zkCodes) score.set(code, Math.max(score.get(code) || 0, 0.9));
   // 브랜드 코드처럼 짧은 쿼리는 품목이 많다 — 넉넉히 노출(스크롤 목록)
@@ -202,7 +234,8 @@ export async function searchStoreStock(q: string, corp: Corp): Promise<StoreStoc
   ]);
   const arrivals = await loadArrivals(corp, nos);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = await overlayZkNames(await overlayCdvHq(corp, ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals))));
+  const ownRows = ((inv || []) as any[]).map((r) => toRow(corp, r, bands, arrivals));
+  const rows = await overlayZkNames(await overlayCdvHq(corp, [...ownRows, ...(withCdv ? await cdvOnlyRows(nos, ownRows) : [])]));
   // 어디에도 없는 품목(매장·본사·보세·입고 전부 0)은 노이즈 — 결과에서 제외
   const alive = rows.filter((r) => r.store_total + r.hq_available + r.hq_bonded + r.incoming + r.arrival_btls > 0);
   // 정렬: 검색 점수 순 유지하되, 실판매품(판매가 있음)과 재고 보유를 더미·키트류보다 앞세운다
