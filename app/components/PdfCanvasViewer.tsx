@@ -11,6 +11,7 @@ const ASSETS = '/pdfjs';
 // actions: 확대 버튼 옆에 같은 줄로 놓을 버튼들(저장 등)
 export function PdfCanvasViewer({ url, actions }: { url: string; actions?: ReactNode }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<1 | 2>(1);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -32,19 +33,24 @@ export function PdfCanvasViewer({ url, actions }: { url: string; actions?: React
         if (cancelled) return;
 
         wrap.replaceChildren();
-        const cssWidth = wrap.clientWidth * zoom;
+        // 기본 = 한 페이지 전체가 보이게(가로·세로 중 빡빡한 쪽에 맞춤). PC는 높이, 폰은 폭이 기준이 된다.
+        const availW = wrap.clientWidth;
+        const availH = (scrollRef.current?.clientHeight || 0) - 8;
         const dpr = Math.min(window.devicePixelRatio || 1, 3); // 레티나 선명도, 메모리 상한 3x
         for (let n = 1; n <= doc.numPages; n++) {
           const page = await doc.getPage(n);
           if (cancelled) return;
           const base = page.getViewport({ scale: 1 });
-          const viewport = page.getViewport({ scale: (cssWidth / base.width) * dpr });
+          const fit = Math.min(availW / base.width, availH > 0 ? availH / base.height : Infinity);
+          const cssWidth = base.width * fit * zoom;
+          const viewport = page.getViewport({ scale: fit * zoom * dpr });
           const canvas = document.createElement('canvas');
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
           canvas.style.width = `${cssWidth}px`;
           canvas.style.display = 'block';
-          canvas.style.marginBottom = '8px';
+          canvas.style.margin = '0 auto 8px';
+          canvas.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
           canvas.style.background = '#fff';
           wrap.appendChild(canvas);
           await page.render({ canvas, viewport }).promise;
@@ -67,7 +73,7 @@ export function PdfCanvasViewer({ url, actions }: { url: string; actions?: React
           {zoom === 1 ? '확대 2배' : '화면 맞춤'}
         </button>
       </div>
-      <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--surface-muted)', borderRadius: 8 }}>
+      <div ref={scrollRef} style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--surface-muted)', borderRadius: 8 }}>
         {state === 'loading' && (
           <div style={{ position: 'absolute', inset: 0, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <SkeletonBlock w="60%" h={18} />

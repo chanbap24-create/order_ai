@@ -172,80 +172,15 @@ function PdfFrame({
   itemNo: string;
   onDownload: (url: string, filename: string) => void;
 }) {
-  // 모바일(iOS Safari)은 PDF iframe이 첫 페이지만 렌더/스크롤 불가 —
-  // 새 탭 네이티브 뷰어(핀치줌 지원)로 연다
-  // 모바일 — 안드로이드는 내장 PDF 뷰어가 없어 다운로드로 빠지므로 pdf.js로 원본을 직접 그린다(iOS도 동일 화면)
-  if (isMobile()) {
-    return (
-      <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
-        <PdfCanvasViewer url={pdfUrl} actions={<>
-          <button onClick={() => onDownload(originalPdfUrl, `${itemNo}.pdf`)}
-            style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid var(--border-default)", background: "transparent", fontSize: 12, cursor: "pointer" }}>
-            PDF 저장
-          </button>
-          <button onClick={() => onDownload(originalPdfUrl.replace(".pdf", ".pptx"), `${itemNo}.pptx`)}
-            style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid var(--border-default)", background: "transparent", fontSize: 12, cursor: "pointer" }}>
-            PPTX 저장
-          </button>
-        </>} />
-      </div>
-    );
-  }
+  // 전 기기 pdf.js로 원본을 직접 그린다 — 안드로이드는 내장 뷰어가 없어 다운로드로 빠지고,
+  // PC는 브라우저 뷰어의 어두운 프레임이 붙는다. 문서만 깔끔하게 같은 화면으로.
+  const btn = { padding: "5px 12px", borderRadius: 999, border: "1px solid var(--border-default)", background: "transparent", fontSize: 12, cursor: "pointer" } as const;
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={{ marginBottom: 12, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <button
-          onClick={() => onDownload(originalPdfUrl, `${itemNo}.pdf`)}
-          style={{
-            padding: "5px 14px",
-            borderRadius: 6,
-            border: "none",
-            background: "var(--action)",
-            color: "white",
-            fontWeight: 600,
-            fontSize: "0.75rem",
-            cursor: "pointer",
-          }}
-        >
-          PDF
-        </button>
-        <button
-          onClick={() =>
-            onDownload(originalPdfUrl.replace(".pdf", ".pptx"), `${itemNo}.pptx`)
-          }
-          style={{
-            padding: "5px 14px",
-            borderRadius: 6,
-            border: "none",
-            background: "var(--surface-dark)",
-            color: "white",
-            fontWeight: 600,
-            fontSize: "0.75rem",
-            cursor: "pointer",
-          }}
-        >
-          PPTX
-        </button>
-      </div>
-      <div
-        style={{
-          flex: 1,
-          background: "var(--gray-100)",
-          borderRadius: 8,
-          overflow: "hidden",
-          border: "1px solid var(--border-default)",
-          position: "relative",
-        }}
-      >
-        {/* toolbar=0 — 뷰어 크롬 없이 문서만 (다운로드는 위 PDF/PPTX 버튼) */}
-        <iframe
-          src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-          title="테이스팅 노트 PDF"
-          width="100%"
-          height="100%"
-          style={{ border: "none" }}
-        />
-      </div>
+    <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
+      <PdfCanvasViewer url={pdfUrl} actions={<>
+        <button onClick={() => onDownload(originalPdfUrl, `${itemNo}.pdf`)} style={btn}>PDF 저장</button>
+        <button onClick={() => onDownload(originalPdfUrl.replace(".pdf", ".pptx"), `${itemNo}.pptx`)} style={btn}>PPTX 저장</button>
+      </>} />
     </div>
   );
 }
