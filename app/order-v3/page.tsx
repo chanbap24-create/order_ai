@@ -9,6 +9,7 @@ import { ImageIntakeButton } from '@/app/order-v2/components/ImageIntakeButton';
 import { DELIVERY_PRESETS } from '@/app/order-v2/constants';
 import { ClientSection } from './components/ClientSection';
 import { LineRow } from './components/LineRow';
+import { DeliveryRow } from './components/DeliveryRow';
 import { MessagePanel } from './components/MessagePanel';
 import { useOrderV3Page } from './hooks/useOrderV3Page';
 
@@ -235,38 +236,17 @@ export default function OrderV3Page() {
               품목 검토하기
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 2px 12px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12.5, color: 'var(--text-tertiary)', flex: 'none' }}>배송 예정일</span>
-            <span style={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums', flex: 'none' }}>
-              {finalDeliveryLabel || '—'}
-            </span>
-            {paymentFirst && (
-              <span style={{ fontSize: 11.5, color: 'var(--status-warning)', flex: 'none' }}>입금확인 · 영업일 +2 자동</span>
-            )}
-            {delivery.info?.isFriday && (
-              <span style={{ display: 'inline-flex', gap: 6, flex: 'none' }}>
-                {(['sat', 'mon'] as const).map((c) => (
-                  <button key={c} onClick={() => delivery.setFridayChoice(c)}
-                    style={{
-                      all: 'unset', cursor: 'pointer', fontSize: 12, padding: '3px 8px', borderRadius: 7,
-                      border: `1px solid ${delivery.fridayChoice === c ? 'var(--action)' : 'var(--border-default)'}`,
-                      fontWeight: delivery.fridayChoice === c ? 700 : 400,
-                    }}>
-                    {c === 'sat' ? '토요일' : '월요일'}
-                  </button>
-                ))}
-              </span>
-            )}
-            <input
-              value={deliveryNotes}
-              onChange={(e) => setDeliveryNotes(e.target.value)}
-              placeholder="특이사항 (선택)"
-              style={{
-                flex: '1 1 160px', minWidth: 120, padding: '8px 10px', fontSize: 16,
-                border: '1px solid var(--border-subtle)', borderRadius: 8, outline: 'none', background: 'var(--surface)',
-              }}
-            />
-          </div>
+          <DeliveryRow
+            label={finalDeliveryLabel}
+            paymentFirst={paymentFirst}
+            fridayOptions={!!delivery.info?.options}
+            fridayChoice={delivery.fridayChoice}
+            onFridayChoice={delivery.setFridayChoice}
+            customDate={delivery.customDate}
+            onCustomDate={delivery.setCustomDate}
+            notes={deliveryNotes}
+            onNotes={setDeliveryNotes}
+          />
           {/* 특이사항 프리셋 드롭다운 — 선택하면 추가, 이미 있는 문구를 다시 선택하면 제거 */}
           <div style={{ padding: '10px 2px 0' }}>
             <select
