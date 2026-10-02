@@ -75,6 +75,13 @@ export default function SommelierTab({ onRequestCountChange }: { onRequestCountC
       {/* 매장 직원 수정 요청 — 처리할 일이 먼저 */}
       <RequestsList onOpenCountChange={onRequestCountChange} />
 
+      {/* 구매 기록·문답 이력·손님 취향 요약 엑셀(전체 기간) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '14px 0 8px' }}>
+        <a href="/api/sommelier/admin/export" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          엑셀 받기 (전체)
+        </a>
+      </div>
+
       {/* 스탯 스트립 */}
       <div style={{ display: 'flex', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 20 }}>
         {[['고객', customers.length], ['문답 세션', sessions.length], ['구매 기록', orders.length]].map(([label, v], i) => (

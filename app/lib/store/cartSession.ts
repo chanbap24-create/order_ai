@@ -9,6 +9,8 @@ export type CartItem = {
   qty: number;
   sale_price: number;   // 적용 판매가 (백화점 할인가)
   retail_price: number; // 정상가
+  source?: 'quiz' | 'stock'; // 어디서 담았나 — 추천 문답 결과 / 재고에서 직접 (구매 기록·취향 학습용)
+  rec_rank?: number | null;  // 추천 결과 순위(문답에서 담았을 때)
 };
 
 export const CART_KEY = 'cave_store_cart';
@@ -37,6 +39,17 @@ export function addToCart(item: Omit<CartItem, 'qty'>): CartItem[] {
 // ── 손님 연결 — 정산·구매 기록의 귀속 대상. 카트와 같이 세션 단위(앱 닫으면 해제) ──
 export type Guest = { id: number; name: string };
 const GUEST_KEY = 'cave_store_customer';
+const QUIZ_SESSION_KEY = 'cave_store_quiz_session'; // 이 손님의 직전 문답 세션 id — 구매 기록에 연결
+
+export function readQuizSession(): number | null {
+  try { return Number(sessionStorage.getItem(QUIZ_SESSION_KEY)) || null; } catch { return null; }
+}
+export function writeQuizSession(id: number | null) {
+  try {
+    if (id) sessionStorage.setItem(QUIZ_SESSION_KEY, String(id));
+    else sessionStorage.removeItem(QUIZ_SESSION_KEY);
+  } catch { /* ignore */ }
+}
 
 export function readGuest(): Guest | null {
   try {
@@ -51,6 +64,7 @@ export function startGuestSession(guest: Guest | null) {
     sessionStorage.removeItem(CART_KEY);
     sessionStorage.removeItem(EXTRA_RATE_KEY);
     sessionStorage.removeItem(EXTRA_WON_KEY);
+    sessionStorage.removeItem(QUIZ_SESSION_KEY);
     if (guest) sessionStorage.setItem(GUEST_KEY, JSON.stringify(guest));
     else sessionStorage.removeItem(GUEST_KEY);
     localStorage.removeItem(GUEST_KEY); // 구버전(localStorage) 잔존 정리

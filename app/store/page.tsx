@@ -2,6 +2,7 @@
 
 // 까브 매장 — 점장용 재고 확인 + POS 정산 PWA.
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색 + StoreHome) → 결과 → 상세 바텀시트 → 정산 시트.
+import { logoutStoreApp } from '@/app/store/lib/logout';
 import { useEffect, useRef, useState } from 'react';
 import { CORP_LABEL, STORES, sortByTier, type Corp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
@@ -54,7 +55,12 @@ export default function StorePage() {
   }, [g, restock]);
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
   // 로고 → 매장 앱 메인(소믈리에 인트로). 매장 선택은 그대로 넘긴다(컬럼 키 동일).
-  // 손님 응대 중 취향 문답으로 이어가기는 정산 시트의 '이어서 취향 문답으로' 링크가 담당.
+  // 손님 응대 중 맞춤 추천으로 이어가기는 메뉴 첫 칸·정산 시트 링크가 담당(goQuiz).
+  // 맞춤 추천(취향 문답)으로 바로 — 응대 중 손님·카트 유지(손님 미지정이면 소믈리에가 손님 정보부터)
+  const goQuiz = () => {
+    try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
+    window.location.href = '/sommelier?quiz=1';
+  };
   const goMain = () => {
     try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
     window.location.href = '/sommelier';
@@ -109,14 +115,16 @@ export default function StorePage() {
   const hero = showHome && !g.listMode;
   const openMenuList = (mode: ListMode) => { g.onInput(''); void g.openList(mode); };
   const menuItems: AppsMenuItem[] = [
+    // 맨 앞 = 반대편 흐름(재고 앱에선 맞춤 추천, 소믈리에 메뉴에선 재고 검색)
+    { key: 'quiz', label: '맞춤 추천', sub: '취향 문답', icon: MenuIcons.sommelier, onClick: goQuiz },
     { key: 'mine', label: '매장 재고', sub: g.summary ? `${fmt(g.summary.my_items)}종` : undefined, icon: MenuIcons.stock, active: g.listMode === 'mine', onClick: () => openMenuList('mine') },
     { key: 'incoming', label: '입고 예정', sub: g.summary ? `${fmt(g.summary.incoming_items)}종` : undefined, icon: MenuIcons.incoming, active: g.listMode === 'incoming', onClick: () => openMenuList('incoming') },
     ...(g.summary && g.summary.recent_arrivals.length > 0
       ? [{ key: 'arrivals', label: '금주 입고', sub: `${g.summary.recent_arrivals.length}종`, icon: MenuIcons.arrivals, active: g.listMode === 'arrivals', onClick: () => openMenuList('arrivals') }]
       : []),
     { key: 'alerts', label: '입고 알림', sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined, icon: MenuIcons.alerts, dot: restock.tileDot, onClick: openAlerts },
-    { key: 'sommelier', label: '소믈리에', sub: '취향 추천', icon: MenuIcons.sommelier, onClick: goMain },
     { key: 'store', label: '매장 변경', icon: MenuIcons.store, onClick: () => g.setStoreKey('' as StoreKey) },
+    { key: 'logout', label: '로그아웃', icon: MenuIcons.logout, onClick: () => void logoutStoreApp() },
   ];
 
   return (
@@ -212,20 +220,11 @@ export default function StorePage() {
         <CheckoutSheet
           items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
           extraRate={cart.extraRate} extraWon={cart.extraWon} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
-          storeLabel={storeLabel}
+          storeLabel={storeLabel} storeKey={g.storeKey}
           onQty={cart.setQty} onExtraRate={cart.setExtraRate} onExtraWon={cart.setExtraWon}
           onClear={() => { cart.clear(); setCheckoutOpen(false); }}
           onClose={() => setCheckoutOpen(false)}
-          continueTo={{
-            label: '이어서 취향 문답으로 추천받기 →',
-            onClick: () => {
-              try {
-                const k = localStorage.getItem('cave_store_key');
-                if (k) localStorage.setItem('som_store', k);
-              } catch { /* ignore */ }
-              window.location.href = '/sommelier?quiz=1';
-            },
-          }} />
+          continueTo={{ label: '이어서 맞춤 추천 받기 →', onClick: goQuiz }} />
       )}
 
       <TastingNoteModal

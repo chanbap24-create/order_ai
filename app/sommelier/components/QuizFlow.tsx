@@ -2,6 +2,7 @@
 
 // 취향 문답 5단계 — 전 단계 공통 문법: 연회백 대형 타이포가 선택 시 와인 색으로 물든다.
 // 단일 선택(타입·무게감·가격)은 물든 뒤 자동 진행, 멀티(향미·산지)는 물든 채 유지 + [다음].
+import { SommelierMenu } from './SommelierMenu';
 import { GuestBadge } from '@/app/store/components/GuestBadge';
 import { useState } from 'react';
 import {
@@ -66,7 +67,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, onHome, initialAnswers,
 
   return (
     <section className="som-screen" key={step}>
-      <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10 }}><GuestBadge />취향 문답</span></div>
+      <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><GuestBadge />취향 문답<SommelierMenu /></span></div>
       <div className="som-prog"><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
       {/* 진행 트레일 — 지나온 챕터의 선택 요약, 탭하면 그 챕터로 점프. 빈 단계에서도 높이 고정 */}
       <div className="som-trail">

@@ -2,6 +2,7 @@
 
 // 추천 결과 — 화이트 쇼룸 카드 레일. 구조 프로파일 4종(무게감·당도·산미·탄닌) 바 +
 // [구매 기록]으로 고객 이력 저장(향후 자동추천 학습 데이터).
+import { SommelierMenu } from './SommelierMenu';
 import { GuestBadge } from '@/app/store/components/GuestBadge';
 import { useEffect, useRef, useState } from 'react';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
@@ -52,9 +53,8 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [added, setAdded] = useState<string | null>(null); // 담기 직후 '✓ 담김' 플래시
-  const storeLabel = (() => {
-    try { return STORES[localStorage.getItem('som_store') || ''] || ''; } catch { return ''; }
-  })();
+  const storeKey = (() => { try { return localStorage.getItem('som_store') || ''; } catch { return ''; } })();
+  const storeLabel = STORES[storeKey] || '';
   const syncGuest = () => {
     try {
       if (customerId) syncGuestStorage({ id: customerId, name: customerName || '' });
@@ -69,9 +69,11 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
 
   // 정산에 담기 — 카드 '담기'·상세 '정산에 담기' 공용. 담김 플래시 0.9초
   const addToCart = (r: SommelierResult) => {
+    const rank = results.findIndex((x) => x.item_code === r.item_code);
     cart.add({
       item_no: r.item_code, item_name: r.name,
       sale_price: r.sale_price || r.retail_price, retail_price: r.retail_price,
+      source: 'quiz', rec_rank: rank >= 0 ? rank + 1 : null,
     });
     setAdded(r.item_code);
     setTimeout(() => setAdded((cur) => (cur === r.item_code ? null : cur)), 900);
@@ -192,7 +194,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
   return (
     <section className="som-screen som-results">
       <div className="som-head">
-        <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10 }}><GuestBadge name={customerName} />추천 결과</span></div>
+        <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><GuestBadge name={customerName} />추천 결과<SommelierMenu /></span></div>
         <div className="som-prog"><i style={{ width: '100%' }} /></div>
         <h2 className="som-rise som-lat" style={{ ['--i' as string]: 0 }}>
           Your Selection
@@ -357,7 +359,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
         <CheckoutSheet
           items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
           extraRate={cart.extraRate} extraWon={cart.extraWon} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
-          storeLabel={storeLabel}
+          storeLabel={storeLabel} storeKey={storeKey}
           onQty={cart.setQty} onExtraRate={cart.setExtraRate} onExtraWon={cart.setExtraWon}
           onClear={() => { cart.clear(); setCheckoutOpen(false); }}
           onClose={() => setCheckoutOpen(false)}

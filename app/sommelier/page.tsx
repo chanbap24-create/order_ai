@@ -11,7 +11,7 @@ import { ResultsScreen } from './components/ResultsScreen';
 import type { QuizAnswers } from './lib/quiz';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
-import { endGuestSession, readGuest, startGuestSession } from '@/app/lib/store/cartSession';
+import { endGuestSession, readGuest, startGuestSession, writeQuizSession } from '@/app/lib/store/cartSession';
 import './sommelier.css';
 
 type Phase = 'intro' | 'customer' | 'quiz' | 'results';
@@ -78,6 +78,7 @@ export default function SommelierPage() {
       if (!r.ok) throw new Error(j.error || '추천에 실패했습니다');
       setAnswers(a);
       setSessionId(j.sessionId || null);
+      if (customer?.id) writeQuizSession(j.sessionId || null); // 정산 구매 기록에 직전 문답 연결
       setResults(j.results || []);
       setPriceHint(j.priceHint || null);
       setTimeout(() => {

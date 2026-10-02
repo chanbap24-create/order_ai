@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { CART_KEY as LS_CART, EXTRA_RATE_KEY as LS_EXTRA, EXTRA_WON_KEY as LS_EXTRA_WON, type CartItem } from '@/app/lib/store/cartSession';
 
 /** 담기에 필요한 최소 필드 — StoreStockRow·SommelierResult 변환값 모두 수용 */
-type AddInput = { item_no: string; item_name: string; sale_price: number; retail_price: number };
+type AddInput = { item_no: string; item_name: string; sale_price: number; retail_price: number; source?: 'quiz' | 'stock'; rec_rank?: number | null };
 
 export type { CartItem } from '@/app/lib/store/cartSession';
 
@@ -59,6 +59,7 @@ export function useCart() {
       : [...items, {
           item_no: row.item_no, item_name: row.item_name, qty: 1,
           sale_price: row.sale_price || row.retail_price, retail_price: row.retail_price,
+          source: row.source || 'stock', rec_rank: row.rec_rank ?? null,
         }]);
   };
 

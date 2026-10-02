@@ -4,21 +4,24 @@
 // 합계 = 백화점 할인가 기준, 정상가 합과 할인액을 함께 보여준다.
 import { useState } from 'react';
 import type { CartItem } from '../hooks/useCart';
-import { endGuestSession, readGuest } from '@/app/lib/store/cartSession';
+import { endGuestSession, readGuest, readQuizSession } from '@/app/lib/store/cartSession';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
-export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, extraWon, extraAmount, finalTotal, storeLabel, onQty, onExtraRate, onExtraWon, onClear, onClose, continueTo }: {
+export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, extraWon, extraAmount, finalTotal, storeLabel, storeKey, onQty, onExtraRate, onExtraWon, onClear, onClose, continueTo }: {
   items: CartItem[]; bottles: number; total: number; retailTotal: number;
   extraRate: number; extraWon: number; extraAmount: number; finalTotal: number; storeLabel: string;
+  storeKey: string; // 판매 매장 — 구매 기록용
   onQty: (itemNo: string, qty: number) => void;
   onExtraRate: (pct: number) => void; onExtraWon: (won: number) => void;
   onClear: () => void; onClose: () => void;
-  // 반대편으로 이어가기 — 재고 앱에선 '취향 문답으로', 추천 결과에선 '재고에서 고르기'. 카트·손님 유지
+  // 반대편으로 이어가기 — 재고 앱에선 '맞춤 추천', 추천 결과에선 '재고에서 고르기'. 카트·손님 유지
   continueTo?: { label: string; onClick: () => void } | null;
 }) {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
+  // 판매 ID — 이 정산 1회. 저장 실패 후 다시 눌러도 같은 ID라 중복 기록 안 됨
+  const [saleId] = useState(() => crypto.randomUUID());
   const discount = retailTotal - total;
   // 소믈리에 고객정보 단계에서 '재고에서 선택'으로 넘어온 손님 (렌더는 클라이언트 전용 시점)
   const guest = readGuest();
@@ -34,18 +37,23 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
     setCompleting(true);
     try {
       if (guest?.id) {
-        // 추가 할인(%·금액)을 품목 단가에 비례 배분 — 기록 매출 = 실제 결제액(10원 단위)
-        const factor = total > 0 ? finalTotal / total : 1;
-        const results = await Promise.all(items.map((i) =>
-          fetch('/api/sommelier/order', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              customerId: guest.id, itemCode: i.item_no, itemName: i.item_name,
-              retailPrice: Math.round((i.sale_price * factor) / 10) * 10, quantity: i.qty,
-              mode: 'set', // 같은 손님·품번·같은 날은 덮어쓰기 — 재시도해도 중복 안 쌓임
-            }),
-          }).then((r) => r.ok)));
-        if (!results.every(Boolean)) { alert('이력 저장에 실패했습니다. 다시 눌러주세요.'); return; }
+        // 결제 단위로 한 번에 기록 — 서버가 추가 할인 배분·와인 속성·맛 프로필 스냅샷을 붙인다
+        const res = await fetch('/api/sommelier/sale', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            saleId, customerId: guest.id, storeKey, sessionId: readQuizSession(),
+            extraRate, extraWon,
+            items: items.map((i) => ({
+              item_no: i.item_no, item_name: i.item_name, qty: i.qty,
+              retail_price: i.retail_price, sale_price: i.sale_price, source: i.source, rec_rank: i.rec_rank ?? null,
+            })),
+          }),
+        }).catch(() => null);
+        if (!res?.ok) {
+          const j = await res?.json().catch(() => null);
+          alert(j?.error || '이력 저장에 실패했습니다. 다시 눌러주세요.');
+          return;
+        }
       }
       setCompleted(true);
       // 완료 표시를 잠깐 보여준 뒤 다음 손님 준비

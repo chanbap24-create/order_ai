@@ -29,6 +29,18 @@ function monthOptions(): { key: string; label: string }[] {
 }
 const MONTHS = monthOptions();
 
+/** 기간 선택 → 엑셀 내보내기 쿼리 (KST 날짜). 전체는 빈 쿼리 */
+function exportQuery(period: string): string {
+  const day = (offset: number) => new Date(Date.now() + 9 * 3600_000 - offset * 86400_000).toISOString().slice(0, 10);
+  if (period === 'all') return '';
+  if (period.startsWith('m:')) {
+    const [y, m] = period.slice(2).split('-').map(Number);
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return `?from=${period.slice(2)}-01&to=${period.slice(2)}-${String(last).padStart(2, '0')}`;
+  }
+  return `?from=${day(Number(period) || 0)}&to=${day(0)}`;
+}
+
 const th: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary, #999)', fontWeight: 500, textAlign: 'right', padding: '0 0 8px' };
 const td: React.CSSProperties = { fontSize: 13.5, textAlign: 'right', padding: '11px 0', fontVariantNumeric: 'tabular-nums', borderTop: '1px solid var(--border-subtle, #f0f0f0)' };
 
@@ -91,6 +103,11 @@ export default function SommelierAdminPage() {
           <option value="">월별 보기</option>
           {MONTHS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
         </select>
+        {/* 구매 기록·문답 이력·손님 취향 요약 엑셀 — 지금 선택한 기간 */}
+        <a href={`/api/sommelier/admin/export${exportQuery(period)}`}
+          style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary, #111)', textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}>
+          엑셀 받기
+        </a>
       </div>
 
       {err && <div style={{ padding: '20px 0', fontSize: 13, color: 'var(--status-danger, #b91c1c)' }}>{err}</div>}

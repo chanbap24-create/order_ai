@@ -1,6 +1,7 @@
 'use client';
 
 // 고객 정보(성함·핸드폰) — 밑줄 입력 + 동의. 핸드폰 기준 upsert로 재방문 이력 누적.
+import { SommelierMenu } from './SommelierMenu';
 import { useEffect, useState } from 'react';
 import { normalizePhone } from '../lib/quiz';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
@@ -48,7 +49,7 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
   const valid = !!picked || !agreed || fieldsOk;
   const anonymous = !picked && !agreed;
 
-  // 등록 후 분기 — quiz: 취향 문답으로, stock: 기존 재고에서 선택(매장 재고로)
+  // 등록 후 분기 — quiz: 맞춤 추천(취향 문답)으로, stock: 기존 재고에서 선택(매장 재고로)
   const submit = async (mode: 'quiz' | 'stock' = 'quiz') => {
     if (!valid || loading) return;
     if (anonymous) { (mode === 'stock' ? onStock : onDone)(null); return; }
@@ -73,7 +74,7 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
 
   return (
     <section className="som-screen">
-      <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span>취향 문답</span></div>
+      <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>취향 문답<SommelierMenu /></span></div>
       <div className="som-prog"><i style={{ width: '8%' }} /></div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>GUEST</div>
@@ -131,7 +132,7 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
             </button>
             <button className="som-next" onClick={() => void submit('quiz')} disabled={!valid || loading}
               style={{ opacity: valid ? 1 : 0.45 }}>
-              {loading ? '등록 중…' : '추천 문답'}
+              {loading ? '등록 중…' : '맞춤 추천'}
             </button>
           </span>
         </div>
