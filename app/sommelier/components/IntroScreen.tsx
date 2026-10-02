@@ -2,7 +2,7 @@
 
 // 인트로 — 화이트 쇼룸의 병 한 병 + 카피 + "밀어서 시작" 슬라이더. 상단에서 매장 선택(바텀시트).
 import { useEffect, useRef, useState } from 'react';
-import { STORES } from '../lib/quiz';
+import { storeViewLabel, type StoreView } from '@/app/lib/store/types';
 import { SommelierMenu } from './SommelierMenu';
 
 /** 밀어서 시작 — 노브를 끝까지 밀면 시작. 짧은 탭이면 자동으로 밀리며 시작(발견성 보완). */
@@ -60,12 +60,10 @@ function SlideToStart({ onStart }: { onStart: () => void }) {
   );
 }
 
-export function IntroScreen({ store, onStoreChange, onStart }: {
-  store: string;
-  onStoreChange: (s: string) => void;
+export function IntroScreen({ store, onStart }: {
+  store: string; // 로그인 세션 매장(본사='all') — 표시만, 변경 없음
   onStart: () => void;
 }) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   // 부팅 로딩 — 첫 병샷이 준비되면(또는 5초 타임아웃) 걷어내고 본문이 떠오른다
   const [boot, setBoot] = useState<'on' | 'out' | 'off'>('on');
 
@@ -146,9 +144,9 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
         <span className="som-lat">CAVE DE VIN</span>
         <span className="som-brand-right" style={{ position: 'relative', alignItems: 'center' }}>
-          <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
+          <span className="som-store" style={{ textDecoration: 'none', cursor: 'default' }}>{storeViewLabel(store as StoreView)}</span>
           {/* 매장 앱 메뉴 — 재고 앱과 같은 메뉴. 고르면 재고 앱의 해당 목록으로(선택 매장 그대로 넘김) */}
-          <SommelierMenu store={store} onStoreChange={() => setSheetOpen(true)} />
+          <SommelierMenu />
         </span>
       </div>
 
@@ -178,22 +176,6 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
         </div>
       </div>
 
-      {sheetOpen && (
-        <>
-          <div className="som-sheet-dim" onClick={() => setSheetOpen(false)} />
-          <div className="som-sheet">
-            <h3>매장 선택</h3>
-            {Object.entries(STORES).map(([key, label]) => (
-              <button key={key} className={store === key ? 'sel' : ''}
-                onClick={() => { onStoreChange(key); setSheetOpen(false); }}>
-                {label}
-              </button>
-            ))}
-            {/* 직원용 진입점 — 손님 대면 인트로에는 노출하지 않는다 */}
-            <a href="/sommelier/admin" className="som-sheet-admin">관리자</a>
-          </div>
-        </>
-      )}
       </>}
     </section>
   );

@@ -35,7 +35,7 @@ function summary(a: QuizAnswers | null): string {
   return parts.join(' · ');
 }
 
-export function ResultsScreen({ customerName, customerId, answers, results, priceHint, onBack, onRetry, onNewGuest, onHome }: {
+export function ResultsScreen({ customerName, customerId, answers, results, priceHint, onBack, onRetry, onNewGuest, onHome, canSell, store }: {
   customerName: string;
   customerId: number | null;
   sessionId: number | null; // 문답 세션(현재 화면 미사용 — 구매 이력은 정산 '판매 완료'에서 저장)
@@ -46,6 +46,8 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
   onRetry: () => void;  // 처음부터 다시 문답
   onNewGuest: () => void;
   onHome: () => void; // 로고 → 매장 앱 메인(인트로)
+  canSell: boolean;   // 매장 계정만 담기·정산(본사 '전체 매장' 계정은 조회 전용)
+  store: string;      // 로그인 세션 매장(정산 헤더 표시)
 }) {
   const [visible, setVisible] = useState(5); // 5병씩 더보기
   const [detail, setDetail] = useState<number | null>(null); // 전체화면 상세로 연 카드 인덱스
@@ -53,7 +55,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [added, setAdded] = useState<string | null>(null); // 담기 직후 '✓ 담김' 플래시
-  const storeKey = (() => { try { return localStorage.getItem('som_store') || ''; } catch { return ''; } })();
+  const storeKey = store;
   const storeLabel = STORES[storeKey] || '';
   const syncGuest = () => {
     try {
@@ -62,6 +64,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
   };
   // 카드 더블탭·꾹 누르기 — 담기 + '탁월한 선택' 도장(1초)
   const celebrate = (r: SommelierResult) => {
+    if (!canSell) return;
     addToCart(r);
     setBurst(r.item_code);
     setTimeout(() => setBurst((cur) => (cur === r.item_code ? null : cur)), 1080);
@@ -300,14 +303,14 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
                       onClick={(e) => { e.stopPropagation(); if (!dragMoved.current) setDetail(i); }}>
                       자세히 보기
                     </button>
-                    <button className={`som-buy${added === r.item_code ? ' added' : ''}`} aria-label="정산에 담기"
+                    {canSell && <button className={`som-buy${added === r.item_code ? ' added' : ''}`} aria-label="정산에 담기"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (dragMoved.current) return;
                         addToCart(r);
                       }}>
                       {added === r.item_code ? '✓ 담김' : '담기'}
-                    </button>
+                    </button>}
                   </div>
                 </div>
               </div>
@@ -340,7 +343,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
       </div>
 
       {/* 정산 바 — 결과 위에 시트로 연다 (추천 카드 유지) */}
-      {cart.bottles > 0 && !checkoutOpen && (
+      {canSell && cart.bottles > 0 && !checkoutOpen && (
         <button onClick={() => { syncGuest(); setCheckoutOpen(true); }}
           style={{
             position: 'fixed', left: 16, right: 16, bottom: 'calc(14px + env(safe-area-inset-bottom))', zIndex: 45,
@@ -355,7 +358,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
         </button>
       )}
 
-      {checkoutOpen && (
+      {canSell && checkoutOpen && (
         <CheckoutSheet
           items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
           extraRate={cart.extraRate} extraWon={cart.extraWon} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}
@@ -369,7 +372,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
       {detail != null && results[detail] && (
         <DetailOverlay r={results[detail]} rank={ROMAN[detail] || String(detail + 1)}
           inCart={cart.items.find((x) => x.item_no === results[detail].item_code)?.qty || 0}
-          onAdd={() => addToCart(results[detail])}
+          onAdd={canSell ? () => addToCart(results[detail]) : undefined}
           onClose={() => setDetail(null)} />
       )}
     </section>

@@ -1,5 +1,6 @@
 // 인트로 순환용 병샷 후보 — 선택 매장에 재고가 있고 병 이미지가 있는 와인 목록(셔플).
-import { NextRequest, NextResponse } from 'next/server';
+import { storeViewOf } from '@/app/lib/store/scope';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 import { supabase } from '@/app/lib/db';
 import { handleApiError } from '@/app/lib/errors';
@@ -17,11 +18,11 @@ type Item = { code: string; name: string; name_en: string; v: string };
 const cache = new Map<string, { t: number; items: Item[] }>();
 const CACHE_TTL = 10 * 60_000;
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   try {
-    const store = req.nextUrl.searchParams.get('store') || 'all';
+    const store = storeViewOf(session) ?? 'all'; // 세션 기준(요청 값 무시)
     const hit = cache.get(store);
     const pool = hit && Date.now() - hit.t < CACHE_TTL ? hit.items : null;
     if (pool) {

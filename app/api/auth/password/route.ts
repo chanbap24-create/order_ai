@@ -27,7 +27,10 @@ export async function PATCH(req: Request) {
       ? target_manager
       : session.manager;
 
-    // 본인 비밀번호 변경 시 현재 비밀번호 확인
+    // 본인 비밀번호 변경 시 현재 비밀번호 필수 확인 — 세션만 탈취돼도 비번을 바꿔 계정을 뺏지 못하게
+    if (manager === session.manager && !current_password) {
+      return NextResponse.json({ error: '현재 비밀번호를 입력하세요.' }, { status: 400 });
+    }
     if (manager === session.manager && current_password) {
       const { data: user } = await supabase
         .from('sales_users')

@@ -19,7 +19,7 @@ const SRC = {
   dl: { table: 'inventory_dl', jamoRpc: 'match_glasses_jamo', embTable: 'glass_embeddings', embRpc: 'match_glasses' },
 } as const;
 
-const invCols = (corp: Corp) => `item_no, item_name, vintage, retail_price, supply_price,
+export const invCols = (corp: Corp) => `item_no, item_name, vintage, retail_price, supply_price,
   available_stock, stock_bonded, incoming_stock,
   ${storesOfCorp(corp).map((s) => s.key).join(', ')}`
   // inventory_dl엔 생성 컬럼 stock_bonded가 없음 — 원시 bonded_warehouse 사용
@@ -32,7 +32,7 @@ const WINE_OR = [...WINE_PREFIX, 'ZK'].map((p) => `item_no.ilike.${p}%`).join(',
 const keepItem = (corp: Corp, no: string) => corp === 'dl' || WINE_PREFIX.has(no.charAt(0).toUpperCase());
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: string; btls: number }>): StoreStockRow {
+export function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: string; btls: number }>): StoreStockRow {
   const stores: Partial<Record<StoreKey, number>> = {};
   let storeTotal = 0;
   for (const s of storesOfCorp(corp)) {

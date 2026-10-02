@@ -1,6 +1,7 @@
 'use client';
 
 // 고객 정보(성함·핸드폰) — 밑줄 입력 + 동의. 핸드폰 기준 upsert로 재방문 이력 누적.
+import { RoundBackButton } from '@/app/components/RoundBackButton';
 import { SommelierMenu } from './SommelierMenu';
 import { useEffect, useState } from 'react';
 import { normalizePhone } from '../lib/quiz';
@@ -124,7 +125,7 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
           </div>
         )}
         <div className="som-subrow som-rise" style={{ ['--i' as string]: 3 }}>
-          <button className="som-link" onClick={onBack}>이전</button>
+          <RoundBackButton onClick={onBack} label="이전" style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />
           <span style={{ display: 'flex', gap: 10 }}>
             <button className="som-next som-ghost" onClick={() => void submit('stock')} disabled={!valid || loading}
               style={{ opacity: valid ? 1 : 0.45 }}>

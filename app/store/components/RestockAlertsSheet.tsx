@@ -2,7 +2,7 @@
 
 // 입고 알림 목록 바텀시트 — 입고됨(연락할 손님) → 대기 → 완료. 연락처는 신청한 사원 본인에게만.
 import type { RestockAlert } from '@/app/lib/store/restockAlertTypes';
-import { STORES, arrivalLabel } from '@/app/lib/store/types';
+import { arrivalLabel, storeViewLabel, type StoreView } from '@/app/lib/store/types';
 import { todayKst } from '@/app/lib/dateKst';
 
 const STATUS: Record<RestockAlert['status'], { label: string; color: string }> = {
@@ -20,7 +20,7 @@ const etaInfo = (eta: string | null, bonded: number) => {
   return { text: `${md} 입고 예정`, color: 'var(--status-warning)' };
 };
 const telFmt = (p: string) => p.replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3');
-const storeLabel = (key: string) => STORES.find((s) => s.key === key)?.label || key;
+const storeLabel = (key: string) => storeViewLabel(key as StoreView) || key;
 
 export function RestockAlertsSheet({ alerts, onAct, onClose }: {
   alerts: RestockAlert[];
@@ -59,7 +59,7 @@ export function RestockAlertsSheet({ alerts, onAct, onClose }: {
                 {a.status === 'waiting' && (
                   <span style={{ flex: 'none', fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: etaInfo(a.eta, a.bonded).color }}>
                     {etaInfo(a.eta, a.bonded).text}
-                    {a.incoming_btls > 0 && <span style={{ marginLeft: 6, fontWeight: 600, color: 'var(--text-secondary)' }}>{a.incoming_btls.toLocaleString('ko-KR')}병</span>}
+                    {!!a.incoming_btls && <span style={{ marginLeft: 6, color: 'var(--text-secondary)' }}>{a.incoming_btls.toLocaleString('ko-KR')}병</span>}
                   </span>
                 )}
               </div>

@@ -4,7 +4,7 @@
 // 색은 숫자에만: 초록=지금 팔 수 있음 · 주황=입고 예정 · 회색=없음.
 // 탭=상세 바텀시트, 꾹(0.5초)=테이스팅 노트 바로 열기.
 import { useRef, type ReactNode } from 'react';
-import { arrivalLabel, stockTierOf, type StockTier, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { arrivalLabel, mineOf, stockTierOf, type StockTier, type StoreStockRow, type StoreView } from '@/app/lib/store/types';
 import { todayKst } from '@/app/lib/dateKst';
 import { GOLD } from '../brand';
 import { AlertBell } from './AlertBell';
@@ -12,13 +12,17 @@ import { AlertBell } from './AlertBell';
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 const LONG_PRESS_MS = 500;
 
-// 입항일 꼬리 — 지났는데 보세에도 없으면 날짜를 빨갛게(지연). 행 폭이 좁아 글자 대신 색으로,
-// '예정 · 지연' / '보세 · 통관 중' 문구는 상세·입고 알림 목록에서.
-const arrivalSuffix = (date: string, bonded: number) => {
+// 입고일 — 수량 없이 날짜만. 지났는데 보세에도 없으면 빨강(지연), 일정 없으면 '예정'.
+// '예정 · 지연' / '보세 통관 중' 문구는 상세·입고 알림 목록에서.
+const arrivalTag = (date: string | null, bonded: number) => {
+  if (!date) return <b style={{ marginLeft: 3, fontWeight: 700, color: 'var(--status-warning)' }}>예정</b>;
   const { md, state } = arrivalLabel(date, todayKst(), bonded);
-  return state === 'late'
-    ? <span title="입항일 지남 · 지연" style={{ color: 'var(--status-danger)', fontWeight: 600 }}>·{md}</span>
-    : <>·{md}</>;
+  return (
+    <b title={state === 'late' ? '입항일 지남 · 지연' : undefined}
+      style={{ marginLeft: 3, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: state === 'late' ? 'var(--status-danger)' : 'var(--status-warning)' }}>
+      {md}
+    </b>
+  );
 };
 
 // 재고 위치 음영 — 우리 매장=흰색(바로 판매 가능) · 우리 매장에 없음(다른 매장·본사)=회색.
@@ -32,13 +36,13 @@ const TIER_BG: Record<StockTier, string> = {
 };
 
 export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd, onAlert, alerted }: {
-  row: StoreStockRow; storeKey: StoreKey; onOpen: () => void;
+  row: StoreStockRow; storeKey: StoreView; onOpen: () => void; // storeKey: 매장 고정 또는 'all'(본사·합계)
   onLongPress?: (() => void) | null; // 테이스팅 노트 (있는 품목만)
   onAdd?: () => void;                // 정산에 바로 담기 (POS 빠른 흐름)
   onAlert?: () => void;              // 입고 예정 목록 — + 대신 입고 알림 벨(신청/취소 토글)
   alerted?: boolean;                 // 지금 손님으로 이미 신청됨
 }) {
-  const mine = row.stores[storeKey] || 0;
+  const mine = mineOf(row, storeKey); // 전체 매장이면 모든 매장 합계
   const soldOutEverywhere = mine <= 0 && row.hq_available <= 0; // 이 매장·본사 기준(다른 매장 재고는 비노출)
 
   // 롱프레스 — 발화 후의 클릭(손 뗄 때)은 무시, 10px 이상 움직이면 취소(스크롤 중)
@@ -132,21 +136,25 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd, onAlert, a
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {/* 빈티지 — 둘째 줄 맨 앞 고정 열(행마다 같은 x 위치라 훑어보기 쉬움) */}
-        {row.vintage && (
-          <span style={{
-            flex: 'none', minWidth: 36, paddingRight: 12, borderRight: '1px solid var(--border-subtle)',
-            fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums',
-          }}>
-            {row.vintage}
-          </span>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: '44px 58px 76px minmax(0, auto)', alignItems: 'baseline', columnGap: 10, marginTop: 6 }}>
+        {/* 고정 칸 — 빈티지 · 매장 · 본사 · 입고. 값이 없거나 자릿수가 달라도 행마다 같은 x 위치 */}
+        <span style={{
+          borderRight: '1px solid var(--border-subtle)', paddingRight: 8,
+          fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+        }}>
+          {row.vintage || '\u00a0'}
+        </span>
         {cell('매장', mine, mine > 0 ? 'ok' : 'zero')}
         {cell('본사', row.hq_available, row.hq_available > 0 ? 'ok' : 'zero')}
-        {(row.arrival_btls > 0 || row.incoming > 0) &&
-          cell('입고', row.arrival_btls || row.incoming, 'warn',
-            row.arrival_date ? arrivalSuffix(row.arrival_date, row.hq_bonded) : undefined)}
+        {(row.arrival_btls > 0 || row.incoming > 0) && (
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 12, color: 'var(--text-tertiary)' }}>
+            입고
+            {/* 본사(전체 매장)는 들어오는 병수도 — 매장 직원은 날짜만 */}
+            {storeKey === 'all' && <b style={{ marginLeft: 3, fontWeight: 700, color: 'var(--status-warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(row.arrival_btls || row.incoming)}</b>}
+            {storeKey === 'all' && row.arrival_date ? <span style={{ marginLeft: 2, fontSize: 10.5 }}>·</span> : null}
+            {(storeKey !== 'all' || row.arrival_date) && arrivalTag(row.arrival_date, row.hq_bonded)}
+          </span>
+        )}
       </div>
     </button>
   );

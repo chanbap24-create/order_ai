@@ -3,10 +3,13 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 import { recordSale, type SaleItemInput } from '@/app/lib/sommelierSales';
 import { handleApiError } from '@/app/lib/errors';
+import { storeViewOf } from '@/app/lib/store/scope';
 
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+  const view = storeViewOf(session);
+  if (!view || view === 'all') return NextResponse.json({ error: '판매는 매장 계정에서만 할 수 있습니다.' }, { status: 403 });
   try {
     const b = await req.json();
     const items: SaleItemInput[] = (Array.isArray(b?.items) ? b.items : []).map((i: Record<string, unknown>) => ({
@@ -20,7 +23,7 @@ export async function POST(req: Request) {
     }));
     const res = await recordSale({
       saleId: String(b?.saleId || ''), customerId: Number(b?.customerId) || 0,
-      storeKey: String(b?.storeKey || ''), sessionId: Number(b?.sessionId) || null,
+      storeKey: view, sessionId: Number(b?.sessionId) || null,
       extraRate: Math.max(0, Number(b?.extraRate) || 0), extraWon: Math.max(0, Number(b?.extraWon) || 0),
       items, manager: session.manager,
     });

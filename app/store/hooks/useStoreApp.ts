@@ -1,8 +1,8 @@
 'use client';
 
-// 점장 매장 앱 오케스트레이터 — 로그인/매장선택/검색/요약. 시안의 "3초 규칙" 준수.
+// 점장 매장 앱 오케스트레이터 — 로그인/검색/요약. 매장(보기 범위)은 로그인 세션이 정한다(선택·변경 없음). 시안의 "3초 규칙" 준수.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
+import { mineOf, type StoreStockRow, type StoreView } from '@/app/lib/store/types';
 
 export type ListMode = 'mine' | 'incoming' | 'arrivals';
 
@@ -12,14 +12,18 @@ export type Summary = {
   recent_arrivals: Array<{ item_no: string; item_name: string; hq_available: number; arrival_date: string }>;
 };
 
-const LS_STORE = 'cave_store_key';
 const LS_RECENT = 'cave_store_recent';
 // 최근 검색에 남길 가치가 있는 쿼리 — 타이핑 중 자모 조각('ㅠ', 'ㅠㅣ')·1글자는 제외
 const isMeaningful = (q: string) => q.length >= 2 && !/[ㄱ-ㅎㅏ-ㅣ]/.test(q);
 
 export function useStoreApp() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null=확인 중
-  const [storeKey, setStoreKeyState] = useState<StoreKey | ''>('');
+  // 보기 범위 — 매장 직원=자기 매장, 본사='all'(전체 매장·조회 전용). canSell=정산·판매 가능
+  const [storeKey, setStoreKeyState] = useState<StoreView | ''>('');
+  const [canSell, setCanSell] = useState(false);
+  // 재고 종류 — 와인/글라스(검색창 스위치). 앱을 열면 항상 와인부터
+  const [kind, setKindState] = useState<'wine' | 'glass'>('wine');
+  const kindRef = useRef(kind);
   const [q, setQ] = useState('');
   const [rows, setRows] = useState<StoreStockRow[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -30,30 +34,32 @@ export function useStoreApp() {
   const [error, setError] = useState('');
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 세션 확인 + 저장된 매장 복원
+  // 세션 → 로그인 여부·보기 범위·판매 가능. 로그인 직후에도 다시 부른다
+  const loadMe = async () => {
+    try {
+      const r = await fetch('/api/auth/me');
+      const j = r.ok ? await r.json() : null;
+      const ok = !!j?.authenticated && j?.store === true && !!j?.storeView;
+      if (ok) { setStoreKeyState(j.storeView as StoreView); setCanSell(j.canSell === true); }
+      setAuthed(ok);
+    } catch { setAuthed(false); }
+  };
+
+  // 세션 확인 — 매장은 세션의 보기 범위로 고정
   useEffect(() => {
     try {
-      setStoreKeyState((localStorage.getItem(LS_STORE) as StoreKey) || '');
       setRecent((JSON.parse(localStorage.getItem(LS_RECENT) || '[]') as string[]).filter(isMeaningful));
     } catch { /* ignore */ }
     // 로그인 + 매장 앱 권한(store) 둘 다 있어야 진입 — 권한 없는 영업 계정은 로그인 화면으로
-    fetch('/api/auth/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => setAuthed(!!j?.authenticated && j?.store === true))
-      .catch(() => setAuthed(false));
+    void loadMe();
     // 서비스워커 등록 (설치 가능 조건)
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/store-sw.js').catch(() => {});
   }, []);
 
-  const setStoreKey = (k: StoreKey) => {
-    setStoreKeyState(k);
-    try { localStorage.setItem(LS_STORE, k); } catch { /* ignore */ }
-  };
-
   // 요약 로드
   useEffect(() => {
     if (!authed || !storeKey) return;
-    fetch(`/api/store/summary?store=${storeKey}`)
+    fetch('/api/store/summary')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setSummary(d))
       .catch(() => {});
@@ -64,8 +70,8 @@ export function useStoreApp() {
     if (!query) { setRows(null); return; }
     setSearching(true); setError('');
     try {
-      // store 파라미터로 법인(까브/대유) 재고 테이블이 갈린다
-      const res = await fetch(`/api/store/search?q=${encodeURIComponent(query)}&store=${storeKey}`);
+      // 매장·법인은 서버가 세션으로 정한다
+      const res = await fetch(`/api/store/search?q=${encodeURIComponent(query)}&kind=${kindRef.current}`);
       if (res.status === 401 || res.status === 403) { setAuthed(false); return; }
       const j = await res.json();
       setRows(j.rows || []);
@@ -80,7 +86,7 @@ export function useStoreApp() {
     } finally {
       setSearching(false);
     }
-  }, [storeKey]);
+  }, []);
 
   // 입력 디바운스 검색 (300ms) — "3초 안에 답" 핵심
   const onInput = (text: string) => {
@@ -103,7 +109,7 @@ export function useStoreApp() {
     setListMode(mode); setListRows(null);
     if (mode === 'arrivals') return;
     try {
-      const res = await fetch(`/api/store/list?store=${storeKey}&mode=${mode}`);
+      const res = await fetch(`/api/store/list?mode=${mode}&kind=${kindRef.current}`);
       const j = await res.json();
       setListRows(j.rows || []);
     } catch { setListRows([]); }
@@ -113,14 +119,23 @@ export function useStoreApp() {
   const openDetail = async (row: StoreStockRow) => {
     setDetail(row); setAlts([]);
     if (!storeKey) return;
-    const need = (row.stores[storeKey] || 0) <= 0; // 우리 매장에 없으면 대체품 로드
+    const need = mineOf(row, storeKey) <= 0; // 매장에 없으면 대체품 로드
     if (need) {
       try {
-        const res = await fetch(`/api/store/alt?item=${row.item_no}&store=${storeKey}`);
+        const res = await fetch(`/api/store/alt?item=${encodeURIComponent(row.item_no)}`);
         const j = await res.json();
         setAlts(j.rows || []);
       } catch { /* ignore */ }
     }
+  };
+
+  /** 와인 ↔ 글라스 전환 — 보던 검색어·목록을 새 종류로 다시 조회(입고 예정·금주 입고는 와인 전용이라 닫음) */
+  const toggleKind = () => {
+    const next = kindRef.current === 'wine' ? 'glass' : 'wine';
+    kindRef.current = next; setKindState(next);
+    if (q.trim()) void runSearch(q);
+    if (listMode === 'mine') void openList('mine');
+    else if (listMode) closeList();
   };
 
   const login = async (manager: string, password: string): Promise<string> => {
@@ -131,13 +146,13 @@ export function useStoreApp() {
       });
       const j = await res.json();
       if (!res.ok) return j.error || '로그인 실패';
-      setAuthed(true);
+      await loadMe();
       return '';
     } catch { return '로그인 실패 — 네트워크를 확인하세요.'; }
   };
 
   return {
-    authed, login, storeKey, setStoreKey,
+    authed, login, storeKey, canSell, kind, toggleKind,
     q, onInput, rows, searching, error, runSearch,
     summary, recent, clearRecent,
     listMode, listRows, openList, closeList,

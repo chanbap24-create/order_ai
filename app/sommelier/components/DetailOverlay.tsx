@@ -12,7 +12,7 @@ export function DetailOverlay({ r, rank, inCart, onAdd, onClose }: {
   r: SommelierResult;
   rank: string;
   inCart: number;     // 정산 카트에 담긴 병수 (0 = 안 담김)
-  onAdd: () => void;  // 정산에 담기 — 구매 이력은 정산 '판매 완료'에서 일괄 저장
+  onAdd?: () => void; // 정산에 담기 — 없으면(본사 계정 = 판매 안 함) 버튼 숨김
   onClose: () => void;
 }) {
   const [d, setD] = useState<SommelierDetail | null>(null);
@@ -95,11 +95,13 @@ export function DetailOverlay({ r, rank, inCart, onAdd, onClose }: {
           ) : (
             <span className="som-price">{won(r.retail_price)}원</span>
           )}
-          <button className="som-buy"
-            onClick={(e) => { e.stopPropagation(); onAdd(); }}
-            title={inCart > 0 ? '한 번 더 누르면 1병 추가' : undefined}>
-            {inCart > 0 ? `✓ 담김 ${inCart}병 · 추가` : '정산에 담기'}
-          </button>
+          {onAdd && (
+            <button className="som-buy"
+              onClick={(e) => { e.stopPropagation(); onAdd(); }}
+              title={inCart > 0 ? '한 번 더 누르면 1병 추가' : undefined}>
+              {inCart > 0 ? `✓ 담김 ${inCart}병 · 추가` : '정산에 담기'}
+            </button>
+          )}
         </div>
         </div>
         </div>

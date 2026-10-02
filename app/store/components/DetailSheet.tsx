@@ -1,7 +1,7 @@
 'use client';
 
 // 품목 상세 바텀시트 — 이 매장·본사 병수 + 백화점가 + (매장에 없으면) 대체품. 다른 매장 재고는 비노출.
-import { STORES, arrivalLabel, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { CORP_LABEL, arrivalLabel, mineOf, storeViewLabel, storesOfCorp, type Corp, type StoreStockRow, type StoreView } from '@/app/lib/store/types';
 import { todayKst } from '@/app/lib/dateKst';
 import { ChangeRequestForm } from './ChangeRequestForm';
 import { RestockAlertButton } from './RestockAlertButton';
@@ -9,12 +9,15 @@ import { RestockAlertButton } from './RestockAlertButton';
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
 export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
-  row: StoreStockRow; storeKey: StoreKey; alts: StoreStockRow[]; onClose: () => void;
+  row: StoreStockRow; storeKey: StoreView; alts: StoreStockRow[]; onClose: () => void; // 'all' = 본사(매장별 전체 표시)
   onNote?: (() => void) | null; // 테이스팅 노트 열기 (있는 품목만)
   onAdd?: () => void;           // 정산에 담기 (POS)
 }) {
-  const mine = row.stores[storeKey] || 0;
-  const storeLabel = STORES.find((x) => x.key === storeKey)?.label || '';
+  const mine = mineOf(row, storeKey);
+  // 본사(전체 매장) — 법인별 모든 매장 수량. 매장 직원 — 자기 매장 한 줄(다른 매장은 서버가 이미 제거)
+  const storeLines = storeKey === 'all'
+    ? (['cdv', 'dl'] as Corp[]).flatMap((c) => storesOfCorp(c).map((x) => ({ key: x.key, label: x.label, sub: CORP_LABEL[c], n: row.stores[x.key] || 0 })))
+    : [{ key: storeKey, label: '매장', sub: storeViewLabel(storeKey), n: mine }];
 
   return (
     <div onClick={onClose}
@@ -56,12 +59,14 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
 
         {/* 위치별 재고 */}
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
-              매장<span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 400, color: 'var(--text-tertiary)' }}>{storeLabel}</span>
-            </span>
-            <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: mine > 0 ? 'var(--status-success)' : 'var(--neutral-400, #c2c4c9)' }}>{mine}</span>
-          </li>
+          {storeLines.map((l) => (
+            <li key={l.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
+              <span style={{ color: 'var(--text-primary)', fontWeight: storeKey === 'all' ? 400 : 700 }}>
+                {l.label}<span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 400, color: 'var(--text-tertiary)' }}>{l.sub}</span>
+              </span>
+              <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: l.n > 0 ? 'var(--status-success)' : 'var(--neutral-400, #c2c4c9)' }}>{l.n}</span>
+            </li>
+          ))}
           <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
             <span style={{ color: 'var(--text-secondary)' }}>본사 가용</span>
             <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: row.hq_available > 0 ? 'var(--status-success)' : 'var(--neutral-400, #c2c4c9)' }}>{fmt(row.hq_available)}</span>
@@ -74,16 +79,21 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
           )}
           {(row.arrival_btls > 0 || row.incoming > 0) && (
             <li style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
-              <span style={{ color: 'var(--text-secondary)' }}>
-                입고 예정{row.arrival_date && (() => {
-                  const { md, state } = arrivalLabel(row.arrival_date, todayKst(), row.hq_bonded);
-                  const [text, color] = state === 'late' ? [`${md} 예정 · 지연`, 'var(--status-danger)']
-                    : state === 'customs' ? [`${md} 입항 · 보세 통관 중`, 'var(--status-warning)']
-                    : [`${md} 입항`, 'var(--text-tertiary)'];
-                  return <span style={{ fontSize: 10.5, color, marginLeft: 6 }}>{text}</span>;
-                })()}
+              <span style={{ color: 'var(--text-secondary)' }}>입고 예정</span>
+              <span>
+              {(() => {
+                if (!row.arrival_date) return <span style={{ fontWeight: 700, color: 'var(--text-tertiary)' }}>일정 미정</span>;
+                const { md, state } = arrivalLabel(row.arrival_date, todayKst(), row.hq_bonded);
+                const [text, color] = state === 'late' ? [`${md} 예정 · 지연`, 'var(--status-danger)']
+                  : state === 'customs' ? [`${md} 입항 · 통관 중`, 'var(--status-warning)']
+                  : [`${md} 입고 예정`, 'var(--status-warning)'];
+                return <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color }}>{text}</span>;
+              })()}
+              {/* 본사(전체 매장)는 들어오는 병수도 */}
+              {storeKey === 'all' && (
+                <span style={{ marginLeft: 8, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--status-warning)' }}>{fmt(row.arrival_btls || row.incoming)}병</span>
+              )}
               </span>
-              <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--status-warning)' }}>{fmt(row.arrival_btls || row.incoming)}병</span>
             </li>
           )}
         </ul>
@@ -104,7 +114,7 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
               <div key={a.item_no} style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', minWidth: 0 }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.item_name}</span>
                 <span style={{ flex: 'none', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {(a.stores[storeKey] || 0) > 0 ? `매장 ${a.stores[storeKey]}` : `본사 ${fmt(a.hq_available)}`}
+                  {mineOf(a, storeKey) > 0 ? `매장 ${mineOf(a, storeKey)}` : `본사 ${fmt(a.hq_available)}`}
                   {a.sale_price > 0 ? ` · ${fmt(a.sale_price)}` : ''}
                 </span>
               </div>

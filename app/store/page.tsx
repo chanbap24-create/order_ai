@@ -4,7 +4,10 @@
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색 + StoreHome) → 결과 → 상세 바텀시트 → 정산 시트.
 import { logoutStoreApp } from '@/app/store/lib/logout';
 import { useEffect, useRef, useState } from 'react';
-import { CORP_LABEL, STORES, sortByTier, type Corp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { SORT_LABEL, mineOf, sortRows, storeViewLabel, type SortState, type StoreStockRow, type StoreView } from '@/app/lib/store/types';
+import { SortBar } from './components/SortBar';
+import { RoundBackButton } from '@/app/components/RoundBackButton';
+import { PasswordSheet } from './components/PasswordSheet';
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { CheckoutSheet } from './components/CheckoutSheet';
@@ -29,6 +32,19 @@ export default function StorePage() {
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // 헤더 메뉴(⋮⋮⋮)
+  const [pwOpen, setPwOpen] = useState(false); // 비밀번호 변경 시트
+  // 정렬 — 기기에 기억(직원별 편의). 검색 결과·매장 재고·입고 예정 목록 공용
+  const [sort, setSortState] = useState<SortState>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('cave_store_sort') || 'null') as SortState | null;
+      if (v && v.key in SORT_LABEL && (v.dir === 'asc' || v.dir === 'desc')) return v;
+    } catch { /* ignore */ }
+    return { key: 'default', dir: 'desc' };
+  });
+  const setSort = (v: SortState) => {
+    setSortState(v);
+    try { localStorage.setItem('cave_store_sort', JSON.stringify(v)); } catch { /* ignore */ }
+  };
   const restock = useRestockAlerts(g.authed === true && !!g.storeKey);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const openAlerts = () => { setAlertsOpen(true); void restock.refresh(); };
@@ -53,25 +69,28 @@ export default function StorePage() {
     }, 0);
     return () => clearTimeout(t);
   }, [g, restock]);
-  const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
+  const storeLabel = storeViewLabel(g.storeKey); // 세션 고정 — '전체 매장' 또는 그 매장
   // 로고 → 매장 앱 메인(소믈리에 인트로). 매장 선택은 그대로 넘긴다(컬럼 키 동일).
   // 손님 응대 중 맞춤 추천으로 이어가기는 메뉴 첫 칸·정산 시트 링크가 담당(goQuiz).
   // 맞춤 추천(취향 문답)으로 바로 — 응대 중 손님·카트 유지(손님 미지정이면 소믈리에가 손님 정보부터)
   const goQuiz = () => {
-    try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
     window.location.href = '/sommelier?quiz=1';
   };
+  // 뒤로 — 검색·목록 중이면 재고 홈으로, 홈이면 소믈리에에서 마지막으로 보던 화면(손님 정보·문답·추천 결과)
+  const goBack = () => {
+    if (g.q.trim() || g.listMode) { g.onInput(''); g.closeList(); return; }
+    window.location.href = '/sommelier?resume=1';
+  };
   const goMain = () => {
-    try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
     window.location.href = '/sommelier';
   };
   const searchNow = (q: string) => { g.onInput(q); void g.runSearch(q); };
 
   // 검색 결과·보유 리스트 공용 행 배선 (탭=상세, 꾹=노트, +=담기)
   const renderRow = (row: StoreStockRow) => (
-    <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)}
+    <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreView} onOpen={() => void g.openDetail(row)}
       onLongPress={notes.tastingNoteSet.has(row.item_no) ? () => void notes.openFor(row.item_no, row.item_name) : null}
-      onAdd={row.retail_price > 0 ? () => cart.add(row) : undefined}
+      onAdd={g.canSell && row.retail_price > 0 ? () => cart.add(row) : undefined /* 본사(전체 매장) 계정은 판매 안 함 */}
       // 입고 예정 목록에선 + 대신 입고 알림(벨) — 손님 미지정이면 상세(안내)로
       onAlert={!g.q.trim() && g.listMode === 'incoming'
         ? () => { if (!readGuest()) void g.openDetail(row); else void restock.toggle(row.item_no, row.item_name, g.storeKey); }
@@ -85,28 +104,9 @@ export default function StorePage() {
     return <div style={{ padding: '40vh 0', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>확인 중…</div>;
   }
 
-  // ── 매장 선택 (최초 1회) ──
+  // 매장(보기 범위)은 세션이 정한다 — 선택 화면 없음
   if (!g.storeKey) {
-    return (
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '15vh 24px 40px' }}>
-        <h1 style={{ ...LAT, fontSize: 17, margin: '0 0 6px' }}>CAVE DE VIN</h1>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>근무하는 매장을 선택하세요 (한 번만)</p>
-        <div style={{ height: 1, background: GOLD_LINE, margin: '18px 0 22px' }} />
-        {(['cdv', 'dl'] as Corp[]).map((corp) => (
-          <div key={corp} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-tertiary)', padding: '0 0 7px 2px' }}>{CORP_LABEL[corp]}</div>
-            <div style={{ borderTop: '1px solid var(--border-default)' }}>
-              {STORES.filter((s) => s.corp === corp).map((s) => (
-                <button key={s.key} onClick={() => g.setStoreKey(s.key)}
-                  style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', padding: '16px 4px', fontSize: 15.5, fontWeight: 600, cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)' }}>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <div style={{ padding: '40vh 0', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>확인 중…</div>;
   }
 
   const showHome = !g.q.trim();
@@ -117,13 +117,13 @@ export default function StorePage() {
   const menuItems: AppsMenuItem[] = [
     // 맨 앞 = 반대편 흐름(재고 앱에선 맞춤 추천, 소믈리에 메뉴에선 재고 검색)
     { key: 'quiz', label: '맞춤 추천', sub: '취향 문답', icon: MenuIcons.sommelier, onClick: goQuiz },
-    { key: 'mine', label: '매장 재고', sub: g.summary ? `${fmt(g.summary.my_items)}종` : undefined, icon: MenuIcons.stock, active: g.listMode === 'mine', onClick: () => openMenuList('mine') },
-    { key: 'incoming', label: '입고 예정', sub: g.summary ? `${fmt(g.summary.incoming_items)}종` : undefined, icon: MenuIcons.incoming, active: g.listMode === 'incoming', onClick: () => openMenuList('incoming') },
-    ...(g.summary && g.summary.recent_arrivals.length > 0
+    { key: 'mine', label: g.kind === 'glass' ? '매장 글라스' : '매장 재고', sub: g.kind === 'wine' && g.summary ? `${fmt(g.summary.my_items)}종` : undefined, icon: MenuIcons.stock, active: g.listMode === 'mine', onClick: () => openMenuList('mine') },
+    ...(g.kind === 'glass' ? [] : [{ key: 'incoming', label: '입고 예정', sub: g.summary ? `${fmt(g.summary.incoming_items)}종` : undefined, icon: MenuIcons.incoming, active: g.listMode === 'incoming', onClick: () => openMenuList('incoming') }]),
+    ...(g.kind === 'wine' && g.summary && g.summary.recent_arrivals.length > 0
       ? [{ key: 'arrivals', label: '금주 입고', sub: `${g.summary.recent_arrivals.length}종`, icon: MenuIcons.arrivals, active: g.listMode === 'arrivals', onClick: () => openMenuList('arrivals') }]
       : []),
     { key: 'alerts', label: '입고 알림', sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined, icon: MenuIcons.alerts, dot: restock.tileDot, onClick: openAlerts },
-    { key: 'store', label: '매장 변경', icon: MenuIcons.store, onClick: () => g.setStoreKey('' as StoreKey) },
+    { key: 'password', label: '비밀번호 변경', icon: MenuIcons.password, onClick: () => setPwOpen(true) },
     { key: 'logout', label: '로그아웃', icon: MenuIcons.logout, onClick: () => void logoutStoreApp() },
   ];
 
@@ -131,7 +131,7 @@ export default function StorePage() {
     <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px calc(96px + env(safe-area-inset-bottom))' }}>
       {/* 헤더 — 오른쪽: 매장명 + 메뉴(⋮⋮⋮). 왼쪽 작은 워드마크(탭=매장 앱 메인)는 검색 화면에서만 */}
       <header style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, minHeight: 40 }}>
-        <h1 style={{ margin: 0, flex: 'none', whiteSpace: 'nowrap', opacity: hero ? 0 : 1, visibility: hero ? 'hidden' : 'visible', transition: `opacity ${EASE}, visibility ${EASE}` }}>
+        <h1 style={{ margin: 0, flex: 'none', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: hero ? 0 : 220, opacity: hero ? 0 : 1, visibility: hero ? 'hidden' : 'visible', transition: `opacity ${EASE}, visibility ${EASE}, max-width ${EASE}` }}>
           <button onClick={goMain} aria-label="매장 앱 메인으로" tabIndex={hero ? -1 : 0}
             style={{ all: 'unset', cursor: 'pointer', ...LAT, fontSize: 15, color: GOLD }}>
             CAVE DE VIN
@@ -163,12 +163,14 @@ export default function StorePage() {
         </button>
       </div>
 
-      <SearchBar value={g.q} onChange={g.onInput} />
+      <SearchBar value={g.q} onChange={g.onInput} kind={g.kind} onToggleKind={g.toggleKind} />
+      {/* 정렬 — 검색 결과나 매장 재고·입고 예정 목록이 보일 때 */}
+      {(!showHome || g.listMode === 'mine' || g.listMode === 'incoming') && <SortBar value={sort} onChange={setSort} />}
 
       {showHome ? (
         <StoreHome
           recent={g.recent} onRecent={searchNow} onClearRecent={g.clearRecent} centered={hero}
-          summary={g.summary} listMode={g.listMode} listRows={g.listRows}
+          summary={g.summary} listMode={g.listMode} listRows={g.listRows ? sortRows(g.listRows, g.storeKey as StoreView, sort) : null}
           onCloseList={g.closeList}
           onArrival={searchNow} renderRow={renderRow} />
       ) : (
@@ -179,25 +181,36 @@ export default function StorePage() {
             <div style={{ padding: '28px 2px', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>검색 결과가 없습니다</div>
           )}
           {/* 매장 재고 있는 것 먼저(흰색), 그다음 본사(회색). 매장·본사·입고 모두 없는 행(다른 매장에만 있음)은 숨김 */}
-          {sortByTier((g.rows || []).filter((r) =>
-            (r.stores[g.storeKey] || 0) + r.hq_available + r.hq_bonded + r.incoming + r.arrival_btls > 0), g.storeKey as StoreKey).map(renderRow)}
+          {sortRows((g.rows || []).filter((r) =>
+            mineOf(r, g.storeKey) + r.hq_available + r.hq_bonded + r.incoming + r.arrival_btls > 0), g.storeKey as StoreView, sort).map(renderRow)}
         </div>
       )}
 
       {g.detail && (
-        <DetailSheet row={g.detail} storeKey={g.storeKey as StoreKey} alts={g.alts} onClose={() => g.setDetail(null)}
+        <DetailSheet row={g.detail} storeKey={g.storeKey as StoreView} alts={g.alts} onClose={() => g.setDetail(null)}
           onNote={notes.tastingNoteSet.has(g.detail.item_no)
             ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name)
             : null}
-          onAdd={g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined} />
+          onAdd={g.canSell && g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined} />
       )}
 
       {alertsOpen && (
         <RestockAlertsSheet alerts={restock.alerts} onAct={(id, action) => void restock.act(id, action)} onClose={() => setAlertsOpen(false)} />
       )}
 
+      {/* 뒤로 — 하단 왼쪽 떠 있는 버튼. 정산 바가 떠 있으면 그 위로 */}
+      {!checkoutOpen && (
+        <RoundBackButton onClick={goBack} style={{
+          position: 'fixed', left: 16, zIndex: 41, transition: 'bottom 0.2s ease',
+          bottom: g.canSell && cart.items.length > 0 ? 'calc(84px + env(safe-area-inset-bottom))' : 'calc(16px + env(safe-area-inset-bottom))',
+        }} />
+      )}
+
+      {pwOpen && <PasswordSheet onClose={() => setPwOpen(false)} />}
+
+
       {/* POS 하단 바 — 바 전체가 버튼(탭=정산 화면), 담긴 게 있으면 상시 노출 */}
-      {cart.items.length > 0 && !checkoutOpen && (
+      {g.canSell && cart.items.length > 0 && !checkoutOpen && (
         <button onClick={() => setCheckoutOpen(true)} aria-label="정산 화면 열기"
           onPointerDown={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)'; }}
           onPointerUp={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
@@ -216,7 +229,7 @@ export default function StorePage() {
         </button>
       )}
 
-      {checkoutOpen && (
+      {g.canSell && checkoutOpen && (
         <CheckoutSheet
           items={cart.items} bottles={cart.bottles} total={cart.total} retailTotal={cart.retailTotal}
           extraRate={cart.extraRate} extraWon={cart.extraWon} extraAmount={cart.extraAmount} finalTotal={cart.finalTotal}

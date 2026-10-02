@@ -2,6 +2,7 @@
 
 // 취향 문답 5단계 — 전 단계 공통 문법: 연회백 대형 타이포가 선택 시 와인 색으로 물든다.
 // 단일 선택(타입·무게감·가격)은 물든 뒤 자동 진행, 멀티(향미·산지)는 물든 채 유지 + [다음].
+import { RoundBackButton } from '@/app/components/RoundBackButton';
 import { SommelierMenu } from './SommelierMenu';
 import { GuestBadge } from '@/app/store/components/GuestBadge';
 import { useState } from 'react';
@@ -207,7 +208,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, onHome, initialAnswers,
           )}
         </div>
         <div className="som-subrow som-rise" style={{ ['--i' as string]: 3 }}>
-          <button className="som-link" onClick={back}>이전</button>
+          <RoundBackButton onClick={back} label="이전 질문" style={{ boxShadow: "0 4px 10px -4px rgba(0,0,0,0.18)" }} />
           {step === 2 && (
             <button className="som-next" onClick={next}>
               {a.flavorGroups.length + a.flavors.length

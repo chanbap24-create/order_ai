@@ -11,10 +11,14 @@ import { ResultsScreen } from './components/ResultsScreen';
 import type { QuizAnswers } from './lib/quiz';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
-import { endGuestSession, readGuest, startGuestSession, writeQuizSession } from '@/app/lib/store/cartSession';
+import { endGuestSession, readGuest, readSommelierView, saveSommelierView, startGuestSession, writeQuizSession } from '@/app/lib/store/cartSession';
 import './sommelier.css';
 
 type Phase = 'intro' | 'customer' | 'quiz' | 'results';
+type SomView = {
+  phase: Phase; customer: SommelierCustomer | null; answers: QuizAnswers | null;
+  results: SommelierResult[]; priceHint: { count: number; minPrice: number } | null; sessionId: number | null;
+};
 
 export default function SommelierPage() {
   const [checking, setChecking] = useState(true);
@@ -22,7 +26,9 @@ export default function SommelierPage() {
   const [managerList, setManagerList] = useState<string[]>([]);
 
   const [phase, setPhase] = useState<Phase>('intro');
+  // 매장(보기 범위)·판매 가능 = 로그인 세션 기준(선택·변경 없음). 본사='all'(조회 전용)
   const [store, setStore] = useState('all');
+  const [canSell, setCanSell] = useState(false);
   const [customer, setCustomer] = useState<SommelierCustomer | null>(null);
   const [answers, setAnswers] = useState<QuizAnswers | null>(null);
   const [results, setResults] = useState<SommelierResult[]>([]);
@@ -35,10 +41,18 @@ export default function SommelierPage() {
   const [quizNonce, setQuizNonce] = useState(0);
 
   useEffect(() => {
-    try { const s = localStorage.getItem('som_store'); if (s) setStore(s); } catch { /* ignore */ }
     // 매장 재고(POS)에서 넘어온 문답 직행 — 연결된 손님이 있으면 고객 단계 생략
     try {
-      if (new URLSearchParams(window.location.search).get('quiz')) {
+      const qs = new URLSearchParams(window.location.search);
+      const view = qs.get('resume') ? readSommelierView<SomView>() : null;
+      if (view) {
+        // 재고 앱 '뒤로' — 마지막으로 보던 소믈리에 화면 그대로(손님·답변·추천 결과)
+        setCustomer(view.customer); setAnswers(view.answers); setResults(view.results || []);
+        setPriceHint(view.priceHint); setSessionId(view.sessionId);
+        if (view.phase === 'quiz' && view.answers) setResume(true);
+        setPhase(view.phase);
+        window.history.replaceState(null, '', '/sommelier');
+      } else if (qs.get('quiz')) {
         const g = readGuest();
         if (g?.id) {
           setCustomer({ id: g.id, name: g.name || '' } as SommelierCustomer);
@@ -53,16 +67,19 @@ export default function SommelierPage() {
       fetch('/api/auth/me').then((r) => r.json()).catch(() => null),
       fetch('/api/sales/clients/managers?scope=store').then((r) => r.json()).catch(() => null),
     ]).then(([me, mgr]) => {
-      setAuthed(!!me?.authenticated && me?.store === true); // 매장 권한 없는 영업 계정은 로그인 화면
+      setAuthed(!!me?.authenticated && me?.store === true && !!me?.storeView); // 매장 권한 없는 영업 계정은 로그인 화면
+      if (me?.storeView) { setStore(me.storeView); setCanSell(me.canSell === true); }
       setManagerList(Array.isArray(mgr?.managers) ? mgr.managers : []);
       setChecking(false);
     });
   }, []);
 
-  const changeStore = (s: string) => {
-    setStore(s);
-    try { localStorage.setItem('som_store', s); } catch { /* ignore */ }
-  };
+  // 마지막 화면 기억 — 재고 앱에서 '뒤로'로 돌아올 때 복원
+  useEffect(() => {
+    if (checking) return;
+    saveSommelierView({ phase, customer, answers, results, priceHint, sessionId } satisfies SomView);
+  }, [checking, phase, customer, answers, results, priceHint, sessionId]);
+
 
   const submit = async (a: QuizAnswers) => {
     if (submitting) return;
@@ -114,7 +131,7 @@ export default function SommelierPage() {
     <div className="som-root">
       <div className="som-spot" />
       {phase === 'intro' && (
-        <IntroScreen store={store} onStoreChange={changeStore}
+        <IntroScreen store={store}
           onStart={() => setPhase('customer')} />
       )}
       {phase === 'customer' && (
@@ -127,8 +144,9 @@ export default function SommelierPage() {
           onStock={(c) => {
             // 기존 재고에서 선택 — 매장 재고(POS)로, 매장·고객을 함께 넘긴다
             // 새 손님 시작이므로 이전 정산 카트는 비운다
-            try { if (store && store !== 'all') localStorage.setItem('cave_store_key', store); } catch { /* ignore */ }
             startGuestSession(c ? { id: c.id, name: c.name } : null);
+            // 새 손님 시작이 마지막 화면 기억도 지우므로, 재고 앱 '뒤로'가 이 화면으로 오게 다시 기억
+            saveSommelierView({ phase: 'customer', customer: c, answers: null, results: [], priceHint: null, sessionId: null } satisfies SomView);
             window.location.href = '/store';
           }} />
       )}
@@ -145,7 +163,7 @@ export default function SommelierPage() {
         </div>
       )}
       {phase === 'results' && (
-        <ResultsScreen onHome={goHome}
+        <ResultsScreen onHome={goHome} canSell={canSell} store={store}
           customerName={customer?.name || '손님'}
           customerId={customer?.id ?? null}
           sessionId={sessionId}

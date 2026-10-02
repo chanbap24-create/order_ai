@@ -6,6 +6,7 @@ import { saveSession } from '@/app/lib/sommelierDb';
 import { EMPTY_ANSWERS, type QuizAnswers } from '@/app/sommelier/lib/quiz';
 import { handleApiError } from '@/app/lib/errors';
 import { logger } from '@/app/lib/logger';
+import { storeViewOf } from '@/app/lib/store/scope';
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
     if (!Array.isArray(a.flavorGroups)) a.flavorGroups = [];
     if (!Array.isArray(a.flavors)) a.flavors = [];
     if (!Array.isArray(a.countries)) a.countries = [];
-    const store = typeof body?.store === 'string' ? body.store : 'all';
+    const store = storeViewOf(session) ?? 'all'; // 매장 직원=자기 매장 고정, 본사=전체(요청 값 무시)
     const results = await recommendForCustomer(a, 20, store); // 화면은 5병 + 더보기
 
     // 빈 결과 + 가격대 지정 시: 가격을 풀면 몇 병인지 힌트 (직원의 다음 제안용)

@@ -18,6 +18,14 @@ export type StoreKey = (typeof STORES)[number]['key'];
 
 export const CORP_LABEL: Record<Corp, string> = { cdv: '까브드뱅', dl: '대유라이프' };
 
+/** 매장 앱 보기 범위 — 매장 직원 계정은 자기 매장 고정, 본사 계정은 'all'(전체 매장·조회 전용). 로그인 세션이 정한다 */
+export type StoreView = StoreKey | 'all';
+export const isStoreKey = (k: unknown): k is StoreKey => STORES.some((s) => s.key === k);
+export const storeViewLabel = (v: StoreView | '') => (v === 'all' ? '전체 매장' : STORES.find((s) => s.key === v)?.label || '');
+/** 이 보기에서의 '매장 재고' — 전체면 모든 매장 합계, 매장이면 그 매장 */
+export const mineOf = (row: StoreStockRow, view: StoreView | '') =>
+  view === 'all' ? row.store_total : (view ? row.stores[view] || 0 : 0);
+
 export function corpOfStore(key: string): Corp {
   return STORES.find((s) => s.key === key)?.corp === 'dl' ? 'dl' : 'cdv';
 }
@@ -63,8 +71,8 @@ export type StoreStockRow = {
 
 /** 재고 위치 구역 — 0 우리 매장 · 1 다른 매장 · 2 본사(가용·보세·입고) · 3 없음. 목록 음영·정렬 공용. */
 export type StockTier = 0 | 1 | 2 | 3;
-export function stockTierOf(row: StoreStockRow, storeKey: StoreKey): StockTier {
-  const mine = row.stores[storeKey] || 0;
+export function stockTierOf(row: StoreStockRow, storeKey: StoreView): StockTier {
+  const mine = mineOf(row, storeKey);
   if (mine > 0) return 0;
   if (row.store_total - mine > 0) return 1;
   if (row.hq_available + row.hq_bonded + row.incoming + row.arrival_btls > 0) return 2;
@@ -72,7 +80,7 @@ export function stockTierOf(row: StoreStockRow, storeKey: StoreKey): StockTier {
 }
 
 /** 구역 순 안정 정렬 — 같은 구역 안에서는 기존(검색 관련도) 순서 유지 */
-export function sortByTier(rows: StoreStockRow[], storeKey: StoreKey): StoreStockRow[] {
+export function sortByTier(rows: StoreStockRow[], storeKey: StoreView): StoreStockRow[] {
   return rows.map((r, i) => ({ r, i, t: stockTierOf(r, storeKey) }))
     .sort((a, b) => a.t - b.t || a.i - b.i)
     .map((x) => x.r);
@@ -85,4 +93,35 @@ export function arrivalLabel(date: string, today: string, bonded = 0): { md: str
   const md = `${date.slice(5, 7)}/${date.slice(8, 10)}`;
   if (date >= today) return { md, state: 'upcoming' };
   return { md, state: bonded > 0 ? 'customs' : 'late' };
+}
+
+/** 재고 목록 정렬 — 검색 결과·메뉴 목록 공용. 'default' = 매장 재고 있는 것 먼저 + 검색 관련도.
+ *  같은 기준을 다시 누르면 방향(asc/desc)이 바뀐다. 기본 방향은 SORT_DEFAULT_DIR. */
+export type SortKey = 'default' | 'vintage' | 'store' | 'hq' | 'name' | 'price';
+export type SortDir = 'asc' | 'desc';
+export type SortState = { key: SortKey; dir: SortDir };
+export const SORT_LABEL: Record<SortKey, string> = {
+  default: '기본', vintage: '빈티지', store: '매장 재고', hq: '본사 재고', name: '이름', price: '가격',
+};
+export const SORT_DEFAULT_DIR: Record<SortKey, SortDir> = {
+  default: 'desc', vintage: 'desc', store: 'desc', hq: 'desc', name: 'asc', price: 'asc',
+};
+export function sortRows(rows: StoreStockRow[], view: StoreView, sort: SortState): StoreStockRow[] {
+  if (sort.key === 'default') return sortByTier(rows, view);
+  const price = (r: StoreStockRow) => r.sale_price || r.retail_price;
+  const vin = (r: StoreStockRow) => (r.vintage && /^\d{4}$/.test(r.vintage) ? Number(r.vintage) : null); // NV·없음
+  const val: Record<Exclude<SortKey, 'default' | 'name'>, (r: StoreStockRow) => number | null> = {
+    vintage: vin, store: (r) => mineOf(r, view), hq: (r) => r.hq_available, price: (r) => (price(r) > 0 ? price(r) : null),
+  };
+  const sign = sort.dir === 'asc' ? 1 : -1;
+  // 더미·키트·쇼핑백류(판매용 아님)는 어떤 정렬이든 맨 뒤 — 기본 정렬과 같은 규칙
+  const junk = (r: StoreStockRow) => Number(/더미|키트|쇼핑백|에어팩/.test(r.item_name));
+  const cmp = (a: StoreStockRow, b: StoreStockRow) => {
+    if (junk(a) !== junk(b)) return junk(a) - junk(b);
+    if (sort.key === 'name') return sign * a.item_name.localeCompare(b.item_name, 'ko');
+    const x = val[sort.key](a); const y = val[sort.key](b);
+    if (x == null || y == null) return Number(x == null) - Number(y == null); // 값 없는 것(NV·가격 없음)은 방향과 무관하게 맨 뒤
+    return sign * (x - y);
+  };
+  return rows.map((r, i) => ({ r, i })).sort((a, b) => cmp(a.r, b.r) || a.i - b.i).map((x) => x.r);
 }

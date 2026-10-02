@@ -6,18 +6,13 @@ import { useState } from 'react';
 import { AppsMenu, AppsMenuButton, MenuIcons, type AppsMenuItem } from '@/app/store/components/AppsMenu';
 import { useRestockAlerts } from '@/app/store/hooks/useRestockAlerts';
 import { logoutStoreApp } from '@/app/store/lib/logout';
+import { PasswordSheet } from '@/app/store/components/PasswordSheet';
 
-export function SommelierMenu({ store, onStoreChange }: {
-  store?: string;              // 없으면 저장된 매장(som_store)
-  onStoreChange?: () => void;  // 매장 변경 시트 열기 — 인트로에서만(다른 화면은 칸 생략)
-}) {
+export function SommelierMenu() {
   const [open, setOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const restock = useRestockAlerts(true);
   const goStore = (to?: 'mine' | 'incoming' | 'alerts') => {
-    try {
-      const key = store || localStorage.getItem('som_store') || '';
-      if (key && key !== 'all') localStorage.setItem('cave_store_key', key);
-    } catch { /* ignore */ }
     window.location.href = to ? `/store?open=${to}` : '/store';
   };
   const items: AppsMenuItem[] = [
@@ -28,7 +23,8 @@ export function SommelierMenu({ store, onStoreChange }: {
       key: 'alerts', label: '입고 알림', icon: MenuIcons.alerts, dot: restock.tileDot, onClick: () => goStore('alerts'),
       sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined,
     },
-    ...(onStoreChange ? [{ key: 'store', label: '매장 변경', icon: MenuIcons.store, onClick: onStoreChange }] : []),
+    { key: 'admin', label: '관리자', icon: MenuIcons.store, onClick: () => { window.location.href = '/sommelier/admin'; } },
+    { key: 'password', label: '비밀번호 변경', icon: MenuIcons.password, onClick: () => setPwOpen(true) },
     { key: 'logout', label: '로그아웃', icon: MenuIcons.logout, onClick: () => void logoutStoreApp() },
   ];
   return (
@@ -36,6 +32,7 @@ export function SommelierMenu({ store, onStoreChange }: {
     <span style={{ position: 'relative', display: 'inline-flex', margin: '-10px -8px -10px 0' }}>
       <AppsMenuButton open={open} onToggle={() => setOpen((v) => !v)} dot={restock.tileDot} />
       <AppsMenu open={open} onClose={() => setOpen(false)} items={items} />
+      {pwOpen && <PasswordSheet onClose={() => setPwOpen(false)} />}
     </span>
   );
 }

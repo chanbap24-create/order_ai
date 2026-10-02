@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
-import { corpOfStore, searchStoreStock } from '@/app/lib/store/stockView';
+import { storeViewOf, searchView } from '@/app/lib/store/scope';
 import { handleApiError } from '@/app/lib/errors';
 
-// 점장 PWA — 매장 재고 검색
+// 매장 앱 — 재고 검색. 보기 범위(매장 고정/전체)는 세션이 정한다(store 파라미터 무시)
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+    const view = storeViewOf(await getSession());
+    if (!view) return NextResponse.json({ error: '매장 앱 권한이 필요합니다.' }, { status: 401 });
     const q = req.nextUrl.searchParams.get('q') || '';
-    const corp = corpOfStore(req.nextUrl.searchParams.get('store') || '');
-    return NextResponse.json({ rows: await searchStoreStock(q, corp) });
+    const kind = req.nextUrl.searchParams.get('kind') === 'glass' ? 'glass' : 'wine';
+    return NextResponse.json({ rows: await searchView(q, view, kind) });
   } catch (e) {
     return handleApiError(e);
   }

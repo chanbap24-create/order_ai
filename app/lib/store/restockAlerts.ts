@@ -21,12 +21,11 @@ async function hqAvailable(itemNos: string[]): Promise<Map<string, number>> {
   return out;
 }
 
-/** 보세(통관 전)·미착 수량 — 입항일 지났을 때 '통관 중'/'지연' 구분, 들어오는 병수 표시용 */
+/** 보세(통관 전)·미착 수량 — 입항일 지났을 때 '통관 중'/'지연' 구분, 본사 계정의 입고 병수 표시용 */
 async function hqPipeline(itemNos: string[]): Promise<Map<string, { bonded: number; incoming: number }>> {
   const out = new Map<string, { bonded: number; incoming: number }>();
   if (!itemNos.length) return out;
-  const { data } = await supabase.from('inventory_cdv')
-    .select('item_no, stock_bonded, incoming_stock').in('item_no', itemNos.slice(0, 500));
+  const { data } = await supabase.from('inventory_cdv').select('item_no, stock_bonded, incoming_stock').in('item_no', itemNos.slice(0, 500));
   for (const r of data || []) {
     out.set(String(r.item_no), { bonded: Math.max(0, Number(r.stock_bonded) || 0), incoming: Math.max(0, Number(r.incoming_stock) || 0) });
   }
@@ -36,14 +35,15 @@ async function hqPipeline(itemNos: string[]): Promise<Map<string, { bonded: numb
 export async function createRestockAlert(input: {
   storeKey: string; itemNo: string; itemName: string; customerId: number; staff: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!STORES.some((s) => s.key === input.storeKey)) return { ok: false, error: '매장을 확인하세요.' };
+  // 매장 직원=자기 매장, 본사='all'(전체 매장에서 신청)
+  if (input.storeKey !== 'all' && !STORES.some((s) => s.key === input.storeKey)) return { ok: false, error: '매장을 확인하세요.' };
   const { data: customer } = await supabase.from('sommelier_customers')
     .select('id').eq('id', input.customerId).maybeSingle();
   if (!customer) return { ok: false, error: '손님 정보를 찾을 수 없습니다.' };
 
   const baseline = (await hqAvailable([input.itemNo])).get(input.itemNo) ?? 0;
   const { error } = await supabase.from('store_restock_alerts').insert({
-    corp: corpOfStore(input.storeKey), store_key: input.storeKey,
+    corp: input.storeKey === 'all' ? 'cdv' : corpOfStore(input.storeKey), store_key: input.storeKey, // 입고는 CDV 기준
     item_no: input.itemNo, item_name: input.itemName.slice(0, 100),
     customer_id: input.customerId, staff: input.staff, baseline_hq: baseline,
   });
@@ -68,7 +68,8 @@ export async function checkArrivals(staff?: string): Promise<number> {
 }
 
 /** 내 알림 목록 — 조회 전에 입고 판정. 입고됨 → 대기 순, 완료는 최근 20건 */
-export async function listMyAlerts(staff: string): Promise<RestockAlert[]> {
+/** showQty: 본사(전체 매장) 계정만 입고 병수 포함 — 매장 직원은 날짜만 */
+export async function listMyAlerts(staff: string, showQty = false): Promise<RestockAlert[]> {
   await checkArrivals(staff);
   const cols = 'id, created_at, store_key, item_no, item_name, customer_id, status, arrived_at, done_at, customer:sommelier_customers(name, phone)';
   const [{ data: open }, { data: done }] = await Promise.all([
@@ -82,7 +83,7 @@ export async function listMyAlerts(staff: string): Promise<RestockAlert[]> {
     id: r.id, created_at: r.created_at, store_key: r.store_key, item_no: r.item_no, item_name: r.item_name,
     status: r.status, arrived_at: r.arrived_at, done_at: r.done_at,
     customer_id: r.customer_id, customer_name: r.customer?.name || '', customer_phone: r.customer?.phone || '',
-    eta: null, bonded: 0, incoming_btls: 0,
+    eta: null, bonded: 0,
   });
   // 입고 예정일 — 입항 일정(import_schedule). 입고 예정은 법인 무관 CDV 기준
   const openRows = open || [];
@@ -92,8 +93,11 @@ export async function listMyAlerts(staff: string): Promise<RestockAlert[]> {
     const no = String(r.item_no);
     const arr = eta.get(no);
     const p = pipe.get(no);
-    // 들어오는 병수 = 입항 일정 수량 우선, 없으면 재고표 미착 수량 (재고 행 '입고 N'과 같은 규칙)
-    return { ...map(r), eta: arr?.date ?? null, bonded: p?.bonded ?? 0, incoming_btls: arr?.btls || p?.incoming || 0 };
+    return {
+      ...map(r), eta: arr?.date ?? null, bonded: p?.bonded ?? 0,
+      // 들어오는 병수 = 입항 일정 수량 우선, 없으면 미착 수량(재고 행과 같은 규칙)
+      ...(showQty ? { incoming_btls: arr?.btls || p?.incoming || 0 } : {}),
+    };
   });
   return [...rows.filter((r) => r.status === 'arrived'), ...rows.filter((r) => r.status === 'waiting'), ...(done || []).map(map)];
 }

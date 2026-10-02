@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
-import { listStoreStock, type StoreKey } from '@/app/lib/store/stockView';
+import { storeViewOf, listView } from '@/app/lib/store/scope';
 import { handleApiError } from '@/app/lib/errors';
 
-// 점장 PWA — 요약 박스 탭: 우리 매장 보유/입고 예정 전체 리스트
+// 매장 앱 — 메뉴 목록: 매장 재고 / 입고 예정. 보기 범위는 세션 기준
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    const store = (req.nextUrl.searchParams.get('store') || '') as StoreKey;
+    const view = storeViewOf(await getSession());
+    if (!view) return NextResponse.json({ error: '매장 앱 권한이 필요합니다.' }, { status: 401 });
     const mode = req.nextUrl.searchParams.get('mode') === 'incoming' ? 'incoming' : 'mine';
-    if (!store) return NextResponse.json({ error: 'store가 필요합니다.' }, { status: 400 });
-    return NextResponse.json({ rows: await listStoreStock(store, mode) });
+    const kind = req.nextUrl.searchParams.get('kind') === 'glass' ? 'glass' : 'wine';
+    return NextResponse.json({ rows: await listView(view, mode, kind) });
   } catch (e) {
     return handleApiError(e);
   }

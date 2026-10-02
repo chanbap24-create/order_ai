@@ -1,4 +1,5 @@
 // 매장 앱 입고 알림 — GET: 내 알림(조회 시 입고 판정) / POST: 신청 / PATCH: 연락 완료·취소. 본인 건만.
+import { storeViewOf } from '@/app/lib/store/scope';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 import { createRestockAlert, listMyAlerts, updateMyAlert } from '@/app/lib/store/restockAlerts';
@@ -8,7 +9,7 @@ export async function GET() {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
-    return NextResponse.json({ alerts: await listMyAlerts(session.manager) });
+    return NextResponse.json({ alerts: await listMyAlerts(session.manager, storeViewOf(session) === 'all') });
   } catch (e) {
     return handleApiError(e);
   }
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '와인과 손님이 필요합니다.' }, { status: 400 });
     }
     const res = await createRestockAlert({
-      storeKey: typeof b?.storeKey === 'string' ? b.storeKey : '', itemNo,
+      storeKey: storeViewOf(session) ?? '', itemNo,
       itemName: typeof b?.itemName === 'string' ? b.itemName : '', customerId, staff: session.manager,
     });
     if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });

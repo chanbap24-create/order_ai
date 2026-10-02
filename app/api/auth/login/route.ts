@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isProd } from '@/app/lib/env';
 import { supabase } from '@/app/lib/db';
+import { STORES } from '@/app/lib/store/types';
 import { hashPassword, verifyPassword, isLegacyHash, verifyLegacyPassword, createSession, COOKIE_NAME } from '@/app/lib/auth';
 
 export async function POST(req: Request) {
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     // 사용자 조회
     const { data: user } = await supabase
       .from('sales_users')
-      .select('manager, password_hash, role, department, failed_attempts, locked_until, is_active, store_access')
+      .select('manager, password_hash, role, department, failed_attempts, locked_until, is_active, store_access, store_key')
       .eq('manager', manager)
       .maybeSingle();
 
@@ -81,7 +82,11 @@ export async function POST(req: Request) {
     if (storeScope && !storeAccess) {
       return NextResponse.json({ error: '매장 앱 사용 권한이 없는 계정입니다. 관리자에게 문의하세요.' }, { status: 403 });
     }
-    // 매장 전용 계정은 영업 시스템 로그인 불가
+    // 매장 전용 계정은 지정 매장이 있어야 함(로그인 시 그 매장으로 고정)
+    if (user.role === 'store' && !STORES.some((x) => x.key === user.store_key)) {
+      return NextResponse.json({ error: '매장이 지정되지 않은 계정입니다. 관리자에게 문의하세요.' }, { status: 403 });
+    }
+        // 매장 전용 계정은 영업 시스템 로그인 불가
     if (!storeScope && user.role === 'store') {
       return NextResponse.json({ error: '매장 전용 계정입니다. 매장 앱에서 로그인해주세요.' }, { status: 403 });
     }
@@ -92,7 +97,7 @@ export async function POST(req: Request) {
     }
 
     // 세션 생성
-    const token = await createSession(user.manager, user.role, user.department || '', storeAccess);
+    const token = await createSession(user.manager, user.role, user.department || '', storeAccess, user.role === 'store' ? user.store_key : null);
 
     const response = NextResponse.json({
       success: true,

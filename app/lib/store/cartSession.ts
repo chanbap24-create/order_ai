@@ -40,6 +40,15 @@ export function addToCart(item: Omit<CartItem, 'qty'>): CartItem[] {
 export type Guest = { id: number; name: string };
 const GUEST_KEY = 'cave_store_customer';
 const QUIZ_SESSION_KEY = 'cave_store_quiz_session'; // 이 손님의 직전 문답 세션 id — 구매 기록에 연결
+const SOM_VIEW_KEY = 'cave_som_view'; // 소믈리에 마지막 화면(단계·답변·추천 결과) — 재고 앱 '뒤로'로 복원
+
+/** 소믈리에 마지막 화면 스냅샷 — 형태는 소믈리에 페이지가 정한다(여기선 저장만) */
+export function saveSommelierView(view: unknown) {
+  try { sessionStorage.setItem(SOM_VIEW_KEY, JSON.stringify(view)); } catch { /* ignore */ }
+}
+export function readSommelierView<T>(): T | null {
+  try { return JSON.parse(sessionStorage.getItem(SOM_VIEW_KEY) || 'null') as T | null; } catch { return null; }
+}
 
 export function readQuizSession(): number | null {
   try { return Number(sessionStorage.getItem(QUIZ_SESSION_KEY)) || null; } catch { return null; }
@@ -65,6 +74,7 @@ export function startGuestSession(guest: Guest | null) {
     sessionStorage.removeItem(EXTRA_RATE_KEY);
     sessionStorage.removeItem(EXTRA_WON_KEY);
     sessionStorage.removeItem(QUIZ_SESSION_KEY);
+    sessionStorage.removeItem(SOM_VIEW_KEY);
     if (guest) sessionStorage.setItem(GUEST_KEY, JSON.stringify(guest));
     else sessionStorage.removeItem(GUEST_KEY);
     localStorage.removeItem(GUEST_KEY); // 구버전(localStorage) 잔존 정리

@@ -3,14 +3,14 @@
 import { supabase } from './db';
 import { DISCOUNT_EDITORS } from './sommelierDiscount';
 import { escapeHtml, sendTelegram } from './telegram';
-import { STORES } from './store/types';
+import { storeViewLabel, type StoreView } from './store/types';
 import { logger } from './logger';
 
 import { REQUEST_CATEGORIES, type ChangeRequest, type RequestCategory } from './sommelierRequestTypes';
 
 export { REQUEST_CATEGORIES, type ChangeRequest, type RequestCategory } from './sommelierRequestTypes';
 
-const storeLabelOf = (key: string | null) => STORES.find((s) => s.key === key)?.label || '';
+const storeLabelOf = (key: string | null) => (key ? storeViewLabel(key as StoreView) : '');
 
 /** 요청 생성 + 관리자 알림. 이름은 wines 정식명 우선, 없으면 화면에 보이던 이름. */
 export async function createChangeRequest(input: {

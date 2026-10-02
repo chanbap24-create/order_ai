@@ -12,6 +12,6 @@ export type RestockAlert = {
   customer_name: string;
   customer_phone: string;
   eta: string | null; // 입고(입항) 예정일 YYYY-MM-DD — 일정 없으면 null
-  bonded: number;     // 보세 재고(통관 전) — 입항일 지났을 때 '통관 중'/'지연' 구분
-  incoming_btls: number; // 들어오는 병수 (입항 일정 수량, 없으면 미착 수량)
+  bonded: number;
+  incoming_btls?: number; // 들어오는 병수 — 본사(전체 매장) 계정에만 내려옴     // 보세 재고(통관 전) — 입항일 지났을 때 '통관 중'/'지연' 구분
 };

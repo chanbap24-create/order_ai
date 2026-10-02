@@ -7,6 +7,7 @@ import {
   REQUEST_CATEGORIES, type RequestCategory,
 } from '@/app/lib/sommelierRequests';
 import { handleApiError } from '@/app/lib/errors';
+import { storeViewOf } from '@/app/lib/store/scope';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
     const request = await createChangeRequest({
       itemNo, itemName: typeof b?.itemName === 'string' ? b.itemName.slice(0, 100) : '',
-      category, message, storeKey: typeof b?.storeKey === 'string' ? b.storeKey : null,
+      category, message, storeKey: storeViewOf(session), // 요청 매장 = 세션 기준
       requester: session.manager,
     });
     return NextResponse.json({ request });

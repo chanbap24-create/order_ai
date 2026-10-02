@@ -73,11 +73,12 @@ export interface SalesSession {
   role: string; // 'admin' | 'user' | 'executive' | 'sales_admin' | 'store'(매장 전용)
   department: string;
   store: boolean; // 매장 앱(소믈리에·재고 PWA) 접근 권한
+  storeKey: string | null; // 매장 전용 계정(role='store')의 고정 매장. null = 본사(전체 매장)
 }
 
 /** store: 매장 앱 접근 권한(sales_users.store_access 또는 role='store') — 토큰에 담아 middleware가 DB 없이 판정 */
-export async function createSession(manager: string, role: string, department: string = '', store = false): Promise<string> {
-  const payload = { manager, role, department, store: store || role === 'store', ts: Date.now() };
+export async function createSession(manager: string, role: string, department: string = '', store = false, storeKey: string | null = null): Promise<string> {
+  const payload = { manager, role, department, store: store || role === 'store', storeKey, ts: Date.now() };
   return signPayload(payload);
 }
 
@@ -95,6 +96,7 @@ export async function getSession(): Promise<SalesSession | null> {
   return {
     manager: payload.manager, role: payload.role || 'user', department: payload.department || '',
     store: payload.store === true || payload.role === 'store',
+    storeKey: typeof payload.storeKey === 'string' ? payload.storeKey : null,
   };
 }
 
