@@ -4,6 +4,7 @@
 // 검색은 매처 v3와 같은 신호(자모 trgm RPC + 토큰)를 재사용하되 판정 LLM 없이 목록만.
 import { supabase } from '../db';
 import { toJamo } from '../matcher-v3/jamo';
+import { daysAgoKst, todayKst } from '../dateKst';
 import { loadDiscountBands, saleOf } from '../sommelierDiscount';
 import { retailPriceOf } from '../sommelierRecommend';
 import { corpOfStore, isWineItemNo, storesOfCorp, vintageOfItemNo, type Corp, type StoreKey, type StoreStockRow } from './types';
@@ -46,7 +47,7 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
   // 소믈리에 관리자 할인 밴드 — 와인 품번에만 적용 (DL 글라스는 정상가 그대로)
   // ZK00(타사 액세서리)는 와인 할인 대상 아님 — isWineItemNo가 정본 판정
   const { sale, rate } = bands && isWineItemNo(no) ? saleOf(retail, bands) : { sale: retail, rate: 0 };
-  const arr = arrival.get(String(r.item_no));
+  const arr = pickArrival(arrival.get(String(r.item_no)), Number(r.incoming_stock) || 0);
   return {
     item_no: no,
     item_name: String(r.item_name || ''),
@@ -71,23 +72,38 @@ function toRow(corp: Corp, r: any, bands: Bands, arrival: Map<string, { date: st
 const loadBands = (_corp: Corp): Promise<Bands> => loadDiscountBands();
 
 /** 미래·최근 입항 스케줄 (품목별 다음 입항) — CDV 와인 수입 전용 */
-async function loadArrivals(corp: Corp, itemNos: string[]): Promise<Map<string, { date: string; btls: number }>> {
+/** 입항일 — 재고 행·입고 알림 공용. 다가오는 입항이 있으면 가장 가까운 것, 없으면 가장 최근 지난 입항.
+ *  지난 입항은 60일까지 가져오고, 표시 여부는 pickArrival이 미착 수량으로 거른다
+ *  (미착 리스트 갱신이 늦어 날짜가 지났는데 아직 안 들어온 경우 = '지연'으로 계속 보여주기 위함). */
+export async function loadArrivals(corp: Corp, itemNos: string[]): Promise<Map<string, { date: string; btls: number }>> {
   const out = new Map<string, { date: string; btls: number }>();
   if (corp === 'dl' || itemNos.length === 0) return out;
-  const cutoff = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10);
+  const today = todayKst();
+  const cutoff = daysAgoKst(60);
   for (let i = 0; i < itemNos.length; i += 150) {
     const { data } = await supabase.from('import_schedule')
       .select('item_code, arrival_date, total_btls')
       .in('item_code', itemNos.slice(i, i + 150)).gte('arrival_date', cutoff);
     for (const r of data || []) {
       const code = String(r.item_code);
+      const date = String(r.arrival_date);
       const cur = out.get(code);
-      if (!cur || String(r.arrival_date) < cur.date) {
-        out.set(code, { date: String(r.arrival_date), btls: Number(r.total_btls) || 0 });
-      }
+      // 우선순위: 오늘 이후(가까운 순) > 지난 것(최근 순)
+      const better = !cur
+        || (date >= today && (cur.date < today || date < cur.date))
+        || (date < today && cur.date < today && date > cur.date);
+      if (better) out.set(code, { date, btls: Number(r.total_btls) || 0 });
     }
   }
   return out;
+}
+
+/** 입항일 표시 여부 — 최근 7일 안이면 그대로, 그보다 지난 입항은 미착 수량이 남아 있을 때만('지연').
+ *  미착이 0이면 이미 들어온 옛 입항 이력이라 버린다. */
+function pickArrival(arr: { date: string; btls: number } | undefined, incoming: number) {
+  if (!arr) return null;
+  if (arr.date >= daysAgoKst(7) || incoming > 0) return arr;
+  return null;
 }
 
 /** ZK(타사 와인)는 재고표 이름이 ERP식("(와이너리)(B)22샤토 보빌라쥬26/01") —
@@ -130,7 +146,7 @@ async function overlayCdvHq(corp: Corp, rows: StoreStockRow[]): Promise<StoreSto
   return rows.map((r) => {
     const c = cdv.get(r.item_no);
     if (!c) return r;
-    const arr = arrivals.get(r.item_no);
+    const arr = pickArrival(arrivals.get(r.item_no), Number(c.incoming_stock) || 0);
     return {
       ...r,
       hq_available: Math.max(0, Number(c.available_stock) || 0),

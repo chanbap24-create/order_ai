@@ -1,8 +1,10 @@
 'use client';
 
-// 품목 상세 바텀시트 — 위치별 병수 + 백화점가 + (우리 매장에 없으면) 대체품. 시안 ③ 화면.
-import { corpOfStore, storesOfCorp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+// 품목 상세 바텀시트 — 이 매장·본사 병수 + 백화점가 + (매장에 없으면) 대체품. 다른 매장 재고는 비노출.
+import { STORES, arrivalLabel, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { todayKst } from '@/app/lib/dateKst';
 import { ChangeRequestForm } from './ChangeRequestForm';
+import { RestockAlertButton } from './RestockAlertButton';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
@@ -12,7 +14,7 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
   onAdd?: () => void;           // 정산에 담기 (POS)
 }) {
   const mine = row.stores[storeKey] || 0;
-  const corpStores = storesOfCorp(corpOfStore(storeKey)); // 같은 법인 매장만 표시
+  const storeLabel = STORES.find((x) => x.key === storeKey)?.label || '';
 
   return (
     <div onClick={onClose}
@@ -54,18 +56,12 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
 
         {/* 위치별 재고 */}
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {corpStores.map((s) => {
-            const n = row.stores[s.key] || 0;
-            const isMine = s.key === storeKey;
-            return (
-              <li key={s.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
-                <span style={{ color: isMine ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isMine ? 700 : 400 }}>
-                  {s.label}{isMine && <span style={{ marginLeft: 6, fontSize: 10.5, color: 'var(--text-tertiary)' }}>우리 매장</span>}
-                </span>
-                <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: n > 0 ? 'var(--status-success)' : 'var(--neutral-400, #c2c4c9)' }}>{n}</span>
-              </li>
-            );
-          })}
+          <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+              매장<span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 400, color: 'var(--text-tertiary)' }}>{storeLabel}</span>
+            </span>
+            <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: mine > 0 ? 'var(--status-success)' : 'var(--neutral-400, #c2c4c9)' }}>{mine}</span>
+          </li>
           <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
             <span style={{ color: 'var(--text-secondary)' }}>본사 가용</span>
             <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: row.hq_available > 0 ? 'var(--status-success)' : 'var(--neutral-400, #c2c4c9)' }}>{fmt(row.hq_available)}</span>
@@ -79,14 +75,25 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
           {(row.arrival_btls > 0 || row.incoming > 0) && (
             <li style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
               <span style={{ color: 'var(--text-secondary)' }}>
-                입고 예정{row.arrival_date && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginLeft: 6 }}>{row.arrival_date.slice(5, 7)}/{row.arrival_date.slice(8, 10)} 입항</span>}
+                입고 예정{row.arrival_date && (() => {
+                  const { md, state } = arrivalLabel(row.arrival_date, todayKst(), row.hq_bonded);
+                  const [text, color] = state === 'late' ? [`${md} 예정 · 지연`, 'var(--status-danger)']
+                    : state === 'customs' ? [`${md} 입항 · 보세 통관 중`, 'var(--status-warning)']
+                    : [`${md} 입항`, 'var(--text-tertiary)'];
+                  return <span style={{ fontSize: 10.5, color, marginLeft: 6 }}>{text}</span>;
+                })()}
               </span>
               <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--status-warning)' }}>{fmt(row.arrival_btls || row.incoming)}병</span>
             </li>
           )}
         </ul>
 
-        {/* 우리 매장에 없을 때 — 지금 팔 수 있는 대체품 */}
+        {/* 입고 예정 와인 — 지정 손님 이름으로 입고 알림 신청 */}
+        {(row.arrival_btls > 0 || row.incoming > 0) && (
+          <RestockAlertButton key={`alert-${row.item_no}`} itemNo={row.item_no} itemName={row.item_name} storeKey={storeKey} />
+        )}
+
+        {/* 매장에 없을 때 — 지금 팔 수 있는 대체품 */}
         {mine <= 0 && alts.length > 0 && (
           <>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '18px 0 6px' }}>
@@ -97,7 +104,7 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
               <div key={a.item_no} style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '9px 0', borderBottom: '1px solid var(--border-subtle)', minWidth: 0 }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.item_name}</span>
                 <span style={{ flex: 'none', fontSize: 11.5, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                  {(a.stores[storeKey] || 0) > 0 ? `우리 ${a.stores[storeKey]}` : `본사 ${fmt(a.hq_available)}`}
+                  {(a.stores[storeKey] || 0) > 0 ? `매장 ${a.stores[storeKey]}` : `본사 ${fmt(a.hq_available)}`}
                   {a.sale_price > 0 ? ` · ${fmt(a.sale_price)}` : ''}
                 </span>
               </div>

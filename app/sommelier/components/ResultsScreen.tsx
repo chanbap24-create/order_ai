@@ -2,6 +2,7 @@
 
 // 추천 결과 — 화이트 쇼룸 카드 레일. 구조 프로파일 4종(무게감·당도·산미·탄닌) 바 +
 // [구매 기록]으로 고객 이력 저장(향후 자동추천 학습 데이터).
+import { GuestBadge } from '@/app/store/components/GuestBadge';
 import { useEffect, useRef, useState } from 'react';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import { DetailOverlay } from './DetailOverlay';
@@ -191,7 +192,7 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
   return (
     <section className="som-screen som-results">
       <div className="som-head">
-        <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span>추천 결과</span></div>
+        <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10 }}><GuestBadge name={customerName} />추천 결과</span></div>
         <div className="som-prog"><i style={{ width: '100%' }} /></div>
         <h2 className="som-rise som-lat" style={{ ['--i' as string]: 0 }}>
           Your Selection

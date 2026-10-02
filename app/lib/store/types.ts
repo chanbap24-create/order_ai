@@ -77,3 +77,12 @@ export function sortByTier(rows: StoreStockRow[], storeKey: StoreKey): StoreStoc
     .sort((a, b) => a.t - b.t || a.i - b.i)
     .map((x) => x.r);
 }
+
+/** 입항일 표시 — 날짜가 지났는데 아직 가용재고 전이면:
+ *  보세에 들어와 있으면 'customs'(통관 중), 보세에도 없으면 'late'(지연 — 미착 리스트 갱신이 늦거나 배가 늦음).
+ *  재고 행·상세·입고 알림 목록 공용. today는 KST YYYY-MM-DD. */
+export function arrivalLabel(date: string, today: string, bonded = 0): { md: string; state: 'upcoming' | 'customs' | 'late' } {
+  const md = `${date.slice(5, 7)}/${date.slice(8, 10)}`;
+  if (date >= today) return { md, state: 'upcoming' };
+  return { md, state: bonded > 0 ? 'customs' : 'late' };
+}

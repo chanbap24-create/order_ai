@@ -453,6 +453,8 @@
 
 /* 인트로 우측 상단 — 재고 확인 링크 + 매장 선택 묶음 */
 .som-brand-right{display:flex;align-items:baseline;gap:14px;min-width:0}
+/* 헤더 매장명은 잘리지 않게 — 가장 긴 '현대백화점 무역센터점'도 휴대폰 폭에 들어감 */
+.som-brand-right .som-store{max-width:none;flex:none;white-space:nowrap}
 .som-stocklink{font-size:11px;color:var(--som-muted);white-space:nowrap;
   text-decoration:underline;text-underline-offset:3px;
   text-decoration-color:rgba(184,154,106,.6)}

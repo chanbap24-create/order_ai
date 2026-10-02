@@ -1,9 +1,10 @@
 'use client';
 
 // 인트로 — 화이트 쇼룸의 병 한 병 + 카피 + "밀어서 시작" 슬라이더. 상단에서 매장 선택(바텀시트).
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { STORES } from '../lib/quiz';
+import { AppsMenu, AppsMenuButton, MenuIcons, type AppsMenuItem } from '@/app/store/components/AppsMenu';
+import { useRestockAlerts } from '@/app/store/hooks/useRestockAlerts';
 
 /** 밀어서 시작 — 노브를 끝까지 밀면 시작. 짧은 탭이면 자동으로 밀리며 시작(발견성 보완). */
 function SlideToStart({ onStart }: { onStart: () => void }) {
@@ -66,6 +67,19 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
   onStart: () => void;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const restock = useRestockAlerts(true); // 입고된 알림 있으면 메뉴에 빨간 점
+  const goStore = (open?: 'mine' | 'incoming' | 'alerts') => {
+    try { if (store && store !== 'all') localStorage.setItem('cave_store_key', store); } catch { /* ignore */ }
+    window.location.href = open ? `/store?open=${open}` : '/store';
+  };
+  const menuItems: AppsMenuItem[] = [
+    { key: 'search', label: '재고 검색', icon: MenuIcons.search, onClick: () => goStore() },
+    { key: 'mine', label: '매장 재고', icon: MenuIcons.stock, onClick: () => goStore('mine') },
+    { key: 'incoming', label: '입고 예정', icon: MenuIcons.incoming, onClick: () => goStore('incoming') },
+    { key: 'alerts', label: '입고 알림', sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined, icon: MenuIcons.alerts, dot: restock.tileDot, onClick: () => goStore('alerts') },
+    { key: 'store', label: '매장 변경', icon: MenuIcons.store, onClick: () => setSheetOpen(true) },
+  ];
   // 부팅 로딩 — 첫 병샷이 준비되면(또는 5초 타임아웃) 걷어내고 본문이 떠오른다
   const [boot, setBoot] = useState<'on' | 'out' | 'off'>('on');
 
@@ -145,13 +159,11 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       {boot !== 'on' && <>
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
         <span className="som-lat">CAVE DE VIN</span>
-        <span className="som-brand-right">
-          {/* 매장 재고 앱으로 — 선택된 매장을 그대로 넘긴다 (키 동일) */}
-          <Link className="som-stocklink" href="/store"
-            onClick={() => { try { if (store && store !== 'all') localStorage.setItem('cave_store_key', store); } catch { /* ignore */ } }}>
-            재고 확인
-          </Link>
+        <span className="som-brand-right" style={{ position: 'relative', alignItems: 'center' }}>
           <button className="som-store" onClick={() => setSheetOpen(true)}>{STORES[store] || '매장 선택'}</button>
+          {/* 매장 앱 메뉴 — 재고 앱과 같은 메뉴. 고르면 재고 앱의 해당 목록으로(선택 매장 그대로 넘김) */}
+          <AppsMenuButton open={menuOpen} onToggle={() => setMenuOpen((v) => !v)} dot={restock.tileDot} />
+          <AppsMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
         </span>
       </div>
 

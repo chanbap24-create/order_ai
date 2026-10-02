@@ -2,13 +2,17 @@
 
 // 까브 매장 — 점장용 재고 확인 + POS 정산 PWA.
 // 구성: 로그인 → 매장 선택(1회) → 홈(검색 + StoreHome) → 결과 → 상세 바텀시트 → 정산 시트.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CORP_LABEL, STORES, sortByTier, type Corp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
 import { StockRow } from './components/StockRow';
 import { DetailSheet } from './components/DetailSheet';
 import { CheckoutSheet } from './components/CheckoutSheet';
 import { SearchBar } from './components/SearchBar';
 import { StoreHome } from './components/StoreHome';
+import { GuestBadge } from './components/GuestBadge';
+import { RestockAlertsSheet } from './components/RestockAlertsSheet';
+import { useRestockAlerts } from './hooks/useRestockAlerts';
+import { readGuest } from '@/app/lib/store/cartSession';
 import { AppsMenu, AppsMenuButton, MenuIcons, type AppsMenuItem } from './components/AppsMenu';
 import { LoginScreen } from './components/LoginScreen';
 import { useStoreApp, type ListMode } from './hooks/useStoreApp';
@@ -24,6 +28,9 @@ export default function StorePage() {
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // 헤더 메뉴(⋮⋮⋮)
+  const restock = useRestockAlerts(g.authed === true && !!g.storeKey);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const openAlerts = () => { setAlertsOpen(true); void restock.refresh(); };
   // 소믈리에 결과 → '정산' 바로 진입 (?checkout=1)
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).get('checkout')) return;
@@ -31,6 +38,20 @@ export default function StorePage() {
     window.history.replaceState(null, '', '/store');
     return () => clearTimeout(t);
   }, []);
+  // 메인(소믈리에 인트로) 메뉴 → 목록 바로 열기 (?open=mine|incoming|alerts). 로그인·매장 확정 뒤 1회
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || g.authed !== true || !g.storeKey) return;
+    deepLinked.current = true;
+    const open = new URLSearchParams(window.location.search).get('open');
+    if (!open) return;
+    window.history.replaceState(null, '', '/store');
+    const t = setTimeout(() => {
+      if (open === 'mine' || open === 'incoming') void g.openList(open);
+      else if (open === 'alerts') { setAlertsOpen(true); void restock.refresh(); }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [g, restock]);
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
   // 로고 → 매장 앱 메인(소믈리에 인트로). 매장 선택은 그대로 넘긴다(컬럼 키 동일).
   // 손님 응대 중 취향 문답으로 이어가기는 정산 시트의 '이어서 취향 문답으로' 링크가 담당.
@@ -44,7 +65,12 @@ export default function StorePage() {
   const renderRow = (row: StoreStockRow) => (
     <StockRow key={row.item_no} row={row} storeKey={g.storeKey as StoreKey} onOpen={() => void g.openDetail(row)}
       onLongPress={notes.tastingNoteSet.has(row.item_no) ? () => void notes.openFor(row.item_no, row.item_name) : null}
-      onAdd={row.retail_price > 0 ? () => cart.add(row) : undefined} />
+      onAdd={row.retail_price > 0 ? () => cart.add(row) : undefined}
+      // 입고 예정 목록에선 + 대신 입고 알림(벨) — 손님 미지정이면 상세(안내)로
+      onAlert={!g.q.trim() && g.listMode === 'incoming'
+        ? () => { if (!readGuest()) void g.openDetail(row); else void restock.toggle(row.item_no, row.item_name, g.storeKey); }
+        : undefined}
+      alerted={restock.alertedItems.has(row.item_no)} />
   );
 
   // ── 로그인 ──
@@ -88,6 +114,7 @@ export default function StorePage() {
     ...(g.summary && g.summary.recent_arrivals.length > 0
       ? [{ key: 'arrivals', label: '금주 입고', sub: `${g.summary.recent_arrivals.length}종`, icon: MenuIcons.arrivals, active: g.listMode === 'arrivals', onClick: () => openMenuList('arrivals') }]
       : []),
+    { key: 'alerts', label: '입고 알림', sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined, icon: MenuIcons.alerts, dot: restock.tileDot, onClick: openAlerts },
     { key: 'sommelier', label: '소믈리에', sub: '취향 추천', icon: MenuIcons.sommelier, onClick: goMain },
     { key: 'store', label: '매장 변경', icon: MenuIcons.store, onClick: () => g.setStoreKey('' as StoreKey) },
   ];
@@ -96,21 +123,23 @@ export default function StorePage() {
     <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px calc(96px + env(safe-area-inset-bottom))' }}>
       {/* 헤더 — 오른쪽: 매장명 + 메뉴(⋮⋮⋮). 왼쪽 작은 워드마크(탭=매장 앱 메인)는 검색 화면에서만 */}
       <header style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, minHeight: 40 }}>
-        <h1 style={{ margin: 0, opacity: hero ? 0 : 1, visibility: hero ? 'hidden' : 'visible', transition: `opacity ${EASE}, visibility ${EASE}` }}>
+        <h1 style={{ margin: 0, flex: 'none', whiteSpace: 'nowrap', opacity: hero ? 0 : 1, visibility: hero ? 'hidden' : 'visible', transition: `opacity ${EASE}, visibility ${EASE}` }}>
           <button onClick={goMain} aria-label="매장 앱 메인으로" tabIndex={hero ? -1 : 0}
             style={{ all: 'unset', cursor: 'pointer', ...LAT, fontSize: 15, color: GOLD }}>
             CAVE DE VIN
           </button>
         </h1>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <GuestBadge sep />
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
             {storeLabel}
           </span>
-          <AppsMenuButton open={menuOpen} onToggle={() => setMenuOpen((v) => !v)} />
+          <AppsMenuButton open={menuOpen} onToggle={() => setMenuOpen((v) => !v)} dot={restock.tileDot} />
         </span>
         <AppsMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
       </header>
       <div style={{ height: 1, background: GOLD_LINE, margin: '10px -16px 20px', opacity: hero ? 0 : 1, transition: `opacity ${EASE}` }} />
+
 
       {/* 첫 화면 — 구글처럼 가운데 큰 워드마크. 검색 시작하면 접히며 검색창이 위로 올라간다(항상 마운트 → 입력 포커스 유지) */}
       <div aria-hidden={!hero}
@@ -141,8 +170,9 @@ export default function StorePage() {
           {!g.searching && g.rows && g.rows.length === 0 && (
             <div style={{ padding: '28px 2px', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>검색 결과가 없습니다</div>
           )}
-          {/* 우리 매장 → 다른 매장 → 본사 순으로 묶어서(음영 구역이 섞이지 않게) */}
-          {sortByTier(g.rows || [], g.storeKey as StoreKey).map(renderRow)}
+          {/* 매장 재고 있는 것 먼저(흰색), 그다음 본사(회색). 매장·본사·입고 모두 없는 행(다른 매장에만 있음)은 숨김 */}
+          {sortByTier((g.rows || []).filter((r) =>
+            (r.stores[g.storeKey] || 0) + r.hq_available + r.hq_bonded + r.incoming + r.arrival_btls > 0), g.storeKey as StoreKey).map(renderRow)}
         </div>
       )}
 
@@ -152,6 +182,10 @@ export default function StorePage() {
             ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name)
             : null}
           onAdd={g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined} />
+      )}
+
+      {alertsOpen && (
+        <RestockAlertsSheet alerts={restock.alerts} onAct={(id, action) => void restock.act(id, action)} onClose={() => setAlertsOpen(false)} />
       )}
 
       {/* POS 하단 바 — 바 전체가 버튼(탭=정산 화면), 담긴 게 있으면 상시 노출 */}

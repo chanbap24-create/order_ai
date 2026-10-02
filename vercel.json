@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/sommelier-retention",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/restock-alerts",
+      "schedule": "30 9 * * *"
     }
   ],
   "build": {
