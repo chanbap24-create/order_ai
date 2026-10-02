@@ -93,6 +93,9 @@ export default function SommelierPage() {
     }
   };
 
+  // 로고 → 매장 앱 메인(인트로). 손님 연결·정산 카트는 유지(실수로 눌러도 응대 내용이 날아가지 않게)
+  const goHome = () => setPhase('intro');
+
   // 새 손님 응대 — 이전 손님 연결·카트까지 해제해야 다음 구매가 앞 손님에게 기록되지 않는다
   const newGuest = () => {
     endGuestSession();
@@ -114,7 +117,7 @@ export default function SommelierPage() {
           onStart={() => setPhase('customer')} />
       )}
       {phase === 'customer' && (
-        <CustomerScreen onBack={() => setPhase('intro')}
+        <CustomerScreen onBack={() => setPhase('intro')} onHome={goHome}
           onDone={(c) => {
             // 고객 단계 통과 = 새 손님 응대 시작 (c=null: 정보 미동의 — 추천만, 이력 기록 없음)
             startGuestSession(c ? { id: c.id, name: c.name } : null);
@@ -129,7 +132,7 @@ export default function SommelierPage() {
           }} />
       )}
       {phase === 'quiz' && (
-        <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting}
+        <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting} onHome={goHome}
           onExit={() => setPhase('customer')}
           initialAnswers={resume ? answers : null} initialStep={resume ? 4 : 0} />
       )}
@@ -141,7 +144,7 @@ export default function SommelierPage() {
         </div>
       )}
       {phase === 'results' && (
-        <ResultsScreen
+        <ResultsScreen onHome={goHome}
           customerName={customer?.name || '손님'}
           customerId={customer?.id ?? null}
           sessionId={sessionId}

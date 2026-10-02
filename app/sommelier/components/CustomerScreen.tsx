@@ -1,16 +1,16 @@
 'use client';
 
 // 고객 정보(성함·핸드폰) — 밑줄 입력 + 동의. 핸드폰 기준 upsert로 재방문 이력 누적.
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { normalizePhone } from '../lib/quiz';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
 
-export function CustomerScreen({ onDone, onStock, onBack }: {
+export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
   // c=null: 정보 수집 미동의 — 추천·재고 안내는 그대로, 이력만 저장 안 함(개인정보보호법 §16③)
   onDone: (c: SommelierCustomer | null) => void;
   onStock: (c: SommelierCustomer | null) => void; // 기존 재고에서 선택 → 매장 재고(POS)로
   onBack: () => void;
+  onHome: () => void; // 로고 → 매장 앱 메인(인트로)
 }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -68,7 +68,7 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
 
   return (
     <section className="som-screen">
-      <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>취향 문답</span></div>
+      <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span>취향 문답</span></div>
       <div className="som-prog"><i style={{ width: '8%' }} /></div>
       <div className="som-q">
         <div className="som-qno som-lat som-rise" style={{ ['--i' as string]: 0 }}>GUEST</div>

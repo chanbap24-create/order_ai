@@ -12,7 +12,6 @@ import { StoreHome } from './components/StoreHome';
 import { LoginScreen } from './components/LoginScreen';
 import { useStoreApp } from './hooks/useStoreApp';
 import { useCart } from './hooks/useCart';
-import { readGuest } from '@/app/lib/store/cartSession';
 import { fmt, GOLD_LINE, LAT } from './brand';
 // 테이스팅 노트는 인벤토리와 동일 모듈 재사용 (복제 금지)
 import { TastingNoteModal } from '../inventory/components/TastingNoteModal';
@@ -31,15 +30,11 @@ export default function StorePage() {
     return () => clearTimeout(t);
   }, []);
   const storeLabel = STORES.find((s) => s.key === g.storeKey)?.label || '';
-  // 소믈리에(취향 문답)로 이동 — 매장 선택을 그대로 넘긴다 (컬럼 키 동일).
-  // 손님이 연결돼 있으면 문답 직행(양쪽을 넘나들며 품목 추가하는 흐름), 아니면 인트로부터.
-  const openSommelier = () => {
-    let hasGuest = false;
-    try {
-      if (g.storeKey) localStorage.setItem('som_store', g.storeKey);
-      hasGuest = !!readGuest();
-    } catch { /* ignore */ }
-    window.location.href = hasGuest ? '/sommelier?quiz=1' : '/sommelier';
+  // 로고 → 매장 앱 메인(소믈리에 인트로). 매장 선택은 그대로 넘긴다(컬럼 키 동일).
+  // 손님 응대 중 취향 문답으로 이어가기는 정산 시트의 '이어서 취향 문답으로' 링크가 담당.
+  const goMain = () => {
+    try { if (g.storeKey) localStorage.setItem('som_store', g.storeKey); } catch { /* ignore */ }
+    window.location.href = '/sommelier';
   };
   const searchNow = (q: string) => { g.onInput(q); void g.runSearch(q); };
 
@@ -87,7 +82,7 @@ export default function StorePage() {
       {/* 헤더 — 워드마크(탭=소믈리에 메인) · 매장명(탭=매장 변경) */}
       <header style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
         <h1 style={{ margin: 0 }}>
-          <button onClick={openSommelier} aria-label="소믈리에 메인으로"
+          <button onClick={goMain} aria-label="매장 앱 메인으로"
             style={{ all: 'unset', cursor: 'pointer', ...LAT, fontSize: 15, color: 'var(--text-primary)' }}>
             CAVE DE VIN
           </button>

@@ -460,3 +460,7 @@
 /* 고객 정보 분기 — 보조 CTA(기존 재고에서 선택): 윤곽선 고스트 */
 .som-next.som-ghost{background:transparent;color:var(--som-ink);
   border:1px solid color-mix(in srgb, var(--som-gold) 55%, transparent)}
+
+/* 헤더 로고 버튼 — 링크와 같은 모양(배경·테두리 제거), 누르면 매장 앱 메인 */
+.som-home{background:none;border:none;padding:0;margin:0;font:inherit;cursor:pointer}
+.som-brand .som-home.som-lat{font-family:Didot,"Bodoni 72",Georgia,serif}

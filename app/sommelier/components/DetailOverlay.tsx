@@ -8,12 +8,11 @@ import type { SommelierDetail } from '@/app/lib/sommelierDetail';
 
 const won = (n: number) => n.toLocaleString('ko-KR');
 
-export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
+export function DetailOverlay({ r, rank, inCart, onAdd, onClose }: {
   r: SommelierResult;
   rank: string;
-  ordered: boolean;
-  busy: boolean;
-  onOrder: () => void;
+  inCart: number;     // 정산 카트에 담긴 병수 (0 = 안 담김)
+  onAdd: () => void;  // 정산에 담기 — 구매 이력은 정산 '판매 완료'에서 일괄 저장
   onClose: () => void;
 }) {
   const [d, setD] = useState<SommelierDetail | null>(null);
@@ -96,10 +95,10 @@ export function DetailOverlay({ r, rank, ordered, busy, onOrder, onClose }: {
           ) : (
             <span className="som-price">{won(r.retail_price)}원</span>
           )}
-          <button className={`som-buy${ordered ? ' done' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onOrder(); }} disabled={busy}
-            title={ordered ? '다시 누르면 취소됩니다' : undefined}>
-            {busy ? '처리 중…' : ordered ? '✓ 기록됨 · 취소' : '구매 기록'}
+          <button className="som-buy"
+            onClick={(e) => { e.stopPropagation(); onAdd(); }}
+            title={inCart > 0 ? '한 번 더 누르면 1병 추가' : undefined}>
+            {inCart > 0 ? `✓ 담김 ${inCart}병 · 추가` : '정산에 담기'}
           </button>
         </div>
         </div>

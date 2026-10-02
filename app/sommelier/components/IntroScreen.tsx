@@ -144,7 +144,7 @@ export function IntroScreen({ store, onStoreChange, onStart }: {
       )}
       {boot !== 'on' && <>
       <div className="som-brand som-rise" style={{ ['--i' as string]: 0 }}>
-        <Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link>
+        <span className="som-lat">CAVE DE VIN</span>
         <span className="som-brand-right">
           {/* 매장 재고 앱으로 — 선택된 매장을 그대로 넘긴다 (키 동일) */}
           <Link className="som-stocklink" href="/store"

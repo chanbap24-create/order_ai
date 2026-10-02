@@ -2,7 +2,6 @@
 
 // 추천 결과 — 화이트 쇼룸 카드 레일. 구조 프로파일 4종(무게감·당도·산미·탄닌) 바 +
 // [구매 기록]으로 고객 이력 저장(향후 자동추천 학습 데이터).
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import { DetailOverlay } from './DetailOverlay';
@@ -34,20 +33,19 @@ function summary(a: QuizAnswers | null): string {
   return parts.join(' · ');
 }
 
-export function ResultsScreen({ customerName, customerId, sessionId, answers, results, priceHint, onBack, onRetry, onNewGuest }: {
+export function ResultsScreen({ customerName, customerId, answers, results, priceHint, onBack, onRetry, onNewGuest, onHome }: {
   customerName: string;
   customerId: number | null;
-  sessionId: number | null;
+  sessionId: number | null; // 문답 세션(현재 화면 미사용 — 구매 이력은 정산 '판매 완료'에서 저장)
   answers: QuizAnswers | null;
   results: SommelierResult[];
   priceHint?: { count: number; minPrice: number } | null;
   onBack: () => void;   // 문답 마지막 질문으로(답변 유지)
   onRetry: () => void;  // 처음부터 다시 문답
   onNewGuest: () => void;
+  onHome: () => void; // 로고 → 매장 앱 메인(인트로)
 }) {
-  const [ordered, setOrdered] = useState<Set<string>>(new Set());
   const [visible, setVisible] = useState(5); // 5병씩 더보기
-  const [busy, setBusy] = useState<string | null>(null);
   const [detail, setDetail] = useState<number | null>(null); // 전체화면 상세로 연 카드 인덱스
   // 정산 카트(매장 POS와 공유) — 결과 화면 안에서 시트로 열어 추천 상태를 잃지 않는다
   const cart = useCart();
@@ -61,6 +59,22 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
       if (customerId) syncGuestStorage({ id: customerId, name: customerName || '' });
     } catch { /* ignore */ }
   };
+  // 카드 더블탭·꾹 누르기 — 담기 + '탁월한 선택' 도장(1초)
+  const celebrate = (r: SommelierResult) => {
+    addToCart(r);
+    setBurst(r.item_code);
+    setTimeout(() => setBurst((cur) => (cur === r.item_code ? null : cur)), 1080);
+  };
+
+  // 정산에 담기 — 카드 '담기'·상세 '정산에 담기' 공용. 담김 플래시 0.9초
+  const addToCart = (r: SommelierResult) => {
+    cart.add({
+      item_no: r.item_code, item_name: r.name,
+      sale_price: r.sale_price || r.retail_price, retail_price: r.retail_price,
+    });
+    setAdded(r.item_code);
+    setTimeout(() => setAdded((cur) => (cur === r.item_code ? null : cur)), 900);
+  };
   // 추천 → 재고 선택(POS 검색)으로 — 손님·카트 유지
   const goStock = () => { syncGuest(); window.location.href = '/store'; };
   const shown = results.slice(0, visible);
@@ -69,7 +83,15 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
   const dragMoved = useRef(false); // 드래그 직후 클릭(상세 열림) 오발 방지
   // 싱글탭=상세, 더블탭=구매 기록(토글) — 260ms 디바운스로 구분
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [burst, setBurst] = useState<{ code: string; cancel: boolean } | null>(null);
+  const [burst, setBurst] = useState<string | null>(null); // 담기 순간 '탁월한 선택' 도장
+  // 꾹 누르기(0.5초) = 담기. 10px 이상 움직이면 취소(레일 스와이프), 발화 후 손 뗄 때의 클릭은 무시
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressFired = useRef(false);
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
+  const cancelPress = () => {
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+    pressOrigin.current = null;
+  };
 
   // 모바일 스크롤 스포트라이트 — 중앙 스냅 카드가 조명을 받고 양옆은 흐려짐 + 페이지 점
   const railRef = useRef<HTMLDivElement>(null);
@@ -165,35 +187,11 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
     rail.scrollTo({ left: card.offsetLeft - (rail.clientWidth - card.offsetWidth) / 2, behavior: 'smooth' });
   };
 
-  /** 구매 기록 토글 — 기록/재탭 시 취소(DB에서도 삭제) */
-  const order = async (r: SommelierResult) => {
-    if (!customerId || busy) return;
-    const cancel = ordered.has(r.item_code);
-    setBusy(r.item_code);
-    try {
-      const res = await fetch('/api/sommelier/order', {
-        method: cancel ? 'DELETE' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId, sessionId, itemCode: r.item_code, itemName: r.name,
-          retailPrice: r.sale_price || r.retail_price, quantity: 1,
-        }),
-      });
-      if (res.ok) {
-        setOrdered((s) => {
-          const n = new Set(s);
-          if (cancel) n.delete(r.item_code); else n.add(r.item_code);
-          return n;
-        });
-      } else alert(cancel ? '취소에 실패했습니다.' : '구매 기록에 실패했습니다.');
-    } catch { alert('처리에 실패했습니다.'); }
-    finally { setBusy(null); }
-  };
 
   return (
     <section className="som-screen som-results">
       <div className="som-head">
-        <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>추천 결과</span></div>
+        <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span>추천 결과</span></div>
         <div className="som-prog"><i style={{ width: '100%' }} /></div>
         <h2 className="som-rise som-lat" style={{ ['--i' as string]: 0 }}>
           Your Selection
@@ -220,31 +218,47 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
         <div className="som-railwrap">
         <div className={`som-rail${spot ? ' spotmode' : ''}`} ref={railRef}>
           {shown.map((r, i) => {
-            const done = ordered.has(r.item_code);
             return (
               <div key={r.item_code}
                 className={`som-card som-rise${spot ? (i === page ? ' focus' : ' dim') : ''}`}
-                style={{ ['--i' as string]: Math.min(i, 6) + 2, cursor: 'pointer' }}
+                style={{
+                  ['--i' as string]: Math.min(i, 6) + 2, cursor: 'pointer',
+                  // 꾹 누를 때 아이폰 '이미지 저장' 메뉴·글자 선택 방지
+                  WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none',
+                } as React.CSSProperties}
+                onPointerDown={(e) => {
+                  pressFired.current = false;
+                  pressOrigin.current = { x: e.clientX, y: e.clientY };
+                  pressTimer.current = setTimeout(() => {
+                    pressFired.current = true;
+                    if (tapTimer.current) { clearTimeout(tapTimer.current); tapTimer.current = null; }
+                    try { navigator.vibrate?.(10); } catch { /* ignore */ }
+                    celebrate(r);
+                  }, 500);
+                }}
+                onPointerMove={(e) => {
+                  const o = pressOrigin.current;
+                  if (o && Math.hypot(e.clientX - o.x, e.clientY - o.y) > 10) cancelPress();
+                }}
+                onPointerUp={cancelPress}
+                onPointerLeave={cancelPress}
+                onPointerCancel={cancelPress}
+                onContextMenu={(e) => e.preventDefault()}
                 onClick={() => {
                   if (dragMoved.current) return;
-                  if (tapTimer.current) { // 더블탭 → 구매 기록 토글 + 도장 이펙트 → 상세 전환
+                  if (pressFired.current) { pressFired.current = false; return; } // 꾹 누르기 직후 클릭 무시
+                  if (tapTimer.current) { // 더블탭 → 담기 + 도장
                     clearTimeout(tapTimer.current); tapTimer.current = null;
-                    const cancel = ordered.has(r.item_code);
-                    setBurst({ code: r.item_code, cancel });
-                    order(r);
-                    setTimeout(() => {
-                      setBurst(null);
-                      if (!cancel) setDetail(i); // 기록 완료 후 자세히 보기로 자연 전환 (취소는 제자리)
-                    }, 1080);
+                    celebrate(r);
                   } else {
                     tapTimer.current = setTimeout(() => { tapTimer.current = null; setDetail(i); }, 260);
                   }
                 }}>
                 <div className="som-core">
-                  {burst?.code === r.item_code && (
-                    <span className={`som-burst${burst.cancel ? ' cancel' : ''}`} aria-hidden>
+                  {burst === r.item_code && (
+                    <span className="som-burst" aria-hidden>
                       <i /><i />
-                      <b>{burst.cancel ? '선택 취소' : '탁월한 선택'}</b>
+                      <b>탁월한 선택</b>
                     </span>
                   )}
                   <div className="som-shot">
@@ -279,20 +293,15 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
                     ) : (
                       <span className="som-price">{won(r.retail_price)}원</span>
                     )}
-                    <button className={`som-buy${done ? ' done' : ''}`}
+                    <button className="som-buy"
                       onClick={(e) => { e.stopPropagation(); if (!dragMoved.current) setDetail(i); }}>
-                      {done ? '✓ 선택됨' : '자세히 보기'}
+                      자세히 보기
                     </button>
                     <button className={`som-buy${added === r.item_code ? ' added' : ''}`} aria-label="정산에 담기"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (dragMoved.current) return;
-                        cart.add({
-                          item_no: r.item_code, item_name: r.name,
-                          sale_price: r.sale_price || r.retail_price, retail_price: r.retail_price,
-                        });
-                        setAdded(r.item_code);
-                        setTimeout(() => setAdded((cur) => (cur === r.item_code ? null : cur)), 900);
+                        addToCart(r);
                       }}>
                       {added === r.item_code ? '✓ 담김' : '담기'}
                     </button>
@@ -355,9 +364,8 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
 
       {detail != null && results[detail] && (
         <DetailOverlay r={results[detail]} rank={ROMAN[detail] || String(detail + 1)}
-          ordered={ordered.has(results[detail].item_code)}
-          busy={busy === results[detail].item_code}
-          onOrder={() => order(results[detail])}
+          inCart={cart.items.find((x) => x.item_no === results[detail].item_code)?.qty || 0}
+          onAdd={() => addToCart(results[detail])}
           onClose={() => setDetail(null)} />
       )}
     </section>

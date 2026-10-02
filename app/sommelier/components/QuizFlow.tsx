@@ -2,7 +2,6 @@
 
 // 취향 문답 5단계 — 전 단계 공통 문법: 연회백 대형 타이포가 선택 시 와인 색으로 물든다.
 // 단일 선택(타입·무게감·가격)은 물든 뒤 자동 진행, 멀티(향미·산지)는 물든 채 유지 + [다음].
-import Link from 'next/link';
 import { useState } from 'react';
 import {
   BODY_OPTIONS, COUNTRY_OPTIONS, FLAVOR_GROUPS, PRICE_OPTIONS, TYPE_OPTIONS,
@@ -20,10 +19,11 @@ const STEPS = [
   { code: 'Q.5 — PRICE', hint: '가격대' },
 ];
 
-export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initialStep = 0 }: {
+export function QuizFlow({ onSubmit, submitting, onExit, onHome, initialAnswers, initialStep = 0 }: {
   onSubmit: (a: QuizAnswers) => void;
   submitting: boolean;
   onExit: () => void;
+  onHome: () => void; // 로고 → 매장 앱 메인(인트로)
   initialAnswers?: QuizAnswers | null; // 결과에서 '이전'으로 돌아올 때 답변 유지
   initialStep?: number;
 }) {
@@ -65,7 +65,7 @@ export function QuizFlow({ onSubmit, submitting, onExit, initialAnswers, initial
 
   return (
     <section className="som-screen" key={step}>
-      <div className="som-brand"><Link className="som-lat" href="/" aria-label="메인으로">CAVE DE VIN</Link><span>취향 문답</span></div>
+      <div className="som-brand"><button type="button" className="som-lat som-home" onClick={onHome} aria-label="매장 앱 메인으로">CAVE DE VIN</button><span>취향 문답</span></div>
       <div className="som-prog"><i style={{ width: `${((step + 1) / 5) * 100}%` }} /></div>
       {/* 진행 트레일 — 지나온 챕터의 선택 요약, 탭하면 그 챕터로 점프. 빈 단계에서도 높이 고정 */}
       <div className="som-trail">
