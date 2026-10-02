@@ -53,6 +53,35 @@ async function verifyToken(token: string): Promise<{ manager?: string; role?: st
 }
 
 // 세일즈 토큰 검증 공통 함수
+// 매장 앱(소믈리에·재고 PWA) API 경계.
+// STORE_API: 매장 권한(store) 계정만 / STORE_SHARED: 매장 화면이 함께 쓰는 공용 API(매장 전용 계정도 허용)
+const STORE_API_PREFIXES = ['/api/store/', '/api/sommelier/'];
+const STORE_SHARED_APIS = ['/api/tasting-notes', '/api/proxy/pdf', '/api/sales/wine-img'];
+
+// 매장 전용 주소 — 이 주소로는 소믈리에·매장 앱만 열린다(영업 시스템 화면·API 차단). 로그인 쿠키도 주소별로 따로.
+const STORE_HOSTS = ['store.cavedevin.com'];
+const STORE_HOST_PAGES = ['/sommelier', '/store'];
+// 매장 주소에서 허용하는 API — 매장 API + 공용 + 로그인 + 로그인 드롭다운
+const STORE_HOST_APIS = [...STORE_API_PREFIXES, ...STORE_SHARED_APIS, '/api/auth/', '/api/sales/clients/managers'];
+// 일반 주소에서 로그인 보호하는 페이지(기존 matcher 목록) — matcher를 전 경로로 넓혀서 여기서 거른다
+const PROTECTED_PAGES = ['/order', '/order-v2', '/stock', '/inventory', '/glass', '/wine', '/quote', '/marketing'];
+
+function isStoreHost(request: NextRequest): boolean {
+  const host = (request.headers.get('host') || '').split(':')[0].toLowerCase();
+  return STORE_HOSTS.includes(host);
+}
+
+/** 매장 주소 입구 — 응답을 돌려주면 그대로 종료, null이면 일반 API 인증 로직으로 계속 */
+function storeHostGate(request: NextRequest, pathname: string): NextResponse | null {
+  if (pathname.startsWith('/api/')) {
+    if (STORE_HOST_APIS.some((p) => pathname.startsWith(p))) return null;
+    return NextResponse.json({ error: '매장 앱에서는 사용할 수 없는 기능입니다.' }, { status: 403 });
+  }
+  if (STORE_HOST_PAGES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return NextResponse.next();
+  // 첫 화면·영업 화면 → 소믈리에(매장 앱 메인)
+  return NextResponse.redirect(new URL('/sommelier', request.url));
+}
+
 async function verifySalesToken(request: NextRequest): Promise<{ valid: boolean; payload?: any }> {
   const token = request.cookies.get(SALES_COOKIE)?.value;
   if (!token) return { valid: false };
@@ -130,6 +159,15 @@ function applyRateLimit(request: NextRequest, pathname: string): NextResponse | 
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
+
+  // ── 매장 전용 주소(store.cavedevin.com) — 소믈리에·매장 앱만 열리는 별도 입구 ──
+  if (isStoreHost(request)) {
+    const gated = storeHostGate(request, pathname);
+    if (gated) return gated;
+  } else if (!pathname.startsWith('/api/') && !PROTECTED_PAGES.includes(pathname)) {
+    // 일반 주소: matcher가 전 경로라 기존 보호 대상(API·지정 페이지) 외에는 그대로 통과
+    return NextResponse.next();
+  }
 
   // ── Rate limit 체크 (API만) ──
   const rlBlocked = applyRateLimit(request, pathname);
@@ -249,6 +287,16 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     if (!valid) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
+    // 매장 앱 경계 — 소믈리에·재고 API는 매장 권한(store) 계정만, 매장 전용 계정(role=store)은 매장 앱 API만
+    const storeApi = STORE_API_PREFIXES.some((p) => pathname.startsWith(p));
+    const storeShared = STORE_SHARED_APIS.some((p) => pathname.startsWith(p));
+    const hasStore = payload.store === true || payload.role === 'store';
+    if (storeApi && !hasStore) {
+      return NextResponse.json({ error: '매장 앱 사용 권한이 없습니다.' }, { status: 403 });
+    }
+    if (payload.role === 'store' && !storeApi && !storeShared) {
+      return NextResponse.json({ error: '매장 전용 계정은 사용할 수 없는 기능입니다.' }, { status: 403 });
+    }
     // 사용량 추적 (best-effort, fire-and-forget)
     // X-Track-Skip 헤더가 있으면 추적 제외 (배경 가용성 체크 같은 부수 호출용).
     if (request.headers.get('x-track-skip') !== '1') {
@@ -280,6 +328,12 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
       res.headers.set('Cache-Control', NO_CACHE);
       return res;
     }
+    // 매장 전용 계정은 영업 페이지 대신 매장 앱으로 (API는 위에서 403)
+    if (payload.role === 'store') {
+      const res = NextResponse.redirect(new URL('/store', request.url));
+      res.headers.set('Cache-Control', NO_CACHE);
+      return res;
+    }
   } catch {
     const res = NextResponse.redirect(new URL('/sales', request.url));
     res.headers.set('Cache-Control', NO_CACHE);
@@ -293,17 +347,6 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: [
-    // API 전체
-    '/api/:path*',
-    // 보호할 페이지 (sales 로그인 페이지 제외 - 자체 인증)
-    '/order',
-    '/order-v2',
-    '/stock',
-    '/inventory',
-    '/glass',
-    '/wine',
-    '/quote',
-    '/marketing',
-  ],
+  // 전 경로(정적·파일 제외) — 매장 주소 입구 분기 때문. 일반 주소의 보호 대상은 PROTECTED_PAGES·/api로 함수 안에서 거른다
+  matcher: ['/((?!_next/|.*\\..*).*)'],
 };

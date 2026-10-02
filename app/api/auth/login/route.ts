@@ -5,7 +5,9 @@ import { hashPassword, verifyPassword, isLegacyHash, verifyLegacyPassword, creat
 
 export async function POST(req: Request) {
   try {
-    const { manager, password } = await req.json();
+    const { manager, password, scope } = await req.json();
+    // scope='store': 매장 앱(소믈리에·재고 PWA) 로그인 — 백화점 직원·소믈리에 관리자(store_access)와 매장 전용 계정만
+    const storeScope = scope === 'store';
 
     if (!manager || !password) {
       return NextResponse.json({ error: '담당자명과 비밀번호를 입력해주세요.' }, { status: 400 });
@@ -18,7 +20,7 @@ export async function POST(req: Request) {
     // 사용자 조회
     const { data: user } = await supabase
       .from('sales_users')
-      .select('manager, password_hash, role, department, failed_attempts, locked_until, is_active')
+      .select('manager, password_hash, role, department, failed_attempts, locked_until, is_active, store_access')
       .eq('manager', manager)
       .maybeSingle();
 
@@ -74,19 +76,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '관리자 계정은 영업 페이지에 접근할 수 없습니다.' }, { status: 403 });
     }
 
+    // 매장 앱 권한 — 비번 검증 후 판정(권한 유무로 계정 존재를 흘리지 않게)
+    const storeAccess = user.store_access === true || user.role === 'store';
+    if (storeScope && !storeAccess) {
+      return NextResponse.json({ error: '매장 앱 사용 권한이 없는 계정입니다. 관리자에게 문의하세요.' }, { status: 403 });
+    }
+    // 매장 전용 계정은 영업 시스템 로그인 불가
+    if (!storeScope && user.role === 'store') {
+      return NextResponse.json({ error: '매장 전용 계정입니다. 매장 앱에서 로그인해주세요.' }, { status: 403 });
+    }
+
     // 로그인 성공 → 실패 카운터 초기화
     if (user.failed_attempts > 0 || user.locked_until) {
       await supabase.from('sales_users').update({ failed_attempts: 0, locked_until: null }).eq('manager', manager);
     }
 
     // 세션 생성
-    const token = await createSession(user.manager, user.role, user.department || '');
+    const token = await createSession(user.manager, user.role, user.department || '', storeAccess);
 
     const response = NextResponse.json({
       success: true,
       manager: user.manager,
       role: user.role,
       department: user.department || '',
+      store: storeAccess,
     });
 
     response.cookies.set(COOKIE_NAME, token, {

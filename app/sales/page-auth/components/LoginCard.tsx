@@ -5,6 +5,7 @@ import { useState } from 'react';
 type Props = {
   managerList: string[];
   onSuccess: (data: { manager: string; role?: string; department?: string }) => void;
+  scope?: 'store'; // 매장 앱(소믈리에) 로그인 — 매장 권한 계정만 통과
 };
 
 const focusHandlers = {
@@ -18,7 +19,7 @@ const focusHandlers = {
   },
 };
 
-export function LoginCard({ managerList, onSuccess }: Props) {
+export function LoginCard({ managerList, onSuccess, scope }: Props) {
   const [loginManager, setLoginManager] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -33,7 +34,7 @@ export function LoginCard({ managerList, onSuccess }: Props) {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manager: loginManager, password: loginPassword }),
+        body: JSON.stringify({ manager: loginManager, password: loginPassword, ...(scope ? { scope } : {}) }),
       });
       const data = await res.json();
       if (data.success) {

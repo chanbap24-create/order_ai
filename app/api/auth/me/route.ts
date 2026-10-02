@@ -25,6 +25,7 @@ export async function GET() {
       manager: session.manager,
       role: session.role,
       department,
+      store: session.store, // 매장 앱 접근 권한
     });
   } catch {
     return NextResponse.json({ authenticated: false }, { status: 401 });

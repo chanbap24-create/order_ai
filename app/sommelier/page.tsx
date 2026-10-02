@@ -51,9 +51,9 @@ export default function SommelierPage() {
     } catch { /* ignore */ }
     Promise.all([
       fetch('/api/auth/me').then((r) => r.json()).catch(() => null),
-      fetch('/api/sales/clients/managers').then((r) => r.json()).catch(() => null),
+      fetch('/api/sales/clients/managers?scope=store').then((r) => r.json()).catch(() => null),
     ]).then(([me, mgr]) => {
-      setAuthed(!!me?.authenticated);
+      setAuthed(!!me?.authenticated && me?.store === true); // 매장 권한 없는 영업 계정은 로그인 화면
       setManagerList(Array.isArray(mgr?.managers) ? mgr.managers : []);
       setChecking(false);
     });
@@ -103,7 +103,7 @@ export default function SommelierPage() {
     return <div className="som-root"><div className="som-center">준비 중…</div></div>;
   }
   if (!authed) {
-    return <LoginCard managerList={managerList} onSuccess={() => setAuthed(true)} />;
+    return <LoginCard managerList={managerList} scope="store" onSuccess={() => setAuthed(true)} />;
   }
 
   return (

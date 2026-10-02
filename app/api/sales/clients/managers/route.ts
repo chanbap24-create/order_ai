@@ -4,6 +4,14 @@ import { supabase } from '@/app/lib/db';
 // GET: client_details 테이블에서 고유 담당자 목록 조회
 export async function GET(req: NextRequest) {
   try {
+    // 매장 앱 로그인 드롭다운 — 매장 권한(store_access) 계정·매장 전용 계정만
+    if (req.nextUrl.searchParams.get('scope') === 'store') {
+      const { data: su } = await supabase.from('sales_users').select('manager, role, store_access')
+        .neq('is_active', false).or('store_access.eq.true,role.eq.store');
+      const managers = (su || []).map((u) => u.manager).filter(Boolean).sort();
+      return NextResponse.json({ managers });
+    }
+
     // client_details는 ~4,500행으로 가벼움 (shipments 99,000+ 대비)
     const { data, error } = await supabase
       .from('client_details')
@@ -26,6 +34,7 @@ export async function GET(req: NextRequest) {
       .neq('is_active', false); // 숨김(비활성) 계정 제외
     const executives: string[] = [];
     for (const u of (users || [])) {
+      if (u.role === 'store') continue; // 매장 전용 계정은 영업 로그인 대상 아님
       if (u.manager) {
         allManagers.add(u.manager);
         if (u.role === 'executive') executives.push(u.manager);

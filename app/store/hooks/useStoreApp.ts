@@ -34,7 +34,11 @@ export function useStoreApp() {
       setStoreKeyState((localStorage.getItem(LS_STORE) as StoreKey) || '');
       setRecent((JSON.parse(localStorage.getItem(LS_RECENT) || '[]') as string[]).filter(isMeaningful));
     } catch { /* ignore */ }
-    fetch('/api/auth/me').then((r) => setAuthed(r.ok)).catch(() => setAuthed(false));
+    // 로그인 + 매장 앱 권한(store) 둘 다 있어야 진입 — 권한 없는 영업 계정은 로그인 화면으로
+    fetch('/api/auth/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setAuthed(!!j?.authenticated && j?.store === true))
+      .catch(() => setAuthed(false));
     // 서비스워커 등록 (설치 가능 조건)
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/store-sw.js').catch(() => {});
   }, []);
@@ -60,7 +64,7 @@ export function useStoreApp() {
     try {
       // store 파라미터로 법인(까브/대유) 재고 테이블이 갈린다
       const res = await fetch(`/api/store/search?q=${encodeURIComponent(query)}&store=${storeKey}`);
-      if (res.status === 401) { setAuthed(false); return; }
+      if (res.status === 401 || res.status === 403) { setAuthed(false); return; }
       const j = await res.json();
       setRows(j.rows || []);
       // 최근 검색 (중복 제거, 6개)
@@ -120,7 +124,7 @@ export function useStoreApp() {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manager, password }),
+        body: JSON.stringify({ manager, password, scope: 'store' }),
       });
       const j = await res.json();
       if (!res.ok) return j.error || '로그인 실패';
