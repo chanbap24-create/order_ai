@@ -151,12 +151,15 @@ export default function StorePage() {
           onQty={cart.setQty} onExtraRate={cart.setExtraRate} onExtraWon={cart.setExtraWon}
           onClear={() => { cart.clear(); setCheckoutOpen(false); }}
           onClose={() => setCheckoutOpen(false)}
-          onQuiz={() => {
-            try {
-              const k = localStorage.getItem('cave_store_key');
-              if (k) localStorage.setItem('som_store', k);
-            } catch { /* ignore */ }
-            window.location.href = '/sommelier?quiz=1';
+          continueTo={{
+            label: '이어서 취향 문답으로 추천받기 →',
+            onClick: () => {
+              try {
+                const k = localStorage.getItem('cave_store_key');
+                if (k) localStorage.setItem('som_store', k);
+              } catch { /* ignore */ }
+              window.location.href = '/sommelier?quiz=1';
+            },
           }} />
       )}
 

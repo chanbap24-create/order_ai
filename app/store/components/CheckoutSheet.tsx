@@ -8,13 +8,14 @@ import { endGuestSession, readGuest } from '@/app/lib/store/cartSession';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
-export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, extraWon, extraAmount, finalTotal, storeLabel, onQty, onExtraRate, onExtraWon, onClear, onClose, onQuiz }: {
+export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, extraWon, extraAmount, finalTotal, storeLabel, onQty, onExtraRate, onExtraWon, onClear, onClose, continueTo }: {
   items: CartItem[]; bottles: number; total: number; retailTotal: number;
   extraRate: number; extraWon: number; extraAmount: number; finalTotal: number; storeLabel: string;
   onQty: (itemNo: string, qty: number) => void;
   onExtraRate: (pct: number) => void; onExtraWon: (won: number) => void;
   onClear: () => void; onClose: () => void;
-  onQuiz?: (() => void) | null; // 취향 문답으로 이어가기 (소믈리에 안에서 열면 숨김)
+  // 반대편으로 이어가기 — 재고 앱에선 '취향 문답으로', 추천 결과에선 '재고에서 고르기'. 카트·손님 유지
+  continueTo?: { label: string; onClick: () => void } | null;
 }) {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -157,11 +158,11 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
             <span style={{ fontSize: 13, fontWeight: 700 }}>합계 {fmt(bottles)}병</span>
             <span style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(finalTotal)}원</span>
           </div>
-          {/* 재고 선택 후 취향 추천으로 자연 연결 — 카트·손님 유지 (소믈리에 내부에선 숨김) */}
-          {onQuiz && (
-            <button onClick={onQuiz}
+          {/* 반대편으로 이어서 담기 — 재고 ↔ 추천 왕복, 카트·손님 유지 */}
+          {continueTo && (
+            <button onClick={continueTo.onClick}
               style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', textAlign: 'center', cursor: 'pointer', marginTop: 12, padding: '10px 0', fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'underline', textUnderlineOffset: 3, textDecorationColor: 'rgba(184,154,106,0.6)' }}>
-              이어서 취향 문답으로 추천받기 →
+              {continueTo.label}
             </button>
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>

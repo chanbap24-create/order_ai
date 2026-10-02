@@ -359,7 +359,8 @@ export function ResultsScreen({ customerName, customerId, answers, results, pric
           storeLabel={storeLabel}
           onQty={cart.setQty} onExtraRate={cart.setExtraRate} onExtraWon={cart.setExtraWon}
           onClear={() => { cart.clear(); setCheckoutOpen(false); }}
-          onClose={() => setCheckoutOpen(false)} />
+          onClose={() => setCheckoutOpen(false)}
+          continueTo={{ label: '이어서 재고에서 고르기 →', onClick: goStock }} />
       )}
 
       {detail != null && results[detail] && (
