@@ -3,6 +3,7 @@
 // 소믈리에 관리자 — 계정별 실적 랭킹 + 인기 와인 + 할인율 설정 진입 (권한자 전용 MVP).
 // 지표 설계: 등록(신규 손님) → 상담(문답 세션) → 판매(병수·금액) 퍼널 + 전환율·재방문.
 import { useEffect, useState } from 'react';
+import { RequestsList } from './components/RequestsList';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -61,6 +62,9 @@ export default function SommelierAdminPage() {
         <h1 style={{ fontSize: '1.5rem', fontWeight: 500, margin: 0 }}>소믈리에 관리자</h1>
         <Link href="/sommelier" style={{ fontSize: 12, color: 'var(--text-tertiary, #888)', textDecoration: 'none' }}>← 소믈리에</Link>
       </div>
+
+      {/* 매장 직원 수정 요청 — 통계보다 먼저(처리할 일) */}
+      <RequestsList />
 
       {/* 기간 토글 — 플랫, 세로 구분선 + 월별 드롭다운 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0, margin: '18px 0 6px' }}>

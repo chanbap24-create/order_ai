@@ -2,6 +2,7 @@
 
 // 품목 상세 바텀시트 — 위치별 병수 + 백화점가 + (우리 매장에 없으면) 대체품. 시안 ③ 화면.
 import { corpOfStore, storesOfCorp, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';
+import { ChangeRequestForm } from './ChangeRequestForm';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
@@ -111,6 +112,9 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
             정산에 담기{row.sale_price > 0 ? ` · ${fmt(row.sale_price)}원` : ''}
           </button>
         )}
+
+        {/* 수정 요청 — 맨 아래 작은 회색 링크 (key로 품목 바뀌면 폼 초기화) */}
+        <ChangeRequestForm key={row.item_no} itemNo={row.item_no} itemName={row.item_name} storeKey={storeKey} />
       </div>
     </div>
   );
