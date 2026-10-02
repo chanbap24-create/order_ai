@@ -19,7 +19,9 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
         strokeLinecap="round" aria-hidden style={{ flex: 'none', color: 'var(--text-primary)' }}>
         <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" />
       </svg>
+      <style>{'.store-search::placeholder{color:var(--text-muted)}'}</style>
       <input
+        className="store-search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
