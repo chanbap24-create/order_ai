@@ -59,7 +59,7 @@ const STORE_API_PREFIXES = ['/api/store/', '/api/sommelier/'];
 const STORE_SHARED_APIS = ['/api/tasting-notes', '/api/proxy/pdf', '/api/sales/wine-img'];
 
 // 매장 전용 주소 — 이 주소로는 소믈리에·매장 앱만 열린다(영업 시스템 화면·API 차단). 로그인 쿠키도 주소별로 따로.
-const STORE_HOSTS = ['store.cavedevin.com'];
+const STORE_HOSTS = ['cavedevin-store.vercel.app'];
 const STORE_HOST_PAGES = ['/sommelier', '/store'];
 // 매장 주소에서 허용하는 API — 매장 API + 공용 + 로그인 + 로그인 드롭다운
 const STORE_HOST_APIS = [...STORE_API_PREFIXES, ...STORE_SHARED_APIS, '/api/auth/', '/api/sales/clients/managers'];
@@ -160,7 +160,7 @@ function applyRateLimit(request: NextRequest, pathname: string): NextResponse | 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
-  // ── 매장 전용 주소(store.cavedevin.com) — 소믈리에·매장 앱만 열리는 별도 입구 ──
+  // ── 매장 전용 주소(cavedevin-store.vercel.app) — 소믈리에·매장 앱만 열리는 별도 입구 ──
   if (isStoreHost(request)) {
     const gated = storeHostGate(request, pathname);
     if (gated) return gated;
