@@ -79,7 +79,7 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
           {(row.arrival_btls > 0 || row.incoming > 0) && (
             <li style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', fontSize: 13.5 }}>
               <span style={{ color: 'var(--text-secondary)' }}>
-                들어오는 중{row.arrival_date && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginLeft: 6 }}>{row.arrival_date.slice(5, 7)}/{row.arrival_date.slice(8, 10)} 입항</span>}
+                입고 예정{row.arrival_date && <span style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginLeft: 6 }}>{row.arrival_date.slice(5, 7)}/{row.arrival_date.slice(8, 10)} 입항</span>}
               </span>
               <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--status-warning)' }}>{fmt(row.arrival_btls || row.incoming)}병</span>
             </li>

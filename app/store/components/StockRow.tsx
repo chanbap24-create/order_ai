@@ -1,7 +1,7 @@
 'use client';
 
 // 검색 결과 한 행 — "우리 N · 타매장 N · 본사 N · 입고 N" 시안 그대로.
-// 색은 숫자에만: 초록=지금 팔 수 있음 · 주황=들어오는 중 · 회색=없음.
+// 색은 숫자에만: 초록=지금 팔 수 있음 · 주황=입고 예정 · 회색=없음.
 // 탭=상세 바텀시트, 꾹(0.5초)=테이스팅 노트 바로 열기.
 import { useRef } from 'react';
 import { stockTierOf, type StockTier, type StoreKey, type StoreStockRow } from '@/app/lib/store/types';

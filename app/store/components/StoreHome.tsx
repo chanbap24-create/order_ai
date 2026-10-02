@@ -1,7 +1,7 @@
 'use client';
 
 // 매장 앱 홈(검색어 비었을 때) — 검색이 주인공, 나머지는 배경으로.
-// 최근 검색(검색바 꼬리) · 보유/입고 리스트 링크(조용히) · 이번 주 입고. 소믈리에 진입은 헤더 워드마크.
+// 최근 검색(검색바 꼬리) · 매장 재고/입고 예정/금주 입고 링크(조용히). 소믈리에 진입은 헤더 워드마크.
 // 행 렌더는 페이지의 renderRow를 받아 검색 결과와 같은 StockRow 배선을 공유한다.
 import { useState, type ReactNode } from 'react';
 import type { StoreStockRow } from '@/app/lib/store/types';
@@ -33,14 +33,14 @@ export function StoreHome({
   onArrival: (itemNo: string) => void;
   renderRow: (row: StoreStockRow) => ReactNode;
 }) {
-  // 이번 주 입고는 summary에 이미 있는 데이터라 화면 안에서만 펼침 — 보유/입고 리스트와 동시에 하나만 열림
+  // 금주 입고는 summary에 이미 있는 데이터라 화면 안에서만 펼침 — 다른 목록과 동시에 하나만 열림
   const [arrivalsOpen, setArrivalsOpen] = useState(false);
   type LinkKey = ListMode | 'arrivals';
   const openKey: LinkKey | null = arrivalsOpen ? 'arrivals' : listMode;
   const links: { key: LinkKey; label: string; n: number }[] = summary ? [
-    { key: 'mine', label: '우리 매장', n: summary.my_items },
-    { key: 'incoming', label: '들어오는 중', n: summary.incoming_items },
-    ...(summary.recent_arrivals.length > 0 ? [{ key: 'arrivals' as const, label: '이번 주 입고', n: summary.recent_arrivals.length }] : []),
+    { key: 'mine', label: '매장 재고', n: summary.my_items },
+    { key: 'incoming', label: '입고 예정', n: summary.incoming_items },
+    ...(summary.recent_arrivals.length > 0 ? [{ key: 'arrivals' as const, label: '금주 입고', n: summary.recent_arrivals.length }] : []),
   ] : [];
   const toggle = (key: LinkKey) => {
     if (key === 'arrivals') {
@@ -77,7 +77,7 @@ export function StoreHome({
       )}
 
 
-      {/* 목록 링크 한 줄 — 우리 매장 · 들어오는 중 · 이번 주 입고. 누를 때만 펼침(자동으로 생기지 않음) */}
+      {/* 목록 링크 한 줄 — 매장 재고 · 입고 예정 · 금주 입고. 누를 때만 펼침(자동으로 생기지 않음) */}
       {summary && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 28, padding: '0 2px', fontSize: 12.5, color: 'var(--text-tertiary)' }}>
           {links.map(({ key, label, n }, i) => (
@@ -100,7 +100,7 @@ export function StoreHome({
       {/* 보유/입고 리스트 */}
       {listMode && (
         <section style={{ marginTop: 24 }}>
-          {sectionHead(listMode === 'mine' ? '우리 매장 보유' : '들어오는 중', (
+          {sectionHead(listMode === 'mine' ? '매장 재고' : '입고 예정', (
             <>
               {listRows && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fmt(listRows.length)}종</span>}
               <button onClick={onCloseList}
@@ -114,10 +114,10 @@ export function StoreHome({
         </section>
       )}
 
-      {/* 이번 주 입고 — 링크로 열었을 때만 */}
+      {/* 금주 입고 — 링크로 열었을 때만 */}
       {arrivalsOpen && summary && (
         <section style={{ marginTop: 24 }}>
-          {sectionHead('이번 주 입고', (
+          {sectionHead('금주 입고', (
             <>
               <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>통관 완료</span>
               <button onClick={() => setArrivalsOpen(false)}
