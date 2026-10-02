@@ -4,6 +4,7 @@
 // 합계 = 백화점 할인가 기준, 정상가 합과 할인액을 함께 보여준다.
 import { useState } from 'react';
 import type { CartItem } from '../hooks/useCart';
+import { endGuestSession, readGuest } from '@/app/lib/store/cartSession';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
@@ -20,23 +21,23 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
   const [recorded, setRecorded] = useState(false);
   const discount = retailTotal - total;
   // 소믈리에 고객정보 단계에서 '재고에서 선택'으로 넘어온 손님 (렌더는 클라이언트 전용 시점)
-  const guest = (() => {
-    try { return JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { id?: number; name?: string } | null; }
-    catch { return null; }
-  })();
+  const guest = readGuest();
 
   /** 구매 기록 — 카트 전 품목을 수량 포함 일괄 기록 (관리자 조회용, 소믈리에 기록과 같은 테이블) */
   const record = async () => {
     if (recording || recorded) return;
-    if (!guest?.id) { alert('연결된 손님이 없습니다 — 소믈리에 손님 등록에서 "재고에서 선택"으로 들어오면 기록됩니다.'); return; }
+    if (!guest?.id) { alert('연결된 손님이 없습니다 — 정보 수집에 동의한 손님만 구매 이력이 기록됩니다.'); return; }
     setRecording(true);
+    // 추가 할인(%·금액)을 품목 단가에 비례 배분 — 기록 매출 = 실제 결제액(10원 단위)
+    const factor = total > 0 ? finalTotal / total : 1;
     try {
       const results = await Promise.all(items.map((i) =>
         fetch('/api/sommelier/order', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             customerId: guest.id, itemCode: i.item_no, itemName: i.item_name,
-            retailPrice: i.sale_price, quantity: i.qty,
+            retailPrice: Math.round((i.sale_price * factor) / 10) * 10, quantity: i.qty,
+            mode: 'set', // 같은 손님·품번·같은 날은 덮어쓰기 — 재기록해도 중복 안 쌓임
           }),
         }).then((r) => r.ok)));
       if (results.every(Boolean)) setRecorded(true);
@@ -170,7 +171,7 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button onClick={() => {
               if (!window.confirm('정산 내역을 비울까요?')) return;
-              try { localStorage.removeItem('cave_store_customer'); } catch { /* ignore */ }
+              endGuestSession();
               onClear();
             }}
               style={{ flex: 'none', padding: '13px 16px', borderRadius: 11, border: '1px solid var(--border-default)', background: 'transparent', fontSize: 13.5, cursor: 'pointer' }}>

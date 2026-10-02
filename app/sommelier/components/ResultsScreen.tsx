@@ -9,6 +9,7 @@ import { DetailOverlay } from './DetailOverlay';
 import { BODY_OPTIONS, PRICE_OPTIONS, STORES, TYPE_OPTIONS, type QuizAnswers } from '../lib/quiz';
 import { useCart } from '@/app/store/hooks/useCart';
 import { CheckoutSheet } from '@/app/store/components/CheckoutSheet';
+import { syncGuest as syncGuestStorage } from '@/app/lib/store/cartSession';
 
 const won = (n: number) => n.toLocaleString('ko-KR');
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
@@ -57,7 +58,7 @@ export function ResultsScreen({ customerName, customerId, sessionId, answers, re
   })();
   const syncGuest = () => {
     try {
-      if (customerId) localStorage.setItem('cave_store_customer', JSON.stringify({ id: customerId, name: customerName || '' }));
+      if (customerId) syncGuestStorage({ id: customerId, name: customerName || '' });
     } catch { /* ignore */ }
   };
   // 추천 → 재고 선택(POS 검색)으로 — 손님·카트 유지

@@ -33,3 +33,36 @@ export function addToCart(item: Omit<CartItem, 'qty'>): CartItem[] {
   writeCart(next);
   return next;
 }
+
+// ── 손님 연결 — 정산·구매 기록의 귀속 대상. 카트와 같이 세션 단위(앱 닫으면 해제) ──
+export type Guest = { id: number; name: string };
+const GUEST_KEY = 'cave_store_customer';
+
+export function readGuest(): Guest | null {
+  try {
+    const g = JSON.parse(sessionStorage.getItem(GUEST_KEY) || 'null') as Guest | null;
+    return g?.id ? g : null;
+  } catch { return null; }
+}
+
+/** 새 손님 응대 시작 — 이전 손님의 카트·추가할인을 비우고 손님을 교체(null=익명/미동의). */
+export function startGuestSession(guest: Guest | null) {
+  try {
+    sessionStorage.removeItem(CART_KEY);
+    sessionStorage.removeItem(EXTRA_RATE_KEY);
+    sessionStorage.removeItem(EXTRA_WON_KEY);
+    if (guest) sessionStorage.setItem(GUEST_KEY, JSON.stringify(guest));
+    else sessionStorage.removeItem(GUEST_KEY);
+    localStorage.removeItem(GUEST_KEY); // 구버전(localStorage) 잔존 정리
+  } catch { /* ignore */ }
+}
+
+/** 응대 종료 — 손님 연결·카트 모두 해제 */
+export const endGuestSession = () => startGuestSession(null);
+
+/** 같은 손님 응대 중 손님 정보만 동기화(카트 유지) — 추천↔재고 왕복용 */
+export function syncGuest(guest: Guest | null) {
+  try {
+    if (guest) sessionStorage.setItem(GUEST_KEY, JSON.stringify(guest));
+  } catch { /* ignore */ }
+}

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { authorizeCron } from '@/app/lib/cronAuth';
 import { supabase } from '@/app/lib/db';
-import { getEnv } from '@/app/lib/env';
-import { verifyToken } from '@/app/lib/auth';
 import { solapiConfigured, sendAlimtalk } from '@/app/lib/solapi';
 import { telegramConfigured, sendTelegram, escapeHtml } from '@/app/lib/telegram';
 import { buildManagerSummary, kstToday } from '@/app/lib/collection-alerts';
@@ -12,17 +10,6 @@ import { buildManagerSummary, kstToday } from '@/app/lib/collection-alerts';
 
 export const maxDuration = 300; // 매니저 수 × aging RPC — 직렬 지연 대비
 
-async function authorize(req: NextRequest): Promise<boolean> {
-  const secret = getEnv('CRON_SECRET');
-  const auth = req.headers.get('authorization') || '';
-  if (secret && auth === `Bearer ${secret}`) return true;
-  const token = (await cookies()).get('admin_auth')?.value;
-  if (token) {
-    const p = verifyToken(token);
-    if (p?.role === 'admin') return true;
-  }
-  return false;
-}
 
 async function run(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -110,10 +97,10 @@ async function run(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!(await authorize(req))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await authorizeCron(req))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   return run(req);
 }
 export async function POST(req: NextRequest) {
-  if (!(await authorize(req))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await authorizeCron(req))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   return run(req);
 }

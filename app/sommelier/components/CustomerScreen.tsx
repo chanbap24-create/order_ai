@@ -7,8 +7,9 @@ import { normalizePhone } from '../lib/quiz';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
 
 export function CustomerScreen({ onDone, onStock, onBack }: {
-  onDone: (c: SommelierCustomer) => void;
-  onStock: (c: SommelierCustomer) => void; // 기존 재고에서 선택 → 매장 재고(POS)로
+  // c=null: 정보 수집 미동의 — 추천·재고 안내는 그대로, 이력만 저장 안 함(개인정보보호법 §16③)
+  onDone: (c: SommelierCustomer | null) => void;
+  onStock: (c: SommelierCustomer | null) => void; // 기존 재고에서 선택 → 매장 재고(POS)로
   onBack: () => void;
 }) {
   const [name, setName] = useState('');
@@ -37,11 +38,15 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
   const maskPhone = (p: string) =>
     p.length >= 8 ? `${p.slice(0, 3)}-····-${p.slice(-4)}` : p;
 
-  const valid = !!picked || (name.trim().length >= 2 && !!normalizePhone(phone) && agreed);
+  // 동의했으면 성함·번호가 유효해야 등록 진행. 미동의면 익명으로 진행(입력값은 저장하지 않음).
+  const fieldsOk = name.trim().length >= 2 && !!normalizePhone(phone);
+  const valid = !!picked || !agreed || fieldsOk;
+  const anonymous = !picked && !agreed;
 
   // 등록 후 분기 — quiz: 취향 문답으로, stock: 기존 재고에서 선택(매장 재고로)
   const submit = async (mode: 'quiz' | 'stock' = 'quiz') => {
     if (!valid || loading) return;
+    if (anonymous) { (mode === 'stock' ? onStock : onDone)(null); return; }
     // 재방문 선택 시 재등록 없이 그대로 진행
     if (picked) { (mode === 'stock' ? onStock : onDone)(picked); return; }
     setLoading(true);
@@ -107,6 +112,11 @@ export function CustomerScreen({ onDone, onStock, onBack }: {
         </div>
 
         <div className="som-anyrow" />
+        {anonymous && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--som-muted)', margin: '0 0 10px' }}>
+            동의하지 않으면 정보를 저장하지 않고 추천만 진행해요
+          </div>
+        )}
         <div className="som-subrow som-rise" style={{ ['--i' as string]: 3 }}>
           <button className="som-link" onClick={onBack}>이전</button>
           <span style={{ display: 'flex', gap: 10 }}>

@@ -1,20 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { authorizeCron } from '@/app/lib/cronAuth';
 import { supabase } from "@/app/lib/db";
 import { getEnv } from "@/app/lib/env";
-import { verifyToken } from "@/app/lib/auth";
 
-// Vercel Cron(Bearer CRON_SECRET) 또는 어드민(admin_auth)만 트리거 허용.
-async function authorize(req: Request): Promise<boolean> {
-  const secret = getEnv("CRON_SECRET");
-  const auth = req.headers.get("authorization") || "";
-  if (secret && auth === `Bearer ${secret}`) return true;
-  // 어드민 폴백: role 확인 필수 — sales_auth 토큰(같은 서명키)으로 통과되는 권한 우회 방지
-  const token = (await cookies()).get("admin_auth")?.value;
-  if (!token) return false;
-  const p = await verifyToken(token);
-  return p?.role === "admin";
-}
 
 /**
  * 매일 오전 9시 자동 실행되는 데이터 동기화 API
@@ -155,7 +143,7 @@ function logSync(status: "success" | "failed", details: any): void {
 }
 
 export async function GET(req: Request) {
-  if (!(await authorize(req))) {
+  if (!(await authorizeCron(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const startTime = Date.now();

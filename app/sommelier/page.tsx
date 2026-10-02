@@ -11,6 +11,7 @@ import { ResultsScreen } from './components/ResultsScreen';
 import type { QuizAnswers } from './lib/quiz';
 import type { SommelierResult } from '@/app/lib/sommelierRecommend';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
+import { endGuestSession, readGuest, startGuestSession } from '@/app/lib/store/cartSession';
 import './sommelier.css';
 
 type Phase = 'intro' | 'customer' | 'quiz' | 'results';
@@ -38,7 +39,7 @@ export default function SommelierPage() {
     // 매장 재고(POS)에서 넘어온 문답 직행 — 연결된 손님이 있으면 고객 단계 생략
     try {
       if (new URLSearchParams(window.location.search).get('quiz')) {
-        const g = JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { id?: number; name?: string } | null;
+        const g = readGuest();
         if (g?.id) {
           setCustomer({ id: g.id, name: g.name || '' } as SommelierCustomer);
           setPhase('quiz');
@@ -92,7 +93,9 @@ export default function SommelierPage() {
     }
   };
 
+  // 새 손님 응대 — 이전 손님 연결·카트까지 해제해야 다음 구매가 앞 손님에게 기록되지 않는다
   const newGuest = () => {
+    endGuestSession();
     setCustomer(null); setAnswers(null); setResults([]); setSessionId(null); setPhase('intro');
   };
 
@@ -112,16 +115,16 @@ export default function SommelierPage() {
       )}
       {phase === 'customer' && (
         <CustomerScreen onBack={() => setPhase('intro')}
-          onDone={(c) => { setCustomer(c); setPhase('quiz'); }}
+          onDone={(c) => {
+            // 고객 단계 통과 = 새 손님 응대 시작 (c=null: 정보 미동의 — 추천만, 이력 기록 없음)
+            startGuestSession(c ? { id: c.id, name: c.name } : null);
+            setCustomer(c); setPhase('quiz');
+          }}
           onStock={(c) => {
             // 기존 재고에서 선택 — 매장 재고(POS)로, 매장·고객을 함께 넘긴다
             // 새 손님 시작이므로 이전 정산 카트는 비운다
-            try {
-              if (store && store !== 'all') localStorage.setItem('cave_store_key', store);
-              localStorage.setItem('cave_store_customer', JSON.stringify({ id: c.id, name: c.name }));
-              sessionStorage.removeItem('cave_store_cart');
-              sessionStorage.removeItem('cave_store_extra_rate');
-            } catch { /* ignore */ }
+            try { if (store && store !== 'all') localStorage.setItem('cave_store_key', store); } catch { /* ignore */ }
+            startGuestSession(c ? { id: c.id, name: c.name } : null);
             window.location.href = '/store';
           }} />
       )}

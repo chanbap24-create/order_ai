@@ -22,6 +22,7 @@ export async function POST(req: Request) {
       retailPrice: Number(b?.retailPrice) || 0,
       quantity: Math.max(1, Number(b?.quantity) || 1),
       manager: session.manager,
+      mode: b?.mode === 'set' ? 'set' : 'mark', // 정산(POS)=set, 추천 카드 더블탭=mark
     });
     return NextResponse.json({ success: true });
   } catch (e) {

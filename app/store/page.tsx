@@ -12,6 +12,7 @@ import { StoreHome } from './components/StoreHome';
 import { LoginScreen } from './components/LoginScreen';
 import { useStoreApp } from './hooks/useStoreApp';
 import { useCart } from './hooks/useCart';
+import { readGuest } from '@/app/lib/store/cartSession';
 import { fmt, GOLD_LINE, LAT } from './brand';
 // 테이스팅 노트는 인벤토리와 동일 모듈 재사용 (복제 금지)
 import { TastingNoteModal } from '../inventory/components/TastingNoteModal';
@@ -36,7 +37,7 @@ export default function StorePage() {
     let hasGuest = false;
     try {
       if (g.storeKey) localStorage.setItem('som_store', g.storeKey);
-      hasGuest = !!(JSON.parse(localStorage.getItem('cave_store_customer') || 'null') as { id?: number } | null)?.id;
+      hasGuest = !!readGuest();
     } catch { /* ignore */ }
     window.location.href = hasGuest ? '/sommelier?quiz=1' : '/sommelier';
   };

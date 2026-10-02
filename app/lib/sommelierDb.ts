@@ -1,6 +1,7 @@
 // 소믈리에 고객·문답 세션·구매 기록 DB 접근 (서버 전용).
 // 고객은 핸드폰(숫자 정규화) 기준 upsert — 재방문 시 같은 고객으로 이력 누적.
 import { supabase } from './db';
+import { todayKst } from './dateKst';
 import type { QuizAnswers } from '@/app/sommelier/lib/quiz';
 import type { SommelierResult } from './sommelierRecommend';
 
@@ -69,15 +70,40 @@ export async function deleteOrder(customerId: number, itemCode: string, sessionI
   if (error) throw new Error(`구매 기록 취소 실패: ${error.message}`);
 }
 
-/** 손님이 구매한 와인 기록 */
+/** 손님이 구매한 와인 기록 — 같은 손님·품번·같은 날(KST)은 1건으로 유지(중복 방지).
+ *  mode 'mark': 추천 카드 더블탭 = "이 와인 샀음" 표시. 이미 있으면 그대로 둔다(멱등).
+ *  mode 'set' : 정산(POS) 기록 = 최종 수량·실결제 단가로 덮어쓴다(재기록해도 1건). */
 export async function saveOrder(o: {
   customerId: number; sessionId: number | null; itemCode: string; itemName: string;
-  retailPrice: number; quantity: number; manager: string;
+  retailPrice: number; quantity: number; manager: string; mode?: 'mark' | 'set';
 }): Promise<void> {
+  const kstMidnight = new Date(`${todayKst()}T00:00:00+09:00`).toISOString();
+  const { data: existing } = await supabase.from('sommelier_orders')
+    .select('id').eq('customer_id', o.customerId).eq('item_code', o.itemCode)
+    .gte('created_at', kstMidnight).order('created_at', { ascending: false }).limit(1);
+  const prev = existing?.[0];
+
+  if (prev) {
+    if (o.mode !== 'set') return; // 표시만 — 이미 기록됨
+    const { error } = await supabase.from('sommelier_orders').update({
+      retail_price: o.retailPrice, quantity: o.quantity, manager: o.manager,
+      ...(o.sessionId ? { session_id: o.sessionId } : {}),
+    }).eq('id', prev.id);
+    if (error) throw new Error(`구매 기록 실패: ${error.message}`);
+    return;
+  }
+
   const { error } = await supabase.from('sommelier_orders').insert({
     customer_id: o.customerId, session_id: o.sessionId,
     item_code: o.itemCode, item_name: o.itemName,
     retail_price: o.retailPrice, quantity: o.quantity, manager: o.manager,
   });
   if (error) throw new Error(`구매 기록 실패: ${error.message}`);
+}
+
+/** 보유기간(마지막 방문 3년) 경과 고객 파기 — 세션·구매 기록은 FK CASCADE로 함께 삭제. 반환=대상 수 */
+export async function purgeInactiveSommelierCustomers(dryRun = false): Promise<number> {
+  const { data, error } = await supabase.rpc('purge_inactive_sommelier_customers', { p_years: 3, p_dry_run: dryRun });
+  if (error) throw new Error(`보유기간 파기 실패: ${error.message}`);
+  return Number(data) || 0;
 }
