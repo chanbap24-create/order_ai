@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { BODY_OPTIONS, COUNTRY_OPTIONS, FLAVOR_GROUPS, PRICE_OPTIONS, TYPE_OPTIONS } from '@/app/sommelier/lib/quiz';
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
+import { RequestsList } from '@/app/sommelier/admin/components/RequestsList';
 
 type Customer = { id: number; name: string; phone: string; created_at: string };
 type Session = {
@@ -31,7 +32,7 @@ function answerSummary(a: Session['answers']): string {
   return parts.join(' · ') || '전부 상관없음';
 }
 
-export default function SommelierTab() {
+export default function SommelierTab({ onRequestCountChange }: { onRequestCountChange?: (n: number) => void } = {}) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -71,6 +72,9 @@ export default function SommelierTab() {
 
   return (
     <div style={{ maxWidth: 860 }}>
+      {/* 매장 직원 수정 요청 — 처리할 일이 먼저 */}
+      <RequestsList onOpenCountChange={onRequestCountChange} />
+
       {/* 스탯 스트립 */}
       <div style={{ display: 'flex', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 20 }}>
         {[['고객', customers.length], ['문답 세션', sessions.length], ['구매 기록', orders.length]].map(([label, v], i) => (

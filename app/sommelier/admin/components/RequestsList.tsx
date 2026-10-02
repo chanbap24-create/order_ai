@@ -8,9 +8,14 @@ import { STORES } from '@/app/lib/store/types';
 const kst = (iso: string) => new Date(new Date(iso).getTime() + 9 * 3600_000).toISOString().slice(5, 16).replace('T', ' ');
 const storeLabel = (key: string | null) => STORES.find((s) => s.key === key)?.label || '';
 
-export function RequestsList() {
+export function RequestsList({ onOpenCountChange }: { onOpenCountChange?: (n: number) => void } = {}) {
   const [rows, setRows] = useState<ChangeRequest[] | null>(null);
   const [showDone, setShowDone] = useState(false);
+  // 대기 건수를 부모(어드민 탭 배지)에 동기화 — 처리 완료 즉시 배지도 줄어든다
+  const openCount = rows ? rows.filter((r) => r.status === 'open').length : null;
+  useEffect(() => {
+    if (openCount != null) onOpenCountChange?.(openCount);
+  }, [openCount, onOpenCountChange]);
 
   const load = useCallback(() => {
     fetch('/api/sommelier/requests')

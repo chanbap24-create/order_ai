@@ -25,13 +25,17 @@ interface AdminTabsProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   newWineCount?: number;
+  sommelierRequestCount?: number; // 매장 직원 수정 요청 대기 건수
 }
 
 /**
  * Admin 탭 — SalesTabs 와 동일한 underline 패턴.
  * 페이지를 넘겨도 같은 디자인 언어를 유지.
  */
-export default function AdminTabs({ activeTab, onTabChange, newWineCount }: AdminTabsProps) {
+export default function AdminTabs({ activeTab, onTabChange, newWineCount, sommelierRequestCount }: AdminTabsProps) {
+  // 탭별 빨간 배지 — 처리할 일이 있는 탭
+  const badgeOf = (id: TabId) =>
+    id === 'tasting-note' ? newWineCount : id === 'sommelier' ? sommelierRequestCount : undefined;
   return (
     <div
       className="admin-tabs-bar"
@@ -79,7 +83,7 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
               }}
             >
               {tab.label}
-              {tab.id === 'tasting-note' && newWineCount != null && newWineCount > 0 && (
+              {(badgeOf(tab.id) ?? 0) > 0 && (
                 <span
                   style={{
                     background: 'var(--status-danger)',
@@ -93,7 +97,7 @@ export default function AdminTabs({ activeTab, onTabChange, newWineCount }: Admi
                     lineHeight: '14px',
                   }}
                 >
-                  {newWineCount}
+                  {badgeOf(tab.id)}
                 </span>
               )}
               {isActive && (

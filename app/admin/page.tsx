@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { LoadGateProvider, useLoadGate } from '@/app/components/ui/LoadGate';
 import type { TabId } from '@/app/types/wine';
 import SommelierTab from './components/SommelierTab';
+import { useSommelierRequestCount } from './hooks/useSommelierRequestCount';
 import DiscontinuedTab from './components/DiscontinuedTab';
 import AdminTabs from './components/AdminTabs';
 import AdminLoginCard from './components/AdminLoginCard';
@@ -42,6 +43,7 @@ export default function AdminPage() {
 function AdminPageBody() {
   const [activeTab, setActiveTab] = useState<TabId>('upload');
   const [newWineCount, setNewWineCount] = useState<number>(0);
+  const somReq = useSommelierRequestCount(); // 소믈리에 탭 배지(수정 요청 대기)
   const [newWineRefresh, setNewWineRefresh] = useState(0); // 업로드 완료 시 전역 신규감지 재조회 트리거
   const [authenticated, setAuthenticated] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
@@ -221,6 +223,7 @@ function AdminPageBody() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           newWineCount={newWineCount}
+          sommelierRequestCount={somReq.count}
         />
 
         {/* 전역 신규 와인 감지 팝업 — 어느 탭에 있든(업로드 직후) 바로 알림 */}
@@ -242,7 +245,7 @@ function AdminPageBody() {
         {activeTab === 'feature-usage' && <FeatureUsageTab />}
         {activeTab === 'glass-images' && <GlassImagesTab />}
         {activeTab === 'parse-stats' && <ParseStatsTab />}
-        {activeTab === 'sommelier' && <SommelierTab />}
+        {activeTab === 'sommelier' && <SommelierTab onRequestCountChange={somReq.setCount} />}
         {activeTab === 'discontinued' && <DiscontinuedTab />}
       </div>
 
