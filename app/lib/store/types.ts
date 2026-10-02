@@ -38,7 +38,7 @@ export function isWineItemNo(itemNo: string): boolean {
 export function vintageOfItemNo(itemNo: string): string | null {
   const no = String(itemNo || '');
   if (!isWineItemNo(no)) return null;
-  if (/^ZKNV/i.test(no)) return 'NV';
+  if (/^ZKNV/i.test(no) || /^[A-Z0-9]{2}NV/i.test(no)) return 'NV'; // 품번 3~4자리 NV (예: 00NV801 찰스 하이직)
   const m = no.match(/^[A-Z0-9]{2}(\d{2})/i);
   if (!m) return null;
   const yy = Number(m[1]);
