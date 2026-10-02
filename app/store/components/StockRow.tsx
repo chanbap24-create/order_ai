@@ -5,6 +5,7 @@
 // 탭=상세 바텀시트, 꾹(0.5초)=테이스팅 노트 바로 열기.
 import { useRef } from 'react';
 import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
+import { GOLD } from '../brand';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 const LONG_PRESS_MS = 500;
@@ -65,8 +66,15 @@ export function StockRow({ row, storeKey, onOpen, onLongPress, onAdd }: {
         all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', cursor: 'pointer',
         padding: '13px 2px', borderBottom: '1px solid var(--border-subtle)',
         // 롱프레스 시 iOS 텍스트 선택/콜아웃 억제
-        WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', position: 'relative',
       } as React.CSSProperties}>
+      {/* 테이스팅 노트 있음 = 이름 앞 골드 점. 왼쪽 여백에 걸어(hanging) 이름·빈티지 정렬 유지.
+          롱프레스(노트 열기)가 가능한 행과 같은 조건 */}
+      {onLongPress && (
+        <i aria-label="테이스팅 노트 있음" style={{
+          position: 'absolute', left: -9, top: 21, width: 6, height: 6, borderRadius: '50%', background: GOLD,
+        }} />
+      )}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
         <span style={{
           flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 600,
