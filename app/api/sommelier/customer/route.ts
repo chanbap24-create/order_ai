@@ -5,14 +5,14 @@ import { upsertCustomer, searchCustomers } from '@/app/lib/sommelierDb';
 import { normalizePhone } from '@/app/sommelier/lib/quiz';
 import { handleApiError } from '@/app/lib/errors';
 
-/** 재방문 고객 검색 — 성함(정확히) + 전화번호 숫자 4자리 이상이 함께 있어야 조회 */
+/** 재방문 고객 검색 — 성함 정확 일치(동명이인만). 번호 4자리 이상이면 추가로 좁힘 */
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
   try {
     const name = (req.nextUrl.searchParams.get('name') || '').trim().slice(0, 30);
     const phone = (req.nextUrl.searchParams.get('phone') || '').replace(/[^0-9]/g, '').slice(0, 11);
-    if (name.length < 2 || phone.length < 4) return NextResponse.json({ customers: [] });
+    if (name.length < 2) return NextResponse.json({ customers: [] });
     // 개인정보 최소화: 전체 전화번호는 응답에 싣지 않는다 — 재방문 식별은 마스킹 번호로 충분(선택은 id)
     const customers = (await searchCustomers(name, phone)).map((c) => ({
       id: c.id, name: c.name,

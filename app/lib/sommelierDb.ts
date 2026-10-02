@@ -35,14 +35,15 @@ export async function upsertCustomer(
 }
 
 /** 문답 세션 저장(답변 + 추천 결과 스냅샷) → session_id */
-/** 재방문 고객 검색 — 성함 정확 일치 + 전화번호 숫자 4자리 이상 부분일치 둘 다 맞아야 한다.
- *  (번호 일부·이름 일부만으로 다른 손님 목록이 보이던 개인정보 노출 차단) 최대 3명 */
+/** 재방문 고객 검색 — 성함 정확 일치(동명이인만). 번호를 4자리 이상 넣으면 그 번호로 더 좁힌다.
+ *  이름 일부·번호 일부만으로 다른 손님 목록이 보이지 않게. 최대 3명 */
 export async function searchCustomers(name: string, phoneDigits: string): Promise<SommelierCustomer[]> {
   const nm = name.trim();
   const digits = phoneDigits.replace(/[^0-9]/g, '');
-  if (nm.length < 2 || digits.length < 4) return [];
-  const { data } = await supabase.from('sommelier_customers').select('id, name, phone')
-    .eq('name', nm).like('phone', `%${digits}%`).order('id', { ascending: false }).limit(3);
+  if (nm.length < 2) return [];
+  let q = supabase.from('sommelier_customers').select('id, name, phone').eq('name', nm);
+  if (digits.length >= 4) q = q.like('phone', `%${digits}%`);
+  const { data } = await q.order('id', { ascending: false }).limit(3);
   return (data || []) as SommelierCustomer[];
 }
 

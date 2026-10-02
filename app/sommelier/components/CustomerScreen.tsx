@@ -23,10 +23,12 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
   // 선택된 재방문 고객 — API가 번호를 마스킹해 주므로 폼 재입력 대신 객체를 그대로 쓴다
   const [picked, setPicked] = useState<SommelierCustomer | null>(null);
 
-  // 성함 + 번호 4자리 이상이 모두 있어야 조회(번호 일부만으로 다른 손님이 보이지 않게)
+  // 성함이 정확히 같은 손님(동명이인)만 조회. 번호를 4자리 이상 넣으면 그 번호로 더 좁힘
   const phoneDigits = phone.replace(/[^0-9]/g, '');
-  const ready = name.trim().length >= 2 && phoneDigits.length >= 4;
-  const query = ready ? `name=${encodeURIComponent(name.trim())}&phone=${phoneDigits}` : '';
+  const nm = name.trim();
+  const query = nm.length >= 2
+    ? `name=${encodeURIComponent(nm)}${phoneDigits.length >= 4 ? `&phone=${phoneDigits}` : ''}`
+    : '';
   useEffect(() => {
     if (!query) { setMatches([]); return; }
     const t = setTimeout(() => {
