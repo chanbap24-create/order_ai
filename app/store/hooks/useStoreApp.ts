@@ -12,6 +12,8 @@ export type Summary = {
 
 const LS_STORE = 'cave_store_key';
 const LS_RECENT = 'cave_store_recent';
+// 최근 검색에 남길 가치가 있는 쿼리 — 타이핑 중 자모 조각('ㅠ', 'ㅠㅣ')·1글자는 제외
+const isMeaningful = (q: string) => q.length >= 2 && !/[ㄱ-ㅎㅏ-ㅣ]/.test(q);
 
 export function useStoreApp() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null=확인 중
@@ -30,7 +32,7 @@ export function useStoreApp() {
   useEffect(() => {
     try {
       setStoreKeyState((localStorage.getItem(LS_STORE) as StoreKey) || '');
-      setRecent(JSON.parse(localStorage.getItem(LS_RECENT) || '[]'));
+      setRecent((JSON.parse(localStorage.getItem(LS_RECENT) || '[]') as string[]).filter(isMeaningful));
     } catch { /* ignore */ }
     fetch('/api/auth/me').then((r) => setAuthed(r.ok)).catch(() => setAuthed(false));
     // 서비스워커 등록 (설치 가능 조건)
@@ -62,7 +64,7 @@ export function useStoreApp() {
       const j = await res.json();
       setRows(j.rows || []);
       // 최근 검색 (중복 제거, 6개)
-      setRecent((prev) => {
+      if (isMeaningful(query)) setRecent((prev) => {
         const next = [query, ...prev.filter((p) => p !== query)].slice(0, 6);
         try { localStorage.setItem(LS_RECENT, JSON.stringify(next)); } catch { /* ignore */ }
         return next;
@@ -81,6 +83,13 @@ export function useStoreApp() {
     if (!text.trim()) { setRows(null); return; }
     debounce.current = setTimeout(() => void runSearch(text), 300);
   };
+
+  const saveRecent = (next: string[]) => {
+    setRecent(next);
+    try { localStorage.setItem(LS_RECENT, JSON.stringify(next)); } catch { /* ignore */ }
+  };
+  const removeRecent = (q: string) => saveRecent(recent.filter((r) => r !== q));
+  const clearRecent = () => saveRecent([]);
 
   // 요약 박스 탭 → 보유/입고 전체 리스트
   const [listMode, setListMode] = useState<'mine' | 'incoming' | null>(null);
@@ -124,7 +133,7 @@ export function useStoreApp() {
   return {
     authed, login, storeKey, setStoreKey,
     q, onInput, rows, searching, error, runSearch,
-    summary, recent,
+    summary, recent, removeRecent, clearRecent,
     listMode, listRows, openList, closeList,
     detail, setDetail, alts, openDetail,
   };
