@@ -9,10 +9,11 @@ import { DetailSheet } from './components/DetailSheet';
 import { CheckoutSheet } from './components/CheckoutSheet';
 import { SearchBar } from './components/SearchBar';
 import { StoreHome } from './components/StoreHome';
+import { AppsMenu, AppsMenuButton, MenuIcons, type AppsMenuItem } from './components/AppsMenu';
 import { LoginScreen } from './components/LoginScreen';
-import { useStoreApp } from './hooks/useStoreApp';
+import { useStoreApp, type ListMode } from './hooks/useStoreApp';
 import { useCart } from './hooks/useCart';
-import { fmt, GOLD_LINE, LAT } from './brand';
+import { fmt, GOLD, GOLD_LINE, LAT } from './brand';
 // 테이스팅 노트는 인벤토리와 동일 모듈 재사용 (복제 금지)
 import { TastingNoteModal } from '../inventory/components/TastingNoteModal';
 import { useTastingNoteModal } from '../inventory/hooks/useTastingNoteModal';
@@ -22,6 +23,7 @@ export default function StorePage() {
   const notes = useTastingNoteModal();
   const cart = useCart();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // 헤더 메뉴(⋮⋮⋮)
   // 소믈리에 결과 → '정산' 바로 진입 (?checkout=1)
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).get('checkout')) return;
@@ -76,31 +78,60 @@ export default function StorePage() {
   }
 
   const showHome = !g.q.trim();
+  const EASE = '0.32s cubic-bezier(0.32, 0.72, 0, 1)'; // 첫 화면 ↔ 검색 화면 전환
+  // 첫 화면(구글식) = 검색어 없음 + 메뉴 목록 안 염. 그 외엔 검색 결과 화면 배치
+  const hero = showHome && !g.listMode;
+  const openMenuList = (mode: ListMode) => { g.onInput(''); void g.openList(mode); };
+  const menuItems: AppsMenuItem[] = [
+    { key: 'mine', label: '매장 재고', sub: g.summary ? `${fmt(g.summary.my_items)}종` : undefined, icon: MenuIcons.stock, active: g.listMode === 'mine', onClick: () => openMenuList('mine') },
+    { key: 'incoming', label: '입고 예정', sub: g.summary ? `${fmt(g.summary.incoming_items)}종` : undefined, icon: MenuIcons.incoming, active: g.listMode === 'incoming', onClick: () => openMenuList('incoming') },
+    ...(g.summary && g.summary.recent_arrivals.length > 0
+      ? [{ key: 'arrivals', label: '금주 입고', sub: `${g.summary.recent_arrivals.length}종`, icon: MenuIcons.arrivals, active: g.listMode === 'arrivals', onClick: () => openMenuList('arrivals') }]
+      : []),
+    { key: 'sommelier', label: '소믈리에', sub: '취향 추천', icon: MenuIcons.sommelier, onClick: goMain },
+    { key: 'store', label: '매장 변경', icon: MenuIcons.store, onClick: () => g.setStoreKey('' as StoreKey) },
+  ];
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px calc(96px + env(safe-area-inset-bottom))' }}>
-      {/* 헤더 — 워드마크(탭=소믈리에 메인) · 매장명(탭=매장 변경) */}
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <h1 style={{ margin: 0 }}>
-          <button onClick={goMain} aria-label="매장 앱 메인으로"
-            style={{ all: 'unset', cursor: 'pointer', ...LAT, fontSize: 15, color: 'var(--text-primary)' }}>
+      {/* 헤더 — 오른쪽: 매장명 + 메뉴(⋮⋮⋮). 왼쪽 작은 워드마크(탭=매장 앱 메인)는 검색 화면에서만 */}
+      <header style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, minHeight: 40 }}>
+        <h1 style={{ margin: 0, opacity: hero ? 0 : 1, visibility: hero ? 'hidden' : 'visible', transition: `opacity ${EASE}, visibility ${EASE}` }}>
+          <button onClick={goMain} aria-label="매장 앱 메인으로" tabIndex={hero ? -1 : 0}
+            style={{ all: 'unset', cursor: 'pointer', ...LAT, fontSize: 15, color: GOLD }}>
             CAVE DE VIN
           </button>
         </h1>
-        <button onClick={() => g.setStoreKey('' as StoreKey)} aria-label="매장 변경"
-          style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'underline', textUnderlineOffset: 3, textDecorationColor: 'rgba(184,154,106,0.6)' }}>
-          {storeLabel}
-        </button>
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
+            {storeLabel}
+          </span>
+          <AppsMenuButton open={menuOpen} onToggle={() => setMenuOpen((v) => !v)} />
+        </span>
+        <AppsMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
       </header>
-      <div style={{ height: 1, background: GOLD_LINE, margin: '14px -16px 24px' }} />
+      <div style={{ height: 1, background: GOLD_LINE, margin: '10px -16px 20px', opacity: hero ? 0 : 1, transition: `opacity ${EASE}` }} />
+
+      {/* 첫 화면 — 구글처럼 가운데 큰 워드마크. 검색 시작하면 접히며 검색창이 위로 올라간다(항상 마운트 → 입력 포커스 유지) */}
+      <div aria-hidden={!hero}
+        style={{
+          textAlign: 'center', overflow: 'hidden',
+          maxHeight: hero ? 'calc(13vh + 90px)' : 0, paddingTop: hero ? 'calc(13vh - 30px)' : 0, marginBottom: hero ? 28 : 0,
+          opacity: hero ? 1 : 0, transform: hero ? 'none' : 'scale(0.92)',
+          transition: `max-height ${EASE}, padding-top ${EASE}, margin-bottom ${EASE}, opacity ${EASE}, transform ${EASE}`,
+        }}>
+        <button onClick={goMain} aria-label="매장 앱 메인으로" tabIndex={hero ? 0 : -1}
+          style={{ all: 'unset', cursor: 'pointer', ...LAT, letterSpacing: '0.32em', fontSize: 'clamp(24px, 7.5vw, 34px)', lineHeight: 1.6, color: GOLD }}>
+          CAVE DE VIN
+        </button>
+      </div>
 
       <SearchBar value={g.q} onChange={g.onInput} />
 
       {showHome ? (
         <StoreHome
-          recent={g.recent} onRecent={searchNow} onClearRecent={g.clearRecent}
+          recent={g.recent} onRecent={searchNow} onClearRecent={g.clearRecent} centered={hero}
           summary={g.summary} listMode={g.listMode} listRows={g.listRows}
-          onToggleList={(mode) => (g.listMode === mode ? g.closeList() : void g.openList(mode))}
           onCloseList={g.closeList}
           onArrival={searchNow} renderRow={renderRow} />
       ) : (

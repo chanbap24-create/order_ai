@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { StoreKey, StoreStockRow } from '@/app/lib/store/types';
 
+export type ListMode = 'mine' | 'incoming' | 'arrivals';
+
 export type Summary = {
   my_items: number;
   incoming_items: number;
@@ -94,11 +96,12 @@ export function useStoreApp() {
   };
   const clearRecent = () => saveRecent([]);
 
-  // 요약 박스 탭 → 보유/입고 전체 리스트
-  const [listMode, setListMode] = useState<'mine' | 'incoming' | null>(null);
+  // 메뉴(⋮⋮⋮) → 매장 재고·입고 예정·금주 입고 목록. 금주 입고는 summary에 이미 있어 조회 없음
+  const [listMode, setListMode] = useState<ListMode | null>(null);
   const [listRows, setListRows] = useState<StoreStockRow[] | null>(null);
-  const openList = async (mode: 'mine' | 'incoming') => {
+  const openList = async (mode: ListMode) => {
     setListMode(mode); setListRows(null);
+    if (mode === 'arrivals') return;
     try {
       const res = await fetch(`/api/store/list?store=${storeKey}&mode=${mode}`);
       const j = await res.json();

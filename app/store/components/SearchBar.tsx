@@ -1,6 +1,6 @@
 'use client';
 
-// 검색 입력 — 첫 화면의 주인공. 흰 바탕 + 진한 테두리 + 은은한 그림자, 포커스 시 그림자 강조.
+// 검색 입력 — 첫 화면의 주인공. 테두리 없이 그림자로 띄움(구글식), 포커스 시 그림자 강조.
 import { useState } from 'react';
 
 export function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -9,8 +9,10 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, height: 56, padding: '0 16px',
-      borderRadius: 14, background: 'var(--surface)', border: '1.5px solid var(--action)',
-      boxShadow: focused ? '0 6px 20px rgba(0,0,0,0.10)' : '0 2px 10px rgba(0,0,0,0.05)',
+      borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border-subtle)',
+      boxShadow: focused
+        ? '0 2px 8px rgba(0,0,0,0.14), 0 12px 32px rgba(0,0,0,0.16)'
+        : '0 2px 6px rgba(0,0,0,0.10), 0 8px 24px rgba(0,0,0,0.12)',
       transition: 'box-shadow 0.2s ease',
     }}>
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
@@ -22,7 +24,7 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder="와인 이름 · 품번으로 찾기"
+        placeholder="어떤 와인을 찾으세요?"
         inputMode="search"
         enterKeyHint="search"
         style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 17, color: 'var(--text-primary)' }}
