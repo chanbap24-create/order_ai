@@ -16,48 +16,44 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
   onClear: () => void; onClose: () => void;
   onQuiz?: (() => void) | null; // 취향 문답으로 이어가기 (소믈리에 안에서 열면 숨김)
 }) {
-  const [copied, setCopied] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recorded, setRecorded] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const discount = retailTotal - total;
   // 소믈리에 고객정보 단계에서 '재고에서 선택'으로 넘어온 손님 (렌더는 클라이언트 전용 시점)
   const guest = readGuest();
 
-  /** 구매 기록 — 카트 전 품목을 수량 포함 일괄 기록 (관리자 조회용, 소믈리에 기록과 같은 테이블) */
-  const record = async () => {
-    if (recording || recorded) return;
-    if (!guest?.id) { alert('연결된 손님이 없습니다 — 정보 수집에 동의한 손님만 구매 이력이 기록됩니다.'); return; }
-    setRecording(true);
-    // 추가 할인(%·금액)을 품목 단가에 비례 배분 — 기록 매출 = 실제 결제액(10원 단위)
-    const factor = total > 0 ? finalTotal / total : 1;
+  /** 판매 완료 — 손님(동의)이 있으면 구매 이력 저장(관리자 조회, 소믈리에 기록과 같은 테이블) 후
+   *  정산·손님 연결을 비우고 닫아 다음 손님 응대 준비. 미동의 손님은 이력 없이 비우기만. */
+  const complete = async () => {
+    if (completing || completed) return;
+    const msg = guest?.id
+      ? `${guest.name ? `${guest.name} 님 ` : ''}판매를 완료할까요?\n구매 이력에 저장하고 정산을 비웁니다.`
+      : '판매를 완료할까요?\n(정보 미동의 손님 — 이력 저장 없이 정산만 비웁니다)';
+    if (!window.confirm(msg)) return;
+    setCompleting(true);
     try {
-      const results = await Promise.all(items.map((i) =>
-        fetch('/api/sommelier/order', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: guest.id, itemCode: i.item_no, itemName: i.item_name,
-            retailPrice: Math.round((i.sale_price * factor) / 10) * 10, quantity: i.qty,
-            mode: 'set', // 같은 손님·품번·같은 날은 덮어쓰기 — 재기록해도 중복 안 쌓임
-          }),
-        }).then((r) => r.ok)));
-      if (results.every(Boolean)) setRecorded(true);
-      else alert('일부 품목 기록에 실패했습니다. 다시 시도해주세요.');
-    } catch { alert('구매 기록에 실패했습니다.'); }
-    finally { setRecording(false); }
-  };
-
-  const copy = async () => {
-    const lines = [
-      `[CAVE DE VIN 정산] ${storeLabel}${guest?.name ? ` · ${guest.name} 님` : ''}`,
-      ...items.map((i) => `- ${i.item_name} ×${i.qty}  ${fmt(i.sale_price * i.qty)}원`),
-      ...(extraAmount > 0 ? [`추가 할인${extraRate > 0 ? ` ${extraRate}%` : ''}  -${fmt(extraAmount)}원`] : []),
-      `합계 ${fmt(bottles)}병 ${fmt(finalTotal)}원` + (discount > 0 ? ` (정상 ${fmt(retailTotal)} / 할인 -${fmt(discount + extraAmount)})` : ''),
-    ];
-    try {
-      await navigator.clipboard.writeText(lines.join('\n'));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch { /* ignore */ }
+      if (guest?.id) {
+        // 추가 할인(%·금액)을 품목 단가에 비례 배분 — 기록 매출 = 실제 결제액(10원 단위)
+        const factor = total > 0 ? finalTotal / total : 1;
+        const results = await Promise.all(items.map((i) =>
+          fetch('/api/sommelier/order', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerId: guest.id, itemCode: i.item_no, itemName: i.item_name,
+              retailPrice: Math.round((i.sale_price * factor) / 10) * 10, quantity: i.qty,
+              mode: 'set', // 같은 손님·품번·같은 날은 덮어쓰기 — 재시도해도 중복 안 쌓임
+            }),
+          }).then((r) => r.ok)));
+        if (!results.every(Boolean)) { alert('이력 저장에 실패했습니다. 다시 눌러주세요.'); return; }
+      }
+      setCompleted(true);
+      // 완료 표시를 잠깐 보여준 뒤 다음 손님 준비
+      setTimeout(() => { endGuestSession(); onClear(); }, 700);
+    } catch {
+      alert('판매 완료 처리에 실패했습니다. 다시 눌러주세요.');
+    } finally {
+      setCompleting(false);
+    }
   };
 
   return (
@@ -177,17 +173,13 @@ export function CheckoutSheet({ items, bottles, total, retailTotal, extraRate, e
               style={{ flex: 'none', padding: '13px 16px', borderRadius: 11, border: '1px solid var(--border-default)', background: 'transparent', fontSize: 13.5, cursor: 'pointer' }}>
               비우기
             </button>
-            <button onClick={() => void record()}
+            <button onClick={() => void complete()}
               style={{
-                flex: 1, padding: '13px 0', borderRadius: 11, fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
-                border: '1px solid var(--border-default)', background: recorded ? 'var(--surface-muted)' : 'transparent',
-                color: recorded ? 'var(--status-success)' : 'var(--text-primary)', opacity: recording ? 0.6 : 1,
+                flex: 1, padding: '13px 0', borderRadius: 11, border: 'none', fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+                background: completed ? 'var(--status-success)' : 'var(--action)', color: '#fff', opacity: completing ? 0.6 : 1,
+                transition: 'background 0.2s ease',
               }}>
-              {recorded ? '✓ 기록됨' : recording ? '기록 중…' : '구매 기록'}
-            </button>
-            <button onClick={() => void copy()}
-              style={{ flex: 1, padding: '13px 0', borderRadius: 11, border: 'none', background: 'var(--action)', color: '#fff', fontSize: 14.5, fontWeight: 700, cursor: 'pointer' }}>
-              {copied ? '복사됨' : '내역 복사'}
+              {completed ? '✓ 판매 완료' : completing ? '처리 중…' : `판매 완료 · ${fmt(finalTotal)}원`}
             </button>
           </div>
         </div>

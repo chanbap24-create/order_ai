@@ -88,7 +88,6 @@ export function useStoreApp() {
     setRecent(next);
     try { localStorage.setItem(LS_RECENT, JSON.stringify(next)); } catch { /* ignore */ }
   };
-  const removeRecent = (q: string) => saveRecent(recent.filter((r) => r !== q));
   const clearRecent = () => saveRecent([]);
 
   // 요약 박스 탭 → 보유/입고 전체 리스트
@@ -133,7 +132,7 @@ export function useStoreApp() {
   return {
     authed, login, storeKey, setStoreKey,
     q, onInput, rows, searching, error, runSearch,
-    summary, recent, removeRecent, clearRecent,
+    summary, recent, clearRecent,
     listMode, listRows, openList, closeList,
     detail, setDetail, alts, openDetail,
   };

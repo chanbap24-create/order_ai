@@ -1,11 +1,12 @@
 'use client';
 
-// 매장 앱 홈(검색어 비었을 때) — 최근 검색 · 스탯 스트립 · 소믈리에 진입 · 리스트/이번 주 입고.
+// 매장 앱 홈(검색어 비었을 때) — 검색이 주인공, 나머지는 배경으로.
+// 최근 검색(검색바 꼬리) · 보유/입고 리스트 링크(조용히) · 이번 주 입고. 소믈리에 진입은 헤더 워드마크.
 // 행 렌더는 페이지의 renderRow를 받아 검색 결과와 같은 StockRow 배선을 공유한다.
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { StoreStockRow } from '@/app/lib/store/types';
 import type { Summary } from '../hooks/useStoreApp';
-import { fmt, GOLD, LAT } from '../brand';
+import { fmt } from '../brand';
 
 type ListMode = 'mine' | 'incoming';
 
@@ -17,78 +18,86 @@ const sectionHead = (title: string, aside?: ReactNode) => (
 );
 
 export function StoreHome({
-  recent, onRecent, onRemoveRecent, onClearRecent,
+  recent, onRecent, onClearRecent,
   summary, listMode, listRows, onToggleList, onCloseList,
-  onSommelier, onArrival, renderRow,
+  onArrival, renderRow,
 }: {
   recent: string[];
   onRecent: (q: string) => void;
-  onRemoveRecent: (q: string) => void;
   onClearRecent: () => void;
   summary: Summary | null;
   listMode: ListMode | null;
   listRows: StoreStockRow[] | null;
   onToggleList: (mode: ListMode) => void;
   onCloseList: () => void;
-  onSommelier: () => void;
   onArrival: (itemNo: string) => void;
   renderRow: (row: StoreStockRow) => ReactNode;
 }) {
+  // 이번 주 입고는 summary에 이미 있는 데이터라 화면 안에서만 펼침 — 보유/입고 리스트와 동시에 하나만 열림
+  const [arrivalsOpen, setArrivalsOpen] = useState(false);
+  type LinkKey = ListMode | 'arrivals';
+  const openKey: LinkKey | null = arrivalsOpen ? 'arrivals' : listMode;
+  const links: { key: LinkKey; label: string; n: number }[] = summary ? [
+    { key: 'mine', label: '우리 매장', n: summary.my_items },
+    { key: 'incoming', label: '들어오는 중', n: summary.incoming_items },
+    ...(summary.recent_arrivals.length > 0 ? [{ key: 'arrivals' as const, label: '이번 주 입고', n: summary.recent_arrivals.length }] : []),
+  ] : [];
+  const toggle = (key: LinkKey) => {
+    if (key === 'arrivals') {
+      if (listMode) onCloseList();
+      setArrivalsOpen((v) => !v);
+    } else {
+      setArrivalsOpen(false);
+      onToggleList(key);
+    }
+  };
+
   return (
     <>
-      {/* 최근 검색 — 칩 탭=재검색, ×=개별 삭제 */}
+      {/* 최근 검색 — 제목 없이 검색바 꼬리처럼 한 줄(가로 스와이프). 칩은 글자만, 지우기는 줄 끝 하나 */}
       {recent.length > 0 && (
-        <section style={{ marginTop: 20 }}>
-          {sectionHead('최근 검색', (
-            <button onClick={onClearRecent}
-              style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>
-              지우기
+        <div style={{
+          display: 'flex', gap: 8, alignItems: 'center', marginTop: 12,
+          overflowX: 'auto', whiteSpace: 'nowrap', scrollbarWidth: 'none', paddingBottom: 2,
+        }}>
+          {recent.map((r) => (
+            <button key={r} onClick={() => onRecent(r)}
+              style={{
+                all: 'unset', flex: 'none', cursor: 'pointer', padding: '6px 12px', borderRadius: 999,
+                border: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-secondary)',
+              }}>
+              {r}
             </button>
           ))}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {recent.map((r) => (
-              <span key={r} style={{
-                display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border-default)',
-                borderRadius: 999, fontSize: 13, color: 'var(--text-secondary)',
-              }}>
-                <button onClick={() => onRecent(r)}
-                  style={{ all: 'unset', cursor: 'pointer', padding: '6px 4px 6px 12px' }}>{r}</button>
-                <button onClick={() => onRemoveRecent(r)} aria-label={`${r} 삭제`}
-                  style={{ all: 'unset', cursor: 'pointer', padding: '6px 10px 6px 4px', fontSize: 12, color: 'var(--text-tertiary)' }}>×</button>
-              </span>
-            ))}
-          </div>
-        </section>
+          <button onClick={onClearRecent}
+            style={{ all: 'unset', flex: 'none', cursor: 'pointer', padding: '6px 4px', fontSize: 12, color: 'var(--text-tertiary)' }}>
+            지우기
+          </button>
+        </div>
       )}
 
-      {/* 스탯 스트립 — 탭하면 해당 리스트 */}
+
+      {/* 목록 링크 한 줄 — 우리 매장 · 들어오는 중 · 이번 주 입고. 누를 때만 펼침(자동으로 생기지 않음) */}
       {summary && (
-        <div style={{ display: 'flex', marginTop: 24, borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-subtle)' }}>
-          {([
-            ['우리 매장', summary.my_items, 'mine'],
-            ['들어오는 중', summary.incoming_items, 'incoming'],
-          ] as const).map(([label, n, mode], i) => (
-            <button key={mode} onClick={() => onToggleList(mode)}
-              style={{
-                all: 'unset', boxSizing: 'border-box', flex: 1, textAlign: 'center', padding: '14px 0', cursor: 'pointer',
-                borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none',
-                background: listMode === mode ? 'var(--surface-muted)' : 'transparent',
-              }}>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</div>
-              <div style={{ marginTop: 2, fontSize: 19, fontWeight: 700, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmt(n)}종</div>
-            </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 28, padding: '0 2px', fontSize: 12.5, color: 'var(--text-tertiary)' }}>
+          {links.map(({ key, label, n }, i) => (
+            <span key={key} style={{ display: 'inline-flex', gap: 6 }}>
+              {i > 0 && <span aria-hidden>·</span>}
+              <button onClick={() => toggle(key)}
+                style={{
+                  all: 'unset', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3,
+                  textDecorationColor: 'var(--border-strong)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+                  color: openKey === key ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  fontWeight: openKey === key ? 700 : 400,
+                }}>
+                {label} {fmt(n)}종
+              </button>
+            </span>
           ))}
         </div>
       )}
 
-      {/* 소믈리에 진입 — 스트립과 헤어라인 공유 */}
-      <button onClick={onSommelier}
-        style={{ all: 'unset', boxSizing: 'border-box', display: 'block', width: '100%', textAlign: 'center', cursor: 'pointer', padding: '16px 2px', borderBottom: '1px solid var(--border-subtle)' }}>
-        <span style={{ ...LAT, fontSize: 13 }}>SOMMELIER</span>
-        <span style={{ marginLeft: 10, fontSize: 13, color: GOLD }}>→</span>
-      </button>
-
-      {/* 보유/입고 리스트 — 스트립 탭 */}
+      {/* 보유/입고 리스트 */}
       {listMode && (
         <section style={{ marginTop: 24 }}>
           {sectionHead(listMode === 'mine' ? '우리 매장 보유' : '들어오는 중', (
@@ -105,10 +114,16 @@ export function StoreHome({
         </section>
       )}
 
-      {/* 이번 주 들어온 와인 */}
-      {!listMode && summary && summary.recent_arrivals.length > 0 && (
+      {/* 이번 주 입고 — 링크로 열었을 때만 */}
+      {arrivalsOpen && summary && (
         <section style={{ marginTop: 24 }}>
-          {sectionHead('이번 주 들어온 와인', <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>통관 완료</span>)}
+          {sectionHead('이번 주 입고', (
+            <>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>통관 완료</span>
+              <button onClick={() => setArrivalsOpen(false)}
+                style={{ all: 'unset', cursor: 'pointer', marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)' }}>닫기</button>
+            </>
+          ))}
           <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
             {summary.recent_arrivals.map((a) => (
               <button key={a.item_no} onClick={() => onArrival(a.item_no)}

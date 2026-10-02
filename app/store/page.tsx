@@ -97,17 +97,17 @@ export default function StorePage() {
           {storeLabel}
         </button>
       </header>
-      <div style={{ height: 1, background: GOLD_LINE, margin: '14px -16px 16px' }} />
+      <div style={{ height: 1, background: GOLD_LINE, margin: '14px -16px 24px' }} />
 
       <SearchBar value={g.q} onChange={g.onInput} />
 
       {showHome ? (
         <StoreHome
-          recent={g.recent} onRecent={searchNow} onRemoveRecent={g.removeRecent} onClearRecent={g.clearRecent}
+          recent={g.recent} onRecent={searchNow} onClearRecent={g.clearRecent}
           summary={g.summary} listMode={g.listMode} listRows={g.listRows}
           onToggleList={(mode) => (g.listMode === mode ? g.closeList() : void g.openList(mode))}
           onCloseList={g.closeList}
-          onSommelier={openSommelier} onArrival={searchNow} renderRow={renderRow} />
+          onArrival={searchNow} renderRow={renderRow} />
       ) : (
         <div style={{ marginTop: 8 }}>
           {g.searching && <div style={{ padding: '18px 2px', fontSize: 12.5, color: 'var(--text-tertiary)' }}>검색 중…</div>}
