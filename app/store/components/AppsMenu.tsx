@@ -16,6 +16,7 @@ export const MenuIcons = {
   arrivals: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /><path d="M9 15l2 2 4-4" /></svg>,
   sommelier: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><path d="M8 3h8l-.5 5a3.5 3.5 0 0 1-7 0L8 3z" /><path d="M12 11.5V20M8.5 20h7" /></svg>,
   alerts: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><path d="M6 9a6 6 0 0 1 12 0c0 5 2 7 2 7H4s2-2 2-7" /><path d="M10 20a2 2 0 0 0 4 0" /></svg>,
+  guests: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3 3 0 0 1 0 5.6M18.5 19a5 5 0 0 0-2.6-4.4" /></svg>,
   password: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>,
   logout: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" /><path d="M10 16l-4-4 4-4" /><path d="M6 12h10" /></svg>,
   store: <svg width="22" height="22" viewBox="0 0 24 24" {...stroke}><path d="M4 10l1.5-5h13L20 10" /><path d="M4 10h16v1a2.7 2.7 0 0 1-5.3 0 2.7 2.7 0 0 1-5.4 0A2.7 2.7 0 0 1 4 11v-1z" /><path d="M5.5 13v7h13v-7" /></svg>,

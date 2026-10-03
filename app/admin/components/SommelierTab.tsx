@@ -3,39 +3,34 @@
 // 소믈리에(백화점 취향 문답) 이력 — 고객별 문답 세션·답변·추천·구매 기록 열람.
 // KREAM 문법: 헤어라인 행 + 확장 상세.
 import { useEffect, useState } from 'react';
-import { BODY_OPTIONS, COUNTRY_OPTIONS, FLAVOR_GROUPS, PRICE_OPTIONS, TYPE_OPTIONS } from '@/app/sommelier/lib/quiz';
-import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 import { RequestsList } from '@/app/sommelier/admin/components/RequestsList';
+import { answerSummary } from '@/app/sommelier/lib/answerSummary';
+import { SommelierCustomerSummary, type TasteSummary } from './SommelierCustomerSummary';
+import { storeViewLabel, type StoreView } from '@/app/lib/store/types';
+import { GOLD } from '@/app/store/brand';
 
-type Customer = { id: number; name: string; phone: string; created_at: string };
+type Customer = { id: number; name: string; phone: string; created_at: string; created_by: string | null; marketing_opt_in: boolean | null };
 type Session = {
   id: number; customer_id: number; manager: string; created_at: string;
   answers: { type?: string | null; body?: string | null; flavors?: string[]; flavorGroups?: string[]; countries?: string[]; priceMin?: number | null; priceMax?: number | null };
   results: { item_code: string; name: string; retail_price: number }[];
 };
-type Order = { id: number; customer_id: number; session_id: number | null; item_code: string; item_name: string; retail_price: number; manager: string; created_at: string };
+type Order = {
+  id: number; customer_id: number; session_id: number | null; item_code: string; item_name: string; retail_price: number; manager: string; created_at: string;
+  // 구매 기록 상세화(2026-10) 이후 기록에만 있음
+  vintage?: string | null; quantity?: number | null; source?: string | null; store_key?: string | null; amount?: number | null; list_price?: number | null;
+};
 
 const won = (n: number) => (n || 0).toLocaleString('ko-KR');
 const dt = (s: string) => new Date(s).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 const maskPhone = (p: string) => (p?.length >= 8 ? `${p.slice(0, 3)}-${p.slice(3, -4).replace(/\d/g, '*')}-${p.slice(-4)}` : p);
 
-/** 답변 JSON → 사람이 읽는 요약 */
-function answerSummary(a: Session['answers']): string {
-  const parts: string[] = [];
-  const t = TYPE_OPTIONS.find((o) => o.value === a.type); if (t?.value) parts.push(t.label);
-  const b = BODY_OPTIONS.find((o) => o.value === a.body); if (b?.value) parts.push(b.label);
-  for (const g of a.flavorGroups || []) parts.push(`${FLAVOR_GROUPS[g]?.label || g}(전체)`);
-  for (const f of a.flavors || []) parts.push(FLAVOR_KO[f] || f);
-  for (const c of a.countries || []) parts.push(COUNTRY_OPTIONS[c]?.label || c);
-  const p = PRICE_OPTIONS.find((o) => o.min === (a.priceMin ?? null) && o.max === (a.priceMax ?? null));
-  if (p && (p.min != null || p.max != null)) parts.push(p.label);
-  return parts.join(' · ') || '전부 상관없음';
-}
 
 export default function SommelierTab({ onRequestCountChange }: { onRequestCountChange?: (n: number) => void } = {}) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [tastes, setTastes] = useState<Record<number, TasteSummary>>({});
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -63,7 +58,7 @@ export default function SommelierTab({ onRequestCountChange }: { onRequestCountC
   useEffect(() => {
     fetch('/api/admin/sommelier').then((r) => r.json())
       .then((j) => {
-        setCustomers(j.customers || []); setSessions(j.sessions || []); setOrders(j.orders || []);
+        setCustomers(j.customers || []); setSessions(j.sessions || []); setOrders(j.orders || []); setTastes(j.tastes || {});
       })
       .finally(() => setLoading(false));
   }, []);
@@ -116,14 +111,23 @@ export default function SommelierTab({ onRequestCountChange }: { onRequestCountC
 
             {isOpen && (
               <div style={{ padding: '2px 4px 18px' }}>
+                {/* 단골 카드와 같은 요약 — 동의·등록 직원·방문/구매 숫자·취향 */}
+                <SommelierCustomerSummary t={tastes[c.id]} marketing={c.marketing_opt_in} createdBy={c.created_by} />
                 {co.length > 0 && (
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>구매 기록</div>
                     {co.map((o) => (
-                      <div key={o.id} style={{ display: 'flex', gap: 10, fontSize: 13, padding: '5px 0', alignItems: 'baseline' }}>
-                        <span style={{ fontWeight: 600 }}>{o.item_name || o.item_code}</span>
-                        <span style={{ color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>{won(o.retail_price)}원</span>
-                        <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)' }}>{o.manager} · {dt(o.created_at)}</span>
+                      <div key={o.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px', fontSize: 13, padding: '6px 0', alignItems: 'baseline', borderTop: '1px solid var(--border-subtle)' }}>
+                        <span style={{ fontWeight: 600 }}>{o.item_name || o.item_code}{o.vintage ? ` ${o.vintage}` : ''}</span>
+                        <span style={{ color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                          {o.quantity || 1}병 · {won(o.amount ?? o.retail_price * (o.quantity || 1))}원
+                        </span>
+                        {o.source && (
+                          <span style={{ fontSize: 11.5, color: o.source === 'quiz' ? GOLD : 'var(--text-tertiary)' }}>{o.source === 'quiz' ? '맞춤 추천' : '재고 선택'}</span>
+                        )}
+                        <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          {o.store_key ? `${storeViewLabel(o.store_key as StoreView)} · ` : ''}{o.manager} · {dt(o.created_at)}
+                        </span>
                       </div>
                     ))}
                   </div>

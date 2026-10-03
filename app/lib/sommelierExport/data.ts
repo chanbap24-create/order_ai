@@ -2,6 +2,11 @@
 // 손님 취향 요약은 기간과 무관하게 전체 이력으로 계산(취향은 누적 데이터라야 의미가 있음).
 import { supabase } from '../db';
 import { fetchAllRows } from '../fetchAll';
+import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
+import { BODY_OPTIONS, TYPE_OPTIONS } from '@/app/sommelier/lib/quiz';
+
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(TYPE_OPTIONS.filter((o) => o.value).map((o) => [o.value as string, o.label]));
+const BODY_LABEL: Record<string, string> = Object.fromEntries(BODY_OPTIONS.filter((o) => o.value).map((o) => [o.value as string, o.label]));
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type OrderRow = Record<string, any>;
@@ -47,7 +52,8 @@ const wavg = (pairs: Array<[number | null, number]>) => {
 // 품종 문자열 '샤르도네 Chardonnay 100' / 'Pinot Noir, Chardonnay' → 품종명만
 const grapesOf = (g: string | null) => (g || '').split(/[,/]/).map((x) => x.replace(/\d+%?/g, '').trim()).filter(Boolean);
 
-function buildTastes(customers: CustomerRow[], orders: OrderRow[], sessions: SessionRow[]): CustomerTaste[] {
+/** 손님별 취향 요약 — 엑셀 '손님 취향 요약' 시트·관리자 소믈리에 탭·단골 카드 공용 */
+export function buildTastes(customers: CustomerRow[], orders: OrderRow[], sessions: SessionRow[]): CustomerTaste[] {
   return customers.map((c) => {
     const os = orders.filter((o) => o.customer_id === c.id);
     const ss = sessions.filter((s) => s.customer_id === c.id);
@@ -57,11 +63,13 @@ function buildTastes(customers: CustomerRow[], orders: OrderRow[], sessions: Ses
       const q = Number(o.quantity) || 1;
       bump(types, o.wine_type, q); bump(countries, o.country, q);
       for (const g of grapesOf(o.grapes)) bump(grapes, g, q);
-      for (const f of o.flavor_tags || []) bump(flavors, f, q);
+      // 향 태그 → 한글. light_body·full_body 같은 바디 표시는 향이 아니라 제외
+      for (const f of o.flavor_tags || []) if (!/_body$/.test(f)) bump(flavors, FLAVOR_KO[f] || f, q);
     }
     const qTypes = new Map<string, number>(); const qBody = new Map<string, number>(); const qPrice = new Map<string, number>();
     for (const s of ss) {
-      bump(qTypes, s.answers?.type, 1); bump(qBody, s.answers?.body, 1);
+      // 문답 값 → 화면 표기(Red·Light 등)
+      bump(qTypes, TYPE_LABEL[s.answers?.type] || s.answers?.type, 1); bump(qBody, BODY_LABEL[s.answers?.body] || s.answers?.body, 1);
       if (s.answers?.priceMin != null || s.answers?.priceMax != null) {
         bump(qPrice, `${Math.round((s.answers.priceMin || 0) / 10000)}~${s.answers.priceMax ? Math.round(s.answers.priceMax / 10000) : ''}만원`, 1);
       }

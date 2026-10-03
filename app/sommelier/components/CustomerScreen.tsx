@@ -103,6 +103,13 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
             <span><b>[선택]</b> 신상품·행사 등 광고성 정보 수신(문자)에 동의합니다.</span>
           </label>
           {error && <div className="som-err">{error}</div>}
+          {/* 재방문 손님을 골랐으면 — 단골 카드(방문·구매·취향·메모)로 */}
+          {picked && (
+            <a href={`/store/customer/${picked.id}?from=sommelier`}
+              style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, color: 'var(--som-muted)', textDecoration: 'underline', textUnderlineOffset: 4 }}>
+              {picked.name} 님 단골 카드 보기 →
+            </a>
+          )}
 
           {matches.length > 0 && (
             <div className="som-returning">

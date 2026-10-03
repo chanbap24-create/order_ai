@@ -39,6 +39,8 @@ export default function SommelierPage() {
   const [reading, setReading] = useState<'off' | 'on' | 'out'>('off');
   const [resume, setResume] = useState(false); // 결과→이전: 답변 유지한 채 마지막 질문으로
   const [quizNonce, setQuizNonce] = useState(0);
+  // 단골 카드 '이 취향으로 추천' — 로그인 확인 뒤 이 답변으로 바로 추천(문답 생략)
+  const [autoAnswers, setAutoAnswers] = useState<QuizAnswers | null>(null);
 
   useEffect(() => {
     // 매장 재고(POS)에서 넘어온 문답 직행 — 연결된 손님이 있으면 고객 단계 생략
@@ -51,6 +53,13 @@ export default function SommelierPage() {
         setPriceHint(view.priceHint); setSessionId(view.sessionId);
         if (view.phase === 'quiz' && view.answers) setResume(true);
         setPhase(view.phase);
+        window.history.replaceState(null, '', '/sommelier');
+      } else if (qs.get('auto')) {
+        const g = readGuest();
+        const a = JSON.parse(sessionStorage.getItem('cave_som_auto') || 'null') as QuizAnswers | null;
+        sessionStorage.removeItem('cave_som_auto');
+        if (g?.id) setCustomer({ id: g.id, name: g.name || '' } as SommelierCustomer);
+        if (a) setAutoAnswers(a); else setPhase('quiz');
         window.history.replaceState(null, '', '/sommelier');
       } else if (qs.get('quiz')) {
         const g = readGuest();
@@ -80,6 +89,14 @@ export default function SommelierPage() {
     saveSommelierView({ phase, customer, answers, results, priceHint, sessionId } satisfies SomView);
   }, [checking, phase, customer, answers, results, priceHint, sessionId]);
 
+
+  useEffect(() => {
+    if (checking || !authed || !autoAnswers) return;
+    const a = autoAnswers;
+    const t = setTimeout(() => { setAutoAnswers(null); void submit(a); }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checking, authed, autoAnswers]);
 
   const submit = async (a: QuizAnswers) => {
     if (submitting) return;

@@ -29,6 +29,16 @@ export async function detectFileType(file: File): Promise<DetectResult> {
       headerText.includes("품명") &&
       (headerText.includes("재고수량") || headerText.includes("가용재고"))
     ) {
+      // 0순위: 창고·매장 칸의 법인 접미사 — 와인 재고표는 '본사창고(CDV)', 글라스는 '본사창고(DL)'·'매장(신세계강남점)'.
+      //   2026-10 글라스 새 포맷은 GIG 칸이 없고 KCTC 칸이 있어 아래 KCTC 규칙에 와인으로 오판됐음 → 접미사를 먼저 본다.
+      //   (와인 '매장(신세계강남점HOS)'과 앞부분이 같으므로 매장 칸은 정확히 일치로만 비교)
+      const DL_ONLY = ['매장(신세계강남점)', '매장(신세계사우스시티)'];
+      if (headers.some((h) => /\(DL\)$/.test(h) || DL_ONLY.includes(h))) {
+        return { type: "dl", confidence: "high", reason: "재고파일 - (DL) 창고/대유 매장 헤더 감지 (글라스 DL)" };
+      }
+      if (headers.some((h) => /\(CDV\)$/.test(h))) {
+        return { type: "downloads", confidence: "high", reason: "재고파일 - (CDV) 창고 헤더 감지 (와인 CDV)" };
+      }
       // GIG를 먼저 본다 — 2026 글라스 새 포맷은 KCTC 창고도 포함하므로(KCTC=양사 공용) GIG가 DL의 결정 신호.
       if (headerText.includes("GIG") || headerText.includes("보세(GIG)")) {
         return { type: "dl", confidence: "high", reason: "재고파일 - GIG 창고 헤더 감지 (DL)" };
