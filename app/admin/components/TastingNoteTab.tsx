@@ -11,6 +11,8 @@ import { NewWinePopup } from '../tasting-note/components/NewWinePopup';
 import { WineEditPanel } from '../new-wine/components/WineEditPanel';
 import { ResearchDetailPanel } from '../new-wine/components/ResearchDetailPanel';
 import { ProgressBars } from '../new-wine/components/ProgressBars';
+import { NoteRequestStrip } from '../tasting-note/components/NoteRequestStrip';
+import { useNoteRequests } from '../tasting-note/hooks/useNoteRequests';
 import type { NoteFilter, TastingWineRow } from '../tasting-note/types';
 
 const SEEN_KEY = 'tn_new_seen'; // 이미 알린 신규 품번(중복 팝업 방지)
@@ -18,11 +20,14 @@ const SEEN_KEY = 'tn_new_seen'; // 이미 알린 신규 품번(중복 팝업 방
 export default function TastingNoteTab({
   initialFilter = 'all',
   onNewCountChange,
+  onNoteRequestCountChange,
 }: {
   initialFilter?: NoteFilter;
   onNewCountChange?: (n: number) => void;
+  onNoteRequestCountChange?: (n: number) => void; // 탭 배지 — 매장 테이스팅 노트 요청(미처리)
 }) {
-  const list = useTastingNoteList(initialFilter);
+  const noteReqs = useNoteRequests(onNoteRequestCountChange);
+  const list = useTastingNoteList(initialFilter, noteReqs.itemNos);
 
   // 탭 배지용 신규 작업대상 수를 부모로 전달 (노트 작성/제외 시 실시간 갱신)
   useEffect(() => {
@@ -137,6 +142,27 @@ export default function TastingNoteTab({
           </button>
         </div>
       )}
+
+      {/* '매장 요청' 필터 — 요청자·메모·완료 처리. 와인명 탭하면 그 와인을 바로 연다 */}
+      {list.filterNote === 'request' && <NoteRequestStrip
+        requests={noteReqs.requests}
+        hasNote={(no) => list.wines.some((w) => w.item_code === no && w.tasting_note_id != null)}
+        inList={(no) => list.wines.some((w) => w.item_code === no)}
+        onRegister={async (r) => {
+          // 신규 와인 감지는 CDV 재고만 봐서 DL 재고의 타사(ZK) 등은 와인리스트에 없을 수 있음 → 요청 이름으로 등록
+          const res = await fetch('/api/admin/wines', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_code: r.item_no, item_name_kr: r.item_name_kr || r.item_no, item_name_en: r.item_name_en || null, status: 'new' }),
+          }).catch(() => null);
+          if (!res?.ok) { alert('와인리스트 등록에 실패했습니다.'); return; }
+          await list.fetchWines();
+        }}
+        onOpen={(r) => {
+          const wine = list.wines.find((w) => w.item_code === r.item_no);
+          if (wine) { list.setSelectedId(wine.item_code); detail.selectWineFromList(wine); }
+        }}
+        onResolve={noteReqs.resolve}
+      />}
 
       <ProgressBars
         batchRunning={ops.batchRunning}

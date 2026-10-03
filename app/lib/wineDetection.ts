@@ -8,6 +8,8 @@ import { loadBrandSupplierMap, supplierFromMap } from "@/app/lib/brandMapping";
 import { translateWineName } from "@/app/lib/koreanToEnglish";
 import { extractVintage } from "@/app/api/quote/lib/enrichment";
 import { logger } from "@/app/lib/logger";
+import { cleanErpName } from "@/app/lib/store/stockView";
+import { NON_WINE_NAME } from "@/app/lib/sommelierRecommend";
 
 /** 빈티지는 품번 3~4자리(공식) 우선 — ERP 엑셀 빈티지 컬럼 오입력 방지. 코드가 연도를 못 주면 엑셀값 폴백. */
 function codeVintage(itemNo: string, excelVintage: string | null): string | null {
@@ -44,6 +46,28 @@ async function getInventoryItems(): Promise<InventoryItem[]> {
     return out;
   } catch (e) {
     logger.error(`[WineDetection] Failed to load inventory_cdv`, e instanceof Error ? e : undefined);
+    return [];
+  }
+}
+
+// (유로라인)은 와인 용품 공급사(스토퍼·브루카트 등) — 이름만으론 용품인지 안 드러나 공급사로 제외
+const ZK_ACCESSORY_SUPPLIER = /^\(유로라인\)/;
+
+/** DL 재고에만 있는 타사 위탁 와인(ZK) — CDV 재고에 없어 위 감지에서 빠지던 품목.
+ *  잔·용품(D·RD)은 품번에서, ZK 용품(스토퍼·푸어러 등)은 이름·공급사로 제외. 재고 수량은 DL 기준. */
+async function getDlZkItems(cdvNos: Set<string>): Promise<InventoryItem[]> {
+  try {
+    const { data, error } = await supabase
+      .from('inventory_dl')
+      .select('item_no, item_name, supply_price, available_stock, vintage, alcohol_content, country')
+      .ilike('item_no', 'ZK%');
+    if (error) throw error;
+    type DlRow = Omit<InventoryItem, 'alcohol'> & { alcohol_content: string | null };
+    return ((data || []) as DlRow[])
+      .filter((r) => !cdvNos.has(r.item_no) && !NON_WINE_NAME.test(r.item_name || '') && !ZK_ACCESSORY_SUPPLIER.test(r.item_name || ''))
+      .map((r) => ({ ...r, item_name: cleanErpName(r.item_name || ''), alcohol: r.alcohol_content }));
+  } catch (e) {
+    logger.error(`[WineDetection] Failed to load inventory_dl ZK`, e instanceof Error ? e : undefined);
     return [];
   }
 }
@@ -148,6 +172,25 @@ export async function detectNewWines(): Promise<{ newCount: number; updatedCount
       }
       updateRows.push(update);
     }
+  }
+
+  // DL 재고에만 있는 타사(ZK) 와인 — 신규 추가만(기존 와인은 CDV 감지·수동 편집 값 보존)
+  const cdvNos = new Set(items.map((i) => i.item_no));
+  for (const item of await getDlZkItems(cdvNos)) {
+    if (!item.item_no || winesMap.has(item.item_no)) continue;
+    const { kr, en } = getCountryPair(item.country || '');
+    newRows.push({
+      item_code: item.item_no,
+      item_name_kr: item.item_name,
+      item_name_en: translateWineName(item.item_name),
+      country: kr || item.country,
+      country_en: en,
+      vintage: codeVintage(item.item_no, item.vintage),
+      alcohol: item.alcohol,
+      supply_price: item.supply_price,
+      available_stock: item.available_stock,
+      status: 'new',
+    });
   }
 
   // 배치 insert 신규 와인

@@ -122,11 +122,12 @@ async function overlayZkNames(rows: StoreStockRow[]): Promise<StoreStockRow[]> {
   });
 }
 
-function cleanErpName(name: string): string {
+/** ERP 품명 정리 — 재고 앱 표시·신규 와인 감지(DL 타사 ZK 등록) 공용 */
+export function cleanErpName(name: string): string {
   const cleaned = name
     .replace(/^\([^)]*\)/, '')          // (수입사)
     .replace(/^\([A-Z]\)/i, '')          // (A)/(B) 등급 표기
-    .replace(/^(\d{2}|NV)(?=\D)/i, '')   // 선두 빈티지 2자리/NV
+    .replace(/^(\d{2}|NV)(\/(?=\d)|(?=\D))/i, '') // 선두 빈티지 2자리/NV ('24/19크라임스'는 '19크라임스'로 — 브랜드 숫자 보존)
     .replace(/\s*\d{2}\/\d{2}$/, '')       // 꼬리 입고 연월 yy/mm
     .trim();
   return cleaned || name;

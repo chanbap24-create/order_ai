@@ -222,7 +222,7 @@ function AdminPageBody() {
         <AdminTabs
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          newWineCount={newWineCount}
+          newWineCount={newWineCount + somReq.noteCount}
           sommelierRequestCount={somReq.count}
         />
 
@@ -234,7 +234,7 @@ function AdminPageBody() {
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'new-wine' && <TastingNoteTab initialFilter="new" onNewCountChange={setNewWineCount} />}
         {activeTab === 'all-wines' && <AllWinesTab />}
-        {activeTab === 'tasting-note' && <TastingNoteTab onNewCountChange={setNewWineCount} />}
+        {activeTab === 'tasting-note' && <TastingNoteTab onNewCountChange={setNewWineCount} onNoteRequestCountChange={somReq.setNoteCount} />}
         {activeTab === 'flavor-tags' && <FlavorTagsTab />}
         {activeTab === 'client-analysis' && <ClientAnalysisTab />}
         {activeTab === 'segments' && <SegmentsTab />}

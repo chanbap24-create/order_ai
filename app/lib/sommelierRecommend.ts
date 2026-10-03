@@ -125,7 +125,7 @@ export function retailPriceOf(retailPrice: unknown, supplyPrice: unknown, code: 
   const supply = Number(supplyPrice) || 0;
   return /^ZK/i.test(code) ? Math.round((supply * CONSIGN_MARKUP) / 100) * 100 : supply;
 }
-const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프|노트북|푸어러|마개/i;
+export const NON_WINE_NAME = /글라스|잔\b|디캔터|오프너|스토퍼|더미|케이스|쇼핑백|지함|버켓|버킷|코스터|박스|텀블러|철제|집기|쿨러|디스플레이|라기올|라기욜|laguiole|소믈리에\s*나이프|와인\s*나이프|\b나이프|노트북|푸어러|마개/i;
 
 /** 한 재고 테이블에서 매장 재고 있는 와인 로드 → {code, retail, stock}. 1000행 캡 페이지네이션.
  *  storeCol=특정 매장만, null=그 테이블의 어느 매장이든 재고>0. */

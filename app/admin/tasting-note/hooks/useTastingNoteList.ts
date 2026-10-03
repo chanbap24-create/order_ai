@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
 import { isWineCategory, isActionableNew, totalStock, LOW_STOCK_THRESHOLD } from "../constants";
 
-/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터 */
-export function useTastingNoteList(initialFilter: NoteFilter = "all") {
+/** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터.
+ *  requested = 매장 직원이 노트를 요청한(미처리) 품번 — '매장 요청' 필터용 */
+export function useTastingNoteList(initialFilter: NoteFilter = "all", requested: Set<string> = new Set()) {
   const [wines, setWines] = useState<TastingWineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -96,6 +97,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     if (showExcluded !== !!w.note_excluded) return false; // 기본: 제외 숨김 / 제외 보기: 제외만
     if (wineOnly && !isWineCategory(w.item_code)) return false;
     if (debouncedSearch.trim()) return true; // 검색 중엔 재고 필터 무시
+    if (requested.has(w.item_code)) return true; // 매장에서 노트를 요청한 와인은 재고 수량으로 숨기지 않음
     const stock = totalStock(w); // 가용+보세+입고예정 — 신규(배송 중) 와인도 목록에 보이게
     if (hideZero && stock <= 0) return false;
     if (lowStockThreshold > 0 && stock <= lowStockThreshold) return false;
@@ -126,6 +128,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
     if (zkOnly && !w.item_code.toUpperCase().startsWith('ZK')) return false; // 타사와인만 토글 — 모든 필터에 공통 적용
     if (filterNote === "new") return isNewWine(w);
     if (filterNote === "dept") return !!w.dept_batch; // 백화점 유입분은 카테고리 필터 무관하게 전부
+    if (filterNote === "request") return requested.has(w.item_code); // 매장 요청은 재고·분류 무관 전부
     // DB만(노란 뱃지: DB 노트 있음 + PDF 없음)도 재고·분류 무관 전수 — 타사(ZK)처럼 재고 0인 품목 포함
     if (filterNote === "db-only") return !!w.tasting_note_id && !ghIndex[w.item_code];
     if (!passesCategoryFilters(w)) return false;
@@ -147,6 +150,7 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all") {
       (w) => !!w.tasting_note_id && !ghIndex[w.item_code],
     ).length,
     dept: wines.filter((w) => !!w.dept_batch).length,
+    request: requested.size, // 와인리스트 미등록 요청(타사 ZK 등)까지 포함한 전체 요청 수
   };
 
   // 탭 배지용: 토글(와인만/제외됨)과 무관한 안정적 "신규 작업대상" 목록/수
