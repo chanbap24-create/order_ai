@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NoteFilter, TastingWineRow } from "../types";
 import { isWineCategory, isActionableNew, totalStock, LOW_STOCK_THRESHOLD } from "../constants";
 
+// 검색 비교용 정규화 — 띄어쓰기·악센트·대소문자 무시('로저벨랑' = '로저 벨랑', 'Chateau' = 'Château')
+const normSearch = (s: string | null | undefined) =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, "");
+
 /** TastingNote 리스트: debounced search + ghIndex + hideZero/wineOnly/lowStockThreshold 필터 + 노트 필터.
+ *  검색은 클라이언트에서 — 목록은 한 번만 받고(필터 숫자·탭 배지가 검색에 흔들리지 않게), 단어별 AND·띄어쓰기 무시.
  *  requested = 매장 직원이 노트를 요청한(미처리) 품번 — '매장 요청' 필터용 */
 export function useTastingNoteList(initialFilter: NoteFilter = "all", requested: Set<string> = new Set()) {
   const [wines, setWines] = useState<TastingWineRow[]>([]);
@@ -72,17 +77,26 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all", requested:
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
     try {
-      const res = await fetch(`/api/admin/tasting-notes?${params}`);
+      const res = await fetch(`/api/admin/tasting-notes`);
       const data = await res.json();
       if (data.success) setWines(data.data);
     } catch {
       /* ignore */
     }
     setLoading(false);
-  }, [debouncedSearch]);
+  }, []);
+
+  // 검색 대상 문자열(한글명·영문명·품번·브랜드·공급사) — 목록이 바뀔 때만 다시 만든다
+  const haystack = useMemo(() => new Map(wines.map((w) => [
+    w.item_code,
+    normSearch([w.item_name_kr, w.item_name_en, w.item_code, w.brand, w.supplier, w.supplier_kr].filter(Boolean).join(" ")),
+  ])), [wines]);
+  const searchTokens = debouncedSearch.trim().split(/\s+/).map(normSearch).filter(Boolean);
+  const matchesSearch = (w: TastingWineRow) => {
+    const h = haystack.get(w.item_code) || "";
+    return searchTokens.every((t) => h.includes(t)); // 단어 순서 무관('상트네 벨랑'도 찾음)
+  };
 
   useEffect(() => {
     fetchWines();
@@ -96,7 +110,6 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all", requested:
   const passesCategoryFilters = (w: TastingWineRow): boolean => {
     if (showExcluded !== !!w.note_excluded) return false; // 기본: 제외 숨김 / 제외 보기: 제외만
     if (wineOnly && !isWineCategory(w.item_code)) return false;
-    if (debouncedSearch.trim()) return true; // 검색 중엔 재고 필터 무시
     if (requested.has(w.item_code)) return true; // 매장에서 노트를 요청한 와인은 재고 수량으로 숨기지 않음
     const stock = totalStock(w); // 가용+보세+입고예정 — 신규(배송 중) 와인도 목록에 보이게
     if (hideZero && stock <= 0) return false;
@@ -125,6 +138,8 @@ export function useTastingNoteList(initialFilter: NoteFilter = "all", requested:
     && (lowStockThreshold <= 0 || totalStock(w) > lowStockThreshold);
 
   const filteredWines = wines.filter((w) => {
+    // 검색 중에는 탭·와인만·재고·타사 필터 모두 무시 — 품번·이름으로 콕 집어 찾을 땐 어디 있든 보여야 함
+    if (searchTokens.length) return matchesSearch(w);
     if (zkOnly && !w.item_code.toUpperCase().startsWith('ZK')) return false; // 타사와인만 토글 — 모든 필터에 공통 적용
     if (filterNote === "new") return isNewWine(w);
     if (filterNote === "dept") return !!w.dept_batch; // 백화점 유입분은 카테고리 필터 무관하게 전부
