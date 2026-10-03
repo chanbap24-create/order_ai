@@ -6,6 +6,8 @@ import { RoundBackButton } from '@/app/components/RoundBackButton';
 import { GOLD, GOLD_LINE, LAT, fmt } from '../../brand';
 import type { CustomerCardData } from '../types';
 import { MemoEditor } from './MemoEditor';
+import { ProfileEditor } from './ProfileEditor';
+import { CustomerHeader } from './CustomerHeader';
 
 const SOURCE_LABEL = { quiz: '맞춤 추천', stock: '재고 선택' } as const;
 const md = (d: string) => `${d.slice(5, 7)}.${d.slice(8, 10)}`;
@@ -39,18 +41,20 @@ function TasteBar({ label, v }: { label: string; v: number | null }) {
 
 const row: React.CSSProperties = { display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 0', borderBottom: '1px solid var(--border-subtle)', minWidth: 0 };
 
-export function CustomerCard({ d, onBack, onRecommend, onServe, onSaveMemo }: {
+export function CustomerCard({ d, onBack, onRecommend, onServe, onSaveMemo, onSaveProfile }: {
   d: CustomerCardData;
   onBack: () => void;
   onRecommend: () => void;   // 이 취향으로 바로 추천
   onServe: () => void;       // 이 손님으로 응대 시작
   onSaveMemo: (memo: string) => Promise<boolean>; // 직원 메모 저장
+  onSaveProfile: React.ComponentProps<typeof ProfileEditor>['onSave']; // 연령대·성별 저장
 }) {
   const s = d.stats;
   const [allPurchases, setAllPurchases] = useState(false); // 최근 구매 5건 → 더 보기로 전체
   const purchases = allPurchases ? d.purchases : d.purchases.slice(0, 5);
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px calc(110px + env(safe-area-inset-bottom))', color: 'var(--text-primary)' }}>
+      <CustomerHeader />
       <div style={{ ...LAT, fontSize: 11, color: GOLD }}>REGULAR GUEST</div>
 
       {/* 손님 */}
@@ -76,9 +80,16 @@ export function CustomerCard({ d, onBack, onRecommend, onServe, onSaveMemo }: {
       </div>
       <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'right' }}>최근 방문 {d.lastVisit.replace(/-/g, '.')}</div>
 
+      {/* 손님 정보 — 직원이 대략 기록(추후 연령·성별·지역별 추천용). 배포 직후 옛 응답엔 없을 수 있어 있을 때만 */}
+      {d.profile && (
+        <Section title="손님 정보">
+          <ProfileEditor profile={d.profile} onSave={onSaveProfile} />
+        </Section>
+      )}
+
       {/* 취향 */}
       <Section title="취향" aside={<span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>구매 기록 기준</span>}>
-        {([['타입', d.taste.type], ['국가', d.taste.countries], ['품종', d.taste.grapes]] as const).map(([k, v]) => (
+        {([['타입', d.taste.type], ['국가', d.taste.countries], ['산지', d.taste.regions], ['품종', d.taste.grapes]] as const).map(([k, v]) => (
           <div key={k} style={row}>
             <span style={{ flex: 'none', width: 44, fontSize: 12, color: 'var(--text-tertiary)' }}>{k}</span>
             <span style={{ fontSize: 13.5, fontWeight: 600 }}>{v || '—'}</span>
@@ -90,18 +101,22 @@ export function CustomerCard({ d, onBack, onRecommend, onServe, onSaveMemo }: {
           <TasteBar label="산미" v={d.taste.acidity} />
           <TasteBar label="탄닌" v={d.taste.tannin} />
         </div>
-        {d.taste.flavors.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', padding: '8px 0 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-            {d.taste.flavors.map((f) => (
-              <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                <i style={{ width: 5, height: 5, borderRadius: '50%', background: GOLD }} />{f}
-              </span>
-            ))}
+        {/* 자주 산 향 — 산 타입별 한 줄(레드 향·화이트 향이 섞여 잘리지 않게) */}
+        {d.taste.flavorGroups.map((g) => (
+          <div key={g.type} style={{ ...row, alignItems: 'flex-start' }}>
+            <span style={{ flex: 'none', minWidth: 44, fontSize: 12, color: 'var(--text-tertiary)', paddingTop: 1 }}>{g.type} 향</span>
+            <span style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
+              {g.flavors.map((f) => (
+                <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                  <i style={{ width: 5, height: 5, borderRadius: '50%', background: GOLD }} />{f}
+                </span>
+              ))}
+            </span>
           </div>
-        )}
+        ))}
         <div style={row}>
           <span style={{ flex: 'none', width: 44, fontSize: 12, color: 'var(--text-tertiary)' }}>문답</span>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{[d.taste.quiz.type, d.taste.quiz.body, d.taste.quiz.price].filter(Boolean).join(' · ')}</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{[d.taste.quiz.type, d.taste.quiz.body, d.taste.quiz.flavors, d.taste.quiz.price].filter(Boolean).join(' · ')}</span>
         </div>
       </Section>
 
@@ -130,7 +145,7 @@ export function CustomerCard({ d, onBack, onRecommend, onServe, onSaveMemo }: {
       </Section>
 
       {/* 문답 이력 */}
-      <Section title="문답 이력">
+      <Section title="최근 문답" aside={<span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>전체 {d.sessionCount}회</span>}>
         {d.sessions.map((x, i) => (
           <div key={i} style={row}>
             <span style={{ flex: 'none', width: 38, fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>{md(x.date)}</span>

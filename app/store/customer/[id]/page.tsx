@@ -3,6 +3,7 @@
 // 단골 카드 페이지 — /store/customer/[id]?from=sommelier|store. 데이터 로드·버튼 동작만, 화면은 CustomerCard.
 import { use, useEffect, useState } from 'react';
 import { CustomerCard } from '../components/CustomerCard';
+import { CustomerHeader } from '../components/CustomerHeader';
 import type { CustomerCardData } from '../types';
 import { ListSkeleton, StatStripSkeleton } from '@/app/components/ui/Skeleton';
 import { readGuest, startGuestSession, syncGuest } from '@/app/lib/store/cartSession';
@@ -28,14 +29,15 @@ export default function CustomerCardPage({ params }: { params: Promise<{ id: str
 
   if (error) {
     return (
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '30vh 20px', textAlign: 'center' }}>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{error}</p>
+      <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px', textAlign: 'center' }}>
+        <CustomerHeader />
+        <p style={{ marginTop: '25vh', fontSize: 14, color: 'var(--text-secondary)' }}>{error}</p>
         <button onClick={back} style={{ all: 'unset', cursor: 'pointer', fontSize: 13, textDecoration: 'underline', textUnderlineOffset: 3 }}>돌아가기</button>
       </div>
     );
   }
   if (!card) {
-    return <div style={{ maxWidth: 560, margin: '0 auto', padding: '60px 16px' }}><StatStripSkeleton cells={5} /><ListSkeleton rows={8} /></div>;
+    return <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px' }}><CustomerHeader /><StatStripSkeleton cells={5} /><ListSkeleton rows={8} /></div>;
   }
   return (
     <CustomerCard d={card} onBack={back}
@@ -45,6 +47,13 @@ export default function CustomerCardPage({ params }: { params: Promise<{ id: str
         serveAs(card);
         try { sessionStorage.setItem('cave_som_auto', JSON.stringify(card.suggested)); } catch { /* ignore */ }
         window.location.href = '/sommelier?auto=1';
+      }}
+      onSaveProfile={async (profile) => {
+        const r = await fetch(`/api/sommelier/customer/${card.id}/card`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile }),
+        }).catch(() => null);
+        if (!r?.ok) { alert((await r?.json().catch(() => null))?.error || '저장에 실패했습니다.'); return false; }
+        return true;
       }}
       onSaveMemo={async (memo) => {
         const r = await fetch(`/api/sommelier/customer/${card.id}/card`, {

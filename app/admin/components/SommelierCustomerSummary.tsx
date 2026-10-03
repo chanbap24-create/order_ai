@@ -38,7 +38,7 @@ export function SommelierCustomerSummary({ t, marketing, createdBy }: { t?: Tast
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', rowGap: 5, padding: '10px 0 0', fontSize: 12.5 }}>
             <span style={{ color: 'var(--text-tertiary)' }}>선호</span>
-            <span>{[t.topType, t.topCountries, t.topGrapes].filter(Boolean).join(' · ') || '—'}</span>
+            <span>{[t.topType, t.topCountries, t.topRegions, t.topGrapes].filter(Boolean).join(' · ') || '—'}</span>
             <span style={{ color: 'var(--text-tertiary)' }}>맛 평균</span>
             <span style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 12px' }}>
               {bar('무게감', t.avgBody)}{bar('당도', t.avgSweet)}{bar('산미', t.avgAcid)}{bar('탄닌', t.avgTannin)}
@@ -46,7 +46,7 @@ export function SommelierCustomerSummary({ t, marketing, createdBy }: { t?: Tast
             <span style={{ color: 'var(--text-tertiary)' }}>자주 산 향</span>
             <span>{t.topFlavors || '—'}</span>
             <span style={{ color: 'var(--text-tertiary)' }}>문답 선호</span>
-            <span>{[t.quizType, t.quizBody, t.quizPrice].filter(Boolean).join(' · ') || '—'}</span>
+            <span>{[t.quizType, t.quizBody, t.quizFlavors, t.quizPrice].filter(Boolean).join(' · ') || '—'}</span>
             <span style={{ color: 'var(--text-tertiary)' }}>추천 구매</span>
             <span>{t.recShare != null ? `${t.recShare}% (맞춤 추천에서 산 비율)` : '—'}</span>
           </div>

@@ -84,19 +84,19 @@ export async function buildSommelierWorkbook(d: {
     { header: '문답 수', key: 'sess', width: 7 }, { header: '첫 방문', key: 'first', width: 17 }, { header: '최근 방문', key: 'last', width: 17 },
     { header: '판매 횟수', key: 'sales', width: 8 }, { header: '총 병수', key: 'bottles', width: 7 }, { header: '총 금액', key: 'amount', num: won },
     { header: '평균 병 단가', key: 'avg', num: won }, { header: '최근 구매', key: 'lastBuy', width: 17 },
-    { header: '선호 타입(구매)', key: 'type', width: 12 }, { header: '선호 국가(구매)', key: 'countries', width: 16 },
+    { header: '선호 타입(구매)', key: 'type', width: 12 }, { header: '선호 국가(구매)', key: 'countries', width: 16 }, { header: '선호 산지(구매)', key: 'regions', width: 18 },
     { header: '선호 품종(구매)', key: 'grapes', width: 28 }, { header: '자주 산 향', key: 'flavors', width: 36 },
     { header: '평균 무게감', key: 'b', width: 9 }, { header: '평균 당도', key: 's', width: 8 }, { header: '평균 산미', key: 'ac', width: 8 },
     { header: '평균 탄닌', key: 't', width: 8 },
-    { header: '문답 선호 타입', key: 'qt', width: 12 }, { header: '문답 선호 바디', key: 'qb', width: 12 }, { header: '문답 선호 가격대', key: 'qp', width: 14 },
+    { header: '문답 선호 타입', key: 'qt', width: 12 }, { header: '문답 선호 바디', key: 'qb', width: 12 }, { header: '문답 선호 향', key: 'qf', width: 24 }, { header: '문답 선호 가격대', key: 'qp', width: 14 },
     { header: '추천 구매 비율(%)', key: 'rec', width: 14 },
   ], d.tastes.map((t) => ({
     cid: t.customer.id, cname: t.customer.name, phone: maskPhone(String(t.customer.phone || '')), by: t.customer.created_by || '',
     mkt: t.customer.marketing_opt_in ? 'Y' : 'N', sess: t.sessions, first: kst(t.firstVisit), last: kst(t.lastVisit),
     sales: t.sales, bottles: t.bottles, amount: t.amount, avg: t.avgUnit, lastBuy: kst(t.lastPurchase),
-    type: t.topType, countries: t.topCountries, grapes: t.topGrapes, flavors: t.topFlavors,
+    type: t.topType, countries: t.topCountries, regions: t.topRegions, grapes: t.topGrapes, flavors: t.topFlavors,
     b: t.avgBody ?? '', s: t.avgSweet ?? '', ac: t.avgAcid ?? '', t: t.avgTannin ?? '',
-    qt: t.quizType, qb: t.quizBody, qp: t.quizPrice, rec: t.recShare ?? '',
+    qt: t.quizType, qb: t.quizBody, qf: t.quizFlavors, qp: t.quizPrice, rec: t.recShare ?? '',
   })));
 
   // ④ 컬럼 설명

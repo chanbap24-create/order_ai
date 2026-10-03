@@ -14,6 +14,7 @@ import { CheckoutSheet } from './components/CheckoutSheet';
 import { SearchBar } from './components/SearchBar';
 import { StoreHome } from './components/StoreHome';
 import { GuestBadge } from './components/GuestBadge';
+import { GuestPickerSheet } from './components/GuestPickerSheet';
 import { RestockAlertsSheet } from './components/RestockAlertsSheet';
 import { useRestockAlerts } from './hooks/useRestockAlerts';
 import { readGuest } from '@/app/lib/store/cartSession';
@@ -47,6 +48,9 @@ export default function StorePage() {
   };
   const restock = useRestockAlerts(g.authed === true && !!g.storeKey);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  // 손님 미지정에서 벨 → 손님 찾기 시트(고르면 그 손님으로 지정한 뒤 신청). guestVer = 헤더 손님 표시 갱신
+  const [pickFor, setPickFor] = useState<StoreStockRow | null>(null);
+  const [guestVer, setGuestVer] = useState(0);
   const openAlerts = () => { setAlertsOpen(true); void restock.refresh(); };
   // 소믈리에 결과 → '정산' 바로 진입 (?checkout=1)
   useEffect(() => {
@@ -93,7 +97,7 @@ export default function StorePage() {
       onAdd={g.canSell && row.retail_price > 0 ? () => cart.add(row) : undefined /* 본사(전체 매장) 계정은 판매 안 함 */}
       // 입고 예정 목록에선 + 대신 입고 알림(벨) — 손님 미지정이면 상세(안내)로
       onAlert={!g.q.trim() && g.listMode === 'incoming'
-        ? () => { if (!readGuest()) void g.openDetail(row); else void restock.toggle(row.item_no, row.item_name, g.storeKey); }
+        ? () => { if (!readGuest()) setPickFor(row); else void restock.toggle(row.item_no, row.item_name, g.storeKey); }
         : undefined}
       alerted={restock.alertedItems.has(row.item_no)} />
   );
@@ -123,7 +127,7 @@ export default function StorePage() {
       ? [{ key: 'arrivals', label: '금주 입고', sub: `${g.summary.recent_arrivals.length}종`, icon: MenuIcons.arrivals, active: g.listMode === 'arrivals', onClick: () => openMenuList('arrivals') }]
       : []),
     { key: 'alerts', label: '입고 알림', sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined, icon: MenuIcons.alerts, dot: restock.tileDot, onClick: openAlerts },
-    { key: 'guests', label: '고객', sub: '단골 카드', icon: MenuIcons.guests, onClick: () => { window.location.href = '/store/customers'; } },
+    { key: 'guests', label: '고객', icon: MenuIcons.guests, onClick: () => { window.location.href = '/store/customers'; } },
     { key: 'password', label: '비밀번호 변경', icon: MenuIcons.password, onClick: () => setPwOpen(true) },
     { key: 'logout', label: '로그아웃', icon: MenuIcons.logout, onClick: () => void logoutStoreApp() },
   ];
@@ -139,7 +143,7 @@ export default function StorePage() {
           </button>
         </h1>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-          <GuestBadge sep />
+          <GuestBadge key={guestVer} sep />
           <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
             {storeLabel}
           </span>
@@ -192,7 +196,16 @@ export default function StorePage() {
           onNote={notes.tastingNoteSet.has(g.detail.item_no)
             ? () => void notes.openFor(g.detail!.item_no, g.detail!.item_name)
             : null}
-          onAdd={g.canSell && g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined} />
+          onAdd={g.canSell && g.detail.retail_price > 0 ? () => cart.add(g.detail!) : undefined}
+          onGuestPicked={() => setGuestVer((v) => v + 1)} />
+      )}
+
+      {pickFor && (
+        <GuestPickerSheet title="입고 알림 받을 손님" onClose={() => setPickFor(null)}
+          onPick={() => {
+            const row = pickFor; setPickFor(null); setGuestVer((v) => v + 1);
+            void restock.toggle(row.item_no, row.item_name, g.storeKey);
+          }} />
       )}
 
       {alertsOpen && (

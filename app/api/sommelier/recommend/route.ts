@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const customerId = Number(body?.customerId) || null;
     if (customerId) {
       try {
-        sessionId = await saveSession(customerId, session.manager, a, results.slice(0, 5));
+        sessionId = await saveSession(customerId, session.manager, a, results.slice(0, 5), body?.via === 'auto' ? 'auto' : 'quiz');
       } catch (e) {
         logger.warn(`[sommelier] 세션 저장 실패: ${e instanceof Error ? e.message : e}`);
       }

@@ -1,8 +1,8 @@
-// 단골 카드 — GET: 카드 데이터 / PATCH: 직원 메모 저장. 박경아·조성재·admin은 전체, 그 외 계정은 본인이 등록한 고객만.
+// 단골 카드 — GET: 카드 데이터 / PATCH: 직원 메모 또는 연령대·성별 저장. 박경아·조성재·admin은 전체, 그 외 계정은 본인이 등록한 고객만.
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/app/lib/auth';
 import { storeViewOf } from '@/app/lib/store/scope';
-import { canViewCustomer, customerScopeOf, loadCustomerCard, saveCustomerMemo } from '@/app/lib/sommelierCustomerCard';
+import { canViewCustomer, customerScopeOf, loadCustomerCard, saveCustomerMemo, saveCustomerProfile } from '@/app/lib/sommelierCustomerCard';
 import { handleApiError } from '@/app/lib/errors';
 
 async function guard(params: Promise<{ id: string }>) {
@@ -31,6 +31,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const g = await guard(params);
     if ('error' in g) return g.error;
     const b = await req.json();
+    if (b?.profile) {
+      if (!(await saveCustomerProfile(g.id, b.profile, g.session.manager))) {
+        return NextResponse.json({ error: '새 개인정보 동의를 받은 손님만 기록할 수 있습니다.' }, { status: 409 });
+      }
+      return NextResponse.json({ ok: true });
+    }
     await saveCustomerMemo(g.id, typeof b?.memo === 'string' ? b.memo : '', g.session.manager);
     return NextResponse.json({ ok: true });
   } catch (e) {

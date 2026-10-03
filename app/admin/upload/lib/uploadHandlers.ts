@@ -272,6 +272,9 @@ export async function uploadInventory(ctx: UploadContext): Promise<Response> {
     });
   }
 
+  // 매장별 입고 기록(0 → 1+ 된 날) — CDV·DL 공통, 실패해도 업로드는 성공
+  await fetch("/api/admin/upload/store-arrivals", { method: "POST" }).catch(() => null);
+
   // Downloads: 신규 와인 감지
   let extraInfo = {};
   if (type === "downloads") {

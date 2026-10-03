@@ -4,15 +4,17 @@
 import { RoundBackButton } from '@/app/components/RoundBackButton';
 import { SommelierMenu } from './SommelierMenu';
 import { useEffect, useState } from 'react';
-import { normalizePhone } from '../lib/quiz';
+import { normalizePhone, type QuizAnswers } from '../lib/quiz';
+import { ReturningGuestCard } from './ReturningGuestCard';
 import type { SommelierCustomer } from '@/app/lib/sommelierDb';
 
-export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
+export function CustomerScreen({ onDone, onStock, onBack, onHome, onAuto }: {
   // c=null: 정보 수집 미동의 — 추천·재고 안내는 그대로, 이력만 저장 안 함(개인정보보호법 §16③)
   onDone: (c: SommelierCustomer | null) => void;
   onStock: (c: SommelierCustomer | null) => void; // 기존 재고에서 선택 → 매장 재고(POS)로
   onBack: () => void;
   onHome: () => void; // 로고 → 매장 앱 메인(인트로)
+  onAuto: (c: SommelierCustomer, a: QuizAnswers) => void; // 재방문 '지난 취향으로 추천' — 문답 없이 결과로
 }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,15 +49,13 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
 
   // 동의했으면 성함·번호가 유효해야 등록 진행. 미동의면 익명으로 진행(입력값은 저장하지 않음).
   const fieldsOk = name.trim().length >= 2 && !!normalizePhone(phone);
-  const valid = !!picked || !agreed || fieldsOk;
-  const anonymous = !picked && !agreed;
+  const valid = !agreed || fieldsOk;
+  const anonymous = !agreed;
 
   // 등록 후 분기 — quiz: 맞춤 추천(취향 문답)으로, stock: 기존 재고에서 선택(매장 재고로)
   const submit = async (mode: 'quiz' | 'stock' = 'quiz') => {
     if (!valid || loading) return;
     if (anonymous) { (mode === 'stock' ? onStock : onDone)(null); return; }
-    // 재방문 선택 시 재등록 없이 그대로 진행
-    if (picked) { (mode === 'stock' ? onStock : onDone)(picked); return; }
     setLoading(true);
     setError('');
     try {
@@ -72,6 +72,14 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
       setLoading(false);
     }
   };
+
+  // 재방문 손님을 고르면 손님용 카드 화면으로 전환. 이전 → 입력 화면(번호만 비움 → 성함으로 다시 제안)
+  if (picked) {
+    return (
+      <ReturningGuestCard c={picked} onAuto={(a) => onAuto(picked, a)} onQuiz={() => onDone(picked)} onStock={() => onStock(picked)}
+        onBack={() => { setPicked(null); setPhone(''); }} onHome={onHome} />
+    );
+  }
 
   return (
     <section className="som-screen">
@@ -94,7 +102,7 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
           {/* 개인정보보호법 제15조② 필수 고지: 목적·항목·보유기간·거부권 / 제22조: 마케팅은 선택 동의 분리 */}
           <label className="som-consent">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-            <span><b>[필수]</b> 와인 추천 및 재방문 응대를 위해 성함·연락처를 수집·이용하는 데 동의합니다.
+            <span><b>[필수]</b> 와인 추천 및 재방문 응대를 위해 성함·연락처, 구매·취향 기록, 연령대·성별(직원 기록)을 수집·이용하는 데 동의합니다.
               보유기간: 마지막 방문일로부터 3년 또는 동의 철회 시까지.
               동의를 거부하실 수 있으나, 거부 시 추천 이력 서비스는 이용하실 수 없습니다.</span>
           </label>
@@ -103,20 +111,13 @@ export function CustomerScreen({ onDone, onStock, onBack, onHome }: {
             <span><b>[선택]</b> 신상품·행사 등 광고성 정보 수신(문자)에 동의합니다.</span>
           </label>
           {error && <div className="som-err">{error}</div>}
-          {/* 재방문 손님을 골랐으면 — 단골 카드(방문·구매·취향·메모)로 */}
-          {picked && (
-            <a href={`/store/customer/${picked.id}?from=sommelier`}
-              style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, color: 'var(--som-muted)', textDecoration: 'underline', textUnderlineOffset: 4 }}>
-              {picked.name} 님 단골 카드 보기 →
-            </a>
-          )}
 
           {matches.length > 0 && (
             <div className="som-returning">
               {matches.map((m) => (
                 <button key={m.id} onClick={() => {
-                  // 재방문도 분기(추천/재고)를 타야 하므로 고객을 선택 상태로만 잡는다
-                  setPicked(m); setName(m.name); setPhone(maskPhone(m.phone)); setMatches([]);
+                  // 재방문 — 손님용 카드로(거기서 지난 취향 추천/새 취향/재고 선택 분기)
+                  setPicked(m); setMatches([]);
                 }}>
                   <i />{m.name} · {maskPhone(m.phone)} <em>재방문 — 탭하여 선택</em>
                 </button>

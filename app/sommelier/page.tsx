@@ -93,12 +93,14 @@ export default function SommelierPage() {
   useEffect(() => {
     if (checking || !authed || !autoAnswers) return;
     const a = autoAnswers;
-    const t = setTimeout(() => { setAutoAnswers(null); void submit(a); }, 0);
+    const t = setTimeout(() => { setAutoAnswers(null); void submit(a, customer, 'auto'); }, 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checking, authed, autoAnswers]);
 
-  const submit = async (a: QuizAnswers) => {
+  // who: 방금 지정한 손님(재방문 '지난 취향으로 추천') — state 반영 전이라 직접 넘긴다
+  // via='auto': 문답 없이 구매 취향으로 바로 추천 — 이력에서 일반 문답과 구분
+  const submit = async (a: QuizAnswers, who: SommelierCustomer | null = customer, via: 'quiz' | 'auto' = 'quiz') => {
     if (submitting) return;
     setSubmitting(true);
     setReading('on');
@@ -106,13 +108,13 @@ export default function SommelierPage() {
     try {
       const r = await fetch('/api/sommelier/recommend', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: a, customerId: customer?.id, store }),
+        body: JSON.stringify({ answers: a, customerId: who?.id, store, via }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || '추천에 실패했습니다');
       setAnswers(a);
       setSessionId(j.sessionId || null);
-      if (customer?.id) writeQuizSession(j.sessionId || null); // 정산 구매 기록에 직전 문답 연결
+      if (who?.id) writeQuizSession(j.sessionId || null); // 정산 구매 기록에 직전 문답 연결
       setResults(j.results || []);
       setPriceHint(j.priceHint || null);
       setTimeout(() => {
@@ -157,6 +159,12 @@ export default function SommelierPage() {
             // 고객 단계 통과 = 새 손님 응대 시작 (c=null: 정보 미동의 — 추천만, 이력 기록 없음)
             startGuestSession(c ? { id: c.id, name: c.name } : null);
             setCustomer(c); setPhase('quiz');
+          }}
+          onAuto={(c, a) => {
+            // 재방문 '지난 취향으로 추천' — 손님 연결 후 문답 없이 바로 추천
+            startGuestSession({ id: c.id, name: c.name });
+            setCustomer(c);
+            void submit(a, c, 'auto');
           }}
           onStock={(c) => {
             // 기존 재고에서 선택 — 매장 재고(POS)로, 매장·고객을 함께 넘긴다

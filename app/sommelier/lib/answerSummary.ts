@@ -2,8 +2,9 @@
 import { FLAVOR_KO } from '@/app/api/sales/recommend/lib/flavor';
 import { BODY_OPTIONS, COUNTRY_OPTIONS, FLAVOR_GROUPS, PRICE_OPTIONS, TYPE_OPTIONS, type QuizAnswers } from './quiz';
 
-export function answerSummary(a: Partial<QuizAnswers>): string {
+export function answerSummary(a: Partial<QuizAnswers> & { via?: string }): string {
   const parts: string[] = [];
+  if (a.via === 'auto') parts.push('지난 취향 추천'); // 문답 없이 구매 취향으로 바로 추천한 기록
   const t = TYPE_OPTIONS.find((o) => o.value === a.type); if (t?.value) parts.push(t.label);
   const b = BODY_OPTIONS.find((o) => o.value === a.body); if (b?.value) parts.push(b.label);
   for (const g of a.flavorGroups || []) parts.push(`${FLAVOR_GROUPS[g]?.label || g}(전체)`);

@@ -23,7 +23,7 @@ export function SommelierMenu() {
       key: 'alerts', label: '입고 알림', icon: MenuIcons.alerts, dot: restock.tileDot, onClick: () => goStore('alerts'),
       sub: restock.arrived.length ? `입고 ${restock.arrived.length}건` : restock.waiting.length ? `대기 ${restock.waiting.length}건` : undefined,
     },
-    { key: 'guests', label: '고객', sub: '단골 카드', icon: MenuIcons.guests, onClick: () => { window.location.href = '/store/customers'; } },
+    { key: 'guests', label: '고객', icon: MenuIcons.guests, onClick: () => { window.location.href = '/store/customers'; } },
     { key: 'admin', label: '관리자', icon: MenuIcons.store, onClick: () => { window.location.href = '/sommelier/admin'; } },
     { key: 'password', label: '비밀번호 변경', icon: MenuIcons.password, onClick: () => setPwOpen(true) },
     { key: 'logout', label: '로그아웃', icon: MenuIcons.logout, onClick: () => void logoutStoreApp() },

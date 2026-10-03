@@ -8,10 +8,11 @@ import { RestockAlertButton } from './RestockAlertButton';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 
-export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
+export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd, onGuestPicked }: {
   row: StoreStockRow; storeKey: StoreView; alts: StoreStockRow[]; onClose: () => void; // 'all' = 본사(매장별 전체 표시)
   onNote?: (() => void) | null; // 테이스팅 노트 열기 (있는 품목만)
   onAdd?: () => void;           // 정산에 담기 (POS)
+  onGuestPicked?: () => void;   // 입고 알림에서 손님을 찾아 지정했을 때
 }) {
   const mine = mineOf(row, storeKey);
   // 본사(전체 매장) — 법인별 모든 매장 수량. 매장 직원 — 자기 매장 한 줄(다른 매장은 서버가 이미 제거)
@@ -100,7 +101,7 @@ export function DetailSheet({ row, storeKey, alts, onClose, onNote, onAdd }: {
 
         {/* 입고 예정 와인 — 지정 손님 이름으로 입고 알림 신청 */}
         {(row.arrival_btls > 0 || row.incoming > 0) && (
-          <RestockAlertButton key={`alert-${row.item_no}`} itemNo={row.item_no} itemName={row.item_name} storeKey={storeKey} />
+          <RestockAlertButton key={`alert-${row.item_no}`} itemNo={row.item_no} itemName={row.item_name} storeKey={storeKey} onGuestPicked={onGuestPicked} />
         )}
 
         {/* 매장에 없을 때 — 지금 팔 수 있는 대체품 */}

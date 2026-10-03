@@ -7,7 +7,11 @@ import type { SommelierResult } from './sommelierRecommend';
 
 export type SommelierCustomer = { id: number; name: string; phone: string };
 
+/** 손님 정보 수집 동의 문구 버전 — 2: 구매·취향 기록 + 연령대·성별(직원 기록) 항목 고지. 문구를 바꾸면 올린다. */
+export const CONSENT_VERSION = 2;
+
 /** 핸드폰 기준 고객 upsert. 이름이 바뀌면 최신으로 갱신.
+ *  손님 정보 화면의 [필수] 동의를 거쳐야 호출되므로 현재 동의 문구 버전(CONSENT_VERSION)으로 기록.
  *  marketingOptIn=true면 수신동의·시각 기록(선택 동의 — 철회는 false로 덮어쓰지 않고 별도 처리). */
 export async function upsertCustomer(
   name: string, phone: string, createdBy?: string, marketingOptIn?: boolean,
@@ -15,23 +19,34 @@ export async function upsertCustomer(
   const { data: existing } = await supabase
     .from('sommelier_customers').select('id, name, phone').eq('phone', phone).maybeSingle();
   if (existing) {
-    const upd: Record<string, unknown> = {};
+    const upd: Record<string, unknown> = { consent_version: CONSENT_VERSION };
     if (existing.name !== name) upd.name = name;
     if (marketingOptIn) { upd.marketing_opt_in = true; upd.marketing_opt_in_at = new Date().toISOString(); }
-    if (Object.keys(upd).length) {
-      await supabase.from('sommelier_customers')
-        .update({ ...upd, updated_at: new Date().toISOString() }).eq('id', existing.id);
-    }
+    await supabase.from('sommelier_customers')
+      .update({ ...upd, updated_at: new Date().toISOString() }).eq('id', existing.id);
     return { ...existing, name };
   }
   const { data, error } = await supabase
     .from('sommelier_customers').insert({
-      name, phone, created_by: createdBy || null,
+      name, phone, created_by: createdBy || null, consent_version: CONSENT_VERSION,
       marketing_opt_in: !!marketingOptIn,
       marketing_opt_in_at: marketingOptIn ? new Date().toISOString() : null,
     }).select('id, name, phone').single();
   if (error || !data) throw new Error(`고객 등록 실패: ${error?.message}`);
   return data;
+}
+
+/** 재방문 손님의 동의 갱신 — 손님용 카드에서 손님이 직접 체크.
+ *  consent=true: 현재 동의 문구(수집 항목)로 갱신 / marketing: 광고성 수신 동의(true) 또는 철회(false) */
+export async function updateCustomerConsent(id: number, p: { consent?: boolean; marketing?: boolean }): Promise<void> {
+  const upd: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (p.consent === true) upd.consent_version = CONSENT_VERSION;
+  if (typeof p.marketing === 'boolean') {
+    upd.marketing_opt_in = p.marketing;
+    upd.marketing_opt_in_at = p.marketing ? new Date().toISOString() : null;
+  }
+  const { error } = await supabase.from('sommelier_customers').update(upd).eq('id', id);
+  if (error) throw error;
 }
 
 /** 문답 세션 저장(답변 + 추천 결과 스냅샷) → session_id */
@@ -48,12 +63,13 @@ export async function searchCustomers(name: string, phoneDigits: string): Promis
 }
 
 export async function saveSession(
-  customerId: number, manager: string, answers: QuizAnswers, results: SommelierResult[],
+  customerId: number, manager: string, answers: QuizAnswers, results: SommelierResult[], via: 'quiz' | 'auto' = 'quiz',
 ): Promise<number> {
   const { data, error } = await supabase
     .from('sommelier_sessions')
     .insert({
-      customer_id: customerId, manager, answers,
+      // via='auto'(지난 취향으로 바로 추천)는 답변 JSON에 표시 — 문답 선호 통계에서 빼고 이력엔 따로 표기
+      customer_id: customerId, manager, answers: via === 'auto' ? { ...answers, via } : answers,
       results: results.map((r) => ({
         item_code: r.item_code, name: r.name, retail_price: r.retail_price, score: r.score,
       })),
