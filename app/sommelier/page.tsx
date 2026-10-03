@@ -70,6 +70,10 @@ export default function SommelierPage() {
           setPhase('customer'); // 손님 미연결이면 등록부터
         }
         window.history.replaceState(null, '', '/sommelier');
+      } else if (!qs.get('resume')) {
+        // 그냥 메인(/sommelier)으로 들어옴 — 재고 앱 로고 등. 응대 중이던 손님 해제
+        // (resume인데 저장된 화면이 없을 때는 손님 유지 — 재고 앱 '뒤로'로 돌아온 경우)
+        endGuestSession();
       }
     } catch { /* ignore */ }
     Promise.all([
@@ -130,10 +134,8 @@ export default function SommelierPage() {
     }
   };
 
-  // 로고 → 매장 앱 메인(인트로). 손님 연결·정산 카트는 유지(실수로 눌러도 응대 내용이 날아가지 않게)
-  const goHome = () => setPhase('intro');
-
-  // 새 손님 응대 — 이전 손님 연결·카트까지 해제해야 다음 구매가 앞 손님에게 기록되지 않는다
+  // 새 손님 응대 — 이전 손님 연결·카트까지 해제해야 다음 구매가 앞 손님에게 기록되지 않는다.
+  // 로고(메인으로)도 같은 동작 — 메인으로 나가면 응대 중이던 손님 정보는 해제
   const newGuest = () => {
     endGuestSession();
     setCustomer(null); setAnswers(null); setResults([]); setSessionId(null); setPhase('intro');
@@ -154,7 +156,7 @@ export default function SommelierPage() {
           onStart={() => setPhase('customer')} />
       )}
       {phase === 'customer' && (
-        <CustomerScreen onBack={() => setPhase('intro')} onHome={goHome}
+        <CustomerScreen onBack={() => setPhase('intro')} onHome={newGuest}
           onDone={(c) => {
             // 고객 단계 통과 = 새 손님 응대 시작 (c=null: 정보 미동의 — 추천만, 이력 기록 없음)
             startGuestSession(c ? { id: c.id, name: c.name } : null);
@@ -176,7 +178,7 @@ export default function SommelierPage() {
           }} />
       )}
       {phase === 'quiz' && (
-        <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting} onHome={goHome}
+        <QuizFlow key={quizNonce} onSubmit={submit} submitting={submitting} onHome={newGuest}
           onExit={() => setPhase('customer')}
           initialAnswers={resume ? answers : null} initialStep={resume ? 4 : 0} />
       )}
@@ -188,7 +190,7 @@ export default function SommelierPage() {
         </div>
       )}
       {phase === 'results' && (
-        <ResultsScreen onHome={goHome} canSell={canSell} store={store}
+        <ResultsScreen onHome={newGuest} canSell={canSell} store={store}
           customerName={customer?.name || '손님'}
           customerId={customer?.id ?? null}
           sessionId={sessionId}

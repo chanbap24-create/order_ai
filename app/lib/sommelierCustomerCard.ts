@@ -58,21 +58,49 @@ export async function canViewCustomer(scope: CustomerScope, customerId: number):
   return data?.created_by === scope.owner; // 고객 목록과 같은 판정
 }
 
-/** 구매 취향 → 문답 답변(타입·바디·가격대). 국가·향은 비워 추천 폭을 남긴다 */
-function suggestAnswers(o: OrderRow[], avgBody: number | null, avgUnit: number): QuizAnswers {
+/** '지난 취향으로 추천' 답변 — 손님용 카드·직원용 카드 공용(한 곳에서만 만든다).
+ *  구매가 있으면: 가장 많이 산 타입 + 그 타입 와인만의 무게감·가격대·자주 산 향 3개(나라는 하드게이트라 비움).
+ *  구매가 없으면: 마지막 '실제 문답'(지난 취향 추천 기록 제외). 가격을 안 골랐으면 30만원 상한. 둘 다 없으면 null */
+const NO_PRICE_CAP = 300000;
+function suggestFor(os: OrderRow[], ss: SessionRow[]): QuizAnswers | null {
   const typeOf = (t: string) => (/스위트|디저트|주정|포트|sweet|dessert|fortified/i.test(t) ? 'sweet'
     : /스파클링|샴페인|크레망|sparkling|champagne/i.test(t) ? 'sparkling'
     : /화이트|white/i.test(t) ? 'white' : /레드|red/i.test(t) ? 'red' : null);
-  const counts = new Map<string, number>();
-  for (const r of o) { const k = typeOf(String(r.wine_type || '')); if (k) counts.set(k, (counts.get(k) || 0) + (Number(r.quantity) || 1)); }
-  const type = ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null) as QuizAnswers['type'];
-  const body = avgBody == null ? null : avgBody <= 2.3 ? 'light' : avgBody >= 3.7 ? 'full' : 'medium';
-  const round = (n: number) => Math.round(n / 10000) * 10000;
-  return {
-    ...EMPTY_ANSWERS, type, body,
-    priceMin: avgUnit > 0 ? round(avgUnit * 0.7) : null,
-    priceMax: avgUnit > 0 ? Math.max(round(avgUnit * 1.4), round(avgUnit * 0.7) + 10000) : null,
-  };
+  const qty = (o: OrderRow) => Number(o.quantity) || 1;
+  if (os.length) {
+    const counts = new Map<string, number>();
+    for (const o of os) { const k = typeOf(String(o.wine_type || '')); if (k) counts.set(k, (counts.get(k) || 0) + qty(o)); }
+    const type = ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null) as QuizAnswers['type'];
+    // 무게감·가격·향은 그 타입 와인만으로 — 화이트·샴페인이 섞이면 레드 추천이 가볍고 싸게 잡힘
+    const mine = type ? os.filter((o) => typeOf(String(o.wine_type || '')) === type) : os;
+    const bodies = mine.filter((o) => o.body != null);
+    const bw = bodies.reduce((a, o) => a + qty(o), 0);
+    const avgBody = bw ? bodies.reduce((a, o) => a + Number(o.body) * qty(o), 0) / bw : null;
+    const bottles = mine.reduce((a, o) => a + qty(o), 0);
+    const paid = mine.reduce((a, o) => a + (Number(o.amount ?? (Number(o.retail_price) || 0) * qty(o)) || 0), 0);
+    const avgUnit = bottles ? paid / bottles : 0;
+    // 자주 산 향 3개(병 수 → 동점이면 최근 구매 순) — 추천 점수에 세부 향(개당 +6)으로 반영
+    const fl = new Map<string, { n: number; at: string }>();
+    for (const o of mine) for (const f of (o.flavor_tags || []) as string[]) {
+      if (/_body$/.test(f)) continue;
+      const cur = fl.get(f) || { n: 0, at: '' };
+      fl.set(f, { n: cur.n + qty(o), at: o.created_at > cur.at ? o.created_at : cur.at });
+    }
+    const flavors = [...fl.entries()].sort((a, b) => b[1].n - a[1].n || b[1].at.localeCompare(a[1].at)).slice(0, 3).map(([k]) => k);
+    const body = avgBody == null ? null : avgBody <= 2.3 ? 'light' : avgBody >= 3.7 ? 'full' : 'medium';
+    const round = (n: number) => Math.round(n / 10000) * 10000;
+    return {
+      ...EMPTY_ANSWERS, type, body, flavors,
+      priceMin: avgUnit > 0 ? round(avgUnit * 0.7) : null,
+      priceMax: avgUnit > 0 ? Math.max(round(avgUnit * 1.4), round(avgUnit * 0.7) + 10000) : null,
+    };
+  }
+  const lastQuiz = ss.find((s) => s.answers && s.answers.via !== 'auto'); // ss는 최신순
+  if (!lastQuiz) return null;
+  const { via: _via, ...answers } = lastQuiz.answers; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const a: QuizAnswers = { ...EMPTY_ANSWERS, ...answers };
+  if (a.priceMin == null && a.priceMax == null) a.priceMax = NO_PRICE_CAP; // 가격 무관이면 3L·고가 빈티지까지 나오지 않게
+  return a;
 }
 
 export async function loadCustomerCard(id: number): Promise<CustomerCardData | null> {
@@ -113,7 +141,7 @@ export async function loadCustomerCard(id: number): Promise<CustomerCardData | n
     },
     memo: c.memo || '',
     memoMeta: c.memo_updated_by ? `${c.memo_updated_by} · ${kstDate(c.memo_updated_at).slice(5).replace('-', '.')} 수정` : '',
-    suggested: suggestAnswers(os, t.avgBody, t.avgUnit),
+    suggested: suggestFor(os, ss),
   };
 }
 
@@ -155,11 +183,8 @@ export async function loadWelcome(id: number, scope: CustomerScope): Promise<Wel
   const os = (orders || []) as OrderRow[];
   const ss = (sessions || []) as SessionRow[];
   const last = os[0];
-  // 추천 답변: 구매가 있으면 구매 취향, 없으면 마지막 문답 답변 그대로
   const t = os.length ? buildTastes([c as CustomerRow], os, ss, regionOf)[0] : null;
-  let suggested: QuizAnswers | null = null;
-  if (t) suggested = suggestAnswers(os, t.avgBody, t.avgUnit);
-  else if (ss[0]?.answers) suggested = { ...EMPTY_ANSWERS, ...ss[0].answers };
+  const suggested = suggestFor(os, ss); // 직원용 카드 '이 취향으로 추천'과 같은 답변
   const wineName = (o: OrderRow) => `${o.item_name || o.item_code}${o.vintage ? ` ${o.vintage}` : ''}`;
   return {
     taste: t ? {

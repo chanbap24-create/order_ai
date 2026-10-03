@@ -171,8 +171,9 @@ export function CustomerCard({ d, onBack, onRecommend, onServe, onSaveMemo, onSa
             style={{ flex: 1, height: 46, borderRadius: 999, border: `1px solid ${GOLD_LINE}`, background: 'var(--surface)', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
             응대 시작
           </button>
-          <button onClick={onRecommend}
-            style={{ flex: 1.4, height: 46, borderRadius: 999, border: 'none', background: 'var(--action)', fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+          {/* 구매·문답 기록이 하나도 없으면 추천할 취향이 없어 비활성 */}
+          <button onClick={onRecommend} disabled={!d.suggested}
+            style={{ flex: 1.4, height: 46, borderRadius: 999, border: 'none', background: 'var(--action)', fontSize: 14, fontWeight: 700, color: '#fff', cursor: d.suggested ? 'pointer' : 'default', opacity: d.suggested ? 1 : 0.4 }}>
             이 취향으로 추천
           </button>
         </div>

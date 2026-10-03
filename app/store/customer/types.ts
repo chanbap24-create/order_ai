@@ -28,5 +28,5 @@ export type CustomerCardData = {
   profile: { ageBand: AgeBand | null; gender: Gender | null; canEdit: boolean; meta: string };
   memo: string;                  // 직원 메모
   memoMeta: string;              // '조성재 · 10.03 수정' (없으면 '')
-  suggested: QuizAnswers;        // '이 취향으로 추천' — 구매 취향으로 채운 문답 답변
+  suggested: QuizAnswers | null; // '이 취향으로 추천' — 구매 취향(없으면 마지막 문답) 답변. 둘 다 없으면 null
 };
